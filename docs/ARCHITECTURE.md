@@ -167,13 +167,15 @@ salva PNG e miniatura accanto all'originale; la foto passa da `PENDING` a `READY
 (codice di errore). La route della foto serve anche `?size=cutout` / `cutout-thumb`. Le foto di
 "Mis ramos" non si scontornano: il fondo fa parte dello stile.
 
-Anteprima esatta (ADR-034): il servizio sceglie per ogni fiore e follaje la foto senza fondo (di
-frente se c'è) e la mette nella descrizione del ramo; se ogni fiore contato ne ha una e il
+Anteprima esatta (ADR-034): il servizio sceglie per ogni fiore e follaje fino a 3 foto senza fondo
+(di frente per prima) e le mette nella descrizione del ramo; se ogni fiore contato ne ha una e il
 provider sa partire da un'immagine, la richiesta è in modalità EXACT. Il boceto
-(`layoutBouquetSketch` nel dominio, disegno SVG + ritagli con sharp in `ai/sketch-renderer.ts`) si
-serve gratis da `/builder/[id]/sketch`; il worker lo passa al modello (`nano-banana-2/edit`), fa
-contare i fiori a un modello di visione (`FlowerCounter`) e accetta solo numeri identici, con un
-nuovo tentativo; altrimenti FAILED `count_mismatch` senza credito.
+(`layoutBouquetSketch` nel dominio: corolle fitte a cupola; disegno SVG + corolle estratte dai
+ritagli con sharp in `ai/sketch-renderer.ts` e `ai/bloom-head.ts`) si serve gratis da
+`/builder/[id]/sketch`; il worker lo passa al modello (`nano-banana-2/edit`), fa contare i fiori
+(`TwoStepFlowerCounter`: Claude, poi Gemini Pro con i riquadri solo se i numeri non tornano) e
+accetta solo numeri identici, con un nuovo tentativo; altrimenti FAILED `count_mismatch` senza
+credito.
 
 Colore di carta e nastro (ADR-030): l'editor invia `{catalogItemId, quantity, color}`; il server
 calcola il colore effettivo con `resolveLineColor` sui colori attuali dell'articolo, lo salva sulla

@@ -513,6 +513,23 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   quanto una rosa); il contatore è un cancello, non una garanzia (su immagini difficili 4/6 il
   21/11); contenitori (caja, florero) disegnati come un rettangolo; il "tamaño" del ramo non
   cambia il boceto.
+- **Revisione v2 (stesso giorno, dopo il giudizio del founder: "sembra un collage, troppo
+  finto").** La v1 metteva fiori sparsi su steli dritti e il modello li copiava alla lettera.
+  Confronto su 3 ramos (`docs/AI_BENCHMARK.md`): solo testo 1/3 esatti, testo + foto dei fiori
+  1/3, boceto nuovo 3/3; chiedere al modello di "reinventare" ogni fiore lo rende più vario ma
+  rompe i conteggi (1/3). Adottato:
+  - **boceto `sketch-v2`:** solo le corolle (il core toglie gli steli dai ritagli: erosione
+    della maschera, componente più grande), fitte a cupola come in un ramo vero, le esterne
+    dietro e più piccole, le centrali davanti; steli nascosti nella carta; fino a 3 angolazioni
+    dello stesso fiore alternate, con piccole differenze di luce, rotazione e specchio;
+  - **prompt `bouquet-preview-v6`:** "foto vera di un ramo fatta in negozio", stessi fiori nei
+    stessi punti, profondità e ombre, carta con pieghe;
+  - **controllo in due passi:** Claude conta per primo (~5 s); solo se non ritrova i numeri
+    decide una seconda opinione, Gemini 2.5 Pro che individua ogni fiore con un riquadro
+    (~20–40 s, ~0,03 USD). Sulla dozzina Claude sbagliava di uno 1 volta su 6, Gemini Pro 0 su 6:
+    così una foto giusta non si scarta per un errore di conteggio. Gemini Flash scartato
+    (10–19 rose contate su 12).
+  - Verifica nell'app con fal: 12 rose in carta nera con eucalipto, esatte, 18,6 s.
 
 ---
 

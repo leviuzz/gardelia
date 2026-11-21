@@ -219,3 +219,30 @@ Sonnet 4.5 (riceve i tipi, non le quantità).
 Esito: 4 su 4 esatti al primo tentativo; le foto rispettano posizioni, colori di carta e nastro e
 lo stile della fioreria. Con una sola foto per fiore i fiori uguali si somigliano molto (mitigato
 specchiando i ritagli a caso). **Adottato** (ADR-034).
+
+## Boceto v2: quale strada sembra un ramo vero (21/11/2026, ~1,7 USD)
+
+Giudizio del founder sulla v1: "sembra un collage di un bambino". Stessi 3 ramos, tre strade,
+conteggi verificati:
+
+| Strada                                             | Esatti | Aspetto                                                     |
+| -------------------------------------------------- | ------ | ----------------------------------------------------------- |
+| A — solo testo (prompt v4, nessuna immagine)       | 1 su 3 | il più naturale, ma 13 rose su 12 e 4 girasoli su 3         |
+| C — testo + foto dei fiori come riferimento        | 1 su 3 | naturale, fiori simili a quelli del fiorista, numeri errati |
+| B — boceto nuovo (corolle fitte a cupola) → foto   | 3 su 3 | ramo vero, carta e pieghe reali; rose molto simili fra loro |
+| B2 — come B, chiedendo di "reinventare" ogni fiore | 1 su 3 | un po' più vario, ma aggiunge fiori                         |
+| B con il codice finale (`sketch-v2`, prompt v6)    | 3 su 3 | come B (un "13" del contatore era un suo errore: rose 12)   |
+
+**Contatori a confronto** (stesse foto, 3 ripetizioni, 12 rose vere):
+
+| Contatore                                      | Giusti | Tempo   |
+| ---------------------------------------------- | ------ | ------- |
+| Claude Sonnet 4.5, elenco dei fiori            | 5 su 6 | ~4 s    |
+| Gemini 2.5 Pro, riquadri (ragionamento attivo) | 6 su 6 | 21–38 s |
+| Gemini 2.5 Flash, riquadri                     | 0 su 6 | ~7 s    |
+
+Scelta (ADR-034): strada B; Claude conta per primo e, solo se non coincide, decide Gemini Pro.
+Nota operativa: fal accetta al massimo 10 richieste contemporanee per account.
+
+**Verifica nell'app** (fal reale): 12 rose, eucalipto, carta coreana nera, listón de satín →
+12 rose esatte (contate anche a occhio), 18,6 s.

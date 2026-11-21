@@ -37,8 +37,9 @@ lint ✅ · format ✅ · typecheck ✅ · test 272/272 ✅ · build ✅ · E2E 
 **Anteprima esatta** (21/11/2026, ADR-034): con la foto di ogni fiore il Diseñador mostra
 subito il boceto con il numero esatto di fiori (gratis); la foto realistica parte dal boceto e si
 mostra solo se un modello di visione ritrova gli stessi numeri ("Número de flores verificado").
-Prove reali: 4 ramos su 4 esatti. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test
-301/301 ✅ · build ✅ · E2E 30/30 ✅.
+Dopo il giudizio del founder sulla v1 ("sembra un collage") il boceto è stato rifatto come un
+ramo vero (v2: corolle fitte a cupola, steli nascosti) e il conteggio ha una seconda opinione.
+Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 310/310 ✅ · build ✅ · E2E 30/30 ✅.
 
 **Prossimo:** prova con foto vere di una fioreria del pilota e prova da ~100 immagini (costo
 reale). Vedi "I prossimi task".
@@ -354,3 +355,19 @@ il **taglio** seguente.
   variante "edit" e contatore fal), build ✅, E2E 30/30 ✅ (+2: boceto, foto verificata e
   privacy; fiori da fotografare); controllo visivo del pannello a 1280 e 320 px.
 - Spesa fal totale: ≈4,3 USD su 10 € (stima da listino).
+
+### 2026-11-21 — Anteprima esatta v2 (dopo il giudizio del founder)
+
+- Il founder ha bocciato la v1 ("sembra un collage, fiori innaturali"): aveva ragione, fiori
+  sparsi su steli dritti copiati alla lettera dal modello.
+- Confronto (~1,7 USD): solo testo 1/3 esatti, testo + foto dei fiori 1/3, boceto nuovo 3/3;
+  "reinventare" i fiori 1/3. Contatori: Claude 5/6 sulla dozzina, Gemini 2.5 Pro 6/6, Gemini
+  Flash inutilizzabile.
+- Fatto: boceto `sketch-v2` (corolle senza stelo, cupola fitta, esterne dietro, fino a 3
+  angolazioni alternate, luce/rotazione/specchio), `extractBloomHead` (erosione + componente più
+  grande, cache), prompt v6, `TwoStepFlowerCounter` (Claude, poi Gemini Pro con riquadri solo se
+  serve), costo reale del controllo nel job, lease e tempi del conteggio adeguati.
+- Verifiche: lint ✅, format ✅, typecheck ✅, `pnpm test` 310/310 ✅ (+9: angolazioni e ordine
+  del boceto, riquadri con doppioni e JSON rovinato, seconda opinione, corolla senza stelo),
+  build ✅, E2E 30/30 ✅; nell'app con fal: 12 rose in carta nera esatte, 18,6 s.
+- Spesa fal totale: ≈6,0 USD su 10 € (stima da listino).
