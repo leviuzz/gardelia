@@ -19,8 +19,8 @@ locale): quota 25/mese, pacchetti extra via CLI, cache per fioreria, tetto di sp
 R2/locale. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 206/206 ✅ · build ✅ ·
 E2E 22/22 ✅.
 
-**Prossimo:** collegare il provider reale (fal.ai) appena il founder crea account e chiave, ed
-eseguire il benchmark di ≥100 immagini (O-01). Vedi "I prossimi task".
+**Prossimo:** scegliere il modello con la prova gratuita di `docs/AI_BENCHMARK.md`, poi account
+diretto (~10 €) e chiave per collegare il provider reale (O-01). Vedi "I prossimi task".
 
 ---
 
@@ -111,13 +111,13 @@ il **taglio** seguente.
 | ----- | ----- | ----------------------------------------------------------------------------------------------------------------- |
 | S1-11 | 🟡    | archivio (R2 + locale) fatto per le anteprime; **upload immagini del catalogo** ancora da fare                    |
 | S1-12 | ✅    | `AiJob` come coda (SKIP LOCKED, lease, retry), worker nel processo web, quota/pacchetti/cache/tetto (ADR-024/025) |
-| S1-13 | ⛔    | provider reale: serve account fal.ai + chiave del founder (O-01); poi benchmark e prompt definitivo               |
+| S1-13 | ⛔    | provider reale: prova gratuita del founder (`docs/AI_BENCHMARK.md`), poi account diretto e chiave (O-01)          |
 | S1-14 | 🟡    | E2E anteprima con provider simulato ✅; BQ-02 coperto da test di integrazione (fallimento senza costo)            |
 
 ### I prossimi task (nell'ordine)
 
-1. **Founder:** creare l'account fal.ai con credito prepagato (tetto naturale) e una chiave API, da inserire nel modulo sicuro (mai in chat).
-2. S1-13 Adattatore fal.ai + benchmark di ≥100 immagini su 2–3 modelli (fedeltà di steli e colori, tempi, costo reale) → scelta del modello e prezzi dei pacchetti (ADR-024).
+1. **Founder:** prova manuale gratuita dei prompt di `docs/AI_BENCHMARK.md` in ChatGPT e Gemini (voti 1–5).
+2. S1-13 Account diretto del modello vincitore (~10 € prepagati, chiave nel modulo sicuro) + adattatore; prima del pilota prova da ~100 immagini → prezzi dei pacchetti (ADR-024).
 3. Immagini del catalogo (upload su R2) e uso delle foto del fiorista come riferimento di stile (AI-BQ-07, con consenso: O-07).
 4. Anteprima nel preventivo stampato e nel messaggio WhatsApp.
 5. Aggiungere un disegno del Builder a un preventivo in bozza esistente.
@@ -193,3 +193,6 @@ il **taglio** seguente.
 - Verifiche: lint ✅, format ✅, typecheck ✅, `pnpm test` 206/206 ✅ (due esecuzioni), build ✅ (senza
   avvisi Edge), E2E 22/22 ✅ (due esecuzioni della parte Builder).
 - Bloccato: provider reale (serve la chiave del founder).
+- Revisione (domanda del founder): fal.ai non è necessario adesso. Scelta del modello in 3 passi
+  (`docs/AI_BENCHMARK.md`): prova manuale gratuita in ChatGPT/Gemini con i nostri prompt, poi
+  account diretto del vincitore con ~10 € prepagati, poi prova da ~100 immagini prima del pilota.
