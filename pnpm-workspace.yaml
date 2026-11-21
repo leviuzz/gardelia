@@ -1,0 +1,12 @@
+packages:
+  - apps/*
+  - packages/*
+
+# pnpm 10 blocca gli script di installazione delle dipendenze per default:
+# consentiamo solo quelli necessari (engine Prisma, esbuild per tsx/vite, sharp per next/image).
+onlyBuiltDependencies:
+  - '@prisma/engines'
+  - prisma
+  - esbuild
+  - sharp
+  - unrs-resolver

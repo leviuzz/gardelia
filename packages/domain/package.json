@@ -1,0 +1,17 @@
+{
+  "name": "@floral/domain",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Regole di dominio pure (nessun I/O): denaro, permessi, schemi di validazione, costi ricette.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  }
+}

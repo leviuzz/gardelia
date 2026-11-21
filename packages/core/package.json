@@ -1,0 +1,24 @@
+{
+  "name": "@floral/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Casi d'uso applicativi (servizi) multi-tenant: contesto, autorizzazione, audit, catalogo, team.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@floral/db": "workspace:*",
+    "@floral/domain": "workspace:*",
+    "nodemailer": "10.6.1",
+    "pino": "10.4.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "8.0.2"
+  }
+}

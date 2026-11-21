@@ -1,0 +1,43 @@
+# dipendenze
+node_modules/
+.pnpm-store/
+
+# build / cache
+.next/
+out/
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# client Prisma generato (rigenerato con `pnpm db:generate`)
+packages/db/src/generated/
+
+# test
+coverage/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# ambiente e segreti: MAI committare file .env reali
+.env
+.env.*
+!.env.example
+
+# log e OS
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+
+# editor
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# deploy
+.vercel/

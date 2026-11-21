@@ -1,0 +1,599 @@
+// =============================================================================
+// Floral OS — schema dati (Prisma 7, PostgreSQL)
+//
+// Convenzioni (vedi docs/ARCHITECTURE.md e docs/DECISIONS.md):
+// - ID: UUID v7 (ordinabili nel tempo), tipo nativo `uuid`.
+// - Denaro: interi in unità minime (es. centavos) + valuta ISO 4217 su ogni riga monetaria.
+// - Ogni entità di proprietà di un merchant ha `tenantId` ed è protetta da una policy
+//   di Row-Level Security definita nelle migrazioni SQL (non esprimibile in Prisma).
+// - Le relazioni fra entità dello stesso tenant usano FK composite (tenantId, id):
+//   il database rifiuta riferimenti incrociati fra tenant diversi.
+// - Date/ore in UTC; il fuso orario di visualizzazione vive su Tenant/Location.
+// - Nessuna cancellazione fisica di dati commerciali: si archivia (status ARCHIVED).
+// =============================================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -----------------------------------------------------------------------------
+// Identità (globale, non tenant-scoped). Tabelle gestite da Better Auth:
+// User, Session, Account, Verification, RateLimit. I nomi dei campi seguono
+// lo schema atteso da Better Auth 1.7.
+// -----------------------------------------------------------------------------
+
+enum PlatformRole {
+  NONE
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id            String       @id @default(uuid(7)) @db.Uuid
+  name          String
+  email         String       @unique
+  emailVerified Boolean      @default(false)
+  image         String?
+  /// Lingua preferita dell'interfaccia (BCP 47), es. "es-MX".
+  locale        String       @default("es-MX")
+  /// Ruolo di piattaforma: MAI impostabile dall'utente in fase di registrazione.
+  platformRole  PlatformRole @default(NONE)
+  status        UserStatus   @default(ACTIVE)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  sessions           Session[]
+  accounts           Account[]
+  memberships        Membership[] @relation("MembershipUser")
+  invitedMemberships Membership[] @relation("MembershipInviter")
+  sentInvitations    Invitation[] @relation("InvitationInviter")
+}
+
+model Session {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  token     String   @unique
+  userId    String   @db.Uuid
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id @default(uuid(7)) @db.Uuid
+  accountId             String
+  providerId            String
+  userId                String    @db.Uuid
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  /// Hash della password (scrypt, gestito da Better Auth). Mai in chiaro.
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+/// Contatori del rate limiting di Better Auth (storage "database", condiviso fra istanze).
+model RateLimit {
+  id          String @id @default(uuid(7)) @db.Uuid
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+}
+
+// -----------------------------------------------------------------------------
+// Tenancy
+// -----------------------------------------------------------------------------
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+/// LIVE = fioreria reale; DEMO = dati dimostrativi (nessuna comunicazione reale verso clienti).
+enum TenantMode {
+  LIVE
+  DEMO
+}
+
+enum RecordStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+/// Una fioreria (merchant). Radice dell'isolamento dei dati.
+model Tenant {
+  id                    String       @id @default(uuid(7)) @db.Uuid
+  /// Identificativo URL (/app/{slug}); unico a livello di piattaforma.
+  slug                  String       @unique
+  displayName           String
+  legalName             String?
+  /// Identificativo fiscale locale (RFC in Messico). Facoltativo; uso fiscale DA VALIDARE.
+  taxId                 String?
+  /// ISO 3166-1 alpha-2, es. "MX".
+  marketCountry         String       @db.Char(2)
+  /// ISO 4217, es. "MXN".
+  currency              String       @db.Char(3)
+  /// IANA, es. "America/Mexico_City".
+  timezone              String
+  defaultLocale         String       @default("es-MX")
+  contactEmail          String?
+  contactPhone          String?
+  status                TenantStatus @default(ACTIVE)
+  mode                  TenantMode   @default(LIVE)
+  onboardingCompletedAt DateTime?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  locations    Location[]
+  memberships  Membership[]
+  invitations  Invitation[]
+  catalogItems CatalogItem[]
+  recipes      BouquetRecipe[]
+  recipeLines  BouquetRecipeLine[]
+  customers    Customer[]
+  quotes       Quote[]
+  quoteLines   QuoteLine[]
+  aiJobs       AiJob[]
+  auditLogs    AuditLog[]
+}
+
+/// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
+model Location {
+  id               String       @id @default(uuid(7)) @db.Uuid
+  tenantId         String       @db.Uuid
+  name             String
+  isPrimary        Boolean      @default(false)
+  /// Via e numero esterno (MX: calle y número exterior).
+  addressLine1     String
+  /// Interno/appartamento (MX: número interior).
+  addressLine2     String?
+  /// MX: colonia.
+  neighborhood     String?
+  /// MX: municipio / alcaldía.
+  city             String
+  /// MX: estado (codice, es. "AGU").
+  region           String
+  postalCode       String
+  countryCode      String       @db.Char(2)
+  phone            String?
+  timezone         String
+  deliveryRadiusKm Int?
+  status           RecordStatus @default(ACTIVE)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@index([tenantId])
+}
+
+enum MembershipRole {
+  OWNER
+  MANAGER
+  STAFF
+}
+
+enum MembershipStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+/// Appartenenza di un utente a un tenant con un ruolo.
+model Membership {
+  id            String           @id @default(uuid(7)) @db.Uuid
+  tenantId      String           @db.Uuid
+  userId        String           @db.Uuid
+  role          MembershipRole
+  status        MembershipStatus @default(ACTIVE)
+  invitedById   String?          @db.Uuid
+  deactivatedAt DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User   @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy User?  @relation("MembershipInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, userId])
+  @@unique([tenantId, id])
+  @@index([userId])
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+/// Invito a entrare in un tenant. Il token in chiaro esiste solo nell'email: qui se ne salva l'hash.
+model Invitation {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  tenantId     String           @db.Uuid
+  /// Email normalizzata (minuscolo). L'invito può essere accettato solo da quell'email.
+  email        String
+  role         MembershipRole
+  tokenHash    String           @unique
+  status       InvitationStatus @default(PENDING)
+  expiresAt    DateTime
+  invitedById  String           @db.Uuid
+  acceptedById String?          @db.Uuid
+  acceptedAt   DateTime?
+  revokedAt    DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invitedBy User   @relation("InvitationInviter", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, status])
+  @@index([tenantId, email])
+}
+
+/// Registro append-only delle modifiche critiche e degli eventi di sicurezza.
+/// tenantId NULL = evento di piattaforma (visibile solo agli admin di piattaforma).
+model AuditLog {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  tenantId    String?  @db.Uuid
+  /// Nessuna FK: il registro deve sopravvivere alla cancellazione dell'utente.
+  actorUserId String?  @db.Uuid
+  action      String
+  entityType  String
+  entityId    String?
+  metadata    Json?
+  requestId   String?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([entityType, entityId])
+}
+
+// -----------------------------------------------------------------------------
+// Catalogo
+// -----------------------------------------------------------------------------
+
+enum CanonicalCategory {
+  CUT_FLOWER
+  FOLIAGE
+  PLANT
+}
+
+/// Tassonomia normalizzata globale (rosa, tulipano, ...). Non appartiene a nessun tenant;
+/// gli SKU dei fioristi possono collegarvisi per ricerca, Builder e matching futuro.
+model CanonicalFlower {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  slug           String            @unique
+  scientificName String
+  category       CanonicalCategory
+  /// Nomi localizzati: { "es-MX": "Rosa", "it-IT": "Rosa", "en-US": "Rose" }.
+  names          Json
+  colors         String[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  catalogItems CatalogItem[]
+}
+
+enum CatalogItemType {
+  CUT_FLOWER
+  FOLIAGE
+  PLANT
+  BOUQUET
+  CONTAINER
+  PACKAGING
+  ACCESSORY
+  SERVICE
+  SERVICE_ADDON
+}
+
+enum SaleUnit {
+  STEM
+  BUNCH
+  PIECE
+  SERVICE
+}
+
+enum Availability {
+  AVAILABLE
+  LIMITED
+  OUT_OF_STOCK
+  ON_REQUEST
+}
+
+/// SKU di un singolo fiorista (prezzo, varietà e disponibilità propri).
+model CatalogItem {
+  id                String          @id @default(uuid(7)) @db.Uuid
+  tenantId          String          @db.Uuid
+  type              CatalogItemType
+  name              String
+  description       String?
+  /// Codice interno facoltativo, unico per tenant.
+  sku               String?
+  canonicalFlowerId String?         @db.Uuid
+  variety           String?
+  /// Chiavi colore controllate (vedi @floral/domain CATALOG_COLORS).
+  colors            String[]
+  saleUnit          SaleUnit
+  /// Prezzo di vendita per unità di vendita, in unità minime.
+  priceMinor        Int
+  /// Costo stimato per unità di vendita, in unità minime. NULL = non compilato.
+  costMinor         Int?
+  currency          String          @db.Char(3)
+  availability      Availability    @default(AVAILABLE)
+  prepMinutes       Int?
+  heightCm          Int?
+  widthCm           Int?
+  tags              String[]
+  status            RecordStatus    @default(ACTIVE)
+  archivedAt        DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  tenant          Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  canonicalFlower CanonicalFlower?    @relation(fields: [canonicalFlowerId], references: [id], onDelete: SetNull)
+  recipe          BouquetRecipe?
+  usedInRecipes   BouquetRecipeLine[] @relation("RecipeIngredient")
+  quoteLines      QuoteLine[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, sku])
+  @@index([tenantId, status, type])
+}
+
+enum SubstitutionPolicy {
+  /// Chiedere conferma al cliente prima di sostituire un ingrediente.
+  ASK_CUSTOMER
+  /// Sostituzione consentita con ingrediente simile (stesso colore/categoria).
+  SIMILAR_ALLOWED
+  /// Nessuna sostituzione: se manca un ingrediente il bouquet non è producibile.
+  NOT_ALLOWED
+}
+
+/// Distinta base (BOM) di un bouquet. È la fonte di verità per composizione e costi,
+/// mai l'immagine generata dall'AI.
+model BouquetRecipe {
+  id                 String             @id @default(uuid(7)) @db.Uuid
+  tenantId           String             @db.Uuid
+  /// CatalogItem di tipo BOUQUET (relazione 1:1).
+  catalogItemId      String             @db.Uuid
+  /// Costo stimato della manodopera, in unità minime. NULL = non compilato.
+  laborCostMinor     Int?
+  styleTags          String[]
+  notes              String?
+  substitutionPolicy SubstitutionPolicy @default(ASK_CUSTOMER)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  catalogItem CatalogItem         @relation(fields: [tenantId, catalogItemId], references: [tenantId, id], onDelete: Cascade)
+  lines       BouquetRecipeLine[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, catalogItemId])
+}
+
+model BouquetRecipeLine {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  tenantId         String   @db.Uuid
+  recipeId         String   @db.Uuid
+  ingredientItemId String   @db.Uuid
+  /// Quantità intera positiva nell'unità di vendita dell'ingrediente (CHECK > 0 nel DB).
+  quantity         Int
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant     Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  recipe     BouquetRecipe @relation(fields: [tenantId, recipeId], references: [tenantId, id], onDelete: Cascade)
+  ingredient CatalogItem   @relation("RecipeIngredient", fields: [tenantId, ingredientItemId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, recipeId, ingredientItemId])
+  @@index([tenantId, ingredientItemId])
+}
+
+// -----------------------------------------------------------------------------
+// CRM (confine dati Sprint 0; funzionalità complete nello Sprint 1)
+// -----------------------------------------------------------------------------
+
+enum CustomerType {
+  PERSON
+  COMPANY
+}
+
+/// Origine del cliente/ordine: determina l'attribuzione delle commissioni future.
+/// MERCHANT_DIRECT, IMPORT e MANUAL non generano MAI fee marketplace.
+enum AcquisitionSource {
+  MERCHANT_DIRECT
+  NETWORK_B2B
+  MARKETPLACE_B2C
+  IMPORT
+  MANUAL
+}
+
+model Customer {
+  id                 String            @id @default(uuid(7)) @db.Uuid
+  tenantId           String            @db.Uuid
+  type               CustomerType      @default(PERSON)
+  displayName        String
+  legalName          String?
+  taxId              String?
+  email              String?
+  /// Formato E.164, es. "+524491234567".
+  phone              String?
+  notes              String?
+  /// Preferenze floreali (testo libero del fiorista).
+  preferences        String?
+  /// Restrizioni note (allergie, fiori da evitare).
+  restrictions       String?
+  tags               String[]
+  acquisitionSource  AcquisitionSource @default(MERCHANT_DIRECT)
+  acquisitionChannel String?
+  marketingConsent   Boolean           @default(false)
+  marketingConsentAt DateTime?
+  status             RecordStatus      @default(ACTIVE)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quotes Quote[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, status])
+}
+
+// -----------------------------------------------------------------------------
+// Preventivi (confine dati Sprint 0; flusso completo nello Sprint 1)
+// -----------------------------------------------------------------------------
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+model Quote {
+  id                String            @id @default(uuid(7)) @db.Uuid
+  tenantId          String            @db.Uuid
+  /// Numero progressivo per tenant, assegnato dal servizio.
+  number            Int
+  customerId        String            @db.Uuid
+  status            QuoteStatus       @default(DRAFT)
+  currency          String            @db.Char(3)
+  subtotalMinor     Int               @default(0)
+  discountMinor     Int               @default(0)
+  taxMinor          Int               @default(0)
+  totalMinor        Int               @default(0)
+  validUntil        DateTime?
+  notes             String?
+  acquisitionSource AcquisitionSource @default(MERCHANT_DIRECT)
+  createdById       String?           @db.Uuid
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  tenant   Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer    @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
+  lines    QuoteLine[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, number])
+  @@index([tenantId, status])
+}
+
+model QuoteLine {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  tenantId       String   @db.Uuid
+  quoteId        String   @db.Uuid
+  /// NULL per righe libere (non a catalogo).
+  catalogItemId  String?  @db.Uuid
+  description    String
+  quantity       Int
+  unitPriceMinor Int
+  /// Snapshot del costo al momento del preventivo (NULL = non compilato).
+  unitCostMinor  Int?
+  lineTotalMinor Int
+  /// Snapshot dell'articolo (nome, tipo, distinta) al momento del preventivo.
+  snapshot       Json?
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quote       Quote        @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Cascade)
+  catalogItem CatalogItem? @relation(fields: [tenantId, catalogItemId], references: [tenantId, id], onDelete: Restrict)
+
+  @@index([tenantId, quoteId])
+}
+
+// -----------------------------------------------------------------------------
+// Job AI (confine dati Sprint 0; pipeline reale nello Sprint 2)
+// -----------------------------------------------------------------------------
+
+enum AiFeature {
+  BOUQUET_PREVIEW
+  ROOM_PREVIEW
+}
+
+enum AiJobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+model AiJob {
+  id                 String      @id @default(uuid(7)) @db.Uuid
+  tenantId           String      @db.Uuid
+  feature            AiFeature
+  status             AiJobStatus @default(QUEUED)
+  requestedById      String      @db.Uuid
+  /// Hash della configurazione normalizzata (caching delle preview identiche, per tenant).
+  inputHash          String
+  input              Json
+  output             Json?
+  provider           String?
+  model              String?
+  promptVersion      String?
+  attempts           Int         @default(0)
+  maxAttempts        Int         @default(3)
+  errorCode          String?
+  errorMessage       String?
+  /// Crediti consumati secondo la policy di quota (0 finché il job non riesce).
+  usageUnits         Int         @default(0)
+  /// Costo del provider per la piattaforma, in micro-unità della valuta indicata.
+  providerCostMicros Int?
+  providerCurrency   String?     @db.Char(3)
+  startedAt          DateTime?
+  finishedAt         DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, feature, createdAt])
+  @@index([tenantId, inputHash])
+}
