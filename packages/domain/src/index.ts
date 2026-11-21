@@ -1,3 +1,4 @@
+export * from './brand';
 export * from './audit';
 export * from './catalog';
 export * from './i18n';
