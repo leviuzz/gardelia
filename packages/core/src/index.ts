@@ -20,6 +20,24 @@ export {
   type Mailer,
 } from './mailer';
 export { invitationEmail, passwordResetEmail, verificationEmail } from './email-templates';
+export {
+  AiProviderError,
+  SimulatedImageProvider,
+  createAiProviderFromEnv,
+  getAiProvider,
+  setAiProvider,
+  type AiImageProvider,
+  type GeneratedImage,
+} from './ai/providers';
+export {
+  MemoryStorage,
+  createStorageFromEnv,
+  getObjectStorage,
+  setObjectStorage,
+  type ObjectStorage,
+} from './ai/storage';
+export { startAiWorker, type AiWorkerHandle } from './ai/worker';
+export * from './services/ai-previews';
 export * from './services/billing';
 export * from './services/builder';
 export * from './services/catalog';

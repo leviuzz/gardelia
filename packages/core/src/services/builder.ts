@@ -9,7 +9,7 @@
  *  - Il preventivo creato da un disegno contiene la distinta ESATTA con i prezzi del
  *    momento (snapshot), come le righe da catalogo (ORD-01).
  */
-import { getDb, withTenantContext, type Prisma, type TransactionClient } from '@floral/db';
+import { getDb, withTenantContext, type Prisma } from '@floral/db';
 import {
   AUDIT_ACTIONS,
   BUILDER_COMPONENT_TYPES,
@@ -18,10 +18,8 @@ import {
   builderConfigurationSchema,
   builderRoleOf,
   builderSettingsSchema,
-  checkComposition,
   formatQuoteNumber,
   isUuid,
-  priceBouquet,
   toFieldErrors,
   type Availability,
   type BuilderRole,
@@ -36,6 +34,14 @@ import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { requireEntitlement } from './billing';
+import {
+  componentSelect,
+  isUsable,
+  laborFee,
+  loadComponents,
+  priceComponents,
+  type PricedComponent,
+} from './builder-internals';
 import { insertDraftQuote, recalculateTotals } from './quote-internals';
 
 // -----------------------------------------------------------------------------
@@ -109,102 +115,6 @@ export interface BouquetConfigurationListResult {
   readonly total: number;
   readonly page: number;
   readonly pageCount: number;
-}
-
-const ROLE_ORDER: Readonly<Record<BuilderRole, number>> = {
-  FLOWER: 0,
-  FOLIAGE: 1,
-  ACCESSORY: 2,
-  PACKAGING: 3,
-};
-
-const componentSelect = {
-  id: true,
-  name: true,
-  variety: true,
-  type: true,
-  saleUnit: true,
-  priceMinor: true,
-  costMinor: true,
-  availability: true,
-  colors: true,
-  status: true,
-  isBuilderEnabled: true,
-} satisfies Prisma.CatalogItemSelect;
-
-type ComponentItem = Prisma.CatalogItemGetPayload<{ select: typeof componentSelect }>;
-
-function isUsable(item: ComponentItem): boolean {
-  return (
-    item.status === 'ACTIVE' &&
-    item.isBuilderEnabled &&
-    item.availability !== 'OUT_OF_STOCK' &&
-    builderRoleOf(item.type) !== null
-  );
-}
-
-// -----------------------------------------------------------------------------
-// Componenti e prezzo (sempre dal DB)
-// -----------------------------------------------------------------------------
-
-interface PricedComponent {
-  readonly item: ComponentItem;
-  readonly role: BuilderRole;
-  readonly quantity: number;
-}
-
-/**
- * Rilegge dal DB del tenant gli articoli richiesti, verifica che siano utilizzabili e
- * applica le regole di composizione. Gli ID di altri tenant semplicemente non esistono.
- */
-async function loadComponents(
-  tx: TransactionClient,
-  ctx: TenantContext,
-  lines: readonly { readonly catalogItemId: string; readonly quantity: number }[],
-): Promise<PricedComponent[]> {
-  const items = await tx.catalogItem.findMany({
-    where: { tenantId: ctx.tenantId, id: { in: lines.map((line) => line.catalogItemId) } },
-    select: componentSelect,
-  });
-  const byId = new Map(items.map((item) => [item.id, item]));
-  const components = lines.map((line) => {
-    const item = byId.get(line.catalogItemId);
-    const role = item ? builderRoleOf(item.type) : null;
-    if (!item || role === null || item.status !== 'ACTIVE' || !item.isBuilderEnabled) {
-      throw new ValidationError({ lines: 'builder_item_not_allowed' });
-    }
-    if (item.availability === 'OUT_OF_STOCK') {
-      throw new ValidationError({ lines: 'item_unavailable' });
-    }
-    return { item, role, quantity: line.quantity };
-  });
-  const compositionError = checkComposition(components);
-  if (compositionError) throw new ValidationError({ lines: compositionError });
-  return components.sort(
-    (a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role] || a.item.name.localeCompare(b.item.name),
-  );
-}
-
-async function laborFee(tx: TransactionClient, ctx: TenantContext): Promise<number> {
-  const tenant = await tx.tenant.findUniqueOrThrow({
-    where: { id: ctx.tenantId },
-    select: { builderLaborFeeMinor: true },
-  });
-  return tenant.builderLaborFeeMinor;
-}
-
-function priceComponents(components: readonly PricedComponent[], laborMinor: number) {
-  const pricing = priceBouquet({
-    lines: components.map((component) => ({
-      role: component.role,
-      quantity: component.quantity,
-      unitPriceMinor: component.item.priceMinor,
-      unitCostMinor: component.item.costMinor,
-    })),
-    laborMinor,
-  });
-  if (!pricing.ok) throw new ValidationError({ lines: pricing.error });
-  return pricing;
 }
 
 // -----------------------------------------------------------------------------

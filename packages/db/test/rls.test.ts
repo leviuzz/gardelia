@@ -329,3 +329,95 @@ describe('piani e abbonamenti', () => {
     expect(await db.tenantSubscription.count()).toBe(0);
   });
 });
+
+describe('anteprime AI: crediti e coda', () => {
+  it('i crediti extra si leggono solo nel proprio tenant e non si possono auto-assegnare', async () => {
+    const tenantC = await createTestTenant(db, { displayName: 'Florería Créditos' });
+    const operator = await createTestUser(db);
+    await withSystemContext(db, { reason: 'test: concede crediti' }, (tx) =>
+      tx.aiCreditGrant.create({
+        data: {
+          tenantId: tenantC.tenantId,
+          feature: 'BOUQUET_PREVIEW',
+          units: 50,
+          grantedById: operator.id,
+        },
+      }),
+    );
+    const scopeC = { tenantId: tenantC.tenantId, userId: null };
+    const own = await withTenantContext(db, scopeC, (tx) =>
+      tx.aiCreditGrant.findMany({ select: { units: true } }),
+    );
+    expect(own).toEqual([{ units: 50 }]);
+    const fromA = await withTenantContext(db, { tenantId: tenantA.tenantId, userId: null }, (tx) =>
+      tx.aiCreditGrant.count(),
+    );
+    expect(fromA).toBe(0);
+
+    const tampering = await withTenantContext(db, scopeC, async (tx) => ({
+      updated: await tx.aiCreditGrant.updateMany({ data: { units: 10_000 } }),
+      deleted: await tx.aiCreditGrant.deleteMany({}),
+    }));
+    expect(tampering).toEqual({ updated: { count: 0 }, deleted: { count: 0 } });
+    const selfGranted = withTenantContext(db, scopeC, (tx) =>
+      tx.aiCreditGrant.create({
+        data: {
+          tenantId: tenantC.tenantId,
+          feature: 'BOUQUET_PREVIEW',
+          units: 999,
+          grantedById: operator.id,
+        },
+      }),
+    );
+    await expect(selfGranted).rejects.toSatisfy(isRlsViolation);
+  });
+
+  it('la coda preleva job di qualsiasi tenant senza lasciare attivo il bypass', async () => {
+    const requester = await createTestUser(db);
+    const job = await withSystemContext(db, { reason: 'test: accoda job' }, (tx) =>
+      tx.aiJob.create({
+        data: {
+          tenantId: tenantB.tenantId,
+          feature: 'BOUQUET_PREVIEW',
+          requestedById: requester.id,
+          inputHash: 'hash-test',
+          input: {},
+          estimatedCostMicros: 40_000,
+        },
+      }),
+    );
+    // Prelevato da una transazione nel contesto di A: la funzione vede anche B,
+    // ma alla fine il contesto di A resta soggetto alla RLS.
+    const result = await withTenantContext(
+      db,
+      { tenantId: tenantA.tenantId, userId: null },
+      async (tx) => {
+        const claimed = await tx.$queryRaw<{ job_id: string; tenant_id: string }[]>`
+          SELECT * FROM app_claim_ai_job(60, ${tenantB.tenantId}::uuid)`;
+        const bypass = await tx.$queryRaw<{ on: boolean }[]>`SELECT app_rls_bypass() AS "on"`;
+        const visible = await tx.aiJob.count({ where: { id: job.id } });
+        return { claimed, bypass: bypass[0]?.on, visible };
+      },
+    );
+    expect(result.claimed).toEqual([
+      { job_id: job.id, tenant_id: tenantB.tenantId, requested_by: requester.id },
+    ]);
+    expect(result.bypass).toBe(false);
+    expect(result.visible).toBe(0);
+
+    const spent = await withTenantContext(
+      db,
+      { tenantId: tenantA.tenantId, userId: null },
+      (tx) => tx.$queryRaw<{ total: bigint }[]>`
+        SELECT app_ai_spend_since(${new Date(Date.now() - 60_000)}::timestamptz) AS total`,
+    );
+    expect(Number(spent[0]?.total)).toBeGreaterThanOrEqual(40_000);
+    const running = await withSystemContext(db, { reason: 'test: verifica stato' }, (tx) =>
+      tx.aiJob.findUniqueOrThrow({
+        where: { id: job.id },
+        select: { status: true, attempts: true },
+      }),
+    );
+    expect(running).toEqual({ status: 'RUNNING', attempts: 1 });
+  });
+});

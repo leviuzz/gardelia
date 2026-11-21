@@ -77,7 +77,8 @@ type ProbeableEntity =
   | 'CustomerOccasion'
   | 'Quote'
   | 'QuoteLine'
-  | 'BouquetConfiguration';
+  | 'BouquetConfiguration'
+  | 'AiJob';
 
 async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<string | null> {
   return withSystemContext(
@@ -108,6 +109,8 @@ async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<st
           return (await tx.quote.findUnique({ where: { id }, select }))?.tenantId ?? null;
         case 'QuoteLine':
           return (await tx.quoteLine.findUnique({ where: { id }, select }))?.tenantId ?? null;
+        case 'AiJob':
+          return (await tx.aiJob.findUnique({ where: { id }, select }))?.tenantId ?? null;
         case 'BouquetConfiguration':
           return (
             (await tx.bouquetConfiguration.findUnique({ where: { id }, select }))?.tenantId ?? null

@@ -26,7 +26,8 @@
     "db:seed": "pnpm --filter @floral/db run seed",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "lint:fix": "eslint . --fix",
-    "platform:assign-plan": "pnpm --filter @floral/core run assign-plan"
+    "platform:assign-plan": "pnpm --filter @floral/core run assign-plan",
+    "platform:grant-ai-credits": "pnpm --filter @floral/core run grant-ai-credits"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

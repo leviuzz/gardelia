@@ -73,6 +73,8 @@ export const AUDIT_ACTIONS = {
   builderConfigurationUpdated: 'builder.configuration_updated',
   builderConfigurationArchived: 'builder.configuration_archived',
   builderConfigurationRestored: 'builder.configuration_restored',
+  aiPreviewRequested: 'ai.preview_requested',
+  aiCreditsGranted: 'ai_credits.granted',
   securityTenantAccessDenied: 'security.tenant_access_denied',
   securityCrossTenantAccess: 'security.cross_tenant_access_attempt',
 } as const;

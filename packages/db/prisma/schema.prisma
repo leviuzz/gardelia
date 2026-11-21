@@ -180,6 +180,7 @@ model Tenant {
   subscription      TenantSubscription?
   builderConfigs    BouquetConfiguration[]
   builderLines      BouquetConfigurationLine[]
+  aiCreditGrants    AiCreditGrant[]
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -683,37 +684,73 @@ enum AiJobStatus {
 }
 
 model AiJob {
-  id                 String      @id @default(uuid(7)) @db.Uuid
-  tenantId           String      @db.Uuid
-  feature            AiFeature
-  status             AiJobStatus @default(QUEUED)
-  requestedById      String      @db.Uuid
+  id                     String         @id @default(uuid(7)) @db.Uuid
+  tenantId               String         @db.Uuid
+  feature                AiFeature
+  status                 AiJobStatus    @default(QUEUED)
+  requestedById          String         @db.Uuid
+  /// Disegno del Builder per cui è stata richiesta l'anteprima (il primo richiedente).
+  bouquetConfigurationId String?        @db.Uuid
+  /// Da dove è stato scalato il credito (quota del mese o extra); null = non consuma.
+  quotaSource            AiQuotaSource?
   /// Hash della configurazione normalizzata (caching delle preview identiche, per tenant).
-  inputHash          String
-  input              Json
-  output             Json?
-  provider           String?
-  model              String?
-  promptVersion      String?
-  attempts           Int         @default(0)
-  maxAttempts        Int         @default(3)
-  errorCode          String?
-  errorMessage       String?
+  inputHash              String
+  input                  Json
+  output                 Json?
+  provider               String?
+  model                  String?
+  promptVersion          String?
+  attempts               Int            @default(0)
+  maxAttempts            Int            @default(3)
+  errorCode              String?
+  errorMessage           String?
   /// Crediti consumati secondo la policy di quota (0 finché il job non riesce).
-  usageUnits         Int         @default(0)
+  usageUnits             Int            @default(0)
+  /// Costo stimato all'accodamento (micro-USD), per il tetto di spesa della piattaforma.
+  estimatedCostMicros    Int            @default(0)
+  /// Coda (ADR-025): prossimo tentativo e scadenza del lease del worker.
+  runAfter               DateTime       @default(now())
+  lockedUntil            DateTime?
+  /// Immagine prodotta nell'archivio (chiave `tenants/{tenantId}/…`).
+  outputKey              String?
+  outputContentType      String?
   /// Costo del provider per la piattaforma, in micro-unità della valuta indicata.
-  providerCostMicros Int?
-  providerCurrency   String?     @db.Char(3)
-  startedAt          DateTime?
-  finishedAt         DateTime?
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
+  providerCostMicros     Int?
+  providerCurrency       String?        @db.Char(3)
+  startedAt              DateTime?
+  finishedAt             DateTime?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  bouquetConfiguration BouquetConfiguration? @relation(fields: [tenantId, bouquetConfigurationId], references: [tenantId, id], onDelete: Restrict)
 
   @@unique([tenantId, id])
   @@index([tenantId, feature, createdAt])
   @@index([tenantId, inputHash])
+  @@index([status, runAfter])
+}
+
+enum AiQuotaSource {
+  INCLUDED
+  EXTRA
+}
+
+/// Crediti AI extra (pacchetti pagati alla piattaforma) sbloccati dalla CLI di piattaforma
+/// (ADR-024). Il tenant li legge, non li scrive. Non scadono.
+model AiCreditGrant {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  tenantId    String    @db.Uuid
+  feature     AiFeature
+  units       Int
+  /// Riferimento interno (es. pagamento ricevuto): mai dati personali.
+  note        String?
+  grantedById String    @db.Uuid
+  createdAt   DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, feature, createdAt])
 }
 
 // -----------------------------------------------------------------------------
@@ -824,6 +861,7 @@ model BouquetConfiguration {
   tenant     Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   lines      BouquetConfigurationLine[]
   quoteLines QuoteLine[]
+  aiJobs     AiJob[]
 
   @@unique([tenantId, id])
   @@index([tenantId, status, updatedAt])

@@ -1,0 +1,385 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { setTimeout as delay } from 'node:timers/promises';
+import { disconnectDb, getDb, withSystemContext, withTenantContext } from '@floral/db';
+import { createTestUser } from '@floral/db/testing';
+import type { BouquetPreviewSpec } from '@floral/domain';
+import {
+  AiProviderError,
+  ConflictError,
+  ForbiddenError,
+  MemoryStorage,
+  NotFoundError,
+  PlanRequiredError,
+  ValidationError,
+  createCatalogItem,
+  getAiPreviewImage,
+  getAiQuota,
+  getBouquetConfiguration,
+  getBouquetPreview,
+  requestBouquetPreview,
+  saveBouquetConfiguration,
+  setAiProvider,
+  setObjectStorage,
+  startAiWorker,
+  type AiImageProvider,
+  type CatalogItemDto,
+  type GeneratedImage,
+} from '../src/index';
+import { processNextAiJob } from '../src/ai/worker';
+import { assignTenantPlan, grantAiCredits } from '../src/platform';
+import { createTestShop, itemInput, type TestShop } from '../src/testing';
+
+const db = getDb();
+
+class StubProvider implements AiImageProvider {
+  readonly id = 'stub';
+  readonly model = 'stub-v1';
+  readonly simulated = false;
+  behavior: 'ok' | 'error' | 'reject' = 'ok';
+  calls = 0;
+  prompts: string[] = [];
+
+  constructor(readonly estimatedCostMicros = 40_000) {}
+
+  async generate(request: {
+    readonly prompt: string;
+    readonly spec: BouquetPreviewSpec;
+  }): Promise<GeneratedImage> {
+    this.calls += 1;
+    this.prompts.push(request.prompt);
+    if (this.behavior === 'error') throw new AiProviderError('provider_error', 'boom');
+    if (this.behavior === 'reject') throw new AiProviderError('content_rejected', 'rejected');
+    return {
+      bytes: new Uint8Array([137, 80, 78, 71, 1]),
+      contentType: 'image/png',
+      costMicros: 35_000,
+    };
+  }
+}
+
+let operatorEmail: string;
+const storage = new MemoryStorage();
+const provider = new StubProvider();
+
+async function withPlus(shop: TestShop): Promise<TestShop> {
+  await assignTenantPlan({
+    operatorEmail,
+    tenantSlug: shop.tenant.slug,
+    planCode: 'PLUS',
+    status: 'PILOT',
+  });
+  return shop;
+}
+
+interface Kit {
+  readonly shop: TestShop;
+  readonly rose: CatalogItemDto;
+  readonly tulip: CatalogItemDto;
+  readonly kraft: CatalogItemDto;
+}
+
+async function createKit(name?: string): Promise<Kit> {
+  const shop = await withPlus(await createTestShop(name));
+  return {
+    shop,
+    rose: await createCatalogItem(shop.owner, itemInput({ name: 'Rosa roja' })),
+    tulip: await createCatalogItem(
+      shop.owner,
+      itemInput({ name: 'Tulipán', variety: null, colors: ['pink'] }),
+    ),
+    kraft: await createCatalogItem(
+      shop.owner,
+      itemInput({
+        name: 'Papel kraft',
+        type: 'PACKAGING',
+        saleUnit: 'PIECE',
+        variety: null,
+        colors: [],
+      }),
+    ),
+  };
+}
+
+function save(kit: Kit, roses: number, overrides: Record<string, unknown> = {}) {
+  return saveBouquetConfiguration(kit.shop.owner, {
+    name: `Ramo ${roses} rosas`,
+    style: 'ROMANTIC',
+    size: 'MEDIUM',
+    budget: '',
+    notes: 'Para Sofía, entrega el viernes',
+    lines: [
+      { catalogItemId: kit.rose.id, quantity: roses },
+      { catalogItemId: kit.kraft.id, quantity: 1 },
+    ],
+    ...overrides,
+  });
+}
+
+async function runOnce(kit: Kit) {
+  return processNextAiJob({ onlyTenantId: kit.shop.tenant.tenantId });
+}
+
+async function makeRunnableNow(jobId: string) {
+  await withSystemContext(db, { reason: 'test: anticipa il retry' }, (tx) =>
+    tx.aiJob.update({ where: { id: jobId }, data: { runAfter: new Date(0) } }),
+  );
+}
+
+beforeAll(async () => {
+  const operator = await createTestUser(db, { name: 'Operador IA' });
+  await withSystemContext(db, { reason: 'test: admin di piattaforma' }, (tx) =>
+    tx.user.update({ where: { id: operator.id }, data: { platformRole: 'SUPER_ADMIN' } }),
+  );
+  operatorEmail = operator.email;
+  setObjectStorage(storage);
+  setAiProvider(provider);
+});
+
+afterAll(async () => {
+  setAiProvider(undefined);
+  setObjectStorage(null);
+  await disconnectDb();
+});
+
+describe('disponibilità e piano', () => {
+  it('senza provider configurato la funzione non esiste (nessuna anteprima finta)', async () => {
+    const kit = await createKit();
+    const { id } = await save(kit, 5);
+    setAiProvider(null);
+    try {
+      expect(await getBouquetPreview(kit.shop.owner, id)).toMatchObject({
+        available: false,
+        preview: null,
+        quota: null,
+      });
+      await expect(requestBouquetPreview(kit.shop.owner, id)).rejects.toMatchObject({
+        reason: 'ai_unavailable',
+      });
+    } finally {
+      setAiProvider(provider);
+    }
+  });
+
+  it('BILL-01: una fioreria Basic non usa le anteprime', async () => {
+    const basic = await createTestShop();
+    await expect(getAiQuota(basic.owner)).rejects.toBeInstanceOf(PlanRequiredError);
+  });
+});
+
+describe('generazione, cache e consumo', () => {
+  it('il credito si prenota, si consuma solo a successo e il ramo identico si riusa', async () => {
+    const kit = await createKit();
+    const first = await save(kit, 12);
+    const before = await getAiQuota(kit.shop.owner);
+    expect(before).toMatchObject({ includedLimit: 25, includedUsed: 0, remaining: 25 });
+
+    const queued = await requestBouquetPreview(kit.shop.owner, first.id);
+    expect(queued).toMatchObject({ status: 'QUEUED', reused: false, simulated: false });
+    expect((await getAiQuota(kit.shop.owner)).includedUsed).toBe(1);
+    // Una seconda richiesta mentre è in coda non prenota un altro credito.
+    expect(await requestBouquetPreview(kit.shop.owner, first.id)).toMatchObject({
+      jobId: queued.jobId,
+      reused: true,
+    });
+
+    expect(await runOnce(kit)).toBe('succeeded');
+    const state = await getBouquetPreview(kit.shop.owner, first.id);
+    expect(state.preview).toMatchObject({ jobId: queued.jobId, status: 'SUCCEEDED' });
+    expect(state.quota).toMatchObject({ includedUsed: 1, includedRemaining: 24 });
+    const image = await getAiPreviewImage(kit.shop.owner, queued.jobId);
+    expect(image.contentType).toBe('image/png');
+    expect(image.bytes.length).toBeGreaterThan(0);
+
+    // Il prompt contiene solo la composizione: niente nome del disegno né note del cliente.
+    const prompt = provider.prompts.at(-1) ?? '';
+    expect(prompt).toContain('12 stems of "Rosa roja Freedom"');
+    expect(prompt).not.toContain('Sofía');
+    expect(prompt).not.toContain('Ramo 12 rosas');
+
+    // Altro disegno (altro cliente), stessa composizione: stessa immagine, nessun credito.
+    const callsBefore = provider.calls;
+    const second = await save(kit, 12, { name: 'Ramo para Lucía', notes: 'Otro cliente' });
+    expect(await requestBouquetPreview(kit.shop.manager, second.id)).toMatchObject({
+      jobId: queued.jobId,
+      status: 'SUCCEEDED',
+      reused: true,
+    });
+    expect((await getBouquetPreview(kit.shop.staff, second.id)).preview?.reused).toBe(true);
+    expect((await getAiQuota(kit.shop.owner)).includedUsed).toBe(1);
+    expect(provider.calls).toBe(callsBefore);
+
+    // Composizione diversa: nuova anteprima.
+    const third = await save(kit, 7);
+    expect((await requestBouquetPreview(kit.shop.owner, third.id)).jobId).not.toBe(queued.jobId);
+  });
+
+  it('BQ-02: se l’AI fallisce ritenta, poi fallisce senza consumare e senza immagine', async () => {
+    const kit = await createKit();
+    const { id } = await save(kit, 9);
+    provider.behavior = 'error';
+    try {
+      const job = await requestBouquetPreview(kit.shop.owner, id);
+      expect(await runOnce(kit)).toBe('retry');
+      expect((await getBouquetPreview(kit.shop.owner, id)).preview?.status).toBe('QUEUED');
+      expect((await getAiQuota(kit.shop.owner)).includedUsed).toBe(1);
+      for (let attempt = 0; attempt < 2; attempt++) {
+        await makeRunnableNow(job.jobId);
+        await runOnce(kit);
+      }
+      const state = await getBouquetPreview(kit.shop.owner, id);
+      expect(state.preview).toMatchObject({ status: 'FAILED', errorCode: 'provider_error' });
+      expect(state.quota?.includedUsed).toBe(0);
+      await expect(getAiPreviewImage(kit.shop.owner, job.jobId)).rejects.toBeInstanceOf(
+        NotFoundError,
+      );
+      // Il disegno resta valido e si può riprovare.
+      expect((await getBouquetConfiguration(kit.shop.owner, id)).status).toBe('ACTIVE');
+      provider.behavior = 'ok';
+      const retry = await requestBouquetPreview(kit.shop.owner, id);
+      expect(retry).toMatchObject({ status: 'QUEUED', reused: false });
+      expect(retry.jobId).not.toBe(job.jobId);
+    } finally {
+      provider.behavior = 'ok';
+    }
+  });
+
+  it('un contenuto rifiutato fallisce subito, senza nuovi tentativi né consumo', async () => {
+    const kit = await createKit();
+    const { id } = await save(kit, 4);
+    provider.behavior = 'reject';
+    try {
+      await requestBouquetPreview(kit.shop.owner, id);
+      expect(await runOnce(kit)).toBe('failed');
+      expect((await getAiQuota(kit.shop.owner)).includedUsed).toBe(0);
+    } finally {
+      provider.behavior = 'ok';
+    }
+  });
+
+  it('il worker in ciclo lavora i job appena accodati', async () => {
+    const kit = await createKit();
+    const { id } = await save(kit, 6);
+    const worker = startAiWorker({ pollIntervalMs: 50, onlyTenantId: kit.shop.tenant.tenantId });
+    try {
+      await requestBouquetPreview(kit.shop.owner, id);
+      let status = '';
+      for (let i = 0; i < 40 && status !== 'SUCCEEDED'; i++) {
+        await delay(50);
+        status = (await getBouquetPreview(kit.shop.owner, id)).preview?.status ?? '';
+      }
+      expect(status).toBe('SUCCEEDED');
+    } finally {
+      await worker.stop();
+    }
+  });
+});
+
+describe('quota, pacchetti e tetto di spesa', () => {
+  it('a quota esaurita servono anteprime extra sbloccate dalla piattaforma', async () => {
+    const kit = await createKit();
+    await withSystemContext(db, { reason: 'test: consuma la quota del mese' }, (tx) =>
+      tx.aiJob.createMany({
+        data: Array.from({ length: 25 }, (_, index) => ({
+          tenantId: kit.shop.tenant.tenantId,
+          feature: 'BOUQUET_PREVIEW' as const,
+          status: 'SUCCEEDED' as const,
+          requestedById: kit.shop.tenant.owner.id,
+          inputHash: `consumed-${index}`,
+          input: {},
+          quotaSource: 'INCLUDED' as const,
+          usageUnits: 1,
+        })),
+      }),
+    );
+    const first = await save(kit, 3);
+    await expect(requestBouquetPreview(kit.shop.owner, first.id)).rejects.toMatchObject({
+      reason: 'ai_quota_exhausted',
+    });
+
+    await expect(
+      grantAiCredits({
+        operatorEmail: kit.shop.tenant.owner.email,
+        tenantSlug: kit.shop.tenant.slug,
+        units: 50,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(
+      grantAiCredits({ operatorEmail, tenantSlug: kit.shop.tenant.slug, units: 0 }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    const grant = await grantAiCredits({
+      operatorEmail,
+      tenantSlug: kit.shop.tenant.slug,
+      units: 2,
+      note: 'Paquete de prueba',
+    });
+    expect(grant).toMatchObject({ units: 2, totalGranted: 2 });
+    const audit = await withTenantContext(db, kit.shop.owner, (tx) =>
+      tx.auditLog.findFirst({
+        where: { tenantId: kit.shop.tenant.tenantId, action: 'ai_credits.granted' },
+      }),
+    );
+    expect(audit?.metadata).toMatchObject({ units: 2, via: 'platform-cli' });
+
+    const extra = await requestBouquetPreview(kit.shop.owner, first.id);
+    expect(extra.status).toBe('QUEUED');
+    expect(await getAiQuota(kit.shop.owner)).toMatchObject({
+      includedRemaining: 0,
+      extraGranted: 2,
+      extraRemaining: 1,
+      nextSource: 'EXTRA',
+    });
+
+    // Un solo credito rimasto e due richieste simultanee: ne passa una sola.
+    const [a, b] = await Promise.all([save(kit, 10), save(kit, 11)]);
+    const results = await Promise.allSettled([
+      requestBouquetPreview(kit.shop.owner, a.id),
+      requestBouquetPreview(kit.shop.manager, b.id),
+    ]);
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    const rejected = results.find((result) => result.status === 'rejected');
+    expect(rejected?.status === 'rejected' && rejected.reason).toBeInstanceOf(ConflictError);
+    expect((await getAiQuota(kit.shop.owner)).remaining).toBe(0);
+  });
+
+  it('il tetto di spesa mensile della piattaforma blocca nuove generazioni', async () => {
+    const kit = await createKit();
+    const { id } = await save(kit, 8);
+    setAiProvider(new StubProvider(10 ** 12));
+    try {
+      await expect(requestBouquetPreview(kit.shop.owner, id)).rejects.toMatchObject({
+        reason: 'ai_budget_reached',
+      });
+      expect((await getAiQuota(kit.shop.owner)).includedUsed).toBe(0);
+    } finally {
+      setAiProvider(provider);
+    }
+  });
+});
+
+describe('isolamento A ↔ B', () => {
+  it('nessuna cache, immagine o richiesta fra fiorerie diverse', async () => {
+    const kitA = await createKit('Florería A anteprime');
+    const kitB = await createKit('Florería B anteprime');
+    const designA = await save(kitA, 12);
+    const designB = await save(kitB, 12);
+    const jobA = await requestBouquetPreview(kitA.shop.owner, designA.id);
+    await runOnce(kitA);
+
+    // Stessa composizione con prodotti omonimi: B genera la SUA immagine.
+    const jobB = await requestBouquetPreview(kitB.shop.owner, designB.id);
+    expect(jobB).toMatchObject({ reused: false, status: 'QUEUED' });
+    expect(jobB.jobId).not.toBe(jobA.jobId);
+
+    await expect(getAiPreviewImage(kitB.shop.owner, jobA.jobId)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    await expect(requestBouquetPreview(kitB.shop.owner, designA.id)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    await expect(getBouquetPreview(kitB.shop.owner, designA.id)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    expect((await getAiQuota(kitA.shop.owner)).includedUsed).toBe(1);
+    expect((await getAiQuota(kitB.shop.owner)).includedUsed).toBe(1);
+  });
+});

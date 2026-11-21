@@ -51,7 +51,10 @@ export type ConflictReason =
   | 'quote_empty'
   | 'invalid_status_transition'
   | 'builder_configuration_archived'
-  | 'builder_configuration_outdated';
+  | 'builder_configuration_outdated'
+  | 'ai_unavailable'
+  | 'ai_quota_exhausted'
+  | 'ai_budget_reached';
 
 export class ConflictError extends AppError {
   readonly code = 'conflict' as const;
