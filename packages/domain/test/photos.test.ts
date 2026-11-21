@@ -3,6 +3,8 @@ import {
   PHOTO_LIMITS,
   allowsPhotos,
   catalogPhotoInputSchema,
+  canRequestCutout,
+  judgeCutout,
   photoByColor,
   styleReferenceInputSchema,
   toFieldErrors,
@@ -72,5 +74,24 @@ describe('Mis ramos', () => {
     if (!result.success) {
       expect(toFieldErrors(result.error)).toEqual({ style: 'invalid_option', caption: 'too_long' });
     }
+  });
+});
+
+describe('controllo dello scontorno', () => {
+  it('accetta un soggetto ragionevole, rifiuta ritagli vuoti o con tutto il fondo', () => {
+    expect(judgeCutout(0.35)).toBeNull();
+    expect(judgeCutout(0.01)).toBe('cutout_nothing_kept');
+    expect(judgeCutout(Number.NaN)).toBe('cutout_nothing_kept');
+    expect(judgeCutout(0.99)).toBe('cutout_background_kept');
+  });
+
+  it('lo scontorno si richiede solo se non fatto o se il servizio ha fallito', () => {
+    expect(canRequestCutout(null, null)).toBe(true);
+    expect(canRequestCutout('FAILED', 'cutout_failed')).toBe(true);
+    // Scartato dal controllo di qualità: stessa foto, stesso risultato.
+    expect(canRequestCutout('FAILED', 'cutout_nothing_kept')).toBe(false);
+    expect(canRequestCutout('FAILED', 'cutout_background_kept')).toBe(false);
+    expect(canRequestCutout('PENDING', null)).toBe(false);
+    expect(canRequestCutout('READY', null)).toBe(false);
   });
 });

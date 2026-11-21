@@ -35,6 +35,8 @@ export const PHOTO_LIMITS = {
   /** Lato lungo a cui il browser riduce le foto prima dell'invio (px). */
   clientMaxSide: 2048,
   caption: 120,
+  /** Scontorni chiesti al massimo per una foto (primo tentativo incluso), contro i loop. */
+  cutoutRequests: 3,
 } as const;
 
 /** Formati accettati in upload (il server li riconosce dai byte, non dal nome). */
@@ -82,3 +84,37 @@ export const styleReferenceInputSchema = z.object({
   consent: checkboxField().pipe(z.literal(true, { error: 'consent_required' })),
 });
 export type StyleReferenceInput = z.infer<typeof styleReferenceInputSchema>;
+
+// -----------------------------------------------------------------------------
+// Scontorno automatico (ADR-033)
+// -----------------------------------------------------------------------------
+
+/** Motivi per cui un ritaglio non si usa (codici tradotti in `photos.cutoutErrors.*`). */
+export const CUTOUT_ERRORS = [
+  'cutout_nothing_kept',
+  'cutout_background_kept',
+  'cutout_failed',
+] as const;
+export type CutoutError = (typeof CUTOUT_ERRORS)[number];
+
+/**
+ * Controllo del ritaglio sulla quota di pixel rimasti (0–1): quasi niente → il modello non ha
+ * trovato il soggetto; quasi tutto → il fondo non è stato tolto. In entrambi i casi conviene
+ * rifare la foto su un fondo liso che contrasti con il fiore.
+ */
+export function judgeCutout(opaqueRatio: number): CutoutError | null {
+  if (!Number.isFinite(opaqueRatio) || opaqueRatio < 0.02) return 'cutout_nothing_kept';
+  if (opaqueRatio > 0.97) return 'cutout_background_kept';
+  return null;
+}
+
+export type CutoutStatus = 'PENDING' | 'READY' | 'FAILED';
+
+/**
+ * Si può chiedere (di nuovo) lo scontorno? Sì se non è mai stato fatto o se il servizio ha
+ * avuto un problema. Se invece il ritaglio è stato scartato dal controllo di qualità, rifarlo
+ * sulla stessa foto darebbe lo stesso risultato: serve un'altra foto.
+ */
+export function canRequestCutout(status: CutoutStatus | null, error: string | null): boolean {
+  return status === null || (status === 'FAILED' && error === 'cutout_failed');
+}

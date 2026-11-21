@@ -676,6 +676,8 @@ model QuoteLine {
 enum AiFeature {
   BOUQUET_PREVIEW
   ROOM_PREVIEW
+  /// Scontorno delle foto del catalogo (ADR-033): costo della piattaforma, non consuma crediti.
+  PHOTO_CUTOUT
 }
 
 enum AiJobStatus {
@@ -907,6 +909,13 @@ enum CatalogPhotoView {
   DETAIL
 }
 
+/// Scontorno automatico di una foto del catalogo (ADR-033).
+enum CutoutStatus {
+  PENDING
+  READY
+  FAILED
+}
+
 /// Foto di un articolo del catalogo (fiori da più angolazioni; carte e nastri per colore).
 /// I file stanno nell'archivio (R2) sotto `tenants/{tenantId}/catalog-photos/`, mai pubblici.
 model CatalogItemPhoto {
@@ -923,6 +932,11 @@ model CatalogItemPhoto {
   height        Int
   sizeBytes     Int
   sortOrder     Int              @default(0)
+  /// Versione senza fondo (PNG trasparente) per la composizione del ramo; null se non chiesta.
+  cutoutStatus  CutoutStatus?
+  cutoutKey     String?
+  /// Motivo di un fallimento (codice, es. `cutout_nothing_kept`), mai testo dell'utente.
+  cutoutError   String?
   status        RecordStatus     @default(ACTIVE)
   archivedAt    DateTime?
   createdById   String           @db.Uuid
