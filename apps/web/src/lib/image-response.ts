@@ -20,4 +20,15 @@ export function photoVariant(request: Request): 'thumb' | 'full' {
   return new URL(request.url).searchParams.get('size') === 'thumb' ? 'thumb' : 'full';
 }
 
+const CATALOG_PHOTO_VARIANTS = ['thumb', 'full', 'cutout', 'cutout-thumb'] as const;
+
+/**
+ * Foto del catalogo: anche `?size=cutout` / `cutout-thumb` (versione senza fondo, ADR-033).
+ * Valori sconosciuti → versione grande.
+ */
+export function catalogPhotoVariant(request: Request): (typeof CATALOG_PHOTO_VARIANTS)[number] {
+  const size = new URL(request.url).searchParams.get('size');
+  return CATALOG_PHOTO_VARIANTS.find((variant) => variant === size) ?? 'full';
+}
+
 export const notFoundResponse = () => new Response('Not found', { status: 404 });

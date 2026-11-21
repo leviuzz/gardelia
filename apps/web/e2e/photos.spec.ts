@@ -4,6 +4,8 @@ import { expect, test, type Page } from '@playwright/test';
 /**
  * Foto del catalogo e "Mis ramos" (ADR-029): caricamento reale dal browser (riduzione
  * lato client + ricodifica sul server), immagini private per fioreria, consenso obbligatorio.
+ * Scontorno automatico (ADR-033): in E2E lavora l'algoritmo locale per fondi lisi, quindi la
+ * foto di prova (fiore su fondo crema) esce davvero senza fondo.
  * Ogni test toglie le foto che carica, così le esecuzioni ripetute restano sotto i limiti.
  */
 const ROSA = fileURLToPath(new URL('./fixtures/rosa.jpg', import.meta.url));
@@ -31,41 +33,57 @@ async function removeLeftoverPhotos(page: Page) {
 test.describe('foto del catalogo (proprietario)', () => {
   test.use({ storageState: 'e2e/.auth/owner.json' });
 
-  test('carica una foto di una flor, è privata e si può togliere', async ({ page, browser }) => {
+  test('carica una foto di una flor: fondo tolto, privata, si può togliere', async ({
+    page,
+    browser,
+  }) => {
     await openItem(page, 'Rosa roja');
     await removeLeftoverPhotos(page);
+    await expect(page.getByText('Usa un fondo liso que contraste con el producto')).toBeVisible();
+    await expect(page.getByText('Quitamos el fondo de cada foto automáticamente.')).toBeVisible();
     await page.getByLabel('Vista').selectOption('SIDE');
     await page.getByRole('button', { name: 'Fotos', exact: true }).setInputFiles(ROSA);
     await page.getByRole('button', { name: 'Subir fotos' }).click();
     await expect(page.getByText('Se subió 1 foto')).toBeVisible();
 
-    const photo = page.getByRole('img', { name: /Foto de «Rosa roja», De lado/ }).first();
-    await expect(photo).toBeVisible();
-    const src = await photo.getAttribute('src');
-    expect(src).toMatch(/\/catalog\/photos\/[0-9a-f-]{36}\?size=thumb$/);
-    const response = await page.request.get(src!);
-    expect(response.status()).toBe(200);
-    expect(response.headers()['content-type']).toBe('image/jpeg');
+    // Il ritaglio arriva da solo: la pagina si aggiorna finché la foto è pronta.
+    const tile = page.getByTestId('item-photos').getByRole('listitem').first();
+    await expect(tile).toHaveAttribute('data-cutout', 'READY', { timeout: 20_000 });
+    await expect(tile.getByText('Sin fondo')).toBeVisible();
+    const photo = tile.getByRole('img', { name: 'Foto de «Rosa roja», De lado, sin fondo' });
+    const cutoutSrc = await photo.getAttribute('src');
+    expect(cutoutSrc).toMatch(/\/catalog\/photos\/[0-9a-f-]{36}\?size=cutout-thumb$/);
+    const cutout = await page.request.get(cutoutSrc!);
+    expect(cutout.status()).toBe(200);
+    expect(cutout.headers()['content-type']).toBe('image/png');
+    // L'originale resta (copertina del catalogo, Builder).
+    const src = cutoutSrc!.replace('size=cutout-thumb', 'size=thumb');
+    const original = await page.request.get(src);
+    expect(original.status()).toBe(200);
+    expect(original.headers()['content-type']).toBe('image/jpeg');
 
-    // Un'altra fioreria non la vede (404, non 403).
+    // Un'altra fioreria non le vede (404, non 403).
     const other = await browser.newContext({ storageState: 'e2e/.auth/other-owner.json' });
-    const otherSrc = src!.replace('/app/las-camelias/', '/app/flores-del-valle/');
-    expect((await other.request.get(otherSrc)).status()).toBe(404);
+    for (const url of [src, cutoutSrc!]) {
+      const otherUrl = url.replace('/app/las-camelias/', '/app/flores-del-valle/');
+      expect((await other.request.get(otherUrl)).status()).toBe(404);
+    }
     await other.close();
 
-    // Copertina nell'elenco del catalogo.
+    // Copertina nell'elenco del catalogo: la foto originale.
     await page.goto('/app/las-camelias/catalog');
     await expect(page.locator(`img[src="${src}"]:visible`)).toHaveCount(1);
 
     await page.goBack();
     await page
       .getByRole('listitem')
-      .filter({ has: page.locator(`img[src="${src}"]`) })
+      .filter({ has: page.locator(`img[src="${cutoutSrc}"]`) })
       .getByRole('button', { name: 'Quitar foto' })
       .click();
     await expect(page.getByText('Foto quitada')).toBeVisible();
-    await expect(page.locator(`img[src="${src}"]`)).toHaveCount(0);
-    expect((await page.request.get(src!)).status()).toBe(404);
+    await expect(page.locator(`img[src="${cutoutSrc}"]`)).toHaveCount(0);
+    expect((await page.request.get(src)).status()).toBe(404);
+    expect((await page.request.get(cutoutSrc!)).status()).toBe(404);
   });
 
   test('nastri: il colore della foto è obbligatorio e appare sulla foto', async ({ page }) => {
@@ -94,6 +112,7 @@ test.describe('foto del catalogo (staff)', () => {
     await openItem(page, 'Rosa roja');
     await expect(page.getByRole('button', { name: 'Subir fotos' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Quitar foto' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Quitar el fondo|Reintentar/ })).toHaveCount(0);
   });
 });
 
@@ -107,6 +126,8 @@ test.describe('Mis ramos', () => {
     await page.getByRole('link', { name: 'Mis ramos' }).click();
     await expect(page.getByRole('heading', { name: 'Mis ramos' })).toBeVisible();
     await expect(page.getByText(/Nunca se usan para entrenar modelos de IA/)).toBeVisible();
+    // Qui il fondo resta: fa parte dello stile.
+    await expect(page.getByText(/Aquí no quitamos el fondo/)).toBeVisible();
 
     await page.getByLabel('Estilo del ramo').selectOption('GARDEN');
     await page.getByLabel('Nota (opcional)').fill('Ramo de prueba E2E');

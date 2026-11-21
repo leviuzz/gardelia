@@ -2,7 +2,12 @@ import { ArrowLeft, ImageIcon, ShieldCheck } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { getEntitlements, hasPermission, listStyleReferences } from '@floral/core';
+import {
+  getEntitlements,
+  hasPermission,
+  listStyleReferences,
+  photoCutoutsAvailable,
+} from '@floral/core';
 import { BUILDER_STYLES, PHOTO_LIMITS } from '@floral/domain';
 import { PageHeader } from '@/components/page-header';
 import { RemovePhotoButton } from '@/components/photos/photo-upload-parts';
@@ -136,7 +141,11 @@ export default async function StyleReferencesPage({
         <Card>
           <CardHeader>
             <CardTitle className="font-display text-xl">{t('styleReferences.upload')}</CardTitle>
-            <CardDescription>{t('styleReferences.emptyHint')}</CardDescription>
+            <CardDescription>
+              {t('styleReferences.emptyHint')}
+              {/* Le foto del catalogo si scontornano (ADR-033), queste no: lo diciamo. */}
+              {photoCutoutsAvailable() ? ` ${t('styleReferences.keepsBackground')}` : null}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {remaining > 0 ? (

@@ -1,9 +1,10 @@
 /**
- * Foto di un articolo del catalogo (`?size=thumb` per la miniatura): servita solo ai membri
- * della fioreria proprietaria, con gli stessi controlli dei servizi. Mai URL pubblici.
+ * Foto di un articolo del catalogo (`?size=thumb` per la miniatura, `cutout` / `cutout-thumb`
+ * per la versione senza fondo): servita solo ai membri della fioreria proprietaria, con gli
+ * stessi controlli dei servizi. Mai URL pubblici.
  */
 import { NotFoundError, getCatalogPhotoImage } from '@floral/core';
-import { notFoundResponse, photoVariant, privateImageResponse } from '@/lib/image-response';
+import { catalogPhotoVariant, notFoundResponse, privateImageResponse } from '@/lib/image-response';
 import { getTenantContext } from '@/lib/tenant';
 
 export async function GET(
@@ -13,7 +14,9 @@ export async function GET(
   const { tenantSlug, photoId } = await params;
   const ctx = await getTenantContext(tenantSlug);
   try {
-    return privateImageResponse(await getCatalogPhotoImage(ctx, photoId, photoVariant(request)));
+    return privateImageResponse(
+      await getCatalogPhotoImage(ctx, photoId, catalogPhotoVariant(request)),
+    );
   } catch (error) {
     if (error instanceof NotFoundError) return notFoundResponse();
     throw error;

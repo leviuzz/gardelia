@@ -3,10 +3,17 @@
  * il bundle Edge non include moduli Node).
  *  - Verifica che il ruolo database dell'app sia soggetto alla Row-Level Security: in
  *    produzione l'app si rifiuta di partire con un ruolo superuser/BYPASSRLS.
- *  - Anteprime AI (ADR-025): valida provider e archivio e avvia il worker in questo processo.
+ *  - Anteprime AI (ADR-025) e scontorno delle foto (ADR-033): valida provider e archivio e
+ *    avvia il worker in questo processo.
  */
 import { checkRlsSafety, getDb, onSystemContext } from '@floral/db';
-import { createAiProviderFromEnv, createStorageFromEnv, logger, startAiWorker } from '@floral/core';
+import {
+  createAiProviderFromEnv,
+  createBackgroundRemoverFromEnv,
+  createStorageFromEnv,
+  logger,
+  startAiWorker,
+} from '@floral/core';
 
 export async function registerNode(): Promise<void> {
   onSystemContext(({ reason }) => logger.info({ reason }, 'contesto di sistema (bypass RLS)'));
@@ -26,13 +33,19 @@ export async function registerNode(): Promise<void> {
 
   // Errore di configurazione (es. provider simulato con un APP_URL pubblico) = l'app non parte.
   const provider = createAiProviderFromEnv();
-  if (!provider) return;
+  const remover = createBackgroundRemoverFromEnv();
+  if (!provider && !remover) return;
   createStorageFromEnv();
   const state = globalThis as { __floralAiWorker?: unknown };
   if (state.__floralAiWorker) return;
   state.__floralAiWorker = startAiWorker();
   logger.info(
-    { provider: provider.id, model: provider.model, simulated: provider.simulated },
-    'worker delle anteprime AI avviato',
+    {
+      provider: provider?.id ?? null,
+      model: provider?.model ?? null,
+      simulated: provider?.simulated ?? null,
+      cutoutModel: remover?.model ?? null,
+    },
+    'worker AI avviato (anteprime e scontorni)',
   );
 }

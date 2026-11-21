@@ -1,30 +1,48 @@
-import { ImageIcon } from 'lucide-react';
+import { ImageIcon, LoaderCircle, Scissors } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import {
   hasPermission,
   listCatalogItemPhotos,
+  photoCutoutsAvailable,
   type CatalogItemDto,
   type TenantContext,
 } from '@floral/core';
-import { PHOTO_LIMITS, allowsPhotos, photoByColor, type CatalogColor } from '@floral/domain';
+import {
+  PHOTO_LIMITS,
+  allowsPhotos,
+  canRequestCutout,
+  photoByColor,
+  type CatalogColor,
+} from '@floral/domain';
+import { CutoutAutoRefresh, RequestCutoutButton } from '@/components/photos/cutout-parts';
 import { RemovePhotoButton } from '@/components/photos/photo-upload-parts';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { COLOR_SWATCH_CLASS } from '@/lib/catalog-ui';
 import { cn } from '@/lib/utils';
-import { archiveCatalogPhotoAction, uploadCatalogPhotoAction } from '../photo-actions';
+import {
+  archiveCatalogPhotoAction,
+  requestPhotoCutoutAction,
+  uploadCatalogPhotoAction,
+} from '../photo-actions';
 import { CatalogPhotoUploader } from './catalog-photo-uploader';
 
-/** Foto dell'articolo: griglia, vista e colore, caricamento e rimozione (solo chi gestisce). */
+/**
+ * Foto dell'articolo: griglia, vista e colore, caricamento e rimozione (solo chi gestisce).
+ * Con lo scontorno attivo (ADR-033) ogni foto mostra la sua versione senza fondo, o lo stato
+ * del ritaglio con il consiglio per rifarla.
+ */
 export async function PhotosSection({ ctx, item }: { ctx: TenantContext; item: CatalogItemDto }) {
   if (!allowsPhotos(item.type)) return null;
   const t = await getTranslations();
   const photos = await listCatalogItemPhotos(ctx, item.id);
   const canWrite = hasPermission(ctx, 'catalog:write') && item.status === 'ACTIVE';
+  const cutouts = photoCutoutsAvailable();
   const byColor = photoByColor(item.type);
   const remaining = Math.max(0, PHOTO_LIMITS.perItem - photos.length);
   const slug = ctx.tenantSlug;
   const colorLabel = (color: string) => t(`catalog.colors.${color}`);
+  const anyPending = photos.some((photo) => photo.cutoutStatus === 'PENDING');
 
   return (
     <Card>
@@ -38,10 +56,15 @@ export async function PhotosSection({ ctx, item }: { ctx: TenantContext; item: C
                 ? t('photos.subtitleFlower')
                 : t('photos.subtitleOther')}
           </span>
-          <span className="block">{t('photos.usage')}</span>
+          <span className="block">{t('photos.background')}</span>
+          <span className="block">
+            {t('photos.usage')}
+            {cutouts ? ` ${t('photos.cutoutAuto')}` : null}
+          </span>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        <CutoutAutoRefresh active={anyPending} />
         {photos.length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed bg-muted/30 p-6 text-center text-sm text-muted-foreground">
             <ImageIcon className="size-6" aria-hidden="true" />
@@ -61,29 +84,71 @@ export async function PhotosSection({ ctx, item }: { ctx: TenantContext; item: C
                 const alt = photo.color
                   ? t('photos.altColor', { name: item.name, color: colorLabel(photo.color), view })
                   : t('photos.alt', { name: item.name, view });
+                const cutoutReady = photo.cutoutStatus === 'READY';
+                const src = `/app/${slug}/catalog/photos/${photo.id}?size=${cutoutReady ? 'cutout-thumb' : 'thumb'}`;
                 return (
-                  <li key={photo.id} className="relative">
+                  <li
+                    key={photo.id}
+                    className="relative"
+                    data-cutout={photo.cutoutStatus ?? 'NONE'}
+                  >
                     <figure className="space-y-1.5">
                       {/* eslint-disable-next-line @next/next/no-img-element -- immagine privata servita da una route autenticata */}
                       <img
-                        src={`/app/${slug}/catalog/photos/${photo.id}?size=thumb`}
-                        alt={alt}
+                        src={src}
+                        alt={cutoutReady ? t('photos.cutoutAlt', { description: alt }) : alt}
                         loading="lazy"
-                        className="aspect-square w-full rounded-xl border bg-muted object-cover"
+                        className={cn(
+                          'aspect-square w-full rounded-xl border',
+                          cutoutReady
+                            ? 'bg-checkerboard object-contain p-2'
+                            : 'bg-muted object-cover',
+                        )}
                       />
-                      <figcaption className="flex flex-wrap items-center gap-1.5">
-                        <Badge variant="secondary">{view}</Badge>
-                        {photo.color ? (
-                          <Badge variant="outline" className="gap-1.5">
-                            <span
-                              aria-hidden="true"
-                              className={cn(
-                                'size-2.5 rounded-full border border-black/10',
-                                COLOR_SWATCH_CLASS[photo.color as CatalogColor],
-                              )}
-                            />
-                            {colorLabel(photo.color)}
-                          </Badge>
+                      <figcaption className="space-y-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Badge variant="secondary">{view}</Badge>
+                          {photo.color ? (
+                            <Badge variant="outline" className="gap-1.5">
+                              <span
+                                aria-hidden="true"
+                                className={cn(
+                                  'size-2.5 rounded-full border border-black/10',
+                                  COLOR_SWATCH_CLASS[photo.color as CatalogColor],
+                                )}
+                              />
+                              {colorLabel(photo.color)}
+                            </Badge>
+                          ) : null}
+                          {cutoutReady ? (
+                            <Badge variant="outline" className="gap-1">
+                              <Scissors className="size-3" aria-hidden="true" />
+                              {t('photos.cutoutReady')}
+                            </Badge>
+                          ) : null}
+                          {photo.cutoutStatus === 'PENDING' ? (
+                            <Badge variant="outline" className="gap-1" role="status">
+                              <LoaderCircle className="size-3 animate-spin" aria-hidden="true" />
+                              {t('photos.cutoutPending')}
+                            </Badge>
+                          ) : null}
+                        </div>
+                        {photo.cutoutStatus === 'FAILED' && photo.cutoutError ? (
+                          <p className="text-xs leading-relaxed text-muted-foreground">
+                            {t(`photos.cutoutErrors.${photo.cutoutError}`)}
+                          </p>
+                        ) : null}
+                        {canWrite &&
+                        cutouts &&
+                        canRequestCutout(photo.cutoutStatus, photo.cutoutError) ? (
+                          <RequestCutoutButton
+                            action={requestPhotoCutoutAction.bind(null, slug, photo.id)}
+                            label={
+                              photo.cutoutStatus === null
+                                ? t('photos.cutoutRequest')
+                                : t('photos.cutoutRetry')
+                            }
+                          />
                         ) : null}
                       </figcaption>
                     </figure>

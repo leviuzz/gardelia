@@ -105,3 +105,15 @@
     @apply outline-2 outline-offset-2 outline-ring;
   }
 }
+
+/* Fondo a scacchi per le immagini con trasparenza (foto senza fondo, ADR-033). */
+@utility bg-checkerboard {
+  background-color: var(--card);
+  background-image: conic-gradient(
+    var(--border) 25%,
+    transparent 0 50%,
+    var(--border) 0 75%,
+    transparent 0
+  );
+  background-size: 16px 16px;
+}

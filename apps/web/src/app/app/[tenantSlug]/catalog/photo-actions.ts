@@ -7,7 +7,7 @@
  */
 import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
-import { addCatalogItemPhoto, archiveCatalogItemPhoto } from '@floral/core';
+import { addCatalogItemPhoto, archiveCatalogItemPhoto, requestPhotoCutout } from '@floral/core';
 import { actionError, type ActionState } from '@/lib/actions';
 import { getTenantContext } from '@/lib/tenant';
 import { uploadedBytes } from '@/lib/uploads';
@@ -45,4 +45,23 @@ export async function archiveCatalogPhotoAction(
   revalidatePath(`/app/${ctx.tenantSlug}/catalog`, 'layout');
   const t = await getTranslations('photos');
   return { status: 'success', message: t('removed') };
+}
+
+/** "Quitar el fondo" / "Reintentar": il servizio decide se si può (stato, limite, spesa). */
+export async function requestPhotoCutoutAction(
+  slug: string,
+  photoId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const ctx = await getTenantContext(slug);
+  let queued: boolean;
+  try {
+    ({ queued } = await requestPhotoCutout(ctx, photoId));
+  } catch (error) {
+    return actionError(error);
+  }
+  revalidatePath(`/app/${ctx.tenantSlug}/catalog`, 'layout');
+  const t = await getTranslations('photos');
+  return { status: 'success', message: queued ? t('cutoutRequested') : t('cutoutNotNeeded') };
 }
