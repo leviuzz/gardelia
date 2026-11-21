@@ -44,6 +44,11 @@ export const PERMISSIONS = {
    * trasformarlo in preventivo serve `quotes:write`. Richiede il piano con il Builder.
    */
   'builder:use': ALL,
+  /**
+   * Caricare e archiviare le foto di "Mis ramos" (riferimenti di stile per le anteprime AI):
+   * richiede di dare il consenso a nome della fioreria.
+   */
+  'builder:references:write': MANAGEMENT,
   /** Vedere il registro attività (audit) della fioreria. */
   'audit:read': MANAGEMENT,
 } as const satisfies Record<string, readonly MembershipRole[]>;

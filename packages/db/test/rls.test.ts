@@ -330,6 +330,46 @@ describe('piani e abbonamenti', () => {
   });
 });
 
+describe('foto del catalogo e Mis ramos', () => {
+  const photo = (tenantId: string, keyTenant: string, catalogItemId: string) => ({
+    tenantId,
+    catalogItemId,
+    storageKey: `tenants/${keyTenant}/catalog-photos/foto.jpg`,
+    thumbKey: `tenants/${keyTenant}/catalog-photos/foto-thumb.jpg`,
+    contentType: 'image/jpeg',
+    width: 800,
+    height: 600,
+    sizeBytes: 1000,
+    createdById: '00000000-0000-4000-8000-000000000001',
+  });
+
+  it('la foto di un articolo resta nel suo tenant e i file nella sua cartella', async () => {
+    const ctxA = { tenantId: tenantA.tenantId, userId: null };
+    const created = await withTenantContext(db, ctxA, (tx) =>
+      tx.catalogItemPhoto.create({ data: photo(tenantA.tenantId, tenantA.tenantId, itemA.id) }),
+    );
+    // B non la vede.
+    const seenByB = await withTenantContext(
+      db,
+      { tenantId: tenantB.tenantId, userId: null },
+      (tx) => tx.catalogItemPhoto.findUnique({ where: { id: created.id } }),
+    );
+    expect(seenByB).toBeNull();
+    // File sotto la cartella di un'altra fioreria: rifiutato dal database.
+    await expect(
+      withTenantContext(db, ctxA, (tx) =>
+        tx.catalogItemPhoto.create({ data: photo(tenantA.tenantId, tenantB.tenantId, itemA.id) }),
+      ),
+    ).rejects.toThrow(/CatalogItemPhoto_keys_check/);
+    // Articolo di un'altra fioreria: la FK composita lo impedisce.
+    await expect(
+      withTenantContext(db, ctxA, (tx) =>
+        tx.catalogItemPhoto.create({ data: photo(tenantA.tenantId, tenantA.tenantId, itemB.id) }),
+      ),
+    ).rejects.toSatisfy(isForeignKeyViolation);
+  });
+});
+
 describe('anteprime AI: crediti e coda', () => {
   it('i crediti extra si leggono solo nel proprio tenant e non si possono auto-assegnare', async () => {
     const tenantC = await createTestTenant(db, { displayName: 'Florería Créditos' });

@@ -32,6 +32,13 @@ export const VALIDATION_CODES = [
   'builder_one_packaging',
   'builder_line_limit',
   'builder_item_not_allowed',
+  'file_required',
+  'file_too_large',
+  'invalid_image',
+  'image_too_small',
+  'too_many_photos',
+  'photos_not_allowed_for_type',
+  'consent_required',
   'invalid',
 ] as const;
 
