@@ -32,7 +32,7 @@ export async function registerNode(): Promise<void> {
   if (state.__floralAiWorker) return;
   state.__floralAiWorker = startAiWorker();
   logger.info(
-    { provider: provider.id, simulated: provider.simulated },
+    { provider: provider.id, model: provider.model, simulated: provider.simulated },
     'worker delle anteprime AI avviato',
   );
 }

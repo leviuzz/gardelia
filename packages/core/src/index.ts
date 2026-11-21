@@ -27,8 +27,10 @@ export {
   getAiProvider,
   setAiProvider,
   type AiImageProvider,
+  type AiProviderErrorCode,
   type GeneratedImage,
 } from './ai/providers';
+export { FAL_MODEL_IDS, FalImageProvider, type FalModelId } from './ai/fal';
 export {
   MemoryStorage,
   createStorageFromEnv,

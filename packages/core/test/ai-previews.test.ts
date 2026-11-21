@@ -35,7 +35,7 @@ class StubProvider implements AiImageProvider {
   readonly id = 'stub';
   readonly model = 'stub-v1';
   readonly simulated = false;
-  behavior: 'ok' | 'error' | 'reject' = 'ok';
+  behavior: 'ok' | 'error' | 'reject' | 'invalid' = 'ok';
   calls = 0;
   prompts: string[] = [];
 
@@ -49,6 +49,7 @@ class StubProvider implements AiImageProvider {
     this.prompts.push(request.prompt);
     if (this.behavior === 'error') throw new AiProviderError('provider_error', 'boom');
     if (this.behavior === 'reject') throw new AiProviderError('content_rejected', 'rejected');
+    if (this.behavior === 'invalid') throw new AiProviderError('invalid_request', 'fal 403');
     return {
       bytes: new Uint8Array([137, 80, 78, 71, 1]),
       contentType: 'image/png',
@@ -251,6 +252,21 @@ describe('generazione, cache e consumo', () => {
       await requestBouquetPreview(kit.shop.owner, id);
       expect(await runOnce(kit)).toBe('failed');
       expect((await getAiQuota(kit.shop.owner)).includedUsed).toBe(0);
+    } finally {
+      provider.behavior = 'ok';
+    }
+  });
+
+  it('una richiesta rifiutata dal provider (chiave, saldo, parametri) non si ritenta', async () => {
+    const kit = await createKit();
+    const { id } = await save(kit, 5);
+    provider.behavior = 'invalid';
+    try {
+      await requestBouquetPreview(kit.shop.owner, id);
+      expect(await runOnce(kit)).toBe('failed');
+      const state = await getBouquetPreview(kit.shop.owner, id);
+      expect(state.preview).toMatchObject({ status: 'FAILED', errorCode: 'invalid_request' });
+      expect(state.quota?.includedUsed).toBe(0);
     } finally {
       provider.behavior = 'ok';
     }

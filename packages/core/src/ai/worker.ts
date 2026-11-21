@@ -4,14 +4,20 @@
  *  - Preleva il prossimo job con `app_claim_ai_job` (SECURITY DEFINER, `SKIP LOCKED`): nessun
  *    bypass RLS nel codice; ogni job si lavora nel contesto del proprio tenant.
  *  - Successo: immagine nell'archivio, job SUCCEEDED e credito consumato (usageUnits = 1).
- *  - Errore: nuovo tentativo con attesa crescente finché restano tentativi; poi FAILED senza
- *    consumare crediti (BQ-02: nessuna anteprima inventata, il disegno resta valido).
+ *  - Errore temporaneo: nuovo tentativo con attesa crescente finché restano tentativi; poi
+ *    FAILED senza consumare crediti (BQ-02: nessuna anteprima inventata, il disegno resta
+ *    valido). Contenuto rifiutato o richiesta non valida: FAILED subito (ripetere non serve).
  */
 import { setTimeout as delay } from 'node:timers/promises';
 import { getDb, withTenantContext } from '@floral/db';
 import { buildPreviewPrompt, type BouquetPreviewSpec } from '@floral/domain';
 import { logger } from '../logger';
-import { AiProviderError, getAiProvider, type AiImageProvider } from './providers';
+import {
+  AiProviderError,
+  NON_RETRYABLE_AI_ERRORS,
+  getAiProvider,
+  type AiImageProvider,
+} from './providers';
 import { onAiJobQueued } from './signal';
 import { getObjectStorage } from './storage';
 
@@ -61,7 +67,7 @@ export async function processNextAiJob(
     if (job.provider !== provider.id || job.model !== provider.model) {
       // Provider cambiato dopo l'accodamento: si rigenera con quello attuale solo su nuova
       // richiesta (la chiave di cache include il modello).
-      throw new AiProviderError('content_rejected', 'provider cambiato');
+      throw new AiProviderError('invalid_request', 'provider cambiato');
     }
     const image = await provider.generate({
       prompt: buildPreviewPrompt(job.input),
@@ -96,7 +102,7 @@ export async function processNextAiJob(
         : error instanceof Error && error.name === 'TimeoutError'
           ? 'timeout'
           : 'provider_error';
-    const retryable = code !== 'content_rejected' && job.attempts < job.maxAttempts;
+    const retryable = !NON_RETRYABLE_AI_ERRORS.has(code) && job.attempts < job.maxAttempts;
     const message = error instanceof Error ? error.message.slice(0, 300) : 'errore sconosciuto';
     await withTenantContext(db, scope, (tx) =>
       tx.aiJob.updateMany({
@@ -120,7 +126,8 @@ export async function processNextAiJob(
       }),
     );
     logger.warn(
-      { jobId: job.id, tenantId: job.tenantId, code, attempt: job.attempts, retryable },
+      // Il messaggio contiene solo stato HTTP, ID della richiesta del provider e il suo motivo.
+      { jobId: job.id, tenantId: job.tenantId, code, attempt: job.attempts, retryable, message },
       'anteprima AI non riuscita',
     );
     return retryable ? 'retry' : 'failed';

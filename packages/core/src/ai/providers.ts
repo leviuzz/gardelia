@@ -1,49 +1,28 @@
 /**
- * Provider delle immagini AI [O-01, ADR-025].
+ * Provider delle immagini AI [O-01, ADR-025, ADR-026].
  *
- *  - Interfaccia unica: il resto del sistema non sa quale modello genera l'immagine.
+ *  - Interfaccia unica (`provider-types.ts`): il resto del sistema non sa quale modello genera
+ *    l'immagine.
+ *  - `FalImageProvider` (`fal.ts`): il provider reale, scelto col benchmark sui ramos demo.
  *  - `SimulatedImageProvider`: SOLO sviluppo/test (APP_URL locale), disegna un'immagine
  *    astratta dai colori della distinta; la UI la etichetta sempre come simulazione.
  *    In produzione l'app rifiuta di avviarsi con questo provider (CLAUDE.md: niente AI finta).
- *  - Il provider reale (fal.ai) si aggiunge con la chiave del founder e il benchmark.
  */
 import { setTimeout as delay } from 'node:timers/promises';
 import { deflateSync } from 'node:zlib';
 import type { BouquetPreviewSpec } from '@floral/domain';
+import { DEFAULT_FAL_MODEL, FAL_MODEL_IDS, FalImageProvider, isFalModelId } from './fal';
+import type { AiImageProvider, GeneratedImage } from './provider-types';
 import { isLocalAppUrl } from './storage';
 
-export interface GeneratedImage {
-  readonly bytes: Uint8Array;
-  readonly contentType: 'image/png' | 'image/jpeg' | 'image/webp';
-  /** Costo reale in micro-USD, se il provider lo comunica. */
-  readonly costMicros: number | null;
-}
-
-export interface AiImageProvider {
-  readonly id: string;
-  readonly model: string;
-  /** true = immagine simulata (sviluppo/test): mai mostrata come AI reale. */
-  readonly simulated: boolean;
-  /** Costo stimato per immagine (micro-USD) usato per il tetto di spesa. */
-  readonly estimatedCostMicros: number;
-  generate(request: {
-    readonly prompt: string;
-    readonly spec: BouquetPreviewSpec;
-    readonly signal: AbortSignal;
-  }): Promise<GeneratedImage>;
-}
-
-export type AiProviderErrorCode = 'provider_error' | 'content_rejected' | 'timeout';
-
-export class AiProviderError extends Error {
-  constructor(
-    readonly code: AiProviderErrorCode,
-    message: string,
-  ) {
-    super(message);
-    this.name = 'AiProviderError';
-  }
-}
+export {
+  AiProviderError,
+  NON_RETRYABLE_AI_ERRORS,
+  sniffImageType,
+  type AiImageProvider,
+  type AiProviderErrorCode,
+  type GeneratedImage,
+} from './provider-types';
 
 // -----------------------------------------------------------------------------
 // PNG minimale (RGB 8 bit) senza dipendenze
@@ -234,6 +213,21 @@ export function createAiProviderFromEnv(
       );
     }
     return new SimulatedImageProvider();
+  }
+  if (provider === 'fal') {
+    const apiKey = env.FAL_KEY?.trim() ?? '';
+    if (!apiKey) {
+      throw new Error(
+        'AI_PROVIDER=fal richiede FAL_KEY: la chiave va nelle variabili dell’hosting, mai nel repo.',
+      );
+    }
+    const model = env.AI_MODEL?.trim() || DEFAULT_FAL_MODEL;
+    if (!isFalModelId(model)) {
+      throw new Error(
+        `AI_MODEL non supportato con fal: ${model} (ammessi: ${FAL_MODEL_IDS.join(', ')}).`,
+      );
+    }
+    return new FalImageProvider({ apiKey, model });
   }
   throw new Error(`AI_PROVIDER non supportato: ${provider}`);
 }
