@@ -146,6 +146,31 @@ indipendente dalla piattaforma: cambia solo chi chiama "svuota la coda".
   Messico: grazie a Postgres e storage standard la migrazione resta possibile.
 - **Railway:** simile a Render (ambienti, anteprime per PR), piano Pro da 20 USD/mese a consumo.
 
+### Database: perché Neon e non Supabase (21/11/2026)
+
+Supabase è un'ottima piattaforma "tutto in uno": Postgres più login, file, API automatica sul
+database e aggiornamenti in tempo reale. Noi queste parti le abbiamo già, scelte e testate:
+login con Better Auth, file su R2, sicurezza fra fiorerie con la nostra RLS e accesso al
+database solo dal server. Da Supabase useremmo solo Postgres, quindi il confronto è fra due
+Postgres gestiti:
+
+| Criterio                                                       | Neon                                                       | Supabase                                                           |
+| -------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------ |
+| Database per ogni anteprima                                    | branch istantaneo copia-su-scrittura, integrato con Vercel | un'istanza separata per branch, creata dalle migrazioni, a ore     |
+| Ripristino a un minuto qualsiasi (PITR)                        | incluso (7 giorni Launch, 30 giorni Scale)                 | componente aggiuntivo: 100 USD/mese per 7 giorni, oltre al compute |
+| Staging e anteprime quando nessuno li usa                      | si spengono da soli (si paga solo l'uso)                   | istanze accese, pagate a ore                                       |
+| Superficie esposta                                             | solo Postgres                                              | anche un'API automatica sul database, da disattivare o sorvegliare |
+| Costo del nostro assetto (prod con PITR + staging + anteprime) | ≈ 25–50 USD/mese                                           | ≈ 140–160 USD/mese                                                 |
+
+Rischio fornitore: Neon fa parte di Databricks dal 2025. Neon dichiara che il prodotto resta
+autonomo, con fatturazione separata, e il motore è open source (Apache 2.0); lo stesso motore è
+alla base di Databricks Lakebase. Rischio basso: usiamo Postgres standard (RLS, funzioni SQL,
+Prisma), quindi spostarsi resta un'esportazione e un'importazione.
+
+Sceglieremmo Supabase se partissimo da zero e volessimo login, file e tempo reale in un solo
+servizio. Non è il nostro caso. Per quanto verificato, nessuno dei due ha oggi una regione in
+Messico.
+
 ### Costo stimato all'inizio (da verificare sui listini al momento dell'acquisto)
 
 | Voce                                                        | Al mese, staging + produzione                  |
@@ -417,9 +442,12 @@ risultati di ricerca su quelle pagine e vanno ricontrollate sul sito prima dell'
   [changelog](https://render.com/changelog?).
 - Neon: [prezzi](https://neon.com/pricing), [limiti dei piani](https://neon.com/docs/introduction/limits),
   [Launch vs Supabase Pro](https://neon.com/guides/neon-launch-plan-vs-supabase-pro-plan),
+  [Neon e Databricks (FAQ)](https://neon.tech/databricks-faq), [Neon e Lakebase](https://neon.com/blog/were-building-backends),
   [ruoli](https://neon.com/docs/manage/roles/), [RLS nei branch](https://neon.com/guides/test-rls-on-neon-branches),
   [changelog BYPASSRLS](https://neon.com/docs/changelog/2023-08-15).
 - Railway: [piani](https://docs.railway.com/pricing/plans), [FAQ prezzi](https://docs.railway.com/pricing/faqs).
+- Supabase: [prezzi](https://supabase.com/pricing), [costo del PITR](https://supabase.com/docs/guides/platform/manage-your-usage/point-in-time-recovery),
+  [costo dei branch](https://supabase.com/docs/guides/platform/manage-your-usage/branching), [regioni](https://supabase.com/docs/guides/platform/regions).
 - Google Cloud: [regione Messico](https://cloud.google.com/blog/products/infrastructure/google-cloud-announces-41st-cloud-region-in-mexico),
   [località e prodotti](https://cloud.google.com/about/locations/index.html).
 - Cloudflare R2: [prezzi](https://developers.cloudflare.com/r2/pricing/index.md).
