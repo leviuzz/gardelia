@@ -177,6 +177,11 @@ ritagli con sharp in `ai/sketch-renderer.ts` e `ai/bloom-head.ts`) si serve grat
 accetta solo numeri identici, con un nuovo tentativo; altrimenti FAILED `count_mismatch` senza
 credito.
 
+Immagine nel preventivo (ADR-035): `createQuoteFromConfiguration` aggancia alla riga BUILDER
+l'anteprima riuscita del disegno in quel momento (`currentPreviewJobId`, stessa chiave di cache
+delle anteprime); `getQuote` ne espone lo stato e `getQuoteLineImage` la serve con i permessi dei
+preventivi dalla route `/quotes/[id]/lines/[lineId]/image` (`?download=1` per WhatsApp).
+
 Colore di carta e nastro (ADR-030): l'editor invia `{catalogItemId, quantity, color}`; il server
 calcola il colore effettivo con `resolveLineColor` sui colori attuali dell'articolo, lo salva sulla
 riga e lo riporta nella distinta del preventivo e nel prompt dell'anteprima.

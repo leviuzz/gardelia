@@ -537,6 +537,24 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   kraft, esatti (decisi dalla seconda opinione: Claude ne vedeva 4), 3 rose + 3 margherite
   esatte. Boceto `sketch-v3`.
 
+### ADR-035 — Immagine del ramo nel preventivo — ADOTTATO (21/11/2026)
+
+- **Cosa:** quando un preventivo nasce da un disegno del Builder, la riga BUILDER si aggancia
+  all'anteprima RIUSCITA del ramo così com'è in quel momento (`QuoteLine.previewJobId`, FK
+  composita sul tenant, CHECK: solo righe BUILDER). Se poi il disegno cambia, il preventivo già
+  fatto tiene la sua immagine (mostra ciò che è stato quotato); un preventivo nuovo la ha solo
+  dopo aver generato l'anteprima della nuova composizione.
+- **Dove si vede:** nella pagina del preventivo e nella stampa/PDF, con l'avviso "Imagen
+  ilustrativa" (o, se verificata, "con el número exacto de flores de la receta") e il bollino
+  "Número de flores verificado"; "Simulación" con il provider simulato.
+- **WhatsApp:** un link `wa.me` porta solo testo, quindi "Descargar imagen para WhatsApp" scarica
+  il file da allegare a mano al messaggio. Nessun link pubblico all'immagine.
+- **Accesso:** route privata `/quotes/[id]/lines/[lineId]/image` con il permesso di lettura dei
+  preventivi (anche lo staff), 404 per le altre fiorerie; l'immagine resta visibile anche se la
+  fioreria scende a Basic (è già stata pagata).
+- **Prossimo:** link per il cliente (pagina pubblica del preventivo con token, scadenza e
+  revoca), da decidere insieme alla privacy (O-07).
+
 ---
 
 ## 3. Proposte da approvare

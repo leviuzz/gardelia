@@ -139,8 +139,8 @@ il **taglio** seguente.
 ### I prossimi task (nell'ordine)
 
 1. Prima del pilota: foto vere di una fioreria (scontorno e anteprima esatta) e prova da ~100 immagini → costo reale (foto, controlli, scontorni) riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 nell'hosting (P-03, O-04).
-2. Boceto più vero: dimensioni diverse per tipo di fiore (girasole > rosa > margherita), più foto per fiore alternate, contenitori (caja, florero) disegnati meglio, "tamaño" del ramo; foto: scelta della copertina e "usa l'originale" se il ritaglio non piace.
-3. Boceto e foto verificata nel preventivo stampato e nel messaggio WhatsApp.
+2. Boceto: contenitori (caja, florero) disegnati meglio e "tamaño" del ramo; foto: scelta della copertina e "usa l'originale" se il ritaglio non piace. (Fatto: proporzioni per tipo di fiore e angolazioni alternate.)
+3. Link per il cliente: pagina pubblica del preventivo (token, scadenza, revoca) con l'immagine del ramo, da mandare su WhatsApp; privacy da validare (O-07). Oggi l'immagine si scarica e si allega a mano (ADR-035).
 4. Builder pubblico per i clienti della fioreria (AI-BQ-10), dopo il pilota del Builder interno.
 5. Aggiungere un disegno del Builder a un preventivo in bozza esistente.
 6. Ordini da preventivo accettato (Sprint 3) con la stessa distinta.
@@ -371,3 +371,18 @@ il **taglio** seguente.
   del boceto, riquadri con doppioni e JSON rovinato, seconda opinione, corolla senza stelo),
   build ✅, E2E 30/30 ✅; nell'app con fal: 12 rose in carta nera esatte, 18,6 s.
 - Spesa fal totale: ≈6,0 USD su 10 € (stima da listino).
+
+### 2026-11-21 — Proporzioni dei fiori e immagine del ramo nel preventivo (ADR-034 v3, ADR-035)
+
+- Founder: "ok meglio così, vai avanti".
+- Boceto v3: diametro tipico della corolla riconosciuto dal nome (girasole 15 cm, rosa 8,
+  margarita 5…), fiori grandi al centro e piccoli intorno, carta davanti sotto ogni corolla.
+  Prove (~0,30 USD): 3 rose + 3 margherite esatte; 3 girasoli + 5 margherite esatti grazie alla
+  seconda opinione.
+- Immagine nel preventivo: `QuoteLine.previewJobId` (migrazione `quote_line_preview`, FK composita
+  e CHECK), aggancio alla creazione del preventivo dal disegno, stato nel DTO, route privata con
+  download per WhatsApp, pagina e stampa con avviso e bollino; corretto lo sbordo a 320 px.
+- Verifiche: lint ✅, format ✅, typecheck ✅, `pnpm test` 314/314 ✅ (+4: proporzioni e immagine
+  nel preventivo con isolamento A↔B), build ✅, E2E 30/30 ✅ (il test dell'anteprima esatta ora
+  crea anche la cotización e scarica l'immagine); controllo visivo di pagina, stampa e 320 px.
+- Spesa fal totale: ≈6,3 USD su 10 € (stima da listino).

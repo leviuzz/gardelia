@@ -46,6 +46,9 @@ clienti, preventivi…), AI Bouquet Builder nel piano Plus e, in seguito, il mar
   con il numero esatto di fiori (gratis, senza IA); la foto realistica parte dal boceto e si
   mostra solo se un modello di visione ritrova gli stessi numeri ("Número de flores
   verificado"); se mancano foto, dice quali fiori fotografare (ADR-034).
+- **Immagine del ramo nella cotización:** la foto del ramo (verificata o no) accompagna la riga
+  del Builder nella pagina e nella stampa/PDF, con l'avviso; si scarica per allegarla su WhatsApp
+  (ADR-035).
 - Dashboard con dati reali (cotizaciones abiertas, fechas especiales, attività), banner demo.
 - Isolamento fra fiorerie garantito anche dal database (Row-Level Security PostgreSQL).
 
