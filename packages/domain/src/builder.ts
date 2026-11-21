@@ -9,6 +9,7 @@
  */
 import { z } from 'zod';
 import type { Availability, CatalogItemType } from './catalog';
+import { CATALOG_COLORS } from './colors';
 import { MAX_AMOUNT_MINOR, multiplyMinor, sumMinor, type CurrencyCode } from './money';
 import { optionalMoneyField, optionalText, requiredText, toTrimmedString } from './validation';
 
@@ -157,12 +158,62 @@ export function worstAvailability(
 }
 
 // -----------------------------------------------------------------------------
+// Colore di carta, vaso e nastro (ADR-030)
+// -----------------------------------------------------------------------------
+
+/**
+ * Ruoli per cui si sceglie il colore nel Builder. I fiori no: ogni colore di fiore è un
+ * articolo a sé ("Rosa roja", "Rosa blanca"), con il suo prezzo e la sua disponibilità.
+ */
+export const BUILDER_COLOR_ROLES = [
+  'PACKAGING',
+  'ACCESSORY',
+] as const satisfies readonly BuilderRole[];
+
+export function isColorChoiceRole(role: BuilderRole): boolean {
+  return (BUILDER_COLOR_ROLES as readonly BuilderRole[]).includes(role);
+}
+
+export type LineColorResult =
+  | { readonly ok: true; readonly color: string | null }
+  | { readonly ok: false; readonly error: 'builder_color_required' | 'invalid_option' };
+
+/**
+ * Colore effettivo di una riga, calcolato dal server sui colori ATTUALI dell'articolo:
+ *  - carta/vaso/nastro con un solo colore → quello, anche se non indicato;
+ *  - con più colori → obbligatorio e dev'essere uno di quelli dell'articolo;
+ *  - senza colori, o per fiori e follaje → nessun colore (un colore indicato è un errore).
+ */
+export function resolveLineColor(
+  role: BuilderRole,
+  itemColors: readonly string[],
+  requested: string | null | undefined,
+): LineColorResult {
+  const wanted = requested ?? null;
+  if (!isColorChoiceRole(role) || itemColors.length === 0) {
+    return wanted === null ? { ok: true, color: null } : { ok: false, error: 'invalid_option' };
+  }
+  if (wanted === null) {
+    return itemColors.length === 1
+      ? { ok: true, color: itemColors[0] ?? null }
+      : { ok: false, error: 'builder_color_required' };
+  }
+  return itemColors.includes(wanted)
+    ? { ok: true, color: wanted }
+    : { ok: false, error: 'invalid_option' };
+}
+
+// -----------------------------------------------------------------------------
 // Input
 // -----------------------------------------------------------------------------
 
 const builderLineSchema = z.object({
   catalogItemId: z.uuid({ error: 'invalid_option' }),
   quantity: z.int({ error: 'invalid_number' }).min(1).max(BUILDER_LIMITS.quantityMax),
+  color: z.preprocess(
+    (value) => (value === undefined || toTrimmedString(value) === '' ? null : value),
+    z.enum(CATALOG_COLORS, { error: 'invalid_option' }).nullable(),
+  ),
 });
 
 /**

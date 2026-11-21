@@ -18,7 +18,7 @@ describe('foto del catalogo', () => {
   });
 
   it('rifiuta viste e colori fuori elenco con codici traducibili', () => {
-    const result = catalogPhotoInputSchema.safeParse({ view: 'BACK', color: 'gold' });
+    const result = catalogPhotoInputSchema.safeParse({ view: 'BACK', color: 'neon' });
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(toFieldErrors(result.error)).toEqual({

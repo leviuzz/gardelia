@@ -11,7 +11,8 @@
  */
 import { z } from 'zod';
 import { BUILDER_STYLES } from './builder';
-import { CATALOG_COLORS, type CatalogItemType } from './catalog';
+import type { CatalogItemType } from './catalog';
+import { CATALOG_COLORS } from './colors';
 import { checkboxField, optionalText, toTrimmedString } from './validation';
 
 export const CATALOG_PHOTO_VIEWS = ['FRONT', 'SIDE', 'TOP', 'DETAIL'] as const;

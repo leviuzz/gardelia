@@ -5,6 +5,7 @@ import {
   builderRoleOf,
   checkComposition,
   priceBouquet,
+  resolveLineColor,
   worstAvailability,
   type BuilderPricedLine,
 } from '../src/builder';
@@ -139,8 +140,22 @@ describe('input dell’editor', () => {
       size: null,
       budget: 80000,
       notes: null,
-      lines: [{ catalogItemId: id, quantity: 7 }],
+      lines: [{ catalogItemId: id, quantity: 7, color: null }],
     });
+  });
+
+  it('accetta il colore della riga (o nessuno) e rifiuta colori sconosciuti', () => {
+    const base = { name: 'Ramo', style: null, size: null, budget: '', notes: '' };
+    expect(
+      schema.parse({ ...base, lines: [{ catalogItemId: id, quantity: 1, color: 'lilac' }] }).lines,
+    ).toEqual([{ catalogItemId: id, quantity: 1, color: 'lilac' }]);
+    expect(
+      schema.parse({ ...base, lines: [{ catalogItemId: id, quantity: 1, color: '' }] }).lines,
+    ).toEqual([{ catalogItemId: id, quantity: 1, color: null }]);
+    expect(
+      schema.safeParse({ ...base, lines: [{ catalogItemId: id, quantity: 1, color: 'neon' }] })
+        .success,
+    ).toBe(false);
   });
 
   it('rifiuta quantità non intere o fuori limite, righe duplicate e stili sconosciuti', () => {
@@ -199,5 +214,42 @@ describe('flag Builder del catalogo', () => {
         isBuilderEnabled: true,
       }).isBuilderEnabled,
     ).toBe(false);
+  });
+});
+
+describe('colore di carta, vaso e nastro', () => {
+  it('con più colori il colore è obbligatorio e dev’essere dell’articolo', () => {
+    const colors = ['pink', 'white', 'lilac'];
+    expect(resolveLineColor('PACKAGING', colors, 'lilac')).toEqual({ ok: true, color: 'lilac' });
+    expect(resolveLineColor('PACKAGING', colors, null)).toEqual({
+      ok: false,
+      error: 'builder_color_required',
+    });
+    expect(resolveLineColor('ACCESSORY', colors, 'gold')).toEqual({
+      ok: false,
+      error: 'invalid_option',
+    });
+  });
+
+  it('con un solo colore si sceglie da solo; senza colori non se ne indica nessuno', () => {
+    expect(resolveLineColor('ACCESSORY', ['cream'], undefined)).toEqual({
+      ok: true,
+      color: 'cream',
+    });
+    expect(resolveLineColor('ACCESSORY', ['cream'], 'cream')).toEqual({ ok: true, color: 'cream' });
+    expect(resolveLineColor('PACKAGING', [], null)).toEqual({ ok: true, color: null });
+    expect(resolveLineColor('PACKAGING', [], 'pink')).toEqual({
+      ok: false,
+      error: 'invalid_option',
+    });
+  });
+
+  it('i fiori non hanno colore di riga: ogni colore è un articolo a sé', () => {
+    expect(resolveLineColor('FLOWER', ['red', 'pink'], null)).toEqual({ ok: true, color: null });
+    expect(resolveLineColor('FLOWER', ['red', 'pink'], 'red')).toEqual({
+      ok: false,
+      error: 'invalid_option',
+    });
+    expect(resolveLineColor('FOLIAGE', ['green'], null)).toEqual({ ok: true, color: null });
   });
 });

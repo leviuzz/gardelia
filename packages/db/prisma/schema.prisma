@@ -877,6 +877,9 @@ model BouquetConfigurationLine {
   catalogItemId   String      @db.Uuid
   role            BuilderRole
   quantity        Int
+  /// Colore scelto per carta, vaso o nastro (uno dei colori dell'articolo); null per fiori
+  /// e follaje o articoli senza colori (ADR-030).
+  color           String?
   /// Prezzo e costo unitari al salvataggio (snapshot).
   unitPriceMinor  Int
   unitCostMinor   Int?

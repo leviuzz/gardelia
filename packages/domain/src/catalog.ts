@@ -4,6 +4,7 @@
  */
 import { z } from 'zod';
 import { isBuilderComponentType } from './builder';
+import { CATALOG_COLORS } from './colors';
 import { MAX_AMOUNT_MINOR, type CurrencyCode } from './money';
 import {
   checkboxField,
@@ -40,24 +41,7 @@ export const RECORD_STATUSES = ['ACTIVE', 'ARCHIVED'] as const;
 export type RecordStatus = (typeof RECORD_STATUSES)[number];
 
 /** Vocabolario controllato dei colori (filtri, Builder, matching futuro). */
-export const CATALOG_COLORS = [
-  'red',
-  'pink',
-  'fuchsia',
-  'white',
-  'cream',
-  'yellow',
-  'orange',
-  'peach',
-  'coral',
-  'purple',
-  'lilac',
-  'blue',
-  'green',
-  'burgundy',
-  'multicolor',
-] as const;
-export type CatalogColor = (typeof CATALOG_COLORS)[number];
+export { CATALOG_COLORS, type CatalogColor } from './colors';
 
 /** Unità di vendita ammesse per ciascuna tipologia. */
 export const ALLOWED_UNITS_BY_TYPE: Readonly<Record<CatalogItemType, readonly SaleUnit[]>> = {
@@ -120,7 +104,8 @@ export const CATALOG_LIMITS = {
   description: 2000,
   sku: 40,
   variety: 80,
-  colors: 6,
+  /** Carte e nastri hanno spesso molti colori (papel coreano, listón de satín). */
+  colors: 12,
   tags: 20,
   tagLength: 30,
   prepMinutesMax: 24 * 60,

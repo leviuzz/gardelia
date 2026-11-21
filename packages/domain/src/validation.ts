@@ -32,6 +32,7 @@ export const VALIDATION_CODES = [
   'builder_one_packaging',
   'builder_line_limit',
   'builder_item_not_allowed',
+  'builder_color_required',
   'file_required',
   'file_too_large',
   'invalid_image',
