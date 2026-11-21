@@ -5,7 +5,11 @@ il meno possibile. Le classifiche pubbliche (LMArena, Artificial Analysis) misur
 generale delle immagini; a noi serve altro: che il ramo rispetti **varietà, colori, quantità
 (circa) ed empaque** del catalogo. Per questo si prova sui nostri ramos.
 
-## Passo 1 — prova manuale gratuita (founder, ~15 minuti)
+> **Scelta del founder (21/11/2026):** account fal.ai con 10 € prepagati; il confronto dei
+> modelli lo esegue lo sviluppo in automatico sui ramos qui sotto. La prova manuale del passo 1
+> resta facoltativa.
+
+## Passo 1 — prova manuale gratuita (facoltativa, ~15 minuti)
 
 1. Copia ciascun prompt qui sotto (sono generati dal sistema, identici a quelli che invierà l'app).
 2. Incollalo in **ChatGPT** (modelli GPT Image di OpenAI) e in **Gemini** (modelli Nano Banana di
@@ -53,12 +57,12 @@ Professional product photograph of a single florist bouquet on a plain light bac
 
 ## Passo 2 — integrazione (≈10 € di credito prepagato)
 
-Account **diretto** solo presso il fornitore che vince il passo 1 (OpenAI o Google), credito
-prepagato di circa 10 € e limite di spesa impostato nel suo pannello. La chiave si inserisce nel
+Account **fal.ai** (scelto) con credito prepagato di 10 €: quando il credito finisce l'account si
+blocca, quindi non ci sono sorprese. La chiave si inserisce nel
 modulo sicuro della sessione o nelle variabili dell'hosting, **mai in chat né nel repository**.
 Con 10 € si coprono l'integrazione e un primo lotto di immagini a bassa risoluzione (sufficiente
-per WhatsApp). Un aggregatore (es. fal.ai) serve solo se si vogliono confrontare più modelli via
-API senza aprire più account.
+per WhatsApp). Con un solo account si confrontano più modelli via API; in seguito si potrà passare al fornitore
+diretto del modello scelto senza cambiare il resto del sistema.
 
 ## Passo 3 — prima del pilota
 
