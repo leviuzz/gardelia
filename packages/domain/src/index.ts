@@ -1,6 +1,7 @@
 export * from './brand';
 export * from './audit';
 export * from './catalog';
+export * from './customer';
 export * from './i18n';
 export * from './ids';
 export * from './markets';

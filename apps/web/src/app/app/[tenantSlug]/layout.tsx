@@ -20,6 +20,7 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
   const base = `/app/${ctx.tenantSlug}`;
   const items: NavItem[] = [
     { href: base, label: t('nav.dashboard'), icon: 'dashboard', exact: true },
+    { href: `${base}/customers`, label: t('nav.customers'), icon: 'customers' },
     { href: `${base}/catalog`, label: t('nav.catalog'), icon: 'catalog' },
     ...(hasPermission(ctx, 'members:read')
       ? [{ href: `${base}/settings/team`, label: t('nav.team'), icon: 'team' as const }]

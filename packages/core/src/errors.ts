@@ -44,7 +44,8 @@ export type ConflictReason =
   | 'invitation_not_pending'
   | 'invitation_expired'
   | 'tenant_limit_reached'
-  | 'slug_unavailable';
+  | 'slug_unavailable'
+  | 'occasion_limit';
 
 export class ConflictError extends AppError {
   readonly code = 'conflict' as const;

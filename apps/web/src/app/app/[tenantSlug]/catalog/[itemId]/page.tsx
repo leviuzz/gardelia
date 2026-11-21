@@ -15,6 +15,7 @@ import {
   type TenantContext,
 } from '@floral/core';
 import { isCurrencyCode, minorToDecimalString } from '@floral/domain';
+import { ArchiveControl } from '@/components/archive-control';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +32,6 @@ import {
   updateRecipeLineAction,
 } from '../actions';
 import { ItemForm, type ItemFormDefaults } from '../item-form';
-import { ArchiveControl } from './archive-control';
 import { AddIngredientForm, RecipeDetailsForm, RecipeLineRow } from './recipe-editor';
 
 async function loadItem(ctx: TenantContext, itemId: string): Promise<CatalogItemDto> {
@@ -120,6 +120,12 @@ export default async function ItemPage({
               archived={item.status === 'ARCHIVED'}
               archiveAction={setArchivedAction.bind(null, slug, item.id, true)}
               restoreAction={setArchivedAction.bind(null, slug, item.id, false)}
+              labels={{
+                archive: t('catalog.form.archive'),
+                restore: t('catalog.form.restore'),
+                confirmTitle: t('catalog.form.archiveTitle'),
+                confirmBody: t('catalog.form.archiveBody'),
+              }}
             />
           ) : null
         }

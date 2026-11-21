@@ -67,7 +67,14 @@ export async function recordPlatformSecurityEvent(event: PlatformSecurityEvent):
   );
 }
 
-type ProbeableEntity = 'CatalogItem' | 'BouquetRecipeLine' | 'Membership' | 'Invitation';
+type ProbeableEntity =
+  | 'CatalogItem'
+  | 'BouquetRecipeLine'
+  | 'Membership'
+  | 'Invitation'
+  | 'Customer'
+  | 'CustomerAddress'
+  | 'CustomerOccasion';
 
 async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<string | null> {
   return withSystemContext(
@@ -86,6 +93,14 @@ async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<st
           return (await tx.membership.findUnique({ where: { id }, select }))?.tenantId ?? null;
         case 'Invitation':
           return (await tx.invitation.findUnique({ where: { id }, select }))?.tenantId ?? null;
+        case 'Customer':
+          return (await tx.customer.findUnique({ where: { id }, select }))?.tenantId ?? null;
+        case 'CustomerAddress':
+          return (await tx.customerAddress.findUnique({ where: { id }, select }))?.tenantId ?? null;
+        case 'CustomerOccasion':
+          return (
+            (await tx.customerOccasion.findUnique({ where: { id }, select }))?.tenantId ?? null
+          );
       }
     },
   );

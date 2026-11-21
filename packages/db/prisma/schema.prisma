@@ -159,17 +159,19 @@ model Tenant {
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
 
-  locations    Location[]
-  memberships  Membership[]
-  invitations  Invitation[]
-  catalogItems CatalogItem[]
-  recipes      BouquetRecipe[]
-  recipeLines  BouquetRecipeLine[]
-  customers    Customer[]
-  quotes       Quote[]
-  quoteLines   QuoteLine[]
-  aiJobs       AiJob[]
-  auditLogs    AuditLog[]
+  locations         Location[]
+  memberships       Membership[]
+  invitations       Invitation[]
+  catalogItems      CatalogItem[]
+  recipes           BouquetRecipe[]
+  recipeLines       BouquetRecipeLine[]
+  customers         Customer[]
+  customerAddresses CustomerAddress[]
+  customerOccasions CustomerOccasion[]
+  quotes            Quote[]
+  quoteLines        QuoteLine[]
+  aiJobs            AiJob[]
+  auditLogs         AuditLog[]
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -474,11 +476,78 @@ model Customer {
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
-  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  quotes Quote[]
+  tenant    Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quotes    Quote[]
+  addresses CustomerAddress[]
+  occasions CustomerOccasion[]
 
   @@unique([tenantId, id])
   @@index([tenantId, status])
+}
+
+/// Indirizzo di consegna di un cliente (anche di un destinatario regalo).
+/// Il destinatario NON diventa un contatto marketing (spec §5.2).
+model CustomerAddress {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  tenantId       String       @db.Uuid
+  customerId     String       @db.Uuid
+  /// Etichetta libera: "Casa", "Oficina", "Mamá".
+  label          String?
+  recipientName  String?
+  /// Formato E.164.
+  recipientPhone String?
+  addressLine1   String
+  addressLine2   String?
+  neighborhood   String?
+  city           String
+  region         String
+  postalCode     String
+  countryCode    String       @db.Char(2)
+  /// Referencias / entre calles / istruzioni per il corriere.
+  deliveryNotes  String?
+  isDefault      Boolean      @default(false)
+  status         RecordStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, customerId])
+}
+
+enum OccasionType {
+  BIRTHDAY
+  ANNIVERSARY
+  CUSTOM
+}
+
+/// Ricorrenza da ricordare (compleanno, anniversario, data personalizzata).
+/// `personName` valorizzato = ricorrenza di un destinatario, non del cliente stesso.
+model CustomerOccasion {
+  id               String       @id @default(uuid(7)) @db.Uuid
+  tenantId         String       @db.Uuid
+  customerId       String       @db.Uuid
+  type             OccasionType
+  /// Obbligatoria per CUSTOM (es. "Día de las madres").
+  label            String?
+  personName       String?
+  month            Int
+  day              Int
+  /// Anno facoltativo (es. anno di nascita o del matrimonio).
+  year             Int?
+  remindDaysBefore Int          @default(7)
+  notes            String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, month, day])
+  @@index([tenantId, customerId])
 }
 
 // -----------------------------------------------------------------------------

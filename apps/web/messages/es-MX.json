@@ -43,7 +43,8 @@
     "unit_not_allowed_for_type": "Esta unidad no aplica para el tipo de producto elegido.",
     "canonical_not_allowed_for_type": "Solo flores, follaje y plantas se vinculan a una especie.",
     "too_many_items": "Elegiste demasiadas opciones.",
-    "invalid": "Revisa este valor."
+    "invalid": "Revisa este valor.",
+    "invalid_date": "Esa fecha no existe."
   },
   "errors": {
     "validation": "Revisa los campos marcados.",
@@ -63,7 +64,8 @@
       "invitation_not_pending": "Esta invitación ya no está vigente.",
       "invitation_expired": "La invitación venció. Pide una nueva.",
       "tenant_limit_reached": "Alcanzaste el número máximo de florerías por cuenta.",
-      "slug_unavailable": "No pudimos generar una dirección para tu florería. Prueba con otro nombre."
+      "slug_unavailable": "No pudimos generar una dirección para tu florería. Prueba con otro nombre.",
+      "occasion_limit": "Este cliente alcanzó el máximo de fechas especiales."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -194,7 +196,9 @@
     "mainNavigation": "Navegación principal",
     "switchShop": "Cambiar de florería",
     "yourShops": "Tus florerías",
-    "account": "Tu cuenta"
+    "account": "Tu cuenta",
+    "customers": "Clientes",
+    "more": "Más opciones"
   },
   "roles": {
     "OWNER": "Propietario",
@@ -230,7 +234,10 @@
     "recentActivity": "Actividad reciente",
     "noActivity": "Aún no hay actividad registrada.",
     "comingSoonTitle": "Próximamente en Floral OS",
-    "comingSoonBody": "Clientes, cotizaciones, pedidos y el diseñador de ramos con IA (plan Plus) están en desarrollo. No aparecerán aquí hasta que funcionen de verdad."
+    "comingSoonBody": "Clientes, cotizaciones, pedidos y el diseñador de ramos con IA (plan Plus) están en desarrollo. No aparecerán aquí hasta que funcionen de verdad.",
+    "upcomingOccasions": "Fechas especiales próximas",
+    "noUpcomingOccasions": "No hay fechas especiales en los próximos 30 días.",
+    "contactNow": "Contactar"
   },
   "activity": {
     "someone": "Alguien",
@@ -251,7 +258,16 @@
     "recipe.line_added": "{actor} agregó {ingredient} a una receta",
     "recipe.line_updated": "{actor} cambió la cantidad de {ingredient} en una receta",
     "recipe.line_removed": "{actor} quitó {ingredient} de una receta",
-    "fallback": "{actor} realizó un cambio"
+    "fallback": "{actor} realizó un cambio",
+    "customer.created": "{actor} agregó un cliente",
+    "customer.updated": "{actor} actualizó los datos de un cliente",
+    "customer.archived": "{actor} archivó un cliente",
+    "customer.restored": "{actor} restauró un cliente",
+    "customer.address_added": "{actor} agregó una dirección de entrega",
+    "customer.address_updated": "{actor} actualizó una dirección de entrega",
+    "customer.address_archived": "{actor} eliminó una dirección de entrega",
+    "customer.occasion_added": "{actor} agregó una fecha especial",
+    "customer.occasion_removed": "{actor} eliminó una fecha especial"
   },
   "catalog": {
     "title": "Catálogo",
@@ -481,5 +497,156 @@
     "revoked": "Esta invitación fue cancelada.",
     "accepted": "Esta invitación ya fue aceptada.",
     "goToShop": "Ir a la florería"
+  },
+  "customers": {
+    "title": "Clientes",
+    "subtitle": "Personas y empresas que te compran, con sus direcciones y fechas especiales.",
+    "newCustomer": "Nuevo cliente",
+    "searchPlaceholder": "Buscar por nombre, teléfono, correo o etiqueta",
+    "allTypes": "Todos",
+    "types": {
+      "PERSON": "Persona",
+      "COMPANY": "Empresa"
+    },
+    "statusActive": "Activos",
+    "statusArchived": "Archivados",
+    "results": "{count, plural, =0 {Sin resultados} one {# cliente} other {# clientes}}",
+    "emptyTitle": "Aún no tienes clientes",
+    "emptyBody": "Registra a quienes te compran para guardar sus direcciones, preferencias y fechas importantes.",
+    "noResultsTitle": "No hay clientes con estos filtros",
+    "noResultsBody": "Prueba con otra búsqueda o limpia los filtros.",
+    "columnName": "Cliente",
+    "columnContact": "Contacto",
+    "columnTags": "Etiquetas",
+    "archivedBadge": "Archivado",
+    "sources": {
+      "MERCHANT_DIRECT": "Cliente propio",
+      "NETWORK_B2B": "Floral Network",
+      "MARKETPLACE_B2C": "Marketplace",
+      "IMPORT": "Importado",
+      "MANUAL": "Manual"
+    },
+    "channels": {
+      "walk_in": "En tienda",
+      "phone": "Llamada",
+      "whatsapp": "WhatsApp",
+      "instagram": "Instagram",
+      "facebook": "Facebook",
+      "website": "Sitio web",
+      "referral": "Recomendación",
+      "event": "Evento",
+      "other": "Otro"
+    },
+    "form": {
+      "createTitle": "Nuevo cliente",
+      "createSubtitle": "Solo el nombre es obligatorio; completa el resto cuando lo tengas.",
+      "sectionContact": "Datos de contacto",
+      "sectionPreferences": "Preferencias",
+      "sectionFiscal": "Datos fiscales",
+      "fiscalHint": "Opcional. La facturación electrónica aún no está disponible.",
+      "type": "Tipo",
+      "displayName": "Nombre",
+      "displayNameCompany": "Nombre de la empresa",
+      "email": "Correo electrónico",
+      "phone": "Teléfono",
+      "phoneHint": "10 dígitos. Se usa para llamar o escribir por WhatsApp.",
+      "legalName": "Razón social",
+      "taxId": "RFC",
+      "preferences": "Preferencias florales",
+      "preferencesPlaceholder": "Ej. le encantan las peonías y los tonos pastel",
+      "restrictions": "Restricciones o alergias",
+      "notes": "Notas internas",
+      "tags": "Etiquetas",
+      "tagsHint": "Separadas por comas. Ej. frecuente, empresa",
+      "channel": "¿Cómo te conoció?",
+      "channelNone": "Sin especificar",
+      "marketingConsent": "Acepta recibir promociones",
+      "marketingConsentHint": "Marca solo si el cliente lo autorizó. Sin consentimiento no se le enviarán promociones.",
+      "consentSince": "Consentimiento registrado el {date}",
+      "create": "Crear cliente",
+      "creating": "Creando…",
+      "created": "Cliente creado",
+      "save": "Guardar cambios",
+      "archive": "Archivar",
+      "restore": "Restaurar",
+      "archiveTitle": "¿Archivar este cliente?",
+      "archiveBody": "Dejará de aparecer en la lista de clientes activos. Su historial se conserva y puedes restaurarlo cuando quieras.",
+      "archived": "Cliente archivado",
+      "restored": "Cliente restaurado",
+      "archivedNotice": "Este cliente está archivado.",
+      "readOnly": "Tu rol permite consultar los clientes, no modificarlos."
+    },
+    "detail": {
+      "contactActions": "Contactar",
+      "call": "Llamar",
+      "whatsapp": "WhatsApp",
+      "email": "Correo",
+      "source": "Origen",
+      "since": "Cliente desde {date}",
+      "noContact": "Sin teléfono ni correo registrados."
+    },
+    "addresses": {
+      "title": "Direcciones de entrega",
+      "empty": "Sin direcciones registradas.",
+      "add": "Agregar dirección",
+      "edit": "Editar",
+      "save": "Guardar dirección",
+      "remove": "Eliminar",
+      "removed": "Dirección eliminada",
+      "added": "Dirección agregada",
+      "updated": "Dirección actualizada",
+      "default": "Predeterminada",
+      "label": "Etiqueta",
+      "labelPlaceholder": "Ej. Casa, Oficina",
+      "recipientName": "Recibe",
+      "recipientPhone": "Teléfono de quien recibe",
+      "deliveryNotes": "Referencias para la entrega",
+      "deliveryNotesPlaceholder": "Ej. entre calles, color del portón",
+      "isDefault": "Usar como dirección predeterminada",
+      "cityLine": "{city}, {region} · CP {postalCode}"
+    },
+    "occasions": {
+      "title": "Fechas especiales",
+      "subtitle": "Te recordaremos en el inicio las fechas próximas para que contactes a tu cliente.",
+      "empty": "Sin fechas registradas.",
+      "add": "Agregar fecha",
+      "added": "Fecha agregada",
+      "removed": "Fecha eliminada",
+      "remove": "Eliminar fecha",
+      "type": "Tipo",
+      "types": {
+        "BIRTHDAY": "Cumpleaños",
+        "ANNIVERSARY": "Aniversario",
+        "CUSTOM": "Otra fecha"
+      },
+      "label": "Nombre de la fecha",
+      "labelPlaceholder": "Ej. Día de las madres",
+      "personName": "¿De quién es?",
+      "personNameHint": "Déjalo vacío si es del propio cliente.",
+      "month": "Mes",
+      "day": "Día",
+      "year": "Año (opcional)",
+      "remindDaysBefore": "Avisar con anticipación (días)",
+      "notes": "Notas",
+      "today": "¡Hoy!",
+      "inDays": "{count, plural, one {en # día} other {en # días}}",
+      "of": "de {name}",
+      "date": "{day} de {month}",
+      "dateWithYear": "{day} de {month} de {year}"
+    },
+    "months": [
+      "enero",
+      "febrero",
+      "marzo",
+      "abril",
+      "mayo",
+      "junio",
+      "julio",
+      "agosto",
+      "septiembre",
+      "octubre",
+      "noviembre",
+      "diciembre"
+    ]
   }
 }

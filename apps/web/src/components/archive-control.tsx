@@ -20,14 +20,24 @@ import { useActionToast } from '@/lib/use-action-toast';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
+export interface ArchiveControlLabels {
+  readonly archive: string;
+  readonly restore: string;
+  readonly confirmTitle: string;
+  readonly confirmBody: string;
+}
+
+/** Archivia (con conferma) o ripristina un record: nessuna cancellazione fisica. */
 export function ArchiveControl({
   archived,
   archiveAction,
   restoreAction,
+  labels,
 }: {
   archived: boolean;
   archiveAction: Action;
   restoreAction: Action;
+  labels: ArchiveControlLabels;
 }) {
   const t = useTranslations();
   const [open, setOpen] = useState(false);
@@ -48,7 +58,7 @@ export function ArchiveControl({
       <form action={restoreFormAction}>
         <SubmitButton variant="outline">
           <ArchiveArrowUp />
-          {t('catalog.form.restore')}
+          {labels.restore}
         </SubmitButton>
       </form>
     );
@@ -59,13 +69,13 @@ export function ArchiveControl({
       <DialogTrigger asChild>
         <Button variant="outline">
           <Archive />
-          {t('catalog.form.archive')}
+          {labels.archive}
         </Button>
       </DialogTrigger>
       <DialogContent closeLabel={t('common.close')}>
         <DialogHeader>
-          <DialogTitle>{t('catalog.form.archiveTitle')}</DialogTitle>
-          <DialogDescription>{t('catalog.form.archiveBody')}</DialogDescription>
+          <DialogTitle>{labels.confirmTitle}</DialogTitle>
+          <DialogDescription>{labels.confirmBody}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <DialogClose asChild>
@@ -73,7 +83,7 @@ export function ArchiveControl({
           </DialogClose>
           <form action={archiveFormAction}>
             <SubmitButton variant="destructive" className="w-full sm:w-auto">
-              {t('catalog.form.archive')}
+              {labels.archive}
             </SubmitButton>
           </form>
         </DialogFooter>

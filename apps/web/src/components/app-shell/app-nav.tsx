@@ -1,11 +1,11 @@
 'use client';
 
-import { Flower2, LayoutDashboard, Settings, Users } from 'lucide-react';
+import { Contact, Flower2, LayoutDashboard, Settings, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
-export type NavIcon = 'dashboard' | 'catalog' | 'team' | 'settings';
+export type NavIcon = 'dashboard' | 'catalog' | 'customers' | 'team' | 'settings';
 
 export interface NavItem {
   readonly href: string;
@@ -15,7 +15,13 @@ export interface NavItem {
   readonly exact?: boolean;
 }
 
-const ICONS = { dashboard: LayoutDashboard, catalog: Flower2, team: Users, settings: Settings };
+const ICONS = {
+  dashboard: LayoutDashboard,
+  catalog: Flower2,
+  customers: Contact,
+  team: Users,
+  settings: Settings,
+};
 const GRID_COLUMNS: Record<number, string> = {
   2: 'grid-cols-2',
   3: 'grid-cols-3',

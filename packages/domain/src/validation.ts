@@ -25,6 +25,7 @@ export const VALIDATION_CODES = [
   'unit_not_allowed_for_type',
   'canonical_not_allowed_for_type',
   'too_many_items',
+  'invalid_date',
   'invalid',
 ] as const;
 
