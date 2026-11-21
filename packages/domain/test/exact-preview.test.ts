@@ -14,7 +14,9 @@ import {
   layoutBouquetSketch,
   parseBoxCount,
   parseCountCheck,
+  relativeBloomSizes,
   shadeHex,
+  typicalBloomCm,
   type BouquetPreviewSpec,
   type PreviewComponentInput,
 } from '../src';
@@ -437,5 +439,65 @@ describe('seconda opinione con i riquadri', () => {
       other: 0,
     });
     expect(parseBoxCount('Non vedo fiori.', targets)).toBeNull();
+  });
+});
+
+describe('proporzioni vere fra tipi di fiore (boceto v3)', () => {
+  const sunflower: PreviewComponentInput = {
+    ...rose,
+    catalogItemId: '0190a0c0-0000-7000-8000-00000000000f',
+    name: 'Girasol',
+    variety: null,
+    colors: ['yellow'],
+    commonName: null,
+    cutoutPhotoId: '0190a0c0-0000-7000-8000-0000000000a5',
+  };
+
+  it('riconosce il fiore dal nome (anche senza tassonomia) e non confonde il colore rosa', () => {
+    const size = (name: string, commonName: string | null = null) =>
+      typicalBloomCm({ name, variety: null, commonName });
+    expect(size('Girasol')).toBe(15);
+    expect(size('Fiore misterioso', 'Sunflower')).toBe(15);
+    expect(size('Rosa roja')).toBe(8);
+    expect(size('Tulipán rosa')).toBe(6);
+    expect(size('Peonía coral')).toBe(12);
+    expect(size('Margarita blanca')).toBe(5);
+    expect(size('Statice')).toBeNull();
+  });
+
+  it('un girasole è molto più grande di una margherita; tipi ignoti a grandezza media', () => {
+    const components = buildPreviewSpec({
+      components: [
+        { ...sunflower, quantity: 3 },
+        { ...daisy, quantity: 5 },
+      ],
+      style: null,
+      size: null,
+    }).components;
+    const sizes = relativeBloomSizes(components);
+    const sizeOf = (id: string) => sizes[components.findIndex((c) => c.catalogItemId === id)]!;
+    expect(sizeOf(sunflower.catalogItemId) / sizeOf(daisy.catalogItemId)).toBeGreaterThan(2.5);
+    expect(
+      relativeBloomSizes(
+        buildPreviewSpec({
+          components: [{ ...rose, name: 'Statice', commonName: null }],
+          style: null,
+          size: null,
+        }).components,
+      ),
+    ).toEqual([1]);
+
+    const layout = layoutBouquetSketch({
+      spec: spec([{ ...sunflower, quantity: 3 }, { ...daisy, quantity: 5 }, paper]),
+      cutoutAspects: { ...aspects, [sunflower.cutoutPhotoId!]: 1 },
+    });
+    const average = (photoId: string) => {
+      const sides = bloomsOf(layout)
+        .filter((bloom) => bloom.photoId === photoId)
+        .map((bloom) => Math.sqrt(bloom.width * bloom.height));
+      return sides.reduce((sum, side) => sum + side, 0) / sides.length;
+    };
+    expect(average(sunflower.cutoutPhotoId!) / average(DAISY_PHOTO)).toBeGreaterThan(2);
+    expect(bloomsOf(layout)).toHaveLength(8);
   });
 });

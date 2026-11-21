@@ -246,3 +246,8 @@ Nota operativa: fal accetta al massimo 10 richieste contemporanee per account.
 
 **Verifica nell'app** (fal reale): 12 rose, eucalipto, carta coreana nera, listón de satín →
 12 rose esatte (contate anche a occhio), 18,6 s.
+
+**Boceto v3 (proporzioni vere):** 3 rose + 3 margherite esatte al primo conteggio; 3 girasoli +
+5 margherite esatti grazie alla seconda opinione (Claude contava 4 margherite, una era mezza
+coperta dalla carta; Gemini Pro 5), 34 s in tutto. I girasoli risultano circa tre volte le
+margherite, come nella realtà.

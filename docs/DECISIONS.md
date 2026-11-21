@@ -530,6 +530,12 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
     così una foto giusta non si scarta per un errore di conteggio. Gemini Flash scartato
     (10–19 rose contate su 12).
   - Verifica nell'app con fal: 12 rose in carta nera con eucalipto, esatte, 18,6 s.
+- **v3 (stesso giorno): proporzioni vere fra tipi di fiore.** Diametro tipico della corolla
+  riconosciuto dal nome (spagnolo o inglese, anche senza tassonomia): girasole 15 cm, lilium 14,
+  peonía 12, gerbera 10, rosa 8, tulipán e clavel 6, margarita 5…; i fiori grandi al centro, i
+  piccoli intorno, la carta davanti sotto ogni corolla. Prova: 3 girasoli + 5 margherite in carta
+  kraft, esatti (decisi dalla seconda opinione: Claude ne vedeva 4), 3 rose + 3 margherite
+  esatte. Boceto `sketch-v3`.
 
 ---
 

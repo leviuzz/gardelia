@@ -5,7 +5,8 @@
  *    della distinta, quindi il numero di fiori è esatto per costruzione.
  *  - v2 (21/11/2026): come un ramo vero, corolle fitte a cupola (le esterne dietro, le centrali
  *    davanti), steli nascosti nella carta, angolazioni diverse dello stesso fiore alternate.
- *    La v1 (fiori sparsi su steli dritti) dava foto da collage.
+ *    La v1 (fiori sparsi su steli dritti) dava foto da collage. v3: proporzioni vere fra tipi
+ *    di fiore (`typicalBloomCm`).
  *  - Stessa distinta → stesso boceto (generatore pseudo-casuale con seme dalla distinta).
  *  - Qui solo posizioni, misure e colori; il disegno vero (SVG + ritagli) lo fa il core.
  *  - Ogni corolla resta in gran parte visibile, così l'AI la mantiene e un modello di visione
@@ -15,7 +16,7 @@ import type { BouquetPreviewSpec, PreviewComponent } from './ai';
 import type { CatalogColor } from './colors';
 
 /** Cambiarla cambia il boceto, quindi anche la chiave di cache delle anteprime. */
-export const SKETCH_LAYOUT_VERSION = 'sketch-v2';
+export const SKETCH_LAYOUT_VERSION = 'sketch-v3';
 
 /** Lato del boceto (px): quadrato come le immagini generate. */
 export const SKETCH_SIZE = 1024;
@@ -88,6 +89,58 @@ export function isRibbonLabel(label: string): boolean {
   return /\b(list[oó]n|listones|cinta|moños?|lazos?|ribbons?|bows?|organza|sat[eií]n|yute|rafia|cord[oó]n|mecate|twine)\b/i.test(
     label,
   );
+}
+
+/**
+ * Diametro tipico della corolla (cm), riconosciuto dal nome comune o dal nome del catalogo
+ * (spagnolo o inglese). Serve solo alle proporzioni del boceto: un girasole è grande circa tre
+ * margherite. "rosa" va per ultima perché in spagnolo è anche un colore ("Tulipán rosa").
+ */
+const BLOOM_SIZE_CM: readonly (readonly [RegExp, number])[] = [
+  [/\b(hortensia|hydrangea)/, 18],
+  [/\b(girasol|sunflower)/, 15],
+  [/\b(lilium|lily|lilies|azucena)/, 14],
+  [/\b(peonia|peony|peonies)/, 12],
+  [/\bprotea/, 12],
+  [/\b(gerbera|dalia|dahlia|anturio|anthurium)/, 10],
+  [/\b(alcatraz|calla|orquidea|orchid)/, 8],
+  [/\b(crisantemo|chrysanthemum|pompon)/, 7],
+  [/\b(clavel|carnation|tulipan|tulip|lisianthus|eustoma|ranunculo|ranunculus)/, 6],
+  [/\b(margarita|daisy|daisies|manzanilla|chamomile|astromelia|alstroemeria)/, 5],
+  [/\b(rosa|rose|roses)\b/, 8],
+];
+
+export function typicalBloomCm(component: {
+  readonly name: string;
+  readonly variety: string | null;
+  readonly commonName: string | null;
+}): number | null {
+  const text = `${component.commonName ?? ''} ${component.name} ${component.variety ?? ''}`
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+  for (const [pattern, centimeters] of BLOOM_SIZE_CM) {
+    if (pattern.test(text)) return centimeters;
+  }
+  return null;
+}
+
+/**
+ * Grandezza relativa di ogni tipo di fiore nel ramo (media pesata sugli steli = 1). Tipi non
+ * riconosciuti: grandezza media. Limiti 0,6–1,9 perché il boceto resti leggibile.
+ */
+export function relativeBloomSizes(flowers: readonly PreviewComponent[]): number[] {
+  const known = flowers.map((flower) => typicalBloomCm(flower));
+  let weight = 0;
+  let total = 0;
+  known.forEach((centimeters, index) => {
+    if (centimeters === null) return;
+    weight += flowers[index]!.quantity;
+    total += centimeters * flowers[index]!.quantity;
+  });
+  if (weight === 0) return flowers.map(() => 1);
+  const average = total / weight;
+  return known.map((centimeters) => clamp((centimeters ?? average) / average, 0.6, 1.9));
 }
 
 /** Steli contati: fiori venduti a stelo (un fiore per stelo). */
@@ -254,14 +307,18 @@ function domeSlots(count: number, radius: number, bloom: number, angle0: number)
   });
 }
 
-/** Allontana le corolle troppo vicine (ognuna deve restare in gran parte visibile). */
-function relax(points: { x: number; y: number }[], minDistance: number): void {
+/**
+ * Allontana le corolle troppo vicine (ognuna deve restare in gran parte visibile): la distanza
+ * minima fra due corolle è `factor` × la media delle loro grandezze.
+ */
+function relax(points: { x: number; y: number }[], sizes: readonly number[], factor: number): void {
   for (let iteration = 0; iteration < 80; iteration++) {
     let moved = false;
     for (let i = 0; i < points.length; i++) {
       for (let j = i + 1; j < points.length; j++) {
         const a = points[i]!;
         const b = points[j]!;
+        const minDistance = (factor * (sizes[i]! + sizes[j]!)) / 2;
         let dx = b.x - a.x;
         let dy = b.y - a.y;
         let distance = Math.hypot(dx, dy);
@@ -337,13 +394,32 @@ export function layoutBouquetSketch(input: SketchLayoutInput): SketchLayout {
     point.x += (random() - 0.5) * jitter * bloom;
     point.y += (random() - 0.5) * jitter * bloom;
   }
-  if (stems > 1) relax(points, 0.64 * bloom);
 
-  // Tipi alternati; per ogni tipo, le sue angolazioni a turno (partenza casuale).
-  const order = interleave(
+  // Proporzioni vere fra tipi (girasole > rosa > margherita), a parità di superficie totale.
+  const relative = relativeBloomSizes(flowers);
+  // Come fa un fiorista: i fiori più grandi al centro, i più piccoli intorno; a parità di
+  // grandezza i tipi restano alternati. Ogni tipo usa le sue angolazioni a turno.
+  const sequence = interleave(
     flowers.map((flower) => flower.quantity),
     stems,
+  )
+    .map((typeIndex, position) => ({ typeIndex, position }))
+    .sort((a, b) => relative[b.typeIndex]! - relative[a.typeIndex]! || a.position - b.position)
+    .map(({ typeIndex }) => typeIndex);
+  const byDistance = points
+    .map((point, slot) => ({ slot, distance: Math.hypot(point.x, point.y) }))
+    .sort((a, b) => a.distance - b.distance || a.slot - b.slot);
+  const order: number[] = new Array<number>(stems);
+  byDistance.forEach(({ slot }, rank) => {
+    order[slot] = sequence[rank]!;
+  });
+  const meanSquare =
+    flowers.reduce((sum, flower, index) => sum + flower.quantity * relative[index]! ** 2, 0) /
+    stems;
+  const slotSizes = order.map(
+    (typeIndex) => (bloom * relative[typeIndex]!) / Math.sqrt(meanSquare),
   );
+  if (stems > 1) relax(points, slotSizes, 0.64);
   const turns = flowers.map(() => Math.floor(random() * 3));
   const farthest = Math.max(1, ...points.map((point) => Math.hypot(point.x, point.y)));
   const heads = points.map((point, slot) => {
@@ -354,7 +430,7 @@ export function layoutBouquetSketch(input: SketchLayoutInput): SketchLayout {
     turns[typeIndex]! += 1;
     const ring = Math.hypot(point.x, point.y) / farthest;
     // Le corolle esterne sono un po' più piccole e inclinate verso l'esterno (prospettiva).
-    const side = bloom * (1 - 0.14 * ring) * (0.94 + random() * 0.12);
+    const side = slotSizes[slot]! * (1 - 0.14 * ring) * (0.94 + random() * 0.12);
     const box = fitBox(aspectOf(photoId), side);
     return {
       ring,
@@ -379,8 +455,10 @@ export function layoutBouquetSketch(input: SketchLayoutInput): SketchLayout {
     (component) => component.role === 'FOLIAGE' && component.cutoutPhotoId,
   );
   const highest = Math.min(...heads.map(({ placement }) => placement.y - placement.height / 2));
-  const lowestCenter = Math.max(...heads.map(({ placement }) => placement.y));
-  const frontTopRel = lowestCenter + 0.22 * bloom;
+  // La carta davanti scende sotto ogni corolla (piccola o grande): ne copre al massimo la base.
+  const frontTopRel = Math.max(
+    ...heads.map(({ placement }) => placement.y + 0.3 * placement.height),
+  );
   const tieRel = frontTopRel + 0.2 * size;
   const top = highest - (foliage.length > 0 ? 0.35 * bloom : 0.05 * bloom);
   const bottom = tieRel + 0.11 * size;
