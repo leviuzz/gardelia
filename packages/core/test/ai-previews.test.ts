@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import sharp from 'sharp';
 import { setTimeout as delay } from 'node:timers/promises';
 import { disconnectDb, getDb, withSystemContext, withTenantContext } from '@floral/db';
 import { createTestUser } from '@floral/db/testing';
@@ -15,8 +16,11 @@ import {
   getAiPreviewImage,
   getAiQuota,
   getBouquetConfiguration,
+  addStyleReference,
   getBouquetPreview,
   listCanonicalFlowers,
+  listStyleReferences,
+  setStyleDescriber,
   requestBouquetPreview,
   saveBouquetConfiguration,
   setAiProvider,
@@ -25,6 +29,7 @@ import {
   type AiImageProvider,
   type CatalogItemDto,
   type GeneratedImage,
+  type StyleDescriber,
 } from '../src/index';
 import { processNextAiJob } from '../src/ai/worker';
 import { assignTenantPlan, grantAiCredits } from '../src/platform';
@@ -57,6 +62,32 @@ class StubProvider implements AiImageProvider {
       costMicros: 35_000,
     };
   }
+}
+
+class StubDescriber implements StyleDescriber {
+  readonly id = 'stub';
+  readonly model = 'stub-vision';
+  readonly estimatedCostMicros = 5_000;
+  calls = 0;
+  fail = false;
+
+  async describe() {
+    this.calls += 1;
+    if (this.fail) throw new AiProviderError('provider_error', 'vision down');
+    // La seconda frase nomina un nastro: va scartata prima di arrivare al prompt.
+    return {
+      en: 'Rustic wooden counter, warm window light from the left. Tied with a satin ribbon.',
+      es: 'Mostrador de madera rústico, luz cálida de ventana.',
+    };
+  }
+}
+
+async function referencePhoto(): Promise<Uint8Array> {
+  return new Uint8Array(
+    await sharp({ create: { width: 800, height: 800, channels: 3, background: '#d8c3a5' } })
+      .jpeg()
+      .toBuffer(),
+  );
 }
 
 let operatorEmail: string;
@@ -326,6 +357,96 @@ describe('generazione, cache e consumo', () => {
     const pinkJob = await requestBouquetPreview(kit.shop.owner, pink.id);
     expect(pinkJob).toMatchObject({ reused: false });
     expect(pinkJob.jobId).not.toBe(lilacJob.jobId);
+  });
+
+  it('stile di "Mis ramos": si descrive una volta, va nel prompt, mai fra fiorerie', async () => {
+    const describer = new StubDescriber();
+    setStyleDescriber(describer);
+    try {
+      const kit = await createKit();
+      const other = await createKit();
+      // Senza foto di stile: sfondo neutro.
+      const plain = await save(kit, 5);
+      await requestBouquetPreview(kit.shop.owner, plain.id);
+      expect(await runOnce(kit)).toBe('succeeded');
+      expect(provider.prompts.at(-1)).toContain('simple neutral background');
+
+      await addStyleReference(kit.shop.owner, await referencePhoto(), { consent: 'on' });
+      const first = await save(kit, 6);
+      const job = await requestBouquetPreview(kit.shop.owner, first.id);
+      expect(await runOnce(kit)).toBe('succeeded');
+      const prompt = provider.prompts.at(-1) ?? '';
+      expect(prompt).toContain(
+        'Photo style of this flower shop: Rustic wooden counter, warm window light from the left.',
+      );
+      expect(prompt).not.toContain('satin ribbon');
+      expect(prompt).not.toContain('simple neutral background');
+      expect((await getBouquetPreview(kit.shop.owner, first.id)).preview).toMatchObject({
+        jobId: job.jobId,
+        styled: true,
+      });
+      expect((await listStyleReferences(kit.shop.staff))[0]?.styleDescriptionEs).toBe(
+        'Mostrador de madera rústico, luz cálida de ventana.',
+      );
+
+      // Altro ramo: la descrizione salvata si riusa, nessuna nuova chiamata.
+      await requestBouquetPreview(kit.shop.owner, (await save(kit, 8)).id);
+      expect(await runOnce(kit)).toBe('succeeded');
+      expect(describer.calls).toBe(1);
+
+      // L'altra fioreria non ha foto di stile: nessuno stile, anche se A ne ha.
+      await requestBouquetPreview(other.shop.owner, (await save(other, 6)).id);
+      expect(await runOnce(other)).toBe('succeeded');
+      expect(provider.prompts.at(-1)).toContain('simple neutral background');
+    } finally {
+      setStyleDescriber(null);
+    }
+  });
+
+  it('si usa la foto con lo stesso stile del disegno, altrimenti la prima caricata', async () => {
+    const describer = new StubDescriber();
+    setStyleDescriber(describer);
+    try {
+      const kit = await createKit();
+      const garden = await addStyleReference(kit.shop.owner, await referencePhoto(), {
+        consent: 'on',
+        style: 'GARDEN',
+      });
+      const romantic = await addStyleReference(kit.shop.owner, await referencePhoto(), {
+        consent: 'on',
+        style: 'ROMANTIC',
+      });
+      // `save` usa lo stile ROMANTIC.
+      await requestBouquetPreview(kit.shop.owner, (await save(kit, 4)).id);
+      expect(await runOnce(kit)).toBe('succeeded');
+      const described = new Map(
+        (await listStyleReferences(kit.shop.owner)).map((r) => [r.id, r.styleDescriptionEs]),
+      );
+      expect(described.get(romantic.id)).not.toBeNull();
+      expect(described.get(garden.id)).toBeNull();
+    } finally {
+      setStyleDescriber(null);
+    }
+  });
+
+  it('se la descrizione dello stile non riesce, l’anteprima arriva comunque senza stile', async () => {
+    const describer = new StubDescriber();
+    describer.fail = true;
+    setStyleDescriber(describer);
+    try {
+      const kit = await createKit();
+      await addStyleReference(kit.shop.owner, await referencePhoto(), { consent: 'on' });
+      const design = await save(kit, 3);
+      await requestBouquetPreview(kit.shop.owner, design.id);
+      expect(await runOnce(kit)).toBe('succeeded');
+      expect(provider.prompts.at(-1)).toContain('simple neutral background');
+      expect((await getBouquetPreview(kit.shop.owner, design.id)).preview).toMatchObject({
+        status: 'SUCCEEDED',
+        styled: false,
+      });
+    } finally {
+      setStyleDescriber(null);
+    }
   });
 
   it('il worker in ciclo lavora i job appena accodati', async () => {

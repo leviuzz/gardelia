@@ -4,13 +4,21 @@
  *  - Preleva il prossimo job con `app_claim_ai_job` (SECURITY DEFINER, `SKIP LOCKED`): nessun
  *    bypass RLS nel codice; ogni job si lavora nel contesto del proprio tenant.
  *  - Successo: immagine nell'archivio, job SUCCEEDED e credito consumato (usageUnits = 1).
+ *  - Stile della fioreria (ADR-032): se il ramo ha una foto di "Mis ramos", il suo stile si
+ *    descrive a parole una sola volta (poi si riusa) e solo quel testo va nel prompt; se la
+ *    descrizione non riesce, l'anteprima si genera comunque, senza stile.
  *  - Errore temporaneo: nuovo tentativo con attesa crescente finché restano tentativi; poi
  *    FAILED senza consumare crediti (BQ-02: nessuna anteprima inventata, il disegno resta
  *    valido). Contenuto rifiutato o richiesta non valida: FAILED subito (ripetere non serve).
  */
 import { setTimeout as delay } from 'node:timers/promises';
-import { getDb, withTenantContext } from '@floral/db';
-import { buildPreviewPrompt, type BouquetPreviewSpec } from '@floral/domain';
+import { getDb, withTenantContext, type Prisma } from '@floral/db';
+import {
+  buildPreviewPrompt,
+  cleanStyleDescription,
+  isUuid,
+  type BouquetPreviewSpec,
+} from '@floral/domain';
 import { logger } from '../logger';
 import {
   AiProviderError,
@@ -20,6 +28,7 @@ import {
 } from './providers';
 import { onAiJobQueued } from './signal';
 import { getObjectStorage } from './storage';
+import { getStyleDescriber } from './style-describer';
 
 export const AI_JOB_LEASE_SECONDS = 180;
 const GENERATION_TIMEOUT_MS = 120_000;
@@ -42,6 +51,63 @@ function isPreviewSpec(value: unknown): value is BouquetPreviewSpec {
 }
 
 export type AiJobOutcome = 'idle' | 'succeeded' | 'retry' | 'failed';
+
+const STYLE_DESCRIPTION_TIMEOUT_MS = 30_000;
+
+/**
+ * Testo dello stile per una foto di "Mis ramos": quello salvato, oppure lo genera ora (una
+ * volta sola) dalla miniatura. null se la foto non è più attiva o se la descrizione fallisce:
+ * lo stile è un di più, mai un motivo per non dare l'anteprima.
+ */
+async function styleDescriptionFor(
+  scope: { tenantId: string; userId: string },
+  referenceId: string,
+): Promise<{ text: string | null; costMicros: number }> {
+  const db = getDb();
+  const reference = await withTenantContext(db, scope, (tx) =>
+    tx.styleReferencePhoto.findFirst({
+      where: { id: referenceId, tenantId: scope.tenantId, status: 'ACTIVE' },
+      select: { styleDescription: true, thumbKey: true },
+    }),
+  );
+  if (!reference) return { text: null, costMicros: 0 };
+  if (reference.styleDescription) return { text: reference.styleDescription, costMicros: 0 };
+  const describer = getStyleDescriber();
+  if (!describer) return { text: null, costMicros: 0 };
+  try {
+    const bytes = await getObjectStorage().get(reference.thumbKey);
+    if (!bytes) return { text: null, costMicros: 0 };
+    const described = await describer.describe(
+      { bytes, contentType: 'image/jpeg' },
+      AbortSignal.timeout(STYLE_DESCRIPTION_TIMEOUT_MS),
+    );
+    const en = cleanStyleDescription(described.en);
+    if (!en) return { text: null, costMicros: describer.estimatedCostMicros };
+    const es = described.es.replace(/\s+/g, ' ').trim().slice(0, 320) || null;
+    await withTenantContext(db, scope, (tx) =>
+      tx.styleReferencePhoto.updateMany({
+        where: { id: referenceId, tenantId: scope.tenantId, styleDescription: null },
+        data: {
+          styleDescription: en,
+          styleDescriptionEs: es,
+          styleDescribedAt: new Date(),
+          styleDescriberModel: describer.model,
+        },
+      }),
+    );
+    return { text: en, costMicros: describer.estimatedCostMicros };
+  } catch (error) {
+    logger.warn(
+      {
+        tenantId: scope.tenantId,
+        referenceId,
+        code: error instanceof AiProviderError ? error.code : 'unexpected',
+      },
+      'descrizione dello stile non riuscita: anteprima senza stile',
+    );
+    return { text: null, costMicros: 0 };
+  }
+}
 
 /** Lavora al massimo un job. `onlyTenantId` serve ai test (e a futuri worker dedicati). */
 export async function processNextAiJob(
@@ -69,11 +135,19 @@ export async function processNextAiJob(
       // richiesta (la chiave di cache include il modello).
       throw new AiProviderError('invalid_request', 'provider cambiato');
     }
+    const referenceId = job.input.styleReferenceId;
+    const style = isUuid(referenceId)
+      ? await styleDescriptionFor(scope, referenceId)
+      : { text: null, costMicros: 0 };
     const image = await provider.generate({
-      prompt: buildPreviewPrompt(job.input),
+      prompt: buildPreviewPrompt(job.input, { styleDescription: style.text }),
       spec: job.input,
       signal: AbortSignal.timeout(GENERATION_TIMEOUT_MS),
     });
+    const costMicros =
+      image.costMicros === null && style.costMicros === 0
+        ? null
+        : (image.costMicros ?? 0) + style.costMicros;
     const key = `tenants/${job.tenantId}/ai-previews/${job.id}.${EXTENSION[image.contentType] ?? 'png'}`;
     await getObjectStorage().put(key, image.bytes, image.contentType);
     await withTenantContext(db, scope, (tx) =>
@@ -84,8 +158,9 @@ export async function processNextAiJob(
           usageUnits: job.quotaSource ? 1 : 0,
           outputKey: key,
           outputContentType: image.contentType,
-          providerCostMicros: image.costMicros,
-          providerCurrency: image.costMicros !== null ? 'USD' : null,
+          output: { styleApplied: style.text !== null } satisfies Prisma.InputJsonValue,
+          providerCostMicros: costMicros,
+          providerCurrency: costMicros !== null ? 'USD' : null,
           finishedAt: new Date(),
           lockedUntil: null,
           errorCode: null,

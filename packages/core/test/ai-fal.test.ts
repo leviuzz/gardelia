@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   AiProviderError,
   FalImageProvider,
+  FalStyleDescriber,
   createAiProviderFromEnv,
+  createStyleDescriberFromEnv,
   type AiProviderErrorCode,
 } from '../src/index';
+import { parseStyleDescription } from '../src/ai/fal';
 import { sniffImageType } from '../src/ai/providers';
 
 // Test unitari: nessuna chiamata di rete, `fetch` sostituito. Il contratto di fal (forma delle
@@ -283,5 +286,58 @@ describe('sniffImageType', () => {
     expect(sniffImageType(webp)).toBe('image/webp');
     expect(sniffImageType(new Uint8Array([0x47, 0x49, 0x46, 0x38]))).toBeNull();
     expect(sniffImageType(new Uint8Array())).toBeNull();
+  });
+});
+
+describe('FalStyleDescriber (stile a parole, ADR-032)', () => {
+  const image = { bytes: JPEG, contentType: 'image/jpeg' };
+
+  it('manda la miniatura al modello di visione e legge {en, es}', async () => {
+    const fal = fakeFal(
+      json({
+        output:
+          '```json\n{"en": "Rustic wooden counter, warm window light.", "es": "Mostrador rústico, luz cálida."}\n```',
+      }),
+    );
+    const describer = new FalStyleDescriber({ apiKey: SECRET, fetch: fal.fetchImpl });
+    const result = await describer.describe(image, AbortSignal.timeout(5_000));
+    expect(result).toEqual({
+      en: 'Rustic wooden counter, warm window light.',
+      es: 'Mostrador rústico, luz cálida.',
+    });
+    const call = fal.calls[0]!;
+    expect(call.url).toBe('https://fal.run/fal-ai/any-llm/vision');
+    expect(new Headers(call.init?.headers).get('authorization')).toBe(`Key ${SECRET}`);
+    const body = JSON.parse(String(call.init?.body));
+    expect(body.model).toBe('anthropic/claude-sonnet-4.5');
+    expect(body.prompt).toContain('Do NOT mention');
+    expect(body.image_urls[0]).toMatch(/^data:image\/jpeg;base64,/);
+  });
+
+  it('risposte incomplete o errori del provider diventano errori tipizzati', async () => {
+    expect(() => parseStyleDescription('non è JSON')).toThrow(AiProviderError);
+    expect(() => parseStyleDescription('{"en": "solo inglese"}')).toThrow(/incompleta/);
+    const unauthorized = new FalStyleDescriber({
+      apiKey: SECRET,
+      fetch: fakeFal(new Response('no', { status: 401 })).fetchImpl,
+    });
+    const error = await unauthorized.describe(image, AbortSignal.timeout(5_000)).catch((e) => e);
+    expect(error).toBeInstanceOf(AiProviderError);
+    expect((error as AiProviderError).code).toBe('invalid_request');
+    expect((error as AiProviderError).message).not.toContain(SECRET);
+  });
+
+  it('si configura con lo stesso provider delle anteprime', () => {
+    expect(
+      createStyleDescriberFromEnv({
+        APP_URL: 'https://x.example',
+        AI_PROVIDER: 'fal',
+        FAL_KEY: SECRET,
+      }),
+    ).toBeInstanceOf(FalStyleDescriber);
+    expect(
+      createStyleDescriberFromEnv({ APP_URL: 'https://x.example', AI_PROVIDER: 'simulated' }),
+    ).toBeNull();
+    expect(createStyleDescriberFromEnv({ AI_PROVIDER: 'none' })).toBeNull();
   });
 });

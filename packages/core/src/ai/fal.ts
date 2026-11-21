@@ -20,6 +20,7 @@ import {
   type AiImageProvider,
   type GeneratedImage,
 } from './provider-types';
+import { STYLE_DESCRIBER_PROMPT, type StyleDescriber, type StyleDescription } from './style-types';
 
 export interface FalModelProfile {
   /** Endpoint fal, es. `fal-ai/nano-banana-2` (è anche il `model` salvato nei job). */
@@ -171,6 +172,100 @@ export class FalImageProvider implements AiImageProvider {
     }
     return readCapped(response, MAX_IMAGE_BYTES);
   }
+}
+
+// -----------------------------------------------------------------------------
+// Stile della fioreria a parole (ADR-032): modello di visione via `any-llm/vision`
+// -----------------------------------------------------------------------------
+
+export interface FalStyleDescriberOptions {
+  readonly apiKey: string;
+  /** Modello di visione (provato il 21/11/2026: segue bene i divieti). */
+  readonly model?: string;
+  /** Solo per i test. */
+  readonly baseUrl?: string;
+  /** Solo per i test. */
+  readonly fetch?: typeof fetch;
+}
+
+const MAX_VISION_RESPONSE_BYTES = 256 * 1024;
+
+export class FalStyleDescriber implements StyleDescriber {
+  readonly id = 'fal';
+  readonly model: string;
+  // Miniatura (~1.500 token) + ~150 token di risposta: ~0,006 USD, arrotondato per eccesso.
+  readonly estimatedCostMicros = 10_000;
+  readonly #apiKey: string;
+  readonly #baseUrl: string;
+  readonly #fetch: typeof fetch;
+
+  constructor(options: FalStyleDescriberOptions) {
+    const apiKey = options.apiKey.trim();
+    if (!apiKey) throw new Error('FAL_KEY mancante');
+    this.#apiKey = apiKey;
+    this.#baseUrl = (options.baseUrl ?? 'https://fal.run').replace(/\/+$/, '');
+    this.#fetch = options.fetch ?? ((input, init) => fetch(input, init));
+    this.model = options.model ?? 'anthropic/claude-sonnet-4.5';
+  }
+
+  async describe(
+    image: { readonly bytes: Uint8Array; readonly contentType: string },
+    signal: AbortSignal,
+  ): Promise<StyleDescription> {
+    try {
+      const dataUri = `data:${image.contentType};base64,${Buffer.from(image.bytes).toString('base64')}`;
+      const response = await this.#fetch(`${this.#baseUrl}/fal-ai/any-llm/vision`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Key ${this.#apiKey}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.model,
+          prompt: STYLE_DESCRIBER_PROMPT,
+          image_urls: [dataUri],
+        }),
+        signal,
+      });
+      const requestId = response.headers.get('x-fal-request-id');
+      const where = `fal vision ${response.status}${requestId ? ` (richiesta ${requestId})` : ''}`;
+      if (!response.ok) throw await httpError(response, where);
+      let payload: unknown;
+      try {
+        payload = JSON.parse(
+          new TextDecoder().decode(await readCapped(response, MAX_VISION_RESPONSE_BYTES)),
+        );
+      } catch (error) {
+        if (error instanceof AiProviderError || isAbort(error)) throw error;
+        throw new AiProviderError('provider_error', `${where}: risposta non in JSON`);
+      }
+      const output = (payload as { output?: unknown } | null)?.output;
+      return parseStyleDescription(typeof output === 'string' ? output : '', where);
+    } catch (error) {
+      throw toProviderError(error);
+    }
+  }
+}
+
+/** `{"en": "...", "es": "..."}`, anche se il modello lo racchiude in un blocco di codice. */
+export function parseStyleDescription(output: string, where = 'fal vision'): StyleDescription {
+  const text = output
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '');
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new AiProviderError('provider_error', `${where}: descrizione non in JSON`);
+  }
+  const en = (parsed as { en?: unknown } | null)?.en;
+  const es = (parsed as { es?: unknown } | null)?.es;
+  if (typeof en !== 'string' || typeof es !== 'string' || !en.trim() || !es.trim()) {
+    throw new AiProviderError('provider_error', `${where}: descrizione incompleta`);
+  }
+  return { en: en.trim(), es: es.trim() };
 }
 
 function isAbort(error: unknown): boolean {

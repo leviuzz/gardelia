@@ -41,6 +41,8 @@ export interface AiPreviewDto {
   readonly simulated: boolean;
   /** true se l'immagine esisteva già per lo stesso ramo (nessun credito consumato). */
   readonly reused: boolean;
+  /** true se l'immagine ha usato lo stile di "Mis ramos" (descritto a parole, ADR-032). */
+  readonly styled: boolean;
   readonly errorCode: string | null;
   readonly createdAt: Date;
   readonly finishedAt: Date | null;
@@ -76,11 +78,13 @@ function toDto(
     status: string;
     provider: string | null;
     errorCode: string | null;
+    output: Prisma.JsonValue | null;
     createdAt: Date;
     finishedAt: Date | null;
   },
   reused: boolean,
 ): AiPreviewDto {
+  const output = job.output as { styleApplied?: unknown } | null;
   const status: AiPreviewStatus =
     job.status === 'CANCELLED' ? 'FAILED' : (job.status as AiPreviewStatus);
   return {
@@ -88,6 +92,7 @@ function toDto(
     status,
     simulated: job.provider === 'simulated',
     reused,
+    styled: output?.styleApplied === true,
     errorCode: job.errorCode,
     createdAt: job.createdAt,
     finishedAt: job.finishedAt,
@@ -193,6 +198,34 @@ async function specForConfiguration(
   }
 }
 
+/**
+ * Foto di "Mis ramos" il cui stile accompagna l'anteprima (ADR-032): la prima caricata con lo
+ * stesso stile del disegno, altrimenti la prima caricata in assoluto. Scelta stabile: nuove
+ * foto non cambiano lo stile (né la cache) dei ramos già visti, finché questa resta attiva.
+ */
+async function selectStyleReference(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  style: BouquetPreviewSpec['style'],
+): Promise<string | null> {
+  const references = await tx.styleReferencePhoto.findMany({
+    where: { tenantId: ctx.tenantId, status: 'ACTIVE' },
+    select: { id: true, style: true },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+  });
+  const sameStyle = style ? references.find((reference) => reference.style === style) : undefined;
+  return (sameStyle ?? references[0])?.id ?? null;
+}
+
+/** Descrizione del ramo con la foto di stile scelta (entra nella chiave di cache). */
+async function styledSpec(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  spec: BouquetPreviewSpec,
+): Promise<BouquetPreviewSpec> {
+  return { ...spec, styleReferenceId: await selectStyleReference(tx, ctx, spec.style) };
+}
+
 /** Anteprima migliore per un ramo: riuscita, poi in corso, poi l'ultimo fallimento. */
 async function findPreview(tx: TransactionClient, ctx: TenantContext, inputHash: string) {
   const where = { tenantId: ctx.tenantId, feature: FEATURE, inputHash };
@@ -246,7 +279,8 @@ export async function getBouquetPreview(
         outdated: true,
       };
     }
-    const job = await findPreview(tx, ctx, previewHash(config.spec, provider));
+    const spec = await styledSpec(tx, ctx, config.spec);
+    const job = await findPreview(tx, ctx, previewHash(spec, provider));
     return {
       available: true,
       simulated: provider.simulated,
@@ -278,7 +312,8 @@ export async function requestBouquetPreview(
     const config = await specForConfiguration(tx, ctx, configurationId);
     if (!config) return null;
     if (!config.spec) throw new ConflictError('builder_configuration_outdated');
-    const inputHash = previewHash(config.spec, provider);
+    const spec = await styledSpec(tx, ctx, config.spec);
+    const inputHash = previewHash(spec, provider);
 
     // Serializza gli accodamenti: saldo del tenant e tetto della piattaforma coerenti
     // anche con richieste simultanee.
@@ -308,7 +343,7 @@ export async function requestBouquetPreview(
         bouquetConfigurationId: config.id,
         quotaSource: quota.nextSource,
         inputHash,
-        input: config.spec as unknown as Prisma.InputJsonValue,
+        input: spec as unknown as Prisma.InputJsonValue,
         provider: provider.id,
         model: provider.model,
         promptVersion: AI_PREVIEW_PROMPT_VERSION,

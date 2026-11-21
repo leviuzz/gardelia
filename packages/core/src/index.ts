@@ -30,7 +30,15 @@ export {
   type AiProviderErrorCode,
   type GeneratedImage,
 } from './ai/providers';
-export { FAL_MODEL_IDS, FalImageProvider, type FalModelId } from './ai/fal';
+export { FAL_MODEL_IDS, FalImageProvider, FalStyleDescriber, type FalModelId } from './ai/fal';
+export {
+  SimulatedStyleDescriber,
+  createStyleDescriberFromEnv,
+  getStyleDescriber,
+  setStyleDescriber,
+  type StyleDescriber,
+  type StyleDescription,
+} from './ai/style-describer';
 export {
   MemoryStorage,
   createStorageFromEnv,

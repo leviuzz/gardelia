@@ -31,6 +31,8 @@ export interface StyleReferenceDto {
   readonly id: string;
   readonly style: BuilderStyle | null;
   readonly caption: string | null;
+  /** Stile descritto a parole (spagnolo) dopo la prima anteprima che lo usa; null prima. */
+  readonly styleDescriptionEs: string | null;
   readonly width: number;
   readonly height: number;
   readonly consentAt: Date;
@@ -41,6 +43,7 @@ function toDto(reference: {
   id: string;
   style: BuilderStyle | null;
   caption: string | null;
+  styleDescriptionEs: string | null;
   width: number;
   height: number;
   consentAt: Date;
@@ -50,6 +53,7 @@ function toDto(reference: {
     id: reference.id,
     style: reference.style,
     caption: reference.caption,
+    styleDescriptionEs: reference.styleDescriptionEs,
     width: reference.width,
     height: reference.height,
     consentAt: reference.consentAt,
