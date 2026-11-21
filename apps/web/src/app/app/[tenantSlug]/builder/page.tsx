@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Plus, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Images, Plus, Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -56,12 +56,20 @@ export default async function BuilderPage({
   };
 
   const newButton = (
-    <Button asChild>
-      <Link href={`${base}/new`}>
-        <Plus />
-        {t('builder.newDesign')}
-      </Link>
-    </Button>
+    <div className="flex flex-wrap gap-2">
+      <Button asChild variant="outline">
+        <Link href={`${base}/references`}>
+          <Images />
+          {t('styleReferences.link')}
+        </Link>
+      </Button>
+      <Button asChild>
+        <Link href={`${base}/new`}>
+          <Plus />
+          {t('builder.newDesign')}
+        </Link>
+      </Button>
+    </div>
   );
 
   return (

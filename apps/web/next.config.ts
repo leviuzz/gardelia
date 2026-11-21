@@ -32,6 +32,11 @@ const nextConfig: NextConfig = {
   // I pacchetti del monorepo sono "internal packages": esportano sorgenti TypeScript.
   transpilePackages: ['@floral/domain', '@floral/db', '@floral/core'],
   serverExternalPackages: ['nodemailer'],
+  experimental: {
+    // Foto del catalogo e di "Mis ramos": una per richiesta, al massimo 8 MB (ADR-029); il
+    // proxy di Next accetta già fino a 10 MB.
+    serverActions: { bodySizeLimit: '9mb' },
+  },
   outputFileTracingRoot: repoRoot,
   turbopack: { root: repoRoot },
   async headers() {

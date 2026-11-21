@@ -168,7 +168,7 @@ export default async function CatalogPage({
                   className="block rounded-2xl border bg-card p-4 shadow-xs active:bg-muted/50"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <ItemName item={item} />
+                    <ItemName item={item} base={base} />
                     <span className="shrink-0 text-right font-semibold tabular-nums">
                       {money(item.priceMinor, item.currency)}
                       <span className="block text-xs font-normal text-muted-foreground">
@@ -222,7 +222,7 @@ export default async function CatalogPage({
                         href={`${base}/${item.id}`}
                         className="block focus-visible:outline-none"
                       >
-                        <ItemName item={item} />
+                        <ItemName item={item} base={base} />
                       </Link>
                     </td>
                     <td className="px-4 py-3">
@@ -307,9 +307,18 @@ export default async function CatalogPage({
   );
 }
 
-function ItemName({ item }: { item: CatalogItemDto }) {
+function ItemName({ item, base }: { item: CatalogItemDto; base: string }) {
   return (
     <span className="flex min-w-0 items-center gap-3">
+      {item.coverPhotoId ? (
+        // eslint-disable-next-line @next/next/no-img-element -- immagine privata servita da una route autenticata
+        <img
+          src={`${base}/photos/${item.coverPhotoId}?size=thumb`}
+          alt=""
+          loading="lazy"
+          className="size-10 shrink-0 rounded-lg border bg-muted object-cover"
+        />
+      ) : null}
       <span className="flex -space-x-1" aria-hidden="true">
         {(item.colors.length > 0 ? item.colors.slice(0, 3) : ['__none']).map((color) => (
           <span

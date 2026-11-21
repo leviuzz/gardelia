@@ -50,7 +50,14 @@
     "builder_needs_flower": "Agrega al menos una flor al ramo.",
     "builder_one_packaging": "Elige un solo empaque o base.",
     "builder_line_limit": "El ramo tiene demasiados productos distintos.",
-    "builder_item_not_allowed": "Algún producto no está disponible en el diseñador."
+    "builder_item_not_allowed": "Algún producto no está disponible en el diseñador.",
+    "file_required": "Elige al menos una foto.",
+    "file_too_large": "La foto es demasiado grande. Usa una de menos de 8 MB.",
+    "invalid_image": "El archivo no es una foto válida. Usa JPG, PNG o WEBP.",
+    "image_too_small": "La foto es muy pequeña: debe medir al menos 320 píxeles por lado.",
+    "too_many_photos": "Llegaste al máximo de fotos. Quita alguna para subir otra.",
+    "photos_not_allowed_for_type": "Este tipo de producto no lleva fotos.",
+    "consent_required": "Para subir fotos confirma la autorización."
   },
   "errors": {
     "validation": "Revisa los campos marcados.",
@@ -274,6 +281,8 @@
     "catalog_item.updated": "{actor} editó «{name}»",
     "catalog_item.archived": "{actor} archivó «{name}»",
     "catalog_item.restored": "{actor} restauró «{name}»",
+    "catalog_item.photo_added": "{actor} agregó una foto de «{name}»",
+    "catalog_item.photo_archived": "{actor} quitó una foto de «{name}»",
     "recipe.updated": "{actor} actualizó la receta de «{name}»",
     "recipe.line_added": "{actor} agregó {ingredient} a una receta",
     "recipe.line_updated": "{actor} cambió la cantidad de {ingredient} en una receta",
@@ -300,7 +309,9 @@
     "builder.configuration_archived": "{actor} archivó el diseño «{name}»",
     "builder.configuration_restored": "{actor} restauró el diseño «{name}»",
     "ai.preview_requested": "{actor} pidió una vista previa con IA",
-    "ai_credits.granted": "Se agregaron {units} vistas previas extra"
+    "ai_credits.granted": "Se agregaron {units} vistas previas extra",
+    "builder.style_reference_added": "{actor} agregó una foto a «Mis ramos»",
+    "builder.style_reference_archived": "{actor} quitó una foto de «Mis ramos»"
   },
   "catalog": {
     "title": "Catálogo",
@@ -1002,5 +1013,62 @@
       "renews": "Se renuevan el {date}.",
       "requested": "Vista previa en preparación"
     }
+  },
+  "photos": {
+    "title": "Fotos",
+    "subtitleFlower": "Fotografía la flor sola, sobre un fondo liso y claro, desde varios ángulos: de frente, de lado y desde arriba.",
+    "subtitleByColor": "Sube una foto por cada color disponible, de cerca y con buena luz para que se vea la textura.",
+    "subtitleOther": "Fotos del producto sobre un fondo liso y claro.",
+    "usage": "Se muestran en tu catálogo. Más adelante también ayudarán a que las vistas previas con IA se parezcan a tus productos reales.",
+    "empty": "Todavía no hay fotos de este producto.",
+    "count": "{count, plural, one {# foto} other {# fotos}} de {max}",
+    "limitReached": "Llegaste al máximo de {max} fotos. Quita alguna para subir otra.",
+    "files": "Fotos",
+    "filesHint": "JPG, PNG o WEBP. Puedes elegir varias a la vez: se reducen antes de enviarlas.",
+    "view": "Vista",
+    "views": {
+      "FRONT": "De frente",
+      "SIDE": "De lado",
+      "TOP": "Desde arriba",
+      "DETAIL": "Detalle"
+    },
+    "color": "Color de la foto",
+    "colorNone": "Sin color específico",
+    "colorHint": "Elige el color que aparece en la foto.",
+    "upload": "Subir fotos",
+    "uploading": "Subiendo {current} de {total}…",
+    "uploaded": "{count, plural, one {Se subió # foto} other {Se subieron # fotos}}",
+    "pickFiles": "Elige al menos una foto.",
+    "tooManyFiles": "Puedes subir hasta {max} fotos más.",
+    "fileProblem": "{name}: {problem}",
+    "networkError": "Se perdió la conexión. Revisa tu internet y vuelve a intentarlo.",
+    "remove": "Quitar foto",
+    "removed": "Foto quitada",
+    "alt": "Foto de «{name}», {view}",
+    "altColor": "Foto de «{name}» en {color}, {view}",
+    "readOnly": "Solo el propietario o un gerente pueden subir o quitar fotos."
+  },
+  "styleReferences": {
+    "title": "Mis ramos",
+    "subtitle": "Fotos de ramos hechos por tu florería, para que el diseñador conozca tu estilo.",
+    "usage": "Más adelante el diseñador las usará como referencia de estilo para que las vistas previas con IA se parezcan a tu trabajo. Nunca se usan para entrenar modelos de IA ni se comparten con otras florerías.",
+    "back": "Diseñador",
+    "link": "Mis ramos",
+    "empty": "Todavía no subiste fotos de tus ramos.",
+    "emptyHint": "Sube de 5 a 10 fotos de tus mejores ramos, con buena luz.",
+    "count": "{count, plural, one {# foto} other {# fotos}} de {max}",
+    "limitReached": "Llegaste al máximo de {max} fotos. Quita alguna para subir otra.",
+    "style": "Estilo del ramo",
+    "styleNone": "Sin especificar",
+    "caption": "Nota (opcional)",
+    "captionPlaceholder": "Ej. Ramo de novia para una boda en Calvillo",
+    "consent": "Confirmo que estas fotos son de ramos hechos por mi florería y autorizo usarlas como referencia de estilo para las vistas previas con IA.",
+    "privacyHint": "Evita fotos con personas, nombres o datos de clientes.",
+    "upload": "Subir fotos",
+    "remove": "Quitar foto",
+    "removed": "Foto quitada",
+    "alt": "Ramo de tu florería",
+    "altStyle": "Ramo de tu florería, estilo {style}",
+    "readOnly": "Solo el propietario o un gerente pueden subir o quitar fotos."
   }
 }

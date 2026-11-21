@@ -32,6 +32,7 @@ import {
   updateRecipeLineAction,
 } from '../actions';
 import { ItemForm, type ItemFormDefaults } from '../item-form';
+import { PhotosSection } from './photos-section';
 import { AddIngredientForm, RecipeDetailsForm, RecipeLineRow } from './recipe-editor';
 
 async function loadItem(ctx: TenantContext, itemId: string): Promise<CatalogItemDto> {
@@ -144,6 +145,8 @@ export default async function ItemPage({
           <AlertDescription>{t('catalog.form.archivedNotice')}</AlertDescription>
         </Alert>
       ) : null}
+
+      <PhotosSection ctx={ctx} item={item} />
 
       {recipe ? (
         <RecipeSection
