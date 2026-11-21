@@ -2,7 +2,7 @@ import { ArrowLeft, Check, Clock, Info, Lock, TriangleExclamationPoint } from 'l
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
-import { getTenantPlan, hasPermission } from '@floral/core';
+import { getAiQuota, getTenantPlan, hasPermission, isAiPreviewAvailable } from '@floral/core';
 import { BRAND } from '@floral/domain';
 import { Forbidden } from '@/components/forbidden';
 import { PageHeader } from '@/components/page-header';
@@ -28,12 +28,21 @@ export default async function PlanPage({ params }: PageProps<'/app/[tenantSlug]/
   const subscription = plan.subscription;
   const planName = (code: 'BASIC' | 'PLUS') => `${BRAND.productName} ${t(`plans.names.${code}`)}`;
 
-  const features: { key: string; state: FeatureState }[] = [
+  // Le anteprime AI compaiono come incluse solo quando funzionano davvero (provider attivo).
+  const aiLive = isAiPreviewAvailable();
+  const aiIncluded = plan.entitlements.bouquetBuilder && plan.entitlements.aiPreviewsPerMonth > 0;
+  const aiQuota = aiLive && aiIncluded ? await getAiQuota(ctx) : null;
+  const aiState: FeatureState = !aiLive ? 'soon' : aiIncluded ? 'included' : 'upgrade';
+  const aiBody = aiLive
+    ? t('plans.features.aiPreviews.body', { count: plan.entitlements.aiPreviewsPerMonth || 25 })
+    : t('plans.features.aiPreviewsSoon.body');
+
+  const features: { key: string; state: FeatureState; body?: string }[] = [
     { key: 'catalog', state: 'included' },
     { key: 'customersQuotes', state: 'included' },
     { key: 'team', state: 'included' },
     { key: 'bouquetBuilder', state: plan.entitlements.bouquetBuilder ? 'included' : 'upgrade' },
-    { key: 'aiPreviews', state: 'soon' },
+    { key: 'aiPreviews', state: aiState, body: aiBody },
   ];
 
   return (
@@ -105,7 +114,9 @@ export default async function PlanPage({ params }: PageProps<'/app/[tenantSlug]/
                 </span>
                 <div className="min-w-0 flex-1 text-sm">
                   <p className="font-medium">{t(`plans.features.${feature.key}.title`)}</p>
-                  <p className="text-muted-foreground">{t(`plans.features.${feature.key}.body`)}</p>
+                  <p className="text-muted-foreground">
+                    {feature.body ?? t(`plans.features.${feature.key}.body`)}
+                  </p>
                 </div>
                 <Badge
                   variant={
@@ -121,6 +132,21 @@ export default async function PlanPage({ params }: PageProps<'/app/[tenantSlug]/
               </li>
             ))}
           </ul>
+          {aiQuota ? (
+            <div
+              className="mt-4 space-y-1 rounded-xl bg-muted/40 p-4 text-sm"
+              data-testid="ai-usage"
+            >
+              <p className="font-medium">
+                {t('plans.aiUsage', { used: aiQuota.includedUsed, limit: aiQuota.includedLimit })}
+              </p>
+              {aiQuota.extraRemaining > 0 ? (
+                <p className="text-muted-foreground">
+                  {t('plans.aiExtra', { count: aiQuota.extraRemaining })}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

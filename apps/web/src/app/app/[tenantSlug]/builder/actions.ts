@@ -7,7 +7,11 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { saveBouquetConfiguration, setBouquetConfigurationArchived } from '@floral/core';
+import {
+  requestBouquetPreview,
+  saveBouquetConfiguration,
+  setBouquetConfigurationArchived,
+} from '@floral/core';
 import { actionError, type ActionState } from '@/lib/actions';
 import { getTenantContext } from '@/lib/tenant';
 
@@ -46,4 +50,22 @@ export async function setDesignArchivedAction(
   revalidatePath(`/app/${ctx.tenantSlug}/builder`, 'layout');
   const t = await getTranslations('common');
   return { status: 'success', message: t('changesSaved') };
+}
+
+/** Richiede l'anteprima AI del disegno salvato: credito e cache gestiti dal servizio. */
+export async function requestPreviewAction(
+  slug: string,
+  configurationId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const ctx = await getTenantContext(slug);
+  try {
+    await requestBouquetPreview(ctx, configurationId);
+  } catch (error) {
+    return actionError(error);
+  }
+  revalidatePath(`/app/${ctx.tenantSlug}/builder/${configurationId}`);
+  const t = await getTranslations('builder.preview');
+  return { status: 'success', message: t('requested') };
 }

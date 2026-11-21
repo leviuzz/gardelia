@@ -33,6 +33,7 @@ import { fieldError, idleState, type ActionState } from '@/lib/action-state';
 import { money } from '@/lib/format';
 import { useActionToast } from '@/lib/use-action-toast';
 import { cn } from '@/lib/utils';
+import { PreviewPanel, type PreviewPanelData } from './preview-panel';
 
 export interface BuilderOptionView {
   readonly id: string;
@@ -164,6 +165,7 @@ export function BouquetEditor({
   saveAction,
   quoteHref,
   catalogHref,
+  preview,
 }: {
   currency: string;
   laborFeeMinor: number;
@@ -178,6 +180,8 @@ export function BouquetEditor({
   saveAction: SaveAction;
   quoteHref: string | null;
   catalogHref: string;
+  /** Anteprima AI del disegno salvato; null se non disponibile (nessun provider). */
+  preview?: PreviewPanelData | null;
 }) {
   const t = useTranslations('builder.editor');
   const tv = useTranslations('validation');
@@ -585,6 +589,7 @@ export function BouquetEditor({
 
       <div className="min-w-0 space-y-6 lg:sticky lg:top-6 lg:self-start">
         {summary}
+        {preview && !readOnly ? <PreviewPanel data={preview} dirty={dirty} /> : null}
         <Card>
           <CardHeader>
             <CardTitle>{t('details')}</CardTitle>

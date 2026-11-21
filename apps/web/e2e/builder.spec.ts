@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 test.describe('Bouquet Builder (fioreria demo, Plus in pilota)', () => {
   test.use({ storageState: 'e2e/.auth/owner.json' });
@@ -49,6 +49,52 @@ test.describe('Bouquet Builder (fioreria demo, Plus in pilota)', () => {
       page.getByText('Incluye: 7 × Rosa roja Freedom, 5 × Tulipán rosa y 1 × Papel coreano kraft'),
     ).toBeVisible();
     await expect(page.getByText('Disponibilidad limitada')).toBeVisible();
+  });
+});
+
+test.describe('anteprima AI (provider simulato)', () => {
+  test.use({ storageState: 'e2e/.auth/owner.json' });
+
+  async function saveDesign(page: Page, name: string) {
+    await page.goto('/app/las-camelias/builder/new');
+    await page.getByRole('textbox', { name: 'Nombre del diseño' }).fill(name);
+    // Stessa composizione a ogni esecuzione: dalla seconda in poi si riusa la cache.
+    await page.getByRole('spinbutton', { name: 'Cantidad de Girasol' }).fill('3');
+    await page.getByRole('radio', { name: /Papel coreano kraft/ }).check();
+    await page.getByRole('button', { name: 'Guardar diseño' }).click();
+    await expect(page).toHaveURL(/\/builder\/[0-9a-f-]{36}\?saved=1$/);
+  }
+
+  test('si genera su richiesta, è dichiarata come simulazione e si riusa per lo stesso ramo', async ({
+    page,
+    browser,
+  }) => {
+    await saveDesign(page, `Girasoles IA ${Date.now()}`);
+    await expect(page.getByText(/Este mes: quedan \d+ de 25/)).toBeVisible();
+    const generate = page.getByRole('button', { name: 'Generar vista previa' });
+    if (await generate.isVisible()) await generate.click();
+    const image = page.getByRole('img', { name: /Vista previa ilustrativa del ramo/ });
+    await expect(image).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/Simulación \(entorno de desarrollo\)/)).toBeVisible();
+    await expect(page.getByText(/el ramo real puede variar/)).toBeVisible();
+
+    // Un altro disegno con la stessa composizione riusa l'immagine senza consumare.
+    await saveDesign(page, `Girasoles IA bis ${Date.now()}`);
+    await expect(
+      page.getByRole('img', { name: /Vista previa ilustrativa del ramo/ }),
+    ).toBeVisible();
+    await expect(page.getByText('Ya existía una vista previa de este mismo ramo')).toBeVisible();
+
+    // L'immagine è privata: un'altra fioreria riceve 404.
+    const src = await page
+      .getByRole('img', { name: /Vista previa ilustrativa del ramo/ })
+      .getAttribute('src');
+    expect(src).toMatch(/\/builder\/previews\/[0-9a-f-]{36}$/);
+    expect((await page.request.get(src!)).status()).toBe(200);
+    const other = await browser.newContext({ storageState: 'e2e/.auth/other-owner.json' });
+    const otherSrc = src!.replace('/app/las-camelias/', '/app/flores-del-valle/');
+    expect((await other.request.get(otherSrc)).status()).toBe(404);
+    await other.close();
   });
 });
 

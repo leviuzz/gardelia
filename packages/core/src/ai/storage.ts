@@ -85,7 +85,8 @@ export class R2Storage implements ObjectStorage {
   async put(key: string, bytes: Uint8Array, contentType: string): Promise<void> {
     const response = await this.client.fetch(this.urlFor(key), {
       method: 'PUT',
-      body: bytes,
+      // Copia su un ArrayBuffer proprio (tipo richiesto da fetch).
+      body: new Uint8Array(bytes),
       headers: { 'Content-Type': contentType },
     });
     if (!response.ok) throw new Error(`R2 PUT non riuscito (${response.status})`);

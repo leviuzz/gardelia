@@ -30,6 +30,12 @@ function isQuoteStatus(value: string): value is QuoteStatus {
   return (QUOTE_STATUSES as readonly string[]).includes(value);
 }
 
+function metadataNumber(metadata: ActivityEntry['metadata'], key: string): number | undefined {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return undefined;
+  const value = (metadata as Record<string, unknown>)[key];
+  return typeof value === 'number' ? value : undefined;
+}
+
 function metadataString(metadata: ActivityEntry['metadata'], key: string): string | undefined {
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return undefined;
   const value = (metadata as Record<string, unknown>)[key];
@@ -70,6 +76,7 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
       number: metadataString(entry.metadata, 'number') ?? '—',
       status: statusValue && isQuoteStatus(statusValue) ? t(`quotes.statuses.${statusValue}`) : '—',
       plan: planValue && isPlanCode(planValue) ? t(`plans.names.${planValue}`) : '—',
+      units: metadataNumber(entry.metadata, 'units') ?? 0,
     };
     return t.has(key) ? t(key, values) : t('activity.fallback', values);
   }

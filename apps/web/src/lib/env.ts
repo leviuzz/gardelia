@@ -19,6 +19,12 @@ const schema = z.object({
     : z.string().optional(),
   EMAIL_FROM: z.string().optional(),
   TRUSTED_IP_HEADER: z.string().default('x-forwarded-for'),
+  // Anteprime AI e archivio (ADR-025): la coerenza con APP_URL è verificata all'avvio da
+  // @floral/core (provider simulato e archivio locale solo in locale).
+  AI_PROVIDER: z.enum(['none', 'simulated']).default('none'),
+  AI_MONTHLY_BUDGET_USD: z.coerce.number().min(0).default(50),
+  STORAGE_DRIVER: z.enum(['filesystem', 'r2']).default('filesystem'),
+  STORAGE_DIR: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof schema>;

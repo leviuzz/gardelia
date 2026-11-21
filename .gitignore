@@ -14,6 +14,9 @@ next-env.d.ts
 # client Prisma generato (rigenerato con `pnpm db:generate`)
 packages/db/src/generated/
 
+# archivio locale delle immagini (sviluppo/test)
+.storage/
+
 # test
 coverage/
 playwright-report/

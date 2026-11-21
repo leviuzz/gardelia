@@ -130,13 +130,21 @@ principi a livello di servizi e ruoli (TEN-01).
 | Preventivi | Quote, QuoteLine (`CATALOG_ITEM`, `CUSTOM`, `BUILDER`), TenantCounter | completo (ordini nello Sprint 3)                            |
 | Piani      | SaasPlan (globale), TenantSubscription                                | v0: assegnazione manuale da CLI, nessun pagamento (ADR-021) |
 | Builder    | BouquetConfiguration, BouquetConfigurationLine                        | deterministico (ADR-023); anteprime AI nello Sprint 2       |
-| AI         | AiJob                                                                 | solo confine dati (pipeline nello Sprint 2)                 |
+| AI         | AiJob (anche coda), AiCreditGrant                                     | pipeline completa; provider reale da collegare (ADR-025)    |
 
 Flusso del valore (Sprint 1): **catalogo** (prezzi, costi, disponibilità, flag Builder) →
 **Builder** (`priceBouquet`, stessa funzione in browser e server) → **preventivo** (riga `BUILDER`
 con distinta esatta e prezzi del momento) → stampa/PDF o WhatsApp; il cliente del **CRM** è
 obbligatorio per il preventivo. I servizi delle funzioni a pagamento chiamano `requireEntitlement`
 dopo `requirePermission`.
+
+Anteprime AI (Sprint 2, ADR-024/025): il Diseñador chiede l'anteprima del disegno **salvato** →
+il servizio calcola la descrizione del ramo (solo composizione) e la sua impronta → se la stessa
+fioreria ha già quell'immagine la riusa, altrimenti prenota un credito (prima quota del mese, poi
+extra) sotto lock e accoda un `AiJob` → il worker (nel processo web) lo preleva con
+`app_claim_ai_job` (SECURITY DEFINER, `SKIP LOCKED`), genera l'immagine, la salva nell'archivio
+(`tenants/{tenantId}/…`, R2 in produzione) e consuma il credito solo a successo. L'immagine si
+serve da una route che verifica tenant e permessi.
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per

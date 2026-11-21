@@ -30,11 +30,14 @@ clienti, preventivi…), AI Bouquet Builder nel piano Plus e, in seguito, il mar
 - **Diseñador de ramos (Plus):** composizione con fiori, follaje, empaque e complementi del
   catalogo, prezzo calcolato all'istante (stessa formula sul server), avvisi di disponibilità,
   disegni salvati e creazione della cotización con la receta esatta.
+- **Vista previa con IA (Plus):** pipeline completa (25 al mese + pacchetti extra, cache per
+  fioreria, tetto di spesa). In locale usa un **provider simulato** dichiarato in UI; il provider
+  reale si collega con la chiave del fornitore (vedi `IMPLEMENTATION_PLAN.md`).
 - Dashboard con dati reali (cotizaciones abiertas, fechas especiales, attività), banner demo.
 - Isolamento fra fiorerie garantito anche dal database (Row-Level Security PostgreSQL).
 
-Ordini, pagamenti, immagini e anteprime AI **non sono ancora disponibili** e non compaiono
-nell'interfaccia come funzioni attive (vedi `IMPLEMENTATION_PLAN.md`).
+Ordini, pagamenti online, immagini del catalogo e anteprime AI reali **non sono ancora
+disponibili** e non compaiono nell'interfaccia come funzioni attive (vedi `IMPLEMENTATION_PLAN.md`).
 
 ## Requisiti
 
@@ -89,6 +92,13 @@ gestisce la piattaforma); ogni assegnazione è registrata nell'audit della fiore
 pnpm platform:assign-plan --operator tu@empresa.mx --tenant flores-del-valle --plan PLUS --status PILOT --until 2027-03-31
 ```
 
+Dopo il pagamento di un pacchetto di anteprime (fuori dall'app nel pilota), si sbloccano così
+(gli extra non scadono e si usano dopo le 25 del mese):
+
+```bash
+pnpm platform:grant-ai-credits --operator tu@empresa.mx --tenant las-camelias --units 50 --note "Paquete 50"
+```
+
 ## Comandi
 
 | Comando                               | Descrizione                                                    |
@@ -106,6 +116,7 @@ pnpm platform:assign-plan --operator tu@empresa.mx --tenant flores-del-valle --p
 | `pnpm db:deploy`                      | Applica le migrazioni (CI/produzione)                          |
 | `pnpm db:seed`                        | Dati demo (rifiutato con `NODE_ENV=production`)                |
 | `pnpm platform:assign-plan`           | Assegna il piano a una fioreria (solo operatori SUPER_ADMIN)   |
+| `pnpm platform:grant-ai-credits`      | Sblocca anteprime AI extra pagate (solo operatori SUPER_ADMIN) |
 | `pnpm --filter @floral/web mail-sink` | Pozzo SMTP su file, alternativa a Mailpit senza Docker         |
 
 ### Test end-to-end

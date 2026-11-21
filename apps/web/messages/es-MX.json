@@ -77,7 +77,10 @@
       "quote_empty": "Agrega al menos un concepto antes de enviarla.",
       "invalid_status_transition": "Este cambio de estado no está permitido.",
       "builder_configuration_archived": "Este diseño está archivado: restáuralo para modificarlo.",
-      "builder_configuration_outdated": "Algún producto del diseño ya no está disponible: revisa el diseño antes de cotizar."
+      "builder_configuration_outdated": "Algún producto del diseño ya no está disponible: revisa el diseño antes de cotizar.",
+      "ai_unavailable": "Las vistas previas con IA no están disponibles por ahora.",
+      "ai_quota_exhausted": "Ya no tienes vistas previas disponibles este mes.",
+      "ai_budget_reached": "Las vistas previas no están disponibles por ahora. Inténtalo más tarde."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -295,7 +298,9 @@
     "builder.configuration_created": "{actor} guardó el diseño «{name}»",
     "builder.configuration_updated": "{actor} actualizó el diseño «{name}»",
     "builder.configuration_archived": "{actor} archivó el diseño «{name}»",
-    "builder.configuration_restored": "{actor} restauró el diseño «{name}»"
+    "builder.configuration_restored": "{actor} restauró el diseño «{name}»",
+    "ai.preview_requested": "{actor} pidió una vista previa con IA",
+    "ai_credits.granted": "Se agregaron {units} vistas previas extra"
   },
   "catalog": {
     "title": "Catálogo",
@@ -848,6 +853,9 @@
       },
       "aiPreviews": {
         "title": "Vistas previas con IA",
+        "body": "Imágenes ilustrativas del ramo para compartir con tu cliente: {count} al mes incluidas y paquetes extra."
+      },
+      "aiPreviewsSoon": {
         "body": "Imágenes ilustrativas del ramo para compartir con tu cliente."
       }
     },
@@ -858,7 +866,9 @@
     },
     "pilotNote": "Durante el piloto, el equipo de {product} asigna el plan de cada florería. El cobro en línea todavía no está disponible: desde aquí no se realiza ningún pago.",
     "settingsLink": "Plan y funciones",
-    "settingsLinkBody": "Consulta tu plan y qué funciones incluye."
+    "settingsLinkBody": "Consulta tu plan y qué funciones incluye.",
+    "aiUsage": "Vistas previas con IA este mes: {used} de {limit}",
+    "aiExtra": "{count, plural, one {# vista previa extra disponible} other {# vistas previas extra disponibles}} (no caducan)"
   },
   "builder": {
     "title": "Diseñador de ramos",
@@ -968,6 +978,29 @@
       "laborFee": "Cargo por armado ({currency})",
       "laborFeeHint": "Déjalo en 0 si ya lo incluyes en tus precios.",
       "saved": "Cargo por armado guardado"
+    },
+    "preview": {
+      "title": "Vista previa con IA",
+      "subtitle": "Imagen ilustrativa del ramo para compartir con tu cliente.",
+      "generate": "Generar vista previa",
+      "generating": "Generando…",
+      "queued": "En cola…",
+      "running": "Generando la imagen… puede tardar unos segundos.",
+      "failed": "No se pudo generar la vista previa. No se descontó de tu saldo.",
+      "retry": "Intentar de nuevo",
+      "ready": "Vista previa lista",
+      "alt": "Vista previa ilustrativa del ramo «{name}»",
+      "disclaimer": "Vista previa ilustrativa: el ramo real puede variar. El precio y la receta no cambian.",
+      "simulated": "Simulación (entorno de desarrollo): no es una imagen generada por IA.",
+      "reused": "Ya existía una vista previa de este mismo ramo: no se descontó de tu saldo.",
+      "saveFirst": "Guarda los cambios para generar la vista previa de esta versión.",
+      "outdated": "Algún producto del diseño ya no está disponible: revisa el diseño para generar la vista previa.",
+      "quota": "Este mes: quedan {remaining} de {limit}",
+      "quotaExtra": "{count, plural, one {# vista previa extra} other {# vistas previas extra}}",
+      "quotaEmpty": "Ya usaste las vistas previas de este mes.",
+      "quotaEmptyHint": "Pide un paquete de vistas previas extra al equipo de {product}; se suman a tu saldo y no caducan.",
+      "renews": "Se renuevan el {date}.",
+      "requested": "Vista previa en preparación"
     }
   }
 }

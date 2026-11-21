@@ -55,6 +55,11 @@ export default defineConfig({
       SMTP_URL: `smtp://127.0.0.1:${MAIL_PORT}`,
       EMAIL_FROM: 'Floral OS E2E <no-reply@e2e.floral.local>',
       NEXT_TELEMETRY_DISABLED: '1',
+      // Anteprime AI con il provider simulato (solo locale) e archivio su file.
+      AI_PROVIDER: 'simulated',
+      AI_MONTHLY_BUDGET_USD: '50',
+      STORAGE_DRIVER: 'filesystem',
+      STORAGE_DIR: '.storage',
     },
   },
 });

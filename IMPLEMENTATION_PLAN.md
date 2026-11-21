@@ -14,8 +14,13 @@ Legenda: ✅ fatto e testato · 🟡 parziale · ⬜ da fare · ⛔ bloccato da 
 S1-01…S1-10. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test unit + integrazione
 187/187 ✅ (89 dominio, 19 DB/RLS, 79 servizi) · build ✅ · E2E 21/21 ✅.
 
-**Prossimo:** Sprint 2 (immagini + pipeline AI) — richiede prima le decisioni **O-01**
-(provider/budget AI), **P-01** (coda) e **P-02** (object storage). Vedi "I prossimi task".
+**Sprint 2 — anteprime AI: pipeline completa** (21/11/2026) con provider **simulato** (solo
+locale): quota 25/mese, pacchetti extra via CLI, cache per fioreria, tetto di spesa, worker, archivio
+R2/locale. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 206/206 ✅ · build ✅ ·
+E2E 22/22 ✅.
+
+**Prossimo:** collegare il provider reale (fal.ai) appena il founder crea account e chiave, ed
+eseguire il benchmark di ≥100 immagini (O-01). Vedi "I prossimi task".
 
 ---
 
@@ -98,20 +103,27 @@ il **taglio** seguente.
 | S1-08 | ✅    | stati con macchina a stati di dominio, scadenza "pigra", stampa/PDF, WhatsApp                      |
 | S1-09 | ✅    | `SaasPlan`/`TenantSubscription`, `requireEntitlement`, CLI `platform:assign-plan` (ADR-021)        |
 | S1-10 | ✅    | `/builder`: prezzo live = prezzo server, disegni salvati, preventivo con distinta esatta (ADR-023) |
-| E2E   | 🟡    | cliente → preventivo → Builder → preventivo ✅; parte AI (BQ-02) con lo Sprint 2                   |
+| E2E   | ✅    | cliente → preventivo → Builder → preventivo; anteprima (simulata) con cache e privacy              |
+
+### Sprint 2 — stato
+
+| ID    | Stato | Dove                                                                                                              |
+| ----- | ----- | ----------------------------------------------------------------------------------------------------------------- |
+| S1-11 | 🟡    | archivio (R2 + locale) fatto per le anteprime; **upload immagini del catalogo** ancora da fare                    |
+| S1-12 | ✅    | `AiJob` come coda (SKIP LOCKED, lease, retry), worker nel processo web, quota/pacchetti/cache/tetto (ADR-024/025) |
+| S1-13 | ⛔    | provider reale: serve account fal.ai + chiave del founder (O-01); poi benchmark e prompt definitivo               |
+| S1-14 | 🟡    | E2E anteprima con provider simulato ✅; BQ-02 coperto da test di integrazione (fallimento senza costo)            |
 
 ### I prossimi task (nell'ordine)
 
-1. **Decisioni** O-01 (provider AI e budget del benchmark), P-01 (coda su Postgres), P-02 (R2) — bloccanti per lo Sprint 2.
-2. S1-11 Object storage + immagini del catalogo (anche nel Builder e nei preventivi stampati).
-3. S1-12 Pipeline job AI (`apps/worker`, stati, retry) con quota mensile + pacchetti extra sbloccati dalla piattaforma (ADR-024).
-4. S1-13 Provider AI reale (prompt versionato, moderazione, disclaimer "vista previa ilustrativa").
-5. S1-14 E2E BQ-02 (se l'AI fallisce il preventivo resta e nessuna anteprima viene inventata).
-6. Aggiungere un disegno del Builder a un preventivo in bozza esistente (oggi crea un nuovo preventivo).
-7. Ordini da preventivo accettato (Sprint 3): `ACCEPTED → ordine` con la stessa distinta.
-8. Contador: validare O-06 (IVA nei preventivi) prima di mostrare imposte.
-9. Pannello admin di piattaforma minimo (oggi CLI) con autenticazione forte e audit.
-10. Promemoria delle ricorrenze (email/WhatsApp) — richiede consenso e canale validati.
+1. **Founder:** creare l'account fal.ai con credito prepagato (tetto naturale) e una chiave API, da inserire nel modulo sicuro (mai in chat).
+2. S1-13 Adattatore fal.ai + benchmark di ≥100 immagini su 2–3 modelli (fedeltà di steli e colori, tempi, costo reale) → scelta del modello e prezzi dei pacchetti (ADR-024).
+3. Immagini del catalogo (upload su R2) e uso delle foto del fiorista come riferimento di stile (AI-BQ-07, con consenso: O-07).
+4. Anteprima nel preventivo stampato e nel messaggio WhatsApp.
+5. Aggiungere un disegno del Builder a un preventivo in bozza esistente.
+6. Ordini da preventivo accettato (Sprint 3) con la stessa distinta.
+7. Contador: IVA nei preventivi e fatturazione dei pacchetti (O-06, O-02).
+8. Pannello admin di piattaforma minimo (oggi CLI) con autenticazione forte e audit.
 
 ---
 
@@ -121,7 +133,7 @@ il **taglio** seguente.
 | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
 | S0 ✅  | Fondazioni: monorepo, DB con RLS, auth, tenant, ruoli, inviti, catalogo, ricette, dashboard                                                                       | CORE-01, CAT-01 (parziale)               |
 | S1 ✅  | CRM + preventivi + Builder deterministico + entitlements v0                                                                                                       | CRM-01, ORD-01 (preventivi), AI-BQ-01…06 |
-| S2     | Immagini + pipeline AI + provider reale + quote                                                                                                                   | AI-BQ-05/07/11, MEDIA-01                 |
+| S2 🟡  | Immagini + pipeline AI + provider reale + quote (pipeline e quote fatte; manca il provider reale)                                                                 | AI-BQ-05/07/11, MEDIA-01                 |
 | S3     | Ordini (da preventivo, stati, pagamenti registrati a mano, consegne, calendario) + inventario base (saldi, movimenti, riserve)                                    | ORD-01, INV-01                           |
 | S4     | Billing Basic/Plus (adattatore Stripe, webhook idempotenti, "Plan y uso"), admin di piattaforma minimo, form lead B2B con coda manuale (NET-00), Google login/2FA | BILL-01, NET-00                          |
 | S5     | Floral Care: abbonamenti cliente, visite programmate, checklist; report P0                                                                                        | SUB-01, CARE-01, BI-01                   |
@@ -168,3 +180,16 @@ il **taglio** seguente.
   account AI del fiorista.
 - Da definire: numero di anteprime incluse, taglie/prezzi dei pacchetti, scadenza dei crediti,
   tetto mensile di spesa; restano aperte O-01, P-01, P-02 per iniziare lo Sprint 2.
+
+### 2026-11-21 — Sprint 2: pipeline delle anteprime AI
+
+- Decisioni (delegate dal founder): 25 anteprime/mese nel Plus, extra senza scadenza, tetto 50 USD/mese,
+  pacchetti 25/50/100 (prezzi dopo il benchmark), coda su PostgreSQL, archivio R2, provider fal.ai.
+- Cache per fioreria (idea del founder): ramo identico = stessa immagine per qualsiasi cliente, senza
+  consumo; mai fra fiorerie (spec 6.6). Il prompt non contiene dati del cliente.
+- Fatto: regole di dominio (periodo nel fuso, saldo, prompt), `AiCreditGrant` + funzioni SQL della
+  coda, servizio anteprime, worker, CLI `platform:grant-ai-credits`, pannello nel Diseñador, uso nel
+  piano, route privata delle immagini, provider simulato etichettato (rifiutato in produzione).
+- Verifiche: lint ✅, format ✅, typecheck ✅, `pnpm test` 206/206 ✅ (due esecuzioni), build ✅ (senza
+  avvisi Edge), E2E 22/22 ✅ (due esecuzioni della parte Builder).
+- Bloccato: provider reale (serve la chiave del founder).
