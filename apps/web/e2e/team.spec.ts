@@ -8,6 +8,8 @@ test('invito via email: la persona invitata si registra, accetta ed entra come s
   browser,
 }) => {
   const email = uniqueEmail('equipo');
+  // Nome univoco: il test resta ripetibile sullo stesso database.
+  const fullName = `Carlos Méndez ${Date.now().toString(36)}`;
 
   await page.goto('/app/las-camelias/settings/team');
   await page.getByLabel('Correo electrónico').fill(email);
@@ -28,7 +30,7 @@ test('invito via email: la persona invitata si registra, accetta ed entra come s
     .getByRole('link', { name: '¿No tienes cuenta? Crea una con ese correo.' })
     .click();
 
-  await guestPage.getByLabel('Nombre completo').fill('Carlos Méndez');
+  await guestPage.getByLabel('Nombre completo').fill(fullName);
   await expect(guestPage.getByLabel('Correo electrónico')).toHaveValue(email);
   await guestPage.getByLabel('Contraseña', { exact: true }).fill('clave-del-equipo-456');
   await guestPage.getByLabel('Confirma la contraseña').fill('clave-del-equipo-456');
@@ -50,5 +52,5 @@ test('invito via email: la persona invitata si registra, accetta ed entra come s
 
   // Il proprietario lo vede ora tra i membri.
   await page.reload();
-  await expect(page.getByText('Carlos Méndez')).toBeVisible();
+  await expect(page.getByText(fullName, { exact: true })).toBeVisible();
 });

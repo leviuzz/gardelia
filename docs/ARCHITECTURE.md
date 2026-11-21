@@ -1,0 +1,165 @@
+# Architettura di Floral OS
+
+Stato: Sprint 0 (fondazioni). Le motivazioni delle scelte sono in [`DECISIONS.md`](./DECISIONS.md).
+
+## 1. Vista d'insieme
+
+Modular monolith in un monorepo pnpm. Un solo deployable oggi (l'app Next.js); il worker per i
+job AI arriverà nello Sprint 2 riusando gli stessi package.
+
+```text
+ Browser (mobile-first, es-MX)
+        │  HTTPS
+        ▼
+ ┌──────────────────────────── apps/web (Next.js 16) ─────────────────────────────┐
+ │ proxy.ts   → requestId, CSP con nonce, redirect ottimistico al login            │
+ │ /api/auth  → Better Auth (identità, sessioni, rate limit)                       │
+ │ pagine RSC + server action (sottili): contesto → validazione → servizio         │
+ └───────────────────────────────┬─────────────────────────────────────────────────┘
+                                 ▼
+ ┌──────────────────── packages/core (casi d'uso, multi-tenant) ───────────────────┐
+ │ resolveTenantContext · requirePermission · servizi (catalogo, ricette, team,    │
+ │ fiorerie, dashboard) · audit · mailer · logger                                   │
+ └───────────────┬───────────────────────────────────────────┬─────────────────────┘
+                 ▼                                           ▼
+ ┌──── packages/domain (puro) ────┐          ┌──── packages/db ────────────────────┐
+ │ denaro · permessi · schemi Zod │          │ Prisma 7 + adapter pg               │
+ │ mercati · costi ricette · slug │          │ withTenantContext / withUserContext │
+ └────────────────────────────────┘          │ / withSystemContext · seed          │
+                                             └───────────────┬─────────────────────┘
+                                                             ▼
+                                   PostgreSQL 16 — Row-Level Security su ogni tabella tenant
+                                   (ruolo runtime floral_app: non superuser, non BYPASSRLS)
+```
+
+Servizi esterni attuali: SMTP (email transazionali). Futuri (adattatori): object storage, coda
+job, provider AI, pagamenti.
+
+## 2. Struttura del repository
+
+```text
+apps/web/
+  messages/es-MX.json         testi UI (unica lingua attiva)
+  src/proxy.ts                CSP con nonce, requestId, redirect login
+  src/instrumentation.ts      verifica all'avvio che il ruolo DB non possa aggirare la RLS
+  src/lib/                    auth (server/client), sessione, contesto tenant, env, action, form
+  src/components/             design system (ui/), form, app shell, brand
+  src/app/                    route (auth), onboarding, app/[tenantSlug]/…, invite, api
+  e2e/                        Playwright + pozzo SMTP
+packages/core/src/            context, authorization, audit, mailer, email-templates, services/*
+packages/db/prisma/           schema.prisma, migrations/ (SQL con RLS), seed.ts, seed-data.ts
+packages/db/src/              client, tenancy (contesti RLS), errors, testing
+packages/db/scripts/          provisioning ruoli/database per sviluppo e CI
+packages/domain/src/          regole pure + schemi di validazione
+docs/                         spec, decisioni, architettura
+```
+
+## 3. Ciclo di vita di una richiesta
+
+Esempio: un gerente modifica il prezzo di un articolo.
+
+1. `proxy.ts` assegna `x-request-id`, genera il nonce CSP; se manca il cookie di sessione
+   reindirizza a `/login` (solo UX, non sicurezza).
+2. La server action `updateItemAction(slug, itemId, …)` chiama `getTenantContext(slug)`:
+   - `getSession()` verifica la sessione con Better Auth (DB, cookie cache firmato di 5 min);
+   - `resolveTenantContext` cerca, **dentro `withUserContext`**, una membership `ACTIVE` dell'utente
+     su un tenant `ACTIVE` con quello slug. Se non esiste → `notFound()` (404) e, se il tenant
+     esiste, evento di sicurezza `security.tenant_access_denied`.
+3. L'input del form è validato con `catalogItemFormSchema(currency)` (codici d'errore → es-MX).
+4. Il servizio `updateCatalogItem(ctx, id, input)`:
+   - `requirePermission(ctx, 'catalog:write')`;
+   - rivalida l'input normalizzato;
+   - apre `withTenantContext` (transazione con `app.tenant_id`/`app.user_id`), legge l'articolo con
+     `where: { id, tenantId }`, calcola il diff, aggiorna, scrive `AuditLog` **nella stessa transazione**.
+   - Se l'ID non esiste nel tenant → `notFound()`: 404 e, se l'ID appartiene a un altro tenant,
+     evento `security.cross_tenant_access_attempt`.
+5. La action fa `revalidatePath` e restituisce uno stato tradotto; il form mostra un toast.
+
+## 4. Modello di tenancy (dettaglio)
+
+### Contesti di accesso al DB (`packages/db/src/tenancy.ts`)
+
+| Helper                                          | Imposta                        | Uso                                                                                                           |
+| ----------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `withTenantContext(db, {tenantId, userId}, fn)` | `app.tenant_id`, `app.user_id` | Tutte le operazioni di un utente dentro una fioreria; creazione di una nuova fioreria (con l'ID pre-generato) |
+| `withUserContext(db, userId, fn)`               | `app.user_id`                  | Elenco delle proprie fiorerie, risoluzione dello slug                                                         |
+| `withSystemContext(db, {reason}, fn)`           | `app.bypass_rls = on`          | Seed, inviti via token, verifiche di sicurezza (whitelist ESLint)                                             |
+
+I valori sono impostati con `set_config(…, true)`: valgono solo per la transazione corrente,
+anche con pool di connessioni o PgBouncer in transaction mode. Un test verifica che il contesto non
+"trapeli" su altre connessioni del pool.
+
+### Policy RLS (migrazione `tenant_rls`)
+
+- **Standard** (`app_enable_tenant_rls`): righe visibili/modificabili solo se `tenantId = app_current_tenant_id()`
+  (oppure bypass di sistema). `WITH CHECK` impedisce di inserire o spostare righe verso un altro tenant.
+- **Tenant:** leggibile dal tenant corrente **o** dai membri attivi (necessario per risolvere lo slug).
+- **Membership:** leggibile dal tenant corrente o dall'utente stesso; modificabile solo nel contesto del tenant.
+- **AuditLog:** solo SELECT/INSERT → append-only per l'applicazione.
+- **CanonicalFlower:** lettura pubblica, scrittura solo di sistema.
+- Vincoli aggiuntivi nel SQL: CHECK su importi/quantità/valute/slug, indici univoci parziali
+  (una sede primaria per tenant, un invito pendente per email).
+
+### Garanzie verificate dai test
+
+`packages/db/test/rls.test.ts` (database reale, ruolo applicativo): fail-closed senza contesto,
+invisibilità/immodificabilità delle righe altrui, rifiuto di INSERT/UPDATE verso altri tenant, FK
+composite anche con RLS aggirata, nessuna fuga di contesto nel pool, audit append-only, copertura
+RLS di ogni tabella con `tenantId`. `packages/core/test/tenant-isolation.test.ts`: gli stessi
+principi a livello di servizi e ruoli (TEN-01).
+
+## 5. Autenticazione e autorizzazione
+
+- **Identità (Better Auth):** registrazione → email di verifica (obbligatoria) → accesso automatico dopo la
+  conferma; reset password con revoca delle sessioni; sessioni su DB; rate limiting su DB
+  (`/sign-in` 10/min, `/sign-up` 5/min, reset e verifica 5/5 min per IP); utenti sospesi non possono
+  aprire sessioni.
+- **Autorizzazione (nostro dominio):** `Membership(role: OWNER|MANAGER|STAFF, status)` + matrice
+  `PERMISSIONS`. Il controllo avviene nei servizi; la UI nasconde soltanto ciò che non è consentito.
+- **Inviti:** token casuale da 32 byte (solo l'hash SHA-256 nel DB), validità 7 giorni, legato all'email
+  invitata, revocabile; un nuovo invito sostituisce quello pendente; l'accettazione è idempotente.
+
+## 6. Dati (Sprint 0)
+
+| Area       | Modelli                                                        | Stato                                        |
+| ---------- | -------------------------------------------------------------- | -------------------------------------------- |
+| Identità   | User, Session, Account, Verification, RateLimit                | completo                                     |
+| Tenancy    | Tenant, Location, Membership, Invitation, AuditLog             | completo                                     |
+| Catalogo   | CanonicalFlower, CatalogItem, BouquetRecipe, BouquetRecipeLine | completo (immagini nello Sprint 1)           |
+| CRM        | Customer                                                       | solo confine dati + seed (UI nello Sprint 1) |
+| Preventivi | Quote, QuoteLine                                               | solo confine dati (flusso nello Sprint 1)    |
+| AI         | AiJob                                                          | solo confine dati (pipeline nello Sprint 2)  |
+
+Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
+archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per
+l'attribuzione delle fee future.
+
+## 7. Sicurezza applicativa (riepilogo)
+
+- Validazione Zod lato server su ogni input; importi mai presi dal client per i calcoli.
+- CSP con nonce, `frame-ancestors 'none'`, HSTS quando l'app è in HTTPS, `poweredByHeader` disattivato.
+- Server action protette dal controllo di origine di Next.js; Better Auth verifica `trustedOrigins`.
+- Redirect post-login solo verso percorsi interni (`safeNextPath`).
+- Log JSON con `requestId`, campi sensibili oscurati; errori inattesi mostrati con un riferimento,
+  mai con dettagli tecnici.
+- Segreti solo da variabili d'ambiente validate all'avvio (`src/lib/env.ts`); in produzione mancano →
+  l'app non parte.
+
+## 8. Test
+
+| Livello      | Strumento                 | Dove                                     | Cosa                                                                                                               |
+| ------------ | ------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Unit         | Vitest                    | `packages/domain/test`                   | denaro, permessi, slug/ID, mercati e onboarding, catalogo, costi ricette, diff audit                               |
+| Integrazione | Vitest + PostgreSQL reale | `packages/db/test`, `packages/core/test` | RLS, seed idempotente, isolamento A↔B, ruoli, catalogo, ricette, team, inviti, onboarding, dashboard               |
+| End-to-end   | Playwright + pozzo SMTP   | `apps/web/e2e`                           | registrazione con verifica email reale, onboarding, catalogo e ricette, permessi staff, isolamento, inviti, mobile |
+
+## 9. Note di deploy (per il pilota)
+
+1. Creare due ruoli Postgres: proprietario (migrazioni) e applicativo (`NOSUPERUSER NOBYPASSRLS`),
+   con i privilegi di default di `packages/db/scripts/grant-app-role.sql`.
+2. `DATABASE_MIGRATION_URL` (proprietario) solo nel passo di migrazione (`pnpm db:deploy`);
+   `DATABASE_URL` (applicativo) nel runtime.
+3. Variabili obbligatorie: `APP_URL` (HTTPS), `BETTER_AUTH_SECRET` (≥ 32 caratteri), `DATABASE_URL`,
+   `SMTP_URL`, `EMAIL_FROM`; `TRUSTED_IP_HEADER` coerente con il proxy/CDN.
+4. Health check: `GET /api/health`.
+5. Mai eseguire il seed demo in produzione (lo script si rifiuta con `NODE_ENV=production`).
