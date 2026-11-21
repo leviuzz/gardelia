@@ -10,16 +10,26 @@
  *    i crediti extra. Le generazioni in corso prenotano un credito; i fallimenti no.
  */
 import type { BUILDER_SIZES, BUILDER_STYLES, BuilderRole } from './builder';
-import type { SaleUnit } from './catalog';
+import type { CatalogItemType, SaleUnit } from './catalog';
+import { SKETCH_LAYOUT_VERSION } from './sketch';
 
 /**
  * v2 (21/11/2026, docs/AI_BENCHMARK.md): conteggi espliciti per tipo e totale, nome comune
  * inglese dalla tassonomia, fiori ben separati, colori di carta e nastro, niente nastro se
  * non è in distinta. v3: aspetto fatto a mano e leggermente asimmetrico (le immagini v2 erano
  * troppo simmetriche), tranne lo stile clásico. v4: stile fotografico della fioreria descritto a
- * parole da una foto di "Mis ramos" (ADR-032). Cambiarla invalida la cache (nuova chiave).
+ * parole da una foto di "Mis ramos" (ADR-032). v5: anteprima esatta, cioè il boceto costruito dai
+ * ritagli reso fotografico (ADR-034); la chiave include i ritagli scelti, il tipo di articolo e la
+ * versione del boceto. Cambiarla invalida la cache (nuova chiave).
  */
-export const AI_PREVIEW_PROMPT_VERSION = 'bouquet-preview-v4';
+export const AI_PREVIEW_PROMPT_VERSION = 'bouquet-preview-v5';
+
+/**
+ * EXACT: boceto dai ritagli del fiorista reso fotografico, con i conteggi verificati (ADR-034).
+ * PROMPT: solo descrizione a parole (conteggi non garantiti, l'avvertenza resta).
+ */
+export const PREVIEW_MODES = ['PROMPT', 'EXACT'] as const;
+export type PreviewMode = (typeof PREVIEW_MODES)[number];
 
 export const AI_QUOTA_SOURCES = ['INCLUDED', 'EXTRA'] as const;
 export type AiQuotaSource = (typeof AI_QUOTA_SOURCES)[number];
@@ -148,10 +158,19 @@ export interface PreviewComponentInput {
    * "Rose" rende il conteggio più chiaro al modello di "Rosa roja Freedom".
    */
   readonly commonName?: string | null;
+  /** Tipo di catalogo: carta (PACKAGING) e contenitore (CONTAINER) cambiano il boceto. */
+  readonly itemType?: CatalogItemType | null;
+  /** Foto scontornata usata nel boceto esatto (ADR-034); null se il prodotto non ne ha. */
+  readonly cutoutPhotoId?: string | null;
 }
 
-export interface PreviewComponent extends Omit<PreviewComponentInput, 'commonName'> {
+export interface PreviewComponent extends Omit<
+  PreviewComponentInput,
+  'commonName' | 'itemType' | 'cutoutPhotoId'
+> {
   readonly commonName: string | null;
+  readonly itemType: CatalogItemType | null;
+  readonly cutoutPhotoId: string | null;
 }
 
 export interface BouquetPreviewSpec {
@@ -164,6 +183,8 @@ export interface BouquetPreviewSpec {
    * dal server in modo deterministico, così la cache resta coerente (ADR-032).
    */
   readonly styleReferenceId?: string | null;
+  /** Assente nei job precedenti all'anteprima esatta: vale PROMPT. */
+  readonly mode?: PreviewMode;
 }
 
 const ROLE_ORDER: Readonly<Record<BuilderRole, number>> = {
@@ -203,6 +224,8 @@ export function buildPreviewSpec(input: {
       saleUnit: component.saleUnit,
       colors: [...component.colors].sort(),
       commonName: component.commonName ? sanitizeLabel(component.commonName, 40) || null : null,
+      itemType: component.itemType ?? null,
+      cutoutPhotoId: component.cutoutPhotoId ?? null,
     }))
     .sort(
       (a, b) =>
@@ -219,10 +242,13 @@ export function canonicalPreviewInput(
   spec: BouquetPreviewSpec,
   generator: { readonly provider: string; readonly model: string },
 ): string {
+  const mode = spec.mode ?? 'PROMPT';
   return JSON.stringify({
     promptVersion: AI_PREVIEW_PROMPT_VERSION,
     provider: generator.provider,
     model: generator.model,
+    mode,
+    sketch: mode === 'EXACT' ? SKETCH_LAYOUT_VERSION : null,
     style: spec.style,
     size: spec.size,
     styleReferenceId: spec.styleReferenceId ?? null,
@@ -235,6 +261,8 @@ export function canonicalPreviewInput(
       component.saleUnit,
       component.colors,
       component.commonName ?? null,
+      component.itemType ?? null,
+      component.cutoutPhotoId ?? null,
     ]),
   });
 }
@@ -243,7 +271,7 @@ export function canonicalPreviewInput(
 // Prompt (versionato; in inglese, la lingua in cui i modelli rendono meglio)
 // -----------------------------------------------------------------------------
 
-const STYLE_TEXT: Readonly<Record<(typeof BUILDER_STYLES)[number], string>> = {
+export const STYLE_TEXT: Readonly<Record<(typeof BUILDER_STYLES)[number], string>> = {
   ROMANTIC: 'romantic, soft and lush',
   CLASSIC: 'classic and symmetrical',
   MODERN: 'modern with clean lines',
@@ -252,7 +280,7 @@ const STYLE_TEXT: Readonly<Record<(typeof BUILDER_STYLES)[number], string>> = {
   TROPICAL: 'tropical and vibrant',
 };
 
-const SIZE_TEXT: Readonly<Record<(typeof BUILDER_SIZES)[number], string>> = {
+export const SIZE_TEXT: Readonly<Record<(typeof BUILDER_SIZES)[number], string>> = {
   SMALL: 'small (about 25 cm tall)',
   MEDIUM: 'medium (about 35 cm tall)',
   LARGE: 'large (about 45 cm tall)',
@@ -265,15 +293,15 @@ function unitText(unit: SaleUnit, quantity: number): string {
   return quantity === 1 ? 'piece' : 'pieces';
 }
 
-function labelOf(component: PreviewComponent): string {
+export function labelOf(component: PreviewComponent): string {
   return component.variety ? `${component.name} ${component.variety}` : component.name;
 }
 
-function colorWords(component: PreviewComponent): string {
+export function colorWords(component: PreviewComponent): string {
   return component.colors.join(' and ');
 }
 
-function describe(component: PreviewComponent): string {
+export function describeComponent(component: PreviewComponent): string {
   const colors = component.colors.length > 0 ? ` (${component.colors.join(', ')})` : '';
   return `${component.quantity} ${unitText(component.saleUnit, component.quantity)} of "${labelOf(component)}"${colors}`;
 }
@@ -291,7 +319,7 @@ export function englishPlural(noun: string): string {
 }
 
 /** "exactly 3 red roses ("Rosa roja Freedom")": il conteggio è la parte più importante. */
-function countedFlower(component: PreviewComponent): string {
+export function countedFlower(component: PreviewComponent): string {
   const colors = colorWords(component);
   const label = labelOf(component);
   if (component.commonName) {
@@ -303,7 +331,7 @@ function countedFlower(component: PreviewComponent): string {
   return `exactly ${component.quantity} ${stems} of "${label}"${colors ? ` (${colors})` : ''}`;
 }
 
-function withColor(component: PreviewComponent): string {
+export function withColor(component: PreviewComponent): string {
   const colors = colorWords(component);
   return `"${labelOf(component)}"${colors ? ` in ${colors}` : ''}`;
 }
@@ -373,10 +401,10 @@ export function buildPreviewPrompt(
       ? `Every one of these ${total} flowers is fully visible and clearly separated from the others, so each one can be counted: no hidden, partial or extra flowers, no extra buds.`
       : null,
     filler.length > 0
-      ? `${counted.length > 0 ? 'Filler flowers' : 'Flowers'}: ${filler.map(describe).join('; ')}.`
+      ? `${counted.length > 0 ? 'Filler flowers' : 'Flowers'}: ${filler.map(describeComponent).join('; ')}.`
       : null,
     foliage.length > 0
-      ? `Greenery: ${foliage.map(describe).join('; ')}.`
+      ? `Greenery: ${foliage.map(describeComponent).join('; ')}.`
       : `Greenery: only the natural leaves of these flowers; no other foliage${filler.length > 0 ? '' : ' or filler'}.`,
     accessories.length > 0
       ? `Accessories: ${accessories.map((component) => `exactly ${component.quantity} × ${withColor(component)}`).join('; ')}.`
