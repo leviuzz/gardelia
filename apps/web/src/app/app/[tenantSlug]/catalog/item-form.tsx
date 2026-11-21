@@ -8,6 +8,7 @@ import {
   CATALOG_COLORS,
   CATALOG_ITEM_TYPES,
   DEFAULT_UNIT_BY_TYPE,
+  isBuilderComponentType,
   isCanonicalLinkable,
   type Availability,
   type CatalogColor,
@@ -18,7 +19,7 @@ import { Field, controlProps } from '@/components/form/field';
 import { FormAlert } from '@/components/form/form-alert';
 import { SubmitButton } from '@/components/form/submit-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input, NativeSelect, Textarea } from '@/components/ui/input';
+import { Checkbox, Input, NativeSelect, Textarea } from '@/components/ui/input';
 import { fieldError, idleState, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 import { COLOR_SWATCH_CLASS } from '@/lib/catalog-ui';
@@ -41,6 +42,7 @@ export interface ItemFormDefaults {
   readonly prepMinutes: string;
   readonly heightCm: string;
   readonly widthCm: string;
+  readonly isBuilderEnabled: boolean;
 }
 
 export interface CanonicalOption {
@@ -65,6 +67,7 @@ const EMPTY: ItemFormDefaults = {
   prepMinutes: '',
   heightCm: '',
   widthCm: '',
+  isBuilderEnabled: true,
 };
 
 export function ItemForm({
@@ -314,6 +317,19 @@ export function ItemForm({
               defaultValue={defaults.tags}
             />
           </Field>
+          {isBuilderComponentType(type) ? (
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-3 sm:col-span-3">
+              <Checkbox
+                name="isBuilderEnabled"
+                defaultChecked={defaults.isBuilderEnabled}
+                className="mt-0.5"
+              />
+              <span className="text-sm">
+                <span className="block font-medium">{t('form.builderEnabled')}</span>
+                <span className="block text-muted-foreground">{t('form.builderEnabledHint')}</span>
+              </span>
+            </label>
+          ) : null}
           <Field id="prepMinutes" label={t('form.prepMinutes')} error={err('prepMinutes')}>
             <Input
               {...controlProps('prepMinutes', err('prepMinutes'))}

@@ -25,12 +25,12 @@ import {
   isIngredientType,
   isQuoteEditable,
   isUuid,
-  priceQuote,
   quoteDetailsSchema,
   quoteLineQuantitySchema,
   quoteListFiltersSchema,
   toFieldErrors,
   todayInTimeZone,
+  worstAvailability,
   type AcquisitionSource,
   type Availability,
   type CatalogItemType,
@@ -41,95 +41,16 @@ import { notFound, recordAudit } from '../audit';
 import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
-
-// -----------------------------------------------------------------------------
-// Utilità
-// -----------------------------------------------------------------------------
-
-interface DateParts {
-  readonly year: number;
-  readonly month: number;
-  readonly day: number;
-}
-
-/** Le colonne `@db.Date` arrivano come mezzanotte UTC. */
-function dateToParts(date: Date | null): DateParts | null {
-  if (!date) return null;
-  return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() };
-}
-
-function partsToDate(parts: DateParts): Date {
-  return new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
-}
-
-function formatDateParts(parts: DateParts | null): string | null {
-  if (!parts) return null;
-  return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
-}
-
-function addDays(parts: DateParts, days: number): DateParts {
-  const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + days));
-  return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() };
-}
-
-/** Prossimo valore di un contatore del tenant (atomico, dentro la transazione corrente). */
-export async function nextTenantCounter(
-  tx: TransactionClient,
-  tenantId: string,
-  key: string,
-): Promise<number> {
-  const rows = await tx.$queryRaw<{ value: number }[]>`
-    INSERT INTO "TenantCounter" ("tenantId", "key", "value", "updatedAt")
-    VALUES (${tenantId}::uuid, ${key}, 1, now())
-    ON CONFLICT ("tenantId", "key")
-    DO UPDATE SET "value" = "TenantCounter"."value" + 1, "updatedAt" = now()
-    RETURNING "value"`;
-  const value = rows[0]?.value;
-  if (typeof value !== 'number') throw new Error('Contatore non disponibile');
-  return value;
-}
-
-/** Porta a EXPIRED i preventivi inviati oltre la validità (calendario del tenant). */
-async function expireSentQuotes(tx: TransactionClient, ctx: TenantContext): Promise<void> {
-  const today = partsToDate(todayInTimeZone(ctx.timezone));
-  await tx.quote.updateMany({
-    where: { tenantId: ctx.tenantId, status: 'SENT', validUntil: { lt: today } },
-    data: { status: 'EXPIRED', statusChangedAt: new Date() },
-  });
-}
-
-/** Blocca la riga del preventivo fino alla fine della transazione e la restituisce. */
-async function lockQuote(tx: TransactionClient, ctx: TenantContext, quoteId: string) {
-  await tx.$queryRaw`SELECT id FROM "Quote" WHERE id = ${quoteId}::uuid AND "tenantId" = ${ctx.tenantId}::uuid FOR UPDATE`;
-  return tx.quote.findFirst({ where: { id: quoteId, tenantId: ctx.tenantId } });
-}
-
-async function recalculateTotals(
-  tx: TransactionClient,
-  ctx: TenantContext,
-  quoteId: string,
-  discountMinor?: number,
-) {
-  const quote = await tx.quote.findFirstOrThrow({ where: { id: quoteId, tenantId: ctx.tenantId } });
-  const lines = await tx.quoteLine.findMany({
-    where: { tenantId: ctx.tenantId, quoteId },
-    select: { quantity: true, unitPriceMinor: true },
-  });
-  const subtotal = lines.reduce((sum, line) => sum + line.quantity * line.unitPriceMinor, 0);
-  // Se le righe calano sotto lo sconto, lo sconto si riduce al subtotale.
-  const requested = discountMinor ?? quote.discountMinor;
-  const totals = priceQuote({ lines, discountMinor: Math.min(requested, subtotal) });
-  if (!totals.ok) throw new ValidationError({ discount: totals.error });
-  await tx.quote.update({
-    where: { id: quoteId },
-    data: {
-      subtotalMinor: totals.subtotalMinor,
-      discountMinor: totals.discountMinor,
-      taxMinor: totals.taxMinor,
-      totalMinor: totals.totalMinor,
-    },
-  });
-}
+import {
+  addDays,
+  dateToParts,
+  expireSentQuotes,
+  formatDateParts,
+  insertDraftQuote,
+  lockQuote,
+  partsToDate,
+  recalculateTotals,
+} from './quote-internals';
 
 // -----------------------------------------------------------------------------
 // DTO
@@ -160,8 +81,10 @@ export interface QuoteRecipeLineSnapshot {
 
 export interface QuoteLineDto {
   readonly id: string;
-  readonly kind: 'CATALOG_ITEM' | 'CUSTOM';
+  readonly kind: 'CATALOG_ITEM' | 'CUSTOM' | 'BUILDER';
   readonly catalogItemId: string | null;
+  /** Solo per righe BUILDER: il disegno di origine. */
+  readonly bouquetConfigurationId: string | null;
   readonly description: string;
   readonly quantity: number;
   readonly unitPriceMinor: number;
@@ -169,6 +92,7 @@ export interface QuoteLineDto {
   /** null se non disponibile o se l'utente non può vedere i costi. */
   readonly unitCostMinor: number | null;
   readonly saleUnit: SaleUnit | null;
+  /** Per le righe BUILDER: la disponibilità più critica fra i componenti. */
   readonly availability: Availability | null;
   readonly recipe: readonly QuoteRecipeLineSnapshot[] | null;
 }
@@ -209,6 +133,8 @@ interface LineSnapshot {
     readonly availability: Availability;
   };
   readonly recipe?: readonly QuoteRecipeLineSnapshot[];
+  /** Righe BUILDER: componenti con prezzo e disponibilità al momento del preventivo. */
+  readonly components?: readonly { readonly availability: Availability }[];
 }
 
 function readSnapshot(value: Prisma.JsonValue | null): LineSnapshot | null {
@@ -349,13 +275,16 @@ export async function getQuote(ctx: TenantContext, quoteId: string): Promise<Quo
       id: line.id,
       kind: line.kind,
       catalogItemId: line.catalogItemId,
+      bouquetConfigurationId: line.bouquetConfigurationId,
       description: line.description,
       quantity: line.quantity,
       unitPriceMinor: line.unitPriceMinor,
       lineTotalMinor: line.lineTotalMinor,
       unitCostMinor: canViewCosts ? line.unitCostMinor : null,
       saleUnit: snapshot?.item?.saleUnit ?? null,
-      availability: snapshot?.item?.availability ?? null,
+      availability:
+        snapshot?.item?.availability ??
+        worstAvailability((snapshot?.components ?? []).map((component) => component.availability)),
       recipe: snapshot?.recipe ?? null,
     };
   });
@@ -399,42 +328,9 @@ export async function createQuote(
   requirePermission(ctx, 'quotes:write');
   const customerId = typeof input.customerId === 'string' ? input.customerId.trim() : '';
   if (!isUuid(customerId)) throw new ValidationError({ customerId: 'required' });
-
-  const result = await withTenantContext(getDb(), ctx, async (tx) => {
-    const customer = await tx.customer.findFirst({
-      where: { id: customerId, tenantId: ctx.tenantId, status: 'ACTIVE' },
-      select: { id: true, acquisitionSource: true },
-    });
-    if (!customer) return null;
-    const tenant = await tx.tenant.findUniqueOrThrow({
-      where: { id: ctx.tenantId },
-      select: { quoteValidityDays: true },
-    });
-    const number = await nextTenantCounter(tx, ctx.tenantId, 'quote');
-    const validUntil = partsToDate(
-      addDays(todayInTimeZone(ctx.timezone), tenant.quoteValidityDays),
-    );
-    const quote = await tx.quote.create({
-      data: {
-        tenantId: ctx.tenantId,
-        number,
-        customerId: customer.id,
-        currency: ctx.currency,
-        validUntil,
-        // L'origine del cliente si propaga al preventivo (attribuzione delle fee future).
-        acquisitionSource: customer.acquisitionSource,
-        createdById: ctx.userId,
-        statusChangedAt: new Date(),
-      },
-    });
-    await recordAudit(tx, ctx, {
-      action: AUDIT_ACTIONS.quoteCreated,
-      entityType: 'Quote',
-      entityId: quote.id,
-      metadata: { number: formatQuoteNumber(number), customerId: customer.id },
-    });
-    return { id: quote.id, number };
-  });
+  const result = await withTenantContext(getDb(), ctx, (tx) =>
+    insertDraftQuote(tx, ctx, customerId),
+  );
   if (!result) return notFound(ctx, 'Customer', customerId);
   return result;
 }

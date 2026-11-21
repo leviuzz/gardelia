@@ -158,6 +158,8 @@ model Tenant {
   onboardingCompletedAt DateTime?
   /// Giorni di validità predefiniti di un nuovo preventivo.
   quoteValidityDays     Int          @default(7)
+  /// Cargo fisso per l'armado di un bouquet del Builder (unità minime); 0 = nessuno.
+  builderLaborFeeMinor  Int          @default(0)
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
 
@@ -176,6 +178,8 @@ model Tenant {
   aiJobs            AiJob[]
   auditLogs         AuditLog[]
   subscription      TenantSubscription?
+  builderConfigs    BouquetConfiguration[]
+  builderLines      BouquetConfigurationLine[]
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -370,16 +374,19 @@ model CatalogItem {
   heightCm          Int?
   widthCm           Int?
   tags              String[]
+  /// Utilizzabile come componente nel Bouquet Builder [AI-BQ-01].
+  isBuilderEnabled  Boolean         @default(false)
   status            RecordStatus    @default(ACTIVE)
   archivedAt        DateTime?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
-  tenant          Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  canonicalFlower CanonicalFlower?    @relation(fields: [canonicalFlowerId], references: [id], onDelete: SetNull)
+  tenant          Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  canonicalFlower CanonicalFlower?           @relation(fields: [canonicalFlowerId], references: [id], onDelete: SetNull)
   recipe          BouquetRecipe?
-  usedInRecipes   BouquetRecipeLine[] @relation("RecipeIngredient")
+  usedInRecipes   BouquetRecipeLine[]        @relation("RecipeIngredient")
   quoteLines      QuoteLine[]
+  builderLines    BouquetConfigurationLine[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, sku])
@@ -568,6 +575,8 @@ enum QuoteLineKind {
   CATALOG_ITEM
   /// Riga libera con prezzo indicato dal fiorista (es. consegna, allestimento speciale).
   CUSTOM
+  /// Bouquet composto nel Builder: prezzo e distinta esatta calcolati sul server.
+  BUILDER
 }
 
 /// Contatori progressivi per tenant (numerazione preventivi, ordini…), incrementati
@@ -627,29 +636,33 @@ model Quote {
 }
 
 model QuoteLine {
-  id             String        @id @default(uuid(7)) @db.Uuid
-  tenantId       String        @db.Uuid
-  quoteId        String        @db.Uuid
-  kind           QuoteLineKind @default(CATALOG_ITEM)
+  id                     String        @id @default(uuid(7)) @db.Uuid
+  tenantId               String        @db.Uuid
+  quoteId                String        @db.Uuid
+  kind                   QuoteLineKind @default(CATALOG_ITEM)
   /// NULL per righe libere (non a catalogo).
-  catalogItemId  String?       @db.Uuid
-  description    String
-  quantity       Int
-  unitPriceMinor Int
+  catalogItemId          String?       @db.Uuid
+  /// Solo per righe BUILDER: il disegno da cui è nata la riga.
+  bouquetConfigurationId String?       @db.Uuid
+  description            String
+  quantity               Int
+  unitPriceMinor         Int
   /// Snapshot del costo al momento del preventivo (NULL = non compilato).
-  unitCostMinor  Int?
-  lineTotalMinor Int
+  unitCostMinor          Int?
+  lineTotalMinor         Int
   /// Snapshot dell'articolo (nome, tipo, distinta) al momento del preventivo.
-  snapshot       Json?
-  sortOrder      Int           @default(0)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  snapshot               Json?
+  sortOrder              Int           @default(0)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
 
-  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  quote       Quote        @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Cascade)
-  catalogItem CatalogItem? @relation(fields: [tenantId, catalogItemId], references: [tenantId, id], onDelete: Restrict)
+  tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quote                Quote                 @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Cascade)
+  catalogItem          CatalogItem?          @relation(fields: [tenantId, catalogItemId], references: [tenantId, id], onDelete: Restrict)
+  bouquetConfiguration BouquetConfiguration? @relation(fields: [tenantId, bouquetConfigurationId], references: [tenantId, id], onDelete: Restrict)
 
   @@index([tenantId, quoteId])
+  @@index([tenantId, bouquetConfigurationId])
 }
 
 // -----------------------------------------------------------------------------
@@ -756,4 +769,85 @@ model TenantSubscription {
   plan   SaasPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
 
   @@index([planId])
+}
+
+// -----------------------------------------------------------------------------
+// Bouquet Builder deterministico [AI-BQ-01…04, 06]. Il prezzo lo calcola il server con
+// `priceBouquet` (@floral/domain); i prezzi salvati sono uno snapshot "al salvataggio".
+// -----------------------------------------------------------------------------
+
+enum BouquetStyle {
+  ROMANTIC
+  CLASSIC
+  MODERN
+  GARDEN
+  MINIMAL
+  TROPICAL
+}
+
+enum BouquetSize {
+  SMALL
+  MEDIUM
+  LARGE
+  EXTRA_LARGE
+}
+
+enum BuilderRole {
+  FLOWER
+  FOLIAGE
+  PACKAGING
+  ACCESSORY
+}
+
+model BouquetConfiguration {
+  id                 String        @id @default(uuid(7)) @db.Uuid
+  tenantId           String        @db.Uuid
+  name               String
+  style              BouquetStyle?
+  size               BouquetSize?
+  /// Budget indicato dal cliente (orientativo, non cambia il prezzo).
+  budgetMinor        Int?
+  notes              String?
+  currency           String        @db.Char(3)
+  componentsMinor    Int
+  laborMinor         Int
+  totalMinor         Int
+  /// Costo materiali al salvataggio; NULL se manca un costo.
+  estimatedCostMinor Int?
+  pricingVersion     String
+  status             RecordStatus  @default(ACTIVE)
+  archivedAt         DateTime?
+  createdById        String        @db.Uuid
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  tenant     Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lines      BouquetConfigurationLine[]
+  quoteLines QuoteLine[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, status, updatedAt])
+}
+
+model BouquetConfigurationLine {
+  id              String      @id @default(uuid(7)) @db.Uuid
+  tenantId        String      @db.Uuid
+  configurationId String      @db.Uuid
+  catalogItemId   String      @db.Uuid
+  role            BuilderRole
+  quantity        Int
+  /// Prezzo e costo unitari al salvataggio (snapshot).
+  unitPriceMinor  Int
+  unitCostMinor   Int?
+  lineTotalMinor  Int
+  sortOrder       Int         @default(0)
+  createdAt       DateTime    @default(now())
+
+  tenant        Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  configuration BouquetConfiguration @relation(fields: [tenantId, configurationId], references: [tenantId, id], onDelete: Cascade)
+  catalogItem   CatalogItem          @relation(fields: [tenantId, catalogItemId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, configurationId, catalogItemId])
+  @@index([tenantId, catalogItemId])
 }

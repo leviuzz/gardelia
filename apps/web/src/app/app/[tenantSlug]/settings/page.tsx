@@ -1,16 +1,26 @@
-import { ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronRight, Gem } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { getTenantSettings, hasPermission } from '@floral/core';
-import { MX_REGIONS, MX_TIMEZONES } from '@floral/domain';
+import {
+  getBuilderSettings,
+  getEntitlements,
+  getTenantSettings,
+  hasPermission,
+} from '@floral/core';
+import { MX_REGIONS, MX_TIMEZONES, isCurrencyCode, minorToDecimalString } from '@floral/domain';
 import { Forbidden } from '@/components/forbidden';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { phoneForInput } from '@/lib/format';
 import { getTenantContext } from '@/lib/tenant';
-import { updateLegalAction, updateLocationAction, updateProfileAction } from './actions';
-import { LegalForm, LocationForm, ProfileForm } from './settings-forms';
+import {
+  updateBuilderSettingsAction,
+  updateLegalAction,
+  updateLocationAction,
+  updateProfileAction,
+} from './actions';
+import { BuilderSettingsForm, LegalForm, LocationForm, ProfileForm } from './settings-forms';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('settings');
@@ -26,6 +36,10 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
   const t = await getTranslations();
   const slug = ctx.tenantSlug;
   const canEditLegal = hasPermission(ctx, 'tenant:legal:update');
+  // Il cargo per l'armado esiste solo se il piano include il Builder.
+  const builder = (await getEntitlements(ctx)).bouquetBuilder
+    ? await getBuilderSettings(ctx)
+    : null;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -37,7 +51,7 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
           className="flex items-center gap-4 rounded-2xl border bg-card p-4 transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
         >
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-            <Sparkles className="size-5" aria-hidden="true" />
+            <Gem className="size-5" aria-hidden="true" />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block font-medium">{t('plans.settingsLink')}</span>
@@ -100,6 +114,26 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
           />
         </CardContent>
       </Card>
+
+      {builder ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('builder.settings.title')}</CardTitle>
+            <CardDescription>{t('builder.settings.subtitle')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BuilderSettingsForm
+              action={updateBuilderSettingsAction.bind(null, slug)}
+              currency={tenant.currency}
+              laborFee={
+                builder.laborFeeMinor > 0 && isCurrencyCode(tenant.currency)
+                  ? minorToDecimalString(builder.laborFeeMinor, tenant.currency)
+                  : ''
+              }
+            />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

@@ -7,6 +7,7 @@
 export const DEMO_TENANT = {
   slug: 'las-camelias',
   displayName: 'Florería Las Camelias',
+  builderLaborFeeMinor: 5000,
   legalName: 'Las Camelias Flores (demo)',
   contactEmail: 'hola@lascamelias.test',
   contactPhone: '+524495550101',

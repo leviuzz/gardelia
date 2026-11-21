@@ -7,6 +7,7 @@ import {
   Flower2,
   LayoutDashboard,
   Settings,
+  Sparkles,
   Users,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -19,7 +20,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
-export type NavIcon = 'dashboard' | 'quotes' | 'customers' | 'catalog' | 'team' | 'settings';
+export type NavIcon =
+  'dashboard' | 'quotes' | 'builder' | 'customers' | 'catalog' | 'team' | 'settings';
 
 export interface NavItem {
   readonly href: string;
@@ -36,6 +38,7 @@ export interface NavItem {
 const ICONS = {
   dashboard: LayoutDashboard,
   quotes: FileText,
+  builder: Sparkles,
   customers: Contact,
   catalog: Flower2,
   team: Users,

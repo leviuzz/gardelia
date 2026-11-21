@@ -3,8 +3,10 @@
  * e schemi di validazione degli articoli.
  */
 import { z } from 'zod';
+import { isBuilderComponentType } from './builder';
 import { MAX_AMOUNT_MINOR, type CurrencyCode } from './money';
 import {
+  checkboxField,
   moneyField,
   multiValueField,
   optionalMoneyField,
@@ -172,8 +174,15 @@ export const catalogItemInputSchema = z
     tags: z
       .array(z.string().trim().toLowerCase().min(1).max(CATALOG_LIMITS.tagLength))
       .max(CATALOG_LIMITS.tags),
+    /** Utilizzabile nel Bouquet Builder [AI-BQ-01]; se omesso, attivo per i componenti. */
+    isBuilderEnabled: z.boolean().optional(),
   })
-  .superRefine(refineCatalogItem);
+  .superRefine(refineCatalogItem)
+  .transform((value) => ({
+    ...value,
+    // Solo le tipologie componenti possono stare nel Builder (mai bouquet, piante, servizi).
+    isBuilderEnabled: isBuilderComponentType(value.type) ? (value.isBuilderEnabled ?? true) : false,
+  }));
 
 export type CatalogItemInput = z.infer<typeof catalogItemInputSchema>;
 
@@ -205,8 +214,9 @@ export function catalogItemFormSchema(currency: CurrencyCode) {
       heightCm: optionalInteger({ min: 1, max: CATALOG_LIMITS.dimensionCmMax }),
       widthCm: optionalInteger({ min: 1, max: CATALOG_LIMITS.dimensionCmMax }),
       tags: tagsField(CATALOG_LIMITS.tags, CATALOG_LIMITS.tagLength),
+      isBuilderEnabled: checkboxField(),
     })
-    .transform(({ price, cost, ...rest }): CatalogItemInput => ({
+    .transform(({ price, cost, ...rest }): z.input<typeof catalogItemInputSchema> => ({
       ...rest,
       priceMinor: price,
       costMinor: cost,

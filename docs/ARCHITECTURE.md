@@ -119,16 +119,24 @@ principi a livello di servizi e ruoli (TEN-01).
 - **Inviti:** token casuale da 32 byte (solo l'hash SHA-256 nel DB), validità 7 giorni, legato all'email
   invitata, revocabile; un nuovo invito sostituisce quello pendente; l'accettazione è idempotente.
 
-## 6. Dati (Sprint 0)
+## 6. Dati (Sprint 0 + Sprint 1)
 
-| Area       | Modelli                                                        | Stato                                        |
-| ---------- | -------------------------------------------------------------- | -------------------------------------------- |
-| Identità   | User, Session, Account, Verification, RateLimit                | completo                                     |
-| Tenancy    | Tenant, Location, Membership, Invitation, AuditLog             | completo                                     |
-| Catalogo   | CanonicalFlower, CatalogItem, BouquetRecipe, BouquetRecipeLine | completo (immagini nello Sprint 1)           |
-| CRM        | Customer                                                       | solo confine dati + seed (UI nello Sprint 1) |
-| Preventivi | Quote, QuoteLine                                               | solo confine dati (flusso nello Sprint 1)    |
-| AI         | AiJob                                                          | solo confine dati (pipeline nello Sprint 2)  |
+| Area       | Modelli                                                               | Stato                                                       |
+| ---------- | --------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Identità   | User, Session, Account, Verification, RateLimit                       | completo                                                    |
+| Tenancy    | Tenant, Location, Membership, Invitation, AuditLog                    | completo                                                    |
+| Catalogo   | CanonicalFlower, CatalogItem, BouquetRecipe, BouquetRecipeLine        | completo (immagini nello Sprint 2)                          |
+| CRM        | Customer, CustomerAddress, CustomerOccasion                           | completo                                                    |
+| Preventivi | Quote, QuoteLine (`CATALOG_ITEM`, `CUSTOM`, `BUILDER`), TenantCounter | completo (ordini nello Sprint 3)                            |
+| Piani      | SaasPlan (globale), TenantSubscription                                | v0: assegnazione manuale da CLI, nessun pagamento (ADR-021) |
+| Builder    | BouquetConfiguration, BouquetConfigurationLine                        | deterministico (ADR-023); anteprime AI nello Sprint 2       |
+| AI         | AiJob                                                                 | solo confine dati (pipeline nello Sprint 2)                 |
+
+Flusso del valore (Sprint 1): **catalogo** (prezzi, costi, disponibilità, flag Builder) →
+**Builder** (`priceBouquet`, stessa funzione in browser e server) → **preventivo** (riga `BUILDER`
+con distinta esatta e prezzi del momento) → stampa/PDF o WhatsApp; il cliente del **CRM** è
+obbligatorio per il preventivo. I servizi delle funzioni a pagamento chiamano `requireEntitlement`
+dopo `requirePermission`.
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per
@@ -147,11 +155,11 @@ l'attribuzione delle fee future.
 
 ## 8. Test
 
-| Livello      | Strumento                 | Dove                                     | Cosa                                                                                                               |
-| ------------ | ------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Unit         | Vitest                    | `packages/domain/test`                   | denaro, permessi, slug/ID, mercati e onboarding, catalogo, costi ricette, diff audit                               |
-| Integrazione | Vitest + PostgreSQL reale | `packages/db/test`, `packages/core/test` | RLS, seed idempotente, isolamento A↔B, ruoli, catalogo, ricette, team, inviti, onboarding, dashboard               |
-| End-to-end   | Playwright + pozzo SMTP   | `apps/web/e2e`                           | registrazione con verifica email reale, onboarding, catalogo e ricette, permessi staff, isolamento, inviti, mobile |
+| Livello      | Strumento                 | Dove                                     | Cosa                                                                                                                    |
+| ------------ | ------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Unit         | Vitest                    | `packages/domain/test`                   | denaro, permessi, slug/ID, mercati, catalogo, ricette, clienti e ricorrenze, preventivi, piani, Builder (BQ-01)         |
+| Integrazione | Vitest + PostgreSQL reale | `packages/db/test`, `packages/core/test` | RLS (anche piani/abbonamenti), seed, isolamento A↔B per ogni entità, ruoli, CRM, preventivi, piani, Builder             |
+| End-to-end   | Playwright + pozzo SMTP   | `apps/web/e2e`                           | registrazione e inviti con email reali, catalogo, preventivi, piano, Builder → preventivo, permessi, isolamento, mobile |
 
 ## 9. Note di deploy (per il pilota)
 

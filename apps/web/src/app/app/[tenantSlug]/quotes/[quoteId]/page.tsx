@@ -86,10 +86,12 @@ function lineWarning(
   line: QuoteLineDto,
   current: ReadonlyMap<string, QuotableItemOption> | null,
 ): LineWarning | null {
-  if (line.kind !== 'CATALOG_ITEM' || !line.catalogItemId) return null;
-  const availability = current
-    ? (current.get(line.catalogItemId)?.availability ?? 'UNAVAILABLE')
-    : line.availability;
+  if (line.kind === 'CUSTOM') return null;
+  // Righe del Builder: disponibilità più critica fra i componenti (snapshot).
+  const availability =
+    line.kind === 'CATALOG_ITEM' && line.catalogItemId && current
+      ? (current.get(line.catalogItemId)?.availability ?? 'UNAVAILABLE')
+      : line.availability;
   if (availability === 'LIMITED' || availability === 'ON_REQUEST') return availability;
   if (availability === 'UNAVAILABLE' || availability === 'OUT_OF_STOCK') return 'UNAVAILABLE';
   return null;
@@ -136,6 +138,9 @@ export default async function QuotePage({
             )
           : null,
       warning: lineWarning(line, quotableById),
+      designHref: line.bouquetConfigurationId
+        ? `/app/${slug}/builder/${line.bouquetConfigurationId}`
+        : null,
       ...(quote.editable
         ? {
             updateAction: updateLineQuantityAction.bind(null, slug, quote.id, line.id),

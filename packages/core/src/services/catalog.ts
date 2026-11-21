@@ -54,6 +54,8 @@ export interface CatalogItemDto {
   readonly heightCm: number | null;
   readonly widthCm: number | null;
   readonly tags: readonly string[];
+  /** Utilizzabile nel Bouquet Builder. */
+  readonly isBuilderEnabled: boolean;
   readonly status: RecordStatus;
   readonly archivedAt: Date | null;
   readonly updatedAt: Date;
@@ -95,6 +97,7 @@ function toDto(item: ItemWithRelations, ctx: TenantContext): CatalogItemDto {
     heightCm: item.heightCm,
     widthCm: item.widthCm,
     tags: item.tags,
+    isBuilderEnabled: item.isBuilderEnabled,
     status: item.status,
     archivedAt: item.archivedAt,
     updatedAt: item.updatedAt,
@@ -210,6 +213,7 @@ function itemData(input: CatalogItemInput) {
     heightCm: input.heightCm,
     widthCm: input.widthCm,
     tags: [...input.tags],
+    isBuilderEnabled: input.isBuilderEnabled,
   };
 }
 
@@ -263,6 +267,7 @@ const AUDITED_FIELDS = [
   'heightCm',
   'widthCm',
   'tags',
+  'isBuilderEnabled',
 ] as const;
 
 export async function updateCatalogItem(

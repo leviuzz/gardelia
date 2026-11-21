@@ -12,6 +12,7 @@ import {
   addCustomLineToQuote,
   changeQuoteStatus,
   createQuote,
+  createQuoteFromConfiguration,
   removeQuoteLine,
   updateQuoteDetails,
   updateQuoteLineQuantity,
@@ -30,9 +31,15 @@ export async function createQuoteAction(
   formData: FormData,
 ): Promise<ActionState> {
   const ctx = await getTenantContext(slug);
+  const customerId = formData.get('customerId');
+  const configurationId = formData.get('configurationId');
   let quoteId: string;
   try {
-    quoteId = (await createQuote(ctx, { customerId: formData.get('customerId') })).id;
+    // Da un disegno del Builder: prezzo e distinta ricalcolati dal servizio.
+    quoteId =
+      typeof configurationId === 'string' && configurationId !== ''
+        ? (await createQuoteFromConfiguration(ctx, { configurationId, customerId })).id
+        : (await createQuote(ctx, { customerId })).id;
   } catch (error) {
     return actionError(error);
   }

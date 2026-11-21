@@ -21,6 +21,8 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
   const items: NavItem[] = [
     { href: base, label: t('nav.dashboard'), icon: 'dashboard', exact: true },
     { href: `${base}/quotes`, label: t('nav.quotes'), icon: 'quotes' },
+    // Funzione Plus: chi non ce l'ha trova l'invito all'upgrade (mai una finta funzione).
+    { href: `${base}/builder`, label: t('nav.builder'), icon: 'builder', secondary: true },
     { href: `${base}/customers`, label: t('nav.customers'), icon: 'customers' },
     { href: `${base}/catalog`, label: t('nav.catalog'), icon: 'catalog' },
     // Sezioni d'uso occasionale: su mobile finiscono nel menu "Más".

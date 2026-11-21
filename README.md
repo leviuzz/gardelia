@@ -12,21 +12,29 @@ clienti, preventivi…), AI Bouquet Builder nel piano Plus e, in seguito, il mar
 - Stato e backlog: [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)
 - Istruzioni per Claude Code: [`CLAUDE.md`](CLAUDE.md)
 
-## Cosa funziona oggi (Sprint 0)
+## Cosa funziona oggi (Sprint 1)
 
 - Registrazione con verifica email obbligatoria, login, recupero password (rate limiting incluso).
 - Creazione della fioreria (onboarding con indirizzo strutturato per il Messico), più fiorerie per utente.
 - Ruoli **Propietario / Gerente / Equipo** con permessi applicati lato server; inviti via email,
   cambio ruolo, disattivazione; lo staff non vede costi e margini.
-- **Catalogo**: fiori, follaje, piante, ramos, materiali e servizi, con prezzo, costo, disponibilità,
-  colori, etichette, ricerca, filtri, paginazione, archiviazione.
-- **Ricette dei ramos** (distinta base) con costo materiali, manodopera e margini calcolati in modo
-  deterministico; i margini non vengono mostrati se mancano dei costi.
-- Dashboard con dati reali, registro attività, banner per le fiorerie demo.
+- **Catalogo** con prezzi, costi, disponibilità, colori, etichette, archiviazione e **ricette dei
+  ramos** (distinta base) con costi e margini deterministici.
+- **Clienti (CRM):** schede persona/azienda, indirizzi di consegna, fechas especiales con le
+  prossime ricorrenze in dashboard, contatto diretto (telefono, WhatsApp, email).
+- **Cotizaciones:** righe dal catalogo con snapshot di prezzo e distinta, righe libere, sconto,
+  validità, stati (borrador → enviada → aceptada/rechazada, vencida, cancelada), stampa/PDF e invio
+  via WhatsApp. Prezzi finali senza scorporo IVA finché il trattamento fiscale non è validato (O-06).
+- **Plan y funciones:** piano Basic/Plus della fioreria, assegnato manualmente durante il pilota
+  (nessun pagamento online, nessun pagamento finto).
+- **Diseñador de ramos (Plus):** composizione con fiori, follaje, empaque e complementi del
+  catalogo, prezzo calcolato all'istante (stessa formula sul server), avvisi di disponibilità,
+  disegni salvati e creazione della cotización con la receta esatta.
+- Dashboard con dati reali (cotizaciones abiertas, fechas especiales, attività), banner demo.
 - Isolamento fra fiorerie garantito anche dal database (Row-Level Security PostgreSQL).
 
-Clienti, preventivi, ordini, Builder AI e pagamenti **non sono ancora disponibili** e non compaiono
-nell'interfaccia (vedi `IMPLEMENTATION_PLAN.md`).
+Ordini, pagamenti, immagini e anteprime AI **non sono ancora disponibili** e non compaiono
+nell'interfaccia come funzioni attive (vedi `IMPLEMENTATION_PLAN.md`).
 
 ## Requisiti
 

@@ -9,8 +9,12 @@ test.describe('staff', () => {
     await page.goto('/app/las-camelias');
     const bottomNav = page.getByRole('navigation', { name: 'Navegación principal' }).last();
     await expect(bottomNav).toBeVisible();
-    // Lo staff non ha sezioni secondarie: nessun menu "Más".
-    await expect(bottomNav.getByRole('button', { name: 'Más' })).toBeHidden();
+    // Nel menu "Más" lo staff trova il Diseñador, ma non Equipo né Ajustes.
+    await bottomNav.getByRole('button', { name: 'Más' }).click();
+    await expect(page.getByRole('menuitem', { name: 'Diseñador' })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: 'Equipo' })).toHaveCount(0);
+    await expect(page.getByRole('menuitem', { name: 'Ajustes' })).toHaveCount(0);
+    await page.keyboard.press('Escape');
     await bottomNav.getByRole('link', { name: 'Catálogo' }).click();
     await expect(page).toHaveURL(/\/catalog$/);
     // Su mobile il catalogo è mostrato a schede, non in tabella.

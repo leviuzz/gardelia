@@ -11,7 +11,7 @@
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { hashPassword } from 'better-auth/crypto';
 import { config as loadEnv } from 'dotenv';
-import { newId } from '@floral/domain';
+import { isBuilderComponentType, newId } from '@floral/domain';
 import { createDbClient, type DbClient } from '../src/client';
 import { withSystemContext, type TransactionClient } from '../src/tenancy';
 import {
@@ -35,6 +35,8 @@ export interface SeedResult {
 interface TenantSeed {
   readonly slug: string;
   readonly displayName: string;
+  /** Cargo per l'armado nel Builder (unità minime). */
+  readonly builderLaborFeeMinor?: number;
   readonly legalName?: string;
   readonly contactEmail?: string;
   readonly contactPhone?: string;
@@ -67,6 +69,7 @@ async function upsertTenant(tx: TransactionClient, seed: TenantSeed): Promise<st
       defaultLocale: 'es-MX',
       mode: 'DEMO',
       onboardingCompletedAt: new Date(),
+      builderLaborFeeMinor: seed.builderLaborFeeMinor ?? 0,
     },
   });
   const primary = await tx.location.findFirst({ where: { tenantId: tenant.id, isPrimary: true } });
@@ -171,6 +174,8 @@ export async function runSeed(db: DbClient, options: { password: string }): Prom
             prepMinutes: item.prepMinutes ?? null,
             heightCm: item.heightCm ?? null,
             tags: [...item.tags],
+            // Stesso default dei nuovi articoli: i componenti sono utilizzabili nel Builder.
+            isBuilderEnabled: isBuilderComponentType(item.type),
           },
         });
         itemIdBySku.set(item.sku, record.id);

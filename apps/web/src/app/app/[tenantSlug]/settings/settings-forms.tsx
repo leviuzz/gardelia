@@ -272,3 +272,40 @@ export function LocationForm({
     </form>
   );
 }
+
+export function BuilderSettingsForm({
+  action,
+  laborFee,
+  currency,
+}: {
+  action: Action;
+  laborFee: string;
+  currency: string;
+}) {
+  const t = useTranslations('builder.settings');
+  const tc = useTranslations('common');
+  const [state, formAction] = useActionState(action, idleState);
+  useActionToast(state);
+  const err = fieldError(state, 'laborFee');
+  return (
+    <form
+      action={formAction}
+      onSubmit={preserveOnSubmit(formAction)}
+      className="grid gap-4 sm:grid-cols-[minmax(0,16rem)_auto] sm:items-start"
+    >
+      <Field id="laborFee" label={t('laborFee', { currency })} hint={t('laborFeeHint')} error={err}>
+        <Input
+          {...controlProps('laborFee', err, true)}
+          name="laborFee"
+          inputMode="decimal"
+          autoComplete="off"
+          defaultValue={laborFee}
+          placeholder="0"
+        />
+      </Field>
+      <div className="sm:pt-7">
+        <SubmitButton variant="secondary">{tc('save')}</SubmitButton>
+      </div>
+    </form>
+  );
+}

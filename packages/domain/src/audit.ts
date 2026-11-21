@@ -69,6 +69,10 @@ export const AUDIT_ACTIONS = {
   quoteLineRemoved: 'quote.line_removed',
   quoteStatusChanged: 'quote.status_changed',
   subscriptionAssigned: 'subscription.assigned',
+  builderConfigurationCreated: 'builder.configuration_created',
+  builderConfigurationUpdated: 'builder.configuration_updated',
+  builderConfigurationArchived: 'builder.configuration_archived',
+  builderConfigurationRestored: 'builder.configuration_restored',
   securityTenantAccessDenied: 'security.tenant_access_denied',
   securityCrossTenantAccess: 'security.cross_tenant_access_attempt',
 } as const;

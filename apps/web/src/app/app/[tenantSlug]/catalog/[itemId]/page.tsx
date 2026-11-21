@@ -91,6 +91,7 @@ export default async function ItemPage({
     prepMinutes: item.prepMinutes?.toString() ?? '',
     heightCm: item.heightCm?.toString() ?? '',
     widthCm: item.widthCm?.toString() ?? '',
+    isBuilderEnabled: item.isBuilderEnabled,
   };
 
   return (

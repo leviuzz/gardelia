@@ -49,7 +49,9 @@ export type ConflictReason =
   | 'quote_not_editable'
   | 'quote_line_limit'
   | 'quote_empty'
-  | 'invalid_status_transition';
+  | 'invalid_status_transition'
+  | 'builder_configuration_archived'
+  | 'builder_configuration_outdated';
 
 export class ConflictError extends AppError {
   readonly code = 'conflict' as const;

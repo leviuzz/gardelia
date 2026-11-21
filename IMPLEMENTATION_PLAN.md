@@ -10,8 +10,12 @@ Legenda: ✅ fatto e testato · 🟡 parziale · ⬜ da fare · ⛔ bloccato da 
 
 ## Stato attuale
 
-**Sprint 0 — Fondazioni: completato** (21/11/2026). Ultima verifica: lint ✅ · typecheck ✅ ·
-test unit + integrazione 113/113 ✅ · build ✅ · E2E 12/12 ✅.
+**Sprint 1 — CRM → preventivi → Builder deterministico: completato** (21/11/2026), compresi
+S1-01…S1-10. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test unit + integrazione
+187/187 ✅ (89 dominio, 19 DB/RLS, 79 servizi) · build ✅ · E2E 21/21 ✅.
+
+**Prossimo:** Sprint 2 (immagini + pipeline AI) — richiede prima le decisioni **O-01**
+(provider/budget AI), **P-01** (coda) e **P-02** (object storage). Vedi "I prossimi task".
 
 ---
 
@@ -42,7 +46,7 @@ test unit + integrazione 113/113 ✅ · build ✅ · E2E 12/12 ✅.
 
 - ⬜ Upload immagini (catalogo, logo): richiede object storage (P-02).
 - ⬜ Orari di apertura della sede, sedi multiple.
-- ⬜ Piani SaaS / entitlements / pagina "Plan y uso" (vedi C-03/C-04 in DECISIONS).
+- ✅ Piani SaaS / entitlements / pagina "Plan y funciones" (Sprint 1, ADR-021; pagamenti nello Sprint 4).
 - ⬜ Pannello admin di piattaforma (fiorerie, piani, eventi di sicurezza).
 - ⬜ Import CSV di clienti/catalogo.
 - ⬜ Profilo utente (cambio nome/password da dentro l'app), Google login, 2FA.
@@ -80,18 +84,34 @@ il **taglio** seguente.
 - **Sprint 2 (≈ 1,5 settimane):** S1-11 → S1-14 (immagini, pipeline AI, provider reale). Richiede
   prima le decisioni **O-01** (provider/budget) e **P-01/P-02** (coda e storage).
 
-### I prossimi 10 task (nell'ordine)
+### Stato dello Sprint 1
 
-1. S1-01 Elenco clienti
-2. S1-02 Scheda cliente
-3. S1-05 Pricing engine v1 (in parallelo, nessuna dipendenza)
-4. S1-06 Numerazione per tenant
-5. S1-03 Indirizzi cliente
-6. S1-07 Preventivo in bozza
-7. S1-08 Stati del preventivo + test di snapshot
-8. S1-04 Ricorrenze
-9. S1-09 Piani ed entitlements v0
-10. S1-10 Bouquet Builder deterministico
+| ID    | Stato | Dove                                                                                               |
+| ----- | ----- | -------------------------------------------------------------------------------------------------- |
+| S1-01 | ✅    | `/customers` (ricerca, filtri, paginazione), `core/services/customers.ts`                          |
+| S1-02 | ✅    | `/customers/[id]`: scheda, archiviazione, consenso con data, audit senza PII (ADR-019)             |
+| S1-03 | ✅    | indirizzi multipli con predefinito unico (indice parziale)                                         |
+| S1-04 | ✅    | ricorrenze (29/02 → 28/02 negli anni non bisestili) + "Fechas especiales próximas" in dashboard    |
+| S1-05 | ✅    | `domain/quote.ts` (`priceQuote`), prezzi finali senza IVA finché O-06 è aperta (ADR-020)           |
+| S1-06 | ✅    | `TenantCounter` atomico, `COT-0001`                                                                |
+| S1-07 | ✅    | `/quotes`, `/quotes/new`, `/quotes/[id]`: righe da catalogo con snapshot, righe libere, sconto     |
+| S1-08 | ✅    | stati con macchina a stati di dominio, scadenza "pigra", stampa/PDF, WhatsApp                      |
+| S1-09 | ✅    | `SaasPlan`/`TenantSubscription`, `requireEntitlement`, CLI `platform:assign-plan` (ADR-021)        |
+| S1-10 | ✅    | `/builder`: prezzo live = prezzo server, disegni salvati, preventivo con distinta esatta (ADR-023) |
+| E2E   | 🟡    | cliente → preventivo → Builder → preventivo ✅; parte AI (BQ-02) con lo Sprint 2                   |
+
+### I prossimi task (nell'ordine)
+
+1. **Decisioni** O-01 (provider AI e budget del benchmark), P-01 (coda su Postgres), P-02 (R2) — bloccanti per lo Sprint 2.
+2. S1-11 Object storage + immagini del catalogo (anche nel Builder e nei preventivi stampati).
+3. S1-12 Pipeline job AI (`apps/worker`, stati, retry, quota a consumo secondo O-05).
+4. S1-13 Provider AI reale (prompt versionato, moderazione, disclaimer "vista previa ilustrativa").
+5. S1-14 E2E BQ-02 (se l'AI fallisce il preventivo resta e nessuna anteprima viene inventata).
+6. Aggiungere un disegno del Builder a un preventivo in bozza esistente (oggi crea un nuovo preventivo).
+7. Ordini da preventivo accettato (Sprint 3): `ACCEPTED → ordine` con la stessa distinta.
+8. Contador: validare O-06 (IVA nei preventivi) prima di mostrare imposte.
+9. Pannello admin di piattaforma minimo (oggi CLI) con autenticazione forte e audit.
+10. Promemoria delle ricorrenze (email/WhatsApp) — richiede consenso e canale validati.
 
 ---
 
@@ -100,7 +120,7 @@ il **taglio** seguente.
 | Sprint | Obiettivo                                                                                                                                                         | Moduli spec                              |
 | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
 | S0 ✅  | Fondazioni: monorepo, DB con RLS, auth, tenant, ruoli, inviti, catalogo, ricette, dashboard                                                                       | CORE-01, CAT-01 (parziale)               |
-| S1     | CRM + preventivi + Builder deterministico + entitlements v0                                                                                                       | CRM-01, ORD-01 (preventivi), AI-BQ-01…06 |
+| S1 ✅  | CRM + preventivi + Builder deterministico + entitlements v0                                                                                                       | CRM-01, ORD-01 (preventivi), AI-BQ-01…06 |
 | S2     | Immagini + pipeline AI + provider reale + quote                                                                                                                   | AI-BQ-05/07/11, MEDIA-01                 |
 | S3     | Ordini (da preventivo, stati, pagamenti registrati a mano, consegne, calendario) + inventario base (saldi, movimenti, riserve)                                    | ORD-01, INV-01                           |
 | S4     | Billing Basic/Plus (adattatore Stripe, webhook idempotenti, "Plan y uso"), admin di piattaforma minimo, form lead B2B con coda manuale (NET-00), Google login/2FA | BILL-01, NET-00                          |
@@ -121,3 +141,22 @@ il **taglio** seguente.
   link di verifica email senza `callbackURL` dopo un login non verificato (ora conserva la destinazione);
   HSTS/`upgrade-insecure-requests` ora solo con HTTPS.
 - Prossimo passo: decisioni O-01, O-06 e P-01/P-02, poi Sprint 1 (S1-01).
+
+### 2026-11-21 — Sprint 1 (S1-01 → S1-10)
+
+- **Slice A — CRM:** clienti (persona/azienda, telefono E.164, consenso con data, origine sempre
+  `MERCHANT_DIRECT`), indirizzi di consegna, ricorrenze con prossime date in dashboard.
+- **Slice B — Preventivi:** motore prezzi puro, numerazione per tenant, righe da catalogo con
+  snapshot (prezzo, costo, distinta), righe libere, sconto ≤ subtotale, stati e scadenza, stampa/PDF,
+  condivisione WhatsApp generata dal server, scheda cliente con i suoi preventivi.
+- **Slice C — Piani:** `SaasPlan`/`TenantSubscription` con RLS (il merchant legge, non scrive),
+  `requireEntitlement`, assegnazione solo da CLI di piattaforma con operatore SUPER_ADMIN.
+- **Slice D — Builder:** componenti abilitati dal catalogo, prezzo live con la stessa funzione del
+  server (BQ-01), disegni salvati, preventivo con distinta esatta e prezzi attuali, cargo per armado
+  configurabile, invito all'upgrade per Basic.
+- Trasversale: toast emessi alla fine dell'azione (ADR-022), menu "Más" su mobile, stampa pulita.
+- Verifiche: `pnpm lint` ✅, `pnpm format:check` ✅, `pnpm typecheck` ✅, `pnpm test` 187/187 ✅,
+  `pnpm build` ✅, `pnpm test:e2e` 21/21 ✅ (anche 320 px verificato a mano con screenshot).
+- Problemi risolti: toast persi quando il componente si smonta dopo l'azione; `ALTER TYPE … ADD VALUE`
+  non utilizzabile nella stessa transazione (vincolo spostato in una migrazione separata);
+  aggiornamento dati in migrazione con FORCE RLS (bypass solo per quello statement).

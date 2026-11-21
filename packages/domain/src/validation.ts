@@ -28,6 +28,10 @@ export const VALIDATION_CODES = [
   'invalid_date',
   'discount_exceeds_subtotal',
   'item_unavailable',
+  'builder_needs_flower',
+  'builder_one_packaging',
+  'builder_line_limit',
+  'builder_item_not_allowed',
   'invalid',
 ] as const;
 

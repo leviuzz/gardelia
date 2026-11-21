@@ -8,6 +8,7 @@ import {
   inviteMember,
   revokeInvitation,
   setMemberActive,
+  updateBuilderSettings,
   updatePrimaryLocation,
   updateTenantLegal,
   updateTenantProfile,
@@ -35,6 +36,22 @@ export async function updateProfileAction(
   }
   revalidatePath(`/app/${ctx.tenantSlug}`, 'layout');
   return saved();
+}
+
+export async function updateBuilderSettingsAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const ctx = await getTenantContext(slug);
+  try {
+    await updateBuilderSettings(ctx, formDataToObject(formData));
+  } catch (error) {
+    return actionError(error);
+  }
+  revalidatePath(`/app/${ctx.tenantSlug}/builder`, 'layout');
+  const t = await getTranslations('builder.settings');
+  return { status: 'success', message: t('saved') };
 }
 
 export async function updateLegalAction(

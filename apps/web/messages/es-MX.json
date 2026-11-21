@@ -46,7 +46,11 @@
     "invalid": "Revisa este valor.",
     "invalid_date": "Esa fecha no existe.",
     "discount_exceeds_subtotal": "El descuento no puede ser mayor que el subtotal.",
-    "item_unavailable": "Este producto está agotado: no se puede cotizar."
+    "item_unavailable": "Este producto está agotado: no se puede cotizar.",
+    "builder_needs_flower": "Agrega al menos una flor al ramo.",
+    "builder_one_packaging": "Elige un solo empaque o base.",
+    "builder_line_limit": "El ramo tiene demasiados productos distintos.",
+    "builder_item_not_allowed": "Algún producto no está disponible en el diseñador."
   },
   "errors": {
     "validation": "Revisa los campos marcados.",
@@ -71,7 +75,9 @@
       "quote_not_editable": "Solo se pueden modificar cotizaciones en borrador.",
       "quote_line_limit": "La cotización alcanzó el máximo de conceptos.",
       "quote_empty": "Agrega al menos un concepto antes de enviarla.",
-      "invalid_status_transition": "Este cambio de estado no está permitido."
+      "invalid_status_transition": "Este cambio de estado no está permitido.",
+      "builder_configuration_archived": "Este diseño está archivado: restáuralo para modificarlo.",
+      "builder_configuration_outdated": "Algún producto del diseño ya no está disponible: revisa el diseño antes de cotizar."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -206,7 +212,8 @@
     "account": "Tu cuenta",
     "customers": "Clientes",
     "more": "Más",
-    "quotes": "Cotizaciones"
+    "quotes": "Cotizaciones",
+    "builder": "Diseñador"
   },
   "roles": {
     "OWNER": "Propietario",
@@ -284,7 +291,11 @@
     "quote.line_updated": "{actor} cambió una cantidad en {number}",
     "quote.line_removed": "{actor} quitó un concepto de {number}",
     "quote.status_changed": "{actor} marcó {number} como «{status}»",
-    "subscription.assigned": "Se asignó el plan {plan} a la florería"
+    "subscription.assigned": "Se asignó el plan {plan} a la florería",
+    "builder.configuration_created": "{actor} guardó el diseño «{name}»",
+    "builder.configuration_updated": "{actor} actualizó el diseño «{name}»",
+    "builder.configuration_archived": "{actor} archivó el diseño «{name}»",
+    "builder.configuration_restored": "{actor} restauró el diseño «{name}»"
   },
   "catalog": {
     "title": "Catálogo",
@@ -405,7 +416,9 @@
       "archived": "Producto archivado",
       "restored": "Producto restaurado",
       "readOnly": "Tu rol permite consultar el catálogo, no modificarlo.",
-      "archivedNotice": "Este producto está archivado."
+      "archivedNotice": "Este producto está archivado.",
+      "builderEnabled": "Disponible en el diseñador de ramos",
+      "builderEnabledHint": "Se podrá elegir al armar ramos a la medida en el diseñador (plan Plus)."
     }
   },
   "recipe": {
@@ -702,7 +715,9 @@
       "quoteFor": "Cotización para {name}",
       "chooseAnother": "Elegir otro cliente",
       "customerArchived": "Este cliente está archivado: restáuralo desde su ficha para cotizarle.",
-      "searchCustomersPlaceholder": "Nombre, teléfono o correo"
+      "searchCustomersPlaceholder": "Nombre, teléfono o correo",
+      "fromDesign": "Cotización del diseño «{name}»",
+      "fromDesignBody": "Elige el cliente: la cotización incluirá el ramo con su receta exacta y los precios actuales de tu catálogo."
     },
     "editor": {
       "customer": "Cliente",
@@ -777,7 +792,9 @@
       "readOnlyReopen": "Esta cotización ya no es un borrador. Para modificarla, vuelve a borrador.",
       "printCustomer": "Cliente: {name}",
       "noTransitions": "Esta cotización ya no admite cambios de estado.",
-      "noLines": "Esta cotización no tiene conceptos."
+      "noLines": "Esta cotización no tiene conceptos.",
+      "builderLine": "Diseño personalizado",
+      "viewDesign": "Ver diseño"
     },
     "whatsapp": {
       "greeting": "Hola {name}, te comparto la cotización {number} de {shop}:",
@@ -791,7 +808,8 @@
       "empty": "Este cliente aún no tiene cotizaciones.",
       "new": "Nueva cotización",
       "viewAll": "Ver todas sus cotizaciones"
-    }
+    },
+    "designRamo": "Diseñar ramo"
   },
   "plans": {
     "title": "Plan y funciones",
@@ -841,5 +859,115 @@
     "pilotNote": "Durante el piloto, el equipo de {product} asigna el plan de cada florería. El cobro en línea todavía no está disponible: desde aquí no se realiza ningún pago.",
     "settingsLink": "Plan y funciones",
     "settingsLinkBody": "Consulta tu plan y qué funciones incluye."
+  },
+  "builder": {
+    "title": "Diseñador de ramos",
+    "subtitle": "Arma ramos a la medida con flores de tu catálogo: el precio se calcula al instante con tus precios.",
+    "newDesign": "Nuevo diseño",
+    "designs": "Diseños guardados",
+    "emptyTitle": "Aún no tienes diseños",
+    "emptyBody": "Elige flores, follaje y empaque, guarda el ramo y conviértelo en cotización con la receta exacta.",
+    "showArchived": "Ver archivados",
+    "showActive": "Ver activos",
+    "archivedEmpty": "No hay diseños archivados.",
+    "flowerCount": "{count, plural, one {# flor} other {# flores}}",
+    "updatedOn": "Actualizado el {date}",
+    "upsell": {
+      "title": "El diseñador de ramos está incluido en {plan}",
+      "body": "Arma ramos a la medida con el precio calculado al instante y conviértelos en cotización con la receta exacta.",
+      "ownerHint": "Consulta tu plan para ver cómo activarlo.",
+      "teamHint": "Pídele a la persona propietaria de la florería que active el plan Plus.",
+      "seePlan": "Ver mi plan"
+    },
+    "editor": {
+      "newTitle": "Nuevo diseño",
+      "groups": {
+        "FLOWER": "Flores",
+        "FOLIAGE": "Follaje",
+        "PACKAGING": "Empaque o base",
+        "ACCESSORY": "Complementos"
+      },
+      "noPackaging": "Sin empaque",
+      "search": "Buscar flor o material",
+      "noMatches": "Ningún producto coincide con la búsqueda.",
+      "noOptions": "Tu catálogo aún no tiene productos para el diseñador.",
+      "noOptionsBody": "Activa «Disponible en el diseñador de ramos» en tus flores, follaje y empaques.",
+      "goToCatalog": "Ir al catálogo",
+      "increase": "Agregar uno de {name}",
+      "decrease": "Quitar uno de {name}",
+      "quantityOf": "Cantidad de {name}",
+      "unitPrice": "{price} por {unit}",
+      "outOfStock": "Agotado",
+      "availability": {
+        "LIMITED": "Limitado",
+        "ON_REQUEST": "Bajo pedido"
+      },
+      "details": "Detalles",
+      "name": "Nombre del diseño",
+      "defaultName": "Ramo personalizado",
+      "style": "Estilo",
+      "size": "Tamaño (indicativo)",
+      "notSet": "Sin definir",
+      "styles": {
+        "ROMANTIC": "Romántico",
+        "CLASSIC": "Clásico",
+        "MODERN": "Moderno",
+        "GARDEN": "Jardín",
+        "MINIMAL": "Minimalista",
+        "TROPICAL": "Tropical"
+      },
+      "sizes": {
+        "SMALL": "Chico",
+        "MEDIUM": "Mediano",
+        "LARGE": "Grande",
+        "EXTRA_LARGE": "Extra grande"
+      },
+      "budget": "Presupuesto del cliente ({currency})",
+      "budgetHint": "Solo de referencia: no cambia el precio.",
+      "notes": "Notas",
+      "summary": "Precio",
+      "flowers": "Flores y follaje",
+      "packaging": "Empaque o base",
+      "accessories": "Complementos",
+      "labor": "Armado",
+      "total": "Total",
+      "pricesNote": "Calculado con los precios de tu catálogo; se vuelve a calcular en el servidor al guardar y al cotizar.",
+      "estimatedCost": "Costo de materiales",
+      "estimatedMargin": "Margen estimado",
+      "costIncomplete": "Costo incompleto: algún producto no tiene costo registrado.",
+      "costsInternal": "Solo lo ve tu equipo.",
+      "budgetLeft": "Quedan {amount} del presupuesto",
+      "budgetOver": "Supera el presupuesto por {amount}",
+      "empty": "Agrega al menos una flor para ver el precio.",
+      "selection": "Tu ramo",
+      "lineTotal": "{quantity} × {name}",
+      "warnings": {
+        "LIMITED": "{name}: disponibilidad limitada",
+        "ON_REQUEST": "{name}: bajo pedido, confirma la disponibilidad",
+        "UNAVAILABLE": "{name} ya no está disponible: quítalo para guardar"
+      },
+      "save": "Guardar diseño",
+      "saveChanges": "Guardar cambios",
+      "saving": "Guardando…",
+      "saved": "Diseño guardado",
+      "savedNotice": "Diseño guardado. Ya puedes crear la cotización.",
+      "unsaved": "Tienes cambios sin guardar.",
+      "createQuote": "Crear cotización",
+      "quoteHint": "Guarda los cambios para crear la cotización.",
+      "pricesChanged": "Los precios cambiaron desde que guardaste este diseño (antes: {total}). Guarda para actualizarlo.",
+      "remove": "Quitar {name}",
+      "archive": "Archivar",
+      "restore": "Restaurar",
+      "archiveTitle": "¿Archivar este diseño?",
+      "archiveBody": "Dejará de aparecer en la lista; las cotizaciones creadas con él no cambian.",
+      "archivedNotice": "Este diseño está archivado: restáuralo para modificarlo."
+    },
+    "settings": {
+      "title": "Diseñador de ramos",
+      "subtitle": "Cargo fijo por armado que se suma a cada ramo del diseñador.",
+      "laborFee": "Cargo por armado ({currency})",
+      "laborFeeHint": "Déjalo en 0 si ya lo incluyes en tus precios.",
+      "saved": "Cargo por armado guardado"
+    }
   }
 }

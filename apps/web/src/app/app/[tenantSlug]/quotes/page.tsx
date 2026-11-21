@@ -1,8 +1,8 @@
-import { ChevronLeft, ChevronRight, FileText, Plus, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, Plus, Search, Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
-import { listQuotes } from '@floral/core';
+import { getEntitlements, hasPermission, listQuotes } from '@floral/core';
 import { QUOTE_STATUSES, quoteListFiltersSchema } from '@floral/domain';
 import { EmptyState, PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -57,10 +57,27 @@ export default async function QuotesPage({
       </Link>
     </Button>
   ) : null;
+  const canDesign =
+    result.canWrite &&
+    hasPermission(ctx, 'builder:use') &&
+    (await getEntitlements(ctx)).bouquetBuilder;
+  const headerActions = (
+    <>
+      {canDesign ? (
+        <Button asChild variant="outline">
+          <Link href={`/app/${ctx.tenantSlug}/builder/new`}>
+            <Sparkles />
+            {t('designRamo')}
+          </Link>
+        </Button>
+      ) : null}
+      {newButton}
+    </>
+  );
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t('title')} description={t('subtitle')} actions={newButton} />
+      <PageHeader title={t('title')} description={t('subtitle')} actions={headerActions} />
 
       <form
         method="get"

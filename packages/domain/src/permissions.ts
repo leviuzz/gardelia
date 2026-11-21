@@ -39,6 +39,11 @@ export const PERMISSIONS = {
   'quotes:read': ALL,
   /** Creare e modificare preventivi, cambiarne lo stato. */
   'quotes:write': MANAGEMENT,
+  /**
+   * Comporre bouquet nel Builder e salvarne il disegno (anche lo staff al banco); per
+   * trasformarlo in preventivo serve `quotes:write`. Richiede il piano con il Builder.
+   */
+  'builder:use': ALL,
   /** Vedere il registro attività (audit) della fioreria. */
   'audit:read': MANAGEMENT,
 } as const satisfies Record<string, readonly MembershipRole[]>;

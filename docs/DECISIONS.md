@@ -185,6 +185,31 @@ React 19 azzera i campi dei `<form action={fn}>` anche quando l'action restituis
   chiuso, pulsante di uno stato non più disponibile). `useActionToast` resta per i componenti che
   restano montati e per le action con redirect.
 
+### ADR-023 — Bouquet Builder deterministico — ADOTTATO (Sprint 1)
+
+- **Prezzo:** `priceBouquet` (dominio puro) = Σ quantità × prezzo di listino dei componenti
+  (packaging incluso) + **cargo per armado** fisso del tenant (`builderLaborFeeMinor`, 0 di default).
+  La stessa funzione calcola l'anteprima nel browser e il valore autorevole sul server, che rilegge
+  prezzi, costi e disponibilità dal DB: il client invia solo ID e quantità. Nessuna AI nel prezzo.
+- **Componenti:** solo articoli `ACTIVE` con `isBuilderEnabled` e tipo fiore reciso, follaje,
+  packaging/base o accessorio (mai bouquet, piante in vaso o servizi). Per i nuovi articoli di questi
+  tipi il flag è attivo di default (la migrazione l'ha attivato anche per quelli esistenti); il
+  fiorista può disattivarlo dalla scheda dell'articolo.
+- **Regole:** almeno un fiore; al massimo un packaging, in quantità 1; ≤ 30 componenti, quantità
+  1–300. `OUT_OF_STOCK` non selezionabile; un disegno con componenti non più disponibili va rivisto
+  a mano (mai sostituzioni silenziose); `LIMITED`/`ON_REQUEST` mostrano avvisi che arrivano fino al
+  preventivo.
+- **Disegni (`BouquetConfiguration`):** totali salvati come snapshot "al salvataggio"; l'editor
+  mostra sempre i prezzi attuali e avvisa se sono cambiati. Archiviazione, nessuna cancellazione.
+- **Preventivo dal disegno:** nuova riga `BUILDER` (FK composita al disegno, CHECK sul tipo di riga)
+  con prezzo **ricalcolato al momento** e distinta esatta nello snapshot; il costo stimato è quello
+  dei materiali (l'armado è ricavo).
+- **Ruoli e piano:** `builder:use` per tutti i ruoli (lo staff compone al banco senza vedere i costi);
+  creare il preventivo richiede `quotes:write`. Tutto il Builder richiede l'entitlement
+  `bouquetBuilder` (Plus); per Basic c'è solo l'invito all'upgrade. Da confermare con O-08.
+- Fuori ambito ora: anteprime AI (Sprint 2), Builder pubblico per i clienti finali (AI-BQ-10, P1),
+  aggiunta di un disegno a un preventivo già esistente.
+
 ---
 
 ## 3. Proposte da approvare
@@ -205,18 +230,18 @@ React 19 azzera i campi dei `<form action={fn}>` anche quando l'action restituis
 
 ## 4. Decisioni aperte (bloccano funzionalità future, NON lo Sprint 0)
 
-| ID   | Domanda                                                                                                           | Chi decide         | Blocca                                                        |
-| ---- | ----------------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------- |
-| O-01 | Provider/modello per le immagini AI e budget per il benchmark di ≥100 render (spec §15.4)                         | Founder            | Sprint 2 (Builder AI)                                         |
-| O-02 | **Entità legale** che fattura il SaaS (Messico o Italia): impatta CFDI, IVA, provider di pagamento                | Founder + contador | Billing (Sprint 4)                                            |
-| O-03 | Nome commerciale definitivo (il repo si chiama "gardelia", la spec usa "Floral OS" come nome di lavoro) e dominio | Founder            | Lancio (cambio a basso costo: `packages/domain/src/brand.ts`) |
-| O-04 | Hosting, regione dei dati, budget infrastruttura                                                                  | Founder            | Deploy del pilota                                             |
-| O-05 | Prova gratuita, limiti per piano (utenti, sedi, quota AI), politica di consumo dei crediti AI sui fallimenti      | Founder            | Billing, Builder                                              |
-| O-06 | Trattamento fiscale nei preventivi (IVA inclusa/esclusa, aliquota zona di frontiera, ricevute)                    | Contador           | Preventivi con imposte                                        |
-| O-07 | Términos y condiciones e Aviso de privacidad (LFPDPPP)                                                            | Legale             | Lancio commerciale                                            |
-| O-08 | Conferma della matrice ruoli: lo STAFF non vede costi; il MANAGER invita solo STAFF e non modifica dati fiscali   | Founder            | — (default già implementato)                                  |
-| O-09 | Chi mantiene la tassonomia canonica dei fiori e con quale copertura                                               | Founder            | Builder, Network                                              |
-| O-10 | Durata della finestra di attribuzione delle fee del Network (spec §8.4)                                           | Founder + legale   | Network                                                       |
+| ID   | Domanda                                                                                                                                                                         | Chi decide         | Blocca                                                        |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------- |
+| O-01 | Provider/modello per le immagini AI e budget per il benchmark di ≥100 render (spec §15.4)                                                                                       | Founder            | Sprint 2 (Builder AI)                                         |
+| O-02 | **Entità legale** che fattura il SaaS (Messico o Italia): impatta CFDI, IVA, provider di pagamento                                                                              | Founder + contador | Billing (Sprint 4)                                            |
+| O-03 | Nome commerciale definitivo (il repo si chiama "gardelia", la spec usa "Floral OS" come nome di lavoro) e dominio                                                               | Founder            | Lancio (cambio a basso costo: `packages/domain/src/brand.ts`) |
+| O-04 | Hosting, regione dei dati, budget infrastruttura                                                                                                                                | Founder            | Deploy del pilota                                             |
+| O-05 | Prova gratuita, limiti per piano (utenti, sedi, quota AI), politica di consumo dei crediti AI sui fallimenti                                                                    | Founder            | Billing, Builder                                              |
+| O-06 | Trattamento fiscale nei preventivi (IVA inclusa/esclusa, aliquota zona di frontiera, ricevute)                                                                                  | Contador           | Preventivi con imposte                                        |
+| O-07 | Términos y condiciones e Aviso de privacidad (LFPDPPP)                                                                                                                          | Legale             | Lancio commerciale                                            |
+| O-08 | Conferma della matrice ruoli: lo STAFF non vede costi; il MANAGER invita solo STAFF e non modifica dati fiscali; lo STAFF compone nel Builder ma non crea preventivi né clienti | Founder            | — (default già implementato)                                  |
+| O-09 | Chi mantiene la tassonomia canonica dei fiori e con quale copertura                                                                                                             | Founder            | Builder, Network                                              |
+| O-10 | Durata della finestra di attribuzione delle fee del Network (spec §8.4)                                                                                                         | Founder + legale   | Network                                                       |
 
 ---
 

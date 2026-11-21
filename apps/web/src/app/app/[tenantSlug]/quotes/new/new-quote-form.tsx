@@ -59,15 +59,21 @@ function PickButton({ customer, label }: { customer: PickableCustomer; label: st
 export function CustomerPicker({
   action,
   customers,
+  configurationId,
 }: {
   action: Action;
   customers: readonly PickableCustomer[];
+  /** Disegno del Builder da trasformare in preventivo (facoltativo). */
+  configurationId: string | null;
 }) {
   const t = useTranslations('quotes.new');
   const [state, formAction] = useActionState(action, idleState);
   useActionToast(state);
   return (
     <form action={formAction} onSubmit={preserveOnSubmit(formAction)}>
+      {configurationId ? (
+        <input type="hidden" name="configurationId" value={configurationId} />
+      ) : null}
       <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
         {customers.map((customer) => (
           <li key={customer.id}>
@@ -80,13 +86,24 @@ export function CustomerPicker({
 }
 
 /** Conferma della creazione per un cliente già scelto (es. dalla sua scheda). */
-export function CreateForCustomer({ action, customerId }: { action: Action; customerId: string }) {
+export function CreateForCustomer({
+  action,
+  customerId,
+  configurationId,
+}: {
+  action: Action;
+  customerId: string;
+  configurationId: string | null;
+}) {
   const t = useTranslations('quotes.new');
   const [state, formAction] = useActionState(action, idleState);
   useActionToast(state);
   return (
     <form action={formAction} onSubmit={preserveOnSubmit(formAction)}>
       <input type="hidden" name="customerId" value={customerId} />
+      {configurationId ? (
+        <input type="hidden" name="configurationId" value={configurationId} />
+      ) : null}
       <SubmitButton size="lg" className="w-full sm:w-auto" pendingLabel={t('creating')}>
         {t('create')}
       </SubmitButton>

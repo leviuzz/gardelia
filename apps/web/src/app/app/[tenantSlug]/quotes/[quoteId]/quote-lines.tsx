@@ -26,6 +26,8 @@ export interface QuoteLineView {
   readonly lineTotalLabel: string;
   readonly recipeSummary: string | null;
   readonly warning: LineWarning | null;
+  /** Righe del Builder: link al disegno di origine. */
+  readonly designHref: string | null;
   readonly updateAction?: Action;
   readonly removeAction?: Action;
 }
@@ -116,6 +118,17 @@ export function QuoteLineList({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 space-y-1">
               <p className="font-medium break-words">{line.description}</p>
+              {line.designHref ? (
+                <p className="flex flex-wrap items-center gap-2">
+                  <Badge variant="accent">{t('builderLine')}</Badge>
+                  <Link
+                    href={line.designHref}
+                    className="text-sm font-medium text-primary hover:underline print:hidden"
+                  >
+                    {t('viewDesign')}
+                  </Link>
+                </p>
+              ) : null}
               {line.recipeSummary ? (
                 <p className="text-sm text-muted-foreground">
                   {t('recipeOf')} {line.recipeSummary}

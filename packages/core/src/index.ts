@@ -21,6 +21,7 @@ export {
 } from './mailer';
 export { invitationEmail, passwordResetEmail, verificationEmail } from './email-templates';
 export * from './services/billing';
+export * from './services/builder';
 export * from './services/catalog';
 export * from './services/customers';
 export * from './services/dashboard';
