@@ -139,7 +139,9 @@ il **taglio** seguente.
 ### I prossimi task (nell'ordine)
 
 **In attesa del founder:** piano di piattaforma (`docs/PLATFORM_PLAN.md`: ambienti, hosting,
-rilasci, errori, refactor del codice, roadmap). Approvato il link pubblico del preventivo (21/11).
+rilasci, errori, refactor del codice, roadmap). Rivisto il 21/11 sera su richiesta del founder
+("non risparmiamo"): consigliati **Vercel + Neon** (job AI in funzioni su coda Postgres, anteprima
+con database per ogni PR); Render resta la riserva. Approvato il link pubblico del preventivo (21/11).
 
 1. Prima del pilota: foto vere di una fioreria (scontorno e anteprima esatta) e prova da ~100 immagini → costo reale (foto, controlli, scontorni) riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 nell'hosting (P-03, O-04).
 2. Boceto: contenitori (caja, florero) disegnati meglio e "tamaño" del ramo; foto: scelta della copertina e "usa l'originale" se il ritaglio non piace. (Fatto: proporzioni per tipo di fiore e angolazioni alternate.)

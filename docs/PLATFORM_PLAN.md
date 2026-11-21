@@ -3,6 +3,12 @@
 **Stato: PROPOSTO (21/11/2026), da approvare dal founder.** Nessuna voce di questo documento è
 una decisione finché non è confermata e riportata in `docs/DECISIONS.md`.
 
+**Revisione del 21/11/2026 (sera).** Il founder chiede di non risparmiare sull'infrastruttura:
+avremo molte fiorerie e un uso intenso di AI (Bouquet Builder e Flora Studio). Rivalutato
+l'hosting con questo criterio: la raccomandazione passa da Render a **Vercel + Neon**
+(sezione 3). Il costo cambia di poco. Con molte fiorerie la spesa che cresce davvero è quella
+dell'AI, già controllata da crediti e tetti.
+
 Obiettivo: passare da "funziona sul nostro computer" a un software che una fioreria vera può
 usare ogni giorno, con ambienti separati, rilasci controllati, errori visibili e dati protetti.
 Molte cose si fanno subito (le fondamenta); altre vanno in roadmap (notifiche push, Sentry,
@@ -14,20 +20,21 @@ pagamenti…), ma l'architettura le prevede già.
 
 | Tema          | Proposta                                                                                                                  |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Ambienti      | **locale** (sviluppo) → **staging** (prova con dati finti) → **produzione** (fiorerie vere); anteprime per PR facoltative |
-| App e worker  | **Render**: servizio web (Next.js) + **worker separato** (AI e scontorni) + **cron** (lavori programmati), stessa regione |
-| Database      | **Neon** (Postgres gestito): RLS come oggi, backup con ripristino a un istante (7 giorni), database separati per ambiente |
+| Ambienti      | **locale** (sviluppo) → **anteprima per ogni PR** (con il suo database) → **staging** (dati finti) → **produzione**       |
+| App e job AI  | **Vercel (Pro)**: app Next.js + job AI in una funzione dedicata (coda Postgres, avvio immediato + controllo ogni minuto)  |
+| Database      | **Neon** (Postgres gestito): RLS come oggi, ripristino a un istante (7 giorni), un branch del database per ogni anteprima |
 | File          | **Cloudflare R2** (già pronto nel codice): un bucket privato per ambiente                                                 |
 | Email         | **Resend** con dominio verificato (SPF/DKIM/DMARC)                                                                        |
 | Login         | **Better Auth** (già nel codice, dati nel nostro DB): 2FA per i proprietari nella fase 1                                  |
 | AI            | **fal.ai** (già nel codice), con tetto di spesa per ambiente                                                              |
 | Errori e log  | log JSON (già), raccolta log e monitor di disponibilità subito; **Sentry** nella fase 1                                   |
-| Costo stimato | **≈ 60–120 USD/mese** per staging + produzione all'inizio, più l'AI a consumo                                             |
-| Regione       | Stati Uniti est (Virginia/Ohio), vicina al Messico; Messico (Google Cloud Querétaro) solo se un giorno servirà            |
+| Costo stimato | **≈ 60–170 USD/mese** per staging + produzione all'inizio, più l'AI a consumo                                             |
+| Regione       | Stati Uniti est: Vercel `iad1` (Washington) + Neon `us-east-1` (Virginia), vicini fra loro; nessuno dei due è in Messico  |
 
 Il codice parte già da una base solida (dominio → database → servizi → web, RLS, test a tre
-livelli). Il lavoro vero è: **separare il worker**, **mettere in piedi staging e produzione con
-rilasci automatici**, **uniformare gestione errori e componenti**, **monitorare**.
+livelli). Il lavoro vero è: **portare i job AI su funzioni** (la coda resta in Postgres),
+**mettere in piedi anteprime, staging e produzione con rilasci automatici**, **uniformare
+gestione errori e componenti**, **monitorare**.
 
 ---
 
@@ -35,8 +42,9 @@ rilasci automatici**, **uniformare gestione errori e componenti**, **monitorare*
 
 1. **Pochi servizi, gestiti da altri.** Siamo un team piccolo: niente server da amministrare,
    niente Kubernetes. Piattaforme gestite, con backup e aggiornamenti inclusi.
-2. **Niente lock-in pesante.** App in container standard, Postgres standard, storage S3: si può
-   cambiare fornitore senza riscrivere il codice.
+2. **Niente lock-in pesante.** Next.js standard (si costruisce anche come container), Postgres
+   standard, storage S3, coda dei job AI nel nostro database: si può cambiare fornitore senza
+   riscrivere il codice. Le funzioni proprie di una piattaforma restano in adattatori sottili.
 3. **Staging uguale alla produzione**, ma con dati finti: ogni rilascio passa prima da lì.
 4. **Sicurezza di default:** RLS nel database, segreti solo nelle variabili della piattaforma,
    ruoli minimi, 2FA su tutti gli account dei fornitori.
@@ -48,12 +56,16 @@ rilasci automatici**, **uniformare gestione errori e componenti**, **monitorare*
 
 ## 2. Ambienti
 
-| Ambiente         | Scopo                                              | Dati                              | AI                                    | Email                                     | Deploy                            |
-| ---------------- | -------------------------------------------------- | --------------------------------- | ------------------------------------- | ----------------------------------------- | --------------------------------- |
-| **Locale**       | sviluppo e test                                    | Postgres in Docker, seed demo     | simulata (o fal con chiave)           | Mailpit (nessuna email esce)              | a mano                            |
-| **Anteprima PR** | provare una modifica prima di unirla (facoltativo) | branch Neon da staging, seed demo | simulata                              | catturata, nessun invio reale             | automatico a ogni PR              |
-| **Staging**      | prova completa prima della produzione; demo        | **solo dati finti** (seed demo)   | fal con tetto basso (es. 10 USD/mese) | solo verso indirizzi del team (allowlist) | automatico a ogni merge su `main` |
-| **Produzione**   | fiorerie vere                                      | reali, con backup e ripristino    | fal con tetto mensile                 | reale, dominio verificato                 | manuale (rilascio approvato)      |
+| Ambiente         | Scopo                                       | Dati                            | AI                                    | Email                                     | Deploy                            |
+| ---------------- | ------------------------------------------- | ------------------------------- | ------------------------------------- | ----------------------------------------- | --------------------------------- |
+| **Locale**       | sviluppo e test                             | Postgres in Docker, seed demo   | simulata (o fal con chiave)           | Mailpit (nessuna email esce)              | a mano                            |
+| **Anteprima PR** | provare una modifica prima di unirla        | branch Neon proprio, seed demo  | simulata                              | catturata, nessun invio reale             | automatico a ogni PR (Vercel)     |
+| **Staging**      | prova completa prima della produzione; demo | **solo dati finti** (seed demo) | fal con tetto basso (es. 10 USD/mese) | solo verso indirizzi del team (allowlist) | automatico a ogni merge su `main` |
+| **Produzione**   | fiorerie vere                               | reali, con backup e ripristino  | fal con tetto mensile                 | reale, dominio verificato                 | manuale (rilascio approvato)      |
+
+Su Vercel lo staging è un **ambiente personalizzato** (uno è incluso nel piano Pro per progetto),
+con dominio, variabili e database propri. Le anteprime sono automatiche: ogni PR ha un URL e,
+tramite l'integrazione Neon, un branch del database creato all'apertura e cancellato alla chiusura.
 
 Regole:
 
@@ -68,51 +80,91 @@ Regole:
 
 ## 3. Stack e hosting
 
-### Opzione consigliata (A): Render + Neon + Cloudflare R2 + Resend
+### Opzione consigliata (A): Vercel + Neon + Cloudflare R2 + Resend
 
-- **Render** esegue servizi web, **worker in background** e **cron job**, con ambienti e
-  anteprime per PR sui piani a pagamento, in cinque regioni (Oregon, Ohio, Virginia, Francoforte,
-  Singapore). Web, worker e cron nella stessa regione comunicano sulla rete privata.
-- **Neon** (Postgres gestito): branch del database per staging e per le anteprime, ripristino a un
-  istante fino a 7 giorni sul piano Launch, prezzo a consumo. Attenzione verificata: i ruoli creati
-  dalla console Neon hanno `BYPASSRLS`; il ruolo dell'app va creato **in SQL** senza quel
-  privilegio (l'app già si rifiuta di partire in produzione con un ruolo che aggira la RLS).
-- **Cloudflare R2** per foto e immagini: nessun costo di uscita dati, 10 GB al mese gratis.
-- **Resend** per le email: 3.000 email al mese gratis (100 al giorno), 20 USD/mese per 50.000.
-- **Sentry** (fase 1): piano gratuito con 5.000 errori al mese.
+Rivalutata il 21/11/2026 su richiesta del founder ("non risparmiamo: avremo molte fiorerie e
+molto uso di AI"). Il criterio non è più il costo minimo ma la piattaforma migliore per il
+nostro codice. Vercel è la piattaforma di chi sviluppa Next.js; rispetto a Render guadagniamo:
 
-Perché: è la combinazione più semplice che copre tutto ciò che il nostro codice richiede (Next.js
+- **Anteprima per ogni PR** con il suo URL e, tramite l'integrazione Neon, **il suo database**
+  (branch copia-su-scrittura con migrazioni e seed demo, cancellato con la PR).
+- **Rollback istantaneo** al deploy precedente, senza ricostruire nulla.
+- **Skew Protection** (Pro, attiva di default sui progetti nuovi): durante un rilascio chi ha la
+  pagina aperta continua a parlare con la versione vecchia. Conta molto con le nostre 38 server
+  action, che altrimenti fallirebbero per qualche minuto dopo ogni rilascio.
+- **Scala da solo** nei picchi delle fiorerie (14 febbraio, 10 maggio, 2 novembre, 12 dicembre)
+  senza dimensionare server in anticipo.
+- Firewall, protezione DDoS e regole di rate limit inclusi; CDN per i file statici.
+- Staging come ambiente personalizzato, con dominio e variabili propri.
 
-- un processo sempre acceso per il worker + Postgres con RLS + cron), con backup e ambienti già
-  pronti, a costo basso.
+Il resto dello stack non cambia: **Neon** (attenzione già verificata: i ruoli creati dalla
+console hanno `BYPASSRLS`, il ruolo dell'app va creato **in SQL** senza quel privilegio),
+**Cloudflare R2** (nessun costo di uscita dati, 10 GB al mese gratis), **Resend** (3.000 email al
+mese gratis, 20 USD/mese per 50.000), **Better Auth**, **Sentry** nella fase 1 (5.000 errori al
+mese gratis).
+
+**Cosa cambia nel nostro codice** (lavori della fase 0, utili anche fuori da Vercel):
+
+1. **Job AI.** Su Vercel non c'è un processo sempre acceso. La coda resta in Postgres: stati,
+   crediti, tentativi e lease sono già scritti e testati, e restano la fonte di verità. A
+   svuotarla è una **funzione dedicata** (es. `/api/internal/ai/drain`, protetta da un segreto,
+   fino a 800 secondi per invocazione), avviata subito dopo l'accodamento e ogni minuto da un cron
+   di sicurezza che riprende i job rimasti a metà. Un **limite globale di job in parallelo** nel
+   claim SQL rispetta il limite di fal (10 richieste contemporanee). La funzione è separata dalle
+   pagine, quindi un picco di AI non rallenta il sito. In locale (e in un eventuale container) resta
+   il worker nel processo: un'opzione di configurazione sceglie il "motore".
+2. **Limite di 4,5 MB per richiesta e per risposta delle funzioni.** Le foto partono già ridotte
+   nel browser (lato lungo ≤ 2048 px, JPEG) e una per richiesta; il limite del server scende da
+   8 a 4 MB. Le immagini grandi (boceto PNG, foto AI) si servono in streaming o con URL firmati di
+   R2 a breve scadenza, dopo il controllo di permessi e fioreria. Per Flora Studio, caricamento
+   diretto su R2.
+3. **Database.** L'app usa l'URL con pool di Neon (PgBouncer), le migrazioni l'URL diretto. Il
+   contesto RLS usa già `set_config(..., true)` dentro la transazione, compatibile con il pool. I
+   limiti di tentativi del login sono già salvati nel database, quindi valgono anche con molte
+   istanze. L'integrazione Neon inserisce in automatico l'URL del ruolo proprietario: si usa solo
+   per le migrazioni, e il controllo all'avvio già blocca un ruolo che aggira la RLS.
+4. **Log.** Il piano Pro conserva i log per 1 giorno, quindi servono un drain verso un servizio di
+   log oppure Observability Plus (30 giorni).
+5. **Cron.** I cron classici di Vercel girano solo in produzione. Per lo staging si usano le
+   nuove Schedules per ambiente, più l'avvio immediato dopo l'accodamento.
+
+**Job lunghi in futuro** (Flora Studio, video P2): le richieste a fal vanno in coda con webhook.
+Se servirà, si aggiunge **Vercel Workflows** (disponibile da aprile 2026) o **Vercel Daemons**
+(processi sempre accesi; oggi in beta, solo in produzione e senza autoscaling). Il core resta
+indipendente dalla piattaforma: cambia solo chi chiama "svuota la coda".
 
 ### Alternative valutate
 
-- **(B) Vercel per il web + Render/Railway per il worker + Neon.** Vercel è ottimo per Next.js, ma
-  esegue funzioni legate alle richieste: il worker sempre acceso (code AI, scontorni) richiede
-  comunque un secondo fornitore. Due piattaforme da gestire invece di una.
+- **(B) Render + Neon** (prima raccomandazione): web, worker e cron come processi sempre accesi
+  su una sola piattaforma, prezzo fisso per istanza, nessun limite di durata dei job. Per Next.js
+  è meno adatto: niente Skew Protection, cache da condividere a mano fra più istanze, rollback
+  più lenti, capacità da pianificare prima dei picchi. Resta il **piano di riserva**: l'app si
+  costruisce anche come container.
 - **(C) Google Cloud in Messico (Querétaro, `northamerica-south1`):** Cloud Run è disponibile nella
   regione; dati in Messico e latenza minima. Molto più lavoro di gestione (permessi, rete,
   Terraform). Da considerare **dopo**, se clienti grandi o la normativa chiederanno i dati in
-  Messico: grazie ai container e a Postgres standard la migrazione resta possibile.
+  Messico: grazie a Postgres e storage standard la migrazione resta possibile.
 - **Railway:** simile a Render (ambienti, anteprime per PR), piano Pro da 20 USD/mese a consumo.
-  Valida alternativa; Render ha regione Virginia/Ohio e worker/cron già pensati per questo uso.
 
 ### Costo stimato all'inizio (da verificare sui listini al momento dell'acquisto)
 
-| Voce                          | Staging         | Produzione         |
-| ----------------------------- | --------------- | ------------------ |
-| Render web (Next.js)          | istanza piccola | istanza 2 GB RAM   |
-| Render worker                 | istanza piccola | istanza piccola    |
-| Render cron                   | centesimi       | centesimi          |
-| Neon Postgres                 | pochi USD       | 20–40 USD          |
-| Cloudflare R2                 | gratis          | gratis all'inizio  |
-| Resend                        | gratis          | gratis → 20 USD    |
-| Monitor di disponibilità, log | gratis          | gratis → 10–30 USD |
-| **Totale indicativo**         | **≈ 15–35 USD** | **≈ 45–90 USD**    |
+| Voce                                                        | Al mese, staging + produzione                  |
+| ----------------------------------------------------------- | ---------------------------------------------- |
+| Vercel Pro (1 sviluppatore; staging e anteprime incluse)    | 20 USD, con 20 USD di consumo inclusi          |
+| Funzioni Vercel oltre il credito incluso (pagine + job AI)  | 0–40 USD all'inizio                            |
+| Sviluppatori in più su Vercel                               | 20 USD ciascuno (chi guarda soltanto non paga) |
+| Neon Postgres (produzione sempre accesa + staging e branch) | 25–50 USD                                      |
+| Cloudflare R2                                               | gratis all'inizio                              |
+| Resend                                                      | gratis → 20 USD                                |
+| Log, monitor di disponibilità (drain o Observability Plus)  | 10–40 USD                                      |
+| **Totale indicativo**                                       | **≈ 60–170 USD**                               |
 
-Più: dominio (≈ 15–40 USD/anno), AI a consumo (tetto già nel codice), eventuale piano di workspace
-Render per le anteprime per PR.
+Più: dominio (≈ 15–40 USD/anno) e AI a consumo. **La voce che cresce con le fiorerie è l'AI, non
+l'hosting**: una foto realistica costa circa 0,08–0,10 USD a fal (controlli inclusi). Il piano
+Plus include 25 anteprime al mese, cioè circa 2–2,5 USD per fioreria, dentro i ~7 € di
+differenza di prezzo. Il resto passa dai pacchetti di crediti, e i tetti mensili per ambiente
+sono già nel codice. Esempio: 300 fiorerie con 30.000 job AI al mese costano a Vercel una
+quindicina di dollari di funzioni, a fal circa 2.400–3.000 USD, coperti da quote e crediti.
 
 ### Dati personali
 
@@ -127,17 +179,20 @@ prima del pilota (insieme a O-07 sul consenso per le foto). Il piano non fa assu
 1. **Branch per ogni lavoro → Pull Request → `main`.** Commit piccoli (convenzionali, come oggi).
 2. **CI su ogni PR** (GitHub Actions): lint, format, typecheck, test unit + integrazione su
    Postgres reale con RLS, build, E2E Playwright. Una PR non si unisce se qualcosa è rosso.
-3. **Merge su `main` → deploy automatico su staging**: migrazioni (`prisma migrate deploy`,
-   ruolo proprietario) come passo **prima** dell'avvio, poi web, worker e cron; quindi un **test
-   di fumo** automatico (salute, login, una pagina per area).
-4. **Rilascio in produzione approvato** (tag di versione `vX.Y.Z` o promozione manuale), con
-   note di rilascio generate dai commit.
-5. **Migrazioni "espandi e contrai":** mai rompere la versione che sta girando (prima si aggiunge
-   la colonna nuova, si rilascia, poi si toglie la vecchia). Così web e worker possono aggiornarsi
-   in momenti diversi e il rollback dell'app resta sicuro.
-6. **Rollback:** si torna al deploy precedente con un clic; per i dati, ripristino a un istante
-   (Neon) — con una prova di ripristino ogni trimestre.
-7. **Feature flag per fioreria** quando serve rilasciare a pochi (oggi abbiamo già gli
+3. **Anteprima automatica su ogni PR** (Vercel): branch Neon proprio con le migrazioni della PR e
+   il seed demo, AI simulata, link nella PR per provarla dal telefono.
+4. **Merge su `main` → deploy automatico su staging**, con le migrazioni applicate **prima** del
+   deploy (ruolo proprietario) e un **test di fumo** automatico (salute, login, una pagina per
+   area).
+5. **Rilascio in produzione approvato** (GitHub Action manuale o tag `vX.Y.Z`): migrazioni prima,
+   poi deploy dello stesso build già provato (`vercel deploy --prebuilt --prod`), note di
+   rilascio generate dai commit.
+6. **Migrazioni "espandi e contrai":** mai rompere la versione che sta girando (prima si aggiunge
+   la colonna nuova, si rilascia, poi si toglie la vecchia). Così pagine e job AI di versioni
+   vicine convivono e il rollback dell'app resta sicuro.
+7. **Rollback:** Instant Rollback di Vercel (secondi) per l'app; per i dati, ripristino a un
+   istante (Neon), con una prova di ripristino ogni trimestre.
+8. **Feature flag per fioreria** quando serve rilasciare a pochi (oggi abbiamo già gli
    entitlements per piano; si aggiungono flag per singola fioreria pilota).
 
 ---
@@ -234,7 +289,7 @@ componenti condivisi → divisione dei file grandi insieme alle funzionalità ch
 
 ## 7. Sicurezza
 
-- **Account dei fornitori** (GitHub, Render, Neon, Cloudflare, Resend, fal) intestati all'azienda,
+- **Account dei fornitori** (GitHub, Vercel, Neon, Cloudflare, Resend, fal) intestati all'azienda,
   con 2FA obbligatoria; accesso alla produzione solo a chi serve.
 - **Segreti** solo nelle variabili della piattaforma, separati per ambiente; rotazione documentata.
 - **Database:** ruolo dell'app senza `BYPASSRLS`, ruolo delle migrazioni separato (già così);
@@ -251,26 +306,32 @@ componenti condivisi → divisione dei file grandi insieme alle funzionalità ch
 
 ## 8. Osservabilità e operatività
 
-- **Salute:** `/api/health` (già) controllato ogni minuto da un monitor esterno; il worker scrive
-  un "battito" e la lunghezza della coda, con avviso se si ferma.
-- **Log** raccolti e cercabili (inoltro dei log di Render a un servizio di log), con avvisi su
-  errori ripetuti.
+- **Salute:** `/api/health` (già) controllato ogni minuto da un monitor esterno; la funzione dei
+  job AI scrive un "battito" e la lunghezza della coda, con avviso se si ferma.
+- **Log** raccolti e cercabili (drain dei log di Vercel verso un servizio di log, perché il piano
+  Pro li conserva 1 giorno), con avvisi su errori ripetuti.
 - **Metriche di business** semplici: anteprime generate e scartate, costo AI del mese per
   fioreria, preventivi creati e accettati.
-- **Avvisi** (email/WhatsApp del team): sito giù, worker fermo, coda lunga, spesa AI oltre l'80%
+- **Avvisi** (email/WhatsApp del team): sito giù, job AI fermi, coda lunga, spesa AI oltre l'80%
   del tetto, migrazione fallita.
 
 ---
 
 ## 9. Lavori in background e integrazioni
 
-- **Worker separato** (stesso codice, processo proprio): oggi gira dentro il server web; in
-  produzione va separato, così un picco di AI non rallenta le pagine e il web si può riavviare
-  senza perdere lavoro.
-- **Risveglio fra processi:** l'avviso "c'è un job nuovo" oggi è interno al processo; con il
-  worker separato passa a Postgres `LISTEN/NOTIFY` (più un controllo periodico di sicurezza).
+- **Job AI su Vercel:** la coda resta in Postgres (stati, crediti, tentativi). Una funzione
+  dedicata la svuota: parte subito dopo l'accodamento e ogni minuto con un cron di sicurezza, con
+  un limite globale di job in parallelo (limite di fal). È separata dalle pagine, quindi un picco
+  di AI non rallenta il sito e un rilascio non perde lavoro: un job interrotto torna in coda alla
+  scadenza del lease.
+- **Lo stesso codice gira altrove:** il core espone "svuota la coda" e non sa chi lo chiama. In
+  locale lo chiama il worker nel processo (come oggi); su un altro hosting lo chiamerebbe un
+  processo sempre acceso.
+- **Job lunghi (Flora Studio, video P2):** fal in coda con webhook; Vercel Workflows o Daemons
+  solo quando serviranno.
 - **Cron:** scadenza dei preventivi, promemoria delle fechas especiales, pulizia dei file non più
-  usati, riepilogo giornaliero dei costi AI.
+  usati, riepilogo giornaliero dei costi AI (Vercel Cron in produzione, Schedules per lo
+  staging).
 - **Email transazionali** (Resend) dietro l'adattatore che già esiste (`mailer`).
 - **Roadmap integrazioni:** WhatsApp Business API, notifiche push (PWA), pagamenti (Stripe per
   l'abbonamento, Mercado Pago per gli incassi, P-04), CFDI solo con il contador.
@@ -283,19 +344,21 @@ componenti condivisi → divisione dei file grandi insieme alle funzionalità ch
 
 1. **Founder:** dominio e nome definitivo (O-03); account aziendali dei fornitori con 2FA;
    carta di pagamento.
-2. Configurazione per ambiente validata all'avvio (web e worker), tabella delle variabili.
-3. **Worker in un processo separato** + `LISTEN/NOTIFY` + cron di base.
-4. Infrastruttura come codice (blueprint Render) per staging e produzione; database Neon per
-   ambiente con ruoli corretti; bucket R2; dominio email verificato.
-5. CI/CD: deploy automatico su staging, test di fumo, rilascio in produzione approvato,
-   migrazioni prima dell'avvio.
+2. Configurazione per ambiente validata all'avvio (pagine e job AI), tabella delle variabili.
+3. **Job AI su funzioni**: svuotamento della coda, cron di sicurezza, limite di parallelismo;
+   immagini grandi in streaming o con URL firmati; limite di caricamento a 4 MB.
+4. Progetto Vercel con anteprime e staging, integrazione Neon (branch per anteprima), ruoli del
+   database corretti per ambiente, bucket R2, dominio email verificato; configurazione della
+   piattaforma versionata nel repository.
+5. CI/CD: anteprima per PR, deploy automatico su staging, test di fumo, rilascio in produzione
+   approvato, migrazioni prima del deploy.
 6. Gestione errori uniforme e refactor dei componenti ripetuti, nell'ordine della sezione 5.
-7. Monitor di disponibilità, raccolta log, avvisi base; backup con primo test di ripristino.
+7. Monitor di disponibilità, drain dei log, avvisi base; backup con primo test di ripristino.
 8. Intestazioni di sicurezza, aggiornamento automatico delle dipendenze, runbook.
 
 ### Fase 1 — Pilota ad Aguascalientes
 
-- Sentry su web e worker; 2FA per i proprietari; gestione sessioni.
+- Sentry su pagine e job AI; 2FA per i proprietari; gestione sessioni.
 - **Link pubblico del preventivo** per il cliente (token, scadenza, revoca): approvato dal founder il
   21/11/2026; testi di privacy da validare (O-07).
 - Notifiche email (preventivo inviato/accettato); foto vere dei fiori e prova da ~100 immagini AI.
@@ -317,16 +380,36 @@ componenti condivisi → divisione dei file grandi insieme alle funzionalità ch
 
 ## 11. Decisioni che servono dal founder
 
-1. **Hosting:** A (Render + Neon, consigliato), B (Vercel + worker esterno) o C (Google Cloud
-   Messico).
+1. **Hosting:** A (Vercel + Neon, consigliato dopo la revisione del 21/11), B (Render + Neon,
+   riserva) o C (Google Cloud Messico).
 2. **Nome e dominio** definitivi (O-03): servono per email, URL e account.
 3. **Intestatario degli account e dei pagamenti** (entità legale, O-02).
-4. **Budget mensile** di infrastruttura (≈ 60–120 USD + AI) e tetto AI per staging/produzione.
+4. **Budget mensile** di infrastruttura (≈ 60–170 USD + AI) e tetto AI per staging/produzione.
 5. **Regione:** Stati Uniti est adesso, Messico più avanti se servirà.
 
 ---
 
 ## Fonti (verificate il 21/11/2026)
+
+Le pagine di Vercel non si aprono da questo ambiente di sviluppo: le cifre di Vercel vengono dai
+risultati di ricerca su quelle pagine e vanno ricontrollate sul sito prima dell'acquisto.
+
+- Vercel: [piano Pro](https://vercel.com/docs/plans/pro-plan), [prezzi](https://vercel.com/pricing),
+  [durata delle funzioni](https://vercel.com/docs/functions/configuring-functions/duration),
+  [limiti con Fluid compute](https://vercel.com/changelog/higher-defaults-and-limits-for-vercel-functions-running-fluid-compute),
+  [prezzi Fluid compute](https://vercel.com/docs/fluid-compute/pricing), [regioni](https://vercel.com/docs/regions),
+  [limite di 4,5 MB](https://vercel.com/kb/guide/how-to-bypass-vercel-body-size-limit-serverless-functions),
+  [ambienti personalizzati](https://vercel.com/docs/deployments/custom-environments),
+  [Skew Protection](https://vercel.com/docs/skew-protection),
+  [cron: limiti](https://vercel.com/docs/cron-jobs/usage-and-pricing), [cron: gestione](https://vercel.com/docs/cron-jobs/manage-cron-jobs),
+  [Schedules](https://vercel.com/docs/schedules/concepts),
+  [lavori in background](https://vercel.com/kb/guide/background-workers-on-vercel),
+  [Workflows](https://vercel.com/blog/a-new-programming-model-for-durable-execution),
+  [Queues (beta)](https://vercel.com/docs/queues), [Daemons (beta)](https://vercel.com/docs/daemons),
+  [log e Observability Plus](https://vercel.com/docs/observability/limits-and-pricing),
+  [Drains](https://vercel.com/blog/introducing-vercel-drains).
+- Neon con Vercel: [anteprime con l'integrazione nativa](https://neon.com/docs/guides/vercel-native-integration-previews),
+  [integrazione gestita da Neon](https://neon.com/docs/guides/neon-managed-vercel-integration).
 
 - Render: [prezzi](https://render.com/pricing.md), [Postgres](https://render.com/docs/postgresql),
   [rete privata e regioni](https://render.com/docs/private-network),
