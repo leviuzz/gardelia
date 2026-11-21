@@ -406,8 +406,30 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
 - **Decisione:** le anteprime restano senza foto di riferimento. Le foto di "Mis ramos" restano
   salvate (con consenso) e la pagina continua a dire che l'uso arriverà più avanti.
 - **Prossime opzioni:** (a) descrivere a parole lo stile di ogni foto con un modello di visione
-  (una volta per foto, ~0,005 USD) e usare solo il testo nel prompt; (b) usarle insieme alla
-  composizione esatta (ADR-028), dove posizioni e numeri li fissa il codice.
+  (una volta per foto, ~0,005 USD) e usare solo il testo nel prompt — **adottata, ADR-032**;
+  (b) usarle insieme alla composizione esatta (ADR-028), dove posizioni e numeri li fissa il
+  codice.
+
+### ADR-032 — Stile di "Mis ramos" descritto a parole nelle anteprime — ADOTTATO (21/11/2026)
+
+- **Prova** (`docs/AI_BENCHMARK.md`): con lo stile a parole ramos esatti 4 su 6 (1 su 3 senza
+  stile, 1 su 6 con la foto), nessun oggetto copiato; criterio del founder rispettato.
+- **Scelta della foto:** fra le foto attive di "Mis ramos" della fioreria, la prima caricata con
+  lo stesso stile del disegno, altrimenti la prima caricata. Scelta stabile e deterministica: la
+  foto scelta entra nella descrizione del ramo e quindi nella chiave di cache
+  (`styleReferenceId`); nuove foto non cambiano le anteprime già fatte.
+- **Descrizione:** un modello di visione (Claude Sonnet 4.5 via `fal-ai/any-llm/vision`, ~0,006
+  USD) descrive la miniatura UNA volta, alla prima anteprima che la usa: inglese per il prompt,
+  spagnolo per il fiorista (`StyleReferencePhoto.styleDescription*`, con modello e data). Il
+  testo passa da `cleanStyleDescription`, che scarta le frasi su vasi, nastri, fiori, persone,
+  scritte o istruzioni. Il modello delle immagini riceve solo quel testo, mai la foto.
+- **Mai un motivo di fallimento:** se la descrizione non riesce, l'anteprima si genera senza
+  stile (registrato nel job: `output.styleApplied`); il costo della descrizione si somma a
+  quello del job per il tetto di spesa.
+- **Trasparenza:** "Mis ramos" mostra sotto ogni foto lo stile riconosciuto (o "se describirá
+  en la próxima vista previa"); l'anteprima dice "Con el estilo de tus fotos de «Mis ramos»".
+- **Privacy:** solo foto con consenso, solo della stessa fioreria; nessun addestramento.
+- **Prompt:** versione `bouquet-preview-v4` (nuova chiave di cache).
 
 ---
 

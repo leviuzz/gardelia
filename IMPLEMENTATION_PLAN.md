@@ -17,7 +17,7 @@ S1-01…S1-10. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 
 **Sprint 2 — anteprime AI: funzionanti con il provider reale** (21/11/2026): fal.ai con
 **Nano Banana 2** (ADR-026), scelto col confronto su 5 ramos demo; quota 25/mese, pacchetti extra via
 CLI, cache per fioreria, tetto di spesa, worker, archivio R2/locale; provider simulato solo in
-locale. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 252/252 ✅ · build ✅ ·
+locale. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 262/262 ✅ · build ✅ ·
 E2E 28/28 ✅ · una generazione reale dal Diseñador ✅ (12 s, 0,08 USD).
 
 **Foto del catalogo e "Mis ramos"** (21/11/2026, ADR-029): fiori da più angolazioni, carte e
@@ -26,10 +26,12 @@ nastri per colore, foto di stile con consenso.
 **Colori di carta e nastro nel Diseñador** (21/11/2026, ADR-030): colore obbligatorio quando
 l'articolo ne ha più di uno, con la sua foto; arriva in cotización e nell'anteprima.
 
-**Prossimo (direzione del founder, ADR-028):** "Mis ramos" come riferimento di stile nelle
-anteprime, scontorno automatico, anteprima con il numero esatto di fiori (composizione dalle foto
+**Stile della fioreria nelle anteprime** (21/11/2026, ADR-032): lo stile di "Mis ramos",
+descritto a parole una volta per foto, accompagna le anteprime; la foto non va mai al modello.
 
-- resa fotografica AI + controllo automatico). Vedi "I prossimi task".
+**Prossimo (direzione del founder, ADR-028):** scontorno automatico e anteprima con il numero
+esatto di fiori: composizione dalle foto, resa fotografica AI e controllo automatico. Vedi "I
+prossimi task".
 
 ---
 
@@ -125,16 +127,15 @@ il **taglio** seguente.
 
 ### I prossimi task (nell'ordine)
 
-1. **Stile di "Mis ramos" a parole**: la foto passata al modello peggiora i conteggi (ADR-031); prova (≈0,30 USD) con una descrizione testuale dello stile generata una volta per foto.
-2. **Scontorno automatico** delle foto dei fiori (base della composizione) e scelta della foto di copertina.
-3. **Anteprima esatta**: composizione deterministica dai ritagli (immediata, gratuita), foto realistica dalla composizione (`nano-banana-2/edit`) e controllo automatico dei conteggi con un nuovo tentativo (ADR-028).
-4. Prima del pilota: prova da ~100 immagini → costo reale riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 nell'hosting (P-03, O-04).
-5. Builder pubblico per i clienti della fioreria (AI-BQ-10), dopo il pilota del Builder interno.
-6. Anteprima nel preventivo stampato e nel messaggio WhatsApp.
-7. Aggiungere un disegno del Builder a un preventivo in bozza esistente.
-8. Ordini da preventivo accettato (Sprint 3) con la stessa distinta.
-9. Contador: IVA nei preventivi e fatturazione dei pacchetti (O-06, O-02).
-10. Pannello admin di piattaforma minimo (oggi CLI) con autenticazione forte e audit.
+1. **Scontorno automatico** delle foto dei fiori (base della composizione) e scelta della foto di copertina.
+2. **Anteprima esatta**: composizione deterministica dai ritagli (immediata, gratuita), foto realistica dalla composizione (`nano-banana-2/edit`) e controllo automatico dei conteggi con un nuovo tentativo (ADR-028).
+3. Prima del pilota: prova da ~100 immagini → costo reale riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 nell'hosting (P-03, O-04).
+4. Builder pubblico per i clienti della fioreria (AI-BQ-10), dopo il pilota del Builder interno.
+5. Anteprima nel preventivo stampato e nel messaggio WhatsApp.
+6. Aggiungere un disegno del Builder a un preventivo in bozza esistente.
+7. Ordini da preventivo accettato (Sprint 3) con la stessa distinta.
+8. Contador: IVA nei preventivi e fatturazione dei pacchetti (O-06, O-02).
+9. Pannello admin di piattaforma minimo (oggi CLI) con autenticazione forte e audit.
 
 ---
 
@@ -289,3 +290,17 @@ il **taglio** seguente.
   modifica al codice di produzione (la variante del prompt usata per la prova è stata tolta).
 - Prossimo: provare lo stile descritto a parole, oppure passare allo scontorno e alla composizione.
 - Spesa fal totale: ≈2,9 USD su 10 € (stima da listino).
+
+### 2026-11-21 — Stile di "Mis ramos" a parole nelle anteprime (ADR-032)
+
+- Prova (~0,50 USD): stile descritto a parole da Claude Sonnet 4.5 → ramos esatti 4 su 6, nessun
+  oggetto copiato (con la foto: 1 su 6 e vaso copiato). Criterio del founder rispettato.
+- Fatto: `cleanStyleDescription` e prompt v4 (dominio), colonne della descrizione su
+  `StyleReferencePhoto`, `FalStyleDescriber` e simulato, scelta stabile della foto per stile,
+  worker che descrive una volta e ripiega senza stile se qualcosa fallisce, costo nel job, UI
+  ("Estilo: …" in "Mis ramos", nota nell'anteprima).
+- Verifiche: lint ✅, format ✅, typecheck ✅, `pnpm test` 262/262 ✅ (+10: pulizia del testo, chiave
+  di cache, descrittore fal, descrizione una sola volta, scelta per stile, ripiego, isolamento),
+  build ✅, E2E 28/28 ✅; anteprima reale nell'app: 3 girasoli esatti, carta lilla, nastro dorato,
+  stile ripreso, 19 s, 0,09 USD.
+- Spesa fal totale: ≈3,5 USD su 10 € (stima da listino).

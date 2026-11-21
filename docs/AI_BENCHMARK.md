@@ -158,3 +158,25 @@ Esito: ambiente, luce e bancone del negozio vengono ripresi bene, ma i ramos esa
 distinta (nonostante "do not copy… any other item"). **Non attivato** (ADR-031). Idea da provare
 dopo: descrivere a parole lo stile della foto (un modello di visione, una volta per foto) e
 mettere solo quella descrizione nel prompt, senza passare l'immagine.
+
+## Stile di "Mis ramos" descritto a parole (21/11/2026, ~0,50 USD)
+
+Stessa foto di stile difficile. Claude Sonnet 4.5 (via `fal-ai/any-llm/vision`) la descrive
+SOLO come ambiente, luce, inquadratura e tecnica di incarto, senza fiori, colori, carta, nastri,
+vasi o persone: "Shot on a rustic wooden table in a warmly-lit shop interior with soft natural
+window light from the left… The wrapping is conical and stiff with crisp angular folds…". Il
+prompt v3 riceve solo quel testo (nessuna immagine). 2 immagini per ramo:
+
+| Ramo                                   | Stile a parole (1)     | Stile a parole (2) |
+| -------------------------------------- | ---------------------- | ------------------ |
+| T1: 3 rose + 3 margherite              | 4 rose, 4 margherite ✗ | **esatto**         |
+| T2: 2 girasoli + 4 rose bianche, kraft | 5 rose ✗               | **esatto**         |
+| T3: 4 tulipani + 3 rose + 2 margherite | **esatto**             | **esatto**         |
+
+Ramos esatti 4 su 6 (stesso giorno: 1 su 3 senza stile, 1 su 6 con la foto). Nessun vaso o
+oggetto copiato, carta e nastro del colore giusto, ambiente da negozio con luce calda. Campione
+piccolo, ma il criterio ("i conteggi non peggiorano") è rispettato: **attivato** (ADR-032).
+
+**Verifica nell'app** (fal reale): 3 girasoli + carta lilla + listón de organza dorado con la
+prima foto di "Mis ramos" della fioreria demo: 3 girasoli esatti, colori giusti, sfondo del
+negozio ripreso; 19 s in tutto, 0,09 USD (0,08 immagine + 0,01 descrizione, fatta una volta).

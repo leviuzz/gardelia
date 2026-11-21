@@ -154,6 +154,11 @@ al servizio (`catalog-photos`, `style-references`) → `media/images.ts` le vali
 transazione, con audit. Le route `/catalog/photos/[id]` e `/builder/references/[id]` servono i
 file solo ai membri della fioreria.
 
+Stile della fioreria (ADR-032): all'accodamento il servizio sceglie una foto di "Mis ramos" (stesso
+stile del disegno, poi la prima caricata) e ne mette l'ID nella descrizione del ramo; il worker
+usa il testo dello stile già salvato o lo fa scrivere una volta a un modello di visione, e lo
+aggiunge al prompt. La foto non va mai al modello delle immagini.
+
 Colore di carta e nastro (ADR-030): l'editor invia `{catalogItemId, quantity, color}`; il server
 calcola il colore effettivo con `resolveLineColor` sui colori attuali dell'articolo, lo salva sulla
 riga e lo riporta nella distinta del preventivo e nel prompt dell'anteprima.

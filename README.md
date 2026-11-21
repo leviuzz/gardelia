@@ -34,8 +34,9 @@ clienti, preventivi…), AI Bouquet Builder nel piano Plus e, in seguito, il mar
   carte, vasi e nastri, una foto per colore; ricodificate senza metadati (niente GPS).
 - **Colore di carta e nastro:** nel Diseñador si sceglie il colore (con la sua foto); arriva nella
   cotización e nell'anteprima con IA.
-- **Mis ramos (Plus):** foto dei ramos della fioreria come riferimento di stile, caricate solo con
-  consenso esplicito; mai usate per addestrare modelli.
+- **Mis ramos (Plus):** foto dei ramos della fioreria, caricate solo con consenso esplicito: il
+  loro stile, descritto a parole, accompagna le anteprime con IA (la foto non si copia); mai
+  usate per addestrare modelli.
 - **Vista previa con IA (Plus):** 25 al mese + pacchetti extra, cache per fioreria, tetto di
   spesa. Immagini reali con **fal.ai / Nano Banana 2** (~10 s, ~0,08 USD l'una; ADR-026); in
   locale, senza chiave, si usa un **provider simulato** dichiarato in UI.
