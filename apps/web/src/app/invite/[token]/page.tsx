@@ -5,10 +5,13 @@ import { getTranslations } from 'next-intl/server';
 import { getInvitationPreview } from '@floral/core';
 import { normalizeEmail } from '@floral/domain';
 import { AuthCard } from '@/components/auth/auth-card';
+import { AuthDivider, GoogleSignInButton } from '@/components/auth/google-sign-in-button';
 import { SignOutButton } from '@/components/auth/sign-out-button';
 import { Logo } from '@/components/brand/logo';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { authPath } from '@/lib/auth-paths';
+import { isGoogleLoginEnabled } from '@/lib/env';
 import { getSession } from '@/lib/session';
 import { acceptInvitationAction } from './actions';
 import { AcceptInvitationForm } from './accept-form';
@@ -84,17 +87,24 @@ export default async function InvitePage({ params }: PageProps<'/invite/[token]'
           {intro}
           <div className="space-y-3">
             <p className="text-sm">{t('invite.loginToAccept', { email: preview.email })}</p>
+            {isGoogleLoginEnabled() ? (
+              <>
+                {/* Gli errori del ritorno da Google si mostrano nella pagina di accesso. */}
+                <GoogleSignInButton
+                  callbackURL={invitePath}
+                  errorCallbackURL={authPath('/login', { next: invitePath, email: preview.email })}
+                  loginHint={preview.email}
+                />
+                <AuthDivider label={t('auth.google.divider')} />
+              </>
+            ) : null}
             <Button asChild size="lg" className="w-full">
-              <Link
-                href={`/login?next=${encodeURIComponent(invitePath)}&email=${encodeURIComponent(preview.email)}`}
-              >
+              <Link href={authPath('/login', { next: invitePath, email: preview.email })}>
                 {t('auth.loginButton')}
               </Link>
             </Button>
             <Button asChild variant="outline" className="w-full">
-              <Link
-                href={`/signup?next=${encodeURIComponent(invitePath)}&email=${encodeURIComponent(preview.email)}`}
-              >
+              <Link href={authPath('/signup', { next: invitePath, email: preview.email })}>
                 {t('invite.signupToAccept')}
               </Link>
             </Button>

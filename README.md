@@ -14,7 +14,8 @@ clienti, preventivi…), AI Bouquet Builder nel piano Plus e, in seguito, il mar
 
 ## Cosa funziona oggi (Sprint 1)
 
-- Registrazione con verifica email obbligatoria, login, recupero password (rate limiting incluso).
+- Registrazione con verifica email obbligatoria, login, recupero password (rate limiting incluso);
+  login con Google facoltativo (ADR-036: chiavi in `.env`, guida nell'ADR).
 - Creazione della fioreria (onboarding con indirizzo strutturato per il Messico), più fiorerie per utente.
 - Ruoli **Propietario / Gerente / Equipo** con permessi applicati lato server; inviti via email,
   cambio ruolo, disattivazione; lo staff non vede costi e margini.
@@ -148,7 +149,9 @@ pnpm test:e2e
 
 Playwright avvia l'app di produzione sulla porta 3100 e un pozzo SMTP sulla porta 1125. I test
 leggono le email reali (verifica e inviti) e ne seguono i link. Usano il database di `DATABASE_URL`
-(il seed è non distruttivo; i test creano dati con nomi univoci).
+(il seed è non distruttivo; i test creano dati con nomi univoci). Il login con Google è provato
+sul flusso reale con l'endpoint dei token di Google simulato nel server di test: Google non viene
+mai contattato.
 
 ## Struttura
 

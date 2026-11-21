@@ -7,7 +7,13 @@ import { z } from 'zod';
  */
 const isProduction = process.env.NODE_ENV === 'production';
 
-const schema = z
+/** Stringa facoltativa: vuota o di soli spazi conta come assente (righe `X=` del file .env). */
+const optionalText = z
+  .string()
+  .optional()
+  .transform((value) => value?.trim() || undefined);
+
+export const serverEnvSchema = z
   .object({
     APP_URL: z.url(),
     BETTER_AUTH_SECRET: z
@@ -20,6 +26,9 @@ const schema = z
       : z.string().optional(),
     EMAIL_FROM: z.string().optional(),
     TRUSTED_IP_HEADER: z.string().default('x-forwarded-for'),
+    // Login con Google (ADR-036): facoltativo, entrambe le chiavi o nessuna.
+    GOOGLE_CLIENT_ID: optionalText,
+    GOOGLE_CLIENT_SECRET: optionalText,
     // Anteprime AI e archivio (ADR-025, ADR-026): la coerenza con APP_URL e il modello sono
     // verificati all'avvio da @floral/core (provider simulato e archivio locale solo in locale).
     AI_PROVIDER: z.enum(['none', 'simulated', 'fal']).default('none'),
@@ -37,15 +46,37 @@ const schema = z
         message: 'obbligatoria con AI_PROVIDER=fal',
       });
     }
+    // Una sola delle due chiavi Google è quasi sempre un errore di configurazione: meglio
+    // non partire che mostrare un pulsante che fallisce.
+    if (Boolean(env.GOOGLE_CLIENT_ID) !== Boolean(env.GOOGLE_CLIENT_SECRET)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [env.GOOGLE_CLIENT_ID ? 'GOOGLE_CLIENT_SECRET' : 'GOOGLE_CLIENT_ID'],
+        message: 'GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET vanno impostate insieme (o nessuna)',
+      });
+    }
   });
 
-export type ServerEnv = z.infer<typeof schema>;
+export type ServerEnv = z.infer<typeof serverEnvSchema>;
+
+/** Credenziali del client OAuth di Google, se il login con Google è configurato. */
+export function googleCredentials(
+  env: Pick<ServerEnv, 'GOOGLE_CLIENT_ID' | 'GOOGLE_CLIENT_SECRET'>,
+): { clientId: string; clientSecret: string } | null {
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return null;
+  return { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET };
+}
+
+/** Il pulsante "Continuar con Google" si mostra solo se il login con Google è configurato. */
+export function isGoogleLoginEnabled(): boolean {
+  return googleCredentials(serverEnv()) !== null;
+}
 
 let cached: ServerEnv | null = null;
 
 export function serverEnv(): ServerEnv {
   if (cached) return cached;
-  const parsed = schema.safeParse(process.env);
+  const parsed = serverEnvSchema.safeParse(process.env);
   if (!parsed.success) {
     const details = parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`);
     throw new Error(`Configurazione non valida:\n  - ${details.join('\n  - ')}`);

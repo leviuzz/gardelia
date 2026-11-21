@@ -321,7 +321,8 @@ componenti condivisi → divisione dei file grandi insieme alle funzionalità ch
   connessioni cifrate.
 - **Login (Better Auth):** email verificata, limiti di tentativi (già), sessioni con scadenza;
   **2FA per i proprietari** e chiusura delle sessioni dalle impostazioni (fase 1); login con Google
-  (fase 2).
+  già fatto (ADR-036: collegamento solo con email verificate, un client OAuth per ambiente, spento
+  nelle anteprime per PR).
 - **Intestazioni di sicurezza** (CSP, HSTS, frame) e controllo delle origini.
 - **Dipendenze aggiornate** in automatico (Renovate o Dependabot) e scansione dei segreti su GitHub.
 - **Backup con prova di ripristino** trimestrale; registro di audit (già) per le azioni sensibili.
@@ -393,7 +394,8 @@ componenti condivisi → divisione dei file grandi insieme alle funzionalità ch
 
 - Abbonamenti con Stripe (P-04) e pannello di amministrazione della piattaforma.
 - Ordini e consegne (Sprint 3), WhatsApp Business API, **notifiche push** (PWA).
-- Login con Google; Builder pubblico per i clienti della fioreria (AI-BQ-10).
+- Builder pubblico per i clienti della fioreria (AI-BQ-10). (Il login con Google è già fatto:
+  ADR-036, anticipato su richiesta del founder il 21/11/2026.)
 
 ### Fase 3 — Scala
 

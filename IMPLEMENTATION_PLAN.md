@@ -41,6 +41,15 @@ Dopo il giudizio del founder sulla v1 ("sembra un collage") il boceto è stato r
 ramo vero (v2: corolle fitte a cupola, steli nascosti) e il conteggio ha una seconda opinione.
 Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 310/310 ✅ · build ✅ · E2E 30/30 ✅.
 
+**Login con Google** (21/11/2026, ADR-036, richiesto dal founder): "Continuar con Google" in
+accesso, registrazione e inviti; attivo solo con le chiavi del client OAuth (senza, il pulsante non
+compare). Collegamento a un account esistente solo con email verificata da Google e da noi; email
+non verificata da Google = nessuna sessione; niente foto del profilo; token cifrati. Negli E2E
+Google è simulato nel server di test, il resto del flusso è reale. Ultima verifica: lint ✅ ·
+format ✅ · typecheck ✅ · test 329/329 ✅ (+15 unità del web) · build ✅ · E2E 36/36 ✅.
+**Per attivarlo serve il founder:** client OAuth su Google Cloud con dominio e account aziendale
+(passi in ADR-036) e una riga nell'aviso de privacidad (O-07).
+
 **Prossimo:** prova con foto vere di una fioreria del pilota e prova da ~100 immagini (costo
 reale). Vedi "I prossimi task".
 

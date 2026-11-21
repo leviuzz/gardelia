@@ -40,6 +40,23 @@ export default defineConfig({
         },
       },
       {
+        // Utilità pure del web (configurazione, percorsi, traduzione degli errori): niente DB.
+        resolve: {
+          alias: {
+            '@': fileURLToPath(new URL('./apps/web/src', import.meta.url)),
+            'server-only': fileURLToPath(
+              new URL('./apps/web/test/server-only-stub.ts', import.meta.url),
+            ),
+          },
+        },
+        test: {
+          name: 'web',
+          root: './apps/web',
+          include: ['test/**/*.test.ts'],
+          environment: 'node',
+        },
+      },
+      {
         test: {
           name: 'core',
           root: './packages/core',

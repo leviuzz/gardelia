@@ -3,6 +3,11 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { AuthCard } from '@/components/auth/auth-card';
+import { AuthDivider, GoogleSignInButton } from '@/components/auth/google-sign-in-button';
+import { OAuthErrorAlert } from '@/components/auth/oauth-error-alert';
+import { authPath } from '@/lib/auth-paths';
+import { isGoogleLoginEnabled } from '@/lib/env';
+import { oauthErrorKey } from '@/lib/oauth-errors';
 import { getSession, safeNextPath } from '@/lib/session';
 import { SignupForm } from './signup-form';
 
@@ -17,6 +22,8 @@ export default async function SignupPage({ searchParams }: PageProps<'/signup'>)
   if (await getSession()) redirect(next);
 
   const t = await getTranslations('auth');
+  const email = typeof params.email === 'string' ? params.email : '';
+  const oauthError = oauthErrorKey(params.error);
   return (
     <AuthCard
       title={t('signupTitle')}
@@ -25,7 +32,7 @@ export default async function SignupPage({ searchParams }: PageProps<'/signup'>)
         <>
           {t('haveAccount')}{' '}
           <Link
-            href={next === '/app' ? '/login' : `/login?next=${encodeURIComponent(next)}`}
+            href={authPath('/login', { next })}
             className="font-medium text-primary hover:underline"
           >
             {t('goToLogin')}
@@ -33,7 +40,20 @@ export default async function SignupPage({ searchParams }: PageProps<'/signup'>)
         </>
       }
     >
-      <SignupForm next={next} defaultEmail={typeof params.email === 'string' ? params.email : ''} />
+      <div className="space-y-5">
+        {oauthError ? <OAuthErrorAlert error={oauthError} /> : null}
+        {isGoogleLoginEnabled() ? (
+          <>
+            <GoogleSignInButton
+              callbackURL={next}
+              errorCallbackURL={authPath('/signup', { next, email })}
+              loginHint={email || undefined}
+            />
+            <AuthDivider label={t('google.divider')} />
+          </>
+        ) : null}
+        <SignupForm next={next} defaultEmail={email} />
+      </div>
     </AuthCard>
   );
 }

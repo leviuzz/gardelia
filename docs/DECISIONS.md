@@ -67,7 +67,7 @@ Ultimo aggiornamento: 21 novembre 2026 (Sprint 0).
 - Tenant, membership, ruoli e inviti sono tabelle **nostre** (`Tenant`, `Membership`, `Invitation`): la tenancy non dipende dalla libreria (sostituibile senza migrare i dati di business).
 - I form di login/registrazione usano il client Better Auth (`/api/auth/*`): il rate limiting si applica solo alle richieste HTTP, non alle chiamate server `auth.api.*`.
 - Anti-enumerazione: registrazione con email esistente e "password dimenticata" rispondono in modo identico.
-- Social login (Google) e 2FA: rimandati (PROPOSTO per lo sprint billing/admin).
+- Login con Google: adottato il 21/11/2026 (ADR-036). 2FA: proposto per la fase 1 (P-09).
 
 ### ADR-005 — Routing per tenant: `/app/[tenantSlug]` — ADOTTATO
 
@@ -557,6 +557,57 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
 
 ---
 
+### ADR-036 — Login con Google — ADOTTATO (21/11/2026, decisione del founder)
+
+- **Cosa:** "Continuar con Google" in accesso, registrazione e inviti, con Better Auth (provider
+  `google`: flusso con codice e PKCE, scope `openid email profile`, `prompt=select_account` per i
+  dispositivi condivisi della fioreria). Email e password restano.
+- **Attivazione:** solo con `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` entrambe impostate
+  (validate all'avvio: una sola e l'app non parte). Senza chiavi il pulsante non compare: nessun
+  pulsante finto.
+- **Regole di sicurezza:**
+  - L'email deve essere verificata da Google (`requireEmailVerification`): altrimenti nessuna
+    sessione e link di conferma per email, come per la registrazione con password.
+  - Collegamento automatico a un account esistente con la stessa email **solo** se l'email è
+    verificata sia da Google sia nel nostro account (`requireLocalEmailVerified`). Chi registra
+    con password l'indirizzo di un altro, senza confermarlo, non si "aggancia" l'account Google
+    del vero titolare (CVE-2026-53516, corretto in Better Auth 1.6.11; usiamo 1.7.27): la pagina
+    chiede di confermare prima l'email.
+  - Al collegamento non cambiano email né nome (`updateUserInfoOnLink: false`); email diverse non
+    si collegano. Gli utenti sospesi restano fuori (stesso controllo all'apertura della sessione).
+  - Rate limit su `/sign-in/social` (10 al minuto per IP). I codici d'errore del ritorno da Google
+    si traducono in chiavi note: il testo dell'URL non arriva mai nella pagina.
+- **Dati:** salviamo nome, email e l'ID dell'account Google; **non** la foto del profilo
+  (minimizzazione). Non chiamiamo API di Google; i token che Better Auth conserva sono cifrati
+  (`encryptOAuthTokens`).
+- **Tenancy invariata:** Google fornisce solo l'identità. Fiorerie, ruoli e inviti restano tabelle
+  nostre; un invito si accetta solo con la stessa email (Google propone l'account dell'invito con
+  `login_hint`).
+- **Test:** unità (configurazione, errori, percorsi) ed E2E sul flusso reale, con l'endpoint dei
+  token di Google simulato nel solo server di test (`e2e/support/google-oauth-mock.mjs`, caricato da
+  Playwright): nuovo utente → onboarding → fioreria e secondo accesso; collegamento a un account
+  confermato; rifiuto del collegamento a un account mai confermato; email non verificata da
+  Google; annullamento; invito accettato con Google.
+- **Ambienti:** un client OAuth per ambiente, perché Google accetta solo URI di reindirizzamento
+  esatti. Le anteprime per PR hanno URL variabili: lì Google resta spento (in futuro,
+  eventualmente, con il plugin `oAuthProxy` di Better Auth).
+- **Configurazione (founder, con dominio e account aziendale: O-02, O-03).** Le voci della console
+  Google cambiano spesso: i passi vanno ricontrollati al momento.
+  1. Progetto Google Cloud dell'azienda → "Google Auth Platform" (ex "schermata di consenso
+     OAuth"): nome "Floral OS", email di supporto, dominio autorizzato, link ad aviso de
+     privacidad e termini. Pubblico "Esterno", stato "In produzione". Gli scope di base non
+     richiedono la revisione di sicurezza; per mostrare logo e nome dell'app Google chiede la
+     verifica del marchio.
+  2. Client → "Applicazione web" → URI di reindirizzamento autorizzato
+     `https://<dominio dell'app>/api/auth/callback/google`. Client separati per staging
+     (`https://<dominio di staging>/api/auth/callback/google`) e sviluppo
+     (`http://localhost:3000/api/auth/callback/google`).
+  3. ID client e segreto nelle variabili d'ambiente della piattaforma, mai nel repository né in chat.
+- **Privacy:** l'aviso de privacidad deve citare Google come metodo di accesso e i dati ricevuti
+  (nome, email): da validare con un legale messicano insieme a O-07.
+
+---
+
 ## 3. Proposte da approvare
 
 | ID   | Proposta                                                                                                                                                                             | Motivazione                                                                                                                                  | Quando serve                 |
@@ -569,7 +620,7 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
 | P-06 | Prezzi di catalogo intesi **IVA inclusa**, aliquota configurabile per tenant                                                                                                         | Prassi consumer in Messico; da validare con un contador                                                                                      | Sprint 1 (preventivi)        |
 | P-07 | Provider email transazionale con dominio verificato (SPF/DKIM/DMARC)                                                                                                                 | Recapito affidabile di verifiche e inviti                                                                                                    | Prima del pilota             |
 | P-08 | Numerazione preventivi/ordini per tenant con contatore transazionale (`COT-0001`)                                                                                                    | Numeri leggibili e senza buchi per il fiorista                                                                                               | Sprint 1                     |
-| P-09 | Google login e 2FA (TOTP) per OWNER                                                                                                                                                  | Meno attrito; più sicurezza per chi gestisce dati fiscali                                                                                    | Sprint 4                     |
+| P-09 | 2FA (TOTP) per OWNER (il login con Google è adottato: ADR-036)                                                                                                                       | Meno attrito; più sicurezza per chi gestisce dati fiscali                                                                                    | Sprint 4                     |
 
 ---
 

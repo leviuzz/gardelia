@@ -113,8 +113,12 @@ principi a livello di servizi e ruoli (TEN-01).
 
 - **Identità (Better Auth):** registrazione → email di verifica (obbligatoria) → accesso automatico dopo la
   conferma; reset password con revoca delle sessioni; sessioni su DB; rate limiting su DB
-  (`/sign-in` 10/min, `/sign-up` 5/min, reset e verifica 5/5 min per IP); utenti sospesi non possono
-  aprire sessioni.
+  (`/sign-in` 10/min, `/sign-up` 5/min, `/sign-in/social` 10/min, reset e verifica 5/5 min per IP);
+  utenti sospesi non possono aprire sessioni.
+- **Login con Google (ADR-036, facoltativo):** attivo solo con `GOOGLE_CLIENT_ID`/`SECRET`. Email
+  obbligatoriamente verificata da Google; collegamento a un account esistente solo se l'email è
+  verificata da entrambe le parti; niente foto del profilo; token del provider cifrati. Negli E2E
+  Google è simulato nel server di test (`e2e/support/google-oauth-mock.mjs`).
 - **Autorizzazione (nostro dominio):** `Membership(role: OWNER|MANAGER|STAFF, status)` + matrice
   `PERMISSIONS`. Il controllo avviene nei servizi; la UI nasconde soltanto ciò che non è consentito.
 - **Inviti:** token casuale da 32 byte (solo l'hash SHA-256 nel DB), validità 7 giorni, legato all'email

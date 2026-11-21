@@ -160,6 +160,19 @@
     "resetInvalid": "El enlace no es válido o ya venció. Solicita uno nuevo.",
     "requestNewLink": "Solicitar nuevo enlace",
     "signOut": "Cerrar sesión",
+    "google": {
+      "continue": "Continuar con Google",
+      "redirecting": "Abriendo Google…",
+      "divider": "o con tu correo",
+      "consent": "Si es tu primera vez, crearemos tu cuenta con tu nombre y correo de Google. Al continuar aceptas que tratemos tus datos para prestarte el servicio.",
+      "errors": {
+        "cancelled": "Cancelaste el acceso con Google. Puedes intentarlo de nuevo o entrar con tu correo.",
+        "notLinked": "Ya existe una cuenta con este correo, pero aún no está confirmada. Confírmala con el enlace que te enviamos o entra con tu contraseña; después podrás usar Google.",
+        "emailNotVerified": "Google no ha confirmado este correo. Te enviamos un enlace para confirmarlo: ábrelo y vuelve a intentarlo.",
+        "sessionFailed": "No pudimos iniciar tu sesión. Si el problema continúa, contacta a soporte.",
+        "generic": "No pudimos completar el acceso con Google. Inténtalo de nuevo."
+      }
+    },
     "errors": {
       "INVALID_EMAIL_OR_PASSWORD": "Correo o contraseña incorrectos.",
       "EMAIL_NOT_VERIFIED": "Tu correo aún no está confirmado. Te enviamos un nuevo enlace.",

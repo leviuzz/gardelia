@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig, devices } from '@playwright/test';
 
 /**
@@ -9,6 +10,11 @@ import { defineConfig, devices } from '@playwright/test';
 const PORT = Number(process.env.E2E_PORT ?? '3100');
 export const MAIL_PORT = Number(process.env.E2E_MAIL_PORT ?? '1125');
 const BASE_URL = `http://localhost:${PORT}`;
+/** Client OAuth finto: Google non viene mai contattato (vedi e2e/support/google-oauth-mock.mjs). */
+export const E2E_GOOGLE_CLIENT_ID = 'floral-e2e.apps.googleusercontent.com';
+const GOOGLE_OAUTH_MOCK = fileURLToPath(
+  new URL('./e2e/support/google-oauth-mock.mjs', import.meta.url),
+);
 
 export default defineConfig({
   testDir: './e2e',
@@ -60,6 +66,13 @@ export default defineConfig({
       AI_MONTHLY_BUDGET_USD: '50',
       STORAGE_DRIVER: 'filesystem',
       STORAGE_DIR: '.storage',
+      // Login con Google (ADR-036): client finto ed endpoint dei token simulato nel server.
+      GOOGLE_CLIENT_ID: E2E_GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET: 'floral-e2e-google-secret',
+      E2E_GOOGLE_OAUTH_MOCK: '1',
+      NODE_OPTIONS: [process.env.NODE_OPTIONS, `--import=${GOOGLE_OAUTH_MOCK}`]
+        .filter(Boolean)
+        .join(' '),
     },
   },
 });
