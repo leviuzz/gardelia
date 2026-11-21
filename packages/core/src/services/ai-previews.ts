@@ -130,6 +130,13 @@ async function quotaFor(tx: TransactionClient, ctx: TenantContext, now: Date): P
   };
 }
 
+/** Solo il nome inglese: senza traduzione il prompt usa l'etichetta del catalogo. */
+function englishName(names: Prisma.JsonValue | undefined): string | null {
+  if (!names || typeof names !== 'object' || Array.isArray(names)) return null;
+  const value = (names as Record<string, unknown>)['en-US'];
+  return typeof value === 'string' && value.trim() ? value : null;
+}
+
 /** Composizione attuale del disegno salvato → descrizione per il modello (o null se superata). */
 async function specForConfiguration(
   tx: TransactionClient,
@@ -147,6 +154,17 @@ async function specForConfiguration(
       ctx,
       config.lines.map((line) => ({ catalogItemId: line.catalogItemId, quantity: line.quantity })),
     );
+    // Nome comune dalla tassonomia globale (leggibile da tutti, ADR-014).
+    const taxonomy = await tx.catalogItem.findMany({
+      where: {
+        tenantId: ctx.tenantId,
+        id: { in: components.map((component) => component.item.id) },
+      },
+      select: { id: true, canonicalFlower: { select: { names: true } } },
+    });
+    const commonNames = new Map(
+      taxonomy.map((row) => [row.id, englishName(row.canonicalFlower?.names)]),
+    );
     return {
       id: config.id,
       spec: buildPreviewSpec({
@@ -160,6 +178,7 @@ async function specForConfiguration(
           variety: component.item.variety,
           saleUnit: component.item.saleUnit,
           colors: component.item.colors,
+          commonName: commonNames.get(component.item.id) ?? null,
         })),
       }),
     };

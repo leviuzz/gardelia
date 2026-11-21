@@ -16,6 +16,7 @@ import {
   getAiQuota,
   getBouquetConfiguration,
   getBouquetPreview,
+  listCanonicalFlowers,
   requestBouquetPreview,
   saveBouquetConfiguration,
   setAiProvider,
@@ -270,6 +271,29 @@ describe('generazione, cache e consumo', () => {
     } finally {
       provider.behavior = 'ok';
     }
+  });
+
+  it('il prompt conta ogni fiore col nome comune della tassonomia', async () => {
+    const kit = await createKit();
+    const rosa = (await listCanonicalFlowers('es-MX')).find((flower) => flower.slug === 'rosa');
+    const linked = await createCatalogItem(
+      kit.shop.owner,
+      itemInput({ name: 'Rosa roja', canonicalFlowerId: rosa!.id }),
+    );
+    const design = await save(kit, 3, {
+      name: 'Tres rosas',
+      lines: [
+        { catalogItemId: linked.id, quantity: 3 },
+        { catalogItemId: kit.kraft.id, quantity: 1 },
+      ],
+    });
+    await requestBouquetPreview(kit.shop.owner, design.id);
+    expect(await runOnce(kit)).toBe('succeeded');
+    const prompt = provider.prompts.at(-1) ?? '';
+    expect(prompt).toContain('exactly 3 flowers in total, one bloom per stem');
+    expect(prompt).toContain('exactly 3 red roses ("Rosa roja Freedom")');
+    expect(prompt).toContain('No ribbon, no bow, no twine');
+    expect(prompt).not.toContain('Para Sofía');
   });
 
   it('il worker in ciclo lavora i job appena accodati', async () => {
