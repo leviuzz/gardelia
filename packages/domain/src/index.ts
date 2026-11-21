@@ -7,6 +7,7 @@ export * from './ids';
 export * from './markets';
 export * from './money';
 export * from './permissions';
+export * from './quote';
 export * from './recipe';
 export * from './slug';
 export * from './team';

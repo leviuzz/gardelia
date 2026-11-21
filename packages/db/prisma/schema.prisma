@@ -156,6 +156,8 @@ model Tenant {
   status                TenantStatus @default(ACTIVE)
   mode                  TenantMode   @default(LIVE)
   onboardingCompletedAt DateTime?
+  /// Giorni di validità predefiniti di un nuovo preventivo.
+  quoteValidityDays     Int          @default(7)
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
 
@@ -170,6 +172,7 @@ model Tenant {
   customerOccasions CustomerOccasion[]
   quotes            Quote[]
   quoteLines        QuoteLine[]
+  counters          TenantCounter[]
   aiJobs            AiJob[]
   auditLogs         AuditLog[]
 }
@@ -554,6 +557,31 @@ model CustomerOccasion {
 // Preventivi (confine dati Sprint 0; flusso completo nello Sprint 1)
 // -----------------------------------------------------------------------------
 
+enum QuoteTaxMode {
+  /// Prezzi finali al cliente, nessun calcolo d'imposta (finché O-06 non è validata).
+  PRICES_FINAL
+}
+
+enum QuoteLineKind {
+  /// Articolo del catalogo (prezzo e distinta presi dal listino al momento dell'aggiunta).
+  CATALOG_ITEM
+  /// Riga libera con prezzo indicato dal fiorista (es. consegna, allestimento speciale).
+  CUSTOM
+}
+
+/// Contatori progressivi per tenant (numerazione preventivi, ordini…), incrementati
+/// atomicamente nella stessa transazione del documento: niente buchi né duplicati.
+model TenantCounter {
+  tenantId  String   @db.Uuid
+  key       String
+  value     Int
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@id([tenantId, key])
+}
+
 enum QuoteStatus {
   DRAFT
   SENT
@@ -569,13 +597,19 @@ model Quote {
   /// Numero progressivo per tenant, assegnato dal servizio.
   number            Int
   customerId        String            @db.Uuid
+  /// Titolo facoltativo (es. "Arreglo para recepción").
+  title             String?
   status            QuoteStatus       @default(DRAFT)
+  statusChangedAt   DateTime?
   currency          String            @db.Char(3)
+  /// Come sono trattate le imposte. PRICES_FINAL = prezzi finali senza scorporo (O-06 aperta).
+  taxMode           QuoteTaxMode      @default(PRICES_FINAL)
   subtotalMinor     Int               @default(0)
   discountMinor     Int               @default(0)
   taxMinor          Int               @default(0)
   totalMinor        Int               @default(0)
-  validUntil        DateTime?
+  /// Data (senza ora) fino a cui il preventivo è valido, nel calendario del tenant.
+  validUntil        DateTime?         @db.Date
   notes             String?
   acquisitionSource AcquisitionSource @default(MERCHANT_DIRECT)
   createdById       String?           @db.Uuid
@@ -592,11 +626,12 @@ model Quote {
 }
 
 model QuoteLine {
-  id             String   @id @default(uuid(7)) @db.Uuid
-  tenantId       String   @db.Uuid
-  quoteId        String   @db.Uuid
+  id             String        @id @default(uuid(7)) @db.Uuid
+  tenantId       String        @db.Uuid
+  quoteId        String        @db.Uuid
+  kind           QuoteLineKind @default(CATALOG_ITEM)
   /// NULL per righe libere (non a catalogo).
-  catalogItemId  String?  @db.Uuid
+  catalogItemId  String?       @db.Uuid
   description    String
   quantity       Int
   unitPriceMinor Int
@@ -605,9 +640,9 @@ model QuoteLine {
   lineTotalMinor Int
   /// Snapshot dell'articolo (nome, tipo, distinta) al momento del preventivo.
   snapshot       Json?
-  sortOrder      Int      @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  sortOrder      Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   quote       Quote        @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Cascade)

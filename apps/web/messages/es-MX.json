@@ -44,7 +44,9 @@
     "canonical_not_allowed_for_type": "Solo flores, follaje y plantas se vinculan a una especie.",
     "too_many_items": "Elegiste demasiadas opciones.",
     "invalid": "Revisa este valor.",
-    "invalid_date": "Esa fecha no existe."
+    "invalid_date": "Esa fecha no existe.",
+    "discount_exceeds_subtotal": "El descuento no puede ser mayor que el subtotal.",
+    "item_unavailable": "Este producto está agotado: no se puede cotizar."
   },
   "errors": {
     "validation": "Revisa los campos marcados.",
@@ -65,7 +67,11 @@
       "invitation_expired": "La invitación venció. Pide una nueva.",
       "tenant_limit_reached": "Alcanzaste el número máximo de florerías por cuenta.",
       "slug_unavailable": "No pudimos generar una dirección para tu florería. Prueba con otro nombre.",
-      "occasion_limit": "Este cliente alcanzó el máximo de fechas especiales."
+      "occasion_limit": "Este cliente alcanzó el máximo de fechas especiales.",
+      "quote_not_editable": "Solo se pueden modificar cotizaciones en borrador.",
+      "quote_line_limit": "La cotización alcanzó el máximo de conceptos.",
+      "quote_empty": "Agrega al menos un concepto antes de enviarla.",
+      "invalid_status_transition": "Este cambio de estado no está permitido."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -198,7 +204,8 @@
     "yourShops": "Tus florerías",
     "account": "Tu cuenta",
     "customers": "Clientes",
-    "more": "Más opciones"
+    "more": "Más",
+    "quotes": "Cotizaciones"
   },
   "roles": {
     "OWNER": "Propietario",
@@ -234,10 +241,12 @@
     "recentActivity": "Actividad reciente",
     "noActivity": "Aún no hay actividad registrada.",
     "comingSoonTitle": "Próximamente en Floral OS",
-    "comingSoonBody": "Clientes, cotizaciones, pedidos y el diseñador de ramos con IA (plan Plus) están en desarrollo. No aparecerán aquí hasta que funcionen de verdad.",
+    "comingSoonBody": "Pedidos, entregas, cobros en línea y las vistas previas de ramos con IA (plan Plus) están en desarrollo. No aparecerán aquí hasta que funcionen de verdad.",
     "upcomingOccasions": "Fechas especiales próximas",
     "noUpcomingOccasions": "No hay fechas especiales en los próximos 30 días.",
-    "contactNow": "Contactar"
+    "contactNow": "Contactar",
+    "statOpenQuotes": "Cotizaciones abiertas",
+    "openQuotesDetail": "{drafts} en borrador · {sent} enviadas"
   },
   "activity": {
     "someone": "Alguien",
@@ -267,7 +276,13 @@
     "customer.address_updated": "{actor} actualizó una dirección de entrega",
     "customer.address_archived": "{actor} eliminó una dirección de entrega",
     "customer.occasion_added": "{actor} agregó una fecha especial",
-    "customer.occasion_removed": "{actor} eliminó una fecha especial"
+    "customer.occasion_removed": "{actor} eliminó una fecha especial",
+    "quote.created": "{actor} creó la cotización {number}",
+    "quote.updated": "{actor} actualizó la cotización {number}",
+    "quote.line_added": "{actor} agregó un concepto a {number}",
+    "quote.line_updated": "{actor} cambió una cantidad en {number}",
+    "quote.line_removed": "{actor} quitó un concepto de {number}",
+    "quote.status_changed": "{actor} marcó {number} como «{status}»"
   },
   "catalog": {
     "title": "Catálogo",
@@ -648,5 +663,132 @@
       "noviembre",
       "diciembre"
     ]
+  },
+  "quotes": {
+    "title": "Cotizaciones",
+    "subtitle": "Prepara cotizaciones con precios del catálogo, compártelas y registra la respuesta del cliente.",
+    "newQuote": "Nueva cotización",
+    "searchPlaceholder": "Buscar por cliente, título o número (COT-0001)",
+    "allStatuses": "Todos los estados",
+    "statuses": {
+      "DRAFT": "Borrador",
+      "SENT": "Enviada",
+      "ACCEPTED": "Aceptada",
+      "REJECTED": "Rechazada",
+      "EXPIRED": "Vencida",
+      "CANCELLED": "Cancelada"
+    },
+    "results": "{count, plural, =0 {Sin resultados} one {# cotización} other {# cotizaciones}}",
+    "emptyTitle": "Aún no tienes cotizaciones",
+    "emptyBody": "Crea una cotización desde aquí o desde la ficha de un cliente.",
+    "noResultsTitle": "No hay cotizaciones con estos filtros",
+    "noResultsBody": "Prueba con otra búsqueda o limpia los filtros.",
+    "validUntil": "Válida hasta {date}",
+    "noValidity": "Sin vencimiento",
+    "createdOn": "Creada el {date}",
+    "new": {
+      "title": "Nueva cotización",
+      "subtitle": "Elige el cliente; después agregas los productos.",
+      "noCustomers": "Primero registra un cliente.",
+      "createCustomer": "Registrar cliente",
+      "create": "Crear cotización",
+      "creating": "Creando…",
+      "searchCustomers": "Buscar cliente",
+      "pickHint": "Elige el cliente para crear la cotización.",
+      "refineSearch": "Mostramos {shown} de {total} clientes: escribe para buscar.",
+      "noMatches": "No encontramos clientes con esa búsqueda.",
+      "quoteFor": "Cotización para {name}",
+      "chooseAnother": "Elegir otro cliente",
+      "customerArchived": "Este cliente está archivado: restáuralo desde su ficha para cotizarle.",
+      "searchCustomersPlaceholder": "Nombre, teléfono o correo"
+    },
+    "editor": {
+      "customer": "Cliente",
+      "lines": "Conceptos",
+      "emptyLines": "Agrega productos del catálogo o conceptos libres.",
+      "addFromCatalog": "Agregar del catálogo",
+      "product": "Producto",
+      "chooseProduct": "Elige un producto",
+      "groups": {
+        "BOUQUET": "Ramos",
+        "INGREDIENTS": "Flores, follaje y materiales",
+        "OTHER": "Servicios y complementos"
+      },
+      "quantity": "Cantidad",
+      "add": "Agregar",
+      "addCustom": "Agregar concepto libre",
+      "customDescription": "Concepto",
+      "customDescriptionPlaceholder": "Ej. Envío a domicilio",
+      "unitPrice": "Precio unitario ({currency})",
+      "update": "Actualizar",
+      "remove": "Quitar {name}",
+      "recipeOf": "Incluye:",
+      "availabilityWarning": {
+        "LIMITED": "Disponibilidad limitada",
+        "ON_REQUEST": "Bajo pedido: confirmar disponibilidad",
+        "UNAVAILABLE": "Ya no está disponible en el catálogo"
+      },
+      "summary": "Resumen",
+      "subtotal": "Subtotal",
+      "discount": "Descuento",
+      "total": "Total",
+      "pricesNote": "Precios finales al cliente según tu catálogo. El desglose de IVA todavía no está disponible.",
+      "estimatedCost": "Costo estimado",
+      "estimatedMargin": "Margen estimado",
+      "costIncomplete": "Costo incompleto: algún concepto no tiene costo registrado.",
+      "details": "Detalles",
+      "titleField": "Título",
+      "titlePlaceholder": "Ej. Arreglo para recepción",
+      "validUntilField": "Válida hasta",
+      "discountField": "Descuento ({currency})",
+      "notes": "Notas para el cliente",
+      "saveDetails": "Guardar detalles",
+      "lineAdded": "Concepto agregado",
+      "lineUpdated": "Cantidad actualizada",
+      "lineRemoved": "Concepto quitado",
+      "detailsSaved": "Detalles guardados",
+      "print": "Imprimir o guardar PDF",
+      "whatsapp": "Enviar por WhatsApp",
+      "statusChanged": "Estado actualizado: {status}",
+      "transitions": {
+        "SENT": "Marcar como enviada",
+        "ACCEPTED": "Marcar como aceptada",
+        "REJECTED": "Marcar como rechazada",
+        "DRAFT": "Volver a borrador",
+        "CANCELLED": "Cancelar cotización"
+      },
+      "cancelTitle": "¿Cancelar esta cotización?",
+      "cancelBody": "La cotización quedará cancelada y ya no podrá modificarse ni enviarse.",
+      "readOnly": "Solo las cotizaciones en borrador se pueden modificar.",
+      "printHeader": "Cotización {number}",
+      "printDate": "Fecha: {date}",
+      "printFooter": "Precios en {currency}. Cotización sujeta a disponibilidad de flores de temporada.",
+      "quantityOf": "Cantidad de {name}",
+      "lineCount": "{count, plural, =0 {Sin conceptos} one {# concepto} other {# conceptos}} · máximo {max}",
+      "recipeItem": "{quantity} × {name}",
+      "noQuotableItems": "No hay productos disponibles en tu catálogo.",
+      "goToCatalog": "Ir al catálogo",
+      "validUntilHint": "Déjala vacía si la cotización no vence.",
+      "costsInternal": "Solo lo ve tu equipo: no aparece al imprimir ni al compartir.",
+      "statusTitle": "Estado",
+      "statusHint": "Registra cuándo la envías y la respuesta del cliente.",
+      "readOnlyReopen": "Esta cotización ya no es un borrador. Para modificarla, vuelve a borrador.",
+      "printCustomer": "Cliente: {name}",
+      "noTransitions": "Esta cotización ya no admite cambios de estado.",
+      "noLines": "Esta cotización no tiene conceptos."
+    },
+    "whatsapp": {
+      "greeting": "Hola {name}, te comparto la cotización {number} de {shop}:",
+      "line": "• {quantity} × {description}: {total}",
+      "discount": "Descuento: -{amount}",
+      "total": "Total: {total}",
+      "validUntil": "Válida hasta el {date}."
+    },
+    "customerCard": {
+      "title": "Cotizaciones",
+      "empty": "Este cliente aún no tiene cotizaciones.",
+      "new": "Nueva cotización",
+      "viewAll": "Ver todas sus cotizaciones"
+    }
   }
 }

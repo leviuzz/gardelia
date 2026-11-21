@@ -16,7 +16,7 @@ import { Input, NativeSelect, Textarea } from '@/components/ui/input';
 import { fieldError, idleState, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 import { money } from '@/lib/format';
-import { useActionToast } from '@/lib/use-action-toast';
+import { useActionToast, useToastActionState } from '@/lib/use-action-toast';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -46,10 +46,9 @@ export function RecipeLineRow({
   showCosts: boolean;
 }) {
   const t = useTranslations('recipe');
-  const [updateState, updateFormAction] = useActionState(line.updateAction, idleState);
-  const [removeState, removeFormAction] = useActionState(line.removeAction, idleState);
-  useActionToast(updateState);
-  useActionToast(removeState);
+  const [updateState, updateFormAction] = useToastActionState(line.updateAction);
+  // La riga rimossa viene smontata: il toast deve partire alla fine dell'azione.
+  const [, removeFormAction] = useToastActionState(line.removeAction);
   const lineCost = line.unitCostMinor !== null ? line.unitCostMinor * line.quantity : null;
   const quantityError = fieldError(updateState, 'quantity');
 

@@ -1,6 +1,8 @@
 import {
   ArrowRight,
+  CalendarHeart,
   Check,
+  FileText,
   Flower2,
   Sparkles,
   TriangleExclamationPoint,
@@ -8,8 +10,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
-import { getDashboard, type ActivityEntry } from '@floral/core';
-import { isMembershipRole } from '@floral/domain';
+import { getDashboard, listUpcomingOccasions, type ActivityEntry } from '@floral/core';
+import { QUOTE_STATUSES, isMembershipRole, type QuoteStatus } from '@floral/domain';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +26,10 @@ const STEP_LINKS = {
   invite_team: 'settings/team',
 } as const;
 
+function isQuoteStatus(value: string): value is QuoteStatus {
+  return (QUOTE_STATUSES as readonly string[]).includes(value);
+}
+
 function metadataString(metadata: ActivityEntry['metadata'], key: string): string | undefined {
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return undefined;
   const value = (metadata as Record<string, unknown>)[key];
@@ -34,7 +40,10 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
   const { tenantSlug } = await params;
   const ctx = await getTenantContext(tenantSlug);
   const user = await requireUser();
-  const data = await getDashboard(ctx);
+  const [data, occasions] = await Promise.all([
+    getDashboard(ctx),
+    listUpcomingOccasions(ctx, { withinDays: 30, limit: 6 }),
+  ]);
   const t = await getTranslations();
   const format = await getFormatter();
   const base = `/app/${ctx.tenantSlug}`;
@@ -48,6 +57,7 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
     const key = `activity.${entry.action}`;
     const roleValue =
       metadataString(entry.metadata, 'to') ?? metadataString(entry.metadata, 'role');
+    const statusValue = metadataString(entry.metadata, 'to');
     const values = {
       actor,
       name:
@@ -56,6 +66,8 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
         '—',
       ingredient: metadataString(entry.metadata, 'ingredientName') ?? '—',
       role: roleValue && isMembershipRole(roleValue) ? t(`roles.${roleValue}`) : '—',
+      number: metadataString(entry.metadata, 'number') ?? '—',
+      status: statusValue && isQuoteStatus(statusValue) ? t(`quotes.statuses.${statusValue}`) : '—',
     };
     return t.has(key) ? t(key, values) : t('activity.fallback', values);
   }
@@ -69,16 +81,20 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
+          icon={<FileText />}
+          label={t('dashboard.statOpenQuotes')}
+          value={format.number(data.quotes.drafts + data.quotes.sent)}
+          detail={t('dashboard.openQuotesDetail', {
+            drafts: data.quotes.drafts,
+            sent: data.quotes.sent,
+          })}
+          href={`${base}/quotes`}
+        />
+        <StatCard
           icon={<Flower2 />}
           label={t('dashboard.statActiveItems')}
           value={format.number(data.catalog.activeItems)}
           href={`${base}/catalog`}
-        />
-        <StatCard
-          icon={<Sparkles />}
-          label={t('dashboard.statBouquets')}
-          value={format.number(data.catalog.byType.BOUQUET)}
-          href={`${base}/catalog?type=BOUQUET`}
         />
         <StatCard
           icon={<TriangleExclamationPoint />}
@@ -148,6 +164,55 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
               </CardContent>
             </Card>
           ) : null}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('dashboard.upcomingOccasions')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {occasions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {t('dashboard.noUpcomingOccasions')}
+                </p>
+              ) : (
+                <ul className="divide-y">
+                  {occasions.map((occasion) => (
+                    <li
+                      key={occasion.occasionId}
+                      className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+                    >
+                      <CalendarHeart
+                        className="size-4 shrink-0 text-accent-foreground"
+                        aria-hidden="true"
+                      />
+                      <div className="min-w-0 flex-1 text-sm">
+                        <p className="truncate font-medium">{occasion.customerName}</p>
+                        <p className="truncate text-muted-foreground">
+                          {occasion.type === 'CUSTOM' && occasion.label
+                            ? occasion.label
+                            : t(`customers.occasions.types.${occasion.type}`)}
+                          {occasion.personName
+                            ? ` · ${t('customers.occasions.of', { name: occasion.personName })}`
+                            : ''}
+                        </p>
+                      </div>
+                      <Badge variant={occasion.inReminderWindow ? 'accent' : 'muted'}>
+                        {occasion.daysUntil === 0
+                          ? t('customers.occasions.today')
+                          : t('customers.occasions.inDays', { count: occasion.daysUntil })}
+                      </Badge>
+                      <Link
+                        href={`${base}/customers/${occasion.customerId}`}
+                        className="text-sm font-medium text-primary hover:underline"
+                      >
+                        {t('dashboard.contactNow')}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>

@@ -2,15 +2,15 @@
 
 import { MapPin, Pencil, Plus, Trash } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
 import { Field, controlProps } from '@/components/form/field';
 import { SubmitButton } from '@/components/form/submit-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox, Input, NativeSelect } from '@/components/ui/input';
-import { fieldError, idleState, type ActionState } from '@/lib/action-state';
+import { fieldError, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
-import { useActionToast } from '@/lib/use-action-toast';
+import { useToastActionState } from '@/lib/use-action-toast';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -55,12 +55,7 @@ function AddressForm({
   const t = useTranslations('customers.addresses');
   const tOnboarding = useTranslations('onboarding');
   const tCommon = useTranslations('common');
-  const [state, formAction] = useActionState(async (prev: ActionState, formData: FormData) => {
-    const result = await action(prev, formData);
-    if (result.status === 'success') onDone();
-    return result;
-  }, idleState);
-  useActionToast(state);
+  const [state, formAction] = useToastActionState(action, onDone);
   const err = (field: string) => fieldError(state, field);
   const id = (name: string) => `${idPrefix}-${name}`;
 
@@ -197,8 +192,7 @@ function AddressForm({
 }
 
 function ArchiveAddressButton({ action, label }: { action: Action; label: string }) {
-  const [state, formAction] = useActionState(action, idleState);
-  useActionToast(state);
+  const [, formAction] = useToastActionState(action);
   return (
     <form action={formAction}>
       <SubmitButton size="icon-sm" variant="ghost" aria-label={label}>

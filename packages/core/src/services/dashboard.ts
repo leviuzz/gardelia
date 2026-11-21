@@ -1,10 +1,10 @@
 /**
  * Dashboard del merchant: SOLO dati reali del tenant (nessun KPI simulato).
- * Le metriche che dipendono da moduli non ancora rilasciati (ordini, clienti, consegne)
+ * Le metriche che dipendono da moduli non ancora rilasciati (ordini, consegne)
  * non vengono mostrate finché quei moduli non esistono.
  */
 import { getDb, withTenantContext, type Prisma } from '@floral/db';
-import { CATALOG_ITEM_TYPES, type CatalogItemType } from '@floral/domain';
+import { CATALOG_ITEM_TYPES, todayInTimeZone, type CatalogItemType } from '@floral/domain';
 import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 
@@ -34,6 +34,8 @@ export interface DashboardData {
     /** null se l'utente non può vedere i costi. */
     readonly itemsMissingCost: number | null;
   };
+  /** Preventivi aperti: bozze e inviati non ancora scaduti. */
+  readonly quotes: { readonly drafts: number; readonly sent: number };
   /** null se l'utente non può vedere il team. */
   readonly team: { readonly activeMembers: number; readonly pendingInvitations: number } | null;
   readonly onboarding: readonly OnboardingStep[];
@@ -88,6 +90,19 @@ export async function getDashboard(ctx: TenantContext): Promise<DashboardData> {
           where: { ...active, type: { in: [...COSTED_TYPES] }, costMinor: null },
         })
       : null;
+
+    const today = todayInTimeZone(ctx.timezone);
+    const todayDate = new Date(Date.UTC(today.year, today.month - 1, today.day));
+    const [draftQuotes, sentQuotes] = await Promise.all([
+      tx.quote.count({ where: { tenantId, status: 'DRAFT' } }),
+      tx.quote.count({
+        where: {
+          tenantId,
+          status: 'SENT',
+          OR: [{ validUntil: null }, { validUntil: { gte: todayDate } }],
+        },
+      }),
+    ]);
 
     const team = canSeeTeam
       ? {
@@ -145,6 +160,7 @@ export async function getDashboard(ctx: TenantContext): Promise<DashboardData> {
         bouquetsWithoutRecipe,
         itemsMissingCost,
       },
+      quotes: { drafts: draftQuotes, sent: sentQuotes },
       team,
       onboarding,
       recentActivity,

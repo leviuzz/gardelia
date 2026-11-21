@@ -34,6 +34,9 @@ export const PERMISSIONS = {
   'catalog:costs:read': MANAGEMENT,
   'customers:read': ALL,
   'customers:write': MANAGEMENT,
+  'quotes:read': ALL,
+  /** Creare e modificare preventivi, cambiarne lo stato. */
+  'quotes:write': MANAGEMENT,
   /** Vedere il registro attività (audit) della fioreria. */
   'audit:read': MANAGEMENT,
 } as const satisfies Record<string, readonly MembershipRole[]>;

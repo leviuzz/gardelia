@@ -62,6 +62,12 @@ export const AUDIT_ACTIONS = {
   customerAddressArchived: 'customer.address_archived',
   customerOccasionAdded: 'customer.occasion_added',
   customerOccasionRemoved: 'customer.occasion_removed',
+  quoteCreated: 'quote.created',
+  quoteUpdated: 'quote.updated',
+  quoteLineAdded: 'quote.line_added',
+  quoteLineUpdated: 'quote.line_updated',
+  quoteLineRemoved: 'quote.line_removed',
+  quoteStatusChanged: 'quote.status_changed',
   securityTenantAccessDenied: 'security.tenant_access_denied',
   securityCrossTenantAccess: 'security.cross_tenant_access_attempt',
 } as const;

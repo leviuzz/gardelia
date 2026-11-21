@@ -4,6 +4,7 @@ import {
   Mail,
   MessageCircle,
   Phone,
+  Plus,
   TriangleExclamationPoint,
 } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -13,6 +14,8 @@ import { getFormatter, getTranslations } from 'next-intl/server';
 import {
   NotFoundError,
   getCustomer,
+  hasPermission,
+  listCustomerQuotes,
   type CustomerDetailDto,
   type TenantContext,
 } from '@floral/core';
@@ -23,7 +26,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { phoneForInput } from '@/lib/format';
+import { money, phoneForInput } from '@/lib/format';
+import { QUOTE_STATUS_BADGE } from '@/lib/quote-ui';
 import { getTenantContext } from '@/lib/tenant';
 import {
   addAddressAction,
@@ -66,6 +70,8 @@ export default async function CustomerPage({
   const { tenantSlug, customerId } = await params;
   const ctx = await getTenantContext(tenantSlug);
   const customer = await loadCustomer(ctx, customerId);
+  const quotes = await listCustomerQuotes(ctx, customer.id);
+  const canQuote = hasPermission(ctx, 'quotes:write') && customer.status === 'ACTIVE';
   const created = (await searchParams).created === '1';
   const t = await getTranslations();
   const format = await getFormatter();
@@ -202,6 +208,51 @@ export default async function CustomerPage({
         </div>
 
         <div className="min-w-0 space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-start justify-between gap-3">
+              <CardTitle>{t('quotes.customerCard.title')}</CardTitle>
+              {canQuote ? (
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/app/${slug}/quotes/new?customerId=${customer.id}`}>
+                    <Plus />
+                    {t('quotes.customerCard.new')}
+                  </Link>
+                </Button>
+              ) : null}
+            </CardHeader>
+            <CardContent>
+              {quotes.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('quotes.customerCard.empty')}</p>
+              ) : (
+                <ul className="-mx-2 divide-y">
+                  {quotes.slice(0, 5).map((quote) => (
+                    <li key={quote.id}>
+                      <Link
+                        href={`/app/${slug}/quotes/${quote.id}`}
+                        className="flex items-center gap-3 rounded-lg px-2 py-2.5 text-sm transition-colors hover:bg-muted/40"
+                      >
+                        <span className="font-medium tabular-nums">{quote.numberLabel}</span>
+                        <Badge variant={QUOTE_STATUS_BADGE[quote.status]}>
+                          {t(`quotes.statuses.${quote.status}`)}
+                        </Badge>
+                        <span className="ml-auto font-medium tabular-nums">
+                          {money(quote.totalMinor, quote.currency)}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {quotes.length > 5 ? (
+                <Link
+                  href={`/app/${slug}/quotes?q=${encodeURIComponent(customer.displayName)}`}
+                  className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
+                >
+                  {t('quotes.customerCard.viewAll')}
+                </Link>
+              ) : null}
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader>
               <CardTitle>{t('customers.addresses.title')}</CardTitle>

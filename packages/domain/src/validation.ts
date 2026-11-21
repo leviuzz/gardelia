@@ -26,6 +26,8 @@ export const VALIDATION_CODES = [
   'canonical_not_allowed_for_type',
   'too_many_items',
   'invalid_date',
+  'discount_exceeds_subtotal',
+  'item_unavailable',
   'invalid',
 ] as const;
 

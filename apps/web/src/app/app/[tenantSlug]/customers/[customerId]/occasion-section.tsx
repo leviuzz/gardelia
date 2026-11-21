@@ -2,16 +2,16 @@
 
 import { CalendarHeart, Plus, Trash } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
 import { OCCASION_TYPES, type OccasionType } from '@floral/domain';
 import { Field, controlProps } from '@/components/form/field';
 import { SubmitButton } from '@/components/form/submit-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input, NativeSelect } from '@/components/ui/input';
-import { fieldError, idleState, type ActionState } from '@/lib/action-state';
+import { fieldError, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
-import { useActionToast } from '@/lib/use-action-toast';
+import { useToastActionState } from '@/lib/use-action-toast';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -28,8 +28,7 @@ export interface OccasionView {
 }
 
 function RemoveOccasionButton({ action, label }: { action: Action; label: string }) {
-  const [state, formAction] = useActionState(action, idleState);
-  useActionToast(state);
+  const [, formAction] = useToastActionState(action);
   return (
     <form action={formAction}>
       <SubmitButton size="icon-sm" variant="ghost" aria-label={label}>
@@ -44,12 +43,7 @@ function AddOccasionForm({ action, onDone }: { action: Action; onDone: () => voi
   const tCustomers = useTranslations('customers');
   const tCommon = useTranslations('common');
   const [type, setType] = useState<OccasionType>('BIRTHDAY');
-  const [state, formAction] = useActionState(async (prev: ActionState, formData: FormData) => {
-    const result = await action(prev, formData);
-    if (result.status === 'success') onDone();
-    return result;
-  }, idleState);
-  useActionToast(state);
+  const [state, formAction] = useToastActionState(action, onDone);
   const err = (field: string) => fieldError(state, field);
   const months = tCustomers.raw('months') as string[];
 
