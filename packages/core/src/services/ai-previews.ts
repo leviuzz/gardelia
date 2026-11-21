@@ -22,7 +22,8 @@ import {
   type AiQuota,
   type BouquetPreviewSpec,
 } from '@floral/domain';
-import { getAiProvider, aiMonthlyBudgetMicros, type AiImageProvider } from '../ai/providers';
+import { fitsMonthlyAiBudget } from '../ai/budget';
+import { getAiProvider, type AiImageProvider } from '../ai/providers';
 import { getObjectStorage } from '../ai/storage';
 import { notifyAiWorker } from '../ai/signal';
 import { notFound, recordAudit } from '../audit';
@@ -327,10 +328,7 @@ export async function requestBouquetPreview(
     const quota = await quotaFor(tx, ctx, now);
     if (!quota.nextSource) throw new ConflictError('ai_quota_exhausted');
 
-    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    const spent = await tx.$queryRaw<{ total: bigint }[]>`
-      SELECT app_ai_spend_since(${monthStart}::timestamptz) AS total`;
-    if (Number(spent[0]?.total ?? 0) + provider.estimatedCostMicros > aiMonthlyBudgetMicros()) {
+    if (!(await fitsMonthlyAiBudget(tx, provider.estimatedCostMicros, now))) {
       throw new ConflictError('ai_budget_reached');
     }
 

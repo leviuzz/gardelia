@@ -30,7 +30,21 @@ export {
   type AiProviderErrorCode,
   type GeneratedImage,
 } from './ai/providers';
-export { FAL_MODEL_IDS, FalImageProvider, FalStyleDescriber, type FalModelId } from './ai/fal';
+export {
+  FAL_MODEL_IDS,
+  FalBackgroundRemover,
+  FalImageProvider,
+  FalStyleDescriber,
+  type FalModelId,
+} from './ai/fal';
+export {
+  ChromaKeyBackgroundRemover,
+  createBackgroundRemoverFromEnv,
+  finishCutout,
+  getBackgroundRemover,
+  setBackgroundRemover,
+  type BackgroundRemover,
+} from './ai/background-remover';
 export {
   SimulatedStyleDescriber,
   createStyleDescriberFromEnv,

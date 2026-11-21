@@ -8,24 +8,33 @@
  *  - I file restano privati sotto `tenants/{tenantId}/catalog-photos/` e si leggono solo
  *    tramite questo servizio (route dell'app con controllo di tenant e permessi).
  *  - Nessuna cancellazione fisica: le foto tolte si archiviano.
+ *  - Scontorno automatico (ADR-033): a ogni foto si accoda un job `PHOTO_CUTOUT` nella stessa
+ *    transazione (costo della piattaforma, nessun credito del fiorista); il worker salva la
+ *    versione senza fondo accanto all'originale.
  */
-import { getDb, withTenantContext } from '@floral/db';
+import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
   PHOTO_LIMITS,
   allowsPhotos,
+  canRequestCutout,
   catalogPhotoInputSchema,
   isUuid,
   newId,
   toFieldErrors,
   type CatalogItemType,
   type CatalogPhotoView,
+  type CutoutError,
 } from '@floral/domain';
+import { getBackgroundRemover } from '../ai/background-remover';
+import { fitsMonthlyAiBudget } from '../ai/budget';
+import { notifyAiWorker } from '../ai/signal';
 import { getObjectStorage } from '../ai/storage';
 import { notFound, recordAudit } from '../audit';
 import { requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
-import { NotFoundError, ValidationError } from '../errors';
+import { ConflictError, NotFoundError, ValidationError } from '../errors';
+import { logger } from '../logger';
 import { normalizeUploadedPhoto } from '../media/images';
 
 export interface CatalogPhotoDto {
@@ -35,10 +44,13 @@ export interface CatalogPhotoDto {
   readonly color: string | null;
   readonly width: number;
   readonly height: number;
+  /** Scontorno: null = non chiesto (nessun servizio configurato). */
+  readonly cutoutStatus: 'PENDING' | 'READY' | 'FAILED' | null;
+  readonly cutoutError: CutoutError | null;
   readonly createdAt: Date;
 }
 
-export type PhotoVariant = 'full' | 'thumb';
+export type PhotoVariant = 'full' | 'thumb' | 'cutout' | 'cutout-thumb';
 
 function toDto(photo: {
   id: string;
@@ -47,6 +59,8 @@ function toDto(photo: {
   color: string | null;
   width: number;
   height: number;
+  cutoutStatus: 'PENDING' | 'READY' | 'FAILED' | null;
+  cutoutError: string | null;
   createdAt: Date;
 }): CatalogPhotoDto {
   return {
@@ -56,8 +70,59 @@ function toDto(photo: {
     color: photo.color,
     width: photo.width,
     height: photo.height,
+    cutoutStatus: photo.cutoutStatus,
+    cutoutError: photo.cutoutError as CutoutError | null,
     createdAt: photo.createdAt,
   };
+}
+
+/** Chiave della miniatura del ritaglio, derivata da quella del ritaglio. */
+export function cutoutThumbKey(cutoutKey: string): string {
+  return cutoutKey.replace(/-cutout\.png$/, '-cutout-thumb.png');
+}
+
+/** C'è un servizio di scontorno? Senza, la UI non promette fondi tolti. */
+export function photoCutoutsAvailable(): boolean {
+  return getBackgroundRemover() !== null;
+}
+
+/**
+ * Accoda lo scontorno di una foto (nella transazione del chiamante). false se nessun servizio
+ * di scontorno è configurato o se il tetto di spesa del mese è raggiunto: la foto resta
+ * valida, solo senza versione ritagliata.
+ */
+async function enqueueCutout(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  photoId: string,
+  now: Date = new Date(),
+): Promise<boolean> {
+  const remover = getBackgroundRemover();
+  if (!remover) return false;
+  if (!(await fitsMonthlyAiBudget(tx, remover.estimatedCostMicros, now))) {
+    logger.warn({ tenantId: ctx.tenantId, photoId }, 'scontorno saltato: tetto di spesa AI');
+    return false;
+  }
+  await tx.aiJob.create({
+    data: {
+      tenantId: ctx.tenantId,
+      feature: 'PHOTO_CUTOUT',
+      status: 'QUEUED',
+      requestedById: ctx.userId,
+      quotaSource: null,
+      inputHash: photoId,
+      input: { version: 1, photoId },
+      provider: remover.id,
+      model: remover.model,
+      estimatedCostMicros: remover.estimatedCostMicros,
+      runAfter: new Date(),
+    },
+  });
+  await tx.catalogItemPhoto.updateMany({
+    where: { id: photoId, tenantId: ctx.tenantId },
+    data: { cutoutStatus: 'PENDING', cutoutError: null },
+  });
+  return true;
 }
 
 /** Foto attive di un articolo, nell'ordine in cui sono state aggiunte (la prima è la copertina). */
@@ -145,10 +210,45 @@ export async function addCatalogItemPhoto(
       entityId: itemId,
       metadata: { photoId: id, name: item.name, view: input.view, color: input.color },
     });
-    return created;
+    const queued = await enqueueCutout(tx, ctx, id);
+    return queued ? { ...created, cutoutStatus: 'PENDING' as const } : created;
   });
   if (!photo) return notFound(ctx, 'CatalogItem', itemId);
+  if (photo.cutoutStatus === 'PENDING') notifyAiWorker();
   return toDto(photo);
+}
+
+/**
+ * Chiede (di nuovo) lo scontorno: per una foto mai ritagliata o se il servizio ha avuto un
+ * problema, al massimo `PHOTO_LIMITS.cutoutRequests` volte per foto. Un ritaglio scartato dal
+ * controllo di qualità non si rifà (stessa foto, stesso risultato): serve un'altra foto.
+ * Restituisce l'articolo della foto.
+ */
+export async function requestPhotoCutout(
+  ctx: TenantContext,
+  photoId: string,
+): Promise<{ itemId: string; queued: boolean }> {
+  requirePermission(ctx, 'catalog:write');
+  if (!isUuid(photoId)) throw new NotFoundError('CatalogItemPhoto');
+  const result = await withTenantContext(getDb(), ctx, async (tx) => {
+    const photo = await tx.catalogItemPhoto.findFirst({
+      where: { id: photoId, tenantId: ctx.tenantId, status: 'ACTIVE' },
+      select: { id: true, catalogItemId: true, cutoutStatus: true, cutoutError: true },
+    });
+    if (!photo) return null;
+    if (!canRequestCutout(photo.cutoutStatus, photo.cutoutError)) {
+      return { itemId: photo.catalogItemId, queued: false };
+    }
+    const requests = await tx.aiJob.count({
+      where: { tenantId: ctx.tenantId, feature: 'PHOTO_CUTOUT', inputHash: photo.id },
+    });
+    if (requests >= PHOTO_LIMITS.cutoutRequests) throw new ConflictError('cutout_retry_limit');
+    if (!(await enqueueCutout(tx, ctx, photo.id))) throw new ConflictError('cutout_unavailable');
+    return { itemId: photo.catalogItemId, queued: true };
+  });
+  if (!result) return notFound(ctx, 'CatalogItemPhoto', photoId);
+  if (result.queued) notifyAiWorker();
+  return result;
 }
 
 /** Toglie una foto (archiviazione). Restituisce l'articolo a cui apparteneva. */
@@ -191,10 +291,25 @@ export async function getCatalogPhotoImage(
   const photo = await withTenantContext(getDb(), ctx, (tx) =>
     tx.catalogItemPhoto.findFirst({
       where: { id: photoId, tenantId: ctx.tenantId, status: 'ACTIVE' },
-      select: { storageKey: true, thumbKey: true, contentType: true },
+      select: {
+        storageKey: true,
+        thumbKey: true,
+        contentType: true,
+        cutoutStatus: true,
+        cutoutKey: true,
+      },
     }),
   );
   if (!photo) return notFound(ctx, 'CatalogItemPhoto', photoId);
+  if (variant === 'cutout' || variant === 'cutout-thumb') {
+    if (photo.cutoutStatus !== 'READY' || !photo.cutoutKey) {
+      throw new NotFoundError('CatalogItemPhoto');
+    }
+    const key = variant === 'cutout' ? photo.cutoutKey : cutoutThumbKey(photo.cutoutKey);
+    const bytes = await getObjectStorage().get(key);
+    if (!bytes) throw new NotFoundError('CatalogItemPhoto');
+    return { bytes, contentType: 'image/png' };
+  }
   const bytes = await getObjectStorage().get(
     variant === 'thumb' ? photo.thumbKey : photo.storageKey,
   );

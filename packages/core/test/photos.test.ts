@@ -4,6 +4,8 @@ import { disconnectDb, getDb, withSystemContext } from '@floral/db';
 import { createTestUser } from '@floral/db/testing';
 import { PHOTO_LIMITS } from '@floral/domain';
 import {
+  AiProviderError,
+  ChromaKeyBackgroundRemover,
   ForbiddenError,
   MemoryStorage,
   NotFoundError,
@@ -19,9 +21,13 @@ import {
   getStyleReferenceImage,
   listCatalogItemPhotos,
   listStyleReferences,
+  requestPhotoCutout,
+  setBackgroundRemover,
   setObjectStorage,
+  type BackgroundRemover,
   type CatalogItemDto,
 } from '../src/index';
+import { processNextAiJob } from '../src/ai/worker';
 import { assignTenantPlan } from '../src/platform';
 import { createTestShop, itemInput, type TestShop } from '../src/testing';
 
@@ -64,8 +70,30 @@ async function withPlan(shop: TestShop, planCode: 'PLUS' | 'BASIC') {
   });
 }
 
+/** Fiore rosso su fondo grigio liso: il caso che chiediamo al fiorista. */
+async function flowerOnPlainBackground(): Promise<Uint8Array> {
+  const svg = Buffer.from(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="700"><rect width="900" height="700" fill="#d9d9d9"/><circle cx="450" cy="350" r="160" fill="#c0392b"/></svg>',
+  );
+  return new Uint8Array(await sharp(svg).jpeg({ quality: 90 }).toBuffer());
+}
+
+async function cutoutJobOf(photoId: string) {
+  return withSystemContext(db, { reason: 'test: job di scontorno' }, (tx) =>
+    tx.aiJob.findFirst({ where: { feature: 'PHOTO_CUTOUT', inputHash: photoId } }),
+  );
+}
+
+async function cutoutJobCount(photoId: string) {
+  return withSystemContext(db, { reason: 'test: job di scontorno' }, (tx) =>
+    tx.aiJob.count({ where: { feature: 'PHOTO_CUTOUT', inputHash: photoId } }),
+  );
+}
+
 beforeAll(async () => {
   setObjectStorage(storage);
+  // Per default niente scontorno: i test che lo provano scelgono il ritagliatore.
+  setBackgroundRemover(null);
   const operator = await createTestUser(db, { name: 'Operador Fotos' });
   await withSystemContext(db, { reason: 'test: admin di piattaforma' }, (tx) =>
     tx.user.update({ where: { id: operator.id }, data: { platformRole: 'SUPER_ADMIN' } }),
@@ -88,6 +116,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   setObjectStorage(null);
+  setBackgroundRemover(undefined);
   await disconnectDb();
 });
 
@@ -297,5 +326,203 @@ describe('Mis ramos (riferimenti di stile)', () => {
       NotFoundError,
     );
     expect((await listStyleReferences(shopA.owner)).map((r) => r.id)).toContain(reference.id);
+  });
+});
+
+describe('scontorno automatico (ADR-033)', () => {
+  it('si accoda al caricamento e produce un PNG trasparente, rifilato, con miniatura', async () => {
+    const remover = new ChromaKeyBackgroundRemover();
+    setBackgroundRemover(remover);
+    try {
+      const shop = await createTestShop('Florería Recortes');
+      const item = await createCatalogItem(shop.owner, itemInput({ name: 'Rosa roja' }));
+      const photo = await addCatalogItemPhoto(
+        shop.owner,
+        item.id,
+        await flowerOnPlainBackground(),
+        {},
+      );
+      expect(photo.cutoutStatus).toBe('PENDING');
+
+      expect(await processNextAiJob({ onlyTenantId: shop.tenant.tenantId, remover })).toBe(
+        'succeeded',
+      );
+      const [ready] = await listCatalogItemPhotos(shop.staff, item.id);
+      expect(ready).toMatchObject({ id: photo.id, cutoutStatus: 'READY', cutoutError: null });
+
+      const cutout = await getCatalogPhotoImage(shop.staff, photo.id, 'cutout');
+      expect(cutout.contentType).toBe('image/png');
+      const meta = await sharp(cutout.bytes).metadata();
+      expect(meta.hasAlpha).toBe(true);
+      // Margini trasparenti tagliati: resta circa il cerchio (diametro 320 su 900×700, ridotto
+      // a 1024 px di lavoro).
+      expect(meta.width).toBeLessThan(500);
+      expect(meta.height).toBeLessThan(500);
+      const thumb = await getCatalogPhotoImage(shop.staff, photo.id, 'cutout-thumb');
+      expect((await sharp(thumb.bytes).metadata()).width).toBeLessThanOrEqual(480);
+
+      // Nessun credito del fiorista: job della piattaforma, consumo zero.
+      expect(await cutoutJobOf(photo.id)).toMatchObject({
+        status: 'SUCCEEDED',
+        usageUnits: 0,
+        quotaSource: null,
+      });
+    } finally {
+      setBackgroundRemover(null);
+    }
+  });
+
+  it("una foto senza soggetto si segnala e non si ritaglia di nuovo (serve un'altra foto)", async () => {
+    const remover = new ChromaKeyBackgroundRemover();
+    setBackgroundRemover(remover);
+    try {
+      const shop = await createTestShop('Florería Recortes vacíos');
+      const item = await createCatalogItem(shop.owner, itemInput({ name: 'Tulipán' }));
+      const empty = new Uint8Array(
+        await sharp({ create: { width: 800, height: 800, channels: 3, background: '#cccccc' } })
+          .jpeg()
+          .toBuffer(),
+      );
+      const photo = await addCatalogItemPhoto(shop.owner, item.id, empty, {});
+      expect(await processNextAiJob({ onlyTenantId: shop.tenant.tenantId, remover })).toBe(
+        'failed',
+      );
+      expect((await listCatalogItemPhotos(shop.owner, item.id))[0]).toMatchObject({
+        cutoutStatus: 'FAILED',
+        cutoutError: 'cutout_nothing_kept',
+      });
+      await expect(getCatalogPhotoImage(shop.owner, photo.id, 'cutout')).rejects.toBeInstanceOf(
+        NotFoundError,
+      );
+
+      await expect(requestPhotoCutout(shop.staff, photo.id)).rejects.toBeInstanceOf(ForbiddenError);
+      // Stessa foto, stesso risultato: nessun nuovo job (e nessun costo).
+      expect(await requestPhotoCutout(shop.owner, photo.id)).toEqual({
+        itemId: item.id,
+        queued: false,
+      });
+      expect((await listCatalogItemPhotos(shop.owner, item.id))[0]?.cutoutStatus).toBe('FAILED');
+      expect(await cutoutJobCount(photo.id)).toBe(1);
+    } finally {
+      setBackgroundRemover(null);
+    }
+  });
+
+  it('se il servizio fallisce la foto resta; si riprova fino al limite di tentativi', async () => {
+    const failing: BackgroundRemover = {
+      id: 'stub',
+      model: 'stub-remover',
+      estimatedCostMicros: 0,
+      remove: async () => {
+        throw new AiProviderError('invalid_request', 'immagine rifiutata');
+      },
+    };
+    setBackgroundRemover(failing);
+    try {
+      const shop = await createTestShop('Florería Recortes fallidos');
+      const item = await createCatalogItem(shop.owner, itemInput({ name: 'Lilium' }));
+      const photo = await addCatalogItemPhoto(
+        shop.owner,
+        item.id,
+        await flowerOnPlainBackground(),
+        {},
+      );
+      const run = () => processNextAiJob({ onlyTenantId: shop.tenant.tenantId, remover: failing });
+      expect(await run()).toBe('failed');
+      expect((await listCatalogItemPhotos(shop.owner, item.id))[0]).toMatchObject({
+        cutoutStatus: 'FAILED',
+        cutoutError: 'cutout_failed',
+      });
+
+      // "Reintentar": nuovi tentativi fino a PHOTO_LIMITS.cutoutRequests richieste in tutto.
+      for (let request = 2; request <= PHOTO_LIMITS.cutoutRequests; request++) {
+        expect(await requestPhotoCutout(shop.manager, photo.id)).toEqual({
+          itemId: item.id,
+          queued: true,
+        });
+        expect((await listCatalogItemPhotos(shop.owner, item.id))[0]?.cutoutStatus).toBe('PENDING');
+        expect(await run()).toBe('failed');
+      }
+      await expect(requestPhotoCutout(shop.owner, photo.id)).rejects.toMatchObject({
+        reason: 'cutout_retry_limit',
+      });
+      expect(await cutoutJobCount(photo.id)).toBe(PHOTO_LIMITS.cutoutRequests);
+    } finally {
+      setBackgroundRemover(null);
+    }
+  });
+
+  it('con il tetto di spesa del mese raggiunto la foto si salva senza ritaglio', async () => {
+    const expensive: BackgroundRemover = {
+      id: 'stub',
+      model: 'stub-remover',
+      estimatedCostMicros: 10 ** 12,
+      remove: async () => {
+        throw new Error('non deve essere chiamato');
+      },
+    };
+    setBackgroundRemover(expensive);
+    try {
+      const shop = await createTestShop('Florería Recortes sin presupuesto');
+      const item = await createCatalogItem(shop.owner, itemInput({ name: 'Peonía' }));
+      const photo = await addCatalogItemPhoto(
+        shop.owner,
+        item.id,
+        await flowerOnPlainBackground(),
+        {},
+      );
+      expect(photo.cutoutStatus).toBeNull();
+      expect(await cutoutJobCount(photo.id)).toBe(0);
+      await expect(requestPhotoCutout(shop.owner, photo.id)).rejects.toMatchObject({
+        reason: 'cutout_unavailable',
+      });
+    } finally {
+      setBackgroundRemover(null);
+    }
+  });
+
+  it('senza servizio di scontorno la foto vale lo stesso, senza ritaglio', async () => {
+    setBackgroundRemover(null);
+    const shop = await createTestShop('Florería sin recortes');
+    const item = await createCatalogItem(shop.owner, itemInput({ name: 'Girasol' }));
+    const photo = await addCatalogItemPhoto(
+      shop.owner,
+      item.id,
+      await flowerOnPlainBackground(),
+      {},
+    );
+    expect(photo.cutoutStatus).toBeNull();
+    await expect(requestPhotoCutout(shop.owner, photo.id)).rejects.toMatchObject({
+      reason: 'cutout_unavailable',
+    });
+    expect((await listCatalogItemPhotos(shop.owner, item.id))[0]?.cutoutStatus).toBeNull();
+  });
+
+  it('isolamento A ↔ B: ritagli e richieste solo nella propria fioreria', async () => {
+    const remover = new ChromaKeyBackgroundRemover();
+    setBackgroundRemover(remover);
+    try {
+      const a = await createTestShop('Florería Recortes A');
+      const b = await createTestShop('Florería Recortes B');
+      const item = await createCatalogItem(a.owner, itemInput({ name: 'Rosa roja' }));
+      const photo = await addCatalogItemPhoto(
+        a.owner,
+        item.id,
+        await flowerOnPlainBackground(),
+        {},
+      );
+      await processNextAiJob({ onlyTenantId: a.tenant.tenantId, remover });
+      await expect(getCatalogPhotoImage(b.owner, photo.id, 'cutout')).rejects.toBeInstanceOf(
+        NotFoundError,
+      );
+      await expect(requestPhotoCutout(b.owner, photo.id)).rejects.toBeInstanceOf(NotFoundError);
+      // Il worker di B non vede il lavoro di A.
+      expect(await processNextAiJob({ onlyTenantId: b.tenant.tenantId, remover })).toBe('idle');
+      expect(
+        (await getCatalogPhotoImage(a.owner, photo.id, 'cutout')).bytes.length,
+      ).toBeGreaterThan(0);
+    } finally {
+      setBackgroundRemover(null);
+    }
   });
 });

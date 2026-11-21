@@ -20,6 +20,7 @@ import {
   type AiImageProvider,
   type GeneratedImage,
 } from './provider-types';
+import type { BackgroundRemover } from './background-remover';
 import { STYLE_DESCRIBER_PROMPT, type StyleDescriber, type StyleDescription } from './style-types';
 
 export interface FalModelProfile {
@@ -144,33 +145,12 @@ export class FalImageProvider implements AiImageProvider {
     const url = imageUrlOf(payload, where);
     const bytes = url.startsWith('data:')
       ? decodeDataUri(url, where)
-      : await this.#download(url, signal);
+      : await downloadFalMedia(this.#fetch, url, signal);
     // Il tipo si decide dai byte, non da quanto dichiarato nella risposta.
     const contentType = sniffImageType(bytes);
     if (!contentType)
       throw new AiProviderError('provider_error', `${where}: il file non è un'immagine`);
     return { bytes, contentType, costMicros: this.estimatedCostMicros };
-  }
-
-  /** Solo se il modello ignorasse `sync_mode`: URL del CDN di fal, mai host arbitrari. */
-  async #download(url: string, signal: AbortSignal): Promise<Uint8Array> {
-    let target: URL;
-    try {
-      target = new URL(url);
-    } catch {
-      throw new AiProviderError('provider_error', 'URL dell’immagine non valido');
-    }
-    if (target.protocol !== 'https:' || !FAL_MEDIA_HOST.test(target.hostname)) {
-      throw new AiProviderError(
-        'provider_error',
-        `host dell’immagine non ammesso: ${target.hostname}`,
-      );
-    }
-    const response = await this.#fetch(target, { signal, redirect: 'error' });
-    if (!response.ok) {
-      throw new AiProviderError('provider_error', `download dell’immagine: ${response.status}`);
-    }
-    return readCapped(response, MAX_IMAGE_BYTES);
   }
 }
 
@@ -266,6 +246,112 @@ export function parseStyleDescription(output: string, where = 'fal vision'): Sty
     throw new AiProviderError('provider_error', `${where}: descrizione incompleta`);
   }
   return { en: en.trim(), es: es.trim() };
+}
+
+/** Solo se il modello ignorasse `sync_mode`: URL del CDN di fal, mai host arbitrari. */
+async function downloadFalMedia(
+  fetchImpl: typeof fetch,
+  url: string,
+  signal: AbortSignal,
+): Promise<Uint8Array> {
+  let target: URL;
+  try {
+    target = new URL(url);
+  } catch {
+    throw new AiProviderError('provider_error', 'URL dell’immagine non valido');
+  }
+  if (target.protocol !== 'https:' || !FAL_MEDIA_HOST.test(target.hostname)) {
+    throw new AiProviderError(
+      'provider_error',
+      `host dell’immagine non ammesso: ${target.hostname}`,
+    );
+  }
+  const response = await fetchImpl(target, { signal, redirect: 'error' });
+  if (!response.ok) {
+    throw new AiProviderError('provider_error', `download dell’immagine: ${response.status}`);
+  }
+  return readCapped(response, MAX_IMAGE_BYTES);
+}
+
+// -----------------------------------------------------------------------------
+// Scontorno delle foto del catalogo (ADR-033): BiRefNet via fal
+// -----------------------------------------------------------------------------
+
+export interface FalBackgroundRemoverOptions {
+  readonly apiKey: string;
+  /** Solo per i test. */
+  readonly baseUrl?: string;
+  /** Solo per i test. */
+  readonly fetch?: typeof fetch;
+}
+
+export class FalBackgroundRemover implements BackgroundRemover {
+  readonly id = 'fal';
+  /** Scelto il 21/11/2026: qualità pari a Bria RMBG 2.0 a circa un decimo del costo. */
+  readonly model = 'fal-ai/birefnet/v2';
+  // Si paga a secondi di calcolo (~1–2 s per foto): stima prudente 0,002 USD.
+  readonly estimatedCostMicros = 2_000;
+  readonly #apiKey: string;
+  readonly #baseUrl: string;
+  readonly #fetch: typeof fetch;
+
+  constructor(options: FalBackgroundRemoverOptions) {
+    const apiKey = options.apiKey.trim();
+    if (!apiKey) throw new Error('FAL_KEY mancante');
+    this.#apiKey = apiKey;
+    this.#baseUrl = (options.baseUrl ?? 'https://fal.run').replace(/\/+$/, '');
+    this.#fetch = options.fetch ?? ((input, init) => fetch(input, init));
+  }
+
+  async remove(
+    image: { readonly bytes: Uint8Array; readonly contentType: string },
+    signal: AbortSignal,
+  ): Promise<{ png: Uint8Array; costMicros: number | null }> {
+    try {
+      const dataUri = `data:${image.contentType};base64,${Buffer.from(image.bytes).toString('base64')}`;
+      const response = await this.#fetch(`${this.#baseUrl}/${this.model}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Key ${this.#apiKey}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          image_url: dataUri,
+          model: 'General Use (Heavy)',
+          operating_resolution: '1024x1024',
+          output_format: 'png',
+          sync_mode: true,
+        }),
+        signal,
+      });
+      const requestId = response.headers.get('x-fal-request-id');
+      const where = `fal birefnet ${response.status}${requestId ? ` (richiesta ${requestId})` : ''}`;
+      if (!response.ok) throw await httpError(response, where);
+      let payload: unknown;
+      try {
+        payload = JSON.parse(
+          new TextDecoder().decode(await readCapped(response, MAX_RESPONSE_BYTES)),
+        );
+      } catch (error) {
+        if (error instanceof AiProviderError || isAbort(error)) throw error;
+        throw new AiProviderError('provider_error', `${where}: risposta non in JSON`);
+      }
+      const url = (payload as { image?: { url?: unknown } } | null)?.image?.url;
+      if (typeof url !== 'string' || url.length === 0) {
+        throw new AiProviderError('provider_error', `${where}: nessuna immagine nella risposta`);
+      }
+      const png = url.startsWith('data:')
+        ? decodeDataUri(url, where)
+        : await downloadFalMedia(this.#fetch, url, signal);
+      if (sniffImageType(png) !== 'image/png') {
+        throw new AiProviderError('provider_error', `${where}: il ritaglio non è un PNG`);
+      }
+      return { png, costMicros: this.estimatedCostMicros };
+    } catch (error) {
+      throw toProviderError(error);
+    }
+  }
 }
 
 function isAbort(error: unknown): boolean {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   AiProviderError,
+  FalBackgroundRemover,
   FalImageProvider,
   FalStyleDescriber,
   createAiProviderFromEnv,
@@ -339,5 +340,41 @@ describe('FalStyleDescriber (stile a parole, ADR-032)', () => {
       createStyleDescriberFromEnv({ APP_URL: 'https://x.example', AI_PROVIDER: 'simulated' }),
     ).toBeNull();
     expect(createStyleDescriberFromEnv({ AI_PROVIDER: 'none' })).toBeNull();
+  });
+});
+
+describe('FalBackgroundRemover (scontorno, ADR-033)', () => {
+  const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
+  const image = { bytes: JPEG, contentType: 'image/jpeg' };
+
+  it('manda la foto a BiRefNet e restituisce il PNG trasparente', async () => {
+    const fal = fakeFal(json({ image: { url: dataUri(PNG_BYTES, 'image/png') }, mask_image: {} }));
+    const remover = new FalBackgroundRemover({ apiKey: SECRET, fetch: fal.fetchImpl });
+    const result = await remover.remove(image, AbortSignal.timeout(5_000));
+    expect([...result.png]).toEqual([...PNG_BYTES]);
+    expect(result.costMicros).toBe(remover.estimatedCostMicros);
+    const call = fal.calls[0]!;
+    expect(call.url).toBe('https://fal.run/fal-ai/birefnet/v2');
+    const body = JSON.parse(String(call.init?.body));
+    expect(body).toMatchObject({ output_format: 'png', sync_mode: true });
+    expect(body.image_url).toMatch(/^data:image\/jpeg;base64,/);
+  });
+
+  it('rifiuta risposte senza PNG e mappa gli errori del servizio', async () => {
+    const notPng = new FalBackgroundRemover({
+      apiKey: SECRET,
+      fetch: fakeFal(json({ image: { url: dataUri(JPEG) } })).fetchImpl,
+    });
+    const error = await notPng.remove(image, AbortSignal.timeout(5_000)).catch((e) => e);
+    expect(error).toBeInstanceOf(AiProviderError);
+    expect((error as AiProviderError).code).toBe('provider_error');
+
+    const invalid = new FalBackgroundRemover({
+      apiKey: SECRET,
+      fetch: fakeFal(json({ detail: [{ type: 'value_error', msg: 'bad image' }] }, 422)).fetchImpl,
+    });
+    const rejected = await invalid.remove(image, AbortSignal.timeout(5_000)).catch((e) => e);
+    expect((rejected as AiProviderError).code).toBe('invalid_request');
+    expect((rejected as AiProviderError).message).not.toContain(SECRET);
   });
 });
