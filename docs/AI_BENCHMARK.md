@@ -68,3 +68,16 @@ diretto del modello scelto senza cambiare il resto del sistema.
 
 Prova più ampia (≈100 immagini, spec §15.4) con il modello scelto: costo reale per anteprima
 riuscita, tempi, tasso di errore. Da qui i prezzi dei pacchetti (ADR-024: almeno 3× il costo).
+
+## Risultati della prima prova (21/11/2026, via fal.ai, 15 immagini)
+
+Stessi 5 prompt, un'immagine per modello, 1024×1024. Conteggi verificati a vista.
+
+| Modello (endpoint fal)                             | Tempo   | Costo indicativo               | Fedeltà alla distinta                                                                           | Note                                                              |
+| -------------------------------------------------- | ------- | ------------------------------ | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Nano Banana 2 (`fal-ai/nano-banana-2`)             | 9–12 s  | 0,08 USD (1K), 0,06 USD (0.5K) | La migliore: 3/3 girasoli, 4/4 girasoli, 7 rose ✓; a volte un tulipano o un po' di verde in più | Foto molto realistiche, ramo intero, spago e verde naturali       |
+| GPT Image 2 (`fal-ai/gpt-image-2`, quality medium) | 28–44 s | ≈ 0,05 USD                     | Buona: 3/3 e 4/4 girasoli ✓; una rosa o un tulipano in meno in 2 casi                           | Immagini pulite ma spesso inquadrate strette; 3 volte più lento   |
+| FLUX.2 pro (`fal-ai/flux-2-pro`)                   | 11–12 s | ≈ 0,03 USD                     | La più debole: 5 girasoli invece di 3, 6 invece di 4                                            | Ha aggiunto un'etichetta tipo logo sul kraft (vietato dal prompt) |
+
+**Proposta:** Nano Banana 2 come modello predefinito (fedeltà, realismo, ~10 s), GPT Image 2 come
+alternativa. FLUX.2 pro escluso per i conteggi. Spesa della prova: circa 0,80 USD (stima da listino).
