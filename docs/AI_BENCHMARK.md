@@ -90,6 +90,34 @@ con Nano Banana 2: 11 s di lavorazione (12 s fino all'immagine a schermo), JPEG 
 nell'archivio privato, 1 credito consumato, costo stimato 0,08 USD. Fedeltà: tulipani 5/5, rose 8
 invece di 7, e un fiocco crema non presente in distinta.
 
-**Prossima prova (≈0,50 USD):** prompt con "nessun nastro o fiocco se non è in distinta" e numero
-totale di steli, su 3 ramos, per ridurre gli elementi aggiunti. Cambiare il prompt richiede di
-aggiornare `AI_PREVIEW_PROMPT_VERSION` (nuova chiave di cache).
+## Prova del prompt v2 e del conteggio esatto (21/11/2026, ~0,70 USD)
+
+Obiettivo del founder: il cliente compone il ramo (es. 3 rose + 3 margherite, carta e nastro del
+colore scelto) e l'immagine deve avere **esattamente** quei fiori. Tre ramos piccoli, un'immagine
+per prompt, Nano Banana 2; conteggi verificati a vista su ritagli ad alta risoluzione.
+
+| Ramo                                                              | Prompt v1 (attuale)                            | Prompt v2                                          |
+| ----------------------------------------------------------------- | ---------------------------------------------- | -------------------------------------------------- |
+| T1: 3 rose rosse + 3 margherite, carta rosa, nastro bianco        | rose 3 ✓, margherite 4 (una nascosta) ✗        | **esatto** (3 + 3), carta e nastro ✓               |
+| T2: 2 girasoli + 4 rose bianche, kraft, **senza** nastro          | conteggi ✓ ma ha aggiunto uno spago ✗          | **esatto**, nessun nastro ✓                        |
+| T3: 4 tulipani + 3 rose + 2 margherite, carta bianca, nastro rosa | rose e tulipani ✓, margherite ~5 invece di 2 ✗ | tipi scambiati: 4 rose, 3 tulipani, 3 margherite ✗ |
+
+Colori di carta e nastro sempre corretti. Il v2 (conteggi espliciti per tipo e totale, nome comune
+inglese dalla tassonomia, fiori ben separati, nastro vietato se non in distinta) è adottato
+(`bouquet-preview-v2`), ma con 3 tipi di fiore il conteggio esatto non è garantito.
+
+**Conteggio automatico** (modello di visione che riceve i tipi ma non le quantità attese, via
+`fal-ai/any-llm/vision`, ~0,005 USD a controllo): Gemini 2.5 Flash 3/6 conteggi giusti, Claude
+Sonnet 4.5 4/6, Qwen3-VL 235B 4/6. Usati come "cancello" (accetta solo se i numeri coincidono)
+prendono la decisione giusta 5 volte su 6, ma sbagliano anche loro (una margherita vista in più,
+una nascosta non vista): utili come controllo, non come garanzia.
+
+**Foto di riferimento vs composizione** (`fal-ai/nano-banana-2/edit`, 4 rose + 2 margherite,
+carta lilla, nastro oro):
+
+- solo foto dei singoli fiori come riferimento: 3 rose invece di 4 ✗;
+- **composizione fatta dal sistema** (ritagli dei fiori posizionati dal codice, carta e nastro
+  disegnati) e poi resa foto dall'AI: **esatto al primo colpo**, posizioni e colori rispettati.
+
+Conclusione: il numero esatto si ottiene costruendo noi la composizione (AI-BQ-08) e chiedendo
+all'AI solo di renderla fotografica, con un controllo automatico prima di mostrarla. Vedi ADR-028.

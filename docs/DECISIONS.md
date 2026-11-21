@@ -299,6 +299,37 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
 - **Privacy:** il prompt contiene solo la composizione (nomi di catalogo, colori, stile, misura),
   mai dati di clienti o della fioreria.
 
+### ADR-027 — Prompt v2: conteggi espliciti e nome comune dalla tassonomia — ADOTTATO (21/11/2026)
+
+- Il prompt (`bouquet-preview-v2`) dichiara il totale e il numero esatto per tipo ("exactly 3 red
+  roses"), chiede fiori ben separati e contabili, usa il nome comune inglese della tassonomia
+  canonica quando l'articolo vi è collegato (altrimenti l'etichetta del catalogo), riporta i
+  colori di carta e nastro e vieta nastri, fiocchi e spago se non sono in distinta. I fiori venduti
+  a mazzo (es. gypsophila) sono riempitivo e non entrano nel conteggio.
+- Prova del 21/11/2026 (`docs/AI_BENCHMARK.md`): ramos da 1–2 tipi esatti in 2 casi su 3 (v1:
+  0 su 3); con 3 tipi resta inesatto. La versione nuova cambia la chiave di cache.
+
+### ADR-028 — Conteggio esatto nell'anteprima — REQUISITO DEL FOUNDER (21/11/2026), approccio PROPOSTO
+
+- **Requisito (founder):** il fiorista carica foto dei singoli fiori (più angolazioni); il
+  cliente compone il ramo, sceglie colore di carta e nastro, e l'immagine deve mostrare
+  **esattamente** i fiori scelti (es. 3 rose + 3 margherite). Rafforza la spec §6.4, che oggi
+  accetta conteggi approssimati con avvertenza: finché il controllo sotto non è in produzione,
+  l'avvertenza resta.
+- **Perché non basta il prompt:** i modelli generativi sbagliano i conteggi oltre 1–2 tipi di
+  fiore, anche con foto di riferimento (prove del 21/11/2026).
+- **Approccio proposto (in linea con AI-BQ-07/08 e §6.3 della spec):**
+  1. foto dei fiori del fiorista nel catalogo (R2), più angolazioni, scontornate in automatico;
+  2. **composizione deterministica**: il codice posiziona esattamente N ritagli per tipo, con
+     carta e nastro del colore scelto: anteprima immediata, gratuita ed esatta per costruzione;
+  3. su richiesta, **foto realistica** generata partendo dalla composizione (prova: esatta al
+     primo colpo) e consumo di un credito solo se riesce;
+  4. **controllo automatico** dei conteggi con un modello di visione prima di mostrarla; se non
+     coincide si ritenta una volta, poi si mostra la composizione esatta (mai un'immagine con
+     numeri sbagliati presentata come fedele).
+- **Da decidere:** colori di carta e nastro come varianti di colore dello stesso articolo
+  (proposta) o come articoli separati; consenso del fiorista sull'uso delle sue foto (O-07).
+
 ---
 
 ## 3. Proposte da approvare

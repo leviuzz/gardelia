@@ -17,11 +17,12 @@ S1-01…S1-10. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 
 **Sprint 2 — anteprime AI: funzionanti con il provider reale** (21/11/2026): fal.ai con
 **Nano Banana 2** (ADR-026), scelto col confronto su 5 ramos demo; quota 25/mese, pacchetti extra via
 CLI, cache per fioreria, tetto di spesa, worker, archivio R2/locale; provider simulato solo in
-locale. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 222/222 ✅ · build ✅ ·
+locale. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 225/225 ✅ · build ✅ ·
 E2E 22/22 ✅ · una generazione reale dal Diseñador ✅ (12 s, 0,08 USD).
 
-**Prossimo:** prova del prompt per ridurre elementi aggiunti (≈0,50 USD), poi immagini del catalogo
-e anteprima nel preventivo/WhatsApp. Vedi "I prossimi task".
+**Prossimo (direzione del founder, ADR-028):** foto dei singoli fiori caricate dal fiorista,
+colori di carta e nastro scelti nel Builder, anteprima con il numero esatto di fiori (composizione
+dalle foto + resa fotografica AI + controllo automatico). Vedi "I prossimi task".
 
 ---
 
@@ -117,14 +118,16 @@ il **taglio** seguente.
 
 ### I prossimi task (nell'ordine)
 
-1. Prova del prompt (≈0,50 USD, `docs/AI_BENCHMARK.md`): "nessun nastro o fiocco se non è in distinta" e numero totale di steli; se migliora, nuova `AI_PREVIEW_PROMPT_VERSION`.
-2. Prima del pilota: prova da ~100 immagini con Nano Banana 2 → costo reale riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 configurati nell'hosting (P-03, O-04).
-3. Immagini del catalogo (upload su R2) e uso delle foto del fiorista come riferimento di stile (AI-BQ-07, con consenso: O-07).
-4. Anteprima nel preventivo stampato e nel messaggio WhatsApp.
-5. Aggiungere un disegno del Builder a un preventivo in bozza esistente.
-6. Ordini da preventivo accettato (Sprint 3) con la stessa distinta.
-7. Contador: IVA nei preventivi e fatturazione dei pacchetti (O-06, O-02).
-8. Pannello admin di piattaforma minimo (oggi CLI) con autenticazione forte e audit.
+1. **Foto dei fiori del fiorista** nel catalogo: upload su R2 (più angolazioni per articolo), scontorno automatico, consenso all'uso (O-07) — completa S1-11, base di AI-BQ-07/08.
+2. **Colori di carta e nastro** scelti nel Builder: varianti di colore degli articoli empaque/complemento, salvate nella distinta e usate da prompt e composizione (ADR-028).
+3. **Anteprima esatta**: composizione deterministica dai ritagli (immediata, gratuita), foto realistica dalla composizione (`nano-banana-2/edit`) e controllo automatico dei conteggi con un nuovo tentativo (ADR-028).
+4. Prima del pilota: prova da ~100 immagini → costo reale riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 nell'hosting (P-03, O-04).
+5. Builder pubblico per i clienti della fioreria (AI-BQ-10), dopo il pilota del Builder interno.
+6. Anteprima nel preventivo stampato e nel messaggio WhatsApp.
+7. Aggiungere un disegno del Builder a un preventivo in bozza esistente.
+8. Ordini da preventivo accettato (Sprint 3) con la stessa distinta.
+9. Contador: IVA nei preventivi e fatturazione dei pacchetti (O-06, O-02).
+10. Pannello admin di piattaforma minimo (oggi CLI) con autenticazione forte e audit.
 
 ---
 
@@ -216,3 +219,16 @@ il **taglio** seguente.
 - Nota per le sessioni cloud: il `fetch` di Node passa dal proxy solo con `NODE_USE_ENV_PROXY=1`;
   `FAL_KEY` può essere un segnaposto perché la chiave la inserisce il proxy.
 - Spesa fal finora: ≈0,90 USD su 10 € (stima da listino).
+
+### 2026-11-21 — Prompt v2 e direzione "conteggio esatto"
+
+- Founder: il fiorista caricherà foto dei singoli fiori (più angolazioni); il cliente comporrà il
+  ramo e sceglierà colore di carta e nastro; l'immagine deve avere il numero esatto di fiori.
+- Prove (~0,70 USD, `docs/AI_BENCHMARK.md`): prompt v2 esatto in 2 ramos su 3 (v1: 0 su 3);
+  conteggio automatico con modelli di visione utile ma non infallibile; la composizione fatta dal
+  sistema e resa foto dall'AI è risultata esatta al primo colpo, le sole foto di riferimento no.
+- Fatto: prompt `bouquet-preview-v2` (ADR-027) con nome comune inglese dalla tassonomia,
+  conteggi espliciti, colori di carta e nastro, niente nastro se non in distinta; test di dominio e
+  di integrazione. ADR-028 (requisito del founder + approccio proposto) registrato.
+- Verifiche: lint ✅, format ✅, typecheck ✅, `pnpm test` 225/225 ✅, build ✅, E2E 22/22 ✅.
+- Spesa fal totale: ≈1,6 USD su 10 € (stima da listino).
