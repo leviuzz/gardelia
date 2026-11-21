@@ -35,6 +35,7 @@ import { requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { logger } from '../logger';
+import { cutoutThumbKey } from '../media/cutout-keys';
 import { normalizeUploadedPhoto } from '../media/images';
 
 export interface CatalogPhotoDto {
@@ -76,10 +77,7 @@ function toDto(photo: {
   };
 }
 
-/** Chiave della miniatura del ritaglio, derivata da quella del ritaglio. */
-export function cutoutThumbKey(cutoutKey: string): string {
-  return cutoutKey.replace(/-cutout\.png$/, '-cutout-thumb.png');
-}
+export { cutoutThumbKey } from '../media/cutout-keys';
 
 /** C'è un servizio di scontorno? Senza, la UI non promette fondi tolti. */
 export function photoCutoutsAvailable(): boolean {

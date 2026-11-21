@@ -56,7 +56,8 @@ export type ConflictReason =
   | 'ai_quota_exhausted'
   | 'ai_budget_reached'
   | 'cutout_unavailable'
-  | 'cutout_retry_limit';
+  | 'cutout_retry_limit'
+  | 'preview_retry_limit';
 
 export class ConflictError extends AppError {
   readonly code = 'conflict' as const;

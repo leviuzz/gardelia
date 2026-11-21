@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   AiProviderError,
   FalBackgroundRemover,
+  FalFlowerCounter,
   FalImageProvider,
   FalStyleDescriber,
+  SimulatedFlowerCounter,
   createAiProviderFromEnv,
+  createFlowerCounterFromEnv,
   createStyleDescriberFromEnv,
   type AiProviderErrorCode,
 } from '../src/index';
@@ -376,5 +379,100 @@ describe('FalBackgroundRemover (scontorno, ADR-033)', () => {
     const rejected = await invalid.remove(image, AbortSignal.timeout(5_000)).catch((e) => e);
     expect((rejected as AiProviderError).code).toBe('invalid_request');
     expect((rejected as AiProviderError).message).not.toContain(SECRET);
+  });
+});
+
+describe('anteprima esatta con fal (ADR-034)', () => {
+  it('dal boceto chiama la variante "edit" con l’immagine; GPT Image 2 non la supporta', async () => {
+    const { calls, fetchImpl } = fakeFal(json({ images: [{ url: dataUri(JPEG) }] }));
+    const nano = provider(fetchImpl);
+    expect(nano.supportsSketch).toBe(true);
+    const image = await nano.generate({
+      prompt: 'Turn this rough collage into a realistic photo',
+      signal: AbortSignal.timeout(5_000),
+      image: { bytes: PNG, contentType: 'image/png' },
+    });
+    expect(image.contentType).toBe('image/jpeg');
+    expect(calls[0]?.url).toBe('https://fal.run/fal-ai/nano-banana-2/edit');
+    const body = JSON.parse(String(calls[0]?.init?.body)) as Record<string, unknown>;
+    expect(body).toMatchObject({
+      prompt: 'Turn this rough collage into a realistic photo',
+      image_urls: [dataUri(PNG, 'image/png')],
+      num_images: 1,
+      aspect_ratio: '1:1',
+      sync_mode: true,
+    });
+
+    const gpt = provider(fakeFal().fetchImpl, 'gpt-image-2');
+    expect(gpt.supportsSketch).toBe(false);
+    const error = await gpt
+      .generate({
+        prompt: 'x',
+        signal: AbortSignal.timeout(5_000),
+        image: { bytes: PNG, contentType: 'image/png' },
+      })
+      .catch((e: unknown) => e);
+    expect(error).toMatchObject({ code: 'invalid_request' });
+  });
+
+  const targets = [
+    { index: 1, catalogItemId: 'a', description: 'red roses ("Rosa roja")', expected: 3 },
+    { index: 2, catalogItemId: 'b', description: 'white daisies ("Margarita")', expected: 2 },
+  ];
+
+  it('il contatore manda i tipi (mai le quantità) e conta l’elenco restituito', async () => {
+    const output =
+      '```json\n{"blooms":[{"type":1},{"type":1},{"type":1},{"type":2},{"type":2},{"type":0}]}\n```';
+    const { calls, fetchImpl } = fakeFal(json({ output }));
+    const counter = new FalFlowerCounter({ apiKey: SECRET, fetch: fetchImpl });
+    const result = await counter.count(
+      { bytes: JPEG, contentType: 'image/jpeg' },
+      targets,
+      AbortSignal.timeout(5_000),
+    );
+    expect(result).toEqual({ counts: { 1: 3, 2: 2 }, other: 1 });
+    expect(calls[0]?.url).toBe('https://fal.run/fal-ai/any-llm/vision');
+    const body = JSON.parse(String(calls[0]?.init?.body)) as { prompt: string; model: string };
+    expect(body.model).toBe('anthropic/claude-sonnet-4.5');
+    expect(body.prompt).toContain('1 = red roses ("Rosa roja")');
+    expect(body.prompt).not.toMatch(/\bexactly\b|3 red/);
+    expect(JSON.stringify(calls[0]?.init?.headers)).toContain(SECRET);
+  });
+
+  it('risposta illeggibile o errore del servizio: errore del provider, mai un conteggio inventato', async () => {
+    const unreadable = new FalFlowerCounter({
+      apiKey: SECRET,
+      fetch: fakeFal(json({ output: 'Ci sono tre rose.' })).fetchImpl,
+    });
+    await expect(
+      unreadable.count(
+        { bytes: JPEG, contentType: 'image/jpeg' },
+        targets,
+        AbortSignal.timeout(5_000),
+      ),
+    ).rejects.toMatchObject({ code: 'provider_error' });
+    const down = new FalFlowerCounter({
+      apiKey: SECRET,
+      fetch: fakeFal(json({ detail: 'overloaded' }, 503)).fetchImpl,
+    });
+    const error = await down
+      .count({ bytes: JPEG, contentType: 'image/jpeg' }, targets, AbortSignal.timeout(5_000))
+      .catch((e: unknown) => e);
+    expect(error).toMatchObject({ code: 'provider_error' });
+    expect(String((error as Error).message)).not.toContain(SECRET);
+  });
+
+  it('contatore dall’ambiente: fal con chiave, simulato solo in locale', () => {
+    expect(createFlowerCounterFromEnv({ AI_PROVIDER: 'fal', FAL_KEY: 'k' })).toBeInstanceOf(
+      FalFlowerCounter,
+    );
+    expect(createFlowerCounterFromEnv({ AI_PROVIDER: 'fal', FAL_KEY: '' })).toBeNull();
+    expect(
+      createFlowerCounterFromEnv({ AI_PROVIDER: 'simulated', APP_URL: 'http://localhost:3000' }),
+    ).toBeInstanceOf(SimulatedFlowerCounter);
+    expect(
+      createFlowerCounterFromEnv({ AI_PROVIDER: 'simulated', APP_URL: 'https://floral.example' }),
+    ).toBeNull();
+    expect(createFlowerCounterFromEnv({ AI_PROVIDER: 'none' })).toBeNull();
   });
 });

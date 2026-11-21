@@ -8,12 +8,20 @@
  *    il credito si prenota all'accodamento e si consuma solo se l'immagine riesce.
  *  - Tetto di spesa mensile della piattaforma controllato prima di accodare.
  *  - L'immagine è illustrativa: non modifica prezzo, distinta o preventivi.
+ *  - Anteprima esatta (ADR-034): se ogni fiore contato ha una foto senza fondo, il boceto
+ *    (esatto per costruzione) è gratis e immediato; la foto realistica parte dal boceto e si
+ *    mostra solo se un modello di visione ritrova gli stessi numeri.
  */
 import { createHash } from 'node:crypto';
 import { getDb, withTenantContext, type Prisma, type TransactionClient } from '@floral/db';
 import {
   AI_PREVIEW_PROMPT_VERSION,
   AUDIT_ACTIONS,
+  EXACT_PREVIEW_LIMITS,
+  SKETCH_LIMITS,
+  exactPreviewPlan,
+  type ExactPreviewBlocker,
+  type PreviewMode,
   aiQuotaPeriod,
   buildPreviewSpec,
   canonicalPreviewInput,
@@ -23,7 +31,9 @@ import {
   type BouquetPreviewSpec,
 } from '@floral/domain';
 import { fitsMonthlyAiBudget } from '../ai/budget';
+import { getFlowerCounter } from '../ai/flower-counter';
 import { getAiProvider, type AiImageProvider } from '../ai/providers';
+import { SketchUnavailableError, renderSketchForTenant } from '../ai/sketch-source';
 import { getObjectStorage } from '../ai/storage';
 import { notifyAiWorker } from '../ai/signal';
 import { notFound, recordAudit } from '../audit';
@@ -44,6 +54,10 @@ export interface AiPreviewDto {
   readonly reused: boolean;
   /** true se l'immagine ha usato lo stile di "Mis ramos" (descritto a parole, ADR-032). */
   readonly styled: boolean;
+  /** EXACT: foto realistica dal boceto esatto (ADR-034); PROMPT: descritta a parole. */
+  readonly mode: PreviewMode;
+  /** Numero di fiori ricontrollato da un modello di visione; null = non verificato. */
+  readonly verified: boolean | null;
   readonly errorCode: string | null;
   readonly createdAt: Date;
   readonly finishedAt: Date | null;
@@ -62,6 +76,22 @@ export interface BouquetPreviewStateDto {
   readonly preview: AiPreviewDto | null;
   /** Il disegno contiene componenti non più disponibili: va rivisto prima dell'anteprima. */
   readonly outdated: boolean;
+  /** Modalità della prossima richiesta per il disegno così com'è (null se superato). */
+  readonly mode: PreviewMode | null;
+  /** Troppe foto realistiche scartate per conteggi diversi: niente nuovi tentativi. */
+  readonly retryLimitReached: boolean;
+}
+
+export interface BouquetSketchPlanDto {
+  /** true = il boceto esatto si può disegnare (e la foto realistica partirà da lì). */
+  readonly eligible: boolean;
+  readonly reason: ExactPreviewBlocker | 'outdated' | null;
+  readonly stems: number;
+  readonly maxStems: number;
+  /** Fiori contati senza foto senza fondo, per portare il fiorista alla scheda giusta. */
+  readonly missing: readonly { readonly id: string; readonly name: string }[];
+  /** Cambia quando cambia il boceto (per l'URL dell'immagine); null se non disegnabile. */
+  readonly version: string | null;
 }
 
 const FEATURE = 'BOUQUET_PREVIEW' as const;
@@ -79,13 +109,15 @@ function toDto(
     status: string;
     provider: string | null;
     errorCode: string | null;
+    input: Prisma.JsonValue | null;
     output: Prisma.JsonValue | null;
     createdAt: Date;
     finishedAt: Date | null;
   },
   reused: boolean,
 ): AiPreviewDto {
-  const output = job.output as { styleApplied?: unknown } | null;
+  const output = job.output as { styleApplied?: unknown; verified?: unknown } | null;
+  const input = job.input as { mode?: unknown } | null;
   const status: AiPreviewStatus =
     job.status === 'CANCELLED' ? 'FAILED' : (job.status as AiPreviewStatus);
   return {
@@ -94,6 +126,8 @@ function toDto(
     simulated: job.provider === 'simulated',
     reused,
     styled: output?.styleApplied === true,
+    mode: input?.mode === 'EXACT' ? 'EXACT' : 'PROMPT',
+    verified: typeof output?.verified === 'boolean' ? output.verified : null,
     errorCode: job.errorCode,
     createdAt: job.createdAt,
     finishedAt: job.finishedAt,
@@ -175,6 +209,27 @@ async function specForConfiguration(
     const commonNames = new Map(
       taxonomy.map((row) => [row.id, englishName(row.canonicalFlower?.names)]),
     );
+    // Foto senza fondo per il boceto (ADR-034): di frente se c'è, poi le altre viste.
+    const sketchable = components.filter(
+      (component) => component.role === 'FLOWER' || component.role === 'FOLIAGE',
+    );
+    const cutouts =
+      sketchable.length > 0
+        ? await tx.catalogItemPhoto.findMany({
+            where: {
+              tenantId: ctx.tenantId,
+              catalogItemId: { in: sketchable.map((component) => component.item.id) },
+              status: 'ACTIVE',
+              cutoutStatus: 'READY',
+            },
+            select: { id: true, catalogItemId: true },
+            orderBy: [{ view: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+          })
+        : [];
+    const cutoutByItem = new Map<string, string>();
+    for (const photo of cutouts) {
+      if (!cutoutByItem.has(photo.catalogItemId)) cutoutByItem.set(photo.catalogItemId, photo.id);
+    }
     return {
       id: config.id,
       spec: buildPreviewSpec({
@@ -190,6 +245,8 @@ async function specForConfiguration(
           // Carta o nastro: solo il colore scelto (cambia anche la chiave di cache).
           colors: component.color ? [component.color] : component.item.colors,
           commonName: commonNames.get(component.item.id) ?? null,
+          itemType: component.item.type,
+          cutoutPhotoId: cutoutByItem.get(component.item.id) ?? null,
         })),
       }),
     };
@@ -225,6 +282,38 @@ async function styledSpec(
   spec: BouquetPreviewSpec,
 ): Promise<BouquetPreviewSpec> {
   return { ...spec, styleReferenceId: await selectStyleReference(tx, ctx, spec.style) };
+}
+
+/**
+ * Modalità della richiesta: esatta se il provider sa partire da un boceto e ogni fiore contato
+ * ha il suo ritaglio. In modalità PROMPT i ritagli non cambiano l'immagine: fuori dalla chiave.
+ */
+function withMode(spec: BouquetPreviewSpec, provider: AiImageProvider): BouquetPreviewSpec {
+  if (provider.supportsSketch && exactPreviewPlan(spec).eligible) return { ...spec, mode: 'EXACT' };
+  return {
+    ...spec,
+    mode: 'PROMPT',
+    components: spec.components.map((component) => ({ ...component, cutoutPhotoId: null })),
+  };
+}
+
+/** Costo stimato di una richiesta: una foto e, in modalità esatta, un controllo dei conteggi. */
+function estimatedCostFor(spec: BouquetPreviewSpec, provider: AiImageProvider): number {
+  const counter = spec.mode === 'EXACT' ? getFlowerCounter() : null;
+  return provider.estimatedCostMicros + (counter?.estimatedCostMicros ?? 0);
+}
+
+/** Richieste già scartate per conteggi diversi, per lo stesso ramo. */
+async function countMismatches(tx: TransactionClient, ctx: TenantContext, inputHash: string) {
+  return tx.aiJob.count({
+    where: {
+      tenantId: ctx.tenantId,
+      feature: FEATURE,
+      inputHash,
+      status: 'FAILED',
+      errorCode: 'count_mismatch',
+    },
+  });
 }
 
 /** Anteprima migliore per un ramo: riuscita, poi in corso, poi l'ultimo fallimento. */
@@ -268,7 +357,15 @@ export async function getBouquetPreview(
     const config = await specForConfiguration(tx, ctx, configurationId);
     if (!config) return null;
     if (!provider) {
-      return { available: false, simulated: false, quota: null, preview: null, outdated: false };
+      return {
+        available: false,
+        simulated: false,
+        quota: null,
+        preview: null,
+        outdated: false,
+        mode: null,
+        retryLimitReached: false,
+      };
     }
     const quota = await quotaFor(tx, ctx, new Date());
     if (!config.spec) {
@@ -278,16 +375,23 @@ export async function getBouquetPreview(
         quota,
         preview: null,
         outdated: true,
+        mode: null,
+        retryLimitReached: false,
       };
     }
-    const spec = await styledSpec(tx, ctx, config.spec);
-    const job = await findPreview(tx, ctx, previewHash(spec, provider));
+    const spec = withMode(await styledSpec(tx, ctx, config.spec), provider);
+    const inputHash = previewHash(spec, provider);
+    const job = await findPreview(tx, ctx, inputHash);
     return {
       available: true,
       simulated: provider.simulated,
       quota,
       preview: job ? toDto(job, job.bouquetConfigurationId !== configurationId) : null,
       outdated: false,
+      mode: spec.mode ?? 'PROMPT',
+      retryLimitReached:
+        spec.mode === 'EXACT' &&
+        (await countMismatches(tx, ctx, inputHash)) >= EXACT_PREVIEW_LIMITS.mismatchJobs,
     };
   });
   if (!result) return notFound(ctx, 'BouquetConfiguration', configurationId);
@@ -313,8 +417,9 @@ export async function requestBouquetPreview(
     const config = await specForConfiguration(tx, ctx, configurationId);
     if (!config) return null;
     if (!config.spec) throw new ConflictError('builder_configuration_outdated');
-    const spec = await styledSpec(tx, ctx, config.spec);
+    const spec = withMode(await styledSpec(tx, ctx, config.spec), provider);
     const inputHash = previewHash(spec, provider);
+    const estimatedCostMicros = estimatedCostFor(spec, provider);
 
     // Serializza gli accodamenti: saldo del tenant e tetto della piattaforma coerenti
     // anche con richieste simultanee.
@@ -325,10 +430,17 @@ export async function requestBouquetPreview(
       return { job: existing, reused: true };
     }
 
+    if (
+      spec.mode === 'EXACT' &&
+      (await countMismatches(tx, ctx, inputHash)) >= EXACT_PREVIEW_LIMITS.mismatchJobs
+    ) {
+      throw new ConflictError('preview_retry_limit');
+    }
+
     const quota = await quotaFor(tx, ctx, now);
     if (!quota.nextSource) throw new ConflictError('ai_quota_exhausted');
 
-    if (!(await fitsMonthlyAiBudget(tx, provider.estimatedCostMicros, now))) {
+    if (!(await fitsMonthlyAiBudget(tx, estimatedCostMicros, now))) {
       throw new ConflictError('ai_budget_reached');
     }
 
@@ -345,7 +457,7 @@ export async function requestBouquetPreview(
         provider: provider.id,
         model: provider.model,
         promptVersion: AI_PREVIEW_PROMPT_VERSION,
-        estimatedCostMicros: provider.estimatedCostMicros,
+        estimatedCostMicros,
         runAfter: now,
       },
     });
@@ -353,7 +465,7 @@ export async function requestBouquetPreview(
       action: AUDIT_ACTIONS.aiPreviewRequested,
       entityType: 'AiJob',
       entityId: job.id,
-      metadata: { configurationId: config.id, quotaSource: quota.nextSource },
+      metadata: { configurationId: config.id, quotaSource: quota.nextSource, mode: spec.mode },
     });
     return { job, reused: false };
   });
@@ -380,4 +492,78 @@ export async function getAiPreviewImage(
   const bytes = await getObjectStorage().get(job.outputKey);
   if (!bytes) throw new NotFoundError('AiJob');
   return { bytes, contentType: job.outputContentType ?? 'image/png' };
+}
+
+// -----------------------------------------------------------------------------
+// Boceto esatto (ADR-034): gratis, immediato, esatto per costruzione
+// -----------------------------------------------------------------------------
+
+function sketchVersion(spec: BouquetPreviewSpec): string {
+  return createHash('sha256')
+    .update(canonicalPreviewInput({ ...spec, mode: 'EXACT' }, { provider: 'sketch', model: '' }))
+    .digest('hex')
+    .slice(0, 16);
+}
+
+/** Si può disegnare il boceto del disegno salvato? Se no, perché e quali foto mancano. */
+export async function getBouquetSketchPlan(
+  ctx: TenantContext,
+  configurationId: string,
+): Promise<BouquetSketchPlanDto> {
+  requirePermission(ctx, 'builder:use');
+  if (!isUuid(configurationId)) throw new NotFoundError('BouquetConfiguration');
+  const result = await withTenantContext(getDb(), ctx, async (tx) => {
+    await requireEntitlement(ctx, 'bouquetBuilder', tx);
+    const config = await specForConfiguration(tx, ctx, configurationId);
+    if (!config) return null;
+    if (!config.spec) {
+      return {
+        eligible: false,
+        reason: 'outdated' as const,
+        stems: 0,
+        maxStems: SKETCH_LIMITS.maxStems,
+        missing: [],
+        version: null,
+      };
+    }
+    const spec = config.spec;
+    const plan = exactPreviewPlan(spec);
+    const names = new Map(
+      spec.components.map((component) => [component.catalogItemId, component.name]),
+    );
+    return {
+      eligible: plan.eligible,
+      reason: plan.eligible ? null : plan.reason,
+      stems: plan.stems,
+      maxStems: SKETCH_LIMITS.maxStems,
+      missing: plan.missing.map((id) => ({ id, name: names.get(id) ?? '' })),
+      version: plan.eligible ? sketchVersion(spec) : null,
+    };
+  });
+  if (!result) return notFound(ctx, 'BouquetConfiguration', configurationId);
+  return result;
+}
+
+/** PNG del boceto del disegno salvato (404 se non si può disegnare). */
+export async function getBouquetSketch(
+  ctx: TenantContext,
+  configurationId: string,
+): Promise<{ bytes: Uint8Array; contentType: 'image/png' }> {
+  requirePermission(ctx, 'builder:use');
+  if (!isUuid(configurationId)) throw new NotFoundError('BouquetConfiguration');
+  const config = await withTenantContext(getDb(), ctx, async (tx) => {
+    await requireEntitlement(ctx, 'bouquetBuilder', tx);
+    return specForConfiguration(tx, ctx, configurationId);
+  });
+  if (!config) return notFound(ctx, 'BouquetConfiguration', configurationId);
+  if (!config.spec || !exactPreviewPlan(config.spec).eligible) {
+    throw new NotFoundError('BouquetSketch');
+  }
+  try {
+    const { png } = await renderSketchForTenant(ctx, config.spec);
+    return { bytes: png, contentType: 'image/png' };
+  } catch (error) {
+    if (error instanceof SketchUnavailableError) throw new NotFoundError('BouquetSketch');
+    throw error;
+  }
 }

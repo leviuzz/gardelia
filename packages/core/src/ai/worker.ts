@@ -10,29 +10,45 @@
  *  - Errore temporaneo: nuovo tentativo con attesa crescente finché restano tentativi; poi
  *    FAILED senza consumare crediti (BQ-02: nessuna anteprima inventata, il disegno resta
  *    valido). Contenuto rifiutato o richiesta non valida: FAILED subito (ripetere non serve).
+ *  - Anteprima esatta (ADR-034): la foto parte dal boceto; un modello di visione ricontrolla i
+ *    numeri, con un nuovo tentativo se non coincidono. Se nemmeno il secondo coincide il job
+ *    finisce FAILED con `count_mismatch` e nessun credito: un'immagine con numeri sbagliati non
+ *    si mostra mai come fedele (il boceto, esatto, resta visibile nel Diseñador).
  */
 import { setTimeout as delay } from 'node:timers/promises';
+import sharp from 'sharp';
 import { getDb, withTenantContext, type Prisma } from '@floral/db';
 import {
+  EXACT_PREVIEW_LIMITS,
   buildPreviewPrompt,
+  buildSketchRenderPrompt,
   cleanStyleDescription,
+  countTargets,
+  countsMatch,
   isUuid,
   type BouquetPreviewSpec,
+  type CountCheckResult,
 } from '@floral/domain';
 import { logger } from '../logger';
+import { cutoutKeyFor, cutoutThumbKey } from '../media/cutout-keys';
 import {
   AiProviderError,
   NON_RETRYABLE_AI_ERRORS,
   getAiProvider,
   type AiImageProvider,
+  type GeneratedImage,
 } from './providers';
+import { getFlowerCounter } from './flower-counter';
+import { SketchUnavailableError, renderSketchForTenant } from './sketch-source';
 import { finishCutout, getBackgroundRemover, type BackgroundRemover } from './background-remover';
 import { onAiJobQueued } from './signal';
 import { getObjectStorage } from './storage';
 import { getStyleDescriber } from './style-describer';
 
-export const AI_JOB_LEASE_SECONDS = 180;
+// Anteprima esatta: fino a 2 foto e 2 controlli, quindi più tempo di una generazione semplice.
+export const AI_JOB_LEASE_SECONDS = 300;
 const GENERATION_TIMEOUT_MS = 120_000;
+const COUNT_TIMEOUT_MS = 45_000;
 
 /** Attesa prima del tentativo successivo: 15 s, 30 s, 60 s… */
 export function retryDelayMs(attempt: number): number {
@@ -124,6 +140,8 @@ async function failOrRetry(
   scope: { tenantId: string; userId: string },
   error: unknown,
   what: string,
+  /** Costo già speso in questo tentativo (es. una foto scartata): entra nel tetto di spesa. */
+  spentMicros = 0,
 ): Promise<{ outcome: 'retry' | 'failed'; code: string }> {
   const code =
     error instanceof AiProviderError
@@ -133,6 +151,10 @@ async function failOrRetry(
         : 'provider_error';
   const retryable = !NON_RETRYABLE_AI_ERRORS.has(code) && job.attempts < job.maxAttempts;
   const message = error instanceof Error ? error.message.slice(0, 300) : 'errore sconosciuto';
+  const cost =
+    spentMicros > 0
+      ? { providerCostMicros: (job.providerCostMicros ?? 0) + spentMicros, providerCurrency: 'USD' }
+      : {};
   await withTenantContext(getDb(), scope, (tx) =>
     tx.aiJob.updateMany({
       where: { id: job.id, tenantId: job.tenantId, status: 'RUNNING' },
@@ -143,6 +165,7 @@ async function failOrRetry(
             lockedUntil: null,
             errorCode: code,
             errorMessage: message,
+            ...cost,
           }
         : {
             status: 'FAILED',
@@ -151,6 +174,7 @@ async function failOrRetry(
             lockedUntil: null,
             errorCode: code,
             errorMessage: message,
+            ...cost,
           },
     }),
   );
@@ -231,14 +255,10 @@ async function processCutoutJob(
       );
       return 'failed';
     }
-    const key = `tenants/${job.tenantId}/catalog-photos/${photoId}-cutout.png`;
+    const key = cutoutKeyFor(job.tenantId, photoId);
     const storage = getObjectStorage();
     await storage.put(key, finished.cutout.full, 'image/png');
-    await storage.put(
-      key.replace(/-cutout\.png$/, '-cutout-thumb.png'),
-      finished.cutout.thumb,
-      'image/png',
-    );
+    await storage.put(cutoutThumbKey(key), finished.cutout.thumb, 'image/png');
     await markPhoto({ cutoutStatus: 'READY', cutoutKey: key, cutoutError: null });
     await withTenantContext(db, scope, (tx) =>
       tx.aiJob.updateMany({
@@ -267,6 +287,148 @@ async function processCutoutJob(
     if (result.outcome === 'failed')
       await markPhoto({ cutoutStatus: 'FAILED', cutoutError: 'cutout_failed' });
     return result.outcome;
+  }
+}
+
+/** Salva l'immagine riuscita e chiude il job consumando il credito prenotato. */
+async function completePreview(
+  job: NonNullable<ClaimedJob>,
+  scope: { tenantId: string; userId: string },
+  image: GeneratedImage,
+  output: Prisma.InputJsonValue,
+  costMicros: number | null,
+): Promise<void> {
+  const key = `tenants/${job.tenantId}/ai-previews/${job.id}.${EXTENSION[image.contentType] ?? 'png'}`;
+  await getObjectStorage().put(key, image.bytes, image.contentType);
+  await withTenantContext(getDb(), scope, (tx) =>
+    tx.aiJob.updateMany({
+      where: { id: job.id, tenantId: job.tenantId, status: 'RUNNING' },
+      data: {
+        status: 'SUCCEEDED',
+        usageUnits: job.quotaSource ? 1 : 0,
+        outputKey: key,
+        outputContentType: image.contentType,
+        output,
+        providerCostMicros: costMicros,
+        providerCurrency: costMicros !== null ? 'USD' : null,
+        finishedAt: new Date(),
+        lockedUntil: null,
+        errorCode: null,
+        errorMessage: null,
+      },
+    }),
+  );
+}
+
+/**
+ * Anteprima esatta (ADR-034): boceto dai ritagli → foto realistica → conteggio dei fiori con un
+ * modello di visione. Si accetta la prima foto con gli stessi numeri della distinta; dopo
+ * `attemptsPerJob` foto diverse il job si chiude FAILED (`count_mismatch`) senza credito. Se il
+ * controllo stesso non risponde, la foto si mostra come un'anteprima normale (non verificata).
+ */
+async function processExactPreview(
+  job: NonNullable<ClaimedJob>,
+  scope: { tenantId: string; userId: string },
+  provider: AiImageProvider,
+  spec: BouquetPreviewSpec,
+): Promise<AiJobOutcome> {
+  let spent = 0;
+  try {
+    const referenceId = spec.styleReferenceId;
+    const style = isUuid(referenceId)
+      ? await styleDescriptionFor(scope, referenceId)
+      : { text: null, costMicros: 0 };
+    spent += style.costMicros;
+    const sketch = await renderSketchForTenant(scope, spec);
+    const source = {
+      bytes: new Uint8Array(await sharp(sketch.png).jpeg({ quality: 90 }).toBuffer()),
+      contentType: 'image/jpeg',
+    };
+    const prompt = buildSketchRenderPrompt(spec, { styleDescription: style.text });
+    const counter = getFlowerCounter();
+    const targets = countTargets(spec);
+    const checks: CountCheckResult[] = [];
+    let accepted: { image: GeneratedImage; verified: boolean | null } | null = null;
+    for (let attempt = 1; attempt <= EXACT_PREVIEW_LIMITS.attemptsPerJob && !accepted; attempt++) {
+      const image = await provider.generate({
+        prompt,
+        spec,
+        image: source,
+        signal: AbortSignal.timeout(GENERATION_TIMEOUT_MS),
+      });
+      spent += image.costMicros ?? provider.estimatedCostMicros;
+      if (!counter) {
+        accepted = { image, verified: null };
+        break;
+      }
+      try {
+        const result = await counter.count(
+          { bytes: image.bytes, contentType: image.contentType },
+          targets,
+          AbortSignal.timeout(COUNT_TIMEOUT_MS),
+        );
+        spent += counter.estimatedCostMicros;
+        checks.push(result);
+        if (countsMatch(targets, result)) accepted = { image, verified: true };
+      } catch (error) {
+        logger.warn(
+          {
+            jobId: job.id,
+            tenantId: job.tenantId,
+            code: error instanceof AiProviderError ? error.code : 'unexpected',
+          },
+          'controllo dei conteggi non disponibile: anteprima non verificata',
+        );
+        accepted = { image, verified: null };
+      }
+    }
+    const totalCost = (job.providerCostMicros ?? 0) + spent;
+    const output = {
+      mode: 'EXACT',
+      verified: accepted ? accepted.verified : false,
+      styleApplied: style.text !== null,
+      checks: checks.map((check) => ({ counts: check.counts, other: check.other })),
+    } satisfies Prisma.InputJsonValue;
+    if (!accepted) {
+      await withTenantContext(getDb(), scope, (tx) =>
+        tx.aiJob.updateMany({
+          where: { id: job.id, tenantId: job.tenantId, status: 'RUNNING' },
+          data: {
+            status: 'FAILED',
+            usageUnits: 0,
+            output,
+            providerCostMicros: totalCost,
+            providerCurrency: 'USD',
+            finishedAt: new Date(),
+            lockedUntil: null,
+            errorCode: 'count_mismatch',
+            errorMessage: null,
+          },
+        }),
+      );
+      logger.info(
+        { jobId: job.id, tenantId: job.tenantId, attempts: checks.length },
+        'anteprima esatta scartata: i fiori non coincidono con la distinta',
+      );
+      return 'failed';
+    }
+    await completePreview(job, scope, accepted.image, output, totalCost);
+    logger.info(
+      {
+        jobId: job.id,
+        tenantId: job.tenantId,
+        verified: accepted.verified,
+        attempts: checks.length,
+      },
+      'anteprima esatta generata',
+    );
+    return 'succeeded';
+  } catch (error) {
+    const reason =
+      error instanceof SketchUnavailableError
+        ? new AiProviderError('invalid_request', error.message)
+        : error;
+    return (await failOrRetry(job, scope, reason, 'anteprima esatta non riuscita', spent)).outcome;
   }
 }
 
@@ -304,6 +466,8 @@ export async function processNextAiJob(
       // richiesta (la chiave di cache include il modello).
       throw new AiProviderError('invalid_request', 'provider cambiato');
     }
+    if (job.input.mode === 'EXACT')
+      return await processExactPreview(job, scope, provider, job.input);
     const referenceId = job.input.styleReferenceId;
     const style = isUuid(referenceId)
       ? await styleDescriptionFor(scope, referenceId)
@@ -317,25 +481,12 @@ export async function processNextAiJob(
       image.costMicros === null && style.costMicros === 0
         ? null
         : (image.costMicros ?? 0) + style.costMicros;
-    const key = `tenants/${job.tenantId}/ai-previews/${job.id}.${EXTENSION[image.contentType] ?? 'png'}`;
-    await getObjectStorage().put(key, image.bytes, image.contentType);
-    await withTenantContext(db, scope, (tx) =>
-      tx.aiJob.updateMany({
-        where: { id: job.id, tenantId: job.tenantId, status: 'RUNNING' },
-        data: {
-          status: 'SUCCEEDED',
-          usageUnits: job.quotaSource ? 1 : 0,
-          outputKey: key,
-          outputContentType: image.contentType,
-          output: { styleApplied: style.text !== null } satisfies Prisma.InputJsonValue,
-          providerCostMicros: costMicros,
-          providerCurrency: costMicros !== null ? 'USD' : null,
-          finishedAt: new Date(),
-          lockedUntil: null,
-          errorCode: null,
-          errorMessage: null,
-        },
-      }),
+    await completePreview(
+      job,
+      scope,
+      image,
+      { mode: 'PROMPT', styleApplied: style.text !== null } satisfies Prisma.InputJsonValue,
+      costMicros,
     );
     logger.info({ jobId: job.id, tenantId: job.tenantId }, 'anteprima AI generata');
     return 'succeeded';

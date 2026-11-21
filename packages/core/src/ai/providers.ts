@@ -10,6 +10,7 @@
  */
 import { setTimeout as delay } from 'node:timers/promises';
 import { deflateSync } from 'node:zlib';
+import sharp from 'sharp';
 import type { BouquetPreviewSpec } from '@floral/domain';
 import { DEFAULT_FAL_MODEL, FAL_MODEL_IDS, FalImageProvider, isFalModelId } from './fal';
 import type { AiImageProvider, GeneratedImage } from './provider-types';
@@ -186,6 +187,7 @@ export class SimulatedImageProvider implements AiImageProvider {
   readonly id = 'simulated';
   readonly model = 'simulated-v1';
   readonly simulated = true;
+  readonly supportsSketch = true;
 
   constructor(
     readonly estimatedCostMicros = 0,
@@ -195,8 +197,14 @@ export class SimulatedImageProvider implements AiImageProvider {
   async generate(request: {
     readonly spec: BouquetPreviewSpec;
     readonly signal: AbortSignal;
+    readonly image?: { readonly bytes: Uint8Array; readonly contentType: string };
   }): Promise<GeneratedImage> {
     await delay(this.latencyMs, undefined, { signal: request.signal });
+    if (request.image) {
+      // Dal boceto: lo stesso disegno appena ammorbidito (nessuna AI; la UI lo dichiara).
+      const bytes = await sharp(request.image.bytes).blur(1.2).jpeg({ quality: 85 }).toBuffer();
+      return { bytes: new Uint8Array(bytes), contentType: 'image/jpeg', costMicros: 0 };
+    }
     return { bytes: renderSimulatedBouquet(request.spec), contentType: 'image/png', costMicros: 0 };
   }
 }

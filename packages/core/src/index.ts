@@ -33,10 +33,19 @@ export {
 export {
   FAL_MODEL_IDS,
   FalBackgroundRemover,
+  FalFlowerCounter,
   FalImageProvider,
   FalStyleDescriber,
   type FalModelId,
 } from './ai/fal';
+export {
+  SimulatedFlowerCounter,
+  createFlowerCounterFromEnv,
+  getFlowerCounter,
+  setFlowerCounter,
+  type FlowerCounter,
+} from './ai/flower-counter';
+export { renderBouquetSketch, renderSketch } from './ai/sketch-renderer';
 export {
   ChromaKeyBackgroundRemover,
   createBackgroundRemoverFromEnv,

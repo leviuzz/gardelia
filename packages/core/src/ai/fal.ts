@@ -15,12 +15,19 @@
  *    scadenza = timeout. La chiave non compare mai in messaggi, log o serializzazioni.
  */
 import {
+  buildCountCheckPrompt,
+  parseCountCheck,
+  type CountCheckResult,
+  type CountTarget,
+} from '@floral/domain';
+import {
   AiProviderError,
   sniffImageType,
   type AiImageProvider,
   type GeneratedImage,
 } from './provider-types';
 import type { BackgroundRemover } from './background-remover';
+import type { FlowerCounter } from './flower-counter-types';
 import { STYLE_DESCRIBER_PROMPT, type StyleDescriber, type StyleDescription } from './style-types';
 
 export interface FalModelProfile {
@@ -30,6 +37,11 @@ export interface FalModelProfile {
   readonly estimatedCostMicros: number;
   /** Corpo della richiesta: sempre una sola immagine quadrata JPEG, restituita inline. */
   body(prompt: string): Record<string, unknown>;
+  /** Variante "modifica" che parte da un'immagine (il boceto esatto, ADR-034), se esiste. */
+  readonly edit?: {
+    readonly endpoint: string;
+    body(prompt: string, imageUrl: string): Record<string, unknown>;
+  };
 }
 
 export const FAL_MODELS = {
@@ -45,6 +57,19 @@ export const FAL_MODELS = {
       output_format: 'jpeg',
       sync_mode: true,
     }),
+    // Stesso listino stimato; provata il 21/11/2026 (boceto → foto, conteggi esatti).
+    edit: {
+      endpoint: 'fal-ai/nano-banana-2/edit',
+      body: (prompt: string, imageUrl: string) => ({
+        prompt,
+        image_urls: [imageUrl],
+        num_images: 1,
+        aspect_ratio: '1:1',
+        resolution: '1K',
+        output_format: 'jpeg',
+        sync_mode: true,
+      }),
+    },
   },
   'gpt-image-2': {
     endpoint: 'fal-ai/gpt-image-2',
@@ -90,6 +115,7 @@ export class FalImageProvider implements AiImageProvider {
   readonly simulated = false;
   readonly model: string;
   readonly estimatedCostMicros: number;
+  readonly supportsSketch: boolean;
   // Campi privati veri: la chiave non finisce in JSON.stringify né nei log.
   readonly #apiKey: string;
   readonly #profile: FalModelProfile;
@@ -105,28 +131,46 @@ export class FalImageProvider implements AiImageProvider {
     this.#fetch = options.fetch ?? ((input, init) => fetch(input, init));
     this.model = this.#profile.endpoint;
     this.estimatedCostMicros = this.#profile.estimatedCostMicros;
+    this.supportsSketch = this.#profile.edit !== undefined;
   }
 
   async generate(request: {
     readonly prompt: string;
     readonly signal: AbortSignal;
+    readonly image?: { readonly bytes: Uint8Array; readonly contentType: string };
   }): Promise<GeneratedImage> {
     try {
-      return await this.#run(request.prompt, request.signal);
+      return await this.#run(request.prompt, request.signal, request.image);
     } catch (error) {
       throw toProviderError(error);
     }
   }
 
-  async #run(prompt: string, signal: AbortSignal): Promise<GeneratedImage> {
-    const response = await this.#fetch(`${this.#baseUrl}/${this.#profile.endpoint}`, {
+  async #run(
+    prompt: string,
+    signal: AbortSignal,
+    image?: { readonly bytes: Uint8Array; readonly contentType: string },
+  ): Promise<GeneratedImage> {
+    const edit = this.#profile.edit;
+    if (image && !edit) {
+      throw new AiProviderError('invalid_request', 'il modello non parte da un boceto');
+    }
+    const endpoint = image && edit ? edit.endpoint : this.#profile.endpoint;
+    const body =
+      image && edit
+        ? edit.body(
+            prompt,
+            `data:${image.contentType};base64,${Buffer.from(image.bytes).toString('base64')}`,
+          )
+        : this.#profile.body(prompt);
+    const response = await this.#fetch(`${this.#baseUrl}/${endpoint}`, {
       method: 'POST',
       headers: {
         Authorization: `Key ${this.#apiKey}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
-      body: JSON.stringify(this.#profile.body(prompt)),
+      body: JSON.stringify(body),
       signal,
     });
     const requestId = response.headers.get('x-fal-request-id');
@@ -222,6 +266,81 @@ export class FalStyleDescriber implements StyleDescriber {
       }
       const output = (payload as { output?: unknown } | null)?.output;
       return parseStyleDescription(typeof output === 'string' ? output : '', where);
+    } catch (error) {
+      throw toProviderError(error);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Controllo dei conteggi dell'anteprima esatta (ADR-034)
+// -----------------------------------------------------------------------------
+
+export interface FalFlowerCounterOptions {
+  readonly apiKey: string;
+  readonly model?: string;
+  /** Solo per i test. */
+  readonly baseUrl?: string;
+  /** Solo per i test. */
+  readonly fetch?: typeof fetch;
+}
+
+export class FalFlowerCounter implements FlowerCounter {
+  readonly id = 'fal';
+  readonly simulated = false;
+  readonly model: string;
+  // Immagine 1K (~1.500 token) + elenco dei fiori (~400 token): ~0,01 USD, per eccesso.
+  readonly estimatedCostMicros = 12_000;
+  readonly #apiKey: string;
+  readonly #baseUrl: string;
+  readonly #fetch: typeof fetch;
+
+  constructor(options: FalFlowerCounterOptions) {
+    const apiKey = options.apiKey.trim();
+    if (!apiKey) throw new Error('FAL_KEY mancante');
+    this.#apiKey = apiKey;
+    this.#baseUrl = (options.baseUrl ?? 'https://fal.run').replace(/\/+$/, '');
+    this.#fetch = options.fetch ?? ((input, init) => fetch(input, init));
+    this.model = options.model ?? 'anthropic/claude-sonnet-4.5';
+  }
+
+  async count(
+    image: { readonly bytes: Uint8Array; readonly contentType: string },
+    targets: readonly CountTarget[],
+    signal: AbortSignal,
+  ): Promise<CountCheckResult> {
+    try {
+      const dataUri = `data:${image.contentType};base64,${Buffer.from(image.bytes).toString('base64')}`;
+      const response = await this.#fetch(`${this.#baseUrl}/fal-ai/any-llm/vision`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Key ${this.#apiKey}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.model,
+          prompt: buildCountCheckPrompt(targets),
+          image_urls: [dataUri],
+        }),
+        signal,
+      });
+      const requestId = response.headers.get('x-fal-request-id');
+      const where = `fal conteggio ${response.status}${requestId ? ` (richiesta ${requestId})` : ''}`;
+      if (!response.ok) throw await httpError(response, where);
+      let payload: unknown;
+      try {
+        payload = JSON.parse(
+          new TextDecoder().decode(await readCapped(response, MAX_VISION_RESPONSE_BYTES)),
+        );
+      } catch (error) {
+        if (error instanceof AiProviderError || isAbort(error)) throw error;
+        throw new AiProviderError('provider_error', `${where}: risposta non in JSON`);
+      }
+      const output = (payload as { output?: unknown } | null)?.output;
+      const result = parseCountCheck(typeof output === 'string' ? output : '', targets);
+      if (!result) throw new AiProviderError('provider_error', `${where}: conteggio illeggibile`);
+      return result;
     } catch (error) {
       throw toProviderError(error);
     }

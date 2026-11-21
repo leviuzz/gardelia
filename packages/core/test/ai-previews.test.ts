@@ -41,6 +41,8 @@ class StubProvider implements AiImageProvider {
   readonly id = 'stub';
   readonly model = 'stub-v1';
   readonly simulated = false;
+  // Anteprime a parole: l'anteprima esatta ha i suoi test (exact-preview.test.ts).
+  readonly supportsSketch = false;
   behavior: 'ok' | 'error' | 'reject' | 'invalid' = 'ok';
   calls = 0;
   prompts: string[] = [];

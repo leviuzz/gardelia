@@ -18,10 +18,14 @@ export interface AiImageProvider {
   readonly simulated: boolean;
   /** Costo stimato per immagine (micro-USD) usato per il tetto di spesa. */
   readonly estimatedCostMicros: number;
+  /** Sa rendere fotografico un boceto (immagine di partenza): anteprima esatta, ADR-034. */
+  readonly supportsSketch: boolean;
   generate(request: {
     readonly prompt: string;
     readonly spec: BouquetPreviewSpec;
     readonly signal: AbortSignal;
+    /** Boceto da rendere fotografico (solo se `supportsSketch`). */
+    readonly image?: { readonly bytes: Uint8Array; readonly contentType: string };
   }): Promise<GeneratedImage>;
 }
 
