@@ -1,11 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import sharp from 'sharp';
 import { disconnectDb, getDb, withSystemContext } from '@floral/db';
 import { createTestUser } from '@floral/db/testing';
 import {
   ForbiddenError,
   NotFoundError,
   PlanRequiredError,
+  MemoryStorage,
   ValidationError,
+  addCatalogItemPhoto,
   createCatalogItem,
   createCustomer,
   createQuoteFromConfiguration,
@@ -16,6 +19,7 @@ import {
   saveBouquetConfiguration,
   setBouquetConfigurationArchived,
   updateBuilderSettings,
+  setObjectStorage,
   updateCatalogItem,
   type CatalogItemDto,
 } from '../src/index';
@@ -52,7 +56,10 @@ function customerInput(name = 'Cliente del Builder') {
   };
 }
 
-function design(lines: { catalogItemId: string; quantity: number }[], overrides = {}) {
+function design(
+  lines: { catalogItemId: string; quantity: number; color?: string | null }[],
+  overrides = {},
+) {
   return {
     name: 'Ramo para Sofía',
     style: 'ROMANTIC',
@@ -374,6 +381,134 @@ describe('dal disegno al preventivo (AI-BQ-06)', () => {
     ).rejects.toMatchObject({ reason: 'builder_configuration_outdated' });
     const config = await getBouquetConfiguration(local.owner, configurationId);
     expect(config.lines[0]).toMatchObject({ usable: false, availability: 'OUT_OF_STOCK' });
+  });
+});
+
+describe('colore di carta e nastro (ADR-030)', () => {
+  it('obbligatorio con più colori, automatico con uno solo, e arriva nel preventivo', async () => {
+    const local = await withPlus(await createTestShop('Florería Colores'));
+    const localRose = await createCatalogItem(local.owner, itemInput({ name: 'Rosa roja' }));
+    const paper = await createCatalogItem(
+      local.owner,
+      itemInput({
+        name: 'Papel coreano',
+        type: 'PACKAGING',
+        saleUnit: 'PIECE',
+        variety: null,
+        colors: ['pink', 'lilac', 'black'],
+        priceMinor: 3500,
+      }),
+    );
+    const satin = await createCatalogItem(
+      local.owner,
+      itemInput({
+        name: 'Listón de satín',
+        type: 'ACCESSORY',
+        saleUnit: 'PIECE',
+        variety: null,
+        colors: ['gold'],
+        priceMinor: 1500,
+      }),
+    );
+    const flowers = { catalogItemId: localRose.id, quantity: 3 };
+
+    await expect(
+      saveBouquetConfiguration(
+        local.owner,
+        design([flowers, { catalogItemId: paper.id, quantity: 1 }]),
+      ),
+    ).rejects.toMatchObject({ fieldErrors: { lines: 'builder_color_required' } });
+    await expect(
+      saveBouquetConfiguration(
+        local.owner,
+        design([flowers, { catalogItemId: paper.id, quantity: 1, color: 'white' }]),
+      ),
+    ).rejects.toMatchObject({ fieldErrors: { lines: 'invalid_option' } });
+    // I fiori non hanno colore di riga: ogni colore è un articolo a sé.
+    await expect(
+      saveBouquetConfiguration(local.owner, design([{ ...flowers, color: 'red' }])),
+    ).rejects.toMatchObject({ fieldErrors: { lines: 'invalid_option' } });
+
+    const { id } = await saveBouquetConfiguration(
+      local.staff,
+      design([
+        flowers,
+        { catalogItemId: paper.id, quantity: 1, color: 'lilac' },
+        { catalogItemId: satin.id, quantity: 1 },
+      ]),
+    );
+    const saved = await getBouquetConfiguration(local.staff, id);
+    expect(saved.lines.map((line) => [line.name, line.color])).toEqual([
+      ['Rosa roja', null],
+      ['Listón de satín', 'gold'],
+      ['Papel coreano', 'lilac'],
+    ]);
+    // Il colore non cambia il prezzo: 3 × 35 + 35 + 15 + armado 0.
+    expect(saved.totalMinor).toBe(3 * 3500 + 3500 + 1500);
+
+    const { id: customerId } = await createCustomer(local.owner, customerInput());
+    const { id: quoteId } = await createQuoteFromConfiguration(local.owner, {
+      configurationId: id,
+      customerId,
+    });
+    const quote = await getQuote(local.owner, quoteId);
+    expect(quote.lines[0]?.recipe?.map((entry) => [entry.name, entry.color ?? null])).toEqual([
+      ['Rosa roja', null],
+      ['Listón de satín', 'gold'],
+      ['Papel coreano', 'lilac'],
+    ]);
+
+    // Il fiorista toglie il lila dal catalogo: il disegno va rivisto, mai un colore inventato.
+    await updateCatalogItem(
+      local.owner,
+      paper.id,
+      itemInput({
+        name: 'Papel coreano',
+        type: 'PACKAGING',
+        saleUnit: 'PIECE',
+        variety: null,
+        colors: ['pink', 'black'],
+        priceMinor: 3500,
+      }),
+    );
+    await expect(
+      createQuoteFromConfiguration(local.owner, { configurationId: id, customerId }),
+    ).rejects.toMatchObject({ reason: 'builder_configuration_outdated' });
+  });
+
+  it('il catalogo del Builder indica i colori con la loro foto', async () => {
+    const local = await withPlus(await createTestShop('Florería Fotos Colores'));
+    const paper = await createCatalogItem(
+      local.owner,
+      itemInput({
+        name: 'Papel coreano',
+        type: 'PACKAGING',
+        saleUnit: 'PIECE',
+        variety: null,
+        colors: ['pink', 'black'],
+      }),
+    );
+    const storage = new MemoryStorage();
+    setObjectStorage(storage);
+    try {
+      const image = new Uint8Array(
+        await sharp({
+          create: { width: 600, height: 600, channels: 3, background: '#f2a7b9' },
+        })
+          .jpeg()
+          .toBuffer(),
+      );
+      const pink = await addCatalogItemPhoto(local.owner, paper.id, image, { color: 'pink' });
+      const catalog = await getBuilderCatalog(local.staff);
+      const option = catalog.options.find((entry) => entry.id === paper.id);
+      expect(option).toMatchObject({
+        colors: ['pink', 'black'],
+        coverPhotoId: pink.id,
+        colorPhotos: [{ color: 'pink', photoId: pink.id }],
+      });
+    } finally {
+      setObjectStorage(null);
+    }
   });
 });
 

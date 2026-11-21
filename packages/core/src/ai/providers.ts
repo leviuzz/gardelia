@@ -105,6 +105,11 @@ const COLOR_RGB: Readonly<Record<string, Rgb>> = {
   green: [95, 143, 90],
   burgundy: [123, 30, 58],
   multicolor: [230, 120, 160],
+  black: [35, 35, 35],
+  gold: [212, 175, 55],
+  silver: [192, 196, 200],
+  brown: [139, 94, 60],
+  transparent: [236, 240, 244],
 };
 
 function colorOf(colors: readonly string[], fallback: Rgb): Rgb {

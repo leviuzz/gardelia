@@ -152,7 +152,11 @@ async function specForConfiguration(
     const components = await loadComponents(
       tx,
       ctx,
-      config.lines.map((line) => ({ catalogItemId: line.catalogItemId, quantity: line.quantity })),
+      config.lines.map((line) => ({
+        catalogItemId: line.catalogItemId,
+        quantity: line.quantity,
+        color: line.color,
+      })),
     );
     // Nome comune dalla tassonomia globale (leggibile da tutti, ADR-014).
     const taxonomy = await tx.catalogItem.findMany({
@@ -177,7 +181,8 @@ async function specForConfiguration(
           name: component.item.name,
           variety: component.item.variety,
           saleUnit: component.item.saleUnit,
-          colors: component.item.colors,
+          // Carta o nastro: solo il colore scelto (cambia anche la chiave di cache).
+          colors: component.color ? [component.color] : component.item.colors,
           commonName: commonNames.get(component.item.id) ?? null,
         })),
       }),

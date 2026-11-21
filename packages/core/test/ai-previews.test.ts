@@ -296,6 +296,38 @@ describe('generazione, cache e consumo', () => {
     expect(prompt).not.toContain('Para Sofía');
   });
 
+  it('carta e nastro: il prompt usa solo il colore scelto e il colore cambia l’immagine', async () => {
+    const kit = await createKit();
+    const paper = await createCatalogItem(
+      kit.shop.owner,
+      itemInput({
+        name: 'Papel coreano',
+        type: 'PACKAGING',
+        saleUnit: 'PIECE',
+        variety: null,
+        colors: ['pink', 'lilac'],
+      }),
+    );
+    const withPaper = (color: string) =>
+      save(kit, 4, {
+        lines: [
+          { catalogItemId: kit.rose.id, quantity: 4 },
+          { catalogItemId: paper.id, quantity: 1, color },
+        ],
+      });
+    const lilac = await withPaper('lilac');
+    const lilacJob = await requestBouquetPreview(kit.shop.owner, lilac.id);
+    expect(await runOnce(kit)).toBe('succeeded');
+    const prompt = provider.prompts.at(-1) ?? '';
+    expect(prompt).toContain('Wrapping or vase: "Papel coreano" in lilac.');
+    expect(prompt).not.toContain('pink');
+    // Stessi fiori con carta rosa: è un altro ramo, nuova anteprima (niente cache sbagliata).
+    const pink = await withPaper('pink');
+    const pinkJob = await requestBouquetPreview(kit.shop.owner, pink.id);
+    expect(pinkJob).toMatchObject({ reused: false });
+    expect(pinkJob.jobId).not.toBe(lilacJob.jobId);
+  });
+
   it('il worker in ciclo lavora i job appena accodati', async () => {
     const kit = await createKit();
     const { id } = await save(kit, 6);

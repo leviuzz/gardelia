@@ -77,6 +77,8 @@ export interface QuoteRecipeLineSnapshot {
   readonly variety: string | null;
   readonly quantity: number;
   readonly saleUnit: SaleUnit;
+  /** Colore di carta, vaso o nastro scelto nel Builder (assente negli snapshot precedenti). */
+  readonly color?: string | null;
 }
 
 export interface QuoteLineDto {

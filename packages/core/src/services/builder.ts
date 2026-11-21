@@ -60,6 +60,10 @@ export interface BuilderOptionDto {
   readonly costMinor: number | null;
   readonly availability: Availability;
   readonly colors: readonly string[];
+  /** Prima foto dell'articolo (miniatura), se c'è. */
+  readonly coverPhotoId: string | null;
+  /** Foto per colore (carte, vasi, nastri): la prima foto attiva di ogni colore. */
+  readonly colorPhotos: readonly { readonly color: string; readonly photoId: string }[];
 }
 
 export interface BuilderCatalogDto {
@@ -78,6 +82,8 @@ export interface BouquetConfigurationLineDto {
   readonly role: BuilderRole;
   readonly saleUnit: SaleUnit;
   readonly quantity: number;
+  /** Colore scelto per carta, vaso o nastro; null per gli altri componenti. */
+  readonly color: string | null;
   /** Prezzo unitario al salvataggio. */
   readonly savedUnitPriceMinor: number;
   /** Prezzo unitario attuale di listino. */
@@ -137,6 +143,24 @@ export async function getBuilderCatalog(ctx: TenantContext): Promise<BuilderCata
       select: componentSelect,
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
     });
+    const photos = await tx.catalogItemPhoto.findMany({
+      where: {
+        tenantId: ctx.tenantId,
+        status: 'ACTIVE',
+        catalogItemId: { in: items.map((item) => item.id) },
+      },
+      select: { id: true, catalogItemId: true, color: true },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+    const coverOf = new Map<string, string>();
+    const colorPhotosOf = new Map<string, Map<string, string>>();
+    for (const photo of photos) {
+      if (!coverOf.has(photo.catalogItemId)) coverOf.set(photo.catalogItemId, photo.id);
+      if (photo.color === null) continue;
+      const byColor = colorPhotosOf.get(photo.catalogItemId) ?? new Map<string, string>();
+      if (!byColor.has(photo.color)) byColor.set(photo.color, photo.id);
+      colorPhotosOf.set(photo.catalogItemId, byColor);
+    }
     return {
       options: items.flatMap((item) => {
         const role = builderRoleOf(item.type);
@@ -153,6 +177,11 @@ export async function getBuilderCatalog(ctx: TenantContext): Promise<BuilderCata
             costMinor: canViewCosts ? item.costMinor : null,
             availability: item.availability,
             colors: item.colors,
+            coverPhotoId: coverOf.get(item.id) ?? null,
+            colorPhotos: item.colors.flatMap((color) => {
+              const photoId = colorPhotosOf.get(item.id)?.get(color);
+              return photoId ? [{ color, photoId }] : [];
+            }),
           },
         ];
       }),
@@ -249,6 +278,7 @@ export async function getBouquetConfiguration(
       role: line.role,
       saleUnit: line.catalogItem.saleUnit,
       quantity: line.quantity,
+      color: line.color,
       savedUnitPriceMinor: line.unitPriceMinor,
       currentUnitPriceMinor: line.catalogItem.priceMinor,
       availability: line.catalogItem.availability,
@@ -274,6 +304,7 @@ function lineRows(ctx: TenantContext, configurationId: string, components: Price
     catalogItemId: component.item.id,
     role: component.role,
     quantity: component.quantity,
+    color: component.color,
     unitPriceMinor: component.item.priceMinor,
     unitCostMinor: component.item.costMinor,
     lineTotalMinor: component.quantity * component.item.priceMinor,
@@ -425,6 +456,7 @@ export async function createQuoteFromConfiguration(
         config.lines.map((line) => ({
           catalogItemId: line.catalogItemId,
           quantity: line.quantity,
+          color: line.color,
         })),
       );
     } catch (error) {
@@ -454,6 +486,7 @@ export async function createQuoteFromConfiguration(
         variety: component.item.variety,
         quantity: component.quantity,
         saleUnit: component.item.saleUnit,
+        color: component.color,
       })),
       components: components.map((component) => ({
         catalogItemId: component.item.id,
@@ -461,6 +494,7 @@ export async function createQuoteFromConfiguration(
         variety: component.item.variety,
         role: component.role,
         quantity: component.quantity,
+        color: component.color,
         saleUnit: component.item.saleUnit,
         unitPriceMinor: component.item.priceMinor,
         availability: component.item.availability,

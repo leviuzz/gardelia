@@ -3,7 +3,13 @@
  * `@floral/core`: lavorano in una transazione già aperta nel contesto del tenant.
  */
 import type { Prisma, TransactionClient } from '@floral/db';
-import { builderRoleOf, checkComposition, priceBouquet, type BuilderRole } from '@floral/domain';
+import {
+  builderRoleOf,
+  checkComposition,
+  priceBouquet,
+  resolveLineColor,
+  type BuilderRole,
+} from '@floral/domain';
 import type { TenantContext } from '../context';
 import { ValidationError } from '../errors';
 
@@ -43,6 +49,8 @@ export interface PricedComponent {
   readonly item: ComponentItem;
   readonly role: BuilderRole;
   readonly quantity: number;
+  /** Colore scelto per carta, vaso o nastro (ADR-030); null per gli altri componenti. */
+  readonly color: string | null;
 }
 
 /**
@@ -52,7 +60,11 @@ export interface PricedComponent {
 export async function loadComponents(
   tx: TransactionClient,
   ctx: TenantContext,
-  lines: readonly { readonly catalogItemId: string; readonly quantity: number }[],
+  lines: readonly {
+    readonly catalogItemId: string;
+    readonly quantity: number;
+    readonly color?: string | null;
+  }[],
 ): Promise<PricedComponent[]> {
   const items = await tx.catalogItem.findMany({
     where: { tenantId: ctx.tenantId, id: { in: lines.map((line) => line.catalogItemId) } },
@@ -68,7 +80,10 @@ export async function loadComponents(
     if (item.availability === 'OUT_OF_STOCK') {
       throw new ValidationError({ lines: 'item_unavailable' });
     }
-    return { item, role, quantity: line.quantity };
+    // Il colore si verifica sui colori ATTUALI dell'articolo (mai fidarsi del client).
+    const color = resolveLineColor(role, item.colors, line.color);
+    if (!color.ok) throw new ValidationError({ lines: color.error });
+    return { item, role, quantity: line.quantity, color: color.color };
   });
   const compositionError = checkComposition(components);
   if (compositionError) throw new ValidationError({ lines: compositionError });
