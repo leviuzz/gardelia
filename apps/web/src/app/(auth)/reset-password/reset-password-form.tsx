@@ -68,7 +68,12 @@ export function ResetPasswordForm({ token }: { token: string }) {
         />
       </Field>
       <Field id="confirm" label={t('confirmPassword')}>
-        <PasswordInput {...controlProps('confirm')} name="confirm" autoComplete="new-password" required />
+        <PasswordInput
+          {...controlProps('confirm')}
+          name="confirm"
+          autoComplete="new-password"
+          required
+        />
       </Field>
       <Button type="submit" className="w-full" size="lg" disabled={pending}>
         {t('resetButton')}

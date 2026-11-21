@@ -10,7 +10,9 @@ test.describe('staff', () => {
     await expect(page.getByRole('link', { name: 'Nuevo producto' })).toHaveCount(0);
 
     await page.getByRole('table').getByText('Ramo Clásico 12 rosas').click();
-    await expect(page.getByText('Los costos y márgenes solo son visibles para propietarios y gerentes.')).toBeVisible();
+    await expect(
+      page.getByText('Los costos y márgenes solo son visibles para propietarios y gerentes.'),
+    ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Archivar' })).toHaveCount(0);
   });
 
@@ -30,7 +32,10 @@ test.describe('proprietario di un’altra fioreria', () => {
     const ownerContext = await browser.newContext({ storageState: 'e2e/.auth/owner.json' });
     const ownerPage = await ownerContext.newPage();
     await ownerPage.goto('/app/las-camelias/catalog');
-    const href = await ownerPage.getByRole('table').getByRole('link', { name: /Rosa roja/ }).getAttribute('href');
+    const href = await ownerPage
+      .getByRole('table')
+      .getByRole('link', { name: /Rosa roja/ })
+      .getAttribute('href');
     await ownerContext.close();
     expect(href).toMatch(/\/app\/las-camelias\/catalog\/[0-9a-f-]{36}$/);
 

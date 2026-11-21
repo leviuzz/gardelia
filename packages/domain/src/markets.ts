@@ -130,7 +130,8 @@ export function normalizePhone(input: string, country: MarketCountry): string | 
   if (national.startsWith(market.phoneCountryCode)) {
     const rest = national.slice(market.phoneCountryCode.length);
     if (rest.length === market.nationalPhoneDigits) national = rest;
-    else if (country === 'MX' && rest.length === 11 && rest.startsWith('1')) national = rest.slice(1);
+    else if (country === 'MX' && rest.length === 11 && rest.startsWith('1'))
+      national = rest.slice(1);
   }
   if (national.length !== market.nationalPhoneDigits) return null;
   return `+${market.phoneCountryCode}${national}`;

@@ -40,7 +40,9 @@ export interface CreateTenantInput {
   readonly request?: RequestMeta;
 }
 
-export async function createTenant(input: CreateTenantInput): Promise<{ tenantId: string; slug: string }> {
+export async function createTenant(
+  input: CreateTenantInput,
+): Promise<{ tenantId: string; slug: string }> {
   const market = MARKETS[input.country];
   if (!market.enabled) throw new ValidationError({ country: 'invalid_option' });
 

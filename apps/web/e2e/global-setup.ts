@@ -15,5 +15,8 @@ export default async function globalSetup(): Promise<void> {
   (globalThis as { __mailSink?: typeof server }).__mailSink = server;
 
   const repoRoot = fileURLToPath(new URL('../../..', import.meta.url));
-  execFileSync('pnpm', ['--filter', '@floral/db', 'run', 'seed'], { cwd: repoRoot, stdio: 'inherit' });
+  execFileSync('pnpm', ['--filter', '@floral/db', 'run', 'seed'], {
+    cwd: repoRoot,
+    stdio: 'inherit',
+  });
 }

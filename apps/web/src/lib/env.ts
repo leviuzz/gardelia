@@ -14,7 +14,9 @@ const schema = z.object({
     .min(32, 'BETTER_AUTH_SECRET deve avere almeno 32 caratteri (openssl rand -base64 32)'),
   BETTER_AUTH_URL: z.url().optional(),
   DATABASE_URL: z.string().min(1),
-  SMTP_URL: isProduction ? z.string().min(1, 'SMTP_URL è obbligatoria in produzione') : z.string().optional(),
+  SMTP_URL: isProduction
+    ? z.string().min(1, 'SMTP_URL è obbligatoria in produzione')
+    : z.string().optional(),
   EMAIL_FROM: z.string().optional(),
   TRUSTED_IP_HEADER: z.string().default('x-forwarded-for'),
 });

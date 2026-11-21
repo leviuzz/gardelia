@@ -14,7 +14,6 @@
     "migrate:deploy": "prisma migrate deploy",
     "migrate:status": "prisma migrate status",
     "seed": "tsx prisma/seed.ts",
-    "test:prepare": "tsx scripts/prepare-test-db.ts",
     "typecheck": "tsc -p tsconfig.json",
     "postinstall": "prisma generate"
   },

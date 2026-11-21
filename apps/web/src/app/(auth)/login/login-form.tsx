@@ -68,7 +68,12 @@ export function LoginForm({ next, defaultEmail }: { next: string; defaultEmail: 
         />
       </Field>
       <Field id="password" label={t('password')}>
-        <PasswordInput {...controlProps('password')} name="password" autoComplete="current-password" required />
+        <PasswordInput
+          {...controlProps('password')}
+          name="password"
+          autoComplete="current-password"
+          required
+        />
       </Field>
       <div className="flex justify-end">
         <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">

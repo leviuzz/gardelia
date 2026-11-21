@@ -69,8 +69,16 @@ describe('onboarding della fioreria', () => {
     const userA = await createTestUser(db);
     const userB = await createTestUser(db);
     const unique = `Florería Prueba ${Date.now()}`;
-    const first = await createTenant({ userId: userA.id, country: 'MX', data: { ...onboardingData, displayName: unique } });
-    const second = await createTenant({ userId: userB.id, country: 'MX', data: { ...onboardingData, displayName: unique } });
+    const first = await createTenant({
+      userId: userA.id,
+      country: 'MX',
+      data: { ...onboardingData, displayName: unique },
+    });
+    const second = await createTenant({
+      userId: userB.id,
+      country: 'MX',
+      data: { ...onboardingData, displayName: unique },
+    });
     expect(second.slug).toBe(`${first.slug}-2`);
 
     const ctx = await contextFor(userA.id, first.slug);
@@ -78,41 +86,92 @@ describe('onboarding della fioreria', () => {
     expect(ctx.currency).toBe('MXN');
     const settings = await getTenantSettings(ctx);
     expect(settings.tenant.contactPhone).toBe('+524495550199');
-    expect(settings.location).toMatchObject({ city: 'Aguascalientes', region: 'AGU', deliveryRadiusKm: 5 });
-    expect(await listUserTenants(userA.id)).toEqual([{ slug: first.slug, displayName: unique, role: 'OWNER', mode: 'LIVE' }]);
+    expect(settings.location).toMatchObject({
+      city: 'Aguascalientes',
+      region: 'AGU',
+      deliveryRadiusKm: 5,
+    });
+    expect(await listUserTenants(userA.id)).toEqual([
+      { slug: first.slug, displayName: unique, role: 'OWNER', mode: 'LIVE' },
+    ]);
     // L'altro utente non vede la prima fioreria.
     expect(await resolveTenantContext({ userId: userB.id, slug: first.slug })).toBeNull();
   });
 
   it('valida i dati e limita il numero di fiorerie per utente', async () => {
     const user = await createTestUser(db);
-    await expect(createTenant({ userId: user.id, country: 'MX', data: { ...onboardingData, displayName: '' } })).rejects.toBeInstanceOf(ValidationError);
-    await expect(createTenant({ userId: user.id, country: 'IT', data: onboardingData })).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      createTenant({
+        userId: user.id,
+        country: 'MX',
+        data: { ...onboardingData, displayName: '' },
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      createTenant({ userId: user.id, country: 'IT', data: onboardingData }),
+    ).rejects.toBeInstanceOf(ValidationError);
     for (let i = 0; i < 5; i += 1) {
-      await createTenant({ userId: user.id, country: 'MX', data: { ...onboardingData, displayName: `Limite ${Date.now()} ${i}` } });
+      await createTenant({
+        userId: user.id,
+        country: 'MX',
+        data: { ...onboardingData, displayName: `Limite ${Date.now()} ${i}` },
+      });
     }
-    await expect(createTenant({ userId: user.id, country: 'MX', data: onboardingData })).rejects.toMatchObject({ reason: 'tenant_limit_reached' });
+    await expect(
+      createTenant({ userId: user.id, country: 'MX', data: onboardingData }),
+    ).rejects.toMatchObject({ reason: 'tenant_limit_reached' });
   });
 });
 
 describe('impostazioni', () => {
   it('owner e manager modificano il profilo; solo l’owner i dati legali', async () => {
-    await updateTenantProfile(shop.manager, { displayName: 'Nuevo Nombre', contactEmail: '', contactPhone: '', timezone: 'America/Cancun' });
+    await updateTenantProfile(shop.manager, {
+      displayName: 'Nuevo Nombre',
+      contactEmail: '',
+      contactPhone: '',
+      timezone: 'America/Cancun',
+    });
     const settings = await getTenantSettings(shop.owner);
-    expect(settings.tenant).toMatchObject({ displayName: 'Nuevo Nombre', timezone: 'America/Cancun' });
-    await expect(updateTenantLegal(shop.manager, { legalName: 'X', taxId: '' })).rejects.toBeInstanceOf(ForbiddenError);
-    await expect(updateTenantProfile(shop.staff, { displayName: 'Staff', timezone: 'America/Cancun' })).rejects.toBeInstanceOf(ForbiddenError);
-    await updateTenantLegal(shop.owner, { legalName: 'Flores Prueba S.A.S.', taxId: 'FPR190312AB1' });
-    await expect(updateTenantLegal(shop.owner, { legalName: '', taxId: 'NO-VALIDO' })).rejects.toBeInstanceOf(ValidationError);
-    await updatePrimaryLocation(shop.owner, { addressLine1: 'Nueva 1', city: 'Aguascalientes', region: 'AGU', postalCode: '20010', deliveryRadiusKm: '' });
-    expect((await getTenantSettings(shop.owner)).location).toMatchObject({ addressLine1: 'Nueva 1', postalCode: '20010', deliveryRadiusKm: null });
+    expect(settings.tenant).toMatchObject({
+      displayName: 'Nuevo Nombre',
+      timezone: 'America/Cancun',
+    });
+    await expect(
+      updateTenantLegal(shop.manager, { legalName: 'X', taxId: '' }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(
+      updateTenantProfile(shop.staff, { displayName: 'Staff', timezone: 'America/Cancun' }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    await updateTenantLegal(shop.owner, {
+      legalName: 'Flores Prueba S.A.S.',
+      taxId: 'FPR190312AB1',
+    });
+    await expect(
+      updateTenantLegal(shop.owner, { legalName: '', taxId: 'NO-VALIDO' }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await updatePrimaryLocation(shop.owner, {
+      addressLine1: 'Nueva 1',
+      city: 'Aguascalientes',
+      region: 'AGU',
+      postalCode: '20010',
+      deliveryRadiusKm: '',
+    });
+    expect((await getTenantSettings(shop.owner)).location).toMatchObject({
+      addressLine1: 'Nueva 1',
+      postalCode: '20010',
+      deliveryRadiusKm: null,
+    });
   });
 });
 
 describe('inviti', () => {
   it('flusso completo: invito → email con link → anteprima → accettazione', async () => {
     const invitee = await createTestUser(db);
-    const result = await inviteMember(shop.owner, { email: invitee.email.toUpperCase(), role: 'MANAGER' }, deps);
+    const result = await inviteMember(
+      shop.owner,
+      { email: invitee.email.toUpperCase(), role: 'MANAGER' },
+      deps,
+    );
     expect(result.emailSent).toBe(true);
     const email = mailer.lastTo(invitee.email);
     expect(email?.subject).toContain(shop.owner.tenantName);
@@ -120,14 +179,25 @@ describe('inviti', () => {
 
     const token = tokenFromEmail(invitee.email);
     const preview = await getInvitationPreview(token);
-    expect(preview).toMatchObject({ status: 'PENDING', role: 'MANAGER', email: invitee.email, tenantSlug: shop.tenant.slug });
+    expect(preview).toMatchObject({
+      status: 'PENDING',
+      role: 'MANAGER',
+      email: invitee.email,
+      tenantSlug: shop.tenant.slug,
+    });
 
-    const accepted = await acceptInvitation({ token, userId: invitee.id, userEmail: invitee.email });
+    const accepted = await acceptInvitation({
+      token,
+      userId: invitee.id,
+      userEmail: invitee.email,
+    });
     expect(accepted.tenantSlug).toBe(shop.tenant.slug);
     const ctx = await contextFor(invitee.id, shop.tenant.slug);
     expect(ctx.role).toBe('MANAGER');
     // Idempotente.
-    await expect(acceptInvitation({ token, userId: invitee.id, userEmail: invitee.email })).resolves.toEqual(accepted);
+    await expect(
+      acceptInvitation({ token, userId: invitee.id, userEmail: invitee.email }),
+    ).resolves.toEqual(accepted);
     expect((await getInvitationPreview(token)).status).toBe('ACCEPTED');
   });
 
@@ -136,7 +206,9 @@ describe('inviti', () => {
     const other = await createTestUser(db);
     await inviteMember(shop.owner, { email: invitee.email, role: 'STAFF' }, deps);
     const token = tokenFromEmail(invitee.email);
-    await expect(acceptInvitation({ token, userId: other.id, userEmail: other.email })).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(
+      acceptInvitation({ token, userId: other.id, userEmail: other.email }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
     expect(await resolveTenantContext({ userId: other.id, slug: shop.tenant.slug })).toBeNull();
   });
 
@@ -146,28 +218,43 @@ describe('inviti', () => {
     const firstToken = tokenFromEmail(invitee.email);
     await inviteMember(shop.owner, { email: invitee.email, role: 'STAFF' }, deps); // sostituisce il primo
     expect((await getInvitationPreview(firstToken)).status).toBe('REVOKED');
-    await expect(revokeInvitation(shop.owner, first.invitationId)).rejects.toMatchObject({ reason: 'invitation_not_pending' });
+    await expect(revokeInvitation(shop.owner, first.invitationId)).rejects.toMatchObject({
+      reason: 'invitation_not_pending',
+    });
 
     const secondToken = tokenFromEmail(invitee.email);
     const team = await getTeam(shop.owner);
     const pending = team.invitations.find((i) => i.email === invitee.email);
     await revokeInvitation(shop.owner, pending!.id);
-    await expect(acceptInvitation({ token: secondToken, userId: invitee.id, userEmail: invitee.email })).rejects.toBeInstanceOf(ConflictError);
+    await expect(
+      acceptInvitation({ token: secondToken, userId: invitee.id, userEmail: invitee.email }),
+    ).rejects.toBeInstanceOf(ConflictError);
   });
 
   it('un invito scaduto non può essere accettato', async () => {
     const invitee = await createTestUser(db);
-    const { invitationId } = await inviteMember(shop.owner, { email: invitee.email, role: 'STAFF' }, deps);
+    const { invitationId } = await inviteMember(
+      shop.owner,
+      { email: invitee.email, role: 'STAFF' },
+      deps,
+    );
     const token = tokenFromEmail(invitee.email);
     await withTenantContext(db, shop.owner, (tx) =>
-      tx.invitation.update({ where: { id: invitationId }, data: { expiresAt: new Date(Date.now() - 1000) } }),
+      tx.invitation.update({
+        where: { id: invitationId },
+        data: { expiresAt: new Date(Date.now() - 1000) },
+      }),
     );
     expect((await getInvitationPreview(token)).status).toBe('EXPIRED');
-    await expect(acceptInvitation({ token, userId: invitee.id, userEmail: invitee.email })).rejects.toMatchObject({ reason: 'invitation_expired' });
+    await expect(
+      acceptInvitation({ token, userId: invitee.id, userEmail: invitee.email }),
+    ).rejects.toMatchObject({ reason: 'invitation_expired' });
   });
 
   it('non si invita chi è già membro attivo; token falsi non rivelano nulla', async () => {
-    await expect(inviteMember(shop.owner, { email: shop.staffUser.email, role: 'STAFF' }, deps)).rejects.toMatchObject({ reason: 'already_member' });
+    await expect(
+      inviteMember(shop.owner, { email: shop.staffUser.email, role: 'STAFF' }, deps),
+    ).rejects.toMatchObject({ reason: 'already_member' });
     expect(await getInvitationPreview('x'.repeat(43))).toEqual({ status: 'NOT_FOUND' });
     expect(await getInvitationPreview('corto')).toEqual({ status: 'NOT_FOUND' });
   });
@@ -179,7 +266,9 @@ describe('ruoli e proprietari', () => {
     const team = await getTeam(local.owner);
     const ownerMembership = team.members.find((m) => m.role === 'OWNER')!;
     // Non si può modificare sé stessi...
-    await expect(changeMemberRole(local.owner, ownerMembership.membershipId, { role: 'STAFF' })).rejects.toMatchObject({ reason: 'self_change' });
+    await expect(
+      changeMemberRole(local.owner, ownerMembership.membershipId, { role: 'STAFF' }),
+    ).rejects.toMatchObject({ reason: 'self_change' });
     // ...si promuove un altro owner, che poi può declassare il primo.
     const managerMembership = team.members.find((m) => m.role === 'MANAGER')!;
     await changeMemberRole(local.owner, managerMembership.membershipId, { role: 'OWNER' });
@@ -187,8 +276,12 @@ describe('ruoli e proprietari', () => {
     await changeMemberRole(secondOwner, ownerMembership.membershipId, { role: 'MANAGER' });
     // Ora il secondo è l'unico owner: nessuno può declassarlo o disattivarlo.
     const exOwner = await contextFor(local.tenant.owner.id, local.tenant.slug);
-    await expect(changeMemberRole(exOwner, managerMembership.membershipId, { role: 'STAFF' })).rejects.toBeInstanceOf(ForbiddenError);
-    await expect(setMemberActive(secondOwner, managerMembership.membershipId, false)).rejects.toMatchObject({ reason: 'self_change' });
+    await expect(
+      changeMemberRole(exOwner, managerMembership.membershipId, { role: 'STAFF' }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(
+      setMemberActive(secondOwner, managerMembership.membershipId, false),
+    ).rejects.toMatchObject({ reason: 'self_change' });
   });
 });
 
@@ -205,6 +298,9 @@ describe('dashboard', () => {
     expect(staffView.team).toBeNull();
     expect(staffView.recentActivity).toBeNull();
     expect(staffView.catalog.itemsMissingCost).toBeNull();
-    expect(staffView.onboarding.map((s) => s.key)).toEqual(['first_product', 'first_bouquet_recipe']);
+    expect(staffView.onboarding.map((s) => s.key)).toEqual([
+      'first_product',
+      'first_bouquet_recipe',
+    ]);
   });
 });

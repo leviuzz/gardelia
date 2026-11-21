@@ -10,7 +10,13 @@ import {
   normalizePhone,
   type MarketCountry,
 } from './markets';
-import { optionalEmail, optionalInteger, optionalText, requiredText, toTrimmedString } from './validation';
+import {
+  optionalEmail,
+  optionalInteger,
+  optionalText,
+  requiredText,
+  toTrimmedString,
+} from './validation';
 
 export const TENANT_LIMITS = {
   displayName: 80,
@@ -68,11 +74,9 @@ export function tenantProfileSchema(country: MarketCountry) {
     contactPhone: optionalPhone(country),
     timezone: z.preprocess(
       toTrimmedString,
-      z
-        .string()
-        .refine((tz) => (market.timezones as readonly string[]).includes(tz), {
-          error: 'invalid_option',
-        }),
+      z.string().refine((tz) => (market.timezones as readonly string[]).includes(tz), {
+        error: 'invalid_option',
+      }),
     ),
   });
 }

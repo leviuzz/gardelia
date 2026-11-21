@@ -40,7 +40,9 @@ test.describe('catalogo (proprietario)', () => {
     await expect(page.getByText('Este ramo aún no tiene ingredientes.')).toBeVisible();
 
     // 10 rose rosse a 14.00 di costo = 140.00
-    await page.getByLabel('Ingrediente', { exact: true }).selectOption({ label: 'Rosa roja · Freedom' });
+    await page
+      .getByLabel('Ingrediente', { exact: true })
+      .selectOption({ label: 'Rosa roja · Freedom' });
     await page.getByLabel('Cantidad', { exact: true }).fill('10');
     await page.getByRole('button', { name: 'Agregar ingrediente' }).click();
     await expect(page.getByText('Ingrediente agregado')).toBeVisible();

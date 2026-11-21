@@ -14,7 +14,12 @@ function escapeHtml(value: string): string {
     .replaceAll("'", '&#39;');
 }
 
-function layout(title: string, paragraphs: readonly string[], action: { label: string; url: string }, footer: string): string {
+function layout(
+  title: string,
+  paragraphs: readonly string[],
+  action: { label: string; url: string },
+  footer: string,
+): string {
   const body = paragraphs
     .map((p) => `<p style="margin:0 0 16px;line-height:1.6;color:#2f3b33">${p}</p>`)
     .join('');

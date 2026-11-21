@@ -21,7 +21,8 @@ export function isCurrencyCode(value: string): value is CurrencyCode {
  */
 export const MAX_AMOUNT_MINOR = 1_000_000_000;
 
-export type MoneyParseError = 'required' | 'invalid_money' | 'too_many_decimals' | 'amount_too_large';
+export type MoneyParseError =
+  'required' | 'invalid_money' | 'too_many_decimals' | 'amount_too_large';
 
 export type MoneyParseResult =
   | { readonly ok: true; readonly minor: number }

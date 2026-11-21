@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { diffFields } from '../src/audit';
-import { catalogItemFormSchema, catalogItemInputSchema, catalogListFiltersSchema } from '../src/catalog';
+import {
+  catalogItemFormSchema,
+  catalogItemInputSchema,
+  catalogListFiltersSchema,
+} from '../src/catalog';
 import { computeRecipeCosting, recipeDetailsFormSchema, recipeLineFormSchema } from '../src/recipe';
 import { toFieldErrors } from '../src/validation';
 

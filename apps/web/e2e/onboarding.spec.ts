@@ -4,7 +4,9 @@ import { linkFrom, uniqueEmail, waitForEmail } from './support/mailbox';
 /**
  * FLOW-A (spec §10): registrazione → verifica email reale → creazione fioreria → primo prodotto.
  */
-test('un nuovo fiorista si registra, verifica l’email, crea la fioreria e il primo prodotto', async ({ page }) => {
+test('un nuovo fiorista si registra, verifica l’email, crea la fioreria e il primo prodotto', async ({
+  page,
+}) => {
   const email = uniqueEmail('nuevo');
   const shopName = `Florería E2E ${Date.now()}`;
 

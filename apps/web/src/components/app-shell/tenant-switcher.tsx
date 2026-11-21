@@ -17,7 +17,13 @@ export interface ShopOption {
   readonly displayName: string;
 }
 
-export function TenantSwitcher({ current, shops }: { current: ShopOption; shops: readonly ShopOption[] }) {
+export function TenantSwitcher({
+  current,
+  shops,
+}: {
+  current: ShopOption;
+  shops: readonly ShopOption[];
+}) {
   const t = useTranslations('nav');
   const tOnboarding = useTranslations('onboarding');
   return (
@@ -33,7 +39,9 @@ export function TenantSwitcher({ current, shops }: { current: ShopOption; shops:
         <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-64">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">{t('yourShops')}</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs text-muted-foreground">
+          {t('yourShops')}
+        </DropdownMenuLabel>
         {shops.map((shop) => (
           <DropdownMenuItem key={shop.slug} asChild>
             <Link href={`/app/${shop.slug}`}>

@@ -13,7 +13,10 @@ import { getSession } from '@/lib/session';
 import { acceptInvitationAction } from './actions';
 import { AcceptInvitationForm } from './accept-form';
 
-export const metadata: Metadata = { robots: { index: false, follow: false }, referrer: 'no-referrer' };
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+  referrer: 'no-referrer',
+};
 
 export default async function InvitePage({ params }: PageProps<'/invite/[token]'>) {
   const { token } = await params;
@@ -41,7 +44,13 @@ export default async function InvitePage({ params }: PageProps<'/invite/[token]'
             <AlertDescription>{reason}</AlertDescription>
           </Alert>
           <Button asChild variant="outline" className="w-full">
-            <Link href={preview.status === 'ACCEPTED' && preview.tenantSlug ? `/app/${preview.tenantSlug}` : '/'}>
+            <Link
+              href={
+                preview.status === 'ACCEPTED' && preview.tenantSlug
+                  ? `/app/${preview.tenantSlug}`
+                  : '/'
+              }
+            >
               {preview.status === 'ACCEPTED' ? t('invite.goToShop') : t('errors.goHome')}
             </Link>
           </Button>
@@ -55,8 +64,15 @@ export default async function InvitePage({ params }: PageProps<'/invite/[token]'
           <Store className="size-5" aria-hidden="true" />
         </span>
         <div className="text-sm leading-relaxed">
-          <p>{t('invite.body', { inviter: preview.inviterName ?? '—', role: t(`roles.${preview.role}`) })}</p>
-          <p className="mt-1 text-muted-foreground">{t('invite.forEmail', { email: preview.email })}</p>
+          <p>
+            {t('invite.body', {
+              inviter: preview.inviterName ?? '—',
+              role: t(`roles.${preview.role}`),
+            })}
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            {t('invite.forEmail', { email: preview.email })}
+          </p>
         </div>
       </div>
     );
@@ -69,12 +85,16 @@ export default async function InvitePage({ params }: PageProps<'/invite/[token]'
           <div className="space-y-3">
             <p className="text-sm">{t('invite.loginToAccept', { email: preview.email })}</p>
             <Button asChild size="lg" className="w-full">
-              <Link href={`/login?next=${encodeURIComponent(invitePath)}&email=${encodeURIComponent(preview.email)}`}>
+              <Link
+                href={`/login?next=${encodeURIComponent(invitePath)}&email=${encodeURIComponent(preview.email)}`}
+              >
                 {t('auth.loginButton')}
               </Link>
             </Button>
             <Button asChild variant="outline" className="w-full">
-              <Link href={`/signup?next=${encodeURIComponent(invitePath)}&email=${encodeURIComponent(preview.email)}`}>
+              <Link
+                href={`/signup?next=${encodeURIComponent(invitePath)}&email=${encodeURIComponent(preview.email)}`}
+              >
                 {t('invite.signupToAccept')}
               </Link>
             </Button>
@@ -91,7 +111,10 @@ export default async function InvitePage({ params }: PageProps<'/invite/[token]'
                 {t('invite.wrongAccount', { current: session.user.email, email: preview.email })}
               </AlertDescription>
             </Alert>
-            <SignOutButton label={t('invite.switchAccount')} redirectTo={`/login?next=${encodeURIComponent(invitePath)}`} />
+            <SignOutButton
+              label={t('invite.switchAccount')}
+              redirectTo={`/login?next=${encodeURIComponent(invitePath)}`}
+            />
           </div>
         </AuthCard>
       );

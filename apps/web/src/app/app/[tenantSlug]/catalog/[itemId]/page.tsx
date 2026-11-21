@@ -43,7 +43,9 @@ async function loadItem(ctx: TenantContext, itemId: string): Promise<CatalogItem
   }
 }
 
-export async function generateMetadata({ params }: PageProps<'/app/[tenantSlug]/catalog/[itemId]'>): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps<'/app/[tenantSlug]/catalog/[itemId]'>): Promise<Metadata> {
   const { tenantSlug, itemId } = await params;
   const ctx = await getTenantContext(tenantSlug);
   const item = await loadItem(ctx, itemId);
@@ -55,7 +57,10 @@ function decimal(minor: number | null, currency: string): string {
   return minorToDecimalString(minor, currency);
 }
 
-export default async function ItemPage({ params, searchParams }: PageProps<'/app/[tenantSlug]/catalog/[itemId]'>) {
+export default async function ItemPage({
+  params,
+  searchParams,
+}: PageProps<'/app/[tenantSlug]/catalog/[itemId]'>) {
   const { tenantSlug, itemId } = await params;
   const ctx = await getTenantContext(tenantSlug);
   const item = await loadItem(ctx, itemId);
@@ -90,7 +95,10 @@ export default async function ItemPage({ params, searchParams }: PageProps<'/app
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <Link href={`/app/${slug}/catalog`} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+      <Link
+        href={`/app/${slug}/catalog`}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+      >
         <ArrowLeft className="size-4" />
         {t('common.back')}
       </Link>
@@ -99,7 +107,9 @@ export default async function ItemPage({ params, searchParams }: PageProps<'/app
         description={
           <span className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{t(`catalog.types.${item.type}`)}</Badge>
-            <Badge variant={AVAILABILITY_BADGE[item.availability]}>{t(`catalog.availability.${item.availability}`)}</Badge>
+            <Badge variant={AVAILABILITY_BADGE[item.availability]}>
+              {t(`catalog.availability.${item.availability}`)}
+            </Badge>
             {item.variety ? <span>{item.variety}</span> : null}
             {item.canonicalName ? <span>· {item.canonicalName}</span> : null}
           </span>
@@ -136,7 +146,9 @@ export default async function ItemPage({ params, searchParams }: PageProps<'/app
           canEdit={canWrite}
           ingredientChoices={ingredients.map((ingredient) => ({
             id: ingredient.id,
-            label: ingredient.variety ? `${ingredient.name} · ${ingredient.variety}` : ingredient.name,
+            label: ingredient.variety
+              ? `${ingredient.name} · ${ingredient.variety}`
+              : ingredient.name,
             groupLabel: t(`catalog.types.${ingredient.type}`),
           }))}
         />
@@ -188,7 +200,9 @@ async function RecipeSection({
         ) : null}
 
         {recipe.lines.length === 0 ? (
-          <p className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">{t('recipe.empty')}</p>
+          <p className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+            {t('recipe.empty')}
+          </p>
         ) : (
           <ul className="divide-y rounded-xl border px-4">
             {recipe.lines.map((line) => (
@@ -216,27 +230,46 @@ async function RecipeSection({
         )}
 
         {canEdit ? (
-          <AddIngredientForm action={addRecipeLineAction.bind(null, slug, bouquetId)} choices={ingredientChoices} />
+          <AddIngredientForm
+            action={addRecipeLineAction.bind(null, slug, bouquetId)}
+            choices={ingredientChoices}
+          />
         ) : null}
 
         <div className="rounded-xl bg-muted/50 p-4">
           <h3 className="mb-3 text-sm font-semibold">{t('recipe.costing')}</h3>
           {recipe.costing ? (
             <dl className="grid gap-2 text-sm">
-              <CostRow label={t('recipe.salePrice')} value={money(recipe.costing.salePriceMinor, currency)} strong />
-              <CostRow label={t('recipe.componentsRetail')} value={money(recipe.costing.componentsRetailMinor, currency)} />
+              <CostRow
+                label={t('recipe.salePrice')}
+                value={money(recipe.costing.salePriceMinor, currency)}
+                strong
+              />
+              <CostRow
+                label={t('recipe.componentsRetail')}
+                value={money(recipe.costing.componentsRetailMinor, currency)}
+              />
               <CostRow
                 label={t('recipe.materialCost')}
-                value={recipe.costing.materialCostMinor !== null ? money(recipe.costing.materialCostMinor, currency) : '—'}
+                value={
+                  recipe.costing.materialCostMinor !== null
+                    ? money(recipe.costing.materialCostMinor, currency)
+                    : '—'
+                }
               />
               <CostRow
                 label={t('recipe.laborCost')}
-                value={recipe.costing.laborCostMinor !== null ? money(recipe.costing.laborCostMinor, currency) : '—'}
+                value={
+                  recipe.costing.laborCostMinor !== null
+                    ? money(recipe.costing.laborCostMinor, currency)
+                    : '—'
+                }
               />
               <CostRow
                 label={t('recipe.materialMargin')}
                 value={
-                  recipe.costing.materialMarginBps !== null && recipe.costing.materialMarginMinor !== null
+                  recipe.costing.materialMarginBps !== null &&
+                  recipe.costing.materialMarginMinor !== null
                     ? `${money(recipe.costing.materialMarginMinor, currency)} · ${percentFromBps(recipe.costing.materialMarginBps)}`
                     : '—'
                 }
@@ -251,14 +284,19 @@ async function RecipeSection({
                 strong
               />
               {recipe.costing.linesMissingCost > 0 ? (
-                <p className="mt-2 text-sm text-[oklch(0.45_0.1_65)]">{t('recipe.missingCosts', { count: recipe.costing.linesMissingCost })}</p>
+                <p className="mt-2 text-sm text-[oklch(0.45_0.1_65)]">
+                  {t('recipe.missingCosts', { count: recipe.costing.linesMissingCost })}
+                </p>
               ) : recipe.costing.laborCostMinor === null && !recipe.costing.isEmpty ? (
                 <p className="mt-2 text-sm text-muted-foreground">{t('recipe.laborUnknown')}</p>
               ) : null}
             </dl>
           ) : (
             <dl className="grid gap-2 text-sm">
-              <CostRow label={t('recipe.componentsRetail')} value={money(recipe.componentsRetailMinor, currency)} />
+              <CostRow
+                label={t('recipe.componentsRetail')}
+                value={money(recipe.componentsRetailMinor, currency)}
+              />
               <p className="mt-1 text-muted-foreground">{t('recipe.costsHidden')}</p>
             </dl>
           )}
@@ -300,7 +338,15 @@ async function RecipeSection({
   );
 }
 
-function CostRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+function CostRow({
+  label,
+  value,
+  strong = false,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
   return (
     <div className="flex items-baseline justify-between gap-4">
       <dt className="text-muted-foreground">{label}</dt>
@@ -312,7 +358,10 @@ function CostRow({ label, value, strong = false }: { label: string; value: strin
 async function ReadOnlyDetails({ item }: { item: CatalogItemDto }) {
   const t = await getTranslations('catalog');
   const rows: [string, string][] = [
-    [t('form.price'), `${money(item.priceMinor, item.currency)} ${t('perUnit', { unit: t(`units.${item.saleUnit}`) })}`],
+    [
+      t('form.price'),
+      `${money(item.priceMinor, item.currency)} ${t('perUnit', { unit: t(`units.${item.saleUnit}`) })}`,
+    ],
     [t('form.sku'), item.sku ?? '—'],
     [t('form.colors'), item.colors.map((color) => t(`colors.${color}`)).join(', ') || '—'],
     [t('form.tags'), item.tags.join(', ') || '—'],
@@ -325,7 +374,9 @@ async function ReadOnlyDetails({ item }: { item: CatalogItemDto }) {
         <CardDescription>{t('form.readOnly')}</CardDescription>
       </CardHeader>
       <CardContent>
-        {item.description ? <p className="mb-4 text-sm leading-relaxed">{item.description}</p> : null}
+        {item.description ? (
+          <p className="mb-4 text-sm leading-relaxed">{item.description}</p>
+        ) : null}
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
           {rows.map(([label, value]) => (
             <div key={label}>

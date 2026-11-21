@@ -25,7 +25,14 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
       ? [{ href: `${base}/settings/team`, label: t('nav.team'), icon: 'team' as const }]
       : []),
     ...(hasPermission(ctx, 'tenant:settings:update')
-      ? [{ href: `${base}/settings`, label: t('nav.settings'), icon: 'settings' as const, exact: true }]
+      ? [
+          {
+            href: `${base}/settings`,
+            label: t('nav.settings'),
+            icon: 'settings' as const,
+            exact: true,
+          },
+        ]
       : []),
   ];
   const current = { slug: ctx.tenantSlug, displayName: ctx.tenantName };
@@ -36,7 +43,9 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
       <aside className="sticky top-0 hidden h-dvh flex-col gap-6 border-r border-sidebar-border bg-sidebar px-4 py-5 lg:flex">
         <Link href={base} className="flex items-center gap-2.5 px-1">
           <LogoMark />
-          <span className="font-display text-lg font-semibold tracking-tight">{BRAND.productName}</span>
+          <span className="font-display text-lg font-semibold tracking-tight">
+            {BRAND.productName}
+          </span>
         </Link>
         <TenantSwitcher current={current} shops={shops} />
         <SidebarNav items={items} label={t('nav.mainNavigation')} />

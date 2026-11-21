@@ -206,13 +206,11 @@ export function catalogItemFormSchema(currency: CurrencyCode) {
       widthCm: optionalInteger({ min: 1, max: CATALOG_LIMITS.dimensionCmMax }),
       tags: tagsField(CATALOG_LIMITS.tags, CATALOG_LIMITS.tagLength),
     })
-    .transform(
-      ({ price, cost, ...rest }): CatalogItemInput => ({
-        ...rest,
-        priceMinor: price,
-        costMinor: cost,
-      }),
-    )
+    .transform(({ price, cost, ...rest }): CatalogItemInput => ({
+      ...rest,
+      priceMinor: price,
+      costMinor: cost,
+    }))
     .pipe(catalogItemInputSchema);
 }
 

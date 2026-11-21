@@ -2,7 +2,7 @@
 
 import { Archive, ArchiveArrowUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useState } from 'react';
 import { SubmitButton } from '@/components/form/submit-button';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,14 +31,17 @@ export function ArchiveControl({
 }) {
   const t = useTranslations();
   const [open, setOpen] = useState(false);
-  const [archiveState, archiveFormAction] = useActionState(archiveAction, idleState);
+  const [archiveState, archiveFormAction] = useActionState(
+    async (prev: ActionState, formData: FormData) => {
+      const result = await archiveAction(prev, formData);
+      if (result.status === 'success') setOpen(false);
+      return result;
+    },
+    idleState,
+  );
   const [restoreState, restoreFormAction] = useActionState(restoreAction, idleState);
   useActionToast(archiveState);
   useActionToast(restoreState);
-
-  useEffect(() => {
-    if (archiveState.status === 'success') setOpen(false);
-  }, [archiveState]);
 
   if (archived) {
     return (

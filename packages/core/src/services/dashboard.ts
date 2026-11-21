@@ -107,7 +107,10 @@ export async function getDashboard(ctx: TenantContext): Promise<DashboardData> {
       });
       const actorIds = [...new Set(entries.map((e) => e.actorUserId).filter((id) => id !== null))];
       const actors = actorIds.length
-        ? await tx.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, name: true } })
+        ? await tx.user.findMany({
+            where: { id: { in: actorIds } },
+            select: { id: true, name: true },
+          })
         : [];
       const actorNames = new Map(actors.map((actor) => [actor.id, actor.name]));
       recentActivity = entries.map((entry) => ({

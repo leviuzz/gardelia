@@ -111,7 +111,10 @@ export interface CatalogListResult {
   readonly canWrite: boolean;
 }
 
-export async function listCatalogItems(ctx: TenantContext, rawFilters: unknown): Promise<CatalogListResult> {
+export async function listCatalogItems(
+  ctx: TenantContext,
+  rawFilters: unknown,
+): Promise<CatalogListResult> {
   requirePermission(ctx, 'catalog:read');
   const filters = catalogListFiltersSchema.parse(rawFilters ?? {});
   const where: Prisma.CatalogItemWhereInput = {
@@ -156,7 +159,10 @@ export async function getCatalogItem(ctx: TenantContext, itemId: string): Promis
   requirePermission(ctx, 'catalog:read');
   if (!isUuid(itemId)) throw new NotFoundError('CatalogItem');
   const item = await withTenantContext(getDb(), ctx, (tx) =>
-    tx.catalogItem.findFirst({ where: { id: itemId, tenantId: ctx.tenantId }, include: itemInclude }),
+    tx.catalogItem.findFirst({
+      where: { id: itemId, tenantId: ctx.tenantId },
+      include: itemInclude,
+    }),
   );
   if (!item) return notFound(ctx, 'CatalogItem', itemId);
   return toDto(item, ctx);
@@ -207,7 +213,10 @@ function itemData(input: CatalogItemInput) {
   };
 }
 
-export async function createCatalogItem(ctx: TenantContext, rawInput: unknown): Promise<CatalogItemDto> {
+export async function createCatalogItem(
+  ctx: TenantContext,
+  rawInput: unknown,
+): Promise<CatalogItemDto> {
   requirePermission(ctx, 'catalog:write');
   const input = parseItemInput(rawInput);
   try {
@@ -346,7 +355,9 @@ export interface CanonicalFlowerOption {
 }
 
 /** Tassonomia globale (non contiene dati di tenant). */
-export async function listCanonicalFlowers(locale: string): Promise<readonly CanonicalFlowerOption[]> {
+export async function listCanonicalFlowers(
+  locale: string,
+): Promise<readonly CanonicalFlowerOption[]> {
   const resolved = resolveLocale(locale);
   const flowers = await getDb().canonicalFlower.findMany({ orderBy: { slug: 'asc' } });
   return flowers
@@ -370,12 +381,21 @@ export interface IngredientOption {
 }
 
 /** Articoli attivi utilizzabili come ingredienti di una distinta. */
-export async function listIngredientOptions(ctx: TenantContext): Promise<readonly IngredientOption[]> {
+export async function listIngredientOptions(
+  ctx: TenantContext,
+): Promise<readonly IngredientOption[]> {
   requirePermission(ctx, 'catalog:read');
   return withTenantContext(getDb(), ctx, (tx) =>
     tx.catalogItem.findMany({
       where: { tenantId: ctx.tenantId, status: 'ACTIVE', type: { in: [...INGREDIENT_TYPES] } },
-      select: { id: true, name: true, variety: true, type: true, saleUnit: true, availability: true },
+      select: {
+        id: true,
+        name: true,
+        variety: true,
+        type: true,
+        saleUnit: true,
+        availability: true,
+      },
       orderBy: [{ type: 'asc' }, { name: 'asc' }],
     }),
   );

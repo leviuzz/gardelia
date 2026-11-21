@@ -22,7 +22,11 @@ async function saved(): Promise<ActionState> {
   return { status: 'success', message: t('saved') };
 }
 
-export async function updateProfileAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function updateProfileAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const ctx = await getTenantContext(slug);
   try {
     await updateTenantProfile(ctx, formDataToObject(formData));
@@ -33,7 +37,11 @@ export async function updateProfileAction(slug: string, _prev: ActionState, form
   return saved();
 }
 
-export async function updateLegalAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function updateLegalAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const ctx = await getTenantContext(slug);
   try {
     await updateTenantLegal(ctx, formDataToObject(formData));
@@ -44,7 +52,11 @@ export async function updateLegalAction(slug: string, _prev: ActionState, formDa
   return saved();
 }
 
-export async function updateLocationAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function updateLocationAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const ctx = await getTenantContext(slug);
   try {
     await updatePrimaryLocation(ctx, formDataToObject(formData));
@@ -55,15 +67,25 @@ export async function updateLocationAction(slug: string, _prev: ActionState, for
   return saved();
 }
 
-export async function inviteMemberAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function inviteMemberAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const ctx = await getTenantContext(slug);
   const t = await getTranslations('team');
   try {
     const data = formDataToObject(formData);
-    const result = await inviteMember(ctx, data, { mailer: getMailer(), appUrl: serverEnv().APP_URL });
+    const result = await inviteMember(ctx, data, {
+      mailer: getMailer(),
+      appUrl: serverEnv().APP_URL,
+    });
     revalidatePath(`/app/${ctx.tenantSlug}/settings/team`);
     return result.emailSent
-      ? { status: 'success', message: t('invited', { email: String(data.email ?? '').toLowerCase() }) }
+      ? {
+          status: 'success',
+          message: t('invited', { email: String(data.email ?? '').toLowerCase() }),
+        }
       : { status: 'error', message: t('invitedNoEmail') };
   } catch (error) {
     return actionError(error);

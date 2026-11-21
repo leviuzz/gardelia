@@ -15,7 +15,9 @@ import { getRequestMeta } from './request-meta';
 export { idleState, type ActionState } from './action-state';
 
 /** Traduce i codici di validazione del dominio in messaggi es-MX. */
-export async function translateFieldErrors(fieldErrors: FieldErrors): Promise<Record<string, string>> {
+export async function translateFieldErrors(
+  fieldErrors: FieldErrors,
+): Promise<Record<string, string>> {
   const t = await getTranslations('validation');
   const result: Record<string, string> = {};
   for (const [field, code] of Object.entries(fieldErrors)) {

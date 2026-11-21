@@ -25,7 +25,9 @@ export default async function OnboardingPage() {
         </Link>
       </header>
       <main className="mx-auto max-w-2xl px-4 pt-6 pb-16">
-        <h1 className="font-display text-3xl font-semibold tracking-tight">{t('onboarding.title')}</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">
+          {t('onboarding.title')}
+        </h1>
         <p className="mt-2 text-muted-foreground">{t('onboarding.subtitle')}</p>
         <OnboardingForm
           action={createTenantAction}

@@ -58,7 +58,9 @@ export function RecipeLineRow({
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">
           {line.name}
-          {line.variety ? <span className="font-normal text-muted-foreground"> · {line.variety}</span> : null}
+          {line.variety ? (
+            <span className="font-normal text-muted-foreground"> · {line.variety}</span>
+          ) : null}
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
           <span>{line.unitLabel}</span>
@@ -72,7 +74,11 @@ export function RecipeLineRow({
         </div>
       </div>
       {canEdit ? (
-        <form action={updateFormAction} onSubmit={preserveOnSubmit(updateFormAction)} className="flex items-center gap-2">
+        <form
+          action={updateFormAction}
+          onSubmit={preserveOnSubmit(updateFormAction)}
+          className="flex items-center gap-2"
+        >
           <label htmlFor={`qty-${line.id}`} className="sr-only">
             {t('quantity')}
           </label>
@@ -101,7 +107,11 @@ export function RecipeLineRow({
       ) : null}
       {canEdit ? (
         <form action={removeFormAction}>
-          <SubmitButton size="icon-sm" variant="ghost" aria-label={t('removeLine', { name: line.name })}>
+          <SubmitButton
+            size="icon-sm"
+            variant="ghost"
+            aria-label={t('removeLine', { name: line.name })}
+          >
             <Trash />
           </SubmitButton>
         </form>
@@ -116,7 +126,13 @@ export interface IngredientChoice {
   readonly groupLabel: string;
 }
 
-export function AddIngredientForm({ action, choices }: { action: Action; choices: readonly IngredientChoice[] }) {
+export function AddIngredientForm({
+  action,
+  choices,
+}: {
+  action: Action;
+  choices: readonly IngredientChoice[];
+}) {
   const t = useTranslations('recipe');
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction] = useActionState(async (prev: ActionState, formData: FormData) => {
@@ -132,9 +148,23 @@ export function AddIngredientForm({ action, choices }: { action: Action; choices
 
   const groups = Array.from(new Set(choices.map((choice) => choice.groupLabel)));
   return (
-    <form ref={formRef} action={formAction} onSubmit={preserveOnSubmit(formAction)} className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_7rem_auto] sm:items-end">
-      <Field id="ingredientItemId" label={t('ingredient')} error={fieldError(state, 'ingredientItemId')}>
-        <NativeSelect {...controlProps('ingredientItemId', fieldError(state, 'ingredientItemId'))} name="ingredientItemId" defaultValue="" required>
+    <form
+      ref={formRef}
+      action={formAction}
+      onSubmit={preserveOnSubmit(formAction)}
+      className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_7rem_auto] sm:items-end"
+    >
+      <Field
+        id="ingredientItemId"
+        label={t('ingredient')}
+        error={fieldError(state, 'ingredientItemId')}
+      >
+        <NativeSelect
+          {...controlProps('ingredientItemId', fieldError(state, 'ingredientItemId'))}
+          name="ingredientItemId"
+          defaultValue=""
+          required
+        >
           <option value="" disabled>
             {t('selectIngredient')}
           </option>
@@ -152,7 +182,16 @@ export function AddIngredientForm({ action, choices }: { action: Action; choices
         </NativeSelect>
       </Field>
       <Field id="quantity" label={t('quantity')} error={fieldError(state, 'quantity')}>
-        <Input {...controlProps('quantity', fieldError(state, 'quantity'))} name="quantity" type="number" inputMode="numeric" min={1} max={RECIPE_LIMITS.quantityMax} defaultValue={1} required />
+        <Input
+          {...controlProps('quantity', fieldError(state, 'quantity'))}
+          name="quantity"
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={RECIPE_LIMITS.quantityMax}
+          defaultValue={1}
+          required
+        />
       </Field>
       <SubmitButton>
         <Plus />
@@ -168,7 +207,12 @@ export function RecipeDetailsForm({
   showLaborCost,
 }: {
   action: Action;
-  defaults: { laborCost: string; styleTags: string; notes: string; substitutionPolicy: SubstitutionPolicy };
+  defaults: {
+    laborCost: string;
+    styleTags: string;
+    notes: string;
+    substitutionPolicy: SubstitutionPolicy;
+  };
   showLaborCost: boolean;
 }) {
   const t = useTranslations('recipe');
@@ -177,16 +221,34 @@ export function RecipeDetailsForm({
   const err = (field: string) => fieldError(state, field);
 
   return (
-    <form action={formAction} onSubmit={preserveOnSubmit(formAction)} className="grid gap-5 sm:grid-cols-2">
+    <form
+      action={formAction}
+      onSubmit={preserveOnSubmit(formAction)}
+      className="grid gap-5 sm:grid-cols-2"
+    >
       {showLaborCost ? (
         <Field id="laborCost" label={t('laborCostField')} error={err('laborCost')}>
-          <Input {...controlProps('laborCost', err('laborCost'))} name="laborCost" inputMode="decimal" defaultValue={defaults.laborCost} placeholder="0.00" />
+          <Input
+            {...controlProps('laborCost', err('laborCost'))}
+            name="laborCost"
+            inputMode="decimal"
+            defaultValue={defaults.laborCost}
+            placeholder="0.00"
+          />
         </Field>
       ) : (
         <input type="hidden" name="laborCost" value={defaults.laborCost} />
       )}
-      <Field id="substitutionPolicy" label={t('substitutionPolicy')} error={err('substitutionPolicy')}>
-        <NativeSelect {...controlProps('substitutionPolicy', err('substitutionPolicy'))} name="substitutionPolicy" defaultValue={defaults.substitutionPolicy}>
+      <Field
+        id="substitutionPolicy"
+        label={t('substitutionPolicy')}
+        error={err('substitutionPolicy')}
+      >
+        <NativeSelect
+          {...controlProps('substitutionPolicy', err('substitutionPolicy'))}
+          name="substitutionPolicy"
+          defaultValue={defaults.substitutionPolicy}
+        >
           {SUBSTITUTION_POLICIES.map((policy) => (
             <option key={policy} value={policy}>
               {t(`substitution.${policy}`)}
@@ -194,11 +256,27 @@ export function RecipeDetailsForm({
           ))}
         </NativeSelect>
       </Field>
-      <Field id="styleTags" label={t('styleTags')} hint={t('styleTagsHint')} error={err('styleTags')} className="sm:col-span-2">
-        <Input {...controlProps('styleTags', err('styleTags'), true)} name="styleTags" defaultValue={defaults.styleTags} />
+      <Field
+        id="styleTags"
+        label={t('styleTags')}
+        hint={t('styleTagsHint')}
+        error={err('styleTags')}
+        className="sm:col-span-2"
+      >
+        <Input
+          {...controlProps('styleTags', err('styleTags'), true)}
+          name="styleTags"
+          defaultValue={defaults.styleTags}
+        />
       </Field>
       <Field id="notes" label={t('notes')} error={err('notes')} className="sm:col-span-2">
-        <Textarea {...controlProps('notes', err('notes'))} name="notes" defaultValue={defaults.notes} rows={3} maxLength={2000} />
+        <Textarea
+          {...controlProps('notes', err('notes'))}
+          name="notes"
+          defaultValue={defaults.notes}
+          rows={3}
+          maxLength={2000}
+        />
       </Field>
       <div className="sm:col-span-2">
         <SubmitButton variant="secondary">{t('saveDetails')}</SubmitButton>

@@ -8,6 +8,7 @@
  * Gli argomenti legati con .bind() arrivano dal client: non sono considerati affidabili.
  */
 import { revalidatePath } from 'next/cache';
+import type { ZodError } from 'zod';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import {
@@ -32,12 +33,18 @@ import { actionError, type ActionState } from '@/lib/actions';
 import { formDataToObject } from '@/lib/form-data';
 import { getTenantContext } from '@/lib/tenant';
 
-function parseOrThrow<T>(result: { success: true; data: T } | { success: false; error: import('zod').ZodError }): T {
+function parseOrThrow<T>(
+  result: { success: true; data: T } | { success: false; error: ZodError },
+): T {
   if (!result.success) throw new ValidationError(toFieldErrors(result.error));
   return result.data;
 }
 
-export async function createItemAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function createItemAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const ctx = await getTenantContext(slug);
   let itemId: string;
   try {

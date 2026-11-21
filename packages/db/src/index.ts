@@ -1,4 +1,10 @@
-export { createDbClient, disconnectDb, getDb, type CreateDbClientOptions, type DbClient } from './client';
+export {
+  createDbClient,
+  disconnectDb,
+  getDb,
+  type CreateDbClientOptions,
+  type DbClient,
+} from './client';
 export {
   checkRlsSafety,
   onSystemContext,

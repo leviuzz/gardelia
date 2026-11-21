@@ -144,8 +144,9 @@ export function recipeDetailsFormSchema(currency: CurrencyCode) {
         z.enum(SUBSTITUTION_POLICIES, { error: 'invalid_option' }),
       ),
     })
-    .transform(
-      ({ laborCost, ...rest }): RecipeDetailsInput => ({ ...rest, laborCostMinor: laborCost }),
-    )
+    .transform(({ laborCost, ...rest }): RecipeDetailsInput => ({
+      ...rest,
+      laborCostMinor: laborCost,
+    }))
     .pipe(recipeDetailsInputSchema);
 }

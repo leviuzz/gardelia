@@ -17,7 +17,9 @@ export default function setup(): void {
   for (const url of [appUrl, migrationUrl]) {
     const dbName = new URL(url).pathname.replace(/^\//, '');
     if (!/test/i.test(dbName)) {
-      throw new Error(`Il database dei test deve contenere "test" nel nome (trovato: "${dbName}").`);
+      throw new Error(
+        `Il database dei test deve contenere "test" nel nome (trovato: "${dbName}").`,
+      );
     }
   }
 

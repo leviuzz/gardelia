@@ -79,7 +79,9 @@ async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<st
         case 'CatalogItem':
           return (await tx.catalogItem.findUnique({ where: { id }, select }))?.tenantId ?? null;
         case 'BouquetRecipeLine':
-          return (await tx.bouquetRecipeLine.findUnique({ where: { id }, select }))?.tenantId ?? null;
+          return (
+            (await tx.bouquetRecipeLine.findUnique({ where: { id }, select }))?.tenantId ?? null
+          );
         case 'Membership':
           return (await tx.membership.findUnique({ where: { id }, select }))?.tenantId ?? null;
         case 'Invitation':

@@ -48,14 +48,20 @@ export default async function LandingPage() {
 
       <main className="relative mx-auto max-w-6xl px-4 pt-12 pb-20 sm:px-6 sm:pt-20">
         <section className="max-w-3xl">
-          <p className="text-sm font-semibold tracking-wide text-primary uppercase">{t('eyebrow')}</p>
+          <p className="text-sm font-semibold tracking-wide text-primary uppercase">
+            {t('eyebrow')}
+          </p>
           <h1 className="mt-4 font-display text-4xl leading-[1.08] font-semibold tracking-tight sm:text-6xl">
             {t('title')}
           </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">{t('subtitle')}</p>
+          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+            {t('subtitle')}
+          </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg">
-              <Link href={session ? '/app' : '/signup'}>{session ? tAuth('loginButton') : t('ctaPrimary')}</Link>
+              <Link href={session ? '/app' : '/signup'}>
+                {session ? tAuth('loginButton') : t('ctaPrimary')}
+              </Link>
             </Button>
             {session ? null : (
               <Button asChild size="lg" variant="outline">

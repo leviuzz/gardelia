@@ -8,7 +8,14 @@ export function LogoMark({ className }: { className?: string }) {
       <rect width="32" height="32" rx="9" className="fill-primary" />
       <g className="fill-primary-foreground" opacity="0.95">
         {[0, 72, 144, 216, 288].map((angle) => (
-          <ellipse key={angle} cx="16" cy="10.2" rx="3.4" ry="5.2" transform={`rotate(${angle} 16 16)`} />
+          <ellipse
+            key={angle}
+            cx="16"
+            cy="10.2"
+            rx="3.4"
+            ry="5.2"
+            transform={`rotate(${angle} 16 16)`}
+          />
         ))}
       </g>
       <circle cx="16" cy="16" r="2.6" className="fill-[oklch(0.85_0.09_85)]" />

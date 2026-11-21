@@ -159,7 +159,9 @@ export async function runSeed(db: DbClient, options: { password: string }): Prom
             name: item.name,
             variety: item.variety ?? null,
             description: item.description ?? null,
-            canonicalFlowerId: item.canonical ? (canonicalBySlug.get(item.canonical) ?? null) : null,
+            canonicalFlowerId: item.canonical
+              ? (canonicalBySlug.get(item.canonical) ?? null)
+              : null,
             colors: [...item.colors],
             saleUnit: item.saleUnit,
             priceMinor: item.priceMinor,
@@ -263,9 +265,9 @@ async function main(): Promise<void> {
   const db = createDbClient({ connectionString, poolMax: 2, applicationName: 'floral-seed' });
   try {
     const result = await runSeed(db, { password });
-    console.log('Seed completato:', result);
-    console.log('Utenti demo (password = SEED_DEMO_PASSWORD):');
-    for (const user of DEMO_USERS) console.log(`  ${user.role.padEnd(8)} ${user.email}`);
+    console.info('Seed completato:', result);
+    console.info('Utenti demo (password = SEED_DEMO_PASSWORD):');
+    for (const user of DEMO_USERS) console.info(`  ${user.role.padEnd(8)} ${user.email}`);
   } finally {
     await db.$disconnect();
   }

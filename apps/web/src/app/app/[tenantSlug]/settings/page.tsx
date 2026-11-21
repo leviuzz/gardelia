@@ -84,7 +84,9 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
       <Card>
         <CardHeader>
           <CardTitle>{t('settings.legalTitle')}</CardTitle>
-          <CardDescription>{canEditLegal ? t('settings.legalSubtitle') : t('settings.legalReadOnly')}</CardDescription>
+          <CardDescription>
+            {canEditLegal ? t('settings.legalSubtitle') : t('settings.legalReadOnly')}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <LegalForm

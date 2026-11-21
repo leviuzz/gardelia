@@ -7,7 +7,10 @@ import { formDataToObject } from '@/lib/form-data';
 import { getRequestMeta } from '@/lib/request-meta';
 import { requireUser } from '@/lib/session';
 
-export async function createTenantAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function createTenantAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const user = await requireUser('/onboarding');
   let slug: string;
   try {

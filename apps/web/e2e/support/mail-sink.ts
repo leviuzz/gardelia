@@ -26,8 +26,9 @@ export async function startMailSink(port: number, directory: string): Promise<SM
     onData(stream, _session, callback) {
       simpleParser(stream)
         .then((parsed) => {
-          const to = (Array.isArray(parsed.to) ? parsed.to : parsed.to ? [parsed.to] : [])
-            .flatMap((address) => address.value.map((value) => (value.address ?? '').toLowerCase()));
+          const to = (Array.isArray(parsed.to) ? parsed.to : parsed.to ? [parsed.to] : []).flatMap(
+            (address) => address.value.map((value) => (value.address ?? '').toLowerCase()),
+          );
           const email: StoredEmail = {
             to,
             subject: parsed.subject ?? '',

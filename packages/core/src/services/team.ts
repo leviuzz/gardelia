@@ -228,7 +228,11 @@ async function lockActiveOwners(tx: TransactionClient, tenantId: string): Promis
   return rows.map((row) => row.id);
 }
 
-async function loadMembershipForUpdate(tx: TransactionClient, ctx: TenantContext, membershipId: string) {
+async function loadMembershipForUpdate(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  membershipId: string,
+) {
   return tx.membership.findFirst({ where: { id: membershipId, tenantId: ctx.tenantId } });
 }
 

@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+  # Database di CI (ruoli creati da packages/db/scripts/setup-local-roles.sql).
+  DATABASE_URL: postgresql://floral_app:floral_app_dev@localhost:5432/floral_dev
+  DATABASE_MIGRATION_URL: postgresql://floral_owner:floral_owner_dev@localhost:5432/floral_dev
+  TEST_DATABASE_URL: postgresql://floral_app:floral_app_dev@localhost:5432/floral_test
+  TEST_DATABASE_MIGRATION_URL: postgresql://floral_owner:floral_owner_dev@localhost:5432/floral_test
+
+jobs:
+  quality:
+    name: Lint, formato, typecheck, unit test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm typecheck
+      - run: pnpm test:unit
+
+  integration:
+    name: Test di integrazione (Postgres + RLS)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Ruoli e database
+        run: psql -v ON_ERROR_STOP=1 -h localhost -U postgres -f packages/db/scripts/setup-local-roles.sql
+        env:
+          PGPASSWORD: postgres
+      - run: pnpm test:integration
+
+  e2e:
+    name: End-to-end (Playwright)
+    runs-on: ubuntu-latest
+    needs: [quality]
+    services:
+      postgres:
+        image: postgres:16.16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      APP_URL: http://localhost:3100
+      SEED_DEMO_PASSWORD: ci-demo-password-2026
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Segreto effimero per la sessione di test
+        run: echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+      - name: Ruoli, database e migrazioni
+        run: |
+          psql -v ON_ERROR_STOP=1 -h localhost -U postgres -f packages/db/scripts/setup-local-roles.sql
+          pnpm db:deploy
+        env:
+          PGPASSWORD: postgres
+      - run: pnpm build
+      - run: pnpm --filter @floral/web exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - name: Report Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7

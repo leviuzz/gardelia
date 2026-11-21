@@ -2,7 +2,7 @@
 
 import { Ban, RotateCcw, UserPlus, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { useActionState, useRef, useState } from 'react';
 import type { MembershipRole } from '@floral/domain';
 import { Field, controlProps } from '@/components/form/field';
 import { SubmitButton } from '@/components/form/submit-button';
@@ -24,7 +24,13 @@ import { useActionToast } from '@/lib/use-action-toast';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
-export function InviteForm({ action, roles }: { action: Action; roles: readonly MembershipRole[] }) {
+export function InviteForm({
+  action,
+  roles,
+}: {
+  action: Action;
+  roles: readonly MembershipRole[];
+}) {
   const t = useTranslations();
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction] = useActionState(async (prev: ActionState, formData: FormData) => {
@@ -36,12 +42,27 @@ export function InviteForm({ action, roles }: { action: Action; roles: readonly 
   const err = (field: string) => fieldError(state, field);
 
   return (
-    <form ref={formRef} action={formAction} onSubmit={preserveOnSubmit(formAction)} className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem_auto] sm:items-end">
+    <form
+      ref={formRef}
+      action={formAction}
+      onSubmit={preserveOnSubmit(formAction)}
+      className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem_auto] sm:items-end"
+    >
       <Field id="invite-email" label={t('team.inviteEmail')} error={err('email')}>
-        <Input {...controlProps('invite-email', err('email'))} name="email" type="email" autoComplete="off" required />
+        <Input
+          {...controlProps('invite-email', err('email'))}
+          name="email"
+          type="email"
+          autoComplete="off"
+          required
+        />
       </Field>
       <Field id="invite-role" label={t('team.inviteRole')} error={err('role')}>
-        <NativeSelect {...controlProps('invite-role', err('role'))} name="role" defaultValue={roles.includes('STAFF') ? 'STAFF' : roles[0]}>
+        <NativeSelect
+          {...controlProps('invite-role', err('role'))}
+          name="role"
+          defaultValue={roles.includes('STAFF') ? 'STAFF' : roles[0]}
+        >
           {roles.map((role) => (
             <option key={role} value={role}>
               {t(`roles.${role}`)}
@@ -103,11 +124,12 @@ export function MemberStatusControl({
 }) {
   const t = useTranslations();
   const [open, setOpen] = useState(false);
-  const [state, formAction] = useActionState(action, idleState);
+  const [state, formAction] = useActionState(async (prev: ActionState, formData: FormData) => {
+    const result = await action(prev, formData);
+    setOpen(false);
+    return result;
+  }, idleState);
   useActionToast(state);
-  useEffect(() => {
-    if (state.status !== 'idle') setOpen(false);
-  }, [state]);
 
   if (!active) {
     return (

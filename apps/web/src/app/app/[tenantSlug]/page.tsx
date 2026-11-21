@@ -1,4 +1,11 @@
-import { ArrowRight, Check, Flower2, Sparkles, TriangleExclamationPoint, Users } from 'lucide-react';
+import {
+  ArrowRight,
+  Check,
+  Flower2,
+  Sparkles,
+  TriangleExclamationPoint,
+  Users,
+} from 'lucide-react';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { getDashboard, type ActivityEntry } from '@floral/core';
@@ -39,10 +46,14 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
   function describeActivity(entry: ActivityEntry): string {
     const actor = entry.actorName ?? t('activity.someone');
     const key = `activity.${entry.action}`;
-    const roleValue = metadataString(entry.metadata, 'to') ?? metadataString(entry.metadata, 'role');
+    const roleValue =
+      metadataString(entry.metadata, 'to') ?? metadataString(entry.metadata, 'role');
     const values = {
       actor,
-      name: metadataString(entry.metadata, 'name') ?? metadataString(entry.metadata, 'bouquetName') ?? '—',
+      name:
+        metadataString(entry.metadata, 'name') ??
+        metadataString(entry.metadata, 'bouquetName') ??
+        '—',
       ingredient: metadataString(entry.metadata, 'ingredientName') ?? '—',
       role: roleValue && isMembershipRole(roleValue) ? t(`roles.${roleValue}`) : '—',
     };
@@ -112,7 +123,12 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
                       >
                         {step.done ? <Check className="size-3.5" /> : null}
                       </span>
-                      <span className={cn('flex-1 text-sm', step.done && 'text-muted-foreground line-through')}>
+                      <span
+                        className={cn(
+                          'flex-1 text-sm',
+                          step.done && 'text-muted-foreground line-through',
+                        )}
+                      >
                         {t(`dashboard.step_${step.key}`)}
                       </span>
                       {step.done ? (
@@ -139,11 +155,15 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               {data.catalog.itemsMissingCost ? (
-                <HealthRow tone="warning">{t('dashboard.missingCosts', { count: data.catalog.itemsMissingCost })}</HealthRow>
+                <HealthRow tone="warning">
+                  {t('dashboard.missingCosts', { count: data.catalog.itemsMissingCost })}
+                </HealthRow>
               ) : null}
               {data.catalog.bouquetsWithoutRecipe > 0 ? (
                 <HealthRow tone="warning">
-                  {t('dashboard.bouquetsWithoutRecipe', { count: data.catalog.bouquetsWithoutRecipe })}
+                  {t('dashboard.bouquetsWithoutRecipe', {
+                    count: data.catalog.bouquetsWithoutRecipe,
+                  })}
                 </HealthRow>
               ) : null}
               {!data.catalog.itemsMissingCost && data.catalog.bouquetsWithoutRecipe === 0 ? (
@@ -158,7 +178,9 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
                 <Sparkles className="size-4 text-accent-foreground" aria-hidden="true" />
                 {t('dashboard.comingSoonTitle')}
               </CardTitle>
-              <CardDescription className="leading-relaxed">{t('dashboard.comingSoonBody')}</CardDescription>
+              <CardDescription className="leading-relaxed">
+                {t('dashboard.comingSoonBody')}
+              </CardDescription>
             </CardHeader>
           </Card>
         </div>
@@ -175,10 +197,16 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
                 <ol className="space-y-4">
                   {data.recentActivity.map((entry) => (
                     <li key={entry.id} className="flex gap-3">
-                      <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary/60" aria-hidden="true" />
+                      <span
+                        className="mt-1.5 size-2 shrink-0 rounded-full bg-primary/60"
+                        aria-hidden="true"
+                      />
                       <div className="min-w-0">
                         <p className="text-sm leading-snug">{describeActivity(entry)}</p>
-                        <time dateTime={entry.createdAt.toISOString()} className="text-xs text-muted-foreground">
+                        <time
+                          dateTime={entry.createdAt.toISOString()}
+                          className="text-xs text-muted-foreground"
+                        >
                           {format.relativeTime(entry.createdAt)}
                         </time>
                       </div>
@@ -217,7 +245,9 @@ function StatCard({
           <span
             className={cn(
               'flex size-8 items-center justify-center rounded-lg [&_svg]:size-4',
-              tone === 'warning' ? 'bg-warning-soft text-[oklch(0.45_0.1_65)]' : 'bg-secondary text-primary',
+              tone === 'warning'
+                ? 'bg-warning-soft text-[oklch(0.45_0.1_65)]'
+                : 'bg-secondary text-primary',
             )}
           >
             {icon}
@@ -229,7 +259,10 @@ function StatCard({
     </Card>
   );
   return href ? (
-    <Link href={href} className="block rounded-2xl focus-visible:ring-[3px] focus-visible:ring-ring/40">
+    <Link
+      href={href}
+      className="block rounded-2xl focus-visible:ring-[3px] focus-visible:ring-ring/40"
+    >
       {content}
     </Link>
   ) : (

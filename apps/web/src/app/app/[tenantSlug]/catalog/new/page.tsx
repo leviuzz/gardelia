@@ -25,7 +25,10 @@ export default async function NewItemPage({ params }: PageProps<'/app/[tenantSlu
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <Link href={`/app/${ctx.tenantSlug}/catalog`} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+      <Link
+        href={`/app/${ctx.tenantSlug}/catalog`}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+      >
         <ArrowLeft className="size-4" />
         {tc('back')}
       </Link>

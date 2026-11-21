@@ -19,7 +19,10 @@ export function ForgotPasswordForm() {
     event.preventDefault();
     const email = String(new FormData(event.currentTarget).get('email') ?? '').trim();
     startTransition(async () => {
-      const result = await authClient.requestPasswordReset({ email, redirectTo: '/reset-password' });
+      const result = await authClient.requestPasswordReset({
+        email,
+        redirectTo: '/reset-password',
+      });
       // Stessa risposta che l'account esista o no: nessuna enumerazione degli utenti.
       if (result.error?.status === 429) {
         setRateLimited(true);

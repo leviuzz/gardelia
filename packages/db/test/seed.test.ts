@@ -19,7 +19,9 @@ describe('seed demo', () => {
     expect(second).toEqual(first);
 
     const counts = await withSystemContext(db, { reason: 'test: verify seed' }, async (tx) => ({
-      tenants: await tx.tenant.count({ where: { slug: { in: ['las-camelias', 'flores-del-valle'] } } }),
+      tenants: await tx.tenant.count({
+        where: { slug: { in: ['las-camelias', 'flores-del-valle'] } },
+      }),
       lines: await tx.bouquetRecipeLine.count({
         where: { recipe: { catalogItem: { sku: { in: ['RAM-12-ROJ', 'RAM-PRIM'] } } } },
       }),

@@ -16,7 +16,11 @@ export interface NavItem {
 }
 
 const ICONS = { dashboard: LayoutDashboard, catalog: Flower2, team: Users, settings: Settings };
-const GRID_COLUMNS: Record<number, string> = { 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' };
+const GRID_COLUMNS: Record<number, string> = {
+  2: 'grid-cols-2',
+  3: 'grid-cols-3',
+  4: 'grid-cols-4',
+};
 
 function isActive(pathname: string, item: NavItem): boolean {
   if (item.exact) return pathname === item.href;

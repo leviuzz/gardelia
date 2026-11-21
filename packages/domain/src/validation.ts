@@ -41,10 +41,7 @@ export function toTrimmedString(value: unknown): unknown {
 export function requiredText(max: number) {
   return z.preprocess(
     toTrimmedString,
-    z
-      .string({ error: 'required' })
-      .min(1, { error: 'required' })
-      .max(max, { error: 'too_long' }),
+    z.string({ error: 'required' }).min(1, { error: 'required' }).max(max, { error: 'too_long' }),
   );
 }
 

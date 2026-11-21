@@ -46,12 +46,19 @@ export function DropdownMenuLabel({
   className,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Label>) {
-  return <DropdownMenuPrimitive.Label className={cn('px-2.5 py-2 text-sm', className)} {...props} />;
+  return (
+    <DropdownMenuPrimitive.Label className={cn('px-2.5 py-2 text-sm', className)} {...props} />
+  );
 }
 
 export function DropdownMenuSeparator({
   className,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Separator>) {
-  return <DropdownMenuPrimitive.Separator className={cn('-mx-1 my-1 h-px bg-border', className)} {...props} />;
+  return (
+    <DropdownMenuPrimitive.Separator
+      className={cn('-mx-1 my-1 h-px bg-border', className)}
+      {...props}
+    />
+  );
 }

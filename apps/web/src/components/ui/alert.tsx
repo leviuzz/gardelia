@@ -33,7 +33,9 @@ export function Alert({
 }
 
 export function AlertTitle({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div data-slot="alert-title" className={cn('col-start-2 font-medium', className)} {...props} />;
+  return (
+    <div data-slot="alert-title" className={cn('col-start-2 font-medium', className)} {...props} />
+  );
 }
 
 export function AlertDescription({ className, ...props }: React.ComponentProps<'div'>) {

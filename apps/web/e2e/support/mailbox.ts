@@ -7,11 +7,15 @@ export const MAIL_DIR = fileURLToPath(new URL('../.mail', import.meta.url));
 function readAll(): StoredEmail[] {
   let files: string[];
   try {
-    files = readdirSync(MAIL_DIR).filter((file) => file.endsWith('.json')).sort();
+    files = readdirSync(MAIL_DIR)
+      .filter((file) => file.endsWith('.json'))
+      .sort();
   } catch {
     return [];
   }
-  return files.map((file) => JSON.parse(readFileSync(`${MAIL_DIR}/${file}`, 'utf8')) as StoredEmail);
+  return files.map(
+    (file) => JSON.parse(readFileSync(`${MAIL_DIR}/${file}`, 'utf8')) as StoredEmail,
+  );
 }
 
 /** Attende l'email più recente per un destinatario (facoltativamente con oggetto contenente `subject`). */
@@ -26,7 +30,8 @@ export async function waitForEmail(
       .reverse()
       .find(
         (email) =>
-          email.to.includes(address) && (!options.subject || email.subject.includes(options.subject)),
+          email.to.includes(address) &&
+          (!options.subject || email.subject.includes(options.subject)),
       );
     if (match) return match;
     await new Promise((resolve) => setTimeout(resolve, 250));

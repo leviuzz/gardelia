@@ -3,7 +3,10 @@ import { linkFrom, uniqueEmail, waitForEmail } from './support/mailbox';
 
 test.use({ storageState: 'e2e/.auth/owner.json' });
 
-test('invito via email: la persona invitata si registra, accetta ed entra come staff', async ({ page, browser }) => {
+test('invito via email: la persona invitata si registra, accetta ed entra come staff', async ({
+  page,
+  browser,
+}) => {
   const email = uniqueEmail('equipo');
 
   await page.goto('/app/las-camelias/settings/team');
@@ -21,7 +24,9 @@ test('invito via email: la persona invitata si registra, accetta ed entra come s
   const guestPage = await guest.newPage();
   await guestPage.goto(inviteUrl);
   await expect(guestPage.getByText('te invitó a unirte como Equipo')).toBeVisible();
-  await guestPage.getByRole('link', { name: '¿No tienes cuenta? Crea una con ese correo.' }).click();
+  await guestPage
+    .getByRole('link', { name: '¿No tienes cuenta? Crea una con ese correo.' })
+    .click();
 
   await guestPage.getByLabel('Nombre completo').fill('Carlos Méndez');
   await expect(guestPage.getByLabel('Correo electrónico')).toHaveValue(email);
@@ -38,7 +43,9 @@ test('invito via email: la persona invitata si registra, accetta ed entra come s
   await expect(guestPage).toHaveURL(/\/app\/las-camelias$/);
   await expect(guestPage.getByRole('heading', { name: 'Hola, Carlos' })).toBeVisible();
   // Come staff non vede la voce "Equipo" nella navigazione.
-  await expect(guestPage.getByRole('navigation').first().getByRole('link', { name: 'Equipo' })).toHaveCount(0);
+  await expect(
+    guestPage.getByRole('navigation').first().getByRole('link', { name: 'Equipo' }),
+  ).toHaveCount(0);
   await guest.close();
 
   // Il proprietario lo vede ora tra i membri.

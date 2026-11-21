@@ -6,7 +6,11 @@ import { actionError, type ActionState } from '@/lib/actions';
 import { getRequestMeta } from '@/lib/request-meta';
 import { requireUser } from '@/lib/session';
 
-export async function acceptInvitationAction(token: string, _prev: ActionState, _formData: FormData): Promise<ActionState> {
+export async function acceptInvitationAction(
+  token: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
   const user = await requireUser(`/invite/${token}`);
   let slug: string;
   try {

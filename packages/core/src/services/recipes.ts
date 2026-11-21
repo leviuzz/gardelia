@@ -145,7 +145,11 @@ async function ensureRecipe(tx: TransactionClient, ctx: TenantContext, bouquetId
   return { bouquet, recipe };
 }
 
-export async function addRecipeLine(ctx: TenantContext, bouquetId: string, rawInput: unknown): Promise<void> {
+export async function addRecipeLine(
+  ctx: TenantContext,
+  bouquetId: string,
+  rawInput: unknown,
+): Promise<void> {
   requirePermission(ctx, 'catalog:write');
   if (!isUuid(bouquetId)) throw new NotFoundError('CatalogItem');
   const parsed = recipeLineInputSchema.safeParse(rawInput);
@@ -201,14 +205,22 @@ export async function addRecipeLine(ctx: TenantContext, bouquetId: string, rawIn
   if (!found) await notFound(ctx, 'CatalogItem', bouquetId);
 }
 
-async function loadLine(tx: TransactionClient, ctx: TenantContext, bouquetId: string, lineId: string) {
+async function loadLine(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  bouquetId: string,
+  lineId: string,
+) {
   return tx.bouquetRecipeLine.findFirst({
     where: {
       id: lineId,
       tenantId: ctx.tenantId,
       recipe: { tenantId: ctx.tenantId, catalogItemId: bouquetId },
     },
-    include: { ingredient: { select: { name: true } }, recipe: { select: { catalogItemId: true } } },
+    include: {
+      ingredient: { select: { name: true } },
+      recipe: { select: { catalogItemId: true } },
+    },
   });
 }
 
@@ -243,7 +255,11 @@ export async function updateRecipeLineQuantity(
   if (!found) await notFound(ctx, 'BouquetRecipeLine', lineId);
 }
 
-export async function removeRecipeLine(ctx: TenantContext, bouquetId: string, lineId: string): Promise<void> {
+export async function removeRecipeLine(
+  ctx: TenantContext,
+  bouquetId: string,
+  lineId: string,
+): Promise<void> {
   requirePermission(ctx, 'catalog:write');
   if (!isUuid(bouquetId) || !isUuid(lineId)) throw new NotFoundError('BouquetRecipeLine');
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
@@ -261,7 +277,11 @@ export async function removeRecipeLine(ctx: TenantContext, bouquetId: string, li
   if (!found) await notFound(ctx, 'BouquetRecipeLine', lineId);
 }
 
-export async function updateRecipeDetails(ctx: TenantContext, bouquetId: string, rawInput: unknown): Promise<void> {
+export async function updateRecipeDetails(
+  ctx: TenantContext,
+  bouquetId: string,
+  rawInput: unknown,
+): Promise<void> {
   requirePermission(ctx, 'catalog:write');
   if (!isUuid(bouquetId)) throw new NotFoundError('CatalogItem');
   const parsed = recipeDetailsInputSchema.safeParse(rawInput);
