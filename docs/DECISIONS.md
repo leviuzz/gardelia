@@ -15,21 +15,22 @@ Ultimo aggiornamento: 21 novembre 2026 (Sprint 0).
 
 ## 1. Decisioni di prodotto (dalla spec) e loro impatto tecnico
 
-| ID         | Decisione                                                  | Stato               | Come si riflette nel codice (Sprint 0)                                                                |
-| ---------- | ---------------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------- |
-| D-01       | Prodotto principale = gestionale SaaS per fioristi         | DECISO              | Moduli gestionali prima del marketplace.                                                              |
-| D-02       | Pilota ad Aguascalientes, poi Italia                       | DECISO              | UI es-MX; mercato `MX` abilitato, `IT` predisposto ma disattivato (`packages/domain/src/markets.ts`). |
-| D-03       | Nessun acquisto/rivendita diretta di fiori                 | DECISO              | Nessun magazzino centrale: catalogo e stock sono sempre del tenant.                                   |
-| D-04       | Bouquet Builder con il gestionale, piano superiore         | DECISO              | Distinta (BOM) e costi già pronti; Builder nello Sprint 2.                                            |
-| D-05       | Differenza Basic/Plus ≈ 7 €/mese                           | DECISO (strategia)  | Quote AI da modellare nel billing (Sprint 4).                                                         |
-| D-06/07/08 | Floral Network B2B come addon, fee sui contratti procurati | DECISO              | Enum `AcquisitionSource` già presente su `Customer`/`Quote`: base per l'attribuzione delle fee.       |
-| D-09/10/11 | Flora Studio addon separato; video in fase successiva      | DECISO              | Enum `AiFeature.ROOM_PREVIEW` predisposto; nessuna implementazione.                                   |
-| D-12/13/14 | Floral Care, rinnovi, vasi autoirriganti                   | DECISO              | Tipi catalogo `SERVICE`, `SERVICE_ADDON`, `CONTAINER`, `ACCESSORY` già disponibili.                   |
-| D-15       | B2C e accessori solo in seguito                            | DECISO              | Nessun modulo; nessun pulsante in UI.                                                                 |
-| D-16/17    | Prezzi e fee                                               | PROPOSTO            | **Nessun prezzo nel codice.** Saranno letti dal DB (sprint billing).                                  |
-| D-18       | Stack Next.js/TypeScript/Prisma/PostgreSQL                 | PROPOSTO → ADOTTATO | Vedi ADR-002.                                                                                         |
-| D-19       | Vendita iniziale tramite contatto diretto                  | PROPOSTO            | Onboarding self-service + tenant `DEMO` per le dimostrazioni.                                         |
-| D-20       | Unica piattaforma multi-tenant                             | DECISO              | Vedi ADR-003.                                                                                         |
+| ID         | Decisione                                                                          | Stato                        | Come si riflette nel codice (Sprint 0)                                                                |
+| ---------- | ---------------------------------------------------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------- |
+| D-01       | Prodotto principale = gestionale SaaS per fioristi                                 | DECISO                       | Moduli gestionali prima del marketplace.                                                              |
+| D-02       | Pilota ad Aguascalientes, poi Italia                                               | DECISO                       | UI es-MX; mercato `MX` abilitato, `IT` predisposto ma disattivato (`packages/domain/src/markets.ts`). |
+| D-03       | Nessun acquisto/rivendita diretta di fiori                                         | DECISO                       | Nessun magazzino centrale: catalogo e stock sono sempre del tenant.                                   |
+| D-04       | Bouquet Builder con il gestionale, piano superiore                                 | DECISO                       | Distinta (BOM) e costi già pronti; Builder nello Sprint 2.                                            |
+| D-05       | Differenza Basic/Plus ≈ 7 €/mese                                                   | DECISO (strategia)           | Quote AI da modellare nel billing (Sprint 4).                                                         |
+| D-06/07/08 | Floral Network B2B come addon, fee sui contratti procurati                         | DECISO                       | Enum `AcquisitionSource` già presente su `Customer`/`Quote`: base per l'attribuzione delle fee.       |
+| D-09/10/11 | Flora Studio addon separato; video in fase successiva                              | DECISO                       | Enum `AiFeature.ROOM_PREVIEW` predisposto; nessuna implementazione.                                   |
+| D-12/13/14 | Floral Care, rinnovi, vasi autoirriganti                                           | DECISO                       | Tipi catalogo `SERVICE`, `SERVICE_ADDON`, `CONTAINER`, `ACCESSORY` già disponibili.                   |
+| D-15       | B2C e accessori solo in seguito                                                    | DECISO                       | Nessun modulo; nessun pulsante in UI.                                                                 |
+| D-16/17    | Prezzi e fee                                                                       | PROPOSTO                     | **Nessun prezzo nel codice.** Saranno letti dal DB (sprint billing).                                  |
+| D-18       | Stack Next.js/TypeScript/Prisma/PostgreSQL                                         | PROPOSTO → ADOTTATO          | Vedi ADR-002.                                                                                         |
+| D-19       | Vendita iniziale tramite contatto diretto                                          | PROPOSTO                     | Onboarding self-service + tenant `DEMO` per le dimostrazioni.                                         |
+| D-20       | Unica piattaforma multi-tenant                                                     | DECISO                       | Vedi ADR-003.                                                                                         |
+| D-21       | Costi AI: quota mensile inclusa nel Plus + pacchetti extra pagati alla piattaforma | DECISO (founder, 21/11/2026) | Nessun collegamento di account/chiavi AI del fiorista; vedi ADR-024.                                  |
 
 ---
 
@@ -176,7 +177,7 @@ React 19 azzera i campi dei `<form action={fn}>` anche quando l'action restituis
   sono raggiungibili da pagine o server action. Una UI di amministrazione richiederà un ADR dedicato
   (autenticazione forte, audit, separazione dal pannello merchant).
 - La quota mensile di anteprime AI è un entitlement (`aiPreviewsPerMonth`, 0 finché la pipeline AI
-  non esiste); il conteggio dei consumi arriva con S1-12 secondo la decisione O-05.
+  non esiste); il conteggio dei consumi e i pacchetti extra arrivano con S1-12 (ADR-024).
 
 ### ADR-022 — Feedback delle azioni: toast alla fine dell'azione — ADOTTATO (Sprint 1)
 
@@ -210,6 +211,33 @@ React 19 azzera i campi dei `<form action={fn}>` anche quando l'action restituis
 - Fuori ambito ora: anteprime AI (Sprint 2), Builder pubblico per i clienti finali (AI-BQ-10, P1),
   aggiunta di un disegno a un preventivo già esistente.
 
+### ADR-024 — Modello di costo delle anteprime AI: quota inclusa + pacchetti — DECISO (21/11/2026)
+
+Decisione del founder (D-21): **il fiorista non collega il proprio account o la propria chiave AI**
+(valutati e scartati: "Sign in with ChatGPT" con uso del piano, OpenRouter, chiave API propria:
+attrito alto per il fiorista, costo per lui superiore al sovrapprezzo Plus, Plus senza valore).
+La piattaforma paga il provider e rivende l'uso:
+
+- **Quota mensile inclusa** nel piano Plus (`SaasPlan.entitlements.aiPreviewsPerMonth`), che si
+  rinnova il giorno 1 del mese nel fuso orario della fioreria. Numero: **da definire** (proposta 25,
+  la spec propone 20–30).
+- **Pacchetti extra** pagati dal fiorista alla piattaforma. Nel pilota il pagamento avviene fuori
+  dall'app (nessun pagamento finto in UI) e la piattaforma **sblocca X anteprime** con una CLI
+  auditata, come per i piani (ADR-021); con il billing (P-04) l'acquisto diventerà self-service.
+  Taglie e prezzi dei pacchetti: **da definire** (decisione commerciale, nessun prezzo nel codice).
+  La fatturazione dei pacchetti in Messico (IVA, CFDI) va validata con il contador (O-02, O-06).
+- **Ordine di consumo:** prima la quota mensile, poi i crediti extra. I crediti extra **non scadono**
+  (proposta da confermare) e non si azzerano a fine mese.
+- **Cosa consuma:** solo le anteprime riuscite. Fallimenti e tentativi interni non consumano; un
+  ramo identico già generato si riusa dalla cache senza consumare. Le generazioni in corso
+  "prenotano" un credito, così richieste concorrenti non superano il saldo.
+- **Tetto globale di spesa** impostato sull'account della piattaforma presso il provider: il costo
+  massimo mensile è noto in anticipo anche in caso di errori.
+- Implementazione prevista con la pipeline AI (S1-12): registro `AiCreditGrant` (letto dal tenant,
+  scritto solo dalla piattaforma, come `TenantSubscription`), origine del credito su ogni `AiJob`,
+  CLI `platform:grant-ai-credits`, contatore visibile in "Plan y funciones" e nel Diseñador solo
+  quando le anteprime funzionano davvero.
+
 ---
 
 ## 3. Proposte da approvare
@@ -230,18 +258,18 @@ React 19 azzera i campi dei `<form action={fn}>` anche quando l'action restituis
 
 ## 4. Decisioni aperte (bloccano funzionalità future, NON lo Sprint 0)
 
-| ID   | Domanda                                                                                                                                                                         | Chi decide         | Blocca                                                        |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------- |
-| O-01 | Provider/modello per le immagini AI e budget per il benchmark di ≥100 render (spec §15.4)                                                                                       | Founder            | Sprint 2 (Builder AI)                                         |
-| O-02 | **Entità legale** che fattura il SaaS (Messico o Italia): impatta CFDI, IVA, provider di pagamento                                                                              | Founder + contador | Billing (Sprint 4)                                            |
-| O-03 | Nome commerciale definitivo (il repo si chiama "gardelia", la spec usa "Floral OS" come nome di lavoro) e dominio                                                               | Founder            | Lancio (cambio a basso costo: `packages/domain/src/brand.ts`) |
-| O-04 | Hosting, regione dei dati, budget infrastruttura                                                                                                                                | Founder            | Deploy del pilota                                             |
-| O-05 | Prova gratuita, limiti per piano (utenti, sedi, quota AI), politica di consumo dei crediti AI sui fallimenti                                                                    | Founder            | Billing, Builder                                              |
-| O-06 | Trattamento fiscale nei preventivi (IVA inclusa/esclusa, aliquota zona di frontiera, ricevute)                                                                                  | Contador           | Preventivi con imposte                                        |
-| O-07 | Términos y condiciones e Aviso de privacidad (LFPDPPP)                                                                                                                          | Legale             | Lancio commerciale                                            |
-| O-08 | Conferma della matrice ruoli: lo STAFF non vede costi; il MANAGER invita solo STAFF e non modifica dati fiscali; lo STAFF compone nel Builder ma non crea preventivi né clienti | Founder            | — (default già implementato)                                  |
-| O-09 | Chi mantiene la tassonomia canonica dei fiori e con quale copertura                                                                                                             | Founder            | Builder, Network                                              |
-| O-10 | Durata della finestra di attribuzione delle fee del Network (spec §8.4)                                                                                                         | Founder + legale   | Network                                                       |
+| ID   | Domanda                                                                                                                                                                              | Chi decide         | Blocca                                                        |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ | ------------------------------------------------------------- |
+| O-01 | Provider/modello per le immagini AI e budget per il benchmark di ≥100 render (spec §15.4)                                                                                            | Founder            | Sprint 2 (Builder AI)                                         |
+| O-02 | **Entità legale** che fattura il SaaS (Messico o Italia): impatta CFDI, IVA, provider di pagamento                                                                                   | Founder + contador | Billing (Sprint 4)                                            |
+| O-03 | Nome commerciale definitivo (il repo si chiama "gardelia", la spec usa "Floral OS" come nome di lavoro) e dominio                                                                    | Founder            | Lancio (cambio a basso costo: `packages/domain/src/brand.ts`) |
+| O-04 | Hosting, regione dei dati, budget infrastruttura                                                                                                                                     | Founder            | Deploy del pilota                                             |
+| O-05 | Modello di costo AI deciso (ADR-024). Restano: numero di anteprime incluse, taglie/prezzi dei pacchetti, scadenza dei crediti extra, prova gratuita, limiti per piano (utenti, sedi) | Founder            | Billing, Builder                                              |
+| O-06 | Trattamento fiscale nei preventivi (IVA inclusa/esclusa, aliquota zona di frontiera, ricevute)                                                                                       | Contador           | Preventivi con imposte                                        |
+| O-07 | Términos y condiciones e Aviso de privacidad (LFPDPPP)                                                                                                                               | Legale             | Lancio commerciale                                            |
+| O-08 | Conferma della matrice ruoli: lo STAFF non vede costi; il MANAGER invita solo STAFF e non modifica dati fiscali; lo STAFF compone nel Builder ma non crea preventivi né clienti      | Founder            | — (default già implementato)                                  |
+| O-09 | Chi mantiene la tassonomia canonica dei fiori e con quale copertura                                                                                                                  | Founder            | Builder, Network                                              |
+| O-10 | Durata della finestra di attribuzione delle fee del Network (spec §8.4)                                                                                                              | Founder + legale   | Network                                                       |
 
 ---
 
