@@ -4,13 +4,24 @@ import 'server-only';
  * Risposta per un'immagine privata servita dall'app (foto del catalogo, Mis ramos, anteprime
  * AI). Il file di un ID non cambia mai: cache privata del browser, mai condivisa.
  */
-export function privateImageResponse(image: { bytes: Uint8Array; contentType: string }): Response {
+export function privateImageResponse(
+  image: { bytes: Uint8Array; contentType: string },
+  options: { readonly downloadName?: string } = {},
+): Response {
+  const extension =
+    image.contentType === 'image/png' ? 'png' : image.contentType === 'image/webp' ? 'webp' : 'jpg';
   return new Response(Buffer.from(image.bytes), {
     headers: {
       'Content-Type': image.contentType,
       'Cache-Control': 'private, max-age=86400, immutable',
       'X-Content-Type-Options': 'nosniff',
       'Content-Security-Policy': "default-src 'none'; sandbox",
+      // Nome del file per "Descargar": solo lettere, numeri e trattini.
+      ...(options.downloadName
+        ? {
+            'Content-Disposition': `attachment; filename="${options.downloadName.replace(/[^a-z0-9-]/gi, '')}.${extension}"`,
+          }
+        : {}),
     },
   });
 }

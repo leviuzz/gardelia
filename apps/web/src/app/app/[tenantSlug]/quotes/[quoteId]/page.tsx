@@ -145,6 +145,14 @@ export default async function QuotePage({
       designHref: line.bouquetConfigurationId
         ? `/app/${slug}/builder/${line.bouquetConfigurationId}`
         : null,
+      image: line.image
+        ? {
+            url: `/app/${slug}/quotes/${quote.id}/lines/${line.id}/image`,
+            downloadUrl: `/app/${slug}/quotes/${quote.id}/lines/${line.id}/image?download=1`,
+            verified: line.image.verified,
+            simulated: line.image.simulated,
+          }
+        : null,
       ...(quote.editable
         ? {
             updateAction: updateLineQuantityAction.bind(null, slug, quote.id, line.id),

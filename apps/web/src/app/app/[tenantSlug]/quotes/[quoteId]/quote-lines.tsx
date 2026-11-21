@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Plus, Trash, TriangleExclamationPoint } from 'lucide-react';
+import { Check, CheckCheck, Download, Plus, Trash, TriangleExclamationPoint } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -28,6 +28,13 @@ export interface QuoteLineView {
   readonly warning: LineWarning | null;
   /** Righe del Builder: link al disegno di origine. */
   readonly designHref: string | null;
+  /** Righe del Builder: immagine del ramo agganciata alla riga (ADR-035). */
+  readonly image: {
+    readonly url: string;
+    readonly downloadUrl: string;
+    readonly verified: boolean;
+    readonly simulated: boolean;
+  } | null;
   readonly updateAction?: Action;
   readonly removeAction?: Action;
 }
@@ -139,6 +146,40 @@ export function QuoteLineList({
                   <TriangleExclamationPoint aria-hidden="true" />
                   {t(`availabilityWarning.${line.warning}`)}
                 </Badge>
+              ) : null}
+              {line.image ? (
+                <figure className="flex break-inside-avoid flex-col items-start gap-2 pt-1 sm:flex-row sm:gap-3 print:flex-row">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- immagine privata servita da una route autenticata */}
+                  <img
+                    src={line.image.url}
+                    alt={t('bouquetImageAlt', { name: line.description })}
+                    className="size-28 shrink-0 rounded-xl border bg-muted object-cover sm:size-36 print:size-56"
+                  />
+                  <figcaption className="min-w-0 space-y-1.5 text-xs text-muted-foreground">
+                    <span className="flex flex-wrap gap-1.5">
+                      {line.image.simulated ? (
+                        <Badge variant="warning">{t('imageSimulated')}</Badge>
+                      ) : null}
+                      {line.image.verified ? (
+                        <Badge variant="success" className="h-auto text-left whitespace-normal">
+                          <CheckCheck aria-hidden="true" />
+                          {t('imageVerified')}
+                        </Badge>
+                      ) : null}
+                    </span>
+                    <span className="block">
+                      {line.image.verified ? t('imageNoteVerified') : t('imageNote')}
+                    </span>
+                    <a
+                      href={line.image.downloadUrl}
+                      download
+                      className="inline-flex items-center gap-1 font-medium text-primary hover:underline print:hidden"
+                    >
+                      <Download className="size-3.5" aria-hidden="true" />
+                      {t('downloadImage')}
+                    </a>
+                  </figcaption>
+                </figure>
               ) : null}
             </div>
             <p className="shrink-0 font-semibold tabular-nums">{line.lineTotalLabel}</p>

@@ -40,7 +40,8 @@ test.describe('anteprima esatta (provider simulato)', () => {
     }
     await expect(tiles.first()).toHaveAttribute('data-cutout', 'READY', { timeout: 20_000 });
 
-    await newDesign(page, `Rosas blancas exactas ${Date.now()}`, 'Rosa blanca · Mondial', 3);
+    const designName = `Rosas blancas exactas ${Date.now()}`;
+    await newDesign(page, designName, 'Rosa blanca · Mondial', 3);
 
     // Boceto esatto: subito, gratis e privato.
     const sketch = page.getByRole('img', { name: /Boceto exacto del ramo/ }).first();
@@ -60,9 +61,27 @@ test.describe('anteprima esatta (provider simulato)', () => {
     await expect(page.getByText(/Simulación \(entorno de desarrollo\)/)).toBeVisible();
     await expect(page.getByRole('link', { name: 'Ver el boceto exacto' })).toBeVisible();
 
+    // Nella cotización l'immagine resta con la riga, con l'avviso e il download per WhatsApp.
+    await page.getByRole('link', { name: 'Crear cotización' }).click();
+    await page.getByRole('button', { name: 'Cotización para Hotel Casa Fuentes' }).click();
+    await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
+    const quoteImage = page.getByRole('img', {
+      name: `Imagen ilustrativa del ramo «${designName}»`,
+    });
+    await expect(quoteImage).toBeVisible();
+    await expect(page.getByText('Número de flores verificado')).toBeVisible();
+    const download = page.getByRole('link', { name: 'Descargar imagen para WhatsApp' });
+    const downloadResponse = await page.request.get((await download.getAttribute('href'))!);
+    expect(downloadResponse.status()).toBe(200);
+    expect(downloadResponse.headers()['content-disposition']).toMatch(
+      /^attachment; filename="ramo\./,
+    );
+
     const other = await browser.newContext({ storageState: 'e2e/.auth/other-owner.json' });
-    const otherSrc = sketchSrc!.replace('/app/las-camelias/', '/app/flores-del-valle/');
-    expect((await other.request.get(otherSrc)).status()).toBe(404);
+    for (const url of [sketchSrc!, (await quoteImage.getAttribute('src'))!]) {
+      const otherUrl = url.replace('/app/las-camelias/', '/app/flores-del-valle/');
+      expect((await other.request.get(otherUrl)).status()).toBe(404);
+    }
     await other.close();
   });
 

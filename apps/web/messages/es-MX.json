@@ -820,7 +820,13 @@
       "noLines": "Esta cotización no tiene conceptos.",
       "builderLine": "Diseño personalizado",
       "viewDesign": "Ver diseño",
-      "recipeItemColor": "{quantity} × {name} ({color})"
+      "recipeItemColor": "{quantity} × {name} ({color})",
+      "bouquetImageAlt": "Imagen ilustrativa del ramo «{name}»",
+      "imageVerified": "Número de flores verificado",
+      "imageSimulated": "Simulación",
+      "imageNote": "Imagen ilustrativa: el ramo real puede variar.",
+      "imageNoteVerified": "Imagen ilustrativa con el número exacto de flores de la receta; la forma y los tonos pueden variar.",
+      "downloadImage": "Descargar imagen para WhatsApp"
     },
     "whatsapp": {
       "greeting": "Hola {name}, te comparto la cotización {number} de {shop}:",
