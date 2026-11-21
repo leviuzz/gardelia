@@ -656,6 +656,8 @@ model QuoteLine {
   lineTotalMinor         Int
   /// Snapshot dell'articolo (nome, tipo, distinta) al momento del preventivo.
   snapshot               Json?
+  /// Solo per righe BUILDER: anteprima AI riuscita del ramo quando la riga è nata (ADR-035).
+  previewJobId           String?       @db.Uuid
   sortOrder              Int           @default(0)
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
@@ -664,9 +666,11 @@ model QuoteLine {
   quote                Quote                 @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Cascade)
   catalogItem          CatalogItem?          @relation(fields: [tenantId, catalogItemId], references: [tenantId, id], onDelete: Restrict)
   bouquetConfiguration BouquetConfiguration? @relation(fields: [tenantId, bouquetConfigurationId], references: [tenantId, id], onDelete: Restrict)
+  previewJob           AiJob?                @relation(fields: [tenantId, previewJobId], references: [tenantId, id], onDelete: Restrict)
 
   @@index([tenantId, quoteId])
   @@index([tenantId, bouquetConfigurationId])
+  @@index([tenantId, previewJobId])
 }
 
 // -----------------------------------------------------------------------------
@@ -729,6 +733,7 @@ model AiJob {
 
   tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   bouquetConfiguration BouquetConfiguration? @relation(fields: [tenantId, bouquetConfigurationId], references: [tenantId, id], onDelete: Restrict)
+  quoteLines           QuoteLine[]
 
   @@unique([tenantId, id])
   @@index([tenantId, feature, createdAt])

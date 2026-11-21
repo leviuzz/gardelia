@@ -37,6 +37,7 @@ import {
   type QuoteStatus,
   type SaleUnit,
 } from '@floral/domain';
+import { getObjectStorage } from '../ai/storage';
 import { notFound, recordAudit } from '../audit';
 import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
@@ -97,6 +98,11 @@ export interface QuoteLineDto {
   /** Per le righe BUILDER: la disponibilità più critica fra i componenti. */
   readonly availability: Availability | null;
   readonly recipe: readonly QuoteRecipeLineSnapshot[] | null;
+  /**
+   * Righe BUILDER: immagine del ramo agganciata quando la riga è nata (ADR-035). `verified` =
+   * numero di fiori ricontrollato (anteprima esatta); `simulated` = immagine di sviluppo.
+   */
+  readonly image: { readonly verified: boolean; readonly simulated: boolean } | null;
 }
 
 export interface QuoteDetailDto extends QuoteSummaryDto {
@@ -264,6 +270,9 @@ export async function getQuote(ctx: TenantContext, quoteId: string): Promise<Quo
     const lines = await tx.quoteLine.findMany({
       where: { tenantId: ctx.tenantId, quoteId },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      include: {
+        previewJob: { select: { status: true, provider: true, output: true, outputKey: true } },
+      },
     });
     return { quote, lines };
   });
@@ -288,6 +297,14 @@ export async function getQuote(ctx: TenantContext, quoteId: string): Promise<Quo
         snapshot?.item?.availability ??
         worstAvailability((snapshot?.components ?? []).map((component) => component.availability)),
       recipe: snapshot?.recipe ?? null,
+      image:
+        line.previewJob?.status === 'SUCCEEDED' && line.previewJob.outputKey
+          ? {
+              verified:
+                (line.previewJob.output as { verified?: unknown } | null)?.verified === true,
+              simulated: line.previewJob.provider === 'simulated',
+            }
+          : null,
     };
   });
   const costKnown = lines.every((line) => line.unitCostMinor !== null);
@@ -681,4 +698,31 @@ export async function listQuotableItems(
   // I bouquet prima, poi gli ingredienti, poi servizi e complementi.
   const rank = (type: CatalogItemType) => (type === 'BOUQUET' ? 0 : isIngredientType(type) ? 1 : 2);
   return [...items].sort((a, b) => rank(a.type) - rank(b.type));
+}
+
+/**
+ * Immagine del ramo di una riga BUILDER (ADR-035), per la pagina e la stampa del preventivo: la
+ * vede chi vede il preventivo (anche se il piano non include più il Builder: è già pagata).
+ */
+export async function getQuoteLineImage(
+  ctx: TenantContext,
+  quoteId: string,
+  lineId: string,
+): Promise<{ bytes: Uint8Array; contentType: string }> {
+  requirePermission(ctx, 'quotes:read');
+  if (!isUuid(quoteId) || !isUuid(lineId)) throw new NotFoundError('QuoteLine');
+  const line = await withTenantContext(getDb(), ctx, (tx) =>
+    tx.quoteLine.findFirst({
+      where: { id: lineId, quoteId, tenantId: ctx.tenantId },
+      select: {
+        previewJob: { select: { status: true, outputKey: true, outputContentType: true } },
+      },
+    }),
+  );
+  if (!line) return notFound(ctx, 'QuoteLine', lineId);
+  const job = line.previewJob;
+  if (job?.status !== 'SUCCEEDED' || !job.outputKey) throw new NotFoundError('QuoteLine');
+  const bytes = await getObjectStorage().get(job.outputKey);
+  if (!bytes) throw new NotFoundError('QuoteLine');
+  return { bytes, contentType: job.outputContentType ?? 'image/png' };
 }

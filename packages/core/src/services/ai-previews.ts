@@ -324,6 +324,33 @@ async function countMismatches(tx: TransactionClient, ctx: TenantContext, inputH
   });
 }
 
+/**
+ * Anteprima RIUSCITA del disegno così com'è ora (stesso ramo, stesso modello), da agganciare a
+ * una riga di preventivo nel momento in cui nasce (ADR-035); null se non c'è.
+ */
+export async function currentPreviewJobId(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  configurationId: string,
+): Promise<string | null> {
+  const provider = getAiProvider();
+  if (!provider) return null;
+  const config = await specForConfiguration(tx, ctx, configurationId);
+  if (!config?.spec) return null;
+  const spec = withMode(await styledSpec(tx, ctx, config.spec), provider);
+  const job = await tx.aiJob.findFirst({
+    where: {
+      tenantId: ctx.tenantId,
+      feature: FEATURE,
+      inputHash: previewHash(spec, provider),
+      status: 'SUCCEEDED',
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true },
+  });
+  return job?.id ?? null;
+}
+
 /** Anteprima migliore per un ramo: riuscita, poi in corso, poi l'ultimo fallimento. */
 async function findPreview(tx: TransactionClient, ctx: TenantContext, inputHash: string) {
   const where = { tenantId: ctx.tenantId, feature: FEATURE, inputHash };

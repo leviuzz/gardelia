@@ -12,11 +12,15 @@ import {
   addCatalogItemPhoto,
   archiveCatalogItemPhoto,
   createCatalogItem,
+  createCustomer,
+  createQuoteFromConfiguration,
   getAiPreviewImage,
   getAiQuota,
   getBouquetPreview,
   getBouquetSketch,
   getBouquetSketchPlan,
+  getQuote,
+  getQuoteLineImage,
   requestBouquetPreview,
   saveBouquetConfiguration,
   setAiProvider,
@@ -376,5 +380,91 @@ describe('anteprima esatta', () => {
       mode: 'PROMPT',
       verified: null,
     });
+  });
+});
+
+describe('immagine del ramo nel preventivo (ADR-035)', () => {
+  const customer = (name: string) => ({
+    type: 'PERSON',
+    displayName: name,
+    legalName: null,
+    taxId: null,
+    email: null,
+    phone: '+524495550199',
+    notes: null,
+    preferences: null,
+    restrictions: null,
+    tags: [],
+    acquisitionChannel: null,
+    marketingConsent: false,
+  });
+
+  it('si aggancia alla riga, resta se il disegno cambia e la vede solo la fioreria', async () => {
+    const kit = await createKit('Florería Cotización con foto');
+    const design = await rosesWithWrap(kit);
+    counter.script = ['exact'];
+    await requestBouquetPreview(kit.shop.owner, design.id);
+    expect(await runOnce(kit)).toBe('succeeded');
+    const { id: customerId } = await createCustomer(kit.shop.owner, customer('Ana con foto'));
+
+    const { id: quoteId } = await createQuoteFromConfiguration(kit.shop.owner, {
+      configurationId: design.id,
+      customerId,
+    });
+    const quote = await getQuote(kit.shop.staff, quoteId);
+    const line = quote.lines[0]!;
+    expect(line).toMatchObject({
+      kind: 'BUILDER',
+      image: { verified: true, simulated: false },
+    });
+    const image = await getQuoteLineImage(kit.shop.staff, quoteId, line.id);
+    expect(image.contentType).toBe('image/jpeg');
+    expect(image.bytes.length).toBeGreaterThan(0);
+
+    // Il disegno cambia (4 rose): il preventivo già fatto tiene la sua immagine, uno nuovo no
+    // finché non si genera l'anteprima della nuova composizione.
+    await saveBouquetConfiguration(
+      kit.shop.owner,
+      {
+        name: 'Ramo exacto',
+        style: 'GARDEN',
+        size: 'MEDIUM',
+        budget: '',
+        notes: '',
+        lines: [
+          { catalogItemId: kit.rose.id, quantity: 4, color: null },
+          { catalogItemId: kit.paper.id, quantity: 1, color: null },
+          { catalogItemId: kit.ribbon.id, quantity: 1, color: null },
+        ],
+      },
+      design.id,
+    );
+    expect((await getQuote(kit.shop.owner, quoteId)).lines[0]?.image).not.toBeNull();
+    const { id: newer } = await createQuoteFromConfiguration(kit.shop.owner, {
+      configurationId: design.id,
+      customerId,
+    });
+    expect((await getQuote(kit.shop.owner, newer)).lines[0]?.image).toBeNull();
+
+    // Isolamento A ↔ B: un'altra fioreria riceve 404 anche conoscendo gli ID.
+    const other = await createKit('Florería Cotización B');
+    await expect(getQuoteLineImage(other.shop.owner, quoteId, line.id)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+  });
+
+  it('senza anteprima la riga non ha immagine; le righe a catalogo nemmeno', async () => {
+    const kit = await createKit('Florería Cotización sin foto');
+    const design = await rosesWithWrap(kit, 2);
+    const { id: customerId } = await createCustomer(kit.shop.owner, customer('Luis sin foto'));
+    const { id: quoteId } = await createQuoteFromConfiguration(kit.shop.owner, {
+      configurationId: design.id,
+      customerId,
+    });
+    const quote = await getQuote(kit.shop.owner, quoteId);
+    expect(quote.lines[0]?.image).toBeNull();
+    await expect(
+      getQuoteLineImage(kit.shop.owner, quoteId, quote.lines[0]!.id),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 });

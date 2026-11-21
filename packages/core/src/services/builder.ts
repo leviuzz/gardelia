@@ -33,6 +33,7 @@ import { notFound, recordAudit } from '../audit';
 import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
+import { currentPreviewJobId } from './ai-previews';
 import { requireEntitlement } from './billing';
 import {
   componentSelect,
@@ -500,12 +501,16 @@ export async function createQuoteFromConfiguration(
         availability: component.item.availability,
       })),
     };
+    // L'immagine del ramo (se già generata per questo disegno) resta con la riga anche se poi
+    // il disegno cambia: il preventivo mostra ciò che è stato quotato (ADR-035).
+    const previewJobId = await currentPreviewJobId(tx, ctx, config.id);
     await tx.quoteLine.create({
       data: {
         tenantId: ctx.tenantId,
         quoteId: quote.id,
         kind: 'BUILDER',
         bouquetConfigurationId: config.id,
+        previewJobId,
         description: config.name,
         quantity: 1,
         unitPriceMinor: pricing.totalMinor,
