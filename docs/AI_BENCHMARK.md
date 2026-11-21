@@ -121,3 +121,20 @@ carta lilla, nastro oro):
 
 Conclusione: il numero esatto si ottiene costruendo noi la composizione (AI-BQ-08) e chiedendo
 all'AI solo di renderla fotografica, con un controllo automatico prima di mostrarla. Vedi ADR-028.
+
+## Naturalezza e stile del fiorista (21/11/2026, ~0,40 USD)
+
+Osservazione del founder: le immagini v2 sono troppo simmetriche. Domanda: serve addestrare l'AI
+con le foto dei ramos del fiorista?
+
+| Prova                                                                  | Risultato                                                                                            |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Prompt "fatto a mano, leggermente asimmetrico" — 3 rose + 3 margherite | **esatto**, altezze diverse, aspetto più vero                                                        |
+| Stesso prompt — 4 tulipani + 3 rose + 2 margherite                     | rose e margherite ✓, 5 tulipani invece di 4 (v2: tutti e tre i tipi sbagliati)                       |
+| Composizione asimmetrica fatta dal codice → resa foto                  | **esatto**, posizioni e altezze rispettate; restano macchie dei ritagli → serve uno scontorno pulito |
+| Foto di un ramo "del fiorista" come riferimento di stile → ramo nuovo  | ambiente, luce e stile ripresi, carta e fiori del riferimento NON copiati; 5 rose invece di 4        |
+
+Conclusioni: il prompt v3 (aspetto fatto a mano, eccetto lo stile clásico) è adottato. Lo stile
+del fiorista si ottiene **senza addestramento**, passando 1–2 sue foto come riferimento a ogni
+generazione (il "Reference Selector" della spec §6.3); i numeri esatti restano compito della
+composizione (ADR-028).

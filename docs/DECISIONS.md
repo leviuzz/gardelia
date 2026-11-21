@@ -308,6 +308,9 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   a mazzo (es. gypsophila) sono riempitivo e non entrano nel conteggio.
 - Prova del 21/11/2026 (`docs/AI_BENCHMARK.md`): ramos da 1–2 tipi esatti in 2 casi su 3 (v1:
   0 su 3); con 3 tipi resta inesatto. La versione nuova cambia la chiave di cache.
+- **v3** (stesso giorno, osservazione del founder sulle immagini troppo simmetriche): aspetto
+  "fatto a mano, leggermente asimmetrico" con altezze e orientamenti diversi, tranne lo stile
+  clásico che resta rotondo e bilanciato; nella prova i conteggi non peggiorano.
 
 ### ADR-028 — Conteggio esatto nell'anteprima — REQUISITO DEL FOUNDER (21/11/2026), approccio PROPOSTO
 
@@ -327,8 +330,19 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   4. **controllo automatico** dei conteggi con un modello di visione prima di mostrarla; se non
      coincide si ritenta una volta, poi si mostra la composizione esatta (mai un'immagine con
      numeri sbagliati presentata come fedele).
-- **Da decidere:** colori di carta e nastro come varianti di colore dello stesso articolo
-  (proposta) o come articoli separati; consenso del fiorista sull'uso delle sue foto (O-07).
+- **Foto anche per carte e nastri (founder, 21/11/2026):** ogni tipo (papel coreano, kraft,
+  papel de seda, celofán, listón de satín, organza, yute…) è un articolo del catalogo con le sue
+  foto; i colori sono varianti dell'articolo, con una foto per colore quando c'è.
+- **Stile del fiorista senza addestramento:** il fiorista carica 5–10 foto dei suoi ramos migliori
+  (con consenso, O-07); a ogni generazione il sistema ne sceglie 1–2 simili e le passa al modello
+  come riferimento di stile (ambiente, luce, tecnica di incarto). Prova del 21/11/2026: stile
+  ripreso senza copiare carta e fiori del riferimento.
+- **Addestramento (fine-tuning) per fioreria: non ora.** I modelli migliori nei conteggi non si
+  possono addestrare; quelli addestrabili (es. FLUX) erano i peggiori; un modello addestrato tende
+  a ripetere i ramos tipici del fiorista (fiori non ordinati); servono 20–50 foto, costo e
+  riaddestramento per ogni fioreria, e la spec §6.4 lo vieta senza accordo esplicito. Da
+  rivalutare dopo il pilota solo se i riferimenti non bastano.
+- **Da decidere:** consenso del fiorista sull'uso delle sue foto come riferimento (O-07).
 
 ---
 
