@@ -16,9 +16,10 @@ import type { SaleUnit } from './catalog';
  * v2 (21/11/2026, docs/AI_BENCHMARK.md): conteggi espliciti per tipo e totale, nome comune
  * inglese dalla tassonomia, fiori ben separati, colori di carta e nastro, niente nastro se
  * non è in distinta. v3: aspetto fatto a mano e leggermente asimmetrico (le immagini v2 erano
- * troppo simmetriche), tranne lo stile clásico. Cambiarla invalida la cache (nuova chiave).
+ * troppo simmetriche), tranne lo stile clásico. v4: stile fotografico della fioreria descritto a
+ * parole da una foto di "Mis ramos" (ADR-032). Cambiarla invalida la cache (nuova chiave).
  */
-export const AI_PREVIEW_PROMPT_VERSION = 'bouquet-preview-v3';
+export const AI_PREVIEW_PROMPT_VERSION = 'bouquet-preview-v4';
 
 export const AI_QUOTA_SOURCES = ['INCLUDED', 'EXTRA'] as const;
 export type AiQuotaSource = (typeof AI_QUOTA_SOURCES)[number];
@@ -158,6 +159,11 @@ export interface BouquetPreviewSpec {
   readonly components: readonly PreviewComponent[];
   readonly style: (typeof BUILDER_STYLES)[number] | null;
   readonly size: (typeof BUILDER_SIZES)[number] | null;
+  /**
+   * Foto di "Mis ramos" il cui stile (descritto a parole) accompagna la generazione; scelta
+   * dal server in modo deterministico, così la cache resta coerente (ADR-032).
+   */
+  readonly styleReferenceId?: string | null;
 }
 
 const ROLE_ORDER: Readonly<Record<BuilderRole, number>> = {
@@ -219,6 +225,7 @@ export function canonicalPreviewInput(
     model: generator.model,
     style: spec.style,
     size: spec.size,
+    styleReferenceId: spec.styleReferenceId ?? null,
     components: spec.components.map((component) => [
       component.catalogItemId,
       component.role,
@@ -301,7 +308,41 @@ function withColor(component: PreviewComponent): string {
   return `"${labelOf(component)}"${colors ? ` in ${colors}` : ''}`;
 }
 
-export function buildPreviewPrompt(spec: BouquetPreviewSpec): string {
+/**
+ * Ripulisce la descrizione dello stile prodotta da un modello di visione: si tengono solo
+ * ambiente, luce, inquadratura e tecnica. Le frasi che nominano oggetti o fiori (vasi,
+ * nastri, persone, scritte…) si scartano, perché il modello delle immagini li copierebbe
+ * (prova del 21/11/2026, ADR-031). null se non resta nulla di utile.
+ */
+export function cleanStyleDescription(text: string, max = 320): string | null {
+  const banned =
+    /\b(vases?|jars?|glass|containers?|bottles?|buckets?|pots?|ribbons?|twine|strings?|bows?|blooms?|petals?|roses?|tulips?|daisies|sunflowers?|lil(?:y|ies)|people|person|woman|women|man|men|hands?|text|logos?|brands?|signs?|labels?|ignore|instructions?|prompts?|rules?)\b|\bflowers?\b(?!\s+shop)/i;
+  const sentences = text
+    .replace(/[\p{Cc}\p{Cf}]/gu, ' ')
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.replace(/\s+/g, ' ').trim())
+    .filter((sentence) => sentence.length > 0 && !banned.test(sentence));
+  let result = '';
+  for (const sentence of sentences) {
+    const next = result ? `${result} ${sentence}` : sentence;
+    if (next.length > max) break;
+    result = next;
+  }
+  return result.length >= 20 ? result : null;
+}
+
+export interface PreviewPromptOptions {
+  /**
+   * Stile fotografico della fioreria descritto a parole (ambiente, luce, tecnica di incarto),
+   * ricavato una volta dalle foto di "Mis ramos": niente immagine al modello (ADR-031/032).
+   */
+  readonly styleDescription?: string | null;
+}
+
+export function buildPreviewPrompt(
+  spec: BouquetPreviewSpec,
+  options: PreviewPromptOptions = {},
+): string {
   const byRole = (role: BuilderRole) =>
     spec.components.filter((component) => component.role === role);
   const flowers = byRole('FLOWER');
@@ -316,8 +357,13 @@ export function buildPreviewPrompt(spec: BouquetPreviewSpec): string {
     spec.style === 'CLASSIC'
       ? 'round and balanced like a classic handmade bouquet'
       : 'natural and slightly asymmetric like a real handmade bouquet: flowers at varied heights, blooms facing slightly different directions';
+  const style = options.styleDescription
+    ? sanitizeLabel(options.styleDescription, 320).replace(/[.\s]+$/, '')
+    : '';
   const lines = [
-    `Realistic photo of one hand-tied bouquet made by hand by a florist, ${shape}, any wrapping paper with natural, irregular folds. Soft daylight, simple neutral background, the whole bouquet in frame.`,
+    style
+      ? `Realistic photo of one hand-tied bouquet made by hand by a florist, ${shape}, any wrapping paper with natural, irregular folds, the whole bouquet in frame. Photo style of this flower shop: ${style}.`
+      : `Realistic photo of one hand-tied bouquet made by hand by a florist, ${shape}, any wrapping paper with natural, irregular folds. Soft daylight, simple neutral background, the whole bouquet in frame.`,
     spec.style ? `Style: ${STYLE_TEXT[spec.style]}.` : null,
     spec.size ? `Size: ${SIZE_TEXT[spec.size]}.` : null,
     counted.length > 0

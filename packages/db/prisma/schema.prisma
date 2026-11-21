@@ -939,23 +939,29 @@ model CatalogItemPhoto {
 /// Foto di un ramo fatto dalla fioreria ("Mis ramos"): riferimento di stile per le anteprime
 /// AI, caricata solo con consenso esplicito (chi e quando). Mai usata per addestrare modelli.
 model StyleReferencePhoto {
-  id           String        @id @default(uuid(7)) @db.Uuid
-  tenantId     String        @db.Uuid
-  style        BouquetStyle?
-  caption      String?
-  storageKey   String
-  thumbKey     String
-  contentType  String
-  width        Int
-  height       Int
-  sizeBytes    Int
-  consentAt    DateTime
-  consentById  String        @db.Uuid
-  status       RecordStatus  @default(ACTIVE)
-  archivedAt   DateTime?
-  createdById  String        @db.Uuid
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id                  String        @id @default(uuid(7)) @db.Uuid
+  tenantId            String        @db.Uuid
+  style               BouquetStyle?
+  caption             String?
+  storageKey          String
+  thumbKey            String
+  contentType         String
+  width               Int
+  height              Int
+  sizeBytes           Int
+  consentAt           DateTime
+  consentById         String        @db.Uuid
+  /// Stile fotografico descritto a parole da un modello di visione (inglese, per il prompt) e
+  /// in spagnolo per il fiorista; generato una volta alla prima anteprima che lo usa (ADR-032).
+  styleDescription    String?
+  styleDescriptionEs  String?
+  styleDescribedAt    DateTime?
+  styleDescriberModel String?
+  status              RecordStatus  @default(ACTIVE)
+  archivedAt          DateTime?
+  createdById         String        @db.Uuid
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
