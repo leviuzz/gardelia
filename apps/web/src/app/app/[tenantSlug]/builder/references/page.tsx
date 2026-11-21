@@ -19,9 +19,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * "Mis ramos" (ADR-029): foto dei ramos della fioreria come riferimento di stile, caricate con
- * consenso. La pagina non promette funzioni che non esistono: dice che l'uso nelle anteprime
- * arriverà più avanti.
+ * "Mis ramos" (ADR-029, ADR-032): foto dei ramos della fioreria, caricate con consenso. Le
+ * anteprime usano il loro stile descritto a parole (mai la foto); sotto ogni foto si vede lo
+ * stile riconosciuto, così il fiorista sa cosa ne ha capito l'AI.
  */
 export default async function StyleReferencesPage({
   params,
@@ -109,6 +109,13 @@ export default async function StyleReferencesPage({
                         {reference.caption}
                       </span>
                     ) : null}
+                    <span className="block text-xs leading-relaxed text-muted-foreground">
+                      {reference.styleDescriptionEs
+                        ? t('styleReferences.styleDetected', {
+                            description: reference.styleDescriptionEs,
+                          })
+                        : t('styleReferences.stylePending')}
+                    </span>
                   </figcaption>
                 </figure>
                 {canWrite ? (

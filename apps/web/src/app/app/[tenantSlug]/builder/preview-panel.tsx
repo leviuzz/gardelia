@@ -26,6 +26,8 @@ export interface PreviewPanelData {
     readonly jobId: string;
     readonly status: 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
     readonly reused: boolean;
+    /** L'immagine ha usato lo stile di "Mis ramos" (descritto a parole). */
+    readonly styled: boolean;
     readonly imageUrl: string | null;
   } | null;
   readonly designName: string;
@@ -87,6 +89,7 @@ export function PreviewPanel({ data, dirty }: { data: PreviewPanelData; dirty: b
                 </Badge>
               ) : null}
               <span className="block">{t('disclaimer')}</span>
+              {data.preview.styled ? <span className="block">{t('styled')}</span> : null}
               {data.preview.reused ? <span className="block">{t('reused')}</span> : null}
             </figcaption>
           </figure>

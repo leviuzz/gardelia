@@ -103,6 +103,7 @@ export default async function DesignPage({
                 jobId: previewState.preview.jobId,
                 status: previewState.preview.status,
                 reused: previewState.preview.reused,
+                styled: previewState.preview.styled,
                 imageUrl:
                   previewState.preview.status === 'SUCCEEDED'
                     ? `${base}/builder/previews/${previewState.preview.jobId}`

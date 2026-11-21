@@ -1022,7 +1022,8 @@
       "quotaEmpty": "Ya usaste las vistas previas de este mes.",
       "quotaEmptyHint": "Pide un paquete de vistas previas extra al equipo de {product}; se suman a tu saldo y no caducan.",
       "renews": "Se renuevan el {date}.",
-      "requested": "Vista previa en preparación"
+      "requested": "Vista previa en preparación",
+      "styled": "Con el estilo de tus fotos de «Mis ramos»."
     }
   },
   "photos": {
@@ -1062,7 +1063,7 @@
   "styleReferences": {
     "title": "Mis ramos",
     "subtitle": "Fotos de ramos hechos por tu florería, para que el diseñador conozca tu estilo.",
-    "usage": "Más adelante el diseñador las usará como referencia de estilo para que las vistas previas con IA se parezcan a tu trabajo. Nunca se usan para entrenar modelos de IA ni se comparten con otras florerías.",
+    "usage": "El diseñador toma el estilo de estas fotos (ambiente, luz y forma de envolver), descrito con palabras, para las vistas previas con IA: la foto no se copia. Nunca se usan para entrenar modelos de IA ni se comparten con otras florerías.",
     "back": "Diseñador",
     "link": "Mis ramos",
     "empty": "Todavía no subiste fotos de tus ramos.",
@@ -1080,6 +1081,8 @@
     "removed": "Foto quitada",
     "alt": "Ramo de tu florería",
     "altStyle": "Ramo de tu florería, estilo {style}",
-    "readOnly": "Solo el propietario o un gerente pueden subir o quitar fotos."
+    "readOnly": "Solo el propietario o un gerente pueden subir o quitar fotos.",
+    "styleDetected": "Estilo: {description}",
+    "stylePending": "El estilo se describirá en la próxima vista previa con IA."
   }
 }
