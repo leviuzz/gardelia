@@ -263,8 +263,41 @@ La piattaforma paga il provider e rivende l'uso:
   produzione l'app rifiuta di avviarsi con il provider simulato. Il provider reale si sceglie con la
   procedura di `docs/AI_BENCHMARK.md` (classifiche pubbliche per la rosa dei candidati, prova
   gratuita sui nostri ramos, poi account diretto con ~10 € prepagati) e si aggiunge con la chiave.
+  **Scelto e collegato: fal.ai con Nano Banana 2 (ADR-026).**
 - **Spesa:** la spesa stimata del mese di tutta la piattaforma si legge con una funzione SQL
   `SECURITY DEFINER` che restituisce solo il totale (nessun dato dei tenant esposto).
+
+### ADR-026 — Provider reale delle anteprime: fal.ai con Nano Banana 2 — DECISO (21/11/2026)
+
+- **Scelta:** account **fal.ai** del founder (10 € prepagati) con **Nano Banana 2**
+  (`fal-ai/nano-banana-2`, 1024 × 1024 JPEG) come modello predefinito e **GPT Image 2**
+  (`fal-ai/gpt-image-2`, quality medium) come alternativa selezionabile con `AI_MODEL`. Nel
+  confronto sui 5 ramos demo (`docs/AI_BENCHMARK.md`) Nano Banana 2 ha i conteggi più fedeli e
+  ~10 s di attesa; GPT Image 2 ha qualità simile ma è 3 volte più lento; FLUX.2 pro è escluso
+  (girasoli in più, un'etichetta tipo logo). Un modello nuovo entra solo dopo la stessa prova.
+- **Integrazione:** `FalImageProvider` (`packages/core/src/ai/fal.ts`): `POST
+https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nella risposta (data
+  URI) invece che come URL del CDN. Configurazione: `AI_PROVIDER=fal`, `AI_MODEL` (facoltativa),
+  `FAL_KEY` (segreto, solo nell'hosting). L'app non parte senza chiave o con un modello non provato.
+- **La risposta è un dato non fidato:** il tipo si ricava dai byte (PNG/JPEG/WebP), massimo
+  10 MB; un eventuale URL si scarica solo in https da `*.fal.media`, senza redirect. La chiave è
+  un campo privato della classe: non compare in log, errori o serializzazioni.
+- **Errori:** moderazione del modello → `content_rejected`; 4xx (parametri, chiave, saldo
+  esaurito) → `invalid_request`: entrambi FAILED subito, senza consumare crediti. 408/429/5xx/rete
+  → `provider_error` e scadenza → `timeout`: nuovi tentativi (massimo 3, attesa crescente).
+- **Costo:** fal non restituisce il costo nella risposta: come costo del job si registra la stima
+  da listino (0,08 USD Nano Banana 2 a 1K; 0,06 USD GPT Image 2), che alimenta il tetto mensile
+  (ADR-024). Il credito prepagato di fal resta il limite rigido. La stima si riconcilia con la
+  fattura di fal nella prova da ~100 immagini prima del pilota.
+- **Cache:** l'impronta del ramo include provider e modello: cambiando `AI_MODEL` non si
+  riusano immagini dell'altro modello.
+- **Limiti noti:** i modelli contano in modo approssimativo e a volte aggiungono un elemento (nella
+  prima anteprima reale: 8 rose invece di 7 e un fiocco non in distinta). L'avvertenza "el ramo
+  real puede variar" resta obbligatoria e prezzo e distinta non dipendono mai dall'immagine. Un
+  worker con un modello diverso da quello del job lo chiude come FAILED (`provider cambiato`):
+  con più istanze, il modello si cambia aggiornandole tutte insieme (nel pilota l'istanza è una).
+- **Privacy:** il prompt contiene solo la composizione (nomi di catalogo, colori, stile, misura),
+  mai dati di clienti o della fioreria.
 
 ---
 
@@ -286,18 +319,18 @@ La piattaforma paga il provider e rivende l'uso:
 
 ## 4. Decisioni aperte (bloccano funzionalità future, NON lo Sprint 0)
 
-| ID   | Domanda                                                                                                                                                                                                                                                                              | Chi decide         | Blocca                                                        |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ | ------------------------------------------------------------- |
-| O-01 | Provider AI: **fal.ai con 10 € prepagati** (scelta del founder, 21/11/2026): un solo account per confrontare in automatico 2–3 modelli (GPT Image, Nano Banana, FLUX) sui nostri ramos; prova manuale di `docs/AI_BENCHMARK.md` facoltativa. Prova da ~100 immagini prima del pilota | Founder            | Prima del pilota                                              |
-| O-02 | **Entità legale** che fattura il SaaS (Messico o Italia): impatta CFDI, IVA, provider di pagamento                                                                                                                                                                                   | Founder + contador | Billing (Sprint 4)                                            |
-| O-03 | Nome commerciale definitivo (il repo si chiama "gardelia", la spec usa "Floral OS" come nome di lavoro) e dominio                                                                                                                                                                    | Founder            | Lancio (cambio a basso costo: `packages/domain/src/brand.ts`) |
-| O-04 | Hosting, regione dei dati, budget infrastruttura                                                                                                                                                                                                                                     | Founder            | Deploy del pilota                                             |
-| O-05 | Modello di costo AI deciso (ADR-024: 25 incluse, extra senza scadenza, tetto 50 USD/mese). Restano: prezzi dei pacchetti (proposta in ADR-024), prova gratuita, limiti per piano (utenti, sedi)                                                                                      | Founder            | Billing, Builder                                              |
-| O-06 | Trattamento fiscale nei preventivi (IVA inclusa/esclusa, aliquota zona di frontiera, ricevute)                                                                                                                                                                                       | Contador           | Preventivi con imposte                                        |
-| O-07 | Términos y condiciones e Aviso de privacidad (LFPDPPP)                                                                                                                                                                                                                               | Legale             | Lancio commerciale                                            |
-| O-08 | Conferma della matrice ruoli: lo STAFF non vede costi; il MANAGER invita solo STAFF e non modifica dati fiscali; lo STAFF compone nel Builder ma non crea preventivi né clienti                                                                                                      | Founder            | — (default già implementato)                                  |
-| O-09 | Chi mantiene la tassonomia canonica dei fiori e con quale copertura                                                                                                                                                                                                                  | Founder            | Builder, Network                                              |
-| O-10 | Durata della finestra di attribuzione delle fee del Network (spec §8.4)                                                                                                                                                                                                              | Founder + legale   | Network                                                       |
+| ID   | Domanda                                                                                                                                                                                                                           | Chi decide         | Blocca                                                        |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------- |
+| O-01 | ✅ **RISOLTA** (21/11/2026): **fal.ai** con **Nano Banana 2** (alternativa GPT Image 2), scelto col confronto sui ramos demo; vedi ADR-026. Resta la prova da ~100 immagini prima del pilota (costo reale → prezzi dei pacchetti) | Founder            | Prima del pilota (solo la prova da ~100 immagini)             |
+| O-02 | **Entità legale** che fattura il SaaS (Messico o Italia): impatta CFDI, IVA, provider di pagamento                                                                                                                                | Founder + contador | Billing (Sprint 4)                                            |
+| O-03 | Nome commerciale definitivo (il repo si chiama "gardelia", la spec usa "Floral OS" come nome di lavoro) e dominio                                                                                                                 | Founder            | Lancio (cambio a basso costo: `packages/domain/src/brand.ts`) |
+| O-04 | Hosting, regione dei dati, budget infrastruttura                                                                                                                                                                                  | Founder            | Deploy del pilota                                             |
+| O-05 | Modello di costo AI deciso (ADR-024: 25 incluse, extra senza scadenza, tetto 50 USD/mese). Restano: prezzi dei pacchetti (proposta in ADR-024), prova gratuita, limiti per piano (utenti, sedi)                                   | Founder            | Billing, Builder                                              |
+| O-06 | Trattamento fiscale nei preventivi (IVA inclusa/esclusa, aliquota zona di frontiera, ricevute)                                                                                                                                    | Contador           | Preventivi con imposte                                        |
+| O-07 | Términos y condiciones e Aviso de privacidad (LFPDPPP)                                                                                                                                                                            | Legale             | Lancio commerciale                                            |
+| O-08 | Conferma della matrice ruoli: lo STAFF non vede costi; il MANAGER invita solo STAFF e non modifica dati fiscali; lo STAFF compone nel Builder ma non crea preventivi né clienti                                                   | Founder            | — (default già implementato)                                  |
+| O-09 | Chi mantiene la tassonomia canonica dei fiori e con quale copertura                                                                                                                                                               | Founder            | Builder, Network                                              |
+| O-10 | Durata della finestra di attribuzione delle fee del Network (spec §8.4)                                                                                                                                                           | Founder + legale   | Network                                                       |
 
 ---
 

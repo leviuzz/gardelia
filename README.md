@@ -30,14 +30,14 @@ clienti, preventivi…), AI Bouquet Builder nel piano Plus e, in seguito, il mar
 - **Diseñador de ramos (Plus):** composizione con fiori, follaje, empaque e complementi del
   catalogo, prezzo calcolato all'istante (stessa formula sul server), avvisi di disponibilità,
   disegni salvati e creazione della cotización con la receta esatta.
-- **Vista previa con IA (Plus):** pipeline completa (25 al mese + pacchetti extra, cache per
-  fioreria, tetto di spesa). In locale usa un **provider simulato** dichiarato in UI; il provider
-  reale si collega con la chiave del fornitore (vedi `IMPLEMENTATION_PLAN.md`).
+- **Vista previa con IA (Plus):** 25 al mese + pacchetti extra, cache per fioreria, tetto di
+  spesa. Immagini reali con **fal.ai / Nano Banana 2** (~10 s, ~0,08 USD l'una; ADR-026); in
+  locale, senza chiave, si usa un **provider simulato** dichiarato in UI.
 - Dashboard con dati reali (cotizaciones abiertas, fechas especiales, attività), banner demo.
 - Isolamento fra fiorerie garantito anche dal database (Row-Level Security PostgreSQL).
 
-Ordini, pagamenti online, immagini del catalogo e anteprime AI reali **non sono ancora
-disponibili** e non compaiono nell'interfaccia come funzioni attive (vedi `IMPLEMENTATION_PLAN.md`).
+Ordini, pagamenti online e immagini del catalogo **non sono ancora disponibili** e non compaiono
+nell'interfaccia come funzioni attive (vedi `IMPLEMENTATION_PLAN.md`).
 
 ## Requisiti
 
@@ -56,6 +56,10 @@ pnpm db:deploy               # applica le migrazioni (ruolo proprietario)
 pnpm db:seed                 # dati demo (idempotente)
 pnpm dev                     # http://localhost:3000
 ```
+
+Anteprime AI reali in locale (a pagamento, ~0,08 USD l'una): in `.env` imposta `AI_PROVIDER=fal`
+e `FAL_KEY` con la chiave del tuo account fal.ai (mai nel repo). Senza chiave lascia
+`AI_PROVIDER=simulated`.
 
 Le email inviate in sviluppo (verifica, reset, inviti) si leggono in **Mailpit:
 http://localhost:8025**. Senza `SMTP_URL`, in sviluppo vengono scritte nel log del server.

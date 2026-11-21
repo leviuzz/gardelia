@@ -130,7 +130,7 @@ principi a livello di servizi e ruoli (TEN-01).
 | Preventivi | Quote, QuoteLine (`CATALOG_ITEM`, `CUSTOM`, `BUILDER`), TenantCounter | completo (ordini nello Sprint 3)                            |
 | Piani      | SaasPlan (globale), TenantSubscription                                | v0: assegnazione manuale da CLI, nessun pagamento (ADR-021) |
 | Builder    | BouquetConfiguration, BouquetConfigurationLine                        | deterministico (ADR-023); anteprime AI nello Sprint 2       |
-| AI         | AiJob (anche coda), AiCreditGrant                                     | pipeline completa; provider reale da collegare (ADR-025)    |
+| AI         | AiJob (anche coda), AiCreditGrant                                     | pipeline completa; provider fal.ai/Nano Banana 2 (ADR-026)  |
 
 Flusso del valore (Sprint 1): **catalogo** (prezzi, costi, disponibilità, flag Builder) →
 **Builder** (`priceBouquet`, stessa funzione in browser e server) → **preventivo** (riga `BUILDER`
@@ -142,7 +142,8 @@ Anteprime AI (Sprint 2, ADR-024/025): il Diseñador chiede l'anteprima del diseg
 il servizio calcola la descrizione del ramo (solo composizione) e la sua impronta → se la stessa
 fioreria ha già quell'immagine la riusa, altrimenti prenota un credito (prima quota del mese, poi
 extra) sotto lock e accoda un `AiJob` → il worker (nel processo web) lo preleva con
-`app_claim_ai_job` (SECURITY DEFINER, `SKIP LOCKED`), genera l'immagine, la salva nell'archivio
+`app_claim_ai_job` (SECURITY DEFINER, `SKIP LOCKED`), genera l'immagine col provider configurato
+(fal.ai con Nano Banana 2, ADR-026; simulato solo in locale), la salva nell'archivio
 (`tenants/{tenantId}/…`, R2 in produzione) e consuma il credito solo a successo. L'immagine si
 serve da una route che verifica tenant e permessi.
 
@@ -177,5 +178,8 @@ l'attribuzione delle fee future.
    `DATABASE_URL` (applicativo) nel runtime.
 3. Variabili obbligatorie: `APP_URL` (HTTPS), `BETTER_AUTH_SECRET` (≥ 32 caratteri), `DATABASE_URL`,
    `SMTP_URL`, `EMAIL_FROM`; `TRUSTED_IP_HEADER` coerente con il proxy/CDN.
-4. Health check: `GET /api/health`.
-5. Mai eseguire il seed demo in produzione (lo script si rifiuta con `NODE_ENV=production`).
+4. Anteprime AI: `AI_PROVIDER=fal` + `FAL_KEY` (segreto) + `AI_MODEL` facoltativa,
+   `AI_MONTHLY_BUDGET_USD`; archivio `STORAGE_DRIVER=r2` con le variabili `R2_*` (il provider
+   simulato e l'archivio su file sono rifiutati con un `APP_URL` pubblico).
+5. Health check: `GET /api/health`.
+6. Mai eseguire il seed demo in produzione (lo script si rifiuta con `NODE_ENV=production`).

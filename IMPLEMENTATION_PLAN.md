@@ -14,13 +14,14 @@ Legenda: ✅ fatto e testato · 🟡 parziale · ⬜ da fare · ⛔ bloccato da 
 S1-01…S1-10. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test unit + integrazione
 187/187 ✅ (89 dominio, 19 DB/RLS, 79 servizi) · build ✅ · E2E 21/21 ✅.
 
-**Sprint 2 — anteprime AI: pipeline completa** (21/11/2026) con provider **simulato** (solo
-locale): quota 25/mese, pacchetti extra via CLI, cache per fioreria, tetto di spesa, worker, archivio
-R2/locale. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 206/206 ✅ · build ✅ ·
-E2E 22/22 ✅.
+**Sprint 2 — anteprime AI: funzionanti con il provider reale** (21/11/2026): fal.ai con
+**Nano Banana 2** (ADR-026), scelto col confronto su 5 ramos demo; quota 25/mese, pacchetti extra via
+CLI, cache per fioreria, tetto di spesa, worker, archivio R2/locale; provider simulato solo in
+locale. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 222/222 ✅ · build ✅ ·
+E2E 22/22 ✅ · una generazione reale dal Diseñador ✅ (12 s, 0,08 USD).
 
-**Prossimo:** scegliere il modello con la prova gratuita di `docs/AI_BENCHMARK.md`, poi account
-diretto (~10 €) e chiave per collegare il provider reale (O-01). Vedi "I prossimi task".
+**Prossimo:** prova del prompt per ridurre elementi aggiunti (≈0,50 USD), poi immagini del catalogo
+e anteprima nel preventivo/WhatsApp. Vedi "I prossimi task".
 
 ---
 
@@ -111,13 +112,13 @@ il **taglio** seguente.
 | ----- | ----- | ----------------------------------------------------------------------------------------------------------------- |
 | S1-11 | 🟡    | archivio (R2 + locale) fatto per le anteprime; **upload immagini del catalogo** ancora da fare                    |
 | S1-12 | ✅    | `AiJob` come coda (SKIP LOCKED, lease, retry), worker nel processo web, quota/pacchetti/cache/tetto (ADR-024/025) |
-| S1-13 | ⛔    | provider reale: prova gratuita del founder (`docs/AI_BENCHMARK.md`), poi account diretto e chiave (O-01)          |
-| S1-14 | 🟡    | E2E anteprima con provider simulato ✅; BQ-02 coperto da test di integrazione (fallimento senza costo)            |
+| S1-13 | ✅    | provider reale fal.ai + Nano Banana 2 (`core/src/ai/fal.ts`, ADR-026); alternativa GPT Image 2 con `AI_MODEL`     |
+| S1-14 | ✅    | E2E con provider simulato; BQ-02 e errori del provider coperti da test; una generazione reale verificata nell'app |
 
 ### I prossimi task (nell'ordine)
 
-1. **Founder:** prova manuale gratuita dei prompt di `docs/AI_BENCHMARK.md` in ChatGPT e Gemini (voti 1–5).
-2. S1-13 Account diretto del modello vincitore (~10 € prepagati, chiave nel modulo sicuro) + adattatore; prima del pilota prova da ~100 immagini → prezzi dei pacchetti (ADR-024).
+1. Prova del prompt (≈0,50 USD, `docs/AI_BENCHMARK.md`): "nessun nastro o fiocco se non è in distinta" e numero totale di steli; se migliora, nuova `AI_PREVIEW_PROMPT_VERSION`.
+2. Prima del pilota: prova da ~100 immagini con Nano Banana 2 → costo reale riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 configurati nell'hosting (P-03, O-04).
 3. Immagini del catalogo (upload su R2) e uso delle foto del fiorista come riferimento di stile (AI-BQ-07, con consenso: O-07).
 4. Anteprima nel preventivo stampato e nel messaggio WhatsApp.
 5. Aggiungere un disegno del Builder a un preventivo in bozza esistente.
@@ -196,3 +197,22 @@ il **taglio** seguente.
 - Revisione (domanda del founder): fal.ai non è necessario adesso. Scelta del modello in 3 passi
   (`docs/AI_BENCHMARK.md`): prova manuale gratuita in ChatGPT/Gemini con i nostri prompt, poi
   account diretto del vincitore con ~10 € prepagati, poi prova da ~100 immagini prima del pilota.
+
+### 2026-11-21 — Sprint 2: provider reale (fal.ai)
+
+- Founder: account fal.ai con 10 € prepagati; chiave salvata nel modulo sicuro dell'ambiente
+  cloud (il proxy la inserisce nelle richieste a `fal.run`, mai vista né salvata nel repo).
+- Confronto di 3 modelli sui 5 ramos demo (15 immagini, ~0,80 USD): scelto **Nano Banana 2**,
+  alternativa GPT Image 2, escluso FLUX.2 pro (`docs/AI_BENCHMARK.md`, ADR-026).
+- Fatto: `FalImageProvider` (`sync_mode`, tipo dai byte, limiti di dimensione, download solo da
+  `*.fal.media`, chiave in campo privato), errori `content_rejected`/`invalid_request` senza nuovi
+  tentativi, `AI_PROVIDER=fal` + `AI_MODEL` + `FAL_KEY` in `env.ts` e `.env.example`; tipi comuni
+  in `core/src/ai/provider-types.ts`.
+- Verifiche: lint ✅, format ✅, typecheck ✅, `pnpm test` 222/222 ✅ (+16: adattatore fal con
+  `fetch` finto, fabbrica da env, worker senza retry su `invalid_request`), build ✅, E2E 22/22 ✅.
+  Generazione reale dal Diseñador (server di produzione locale con `AI_PROVIDER=fal`): immagine in
+  12 s, job SUCCEEDED, 1 credito, costo stimato 0,08 USD; rose 8 invece di 7 e un fiocco in più
+  (limite noto, avvertenza già presente).
+- Nota per le sessioni cloud: il `fetch` di Node passa dal proxy solo con `NODE_USE_ENV_PROXY=1`;
+  `FAL_KEY` può essere un segnaposto perché la chiave la inserisce il proxy.
+- Spesa fal finora: ≈0,90 USD su 10 € (stima da listino).

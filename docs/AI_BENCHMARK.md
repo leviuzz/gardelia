@@ -79,5 +79,17 @@ Stessi 5 prompt, un'immagine per modello, 1024×1024. Conteggi verificati a vist
 | GPT Image 2 (`fal-ai/gpt-image-2`, quality medium) | 28–44 s | ≈ 0,05 USD                     | Buona: 3/3 e 4/4 girasoli ✓; una rosa o un tulipano in meno in 2 casi                           | Immagini pulite ma spesso inquadrate strette; 3 volte più lento   |
 | FLUX.2 pro (`fal-ai/flux-2-pro`)                   | 11–12 s | ≈ 0,03 USD                     | La più debole: 5 girasoli invece di 3, 6 invece di 4                                            | Ha aggiunto un'etichetta tipo logo sul kraft (vietato dal prompt) |
 
-**Proposta:** Nano Banana 2 come modello predefinito (fedeltà, realismo, ~10 s), GPT Image 2 come
-alternativa. FLUX.2 pro escluso per i conteggi. Spesa della prova: circa 0,80 USD (stima da listino).
+**Decisione (ADR-026):** Nano Banana 2 come modello predefinito (fedeltà, realismo, ~10 s), GPT
+Image 2 come alternativa (`AI_MODEL=gpt-image-2`). FLUX.2 pro escluso per i conteggi. Spesa della
+prova: circa 0,80 USD (stima da listino).
+
+## Prima anteprima reale nell'app (21/11/2026)
+
+Diseñador della fioreria demo, ramo da 7 rose rosse, 5 tulipani rosa e kraft, generato dal worker
+con Nano Banana 2: 11 s di lavorazione (12 s fino all'immagine a schermo), JPEG da 114 KB salvato
+nell'archivio privato, 1 credito consumato, costo stimato 0,08 USD. Fedeltà: tulipani 5/5, rose 8
+invece di 7, e un fiocco crema non presente in distinta.
+
+**Prossima prova (≈0,50 USD):** prompt con "nessun nastro o fiocco se non è in distinta" e numero
+totale di steli, su 3 ramos, per ridurre gli elementi aggiunti. Cambiare il prompt richiede di
+aggiornare `AI_PREVIEW_PROMPT_VERSION` (nuova chiave di cache).
