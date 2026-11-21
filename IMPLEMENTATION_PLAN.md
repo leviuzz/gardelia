@@ -138,6 +138,9 @@ il **taglio** seguente.
 
 ### I prossimi task (nell'ordine)
 
+**In attesa del founder:** piano di piattaforma (`docs/PLATFORM_PLAN.md`: ambienti, hosting,
+rilasci, errori, refactor del codice, roadmap). Approvato il link pubblico del preventivo (21/11).
+
 1. Prima del pilota: foto vere di una fioreria (scontorno e anteprima esatta) e prova da ~100 immagini → costo reale (foto, controlli, scontorni) riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 nell'hosting (P-03, O-04).
 2. Boceto: contenitori (caja, florero) disegnati meglio e "tamaño" del ramo; foto: scelta della copertina e "usa l'originale" se il ritaglio non piace. (Fatto: proporzioni per tipo di fiore e angolazioni alternate.)
 3. Link per il cliente: pagina pubblica del preventivo (token, scadenza, revoca) con l'immagine del ramo, da mandare su WhatsApp; privacy da validare (O-07). Oggi l'immagine si scarica e si allega a mano (ADR-035).
@@ -386,3 +389,14 @@ il **taglio** seguente.
   nel preventivo con isolamento A↔B), build ✅, E2E 30/30 ✅ (il test dell'anteprima esatta ora
   crea anche la cotización e scarica l'immagine); controllo visivo di pagina, stampa e 320 px.
 - Spesa fal totale: ≈6,3 USD su 10 € (stima da listino).
+
+### 2026-11-21 — Piano di piattaforma (proposta)
+
+- Richiesta del founder: struttura professionale con staging e produzione, DB, auth, gestione
+  errori, codice organizzato in componenti e moduli; Sentry e notifiche push in roadmap.
+- Fatto: `docs/PLATFORM_PLAN.md` (PROPOSTO) con ambienti, hosting consigliato (Render + Neon +
+  R2 + Resend), costi indicativi, flusso di rilascio, gestione errori, sicurezza, osservabilità,
+  roadmap a fasi e decisioni richieste; analisi del codice con le duplicazioni e le falle di
+  gestione errori da chiudere nella fase 0.
+- Il founder manderà foto vere di fiori singoli su fondo liso; link pubblico del preventivo
+  approvato.

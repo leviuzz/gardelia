@@ -12,18 +12,18 @@ pagamenti…), ma l'architettura le prevede già.
 
 ## 0. In breve
 
-| Tema               | Proposta                                                                                                       |
-| ------------------ | -------------------------------------------------------------------------------------------------------------- |
-| Ambienti           | **locale** (sviluppo) → **staging** (prova con dati finti) → **produzione** (fiorerie vere); anteprime per PR facoltative |
-| App e worker       | **Render**: servizio web (Next.js) + **worker separato** (AI e scontorni) + **cron** (lavori programmati), stessa regione |
-| Database           | **Neon** (Postgres gestito): RLS come oggi, backup con ripristino a un istante (7 giorni), database separati per ambiente |
-| File               | **Cloudflare R2** (già pronto nel codice): un bucket privato per ambiente                                       |
-| Email              | **Resend** con dominio verificato (SPF/DKIM/DMARC)                                                             |
-| Login              | **Better Auth** (già nel codice, dati nel nostro DB): 2FA per i proprietari nella fase 1                        |
-| AI                 | **fal.ai** (già nel codice), con tetto di spesa per ambiente                                                   |
-| Errori e log       | log JSON (già), raccolta log e monitor di disponibilità subito; **Sentry** nella fase 1                         |
-| Costo stimato      | **≈ 60–120 USD/mese** per staging + produzione all'inizio, più l'AI a consumo                                  |
-| Regione            | Stati Uniti est (Virginia/Ohio), vicina al Messico; Messico (Google Cloud Querétaro) solo se un giorno servirà   |
+| Tema          | Proposta                                                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Ambienti      | **locale** (sviluppo) → **staging** (prova con dati finti) → **produzione** (fiorerie vere); anteprime per PR facoltative |
+| App e worker  | **Render**: servizio web (Next.js) + **worker separato** (AI e scontorni) + **cron** (lavori programmati), stessa regione |
+| Database      | **Neon** (Postgres gestito): RLS come oggi, backup con ripristino a un istante (7 giorni), database separati per ambiente |
+| File          | **Cloudflare R2** (già pronto nel codice): un bucket privato per ambiente                                                 |
+| Email         | **Resend** con dominio verificato (SPF/DKIM/DMARC)                                                                        |
+| Login         | **Better Auth** (già nel codice, dati nel nostro DB): 2FA per i proprietari nella fase 1                                  |
+| AI            | **fal.ai** (già nel codice), con tetto di spesa per ambiente                                                              |
+| Errori e log  | log JSON (già), raccolta log e monitor di disponibilità subito; **Sentry** nella fase 1                                   |
+| Costo stimato | **≈ 60–120 USD/mese** per staging + produzione all'inizio, più l'AI a consumo                                             |
+| Regione       | Stati Uniti est (Virginia/Ohio), vicina al Messico; Messico (Google Cloud Querétaro) solo se un giorno servirà            |
 
 Il codice parte già da una base solida (dominio → database → servizi → web, RLS, test a tre
 livelli). Il lavoro vero è: **separare il worker**, **mettere in piedi staging e produzione con
@@ -48,12 +48,12 @@ rilasci automatici**, **uniformare gestione errori e componenti**, **monitorare*
 
 ## 2. Ambienti
 
-| Ambiente           | Scopo                                         | Dati                                  | AI                         | Email                                      | Deploy                                   |
-| ------------------ | --------------------------------------------- | ------------------------------------- | -------------------------- | ------------------------------------------ | ---------------------------------------- |
-| **Locale**         | sviluppo e test                               | Postgres in Docker, seed demo         | simulata (o fal con chiave) | Mailpit (nessuna email esce)              | a mano                                   |
-| **Anteprima PR**   | provare una modifica prima di unirla (facoltativo) | branch Neon da staging, seed demo     | simulata                   | catturata, nessun invio reale              | automatico a ogni PR                     |
-| **Staging**        | prova completa prima della produzione; demo   | **solo dati finti** (seed demo)       | fal con tetto basso (es. 10 USD/mese) | solo verso indirizzi del team (allowlist) | automatico a ogni merge su `main`        |
-| **Produzione**     | fiorerie vere                                 | reali, con backup e ripristino        | fal con tetto mensile       | reale, dominio verificato                  | manuale (rilascio approvato)             |
+| Ambiente         | Scopo                                              | Dati                              | AI                                    | Email                                     | Deploy                            |
+| ---------------- | -------------------------------------------------- | --------------------------------- | ------------------------------------- | ----------------------------------------- | --------------------------------- |
+| **Locale**       | sviluppo e test                                    | Postgres in Docker, seed demo     | simulata (o fal con chiave)           | Mailpit (nessuna email esce)              | a mano                            |
+| **Anteprima PR** | provare una modifica prima di unirla (facoltativo) | branch Neon da staging, seed demo | simulata                              | catturata, nessun invio reale             | automatico a ogni PR              |
+| **Staging**      | prova completa prima della produzione; demo        | **solo dati finti** (seed demo)   | fal con tetto basso (es. 10 USD/mese) | solo verso indirizzi del team (allowlist) | automatico a ogni merge su `main` |
+| **Produzione**   | fiorerie vere                                      | reali, con backup e ripristino    | fal con tetto mensile                 | reale, dominio verificato                 | manuale (rilascio approvato)      |
 
 Regole:
 
@@ -82,8 +82,9 @@ Regole:
 - **Sentry** (fase 1): piano gratuito con 5.000 errori al mese.
 
 Perché: è la combinazione più semplice che copre tutto ciò che il nostro codice richiede (Next.js
-+ un processo sempre acceso per il worker + Postgres con RLS + cron), con backup e ambienti già
-pronti, a costo basso.
+
+- un processo sempre acceso per il worker + Postgres con RLS + cron), con backup e ambienti già
+  pronti, a costo basso.
 
 ### Alternative valutate
 
@@ -99,16 +100,16 @@ pronti, a costo basso.
 
 ### Costo stimato all'inizio (da verificare sui listini al momento dell'acquisto)
 
-| Voce                                   | Staging          | Produzione         |
-| -------------------------------------- | ---------------- | ------------------ |
-| Render web (Next.js)                   | istanza piccola  | istanza 2 GB RAM   |
-| Render worker                          | istanza piccola  | istanza piccola    |
-| Render cron                            | centesimi        | centesimi          |
-| Neon Postgres                          | pochi USD        | 20–40 USD          |
-| Cloudflare R2                          | gratis           | gratis all'inizio  |
-| Resend                                 | gratis           | gratis → 20 USD    |
-| Monitor di disponibilità, log          | gratis           | gratis → 10–30 USD |
-| **Totale indicativo**                  | **≈ 15–35 USD**  | **≈ 45–90 USD**    |
+| Voce                          | Staging         | Produzione         |
+| ----------------------------- | --------------- | ------------------ |
+| Render web (Next.js)          | istanza piccola | istanza 2 GB RAM   |
+| Render worker                 | istanza piccola | istanza piccola    |
+| Render cron                   | centesimi       | centesimi          |
+| Neon Postgres                 | pochi USD       | 20–40 USD          |
+| Cloudflare R2                 | gratis          | gratis all'inizio  |
+| Resend                        | gratis          | gratis → 20 USD    |
+| Monitor di disponibilità, log | gratis          | gratis → 10–30 USD |
+| **Totale indicativo**         | **≈ 15–35 USD** | **≈ 45–90 USD**    |
 
 Più: dominio (≈ 15–40 USD/anno), AI a consumo (tetto già nel codice), eventuale piano di workspace
 Render per le anteprime per PR.
@@ -151,9 +152,60 @@ prima del pilota (insieme a O-07 sul consenso per le foto). Il piano non fa assu
 - **Multi-tenant con RLS** e contesto obbligatorio, permessi e piano controllati nel servizio.
 - **Test a tre livelli** (dominio, servizi su DB reale con isolamento fra fiorerie, E2E).
 
-### Cosa cambiamo
+### Cosa cambiamo (dall'analisi del codice del 21/11/2026)
 
-<!-- SEZIONE DA COMPLETARE CON L'ANALISI DEL CODICE -->
+**Moduli per area.** In `apps/web`: `components/ui` resta per i mattoni (stile shadcn); nasce
+`components/common` per i pezzi usati da più aree (elenchi, filtri, paginazione, stati vuoti,
+dialoghi di conferma, pulsanti-azione, immagini private, campi indirizzo e fiscali) e
+`features/<area>/` per i componenti condivisi dentro un'area (catalogo, clienti, preventivi,
+Builder, foto, team). Nel `core`: i file oltre ~500 righe si dividono per responsabilità
+(preventivi, anteprime, Builder, clienti, adattatori fal, worker); storage e immagini passano da
+`ai/` a `media/`; i finti per i test escono dall'export principale (`@floral/core/testing`). Una
+regola di lint impedisce dipendenze non previste fra pacchetti (es. il web non usa il DB a
+runtime, salvo eccezioni elencate).
+
+**Fine delle copie.** Ciò che oggi è ripetuto diventa un pezzo unico:
+
+| Ripetuto oggi                                                           | Quante volte                  | Diventa                                                  |
+| ----------------------------------------------------------------------- | ----------------------------- | -------------------------------------------------------- |
+| Scheletro delle server action (contesto, errori, revalidate, messaggio) | 38 azioni in 7 file           | `defineTenantAction`                                     |
+| Pagine elenco: filtri, ricerca, paginazione, vuoto, conteggio           | 4 pagine (+ ricerca clienti)  | `components/common/list/*` + `listHref`                  |
+| Immagini private: route, lettura del file, `<img>`, URL                 | 5 route, 4 servizi, 7 `<img>` | `privateImageRoute`, `readStoredImage`, `<PrivateImage>` |
+| Percorsi `/app/${slug}/…` scritti a mano                                | 75 in 32 file                 | `routes.ts` (link, redirect, revalidate, immagini)       |
+| Dialoghi di conferma                                                    | 3                             | `ConfirmActionDialog`                                    |
+| Pulsanti-azione e form di quantità                                      | 7 + 2                         | `ActionButton`, `QuantityForm`                           |
+| Campi indirizzo / dati fiscali / profilo                                | 3 + 3 + 2                     | `AddressFields`, `LegalFields`, `ProfileFields`          |
+| Stati vuoti scritti a mano                                              | 7                             | `EmptyState` con varianti                                |
+| Badge di stato e campioni colore                                        | 3–4 ciascuno                  | `StatusBadge`, `ColorSwatch`                             |
+| Nel core: controllo ID + "non trovato", validazione Zod, paginazione    | 45, 19, 4                     | `assertId`, `parseInput`, `paginate`                     |
+| Date e fusi orari                                                       | 3 pacchetti, 3 convenzioni    | un modulo date unico + formattazione per fioreria        |
+
+**Configurazione unica.** Oggi le variabili si leggono in più punti e si controllano solo al
+primo login: un solo schema (Zod), validato **all'avvio** di web e worker, passato agli
+adattatori (AI, storage, email). Se manca qualcosa l'app non parte e dice cosa manca.
+
+**Falle di gestione errori trovate (da chiudere nella fase 0):**
+
+1. Solo confini d'errore alla radice: un errore in una pagina della fioreria fa sparire menu e
+   navigazione → confini per sezione, pagine 404/403 della fioreria, errore globale, stati di
+   caricamento (oggi nessuno).
+2. Gli errori di pagine e route non passano dal nostro logger e non hanno l'ID richiesta →
+   registrazione centrale degli errori con ID richiesta, uguale a quello mostrato all'utente.
+3. Alcuni errori di validazione non si vedono (il campo non è nel form) → avviso nel form.
+4. Se all'avvio il database non risponde, il worker AI non riparte fino al riavvio; nessuna
+   chiusura ordinata → nuovo tentativo all'avvio e arresto pulito.
+5. Il caricamento delle foto salva i file mentre la transazione del database è aperta → file
+   fuori dalla transazione, con pulizia se qualcosa fallisce.
+6. Le letture modificano dati (scadenza di preventivi e inviti) → lavoro programmato (cron).
+7. Le route delle immagini traducono in modo diverso permessi e piano → un solo helper.
+
+**Test e CI.** Si aggiungono test per le utilità del web (form, azioni, immagini); in CI: gli E2E
+dopo l'integrazione, cache, controllo che le migrazioni corrispondano allo schema, scansione di
+dipendenze e segreti, `Dockerfile` con build `standalone`, job di deploy.
+
+**Ordine consigliato** (ogni blocco si rilascia da solo, senza fermare il resto): errori e log →
+configurazione → errori silenziosi → immagini private → azioni e percorsi → pagine elenco → altri
+componenti condivisi → divisione dei file grandi insieme alle funzionalità che li toccano.
 
 ---
 
@@ -237,14 +289,15 @@ prima del pilota (insieme a O-07 sul consenso per le foto). Il piano non fa assu
    ambiente con ruoli corretti; bucket R2; dominio email verificato.
 5. CI/CD: deploy automatico su staging, test di fumo, rilascio in produzione approvato,
    migrazioni prima dell'avvio.
-6. Gestione errori uniforme e refactor dei componenti ripetuti (sezione 5).
+6. Gestione errori uniforme e refactor dei componenti ripetuti, nell'ordine della sezione 5.
 7. Monitor di disponibilità, raccolta log, avvisi base; backup con primo test di ripristino.
 8. Intestazioni di sicurezza, aggiornamento automatico delle dipendenze, runbook.
 
 ### Fase 1 — Pilota ad Aguascalientes
 
 - Sentry su web e worker; 2FA per i proprietari; gestione sessioni.
-- **Link pubblico del preventivo** per il cliente (token, scadenza, revoca; approvato dal founder).
+- **Link pubblico del preventivo** per il cliente (token, scadenza, revoca): approvato dal founder il
+  21/11/2026; testi di privacy da validare (O-07).
 - Notifiche email (preventivo inviato/accettato); foto vere dei fiori e prova da ~100 immagini AI.
 - Aviso de privacidad e consenso foto validati (O-07).
 
