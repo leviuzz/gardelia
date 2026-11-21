@@ -78,7 +78,9 @@ type ProbeableEntity =
   | 'Quote'
   | 'QuoteLine'
   | 'BouquetConfiguration'
-  | 'AiJob';
+  | 'AiJob'
+  | 'CatalogItemPhoto'
+  | 'StyleReferencePhoto';
 
 async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<string | null> {
   return withSystemContext(
@@ -114,6 +116,14 @@ async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<st
         case 'BouquetConfiguration':
           return (
             (await tx.bouquetConfiguration.findUnique({ where: { id }, select }))?.tenantId ?? null
+          );
+        case 'CatalogItemPhoto':
+          return (
+            (await tx.catalogItemPhoto.findUnique({ where: { id }, select }))?.tenantId ?? null
+          );
+        case 'StyleReferencePhoto':
+          return (
+            (await tx.styleReferencePhoto.findUnique({ where: { id }, select }))?.tenantId ?? null
           );
       }
     },

@@ -50,16 +50,5 @@ export class AiProviderError extends Error {
   }
 }
 
-/** Tipo dell'immagine dai primi byte: le risposte dei provider sono dati non fidati. */
-export function sniffImageType(bytes: Uint8Array): GeneratedImage['contentType'] | null {
-  const startsWith = (offset: number, signature: readonly number[]) =>
-    bytes.length >= offset + signature.length &&
-    signature.every((byte, index) => bytes[offset + index] === byte);
-  if (startsWith(0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return 'image/png';
-  if (startsWith(0, [0xff, 0xd8, 0xff])) return 'image/jpeg';
-  // "RIFF" … "WEBP"
-  if (startsWith(0, [0x52, 0x49, 0x46, 0x46]) && startsWith(8, [0x57, 0x45, 0x42, 0x50])) {
-    return 'image/webp';
-  }
-  return null;
-}
+/** Le risposte dei provider sono dati non fidati: tipo dai primi byte. */
+export { sniffImageType } from '../media/image-type';

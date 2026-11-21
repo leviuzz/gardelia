@@ -60,11 +60,20 @@ export interface CatalogItemDto {
   readonly archivedAt: Date | null;
   readonly updatedAt: Date;
   readonly recipeLineCount: number | null;
+  /** Prima foto attiva (copertina), o null se l'articolo non ha foto. */
+  readonly coverPhotoId: string | null;
 }
 
 const itemInclude = {
   canonicalFlower: { select: { names: true } },
   recipe: { select: { _count: { select: { lines: true } } } },
+  // Stesso tenant per costruzione (FK composita) e per RLS.
+  photos: {
+    where: { status: 'ACTIVE' },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    take: 1,
+    select: { id: true },
+  },
 } satisfies Prisma.CatalogItemInclude;
 
 type ItemWithRelations = Prisma.CatalogItemGetPayload<{ include: typeof itemInclude }>;
@@ -102,6 +111,7 @@ function toDto(item: ItemWithRelations, ctx: TenantContext): CatalogItemDto {
     archivedAt: item.archivedAt,
     updatedAt: item.updatedAt,
     recipeLineCount: item.recipe ? item.recipe._count.lines : null,
+    coverPhotoId: item.photos[0]?.id ?? null,
   };
 }
 

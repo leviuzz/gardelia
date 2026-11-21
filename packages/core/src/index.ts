@@ -40,6 +40,9 @@ export {
 } from './ai/storage';
 export { startAiWorker, type AiWorkerHandle } from './ai/worker';
 export * from './services/ai-previews';
+export * from './services/catalog-photos';
+export * from './services/style-references';
+export { normalizeUploadedPhoto, sniffImageType } from './media/images';
 export * from './services/billing';
 export * from './services/builder';
 export * from './services/catalog';
