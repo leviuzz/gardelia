@@ -34,8 +34,14 @@ descritto a parole una volta per foto, accompagna le anteprime; la foto non va m
 fondo", consiglio per rifarla, "Reintentar"); "Mis ramos" mantiene il fondo. Ultima verifica:
 lint ✅ · format ✅ · typecheck ✅ · test 272/272 ✅ · build ✅ · E2E 28/28 ✅.
 
-**Prossimo (direzione del founder, ADR-028):** anteprima con il numero esatto di fiori:
-composizione dai ritagli, resa fotografica AI e controllo automatico. Vedi "I prossimi task".
+**Anteprima esatta** (21/11/2026, ADR-034): con la foto di ogni fiore il Diseñador mostra
+subito il boceto con il numero esatto di fiori (gratis); la foto realistica parte dal boceto e si
+mostra solo se un modello di visione ritrova gli stessi numeri ("Número de flores verificado").
+Prove reali: 4 ramos su 4 esatti. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test
+301/301 ✅ · build ✅ · E2E 30/30 ✅.
+
+**Prossimo:** prova con foto vere di una fioreria del pilota e prova da ~100 immagini (costo
+reale). Vedi "I prossimi task".
 
 ---
 
@@ -131,15 +137,14 @@ il **taglio** seguente.
 
 ### I prossimi task (nell'ordine)
 
-1. **Anteprima esatta**: composizione deterministica dai ritagli (immediata, gratuita), foto realistica dalla composizione (`nano-banana-2/edit`) e controllo automatico dei conteggi con un nuovo tentativo (ADR-028).
-2. Foto: scelta della copertina e opzione "usa l'originale" se il ritaglio non piace; prova dello scontorno su foto vere di una fioreria del pilota.
-3. Prima del pilota: prova da ~100 immagini → costo reale (anteprime e scontorni) riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 nell'hosting (P-03, O-04).
+1. Prima del pilota: foto vere di una fioreria (scontorno e anteprima esatta) e prova da ~100 immagini → costo reale (foto, controlli, scontorni) riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 nell'hosting (P-03, O-04).
+2. Boceto più vero: dimensioni diverse per tipo di fiore (girasole > rosa > margherita), più foto per fiore alternate, contenitori (caja, florero) disegnati meglio, "tamaño" del ramo; foto: scelta della copertina e "usa l'originale" se il ritaglio non piace.
+3. Boceto e foto verificata nel preventivo stampato e nel messaggio WhatsApp.
 4. Builder pubblico per i clienti della fioreria (AI-BQ-10), dopo il pilota del Builder interno.
-5. Anteprima nel preventivo stampato e nel messaggio WhatsApp.
-6. Aggiungere un disegno del Builder a un preventivo in bozza esistente.
-7. Ordini da preventivo accettato (Sprint 3) con la stessa distinta.
-8. Contador: IVA nei preventivi e fatturazione dei pacchetti (O-06, O-02).
-9. Pannello admin di piattaforma minimo (oggi CLI) con autenticazione forte e audit.
+5. Aggiungere un disegno del Builder a un preventivo in bozza esistente.
+6. Ordini da preventivo accettato (Sprint 3) con la stessa distinta.
+7. Contador: IVA nei preventivi e fatturazione dei pacchetti (O-06, O-02).
+8. Pannello admin di piattaforma minimo (oggi CLI) con autenticazione forte e audit.
 
 ---
 
@@ -330,3 +335,22 @@ il **taglio** seguente.
 - Verifica reale nell'app (fal, BiRefNet): rosa su un tavolo di negozio con oggetti dietro →
   ritaglio pulito, "Sin fondo" 3,1 s dopo il caricamento, PNG di ~400 KB.
 - Spesa fal totale: ≈3,6 USD su 10 € (stima da listino).
+
+### 2026-11-21 — Anteprima esatta: boceto, foto realistica, conteggio verificato (ADR-034)
+
+- Richiesta del founder ("vai"): l'anteprima con il numero esatto di fiori costruita dai ritagli.
+- Fatto: dominio (`exactPreviewPlan`, `layoutBouquetSketch` deterministico con ritagli
+  specchiati, prompt v5 dal boceto, prompt e confronto del conteggio, chiave di cache con
+  modalità e ritagli); core (disegno del boceto con sharp, variante "edit" di Nano Banana 2,
+  `FlowerCounter` fal/simulato, worker con controllo, un nuovo tentativo e `count_mismatch`
+  senza credito, limite di 2 richieste scartate per ramo, lease del job a 300 s, costi nel
+  tetto); web (route privata del boceto, pannello con boceto, "Generar foto realista", bollino
+  "Número de flores verificado", fiori da fotografare con link, messaggi es-MX).
+- Prove reali (~0,70 USD): 3 ramos di prova e uno nell'app, 4 su 4 esatti al primo tentativo,
+  confermati anche a occhio; foto ~13 s, controllo ~5 s.
+- Verifiche: lint ✅, format ✅, typecheck ✅, `pnpm test` 301/301 ✅ (+29: disposizione, limiti,
+  prompt, conteggio e chiave nel dominio; boceto, foto verificata, nuovo tentativo, scarto senza
+  credito e limite, controllo assente, foto tolta, anteprima a parole, isolamento A↔B nel core;
+  variante "edit" e contatore fal), build ✅, E2E 30/30 ✅ (+2: boceto, foto verificata e
+  privacy; fiori da fotografare); controllo visivo del pannello a 1280 e 320 px.
+- Spesa fal totale: ≈4,3 USD su 10 € (stima da listino).

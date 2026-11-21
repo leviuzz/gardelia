@@ -312,7 +312,7 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   "fatto a mano, leggermente asimmetrico" con altezze e orientamenti diversi, tranne lo stile
   clásico che resta rotondo e bilanciato; nella prova i conteggi non peggiorano.
 
-### ADR-028 — Conteggio esatto nell'anteprima — REQUISITO DEL FOUNDER (21/11/2026), approccio PROPOSTO
+### ADR-028 — Conteggio esatto nell'anteprima — REQUISITO DEL FOUNDER (21/11/2026), approccio ADOTTATO (ADR-034)
 
 - **Requisito (founder):** il fiorista carica foto dei singoli fiori (più angolazioni); il
   cliente compone il ramo, sceglie colore di carta e nastro, e l'immagine deve mostrare
@@ -472,6 +472,47 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   in fila (1–2 s l'una) e un'anteprima accodata dopo aspetta; la pagina si aggiorna da sola per
   al massimo 2 minuti. Se il ritaglio non piace, per ora si toglie la foto e se ne carica
   un'altra (nessuna opzione "usa l'originale").
+
+### ADR-034 — Anteprima esatta: boceto dai ritagli, foto realistica, conteggio verificato — ADOTTATO (21/11/2026)
+
+- **Requisito (ADR-028):** l'immagine deve avere esattamente i fiori della distinta (es. 3 rose
+  e 3 margherite), con carta e nastro del colore scelto. Delegato dal founder ("vai").
+- **1. Boceto esatto (gratis, immediato, senza IA).** Se ogni fiore contato (venduto a stelo)
+  ha una foto senza fondo (ADR-033), il server disegna un ritaglio per stelo: disposizione
+  deterministica (`layoutBouquetSketch`: stessa distinta → stesso boceto), fiori ben separati
+  e interi, carta (fino a due fogli) o contenitore, steli, fiocco per i nastri riconosciuti dal
+  nome, follaje e fiori di riempimento se hanno foto. I ritagli si specchiano a caso, così con
+  una sola foto i fiori non sembrano identici. Si usa la foto "de frente" se c'è. Massimo 24
+  steli.
+- **2. Foto realistica (su richiesta).** `fal-ai/nano-banana-2/edit` riceve il boceto e il
+  prompt `bouquet-preview-v5`: mantenere fiori, posizioni e numeri, rendere vera la carta e il
+  nastro, stile della fioreria a parole (ADR-032).
+- **3. Controllo dei conteggi.** Claude Sonnet 4.5 (via `fal-ai/any-llm/vision`) elenca i fiori
+  dell'immagine per tipo; riceve i tipi ma non le quantità attese. Si accetta solo se ogni tipo
+  coincide e non ci sono fiori estranei; altrimenti un secondo tentativo. Se nemmeno quello
+  coincide: nessuna immagine, nessun credito (`count_mismatch`) e il boceto, esatto, resta
+  visibile. Dopo 2 richieste scartate per lo stesso ramo non si riprova (ogni tentativo lo paga
+  la piattaforma). Se il controllo non risponde, la foto si mostra come anteprima normale, non
+  verificata, con l'avvertenza di sempre.
+- **Quando non si applica:** fiori senza foto (il Diseñador elenca quali fotografare, con il
+  link alla scheda), più di 24 steli, modello senza variante "edit" (GPT Image 2): anteprima
+  descritta a parole come prima, con l'avvertenza.
+- **Prove** (`docs/AI_BENCHMARK.md`): 3 ramos di prova (3 rose + 3 margherite, 12 rose, 3
+  girasoli + 5 margherite) e uno nell'app (5 rose + 2 girasoli, eucalipto, carta rosa, listón,
+  stile di "Mis ramos"): 4 su 4 esatti al primo tentativo, confermati anche a occhio; ~13 s per
+  la foto e ~5 s per il controllo.
+- **Costi (stima da listino):** ~0,09 USD per anteprima (foto 0,08 + controllo ~0,01), fino a
+  ~0,18 con il secondo tentativo; un credito della fioreria solo se la foto supera il controllo.
+  Il costo reale va riconciliato con la fattura fal nella prova prima del pilota.
+- **Cache:** la chiave include modalità, ritaglio scelto per ogni fiore e versione del boceto
+  (`sketch-v1`); nell'anteprima a parole i ritagli non entrano nella chiave.
+- **Sicurezza:** boceto servito da una route privata (membri della fioreria con il piano Plus);
+  ritagli letti solo da foto attive, con ritaglio pronto, della stessa fioreria; nomi del
+  catalogo neutralizzati nei prompt; il contatore riceve solo l'immagine generata e i tipi.
+- **Limiti noti:** tutti i fiori hanno la stessa dimensione nel boceto (un girasole grande
+  quanto una rosa); il contatore è un cancello, non una garanzia (su immagini difficili 4/6 il
+  21/11); contenitori (caja, florero) disegnati come un rettangolo; il "tamaño" del ramo non
+  cambia il boceto.
 
 ---
 

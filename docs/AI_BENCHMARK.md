@@ -201,3 +201,21 @@ solito dà bordi più netti su petali sottili e foglie e meno ritagli da rifare.
 
 **Verifica nell'app** (fal reale): la foto della rosa sul tavolo caricata dalla scheda
 dell'articolo → "Sin fondo" 3,1 s dopo il caricamento, ritaglio pulito (PNG di ~400 KB).
+
+## Anteprima esatta: boceto → foto → conteggio (21/11/2026, ~0,70 USD)
+
+Foto di fiori singoli generate per la prova come le farebbe un fiorista (rosa, margherita su
+cartoncino scuro, girasole, eucalipto), scontornate con BiRefNet (0,4–0,9 s l'una). Il boceto si
+disegna in 0,2–0,5 s. Poi `fal-ai/nano-banana-2/edit` con il prompt v5 e il controllo con Claude
+Sonnet 4.5 (riceve i tipi, non le quantità).
+
+| Ramo                                                                               | Contatore              | A occhio | Foto / controllo |
+| ---------------------------------------------------------------------------------- | ---------------------- | -------- | ---------------- |
+| 3 rose + 3 margherite, carta rosa, listón bianco                                   | 3 + 3, nessun estraneo | esatto   | 12,6 s / 4,3 s   |
+| 12 rose, eucalipto, carta nera, listón rosso (clásico)                             | 12, nessun estraneo    | esatto   | 12,7 s / 5,0 s   |
+| 3 girasoli + 5 margherite, eucalipto, carta kraft                                  | 3 + 5, nessun estraneo | esatto   | 12,7 s / 4,9 s   |
+| Nell'app: 5 rose + 2 girasoli, eucalipto, carta rosa, listón, stile di "Mis ramos" | verificato             | esatto   | 18,6 s in tutto  |
+
+Esito: 4 su 4 esatti al primo tentativo; le foto rispettano posizioni, colori di carta e nastro e
+lo stile della fioreria. Con una sola foto per fiore i fiori uguali si somigliano molto (mitigato
+specchiando i ritagli a caso). **Adottato** (ADR-034).

@@ -42,6 +42,10 @@ clienti, preventivi…), AI Bouquet Builder nel piano Plus e, in seguito, il mar
 - **Vista previa con IA (Plus):** 25 al mese + pacchetti extra, cache per fioreria, tetto di
   spesa. Immagini reali con **fal.ai / Nano Banana 2** (~10 s, ~0,08 USD l'una; ADR-026); in
   locale, senza chiave, si usa un **provider simulato** dichiarato in UI.
+- **Anteprima esatta (Plus):** con la foto di ogni fiore, il Diseñador mostra subito un boceto
+  con il numero esatto di fiori (gratis, senza IA); la foto realistica parte dal boceto e si
+  mostra solo se un modello di visione ritrova gli stessi numeri ("Número de flores
+  verificado"); se mancano foto, dice quali fiori fotografare (ADR-034).
 - Dashboard con dati reali (cotizaciones abiertas, fechas especiales, attività), banner demo.
 - Isolamento fra fiorerie garantito anche dal database (Row-Level Security PostgreSQL).
 
