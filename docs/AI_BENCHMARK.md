@@ -180,3 +180,21 @@ piccolo, ma il criterio ("i conteggi non peggiorano") è rispettato: **attivato*
 **Verifica nell'app** (fal reale): 3 girasoli + carta lilla + listón de organza dorado con la
 prima foto di "Mis ramos" della fioreria demo: 3 girasoli esatti, colori giusti, sfondo del
 negozio ripreso; 19 s in tutto, 0,09 USD (0,08 immagine + 0,01 descrizione, fatta una volta).
+
+## Scontorno delle foto del fiorista (21/11/2026, ~0,08 USD)
+
+Tre foto realistiche generate per la prova (ancora nessuna foto vera di una fioreria): una rosa
+sul tavolo del negozio con vasi e barattoli dietro, una carta rosa su un tavolo con altri
+oggetti, un ramo in negozio. Volutamente NON su fondo liso, per vedere il caso peggiore.
+
+| Foto               | BiRefNet v2 (fal) | Bria RMBG 2.0 (fal) | Algoritmo locale (colore del bordo) |
+| ------------------ | ----------------- | ------------------- | ----------------------------------- |
+| Rosa sul tavolo    | pulito            | pulito              | ✗ resta il tavolo                   |
+| Carta su un tavolo | pulito            | pulito              | ✗ restano tavolo e oggetti          |
+| Ramo in negozio    | pulito, fiocco ok | pulito, fiocco ok   | ✗ restano parti del fondo           |
+| Costo (listino)    | ~0,002 USD, 1–2 s | 0,018 USD           | 0                                   |
+
+Esito: BiRefNet e Bria si equivalgono anche su fondi difficili; BiRefNet costa circa un decimo
+→ **scelto** (ADR-033). L'algoritmo locale funziona solo su fondo liso: resta per sviluppo e test
+(nessuna rete, nessun costo). Chiedere al fiorista un fondo liso che contrasti resta utile: di
+solito dà bordi più netti su petali sottili e foglie e meno ritagli da rifare.

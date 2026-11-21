@@ -431,6 +431,48 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
 - **Privacy:** solo foto con consenso, solo della stessa fioreria; nessun addestramento.
 - **Prompt:** versione `bouquet-preview-v4` (nuova chiave di cache).
 
+### ADR-033 — Scontorno automatico delle foto del catalogo — ADOTTATO (21/11/2026)
+
+- **Richiesta del founder:** togliere il fondo alle foto di fiori, carte, nastri e ramos che il
+  fiorista carica nel catalogo, chiedendogli di fotografare su un fondo liso che contrasti.
+- **Perché serve:** catalogo più pulito e uniforme e, soprattutto, il materiale per l'anteprima
+  esatta (ADR-028): fiori ritagliati che il codice posiziona con i numeri della distinta.
+- **Confronto** (`docs/AI_BENCHMARK.md`, 3 foto: rosa sul tavolo del negozio, carta su un
+  tavolo, ramo in negozio): BiRefNet v2 e Bria RMBG 2.0 (entrambi via fal) danno ritagli
+  equivalenti anche su fondi non lisi; un algoritmo locale (colore del bordo) funziona solo su
+  fondo liso.
+- **Scelta:** BiRefNet v2 (`fal-ai/birefnet/v2`, modello "General Use (Heavy)", PNG), fatturato a
+  tempo di calcolo (1–2 s): stima ~0,002 USD a foto, circa un decimo di Bria (0,018 USD). Con 30
+  foto a fioreria ≈ 0,06 USD. Stessa chiave fal e stesso `AI_PROVIDER` delle anteprime: nessuna
+  nuova variabile. Il costo reale va riconciliato con la fattura fal nella prova prima del pilota.
+- **remove.bg scartato:** costa di più (~0,07–0,23 USD a immagine via API, secondo il piano) e,
+  se fosse il fiorista a usarlo a mano, aggiungerebbe un passaggio e foto incoerenti.
+- **Come funziona:** la foto si salva subito come prima (originale + miniatura) e nella stessa
+  transazione si accoda un job `PHOTO_CUTOUT` nella coda AI esistente (ADR-025). Il worker
+  ritaglia l'originale, controlla il risultato (`judgeCutout`: scartato se restano meno del 2% o
+  più del 97% dei pixel), rifila i margini trasparenti e salva PNG (≤ 1600 px) e miniatura
+  (480 px) accanto all'originale (`tenants/{tenantId}/catalog-photos/{photoId}-cutout.png`),
+  serviti dalla stessa route privata (`?size=cutout` / `cutout-thumb`). Stati sulla foto:
+  `PENDING` → `READY` | `FAILED` (con codice). L'originale resta sempre: copertina del catalogo e
+  Diseñador continuano a usarlo.
+- **Costi e crediti:** costo della piattaforma, mai crediti del fiorista (`quotaSource` nullo,
+  consumo zero); entra nel tetto di spesa mensile (ADR-024): a tetto raggiunto la foto si salva
+  senza ritaglio.
+- **Errori:** problema del servizio → "Reintentar", al massimo 3 richieste per foto (contro i
+  loop); ritaglio scartato dal controllo → niente nuovo tentativo sulla stessa foto (darebbe lo
+  stesso risultato), ma il consiglio di rifarla su un fondo liso.
+- **Indicazioni al fiorista:** fondo liso che contrasti (cartulina bianca o grigia, nera per i
+  fiori bianchi), senza ombre forti né altri oggetti. "Quitamos el fondo de cada foto
+  automáticamente" compare solo se lo scontorno è attivo.
+- **"Mis ramos" escluso:** lì il fondo fa parte dello stile (ADR-032) e si conserva; la pagina
+  lo dice.
+- **Sviluppo e test:** con `AI_PROVIDER=simulated` (solo in locale) lavora l'algoritmo locale
+  (`ChromaKeyBackgroundRemover`): ritaglio reale ma valido solo su fondi lisi, nessun costo.
+- **Limiti noti:** un solo worker nel processo web, quindi 12 foto caricate insieme si ritagliano
+  in fila (1–2 s l'una) e un'anteprima accodata dopo aspetta; la pagina si aggiorna da sola per
+  al massimo 2 minuti. Se il ritaglio non piace, per ora si toglie la foto e se ne carica
+  un'altra (nessuna opzione "usa l'originale").
+
 ---
 
 ## 3. Proposte da approvare

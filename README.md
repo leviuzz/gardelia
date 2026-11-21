@@ -31,7 +31,9 @@ clienti, preventivi…), AI Bouquet Builder nel piano Plus e, in seguito, il mar
   catalogo, prezzo calcolato all'istante (stessa formula sul server), avvisi di disponibilità,
   disegni salvati e creazione della cotización con la receta esatta.
 - **Foto del catalogo:** più foto per articolo (de frente, de lado, desde arriba, detalle) e, per
-  carte, vasi e nastri, una foto per colore; ricodificate senza metadati (niente GPS).
+  carte, vasi e nastri, una foto per colore; ricodificate senza metadati (niente GPS). Il fondo si
+  toglie automaticamente (BiRefNet via fal, ~0,002 USD a foto a carico della piattaforma; in
+  locale un algoritmo per fondi lisi), con stato visibile e "Reintentar".
 - **Colore di carta e nastro:** nel Diseñador si sceglie il colore (con la sua foto); arriva nella
   cotización e nell'anteprima con IA.
 - **Mis ramos (Plus):** foto dei ramos della fioreria, caricate solo con consenso esplicito: il

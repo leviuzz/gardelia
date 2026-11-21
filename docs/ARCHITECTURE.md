@@ -126,12 +126,12 @@ principi a livello di servizi e ruoli (TEN-01).
 | ---------- | --------------------------------------------------------------------- | ----------------------------------------------------------- |
 | Identità   | User, Session, Account, Verification, RateLimit                       | completo                                                    |
 | Tenancy    | Tenant, Location, Membership, Invitation, AuditLog                    | completo                                                    |
-| Catalogo   | CanonicalFlower, CatalogItem, BouquetRecipe, BouquetRecipeLine        | completo (immagini nello Sprint 2)                          |
+| Catalogo   | CanonicalFlower, CatalogItem, BouquetRecipe, BouquetRecipeLine        | completo; foto con scontorno automatico (ADR-029, ADR-033)  |
 | CRM        | Customer, CustomerAddress, CustomerOccasion                           | completo                                                    |
 | Preventivi | Quote, QuoteLine (`CATALOG_ITEM`, `CUSTOM`, `BUILDER`), TenantCounter | completo (ordini nello Sprint 3)                            |
 | Piani      | SaasPlan (globale), TenantSubscription                                | v0: assegnazione manuale da CLI, nessun pagamento (ADR-021) |
 | Builder    | BouquetConfiguration, BouquetConfigurationLine                        | deterministico (ADR-023); anteprime AI nello Sprint 2       |
-| AI         | AiJob (anche coda), AiCreditGrant                                     | pipeline completa; provider fal.ai/Nano Banana 2 (ADR-026)  |
+| AI         | AiJob (coda di anteprime e scontorni), AiCreditGrant                  | pipeline completa; provider fal.ai/Nano Banana 2 (ADR-026)  |
 
 Flusso del valore (Sprint 1): **catalogo** (prezzi, costi, disponibilità, flag Builder) →
 **Builder** (`priceBouquet`, stessa funzione in browser e server) → **preventivo** (riga `BUILDER`
@@ -158,6 +158,14 @@ Stile della fioreria (ADR-032): all'accodamento il servizio sceglie una foto di 
 stile del disegno, poi la prima caricata) e ne mette l'ID nella descrizione del ramo; il worker
 usa il testo dello stile già salvato o lo fa scrivere una volta a un modello di visione, e lo
 aggiunge al prompt. La foto non va mai al modello delle immagini.
+
+Scontorno (ADR-033): caricando una foto del catalogo il servizio accoda, nella stessa transazione,
+un `AiJob` `PHOTO_CUTOUT` (costo della piattaforma, nessun credito del fiorista, dentro il tetto di
+spesa) → lo stesso worker chiede il ritaglio al `BackgroundRemover` configurato (BiRefNet via fal;
+algoritmo locale per fondi lisi solo in sviluppo), lo controlla e lo rifila (`finishCutout`) e
+salva PNG e miniatura accanto all'originale; la foto passa da `PENDING` a `READY` o `FAILED`
+(codice di errore). La route della foto serve anche `?size=cutout` / `cutout-thumb`. Le foto di
+"Mis ramos" non si scontornano: il fondo fa parte dello stile.
 
 Colore di carta e nastro (ADR-030): l'editor invia `{catalogItemId, quantity, color}`; il server
 calcola il colore effettivo con `resolveLineColor` sui colori attuali dell'articolo, lo salva sulla

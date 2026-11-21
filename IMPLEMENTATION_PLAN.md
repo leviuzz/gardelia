@@ -29,9 +29,13 @@ l'articolo ne ha più di uno, con la sua foto; arriva in cotización e nell'ante
 **Stile della fioreria nelle anteprime** (21/11/2026, ADR-032): lo stile di "Mis ramos",
 descritto a parole una volta per foto, accompagna le anteprime; la foto non va mai al modello.
 
-**Prossimo (direzione del founder, ADR-028):** scontorno automatico e anteprima con il numero
-esatto di fiori: composizione dalle foto, resa fotografica AI e controllo automatico. Vedi "I
-prossimi task".
+**Scontorno automatico delle foto del catalogo** (21/11/2026, ADR-033): BiRefNet via fal
+(~0,002 USD a foto, a carico della piattaforma), stato per foto ("Quitando el fondo…", "Sin
+fondo", consiglio per rifarla, "Reintentar"); "Mis ramos" mantiene il fondo. Ultima verifica:
+lint ✅ · format ✅ · typecheck ✅ · test 272/272 ✅ · build ✅ · E2E 28/28 ✅.
+
+**Prossimo (direzione del founder, ADR-028):** anteprima con il numero esatto di fiori:
+composizione dai ritagli, resa fotografica AI e controllo automatico. Vedi "I prossimi task".
 
 ---
 
@@ -120,16 +124,16 @@ il **taglio** seguente.
 
 | ID    | Stato | Dove                                                                                                              |
 | ----- | ----- | ----------------------------------------------------------------------------------------------------------------- |
-| S1-11 | ✅    | archivio R2/locale; foto del catalogo (viste, colori) e "Mis ramos" con consenso (ADR-029)                        |
+| S1-11 | ✅    | archivio R2/locale; foto del catalogo (viste, colori, scontorno ADR-033) e "Mis ramos" con consenso (ADR-029)     |
 | S1-12 | ✅    | `AiJob` come coda (SKIP LOCKED, lease, retry), worker nel processo web, quota/pacchetti/cache/tetto (ADR-024/025) |
 | S1-13 | ✅    | provider reale fal.ai + Nano Banana 2 (`core/src/ai/fal.ts`, ADR-026); alternativa GPT Image 2 con `AI_MODEL`     |
 | S1-14 | ✅    | E2E con provider simulato; BQ-02 e errori del provider coperti da test; una generazione reale verificata nell'app |
 
 ### I prossimi task (nell'ordine)
 
-1. **Scontorno automatico** delle foto dei fiori (base della composizione) e scelta della foto di copertina.
-2. **Anteprima esatta**: composizione deterministica dai ritagli (immediata, gratuita), foto realistica dalla composizione (`nano-banana-2/edit`) e controllo automatico dei conteggi con un nuovo tentativo (ADR-028).
-3. Prima del pilota: prova da ~100 immagini → costo reale riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 nell'hosting (P-03, O-04).
+1. **Anteprima esatta**: composizione deterministica dai ritagli (immediata, gratuita), foto realistica dalla composizione (`nano-banana-2/edit`) e controllo automatico dei conteggi con un nuovo tentativo (ADR-028).
+2. Foto: scelta della copertina e opzione "usa l'originale" se il ritaglio non piace; prova dello scontorno su foto vere di una fioreria del pilota.
+3. Prima del pilota: prova da ~100 immagini → costo reale (anteprime e scontorni) riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 nell'hosting (P-03, O-04).
 4. Builder pubblico per i clienti della fioreria (AI-BQ-10), dopo il pilota del Builder interno.
 5. Anteprima nel preventivo stampato e nel messaggio WhatsApp.
 6. Aggiungere un disegno del Builder a un preventivo in bozza esistente.
@@ -304,3 +308,23 @@ il **taglio** seguente.
   build ✅, E2E 28/28 ✅; anteprima reale nell'app: 3 girasoli esatti, carta lilla, nastro dorato,
   stile ripreso, 19 s, 0,09 USD.
 - Spesa fal totale: ≈3,5 USD su 10 € (stima da listino).
+
+### 2026-11-21 — Scontorno automatico delle foto (ADR-033)
+
+- Richiesta del founder: togliere il fondo alle foto di fiori, carte, nastri e ramos del catalogo,
+  chiedendo al fiorista un fondo liso che contrasti; valutare remove.bg e i costi.
+- Confronto (~0,08 USD): BiRefNet v2 e Bria RMBG 2.0 via fal ugualmente puliti anche su fondi non
+  lisi; BiRefNet ~0,002 USD a foto contro 0,018 → scelto. remove.bg scartato (più caro, e a mano
+  sarebbe un passaggio in più per il fiorista). Algoritmo locale solo per sviluppo e test.
+- Fatto: `judgeCutout` e `canRequestCutout` (dominio, limite di 3 richieste per foto); stato del
+  ritaglio su `CatalogItemPhoto` con vincoli SQL; `BackgroundRemover` (fal BiRefNet, locale);
+  job `PHOTO_CUTOUT` accodato nella stessa transazione del caricamento, senza crediti e dentro il
+  tetto di spesa (`fitsMonthlyAiBudget`, ora condiviso con le anteprime); worker con controllo di
+  qualità, rifilatura, PNG e miniatura; route con `?size=cutout|cutout-thumb`; UI con fondo a
+  scacchi, stati, consigli, "Reintentar" e aggiornamento automatico; nota in "Mis ramos".
+- Verifiche: lint ✅, format ✅, typecheck ✅, `pnpm test` 272/272 ✅ (+10: regole del dominio,
+  ritaglio vero con l'algoritmo locale, foto vuota, errore del servizio e limite dei tentativi,
+  tetto di spesa, nessun servizio, isolamento A↔B, adattatore fal), build ✅, E2E 28/28 ✅ (il
+  test delle foto ora verifica il ritaglio PNG e la privacy di originale e ritaglio); controllo
+  visivo a 1280 e 320 px (nessuno scorrimento orizzontale) e del "Reintentar".
+- Spesa fal totale: ≈3,6 USD su 10 € (stima da listino).
