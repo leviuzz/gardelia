@@ -4,6 +4,7 @@
  * i ritagli delle foto del fiorista con sharp. Nessuna rete, nessun costo.
  */
 import sharp, { type OverlayOptions } from 'sharp';
+import { bloomHeadFor } from './bloom-head';
 import {
   countedFlowers,
   layoutBouquetSketch,
@@ -109,6 +110,7 @@ async function placedImage(
   const { data, info } = await sharp(cutout)
     .ensureAlpha()
     .resize(width, height, { fit: 'contain', background: transparent })
+    .modulate({ brightness: placement.tone })
     .flop(placement.flip)
     .rotate(placement.rotation, { background: transparent })
     .png()
@@ -157,14 +159,27 @@ export async function renderSketch(
 /** Foto scontornate che il boceto userà (fiori contati, riempimento e follaje con ritaglio). */
 export function sketchPhotoIds(spec: BouquetPreviewSpec): string[] {
   const ids = new Set<string>();
-  for (const flower of countedFlowers(spec))
+  for (const flower of countedFlowers(spec)) {
     if (flower.cutoutPhotoId) ids.add(flower.cutoutPhotoId);
+  }
   for (const component of spec.components) {
     if ((component.role === 'FLOWER' || component.role === 'FOLIAGE') && component.cutoutPhotoId) {
       ids.add(component.cutoutPhotoId);
+      for (const id of component.altCutoutPhotoIds) ids.add(id);
     }
   }
   return [...ids];
+}
+
+/** Foto dei fiori (non del follaje): nel boceto se ne usa solo la corolla. */
+function flowerPhotoIds(spec: BouquetPreviewSpec): Set<string> {
+  const ids = new Set<string>();
+  for (const component of spec.components) {
+    if (component.role !== 'FLOWER' || !component.cutoutPhotoId) continue;
+    ids.add(component.cutoutPhotoId);
+    for (const id of component.altCutoutPhotoIds) ids.add(id);
+  }
+  return ids;
 }
 
 /**
@@ -177,10 +192,13 @@ export async function renderBouquetSketch(
 ): Promise<{ png: Uint8Array; layout: SketchLayout }> {
   const cutouts = new Map<string, Uint8Array>();
   const cutoutAspects: Record<string, number> = {};
+  const flowers = flowerPhotoIds(spec);
   await Promise.all(
     sketchPhotoIds(spec).map(async (photoId) => {
-      const bytes = await loadCutout(photoId);
-      if (!bytes) throw new Error(`ritaglio mancante: ${photoId}`);
+      const loaded = await loadCutout(photoId);
+      if (!loaded) throw new Error(`ritaglio mancante: ${photoId}`);
+      // Fiori: solo la corolla (un ramo vero mostra le corolle, non gli steli).
+      const bytes = flowers.has(photoId) ? await bloomHeadFor(photoId, loaded) : loaded;
       const meta = await sharp(bytes).metadata();
       cutouts.set(photoId, bytes);
       cutoutAspects[photoId] = meta.width && meta.height ? meta.width / meta.height : 1;

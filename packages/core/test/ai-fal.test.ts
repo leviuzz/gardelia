@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   AiProviderError,
   FalBackgroundRemover,
+  FalBoxCounter,
   FalFlowerCounter,
   FalImageProvider,
   FalStyleDescriber,
   SimulatedFlowerCounter,
+  TwoStepFlowerCounter,
   createAiProviderFromEnv,
   createFlowerCounterFromEnv,
   createStyleDescriberFromEnv,
@@ -463,9 +465,9 @@ describe('anteprima esatta con fal (ADR-034)', () => {
   });
 
   it('contatore dall’ambiente: fal con chiave, simulato solo in locale', () => {
-    expect(createFlowerCounterFromEnv({ AI_PROVIDER: 'fal', FAL_KEY: 'k' })).toBeInstanceOf(
-      FalFlowerCounter,
-    );
+    const fromEnv = createFlowerCounterFromEnv({ AI_PROVIDER: 'fal', FAL_KEY: 'k' });
+    expect(fromEnv).toBeInstanceOf(TwoStepFlowerCounter);
+    expect(fromEnv?.model).toBe('anthropic/claude-sonnet-4.5+google/gemini-2.5-pro');
     expect(createFlowerCounterFromEnv({ AI_PROVIDER: 'fal', FAL_KEY: '' })).toBeNull();
     expect(
       createFlowerCounterFromEnv({ AI_PROVIDER: 'simulated', APP_URL: 'http://localhost:3000' }),
@@ -474,5 +476,71 @@ describe('anteprima esatta con fal (ADR-034)', () => {
       createFlowerCounterFromEnv({ AI_PROVIDER: 'simulated', APP_URL: 'https://floral.example' }),
     ).toBeNull();
     expect(createFlowerCounterFromEnv({ AI_PROVIDER: 'none' })).toBeNull();
+  });
+});
+
+describe('seconda opinione sui conteggi (ADR-034)', () => {
+  const targets = [
+    { index: 1, catalogItemId: 'a', description: 'red roses ("Rosa roja")', expected: 12 },
+  ];
+  const image = { bytes: JPEG, contentType: 'image/jpeg' };
+
+  it('Gemini Pro con i riquadri: ragionamento attivo, doppioni scartati', async () => {
+    const boxes = Array.from(
+      { length: 12 },
+      (_, i) => `{"type": 1, "box": [${i * 50}, 10, ${i * 50 + 40}, 60]}`,
+    );
+    // Un doppione (stesso fiore due volte) che non va contato.
+    boxes.push('{"type": 1, "box": [1, 11, 41, 61]}');
+    const { calls, fetchImpl } = fakeFal(json({ output: `{"blooms": [${boxes.join(',')}]}` }));
+    const counter = new FalBoxCounter({ apiKey: SECRET, fetch: fetchImpl });
+    expect(await counter.count(image, targets, AbortSignal.timeout(5_000))).toEqual({
+      counts: { 1: 12 },
+      other: 0,
+    });
+    const body = JSON.parse(String(calls[0]?.init?.body)) as Record<string, unknown>;
+    expect(body).toMatchObject({ model: 'google/gemini-2.5-pro', reasoning: true });
+    expect(String(body.prompt)).toContain('bounding box');
+  });
+
+  class Scripted {
+    readonly id = 'stub';
+    readonly simulated = false;
+    calls = 0;
+    constructor(
+      readonly model: string,
+      readonly estimatedCostMicros: number,
+      private readonly answer: number,
+    ) {}
+    async count() {
+      this.calls += 1;
+      return { counts: { 1: this.answer }, other: 0 };
+    }
+  }
+
+  it('il secondo modello decide solo se il primo non ritrova i numeri', async () => {
+    const fast = new Scripted('fast', 10_000, 12);
+    const slow = new Scripted('slow', 40_000, 12);
+    const agreed = await new TwoStepFlowerCounter(fast, slow).count(
+      image,
+      targets,
+      AbortSignal.timeout(5_000),
+    );
+    expect(agreed).toMatchObject({ counts: { 1: 12 }, decidedBy: 'first', costMicros: 10_000 });
+    expect(slow.calls).toBe(0);
+
+    const wrongFirst = new Scripted('fast', 10_000, 13);
+    const rescued = await new TwoStepFlowerCounter(wrongFirst, slow).count(
+      image,
+      targets,
+      AbortSignal.timeout(5_000),
+    );
+    expect(rescued).toMatchObject({ counts: { 1: 12 }, decidedBy: 'second', costMicros: 50_000 });
+
+    const bothWrong = await new TwoStepFlowerCounter(
+      new Scripted('fast', 10_000, 13),
+      new Scripted('slow', 40_000, 11),
+    ).count(image, targets, AbortSignal.timeout(5_000));
+    expect(bothWrong).toMatchObject({ counts: { 1: 11 }, decidedBy: 'second' });
   });
 });

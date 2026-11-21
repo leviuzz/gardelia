@@ -15,7 +15,9 @@
  *    scadenza = timeout. La chiave non compare mai in messaggi, log o serializzazioni.
  */
 import {
+  buildBoxCountPrompt,
   buildCountCheckPrompt,
+  parseBoxCount,
   parseCountCheck,
   type CountCheckResult,
   type CountTarget,
@@ -339,6 +341,83 @@ export class FalFlowerCounter implements FlowerCounter {
       }
       const output = (payload as { output?: unknown } | null)?.output;
       const result = parseCountCheck(typeof output === 'string' ? output : '', targets);
+      if (!result) throw new AiProviderError('provider_error', `${where}: conteggio illeggibile`);
+      return result;
+    } catch (error) {
+      throw toProviderError(error);
+    }
+  }
+}
+
+export interface FalBoxCounterOptions {
+  readonly apiKey: string;
+  readonly model?: string;
+  /** Solo per i test. */
+  readonly baseUrl?: string;
+  /** Solo per i test. */
+  readonly fetch?: typeof fetch;
+}
+
+/**
+ * Seconda opinione sui conteggi: Gemini 2.5 Pro individua ogni fiore con un riquadro (serve il
+ * ragionamento attivo). Più lento (20–40 s) ma preciso sui ramos fitti; si usa solo quando il
+ * primo conteggio non coincide (prova del 21/11/2026, ADR-034).
+ */
+export class FalBoxCounter implements FlowerCounter {
+  readonly id = 'fal';
+  readonly simulated = false;
+  readonly model: string;
+  // Immagine + ragionamento (qualche migliaio di token in uscita): ~0,03 USD, per eccesso.
+  readonly estimatedCostMicros = 40_000;
+  readonly #apiKey: string;
+  readonly #baseUrl: string;
+  readonly #fetch: typeof fetch;
+
+  constructor(options: FalBoxCounterOptions) {
+    const apiKey = options.apiKey.trim();
+    if (!apiKey) throw new Error('FAL_KEY mancante');
+    this.#apiKey = apiKey;
+    this.#baseUrl = (options.baseUrl ?? 'https://fal.run').replace(/\/+$/, '');
+    this.#fetch = options.fetch ?? ((input, init) => fetch(input, init));
+    this.model = options.model ?? 'google/gemini-2.5-pro';
+  }
+
+  async count(
+    image: { readonly bytes: Uint8Array; readonly contentType: string },
+    targets: readonly CountTarget[],
+    signal: AbortSignal,
+  ): Promise<CountCheckResult> {
+    try {
+      const dataUri = `data:${image.contentType};base64,${Buffer.from(image.bytes).toString('base64')}`;
+      const response = await this.#fetch(`${this.#baseUrl}/fal-ai/any-llm/vision`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Key ${this.#apiKey}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.model,
+          prompt: buildBoxCountPrompt(targets),
+          image_urls: [dataUri],
+          reasoning: true,
+        }),
+        signal,
+      });
+      const requestId = response.headers.get('x-fal-request-id');
+      const where = `fal riquadri ${response.status}${requestId ? ` (richiesta ${requestId})` : ''}`;
+      if (!response.ok) throw await httpError(response, where);
+      let payload: unknown;
+      try {
+        payload = JSON.parse(
+          new TextDecoder().decode(await readCapped(response, MAX_VISION_RESPONSE_BYTES)),
+        );
+      } catch (error) {
+        if (error instanceof AiProviderError || isAbort(error)) throw error;
+        throw new AiProviderError('provider_error', `${where}: risposta non in JSON`);
+      }
+      const output = (payload as { output?: unknown } | null)?.output;
+      const result = parseBoxCount(typeof output === 'string' ? output : '', targets);
       if (!result) throw new AiProviderError('provider_error', `${where}: conteggio illeggibile`);
       return result;
     } catch (error) {

@@ -226,9 +226,12 @@ async function specForConfiguration(
             orderBy: [{ view: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
           })
         : [];
-    const cutoutByItem = new Map<string, string>();
+    // Fino a 3 angolazioni per prodotto: la prima è la principale, le altre si alternano.
+    const cutoutsByItem = new Map<string, string[]>();
     for (const photo of cutouts) {
-      if (!cutoutByItem.has(photo.catalogItemId)) cutoutByItem.set(photo.catalogItemId, photo.id);
+      const list = cutoutsByItem.get(photo.catalogItemId) ?? [];
+      if (list.length < 3) list.push(photo.id);
+      cutoutsByItem.set(photo.catalogItemId, list);
     }
     return {
       id: config.id,
@@ -246,7 +249,8 @@ async function specForConfiguration(
           colors: component.color ? [component.color] : component.item.colors,
           commonName: commonNames.get(component.item.id) ?? null,
           itemType: component.item.type,
-          cutoutPhotoId: cutoutByItem.get(component.item.id) ?? null,
+          cutoutPhotoId: cutoutsByItem.get(component.item.id)?.[0] ?? null,
+          altCutoutPhotoIds: cutoutsByItem.get(component.item.id)?.slice(1) ?? [],
         })),
       }),
     };
@@ -293,7 +297,11 @@ function withMode(spec: BouquetPreviewSpec, provider: AiImageProvider): BouquetP
   return {
     ...spec,
     mode: 'PROMPT',
-    components: spec.components.map((component) => ({ ...component, cutoutPhotoId: null })),
+    components: spec.components.map((component) => ({
+      ...component,
+      cutoutPhotoId: null,
+      altCutoutPhotoIds: [],
+    })),
   };
 }
 

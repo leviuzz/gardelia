@@ -27,7 +27,6 @@ import {
   countsMatch,
   isUuid,
   type BouquetPreviewSpec,
-  type CountCheckResult,
 } from '@floral/domain';
 import { logger } from '../logger';
 import { cutoutKeyFor, cutoutThumbKey } from '../media/cutout-keys';
@@ -38,7 +37,7 @@ import {
   type AiImageProvider,
   type GeneratedImage,
 } from './providers';
-import { getFlowerCounter } from './flower-counter';
+import { getFlowerCounter, type CountOutcome } from './flower-counter';
 import { SketchUnavailableError, renderSketchForTenant } from './sketch-source';
 import { finishCutout, getBackgroundRemover, type BackgroundRemover } from './background-remover';
 import { onAiJobQueued } from './signal';
@@ -48,7 +47,8 @@ import { getStyleDescriber } from './style-describer';
 // Anteprima esatta: fino a 2 foto e 2 controlli, quindi più tempo di una generazione semplice.
 export const AI_JOB_LEASE_SECONDS = 300;
 const GENERATION_TIMEOUT_MS = 120_000;
-const COUNT_TIMEOUT_MS = 45_000;
+// Primo conteggio (~5 s) e, se serve, la seconda opinione (fino a ~40 s).
+const COUNT_TIMEOUT_MS = 150_000;
 
 /** Attesa prima del tentativo successivo: 15 s, 30 s, 60 s… */
 export function retryDelayMs(attempt: number): number {
@@ -347,7 +347,7 @@ async function processExactPreview(
     const prompt = buildSketchRenderPrompt(spec, { styleDescription: style.text });
     const counter = getFlowerCounter();
     const targets = countTargets(spec);
-    const checks: CountCheckResult[] = [];
+    const checks: CountOutcome[] = [];
     let accepted: { image: GeneratedImage; verified: boolean | null } | null = null;
     for (let attempt = 1; attempt <= EXACT_PREVIEW_LIMITS.attemptsPerJob && !accepted; attempt++) {
       const image = await provider.generate({
@@ -367,7 +367,7 @@ async function processExactPreview(
           targets,
           AbortSignal.timeout(COUNT_TIMEOUT_MS),
         );
-        spent += counter.estimatedCostMicros;
+        spent += result.costMicros ?? counter.estimatedCostMicros;
         checks.push(result);
         if (countsMatch(targets, result)) accepted = { image, verified: true };
       } catch (error) {
@@ -387,7 +387,11 @@ async function processExactPreview(
       mode: 'EXACT',
       verified: accepted ? accepted.verified : false,
       styleApplied: style.text !== null,
-      checks: checks.map((check) => ({ counts: check.counts, other: check.other })),
+      checks: checks.map((check) => ({
+        counts: check.counts,
+        other: check.other,
+        decidedBy: check.decidedBy ?? 'first',
+      })),
     } satisfies Prisma.InputJsonValue;
     if (!accepted) {
       await withTenantContext(getDb(), scope, (tx) =>
