@@ -219,57 +219,84 @@ attrito alto per il fiorista, costo per lui superiore al sovrapprezzo Plus, Plus
 La piattaforma paga il provider e rivende l'uso:
 
 - **Quota mensile inclusa** nel piano Plus (`SaasPlan.entitlements.aiPreviewsPerMonth`), che si
-  rinnova il giorno 1 del mese nel fuso orario della fioreria. Numero: **da definire** (proposta 25,
-  la spec propone 20–30).
+  rinnova il giorno 1 del mese nel fuso orario della fioreria: **25 anteprime** (DECISO).
 - **Pacchetti extra** pagati dal fiorista alla piattaforma. Nel pilota il pagamento avviene fuori
   dall'app (nessun pagamento finto in UI) e la piattaforma **sblocca X anteprime** con una CLI
   auditata, come per i piani (ADR-021); con il billing (P-04) l'acquisto diventerà self-service.
-  Taglie e prezzi dei pacchetti: **da definire** (decisione commerciale, nessun prezzo nel codice).
+  Pacchetti (PROPOSTO, delegato dal founder): **25, 50 e 100 anteprime**; prezzo = almeno 3× il
+  costo reale per anteprima riuscita misurato nel benchmark, arrotondato in MXN, con sconto sul
+  pacchetto grande (indicativo, con un costo ≈ 0,05 USD: 79 / 139 / 249 MXN). I prezzi restano
+  fuori dal codice: la CLI registra solo il numero di anteprime sbloccate.
   La fatturazione dei pacchetti in Messico (IVA, CFDI) va validata con il contador (O-02, O-06).
 - **Ordine di consumo:** prima la quota mensile, poi i crediti extra. I crediti extra **non scadono**
-  (proposta da confermare) e non si azzerano a fine mese.
-- **Cosa consuma:** solo le anteprime riuscite. Fallimenti e tentativi interni non consumano; un
-  ramo identico già generato si riusa dalla cache senza consumare. Le generazioni in corso
-  "prenotano" un credito, così richieste concorrenti non superano il saldo.
-- **Tetto globale di spesa** impostato sull'account della piattaforma presso il provider: il costo
-  massimo mensile è noto in anticipo anche in caso di errori.
+  (DECISO) e non si azzerano a fine mese.
+- **Cosa consuma:** solo le anteprime riuscite. Fallimenti e tentativi interni non consumano. Le
+  generazioni in corso "prenotano" un credito, così richieste concorrenti non superano il saldo.
+- **Cache (idea del founder):** un ramo **identico** (stessi prodotti, quantità, empaque, stile e
+  tamaño) già generato **dalla stessa fioreria** si riusa per qualsiasi suo cliente senza consumare
+  crediti né rifare l'immagine. Il prompt contiene solo la composizione, mai nome del disegno, note
+  o dati del cliente: il riuso fra clienti non rivela nulla. **Mai fra fiorerie diverse** (spec 6.5
+  e 6.6: l'immagine appartiene al tenant; prodotti e foto di riferimento sono del fiorista).
+- **Tetto globale di spesa: 50 USD/mese nel pilota** (DECISO), su due livelli: credito prepagato
+  sull'account del provider + limite applicativo (`AI_MONTHLY_BUDGET_USD`) che smette di accettare
+  generazioni quando la spesa stimata del mese lo raggiunge.
 - Implementazione prevista con la pipeline AI (S1-12): registro `AiCreditGrant` (letto dal tenant,
   scritto solo dalla piattaforma, come `TenantSubscription`), origine del credito su ogni `AiJob`,
   CLI `platform:grant-ai-credits`, contatore visibile in "Plan y funciones" e nel Diseñador solo
   quando le anteprime funzionano davvero.
 
+### ADR-025 — Pipeline delle anteprime AI: coda, worker, archivio, provider — ADOTTATO (Sprint 2)
+
+- **Coda (P-01):** nessun servizio aggiuntivo. La coda è la tabella `AiJob` stessa (stati
+  `QUEUED → RUNNING → SUCCEEDED | FAILED`), prelevata con `FOR UPDATE SKIP LOCKED` da una funzione
+  SQL `SECURITY DEFINER` (`app_claim_ai_job`): il worker non usa il bypass RLS e lavora ogni job nel
+  contesto del suo tenant. Lease con scadenza per recuperare i job di un processo caduto; retry
+  limitati con attesa crescente. Il credito si prenota nella stessa transazione che crea il job.
+- **Worker:** nel pilota gira nello stesso processo dell'app web (avviato da `instrumentation.ts`
+  se un provider è configurato); si potrà separare in un processo dedicato senza cambiare il codice.
+- **Archivio (P-02):** interfaccia `ObjectStorage` con due implementazioni: **Cloudflare R2**
+  (S3-compatibile) in produzione e **filesystem locale** in sviluppo/test. Chiavi
+  `tenants/{tenantId}/…`; le immagini si servono da una route dell'app che verifica tenant e
+  permessi (nessun URL pubblico, nessuna modifica alla CSP).
+- **Provider (O-01):** interfaccia `AiImageProvider`. In sviluppo/test esiste un provider
+  **simulato**, ammesso solo con `APP_URL` locale e sempre etichettato "simulación" in UI; in
+  produzione l'app rifiuta di avviarsi con il provider simulato. Il provider reale (fal.ai) si
+  aggiunge quando c'è la chiave, insieme al benchmark.
+- **Spesa:** la spesa stimata del mese di tutta la piattaforma si legge con una funzione SQL
+  `SECURITY DEFINER` che restituisce solo il totale (nessun dato dei tenant esposto).
+
 ---
 
 ## 3. Proposte da approvare
 
-| ID   | Proposta                                                                                                                               | Motivazione                                                                                                                         | Quando serve                 |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| P-01 | **Coda job su PostgreSQL** (pg-boss o graphile-worker) invece di BullMQ + Redis (spec §13.2)                                           | Un servizio in meno da gestire; accodamento **nella stessa transazione** del record `AiJob` (niente job orfani); volumi MVP modesti | Sprint 2 (AI)                |
-| P-02 | Object storage S3-compatibile (**Cloudflare R2**) con URL firmati e chiavi per tenant                                                  | Nessun costo di egress per le immagini; standard S3                                                                                 | Sprint 1 (immagini catalogo) |
-| P-03 | Deploy containerizzato (Railway/Render/Fly) + Postgres gestito (Neon/Supabase/RDS) in regione US-central/East                          | Web e worker sullo stesso provider; latenza buona verso il Messico                                                                  | Prima del pilota             |
-| P-04 | **Stripe Billing** per il canone SaaS (adattatore `payments`); Mercado Pago valutato per gli incassi dei fioristi verso i loro clienti | Stripe è più completo per abbonamenti SaaS; MP è più diffuso fra i consumatori MX                                                   | Sprint 4                     |
-| P-05 | Error tracking con Sentry (adattatore, DSN facoltativo)                                                                                | Diagnosi errori in produzione                                                                                                       | Prima del pilota             |
-| P-06 | Prezzi di catalogo intesi **IVA inclusa**, aliquota configurabile per tenant                                                           | Prassi consumer in Messico; da validare con un contador                                                                             | Sprint 1 (preventivi)        |
-| P-07 | Provider email transazionale con dominio verificato (SPF/DKIM/DMARC)                                                                   | Recapito affidabile di verifiche e inviti                                                                                           | Prima del pilota             |
-| P-08 | Numerazione preventivi/ordini per tenant con contatore transazionale (`COT-0001`)                                                      | Numeri leggibili e senza buchi per il fiorista                                                                                      | Sprint 1                     |
-| P-09 | Google login e 2FA (TOTP) per OWNER                                                                                                    | Meno attrito; più sicurezza per chi gestisce dati fiscali                                                                           | Sprint 4                     |
+| ID   | Proposta                                                                                                                                   | Motivazione                                                                                                                         | Quando serve                 |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| P-01 | ✅ **ADOTTATA** (delegata dal founder, 21/11/2026) — **Coda job su PostgreSQL** invece di BullMQ + Redis (spec §13.2); vedi ADR-025        | Un servizio in meno da gestire; accodamento **nella stessa transazione** del record `AiJob` (niente job orfani); volumi MVP modesti | Sprint 2 (AI)                |
+| P-02 | ✅ **ADOTTATA** (delegata dal founder, 21/11/2026) — Object storage S3-compatibile (**Cloudflare R2**) con chiavi per tenant; vedi ADR-025 | Nessun costo di egress per le immagini; standard S3                                                                                 | Sprint 1 (immagini catalogo) |
+| P-03 | Deploy containerizzato (Railway/Render/Fly) + Postgres gestito (Neon/Supabase/RDS) in regione US-central/East                              | Web e worker sullo stesso provider; latenza buona verso il Messico                                                                  | Prima del pilota             |
+| P-04 | **Stripe Billing** per il canone SaaS (adattatore `payments`); Mercado Pago valutato per gli incassi dei fioristi verso i loro clienti     | Stripe è più completo per abbonamenti SaaS; MP è più diffuso fra i consumatori MX                                                   | Sprint 4                     |
+| P-05 | Error tracking con Sentry (adattatore, DSN facoltativo)                                                                                    | Diagnosi errori in produzione                                                                                                       | Prima del pilota             |
+| P-06 | Prezzi di catalogo intesi **IVA inclusa**, aliquota configurabile per tenant                                                               | Prassi consumer in Messico; da validare con un contador                                                                             | Sprint 1 (preventivi)        |
+| P-07 | Provider email transazionale con dominio verificato (SPF/DKIM/DMARC)                                                                       | Recapito affidabile di verifiche e inviti                                                                                           | Prima del pilota             |
+| P-08 | Numerazione preventivi/ordini per tenant con contatore transazionale (`COT-0001`)                                                          | Numeri leggibili e senza buchi per il fiorista                                                                                      | Sprint 1                     |
+| P-09 | Google login e 2FA (TOTP) per OWNER                                                                                                        | Meno attrito; più sicurezza per chi gestisce dati fiscali                                                                           | Sprint 4                     |
 
 ---
 
 ## 4. Decisioni aperte (bloccano funzionalità future, NON lo Sprint 0)
 
-| ID   | Domanda                                                                                                                                                                              | Chi decide         | Blocca                                                        |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ | ------------------------------------------------------------- |
-| O-01 | Provider/modello per le immagini AI e budget per il benchmark di ≥100 render (spec §15.4)                                                                                            | Founder            | Sprint 2 (Builder AI)                                         |
-| O-02 | **Entità legale** che fattura il SaaS (Messico o Italia): impatta CFDI, IVA, provider di pagamento                                                                                   | Founder + contador | Billing (Sprint 4)                                            |
-| O-03 | Nome commerciale definitivo (il repo si chiama "gardelia", la spec usa "Floral OS" come nome di lavoro) e dominio                                                                    | Founder            | Lancio (cambio a basso costo: `packages/domain/src/brand.ts`) |
-| O-04 | Hosting, regione dei dati, budget infrastruttura                                                                                                                                     | Founder            | Deploy del pilota                                             |
-| O-05 | Modello di costo AI deciso (ADR-024). Restano: numero di anteprime incluse, taglie/prezzi dei pacchetti, scadenza dei crediti extra, prova gratuita, limiti per piano (utenti, sedi) | Founder            | Billing, Builder                                              |
-| O-06 | Trattamento fiscale nei preventivi (IVA inclusa/esclusa, aliquota zona di frontiera, ricevute)                                                                                       | Contador           | Preventivi con imposte                                        |
-| O-07 | Términos y condiciones e Aviso de privacidad (LFPDPPP)                                                                                                                               | Legale             | Lancio commerciale                                            |
-| O-08 | Conferma della matrice ruoli: lo STAFF non vede costi; il MANAGER invita solo STAFF e non modifica dati fiscali; lo STAFF compone nel Builder ma non crea preventivi né clienti      | Founder            | — (default già implementato)                                  |
-| O-09 | Chi mantiene la tassonomia canonica dei fiori e con quale copertura                                                                                                                  | Founder            | Builder, Network                                              |
-| O-10 | Durata della finestra di attribuzione delle fee del Network (spec §8.4)                                                                                                              | Founder + legale   | Network                                                       |
+| ID   | Domanda                                                                                                                                                                                                  | Chi decide         | Blocca                                                        |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------- |
+| O-01 | Provider AI: approccio deciso (delegato, ADR-025): **fal.ai con credito prepagato** per confrontare più modelli; scelta del modello dopo il benchmark di ≥100 render. Serve account + chiave del founder | Founder            | Sprint 2 (Builder AI)                                         |
+| O-02 | **Entità legale** che fattura il SaaS (Messico o Italia): impatta CFDI, IVA, provider di pagamento                                                                                                       | Founder + contador | Billing (Sprint 4)                                            |
+| O-03 | Nome commerciale definitivo (il repo si chiama "gardelia", la spec usa "Floral OS" come nome di lavoro) e dominio                                                                                        | Founder            | Lancio (cambio a basso costo: `packages/domain/src/brand.ts`) |
+| O-04 | Hosting, regione dei dati, budget infrastruttura                                                                                                                                                         | Founder            | Deploy del pilota                                             |
+| O-05 | Modello di costo AI deciso (ADR-024: 25 incluse, extra senza scadenza, tetto 50 USD/mese). Restano: prezzi dei pacchetti (proposta in ADR-024), prova gratuita, limiti per piano (utenti, sedi)          | Founder            | Billing, Builder                                              |
+| O-06 | Trattamento fiscale nei preventivi (IVA inclusa/esclusa, aliquota zona di frontiera, ricevute)                                                                                                           | Contador           | Preventivi con imposte                                        |
+| O-07 | Términos y condiciones e Aviso de privacidad (LFPDPPP)                                                                                                                                                   | Legale             | Lancio commerciale                                            |
+| O-08 | Conferma della matrice ruoli: lo STAFF non vede costi; il MANAGER invita solo STAFF e non modifica dati fiscali; lo STAFF compone nel Builder ma non crea preventivi né clienti                          | Founder            | — (default già implementato)                                  |
+| O-09 | Chi mantiene la tassonomia canonica dei fiori e con quale copertura                                                                                                                                      | Founder            | Builder, Network                                              |
+| O-10 | Durata della finestra di attribuzione delle fee del Network (spec §8.4)                                                                                                                                  | Founder + legale   | Network                                                       |
 
 ---
 
