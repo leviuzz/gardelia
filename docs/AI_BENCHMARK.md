@@ -198,3 +198,6 @@ Esito: BiRefNet e Bria si equivalgono anche su fondi difficili; BiRefNet costa c
 → **scelto** (ADR-033). L'algoritmo locale funziona solo su fondo liso: resta per sviluppo e test
 (nessuna rete, nessun costo). Chiedere al fiorista un fondo liso che contrasti resta utile: di
 solito dà bordi più netti su petali sottili e foglie e meno ritagli da rifare.
+
+**Verifica nell'app** (fal reale): la foto della rosa sul tavolo caricata dalla scheda
+dell'articolo → "Sin fondo" 3,1 s dopo il caricamento, ritaglio pulito (PNG di ~400 KB).

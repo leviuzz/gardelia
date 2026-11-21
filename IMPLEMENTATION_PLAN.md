@@ -327,4 +327,6 @@ il **taglio** seguente.
   tetto di spesa, nessun servizio, isolamento A↔B, adattatore fal), build ✅, E2E 28/28 ✅ (il
   test delle foto ora verifica il ritaglio PNG e la privacy di originale e ritaglio); controllo
   visivo a 1280 e 320 px (nessuno scorrimento orizzontale) e del "Reintentar".
+- Verifica reale nell'app (fal, BiRefNet): rosa su un tavolo di negozio con oggetti dietro →
+  ritaglio pulito, "Sin fondo" 3,1 s dopo il caricamento, PNG di ~400 KB.
 - Spesa fal totale: ≈3,6 USD su 10 € (stima da listino).
