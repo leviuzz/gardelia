@@ -15,9 +15,10 @@ import type { SaleUnit } from './catalog';
 /**
  * v2 (21/11/2026, docs/AI_BENCHMARK.md): conteggi espliciti per tipo e totale, nome comune
  * inglese dalla tassonomia, fiori ben separati, colori di carta e nastro, niente nastro se
- * non è in distinta. Cambiarla invalida la cache (nuova chiave).
+ * non è in distinta. v3: aspetto fatto a mano e leggermente asimmetrico (le immagini v2 erano
+ * troppo simmetriche), tranne lo stile clásico. Cambiarla invalida la cache (nuova chiave).
  */
-export const AI_PREVIEW_PROMPT_VERSION = 'bouquet-preview-v2';
+export const AI_PREVIEW_PROMPT_VERSION = 'bouquet-preview-v3';
 
 export const AI_QUOTA_SOURCES = ['INCLUDED', 'EXTRA'] as const;
 export type AiQuotaSource = (typeof AI_QUOTA_SOURCES)[number];
@@ -311,8 +312,12 @@ export function buildPreviewPrompt(spec: BouquetPreviewSpec): string {
   const accessories = byRole('ACCESSORY');
   const packaging = byRole('PACKAGING');
   const total = counted.reduce((sum, component) => sum + component.quantity, 0);
+  const shape =
+    spec.style === 'CLASSIC'
+      ? 'round and balanced like a classic handmade bouquet'
+      : 'natural and slightly asymmetric like a real handmade bouquet: flowers at varied heights, blooms facing slightly different directions';
   const lines = [
-    'Professional product photograph of one hand-tied florist bouquet, front view, centered, the whole bouquet in frame, on a plain light background, soft natural light, photorealistic.',
+    `Realistic photo of one hand-tied bouquet made by hand by a florist, ${shape}, any wrapping paper with natural, irregular folds. Soft daylight, simple neutral background, the whole bouquet in frame.`,
     spec.style ? `Style: ${STYLE_TEXT[spec.style]}.` : null,
     spec.size ? `Size: ${SIZE_TEXT[spec.size]}.` : null,
     counted.length > 0

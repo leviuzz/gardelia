@@ -185,6 +185,20 @@ describe('descrizione del ramo e cache', () => {
     expect(prompt).not.toContain('Style:');
   });
 
+  it('aspetto fatto a mano e asimmetrico, tranne lo stile clásico', () => {
+    const natural = buildPreviewPrompt(
+      buildPreviewSpec({ components: [rose, kraft], style: 'ROMANTIC', size: null }),
+    );
+    expect(natural).toContain('made by hand by a florist');
+    expect(natural).toContain('slightly asymmetric');
+    expect(natural).not.toContain('centered');
+    const classic = buildPreviewPrompt(
+      buildPreviewSpec({ components: [rose, kraft], style: 'CLASSIC', size: null }),
+    );
+    expect(classic).toContain('round and balanced');
+    expect(classic).not.toContain('asymmetric');
+  });
+
   it('plurale inglese dei nomi comuni', () => {
     expect(englishPlural('rose')).toBe('roses');
     expect(englishPlural('daisy')).toBe('daisies');
