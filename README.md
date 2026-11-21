@@ -32,6 +32,8 @@ clienti, preventivi…), AI Bouquet Builder nel piano Plus e, in seguito, il mar
   disegni salvati e creazione della cotización con la receta esatta.
 - **Foto del catalogo:** più foto per articolo (de frente, de lado, desde arriba, detalle) e, per
   carte, vasi e nastri, una foto per colore; ricodificate senza metadati (niente GPS).
+- **Colore di carta e nastro:** nel Diseñador si sceglie il colore (con la sua foto); arriva nella
+  cotización e nell'anteprima con IA.
 - **Mis ramos (Plus):** foto dei ramos della fioreria come riferimento di stile, caricate solo con
   consenso esplicito; mai usate per addestrare modelli.
 - **Vista previa con IA (Plus):** 25 al mese + pacchetti extra, cache per fioreria, tetto di

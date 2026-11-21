@@ -372,8 +372,28 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
 - **Nessuna cancellazione fisica:** le foto tolte si archiviano; la politica di conservazione
   dei file archiviati va decisa con O-07.
 - **Non ancora:** uso delle foto nelle anteprime AI (riferimenti e composizione, ADR-028),
-  scontorno automatico, scelta della copertina e ordinamento, colori di carta e nastro nel
-  Builder.
+  scontorno automatico, scelta della copertina e ordinamento.
+
+### ADR-030 — Colore di carta, vaso e nastro nel Diseñador — ADOTTATO (21/11/2026)
+
+- **Modello:** un articolo del catalogo per ogni TIPO di carta, vaso o nastro (papel coreano,
+  listón de organza…) con i suoi colori (fino a 12); nel Diseñador si sceglie il colore della
+  riga. Il colore non cambia il prezzo: se un colore costa diverso, è un articolo a parte.
+- **Regola unica** (`resolveLineColor` nel dominio, uguale in browser e server): un solo colore →
+  scelto in automatico; più colori → obbligatorio e solo fra quelli ATTUALI dell'articolo; fiori e
+  follaje non hanno colore di riga (ogni colore di fiore è un articolo con prezzo e disponibilità).
+- **Salvataggio:** `BouquetConfigurationLine.color` (CHECK sulla forma); il server lo rivalida a
+  ogni salvataggio, preventivo e anteprima. Se il fiorista toglie quel colore dal catalogo, il
+  disegno va rivisto (preventivo: `builder_configuration_outdated`; anteprima: "revisa el
+  diseño"), mai un colore inventato.
+- **Preventivo:** la distinta salvata nello snapshot include il colore ("1 × Papel coreano
+  (lila)").
+- **Anteprima AI:** il prompt usa solo il colore scelto (non tutti quelli dell'articolo); colori
+  diversi danno chiavi di cache diverse.
+- **UI:** il selettore mostra la foto di quel colore se il fiorista l'ha caricata (ADR-029),
+  altrimenti il campione; salvataggio bloccato finché manca un colore obbligatorio.
+- **Vocabolario:** aggiunti i colori tipici di carte e nastri: negro, dorado, plateado, café,
+  transparente.
 
 ---
 

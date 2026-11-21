@@ -17,15 +17,19 @@ S1-01…S1-10. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 
 **Sprint 2 — anteprime AI: funzionanti con il provider reale** (21/11/2026): fal.ai con
 **Nano Banana 2** (ADR-026), scelto col confronto su 5 ramos demo; quota 25/mese, pacchetti extra via
 CLI, cache per fioreria, tetto di spesa, worker, archivio R2/locale; provider simulato solo in
-locale. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 245/245 ✅ · build ✅ ·
-E2E 27/27 ✅ · una generazione reale dal Diseñador ✅ (12 s, 0,08 USD).
+locale. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 252/252 ✅ · build ✅ ·
+E2E 28/28 ✅ · una generazione reale dal Diseñador ✅ (12 s, 0,08 USD).
 
 **Foto del catalogo e "Mis ramos"** (21/11/2026, ADR-029): fiori da più angolazioni, carte e
 nastri per colore, foto di stile con consenso.
 
-**Prossimo (direzione del founder, ADR-028):** colori di carta e nastro scelti nel Builder, "Mis
-ramos" come riferimento di stile nelle anteprime, anteprima con il numero esatto di fiori
-(composizione dalle foto + resa fotografica AI + controllo automatico). Vedi "I prossimi task".
+**Colori di carta e nastro nel Diseñador** (21/11/2026, ADR-030): colore obbligatorio quando
+l'articolo ne ha più di uno, con la sua foto; arriva in cotización e nell'anteprima.
+
+**Prossimo (direzione del founder, ADR-028):** "Mis ramos" come riferimento di stile nelle
+anteprime, scontorno automatico, anteprima con il numero esatto di fiori (composizione dalle foto
+
+- resa fotografica AI + controllo automatico). Vedi "I prossimi task".
 
 ---
 
@@ -121,17 +125,16 @@ il **taglio** seguente.
 
 ### I prossimi task (nell'ordine)
 
-1. **Colori di carta e nastro** scelti nel Builder: varianti di colore degli articoli empaque/complemento (con la loro foto), salvate nella distinta e usate da prompt e composizione (ADR-028).
-2. **Usare "Mis ramos" nelle anteprime**: scelta automatica di 1–2 foto simili per stile come riferimento (spec §6.3), con prova su conteggi e realismo prima di attivarla.
-3. **Scontorno automatico** delle foto dei fiori (base della composizione) e scelta della foto di copertina.
-4. **Anteprima esatta**: composizione deterministica dai ritagli (immediata, gratuita), foto realistica dalla composizione (`nano-banana-2/edit`) e controllo automatico dei conteggi con un nuovo tentativo (ADR-028).
-5. Prima del pilota: prova da ~100 immagini → costo reale riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 nell'hosting (P-03, O-04).
-6. Builder pubblico per i clienti della fioreria (AI-BQ-10), dopo il pilota del Builder interno.
-7. Anteprima nel preventivo stampato e nel messaggio WhatsApp.
-8. Aggiungere un disegno del Builder a un preventivo in bozza esistente.
-9. Ordini da preventivo accettato (Sprint 3) con la stessa distinta.
-10. Contador: IVA nei preventivi e fatturazione dei pacchetti (O-06, O-02).
-11. Pannello admin di piattaforma minimo (oggi CLI) con autenticazione forte e audit.
+1. **Usare "Mis ramos" nelle anteprime**: scelta automatica di 1–2 foto simili per stile come riferimento (spec §6.3), con prova su conteggi e realismo prima di attivarla.
+2. **Scontorno automatico** delle foto dei fiori (base della composizione) e scelta della foto di copertina.
+3. **Anteprima esatta**: composizione deterministica dai ritagli (immediata, gratuita), foto realistica dalla composizione (`nano-banana-2/edit`) e controllo automatico dei conteggi con un nuovo tentativo (ADR-028).
+4. Prima del pilota: prova da ~100 immagini → costo reale riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 nell'hosting (P-03, O-04).
+5. Builder pubblico per i clienti della fioreria (AI-BQ-10), dopo il pilota del Builder interno.
+6. Anteprima nel preventivo stampato e nel messaggio WhatsApp.
+7. Aggiungere un disegno del Builder a un preventivo in bozza esistente.
+8. Ordini da preventivo accettato (Sprint 3) con la stessa distinta.
+9. Contador: IVA nei preventivi e fatturazione dei pacchetti (O-06, O-02).
+10. Pannello admin di piattaforma minimo (oggi CLI) con autenticazione forte e audit.
 
 ---
 
@@ -263,3 +266,17 @@ il **taglio** seguente.
   servizi con immagini vere, isolamento A↔B), build ✅, E2E 27/27 ✅ (+5: caricamento reale, privacy
   fra fiorerie, colore del nastro, staff in sola lettura, consenso, piano Basic).
 - Nota: le foto non entrano ancora nelle anteprime AI (prossimi passi in "I prossimi task").
+
+### 2026-11-21 — Colore di carta e nastro nel Diseñador (ADR-030)
+
+- Founder: il cliente sceglie il colore della carta e del nastro; carte e nastri hanno tipi e
+  colori diversi.
+- Fatto: regola unica del colore di riga (dominio), colonna `BouquetConfigurationLine.color`,
+  validazione sul server a salvataggio/preventivo/anteprima, foto per colore nel catalogo del
+  Builder, selettore con foto o campione, riepilogo "1 × Papel coreano · Lila", distinta della
+  cotización "(lila)", prompt con il solo colore scelto; nuovi colori (negro, dorado, plateado,
+  café, transparente), fino a 12 colori per articolo; demo: "Papel coreano" (4 colori) e
+  "Listón de organza" (3 colori).
+- Verifiche: lint ✅, format ✅, typecheck ✅, `pnpm test` 252/252 ✅ (+7: regola del colore, schema,
+  servizi, preventivo, catalogo con foto per colore, prompt e cache), build ✅, E2E 28/28 ✅ (+1:
+  colore obbligatorio → salvataggio → cotización).

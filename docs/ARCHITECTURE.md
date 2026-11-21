@@ -154,6 +154,10 @@ al servizio (`catalog-photos`, `style-references`) → `media/images.ts` le vali
 transazione, con audit. Le route `/catalog/photos/[id]` e `/builder/references/[id]` servono i
 file solo ai membri della fioreria.
 
+Colore di carta e nastro (ADR-030): l'editor invia `{catalogItemId, quantity, color}`; il server
+calcola il colore effettivo con `resolveLineColor` sui colori attuali dell'articolo, lo salva sulla
+riga e lo riporta nella distinta del preventivo e nel prompt dell'anteprima.
+
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per
 l'attribuzione delle fee future.
