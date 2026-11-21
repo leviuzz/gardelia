@@ -1,0 +1,99 @@
+import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
+import { getTenantSettings, hasPermission } from '@floral/core';
+import { MX_REGIONS, MX_TIMEZONES } from '@floral/domain';
+import { Forbidden } from '@/components/forbidden';
+import { PageHeader } from '@/components/page-header';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { phoneForInput } from '@/lib/format';
+import { getTenantContext } from '@/lib/tenant';
+import { updateLegalAction, updateLocationAction, updateProfileAction } from './actions';
+import { LegalForm, LocationForm, ProfileForm } from './settings-forms';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('settings');
+  return { title: t('title') };
+}
+
+export default async function SettingsPage({ params }: PageProps<'/app/[tenantSlug]/settings'>) {
+  const { tenantSlug } = await params;
+  const ctx = await getTenantContext(tenantSlug);
+  if (!hasPermission(ctx, 'tenant:settings:update')) return <Forbidden />;
+
+  const { tenant, location } = await getTenantSettings(ctx);
+  const t = await getTranslations();
+  const slug = ctx.tenantSlug;
+  const canEditLegal = hasPermission(ctx, 'tenant:legal:update');
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      <PageHeader title={t('settings.title')} description={t('settings.subtitle')} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('settings.profileTitle')}</CardTitle>
+          <CardDescription>{t('settings.profileSubtitle')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <dl className="grid gap-3 rounded-xl bg-muted/50 p-4 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-muted-foreground">{t('settings.shopUrl')}</dt>
+              <dd className="font-mono text-xs">/app/{tenant.slug}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t('settings.currency')}</dt>
+              <dd className="font-medium">{tenant.currency}</dd>
+            </div>
+          </dl>
+          <ProfileForm
+            action={updateProfileAction.bind(null, slug)}
+            timezones={MX_TIMEZONES.map((id) => ({ id, label: t(`timezones.${id}`) }))}
+            defaults={{
+              displayName: tenant.displayName,
+              contactEmail: tenant.contactEmail ?? '',
+              contactPhone: phoneForInput(tenant.contactPhone),
+              timezone: tenant.timezone,
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('settings.locationTitle')}</CardTitle>
+          <CardDescription>{t('settings.locationSubtitle')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LocationForm
+            action={updateLocationAction.bind(null, slug)}
+            regions={MX_REGIONS.map(({ code, name }) => ({ code, name }))}
+            defaults={{
+              addressLine1: location?.addressLine1 ?? '',
+              addressLine2: location?.addressLine2 ?? '',
+              neighborhood: location?.neighborhood ?? '',
+              city: location?.city ?? '',
+              region: location?.region ?? 'AGU',
+              postalCode: location?.postalCode ?? '',
+              phone: phoneForInput(location?.phone ?? null),
+              deliveryRadiusKm: location?.deliveryRadiusKm?.toString() ?? '',
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('settings.legalTitle')}</CardTitle>
+          <CardDescription>{canEditLegal ? t('settings.legalSubtitle') : t('settings.legalReadOnly')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LegalForm
+            action={updateLegalAction.bind(null, slug)}
+            readOnly={!canEditLegal}
+            defaults={{ legalName: tenant.legalName ?? '', taxId: tenant.taxId ?? '' }}
+          />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
