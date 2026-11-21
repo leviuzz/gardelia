@@ -17,12 +17,15 @@ S1-01…S1-10. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 
 **Sprint 2 — anteprime AI: funzionanti con il provider reale** (21/11/2026): fal.ai con
 **Nano Banana 2** (ADR-026), scelto col confronto su 5 ramos demo; quota 25/mese, pacchetti extra via
 CLI, cache per fioreria, tetto di spesa, worker, archivio R2/locale; provider simulato solo in
-locale. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 226/226 ✅ · build ✅ ·
-E2E 22/22 ✅ · una generazione reale dal Diseñador ✅ (12 s, 0,08 USD).
+locale. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 245/245 ✅ · build ✅ ·
+E2E 27/27 ✅ · una generazione reale dal Diseñador ✅ (12 s, 0,08 USD).
 
-**Prossimo (direzione del founder, ADR-028):** foto dei singoli fiori caricate dal fiorista,
-colori di carta e nastro scelti nel Builder, anteprima con il numero esatto di fiori (composizione
-dalle foto + resa fotografica AI + controllo automatico). Vedi "I prossimi task".
+**Foto del catalogo e "Mis ramos"** (21/11/2026, ADR-029): fiori da più angolazioni, carte e
+nastri per colore, foto di stile con consenso.
+
+**Prossimo (direzione del founder, ADR-028):** colori di carta e nastro scelti nel Builder, "Mis
+ramos" come riferimento di stile nelle anteprime, anteprima con il numero esatto di fiori
+(composizione dalle foto + resa fotografica AI + controllo automatico). Vedi "I prossimi task".
 
 ---
 
@@ -111,16 +114,16 @@ il **taglio** seguente.
 
 | ID    | Stato | Dove                                                                                                              |
 | ----- | ----- | ----------------------------------------------------------------------------------------------------------------- |
-| S1-11 | 🟡    | archivio (R2 + locale) fatto per le anteprime; **upload immagini del catalogo** ancora da fare                    |
+| S1-11 | ✅    | archivio R2/locale; foto del catalogo (viste, colori) e "Mis ramos" con consenso (ADR-029)                        |
 | S1-12 | ✅    | `AiJob` come coda (SKIP LOCKED, lease, retry), worker nel processo web, quota/pacchetti/cache/tetto (ADR-024/025) |
 | S1-13 | ✅    | provider reale fal.ai + Nano Banana 2 (`core/src/ai/fal.ts`, ADR-026); alternativa GPT Image 2 con `AI_MODEL`     |
 | S1-14 | ✅    | E2E con provider simulato; BQ-02 e errori del provider coperti da test; una generazione reale verificata nell'app |
 
 ### I prossimi task (nell'ordine)
 
-1. **Foto nel catalogo** per fiori, carte e nastri: upload su R2 (più angolazioni; per carte e nastri una foto per colore), scontorno automatico pulito, consenso all'uso (O-07) — completa S1-11, base di AI-BQ-07/08.
-2. **Colori di carta e nastro** scelti nel Builder: varianti di colore degli articoli empaque/complemento, salvate nella distinta e usate da prompt e composizione (ADR-028).
-3. **"Mis ramos"**: 5–10 foto dei ramos del fiorista come riferimento di stile (senza addestramento), scelte in automatico per somiglianza (spec §6.3, ADR-028).
+1. **Colori di carta e nastro** scelti nel Builder: varianti di colore degli articoli empaque/complemento (con la loro foto), salvate nella distinta e usate da prompt e composizione (ADR-028).
+2. **Usare "Mis ramos" nelle anteprime**: scelta automatica di 1–2 foto simili per stile come riferimento (spec §6.3), con prova su conteggi e realismo prima di attivarla.
+3. **Scontorno automatico** delle foto dei fiori (base della composizione) e scelta della foto di copertina.
 4. **Anteprima esatta**: composizione deterministica dai ritagli (immediata, gratuita), foto realistica dalla composizione (`nano-banana-2/edit`) e controllo automatico dei conteggi con un nuovo tentativo (ADR-028).
 5. Prima del pilota: prova da ~100 immagini → costo reale riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 nell'hosting (P-03, O-04).
 6. Builder pubblico per i clienti della fioreria (AI-BQ-10), dopo il pilota del Builder interno.
@@ -245,3 +248,18 @@ il **taglio** seguente.
   stile tramite riferimenti, niente addestramento per ora (motivi nell'ADR).
 - Verifiche: lint ✅, format ✅, typecheck ✅, `pnpm test` 226/226 ✅, build ✅, E2E 22/22 ✅.
 - Spesa fal totale: ≈2 USD su 10 € (stima da listino).
+
+### 2026-11-21 — Foto del catalogo e "Mis ramos" (S1-11, ADR-029)
+
+- Founder: foto dei singoli fiori da più angolazioni, foto anche per carte e nastri (tipi e colori
+  diversi), foto dei propri ramos come stile, con consenso.
+- Fatto: tabelle `CatalogItemPhoto` e `StyleReferencePhoto` (RLS, FK composita, CHECK sulle chiavi
+  dell'archivio), normalizzazione con sharp (tipo dai byte, limiti, EXIF/GPS eliminati, 1600 px +
+  miniatura), servizi con limiti sotto lock, audit e attività in dashboard, route private, sezione
+  "Fotos" nella scheda dell'articolo (vista, colore obbligatorio per carte/vasi/nastri), copertina
+  nell'elenco, pagina "Mis ramos" (Plus, consenso obbligatorio), caricamento una foto alla volta
+  con riduzione nel browser e avanzamento.
+- Verifiche: lint ✅, format ✅, typecheck ✅, `pnpm test` 245/245 ✅ (+19: dominio, RLS/chiavi,
+  servizi con immagini vere, isolamento A↔B), build ✅, E2E 27/27 ✅ (+5: caricamento reale, privacy
+  fra fiorerie, colore del nastro, staff in sola lettura, consenso, piano Basic).
+- Nota: le foto non entrano ancora nelle anteprime AI (prossimi passi in "I prossimi task").

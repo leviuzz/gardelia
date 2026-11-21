@@ -46,7 +46,8 @@ apps/web/
   src/components/             design system (ui/), form, app shell, brand
   src/app/                    route (auth), onboarding, app/[tenantSlug]/…, invite, api
   e2e/                        Playwright + pozzo SMTP
-packages/core/src/            context, authorization, audit, mailer, email-templates, services/*
+packages/core/src/            context, authorization, audit, mailer, email-templates, services/*,
+                              ai/ (provider, coda, archivio), media/ (validazione immagini, sharp)
 packages/db/prisma/           schema.prisma, migrations/ (SQL con RLS), seed.ts, seed-data.ts
 packages/db/src/              client, tenancy (contesti RLS), errors, testing
 packages/db/scripts/          provisioning ruoli/database per sviluppo e CI
@@ -146,6 +147,12 @@ extra) sotto lock e accoda un `AiJob` → il worker (nel processo web) lo prelev
 (fal.ai con Nano Banana 2, ADR-026; simulato solo in locale), la salva nell'archivio
 (`tenants/{tenantId}/…`, R2 in produzione) e consuma il credito solo a successo. L'immagine si
 serve da una route che verifica tenant e permessi.
+
+Foto (ADR-029): il browser riduce le foto e le invia una alla volta → la server action le passa
+al servizio (`catalog-photos`, `style-references`) → `media/images.ts` le valida e le ricodifica
+(niente metadati, 1600 px + miniatura) → archivio privato per tenant e riga nel DB nella stessa
+transazione, con audit. Le route `/catalog/photos/[id]` e `/builder/references/[id]` servono i
+file solo ai membri della fioreria.
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per

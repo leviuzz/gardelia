@@ -30,13 +30,17 @@ clienti, preventivi…), AI Bouquet Builder nel piano Plus e, in seguito, il mar
 - **Diseñador de ramos (Plus):** composizione con fiori, follaje, empaque e complementi del
   catalogo, prezzo calcolato all'istante (stessa formula sul server), avvisi di disponibilità,
   disegni salvati e creazione della cotización con la receta esatta.
+- **Foto del catalogo:** più foto per articolo (de frente, de lado, desde arriba, detalle) e, per
+  carte, vasi e nastri, una foto per colore; ricodificate senza metadati (niente GPS).
+- **Mis ramos (Plus):** foto dei ramos della fioreria come riferimento di stile, caricate solo con
+  consenso esplicito; mai usate per addestrare modelli.
 - **Vista previa con IA (Plus):** 25 al mese + pacchetti extra, cache per fioreria, tetto di
   spesa. Immagini reali con **fal.ai / Nano Banana 2** (~10 s, ~0,08 USD l'una; ADR-026); in
   locale, senza chiave, si usa un **provider simulato** dichiarato in UI.
 - Dashboard con dati reali (cotizaciones abiertas, fechas especiales, attività), banner demo.
 - Isolamento fra fiorerie garantito anche dal database (Row-Level Security PostgreSQL).
 
-Ordini, pagamenti online e immagini del catalogo **non sono ancora disponibili** e non compaiono
+Ordini e pagamenti online **non sono ancora disponibili** e non compaiono
 nell'interfaccia come funzioni attive (vedi `IMPLEMENTATION_PLAN.md`).
 
 ## Requisiti

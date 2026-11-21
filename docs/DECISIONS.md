@@ -344,6 +344,37 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   rivalutare dopo il pilota solo se i riferimenti non bastano.
 - **Da decidere:** consenso del fiorista sull'uso delle sue foto come riferimento (O-07).
 
+### ADR-029 — Foto del catalogo e "Mis ramos" — ADOTTATO (21/11/2026)
+
+- **Cosa:** foto per articolo del catalogo (fiori e follaje con vista: de frente, de lado, desde
+  arriba, detalle; carte, vasi e nastri con il colore scelto fra quelli dell'articolo; massimo 12
+  attive) e "Mis ramos", le foto dei ramos della fioreria come riferimento di stile (massimo 30,
+  piano Plus). Servizi e consegne non hanno foto.
+- **Consenso:** "Mis ramos" registra per ogni foto chi ha autorizzato e quando (`consentAt`,
+  `consentById`); senza la casella spuntata non si salva nulla. Testo in UI: mai usate per
+  addestrare modelli né condivise con altre fiorerie. Il testo legale definitivo resta O-07.
+- **Elaborazione (sharp, nel core):** tipo riconosciuto dai byte (JPEG/PNG/WebP), massimo 8 MB e
+  50 megapixel, lato corto ≥ 320 px; orientamento EXIF applicato e **tutti i metadati eliminati**
+  (niente GPS né dati del telefono); si salvano un JPEG da 1600 px e una miniatura da 480 px. Il
+  browser riduce le foto a 2048 px prima dell'invio solo per velocità: il server rivalida sempre.
+- **Caricamento:** una foto per richiesta (server action con limite 9 MB, sotto i 10 MB del proxy
+  di Next), con avanzamento visibile; una foto sbagliata non blocca le altre.
+- **Archivio e accesso:** stesso `ObjectStorage` delle anteprime (R2/filesystem), chiavi
+  `tenants/{tenantId}/catalog-photos|style-references/{id}[-thumb].jpg`; un CHECK nel database
+  impone che la chiave stia sotto il tenant della riga. Le immagini si servono da route private
+  che verificano tenant, permessi e piano (cache privata, CSP `sandbox`); un ID di un'altra
+  fioreria risponde 404 e registra un evento di sicurezza.
+- **Limiti e concorrenza:** `FOR UPDATE` sull'articolo (foto del catalogo) e advisory lock per
+  tenant ("Mis ramos"), così caricamenti simultanei non superano i massimi.
+- **Permessi:** `catalog:read` per vedere, `catalog:write` per caricare e togliere;
+  `builder:use` + piano per vedere "Mis ramos", `builder:references:write` (proprietario e
+  gerente) per caricare e togliere.
+- **Nessuna cancellazione fisica:** le foto tolte si archiviano; la politica di conservazione
+  dei file archiviati va decisa con O-07.
+- **Non ancora:** uso delle foto nelle anteprime AI (riferimenti e composizione, ADR-028),
+  scontorno automatico, scelta della copertina e ordinamento, colori di carta e nastro nel
+  Builder.
+
 ---
 
 ## 3. Proposte da approvare
