@@ -81,7 +81,8 @@
     "retry": "Reintentar",
     "errorReference": "Referencia: {digest}",
     "forbiddenTitle": "Sin acceso a esta sección",
-    "forbiddenBody": "Tu rol no permite ver esta sección. Si la necesitas, pídele acceso a la persona propietaria de la florería."
+    "forbiddenBody": "Tu rol no permite ver esta sección. Si la necesitas, pídele acceso a la persona propietaria de la florería.",
+    "planRequired": "Esta función no está incluida en el plan de tu florería."
   },
   "landing": {
     "eyebrow": "Para florerías de México",
@@ -282,7 +283,8 @@
     "quote.line_added": "{actor} agregó un concepto a {number}",
     "quote.line_updated": "{actor} cambió una cantidad en {number}",
     "quote.line_removed": "{actor} quitó un concepto de {number}",
-    "quote.status_changed": "{actor} marcó {number} como «{status}»"
+    "quote.status_changed": "{actor} marcó {number} como «{status}»",
+    "subscription.assigned": "Se asignó el plan {plan} a la florería"
   },
   "catalog": {
     "title": "Catálogo",
@@ -790,5 +792,54 @@
       "new": "Nueva cotización",
       "viewAll": "Ver todas sus cotizaciones"
     }
+  },
+  "plans": {
+    "title": "Plan y funciones",
+    "subtitle": "Qué incluye el plan de tu florería.",
+    "current": "Tu plan",
+    "names": {
+      "BASIC": "Basic",
+      "PLUS": "Plus"
+    },
+    "statuses": {
+      "PILOT": "Piloto",
+      "TRIALING": "Prueba",
+      "ACTIVE": "Activo",
+      "CANCELLED": "Cancelado"
+    },
+    "validUntil": "Vigente hasta el {date}.",
+    "noEndDate": "Sin fecha de término.",
+    "defaultPlan": "Plan base de todas las florerías.",
+    "lapsed": "Tu plan {plan} ya no está vigente: ahora tienes las funciones de {fallback}.",
+    "features": {
+      "catalog": {
+        "title": "Catálogo, recetas y costos",
+        "body": "Flores, insumos y ramos con su receta, costos y márgenes."
+      },
+      "customersQuotes": {
+        "title": "Clientes y cotizaciones",
+        "body": "Fichas de clientes, fechas especiales y cotizaciones con los precios de tu catálogo."
+      },
+      "team": {
+        "title": "Equipo con roles",
+        "body": "Invita a tu equipo con permisos de propietario, gerente o staff."
+      },
+      "bouquetBuilder": {
+        "title": "Diseñador de ramos",
+        "body": "Arma ramos a la medida con el precio calculado al instante y conviértelos en cotización."
+      },
+      "aiPreviews": {
+        "title": "Vistas previas con IA",
+        "body": "Imágenes ilustrativas del ramo para compartir con tu cliente."
+      }
+    },
+    "featureStates": {
+      "included": "Incluido",
+      "upgrade": "Disponible en Plus",
+      "soon": "Próximamente"
+    },
+    "pilotNote": "Durante el piloto, el equipo de {product} asigna el plan de cada florería. El cobro en línea todavía no está disponible: desde aquí no se realiza ningún pago.",
+    "settingsLink": "Plan y funciones",
+    "settingsLinkBody": "Consulta tu plan y qué funciones incluye."
   }
 }

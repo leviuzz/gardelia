@@ -274,3 +274,58 @@ describe('registro di audit e dati globali', () => {
     await expect(attempt).rejects.toSatisfy(isRlsViolation);
   });
 });
+
+describe('piani e abbonamenti', () => {
+  it('i piani sono leggibili da tutti ma modificabili solo dalla piattaforma', async () => {
+    const plans = await db.saasPlan.findMany({ select: { code: true }, orderBy: { code: 'asc' } });
+    expect(plans.map((plan) => plan.code)).toEqual(['BASIC', 'PLUS']);
+
+    const scope = { tenantId: tenantA.tenantId, userId: null };
+    const result = await withTenantContext(db, scope, async (tx) => ({
+      updated: await tx.saasPlan.updateMany({
+        where: { code: 'BASIC' },
+        data: { entitlements: { bouquetBuilder: true, aiPreviewsPerMonth: 999 } },
+      }),
+      deleted: await tx.saasPlan.deleteMany({ where: { code: 'PLUS' } }),
+    }));
+    expect(result).toEqual({ updated: { count: 0 }, deleted: { count: 0 } });
+    const forged = withTenantContext(db, scope, (tx) =>
+      tx.saasPlan.create({ data: { code: 'PLUS', entitlements: {} } }),
+    );
+    await expect(forged).rejects.toThrow();
+  });
+
+  it('il tenant legge solo il proprio abbonamento e non può crearlo né modificarlo', async () => {
+    const tenantC = await createTestTenant(db, { displayName: 'Florería C' });
+    const tenantD = await createTestTenant(db, { displayName: 'Florería D' });
+    const plus = await db.saasPlan.findUniqueOrThrow({ where: { code: 'PLUS' } });
+    await withSystemContext(db, { reason: 'test: assegna piano' }, async (tx) => {
+      await tx.tenantSubscription.create({
+        data: { tenantId: tenantC.tenantId, planId: plus.id, status: 'PILOT' },
+      });
+      await tx.tenantSubscription.create({
+        data: { tenantId: tenantD.tenantId, planId: plus.id, status: 'ACTIVE' },
+      });
+    });
+
+    const scopeC = { tenantId: tenantC.tenantId, userId: null };
+    const visible = await withTenantContext(db, scopeC, (tx) =>
+      tx.tenantSubscription.findMany({ select: { tenantId: true } }),
+    );
+    expect(visible).toEqual([{ tenantId: tenantC.tenantId }]);
+
+    const tampering = await withTenantContext(db, scopeC, async (tx) => ({
+      updated: await tx.tenantSubscription.updateMany({ data: { status: 'ACTIVE' } }),
+      deleted: await tx.tenantSubscription.deleteMany({}),
+    }));
+    expect(tampering).toEqual({ updated: { count: 0 }, deleted: { count: 0 } });
+
+    const selfAssigned = withTenantContext(db, { tenantId: tenantA.tenantId, userId: null }, (tx) =>
+      tx.tenantSubscription.create({
+        data: { tenantId: tenantA.tenantId, planId: plus.id, status: 'ACTIVE' },
+      }),
+    );
+    await expect(selfAssigned).rejects.toSatisfy(isRlsViolation);
+    expect(await db.tenantSubscription.count()).toBe(0);
+  });
+});

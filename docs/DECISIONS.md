@@ -33,7 +33,7 @@ Ultimo aggiornamento: 21 novembre 2026 (Sprint 0).
 
 ---
 
-## 2. ADR tecnici (Sprint 0)
+## 2. ADR tecnici (Sprint 0 e Sprint 1)
 
 ### ADR-001 — Monorepo pnpm con 4 package — ADOTTATO
 
@@ -131,6 +131,59 @@ React 19 azzera i campi dei `<form action={fn}>` anche quando l'action restituis
 - **Unit** (Vitest): regole pure di `domain`.
 - **Integrazione** (Vitest): servizi e DB contro un **PostgreSQL reale con RLS attiva** e ruolo applicativo; database di test separato (il setup rifiuta nomi senza "test").
 - **E2E** (Playwright): app in modalità produzione, seed demo, pozzo SMTP; flussi reali di registrazione, verifica email, inviti, permessi e isolamento.
+
+### ADR-019 — CRM: origine del cliente, ruoli e audit senza dati personali — ADOTTATO (Sprint 1)
+
+- I clienti creati dal fiorista hanno sempre `acquisitionSource = MERCHANT_DIRECT`: le origini
+  di piattaforma (`NETWORK_B2B`, `MARKETPLACE_B2C`) generano commissioni e non sono impostabili
+  dal merchant. L'origine si propaga ai preventivi (attribuzione delle fee future).
+- Lo STAFF legge clienti e preventivi (serve per le consegne) ma non li modifica; ragione sociale
+  e RFC sono visibili solo a chi può modificare i clienti.
+- Nell'audit dei clienti solo ID, tipo e **nomi** dei campi cambiati (`changedFields`), mai i valori.
+
+### ADR-020 — Preventivi: prezzi lato server, snapshot e stati — ADOTTATO (Sprint 1)
+
+- Prezzi, costi e distinta delle righe da catalogo arrivano **sempre dal DB** del tenant; il client
+  invia solo ID e quantità. Ogni riga salva uno **snapshot** (prezzo, costo, distinta, disponibilità,
+  versione del motore `quote-v1`): un cambio di listino non altera i preventivi esistenti (ORD-01).
+- `taxMode = PRICES_FINAL`: i prezzi sono finali al cliente, **senza scorporo IVA** finché O-06
+  non è validata da un contador (la UI lo dichiara). Nessuna aliquota inventata.
+- Sconto solo a livello di preventivo, fisso, ≤ subtotale (ridotto automaticamente se le righe calano).
+  Stesso articolo aggiunto due volte = quantità sommata; articoli `OUT_OF_STOCK` non quotabili.
+- Numerazione `COT-0001` con `TenantCounter` (upsert atomico nella stessa transazione, P-08).
+- Ogni modifica blocca la riga del preventivo (`SELECT … FOR UPDATE`) e ricalcola i totali; i CHECK
+  del DB garantiscono `total = subtotal − discount + tax` e `lineTotal = quantity × unitPrice`.
+- Stati: `DRAFT → SENT → ACCEPTED | REJECTED`, `SENT → DRAFT` (riapertura), `CANCELLED` da bozza o
+  inviato; `ACCEPTED` è terminale finché non esistono gli ordini. `EXPIRED` è calcolato in modo
+  "pigro" (inviato oltre `validUntil`, nel calendario del tenant) e consolidato alla lettura.
+- Condivisione: stampa/PDF dal browser e link WhatsApp (`wa.me`) con testo generato sul server;
+  costi e margini non compaiono mai in stampa né nel messaggio.
+
+### ADR-021 — Piani ed entitlements v0, operazioni di piattaforma — ADOTTATO (Sprint 1)
+
+- `SaasPlan` (dati di piattaforma: `BASIC`, `PLUS`, entitlements JSON validati con Zod, nessun
+  prezzo perché D-16 è PROPOSTO) e `TenantSubscription` (una per tenant, stati
+  `PILOT | TRIALING | ACTIVE | CANCELLED`, fonte `MANUAL`).
+- RLS: i piani sono leggibili da tutti e scrivibili solo in bypass; l'abbonamento è leggibile solo dal
+  proprio tenant e **non modificabile dal merchant** (nessuna policy di scrittura fuori dal bypass).
+- Senza abbonamento valido (assente, cancellato, periodo terminato) si applica `BASIC`: le funzioni
+  extra si spengono, i dati restano. `requireEntitlement(ctx, feature)` si chiama nei servizi dopo
+  `requirePermission` e lancia `PlanRequiredError` (la UI propone l'upgrade, non un divieto).
+- Assegnazione nel pilota (C-03): CLI `pnpm platform:assign-plan`, operatore con
+  `platformRole = SUPER_ADMIN` obbligatorio, audit `subscription.assigned` nel tenant.
+- **Nuova eccezione al bypass RLS**: `packages/core/src/platform/**` (esportato come
+  `@floral/core/platform`). ESLint vieta di importarlo da `apps/web`: le operazioni di piattaforma non
+  sono raggiungibili da pagine o server action. Una UI di amministrazione richiederà un ADR dedicato
+  (autenticazione forte, audit, separazione dal pannello merchant).
+- La quota mensile di anteprime AI è un entitlement (`aiPreviewsPerMonth`, 0 finché la pipeline AI
+  non esiste); il conteggio dei consumi arriva con S1-12 secondo la decisione O-05.
+
+### ADR-022 — Feedback delle azioni: toast alla fine dell'azione — ADOTTATO (Sprint 1)
+
+- `useToastActionState` mostra il toast quando la server action termina, non in un effetto del
+  componente: il messaggio arriva anche se il re-render smonta il componente (riga rimossa, form
+  chiuso, pulsante di uno stato non più disponibile). `useActionToast` resta per i componenti che
+  restano montati e per le action con redirect.
 
 ---
 

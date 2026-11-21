@@ -8,6 +8,20 @@ import tseslint from 'typescript-eslint';
 
 const WEB_FILES = ['apps/web/**/*.{js,jsx,mjs,ts,tsx}'];
 
+/** Il bypass della RLS è consentito solo nei punti elencati più sotto (vedi CLAUDE.md). */
+const SYSTEM_CONTEXT_RESTRICTION = {
+  name: '@floral/db',
+  importNames: ['withSystemContext'],
+  message:
+    'withSystemContext aggira la Row-Level Security: usalo solo nei moduli autorizzati (vedi CLAUDE.md § Tenancy).',
+};
+
+const PLATFORM_RESTRICTION = {
+  name: '@floral/core/platform',
+  message:
+    'Le operazioni di piattaforma aggirano la RLS: solo CLI amministrativa, mai dal web (ADR-019).',
+};
+
 /** Le regole Next/React/a11y valgono solo per l'app web. */
 const scopedToWeb = [...nextVitals, ...nextTs]
   .filter((config) => !(config.ignores && Object.keys(config).length === 1))
@@ -53,19 +67,17 @@ export default tseslint.config(
       ],
       eqeqeq: ['error', 'always'],
       'no-console': ['warn', { allow: ['info', 'warn', 'error'] }],
-      // Il bypass della RLS è consentito solo nei punti elencati sotto (vedi CLAUDE.md).
+      'no-restricted-imports': ['error', { paths: [SYSTEM_CONTEXT_RESTRICTION] }],
+    },
+  },
+  {
+    // Le operazioni di piattaforma (bypass RLS) si usano solo dalla CLI amministrativa,
+    // mai da pagine o server action del web (vedi docs/DECISIONS.md, ADR-019).
+    files: WEB_FILES,
+    rules: {
       'no-restricted-imports': [
         'error',
-        {
-          paths: [
-            {
-              name: '@floral/db',
-              importNames: ['withSystemContext'],
-              message:
-                'withSystemContext aggira la Row-Level Security: usalo solo nei moduli autorizzati (vedi CLAUDE.md § Tenancy).',
-            },
-          ],
-        },
+        { paths: [SYSTEM_CONTEXT_RESTRICTION, PLATFORM_RESTRICTION] },
       ],
     },
   },
@@ -76,6 +88,7 @@ export default tseslint.config(
       'packages/core/src/audit.ts',
       'packages/core/src/context.ts',
       'packages/core/src/services/team.ts',
+      'packages/core/src/platform/**',
       'packages/core/test/**',
       'apps/web/e2e/**',
     ],

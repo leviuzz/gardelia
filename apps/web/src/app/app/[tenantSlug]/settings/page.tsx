@@ -1,4 +1,6 @@
+import { ChevronRight, Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { getTenantSettings, hasPermission } from '@floral/core';
 import { MX_REGIONS, MX_TIMEZONES } from '@floral/domain';
@@ -28,6 +30,24 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <PageHeader title={t('settings.title')} description={t('settings.subtitle')} />
+
+      {hasPermission(ctx, 'billing:read') ? (
+        <Link
+          href={`/app/${slug}/settings/plan`}
+          className="flex items-center gap-4 rounded-2xl border bg-card p-4 transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+        >
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+            <Sparkles className="size-5" aria-hidden="true" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium">{t('plans.settingsLink')}</span>
+            <span className="block text-sm text-muted-foreground">
+              {t('plans.settingsLinkBody')}
+            </span>
+          </span>
+          <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
+        </Link>
+      ) : null}
 
       <Card>
         <CardHeader>

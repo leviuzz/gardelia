@@ -68,6 +68,19 @@ Password: il valore di `SEED_DEMO_PASSWORD` nel tuo `.env`.
 Prova dell'isolamento: entra come `dueno@floresdelvalle.test` e apri
 `/app/las-camelias` → risposta 404.
 
+La fioreria demo ha il piano **Plus in pilota** (Bouquet Builder incluso); Flores del Valle è
+senza abbonamento, quindi **Basic**.
+
+### Assegnare un piano (pilota, senza pagamenti)
+
+Durante il pilota i piani si assegnano a mano dalla CLI di piattaforma (ADR-021). L'operatore deve
+essere un utente con `platformRole = SUPER_ADMIN` (impostato direttamente nel database da chi
+gestisce la piattaforma); ogni assegnazione è registrata nell'audit della fioreria.
+
+```bash
+pnpm platform:assign-plan --operator tu@empresa.mx --tenant flores-del-valle --plan PLUS --status PILOT --until 2027-03-31
+```
+
 ## Comandi
 
 | Comando                               | Descrizione                                                    |
@@ -84,6 +97,7 @@ Prova dell'isolamento: entra come `dueno@floresdelvalle.test` e apri
 | `pnpm db:migrate`                     | Crea e applica una nuova migrazione (sviluppo)                 |
 | `pnpm db:deploy`                      | Applica le migrazioni (CI/produzione)                          |
 | `pnpm db:seed`                        | Dati demo (rifiutato con `NODE_ENV=production`)                |
+| `pnpm platform:assign-plan`           | Assegna il piano a una fioreria (solo operatori SUPER_ADMIN)   |
 | `pnpm --filter @floral/web mail-sink` | Pozzo SMTP su file, alternativa a Mailpit senza Docker         |
 
 ### Test end-to-end

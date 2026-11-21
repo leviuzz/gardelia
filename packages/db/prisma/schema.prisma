@@ -175,6 +175,7 @@ model Tenant {
   counters          TenantCounter[]
   aiJobs            AiJob[]
   auditLogs         AuditLog[]
+  subscription      TenantSubscription?
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -700,4 +701,59 @@ model AiJob {
   @@unique([tenantId, id])
   @@index([tenantId, feature, createdAt])
   @@index([tenantId, inputHash])
+}
+
+// -----------------------------------------------------------------------------
+// Piani SaaS e abbonamenti [BILL-01]. Nessun prezzo (D-16 PROPOSTO) né pagamento:
+// nel pilota l'abbonamento è assegnato manualmente da un admin di piattaforma (C-03).
+// -----------------------------------------------------------------------------
+
+enum PlanCode {
+  BASIC
+  PLUS
+}
+
+enum SubscriptionStatus {
+  PILOT
+  TRIALING
+  ACTIVE
+  CANCELLED
+}
+
+enum SubscriptionSource {
+  /// Assegnato da un admin di piattaforma (CLI `pnpm platform:assign-plan`).
+  MANUAL
+}
+
+/// Dati di piattaforma (non del merchant): leggibili da tutti, scrivibili solo in contesto
+/// di sistema. I piani BASIC e PLUS sono creati dalla migrazione.
+model SaasPlan {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  code         PlanCode @unique
+  /// Validati da `planEntitlementsSchema` (@floral/domain); malformati = nessun accesso.
+  entitlements Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  subscriptions TenantSubscription[]
+}
+
+/// Abbonamento corrente della fioreria: il merchant lo legge, solo la piattaforma lo scrive.
+/// Senza abbonamento valido si applica il piano predefinito (BASIC).
+model TenantSubscription {
+  id                 String             @id @default(uuid(7)) @db.Uuid
+  tenantId           String             @unique @db.Uuid
+  planId             String             @db.Uuid
+  status             SubscriptionStatus
+  source             SubscriptionSource @default(MANUAL)
+  currentPeriodStart DateTime           @default(now())
+  /// null = senza scadenza (es. pilota a tempo indeterminato).
+  currentPeriodEnd   DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  tenant Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan   SaasPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([planId])
 }

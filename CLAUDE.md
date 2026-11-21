@@ -46,8 +46,9 @@ La logica di business sta in `domain`/`core`, **mai** nelle pagine o nelle serve
 5. Ogni servizio chiama `requirePermission(ctx, '...')` come prima istruzione. I permessi sono definiti SOLO in `packages/domain/src/permissions.ts`.
 6. Ogni pagina e **ogni server action** sotto `/app/[tenantSlug]` chiama `getTenantContext(slug)` (il layout non protegge le action).
 7. ID non trovato nel tenant → `notFound(ctx, entity, id)` di `core/src/audit.ts` (404 + evento di sicurezza se l'ID è di un altro tenant). Rispondi 404, mai 403, per risorse di altri tenant.
-8. `withSystemContext` (bypass RLS) è vietato da ESLint fuori da: seed/test, `core/src/audit.ts`, `core/src/context.ts`, `core/src/services/team.ts` (inviti via token). Aggiungerne altri richiede una motivazione in `docs/DECISIONS.md`.
+8. `withSystemContext` (bypass RLS) è vietato da ESLint fuori da: seed/test, `core/src/audit.ts`, `core/src/context.ts`, `core/src/services/team.ts` (inviti via token), `core/src/platform/**` (operazioni di piattaforma, solo CLI: ADR-021; importarlo dal web è vietato). Aggiungerne altri richiede una motivazione in `docs/DECISIONS.md`.
 9. L'app deve connettersi con un ruolo **non** superuser e **senza** BYPASSRLS (`DATABASE_URL`); le migrazioni usano il ruolo proprietario (`DATABASE_MIGRATION_URL`).
+10. Le funzioni a pagamento chiamano `requireEntitlement(ctx, feature)` nel servizio, dopo `requirePermission`. Il piano non si modifica mai dal web: solo dalla CLI di piattaforma.
 
 ## 5. Altre convenzioni tecniche
 

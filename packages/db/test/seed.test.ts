@@ -28,7 +28,22 @@ describe('seed demo', () => {
       owners: await tx.membership.count({
         where: { tenant: { slug: 'las-camelias' }, role: 'OWNER' },
       }),
+      subscriptions: (
+        await tx.tenantSubscription.findMany({
+          where: { tenant: { slug: { in: ['las-camelias', 'flores-del-valle'] } } },
+          select: {
+            status: true,
+            plan: { select: { code: true } },
+            tenant: { select: { slug: true } },
+          },
+        })
+      ).map((row) => `${row.tenant.slug}:${row.plan.code}:${row.status}`),
     }));
-    expect(counts).toEqual({ tenants: 2, lines: 9, owners: 1 });
+    expect(counts).toEqual({
+      tenants: 2,
+      lines: 9,
+      owners: 1,
+      subscriptions: ['las-camelias:PLUS:PILOT'],
+    });
   });
 });

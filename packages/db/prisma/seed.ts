@@ -5,8 +5,8 @@
  *   pnpm db:seed
  *
  * Crea: tassonomia fiori, "Florería Las Camelias" (owner/manager/staff, 14 articoli,
- * 2 ricette bouquet, 3 clienti) e "Flores del Valle" (secondo tenant per verificare
- * l'isolamento). Si rifiuta di girare con NODE_ENV=production.
+ * 2 ricette bouquet, 3 clienti, piano Plus in pilota) e "Flores del Valle" (secondo tenant
+ * per verificare l'isolamento, piano Basic). Si rifiuta di girare con NODE_ENV=production.
  */
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { hashPassword } from 'better-auth/crypto';
@@ -237,6 +237,16 @@ export async function runSeed(db: DbClient, options: { password: string }): Prom
           },
         });
       }
+
+      // Pilota: la fioreria demo ha Plus (Builder) assegnato dalla piattaforma; la seconda
+      // fioreria resta senza abbonamento (piano predefinito Basic) per mostrare l'upgrade.
+      const plus = await tx.saasPlan.findUnique({ where: { code: 'PLUS' }, select: { id: true } });
+      if (!plus) throw new Error('Piano PLUS mancante: esegui le migrazioni (pnpm db:deploy).');
+      await tx.tenantSubscription.upsert({
+        where: { tenantId: tenantIds.demo },
+        update: {},
+        create: { tenantId: tenantIds.demo, planId: plus.id, status: 'PILOT', source: 'MANUAL' },
+      });
 
       return {
         tenants: [DEMO_TENANT.slug, SECOND_TENANT.slug],

@@ -11,7 +11,7 @@ import {
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { getDashboard, listUpcomingOccasions, type ActivityEntry } from '@floral/core';
-import { QUOTE_STATUSES, isMembershipRole, type QuoteStatus } from '@floral/domain';
+import { QUOTE_STATUSES, isMembershipRole, isPlanCode, type QuoteStatus } from '@floral/domain';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,6 +58,7 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
     const roleValue =
       metadataString(entry.metadata, 'to') ?? metadataString(entry.metadata, 'role');
     const statusValue = metadataString(entry.metadata, 'to');
+    const planValue = metadataString(entry.metadata, 'planCode');
     const values = {
       actor,
       name:
@@ -68,6 +69,7 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
       role: roleValue && isMembershipRole(roleValue) ? t(`roles.${roleValue}`) : '—',
       number: metadataString(entry.metadata, 'number') ?? '—',
       status: statusValue && isQuoteStatus(statusValue) ? t(`quotes.statuses.${statusValue}`) : '—',
+      plan: planValue && isPlanCode(planValue) ? t(`plans.names.${planValue}`) : '—',
     };
     return t.has(key) ? t(key, values) : t('activity.fallback', values);
   }

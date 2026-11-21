@@ -5,6 +5,7 @@ import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
+  PlanRequiredError,
   ValidationError,
   logger,
 } from '@floral/core';
@@ -47,6 +48,7 @@ export async function actionError(error: unknown): Promise<ActionState> {
     return { status: 'error', message: t.has(key) ? t(key) : t('generic') };
   }
   if (error instanceof ForbiddenError) return { status: 'error', message: t('forbidden') };
+  if (error instanceof PlanRequiredError) return { status: 'error', message: t('planRequired') };
   if (error instanceof NotFoundError) return { status: 'error', message: t('notFound') };
 
   const { requestId } = await getRequestMeta();

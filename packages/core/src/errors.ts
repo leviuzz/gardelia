@@ -2,10 +2,10 @@
  * Errori applicativi tipizzati. I servizi lanciano solo questi (o errori inattesi);
  * il livello web li traduce in risposte/messaggi senza esporre dettagli interni.
  */
-import type { FieldErrors } from '@floral/domain';
+import type { FeatureEntitlement, FieldErrors } from '@floral/domain';
 
 export abstract class AppError extends Error {
-  abstract readonly code: 'not_found' | 'forbidden' | 'validation' | 'conflict';
+  abstract readonly code: 'not_found' | 'forbidden' | 'validation' | 'conflict' | 'plan_required';
 }
 
 /** Risorsa inesistente O appartenente a un altro tenant (indistinguibili per chi chiama). */
@@ -56,6 +56,18 @@ export class ConflictError extends AppError {
   constructor(readonly reason: ConflictReason) {
     super(`Conflitto: ${reason}`);
     this.name = 'ConflictError';
+  }
+}
+
+/**
+ * La funzione non è inclusa nel piano della fioreria [BILL-01]. Distinto da ForbiddenError:
+ * il ruolo è sufficiente, manca il piano (la UI propone l'upgrade invece di un divieto).
+ */
+export class PlanRequiredError extends AppError {
+  readonly code = 'plan_required' as const;
+  constructor(readonly feature: FeatureEntitlement) {
+    super(`Funzione non inclusa nel piano: ${feature}`);
+    this.name = 'PlanRequiredError';
   }
 }
 

@@ -20,6 +20,7 @@ export {
   type Mailer,
 } from './mailer';
 export { invitationEmail, passwordResetEmail, verificationEmail } from './email-templates';
+export * from './services/billing';
 export * from './services/catalog';
 export * from './services/customers';
 export * from './services/dashboard';

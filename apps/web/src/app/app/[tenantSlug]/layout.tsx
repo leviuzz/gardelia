@@ -40,7 +40,7 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
             href: `${base}/settings`,
             label: t('nav.settings'),
             icon: 'settings' as const,
-            exact: true,
+            exclude: [`${base}/settings/team`],
             secondary: true,
           },
         ]

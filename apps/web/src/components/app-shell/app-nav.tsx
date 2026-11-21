@@ -29,6 +29,8 @@ export interface NavItem {
   readonly exact?: boolean;
   /** Voce d'uso occasionale: su mobile va nel menu "Más". */
   readonly secondary?: boolean;
+  /** Sotto-percorsi che appartengono a un'altra voce (es. /settings/team). */
+  readonly exclude?: readonly string[];
 }
 
 const ICONS = {
@@ -46,9 +48,14 @@ const GRID_COLUMNS: Record<number, string> = {
   5: 'grid-cols-5',
 };
 
+function matches(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 function isActive(pathname: string, item: NavItem): boolean {
   if (item.exact) return pathname === item.href;
-  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  if (item.exclude?.some((href) => matches(pathname, href))) return false;
+  return matches(pathname, item.href);
 }
 
 /** Navigazione laterale (desktop). */
