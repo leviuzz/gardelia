@@ -90,7 +90,8 @@
       "ai_quota_exhausted": "Ya no tienes vistas previas disponibles este mes.",
       "ai_budget_reached": "Las vistas previas no están disponibles por ahora. Inténtalo más tarde.",
       "cutout_unavailable": "Por ahora no podemos quitar el fondo. Inténtalo más tarde.",
-      "cutout_retry_limit": "Ya lo intentamos varias veces con esta foto. Sube otra sobre un fondo liso."
+      "cutout_retry_limit": "Ya lo intentamos varias veces con esta foto. Sube otra sobre un fondo liso.",
+      "preview_retry_limit": "Ya lo intentamos varias veces con este diseño: comparte el boceto exacto o ajusta el diseño."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -1025,7 +1026,21 @@
       "quotaEmptyHint": "Pide un paquete de vistas previas extra al equipo de {product}; se suman a tu saldo y no caducan.",
       "renews": "Se renuevan el {date}.",
       "requested": "Vista previa en preparación",
-      "styled": "Con el estilo de tus fotos de «Mis ramos»."
+      "styled": "Con el estilo de tus fotos de «Mis ramos».",
+      "generateExact": "Generar foto realista",
+      "runningExact": "Convirtiendo el boceto en foto y revisando el número de flores…",
+      "verified": "Número de flores verificado",
+      "disclaimerExact": "Foto creada con IA a partir del boceto exacto. El ramo real puede variar en forma y tonos; el precio y la receta no cambian.",
+      "sketchTitle": "Boceto exacto",
+      "sketchAlt": "Boceto exacto del ramo «{name}»",
+      "sketchCaption": "Hecho con las fotos de tus flores, sin IA: el número exacto de flores, con los colores de tu diseño.",
+      "sketchNext": "Con IA lo convertimos en una foto realista y revisamos que el número de flores coincida.",
+      "viewSketch": "Ver el boceto exacto",
+      "countMismatch": "La foto realista no respetó el número de flores, así que no la mostramos y no se descontó de tu saldo. El boceto sí es exacto.",
+      "retryLimit": "Ya lo intentamos varias veces con este diseño. Puedes compartir el boceto exacto o ajustar el diseño.",
+      "missingPhotos": "Para una vista previa con el número exacto de flores, sube una foto de:",
+      "missingPhotosHint": "Una foto por flor, de frente; el fondo se quita automáticamente.",
+      "tooManyStems": "La vista previa exacta está disponible para ramos de hasta {max} flores; la de este ramo será aproximada."
     }
   },
   "photos": {
@@ -1034,7 +1049,7 @@
     "subtitleByColor": "Sube una foto por cada color disponible, de cerca y con buena luz para que se vea la textura.",
     "subtitleOther": "Fotos del producto solo, de frente y con buena luz.",
     "background": "Usa un fondo liso que contraste con el producto: una cartulina blanca o gris, o negra si el producto es blanco o muy claro. Evita sombras fuertes y otros objetos.",
-    "usage": "Se muestran en tu catálogo. Más adelante también ayudarán a que las vistas previas con IA se parezcan a tus productos reales.",
+    "usage": "Se muestran en tu catálogo. En el diseñador de ramos, las fotos de las flores arman el boceto con el número exacto de flores y su vista previa con IA.",
     "empty": "Todavía no hay fotos de este producto.",
     "count": "{count, plural, one {# foto} other {# fotos}} de {max}",
     "limitReached": "Llegaste al máximo de {max} fotos. Quita alguna para subir otra.",

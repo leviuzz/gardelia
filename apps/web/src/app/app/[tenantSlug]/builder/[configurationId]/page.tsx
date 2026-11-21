@@ -8,6 +8,7 @@ import {
   NotFoundError,
   getBouquetConfiguration,
   getBouquetPreview,
+  getBouquetSketchPlan,
   getBuilderCatalog,
   getEntitlements,
   isAiPreviewAvailable,
@@ -82,11 +83,25 @@ export default async function DesignPage({
   const format = await getFormatter();
   const previewState =
     !archived && isAiPreviewAvailable() ? await getBouquetPreview(ctx, design.id) : null;
+  const sketchPlan = previewState?.available ? await getBouquetSketchPlan(ctx, design.id) : null;
   const preview: PreviewPanelData | null =
-    previewState?.available && previewState.quota
+    previewState?.available && previewState.quota && sketchPlan
       ? {
           simulated: previewState.simulated,
           outdated: previewState.outdated,
+          mode: previewState.mode,
+          retryLimitReached: previewState.retryLimitReached,
+          sketch: {
+            url: sketchPlan.version
+              ? `${base}/builder/${design.id}/sketch?v=${sketchPlan.version}`
+              : null,
+            reason: sketchPlan.reason,
+            maxStems: sketchPlan.maxStems,
+            missing: sketchPlan.missing.map((item) => ({
+              name: item.name,
+              href: `${base}/catalog/${item.id}`,
+            })),
+          },
           quota: {
             includedLimit: previewState.quota.includedLimit,
             includedRemaining: previewState.quota.includedRemaining,
@@ -104,6 +119,9 @@ export default async function DesignPage({
                 status: previewState.preview.status,
                 reused: previewState.preview.reused,
                 styled: previewState.preview.styled,
+                mode: previewState.preview.mode,
+                verified: previewState.preview.verified,
+                errorCode: previewState.preview.errorCode,
                 imageUrl:
                   previewState.preview.status === 'SUCCEEDED'
                     ? `${base}/builder/previews/${previewState.preview.jobId}`
