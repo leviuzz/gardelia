@@ -127,14 +127,18 @@ export default async function QuotePage({
       recipeSummary:
         line.recipe && line.recipe.length > 0
           ? format.list(
-              line.recipe.map((ingredient) =>
-                t('quotes.editor.recipeItem', {
-                  quantity: ingredient.quantity,
-                  name: ingredient.variety
-                    ? `${ingredient.name} ${ingredient.variety}`
-                    : ingredient.name,
-                }),
-              ),
+              line.recipe.map((ingredient) => {
+                const name = ingredient.variety
+                  ? `${ingredient.name} ${ingredient.variety}`
+                  : ingredient.name;
+                return ingredient.color && t.has(`catalog.colors.${ingredient.color}`)
+                  ? t('quotes.editor.recipeItemColor', {
+                      quantity: ingredient.quantity,
+                      name,
+                      color: t(`catalog.colors.${ingredient.color}`).toLocaleLowerCase('es-MX'),
+                    })
+                  : t('quotes.editor.recipeItem', { quantity: ingredient.quantity, name });
+              }),
             )
           : null,
       warning: lineWarning(line, quotableById),

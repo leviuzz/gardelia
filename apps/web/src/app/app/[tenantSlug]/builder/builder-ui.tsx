@@ -20,9 +20,16 @@ export async function BuilderUpsell({ ctx }: { ctx: TenantContext }) {
   );
 }
 
-/** Opzioni dell'editor con etichette già tradotte (nome · varietà, unità di vendita). */
-export async function builderOptions(catalog: BuilderCatalogDto): Promise<BuilderOptionView[]> {
+/**
+ * Opzioni dell'editor con etichette già tradotte (nome · varietà, unità di vendita, colori)
+ * e la miniatura della foto di ogni colore, servita dalla route privata del catalogo.
+ */
+export async function builderOptions(
+  catalog: BuilderCatalogDto,
+  tenantSlug: string,
+): Promise<BuilderOptionView[]> {
   const t = await getTranslations('catalog');
+  const photoSrc = (photoId: string) => `/app/${tenantSlug}/catalog/photos/${photoId}?size=thumb`;
   return catalog.options.map((option) => ({
     id: option.id,
     name: option.variety ? `${option.name} · ${option.variety}` : option.name,
@@ -31,5 +38,13 @@ export async function builderOptions(catalog: BuilderCatalogDto): Promise<Builde
     costMinor: option.costMinor,
     availability: option.availability,
     unitLabel: t(`units.${option.saleUnit}`),
+    colors: option.colors.map((color) => {
+      const photo = option.colorPhotos.find((entry) => entry.color === color);
+      return {
+        value: color,
+        label: t(`colors.${color}`),
+        photoSrc: photo ? photoSrc(photo.photoId) : null,
+      };
+    }),
   }));
 }

@@ -75,7 +75,7 @@ export default async function DesignPage({
   }
 
   const catalog = await getBuilderCatalog(ctx);
-  const options = await builderOptions(catalog);
+  const options = await builderOptions(catalog, ctx.tenantSlug);
   const available = new Set(options.map((option) => option.id));
   const archived = design.status === 'ARCHIVED';
   const saved = (await searchParams).saved === '1';
@@ -171,6 +171,13 @@ export default async function DesignPage({
             design.lines
               .filter((line) => available.has(line.catalogItemId))
               .map((line) => [line.catalogItemId, line.quantity]),
+          ),
+          colors: Object.fromEntries(
+            design.lines.flatMap((line) =>
+              line.color && available.has(line.catalogItemId)
+                ? [[line.catalogItemId, line.color]]
+                : [],
+            ),
           ),
         }}
         savedTotalMinor={design.totalMinor}

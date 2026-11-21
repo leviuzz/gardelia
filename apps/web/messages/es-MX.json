@@ -57,7 +57,8 @@
     "image_too_small": "La foto es muy pequeña: debe medir al menos 320 píxeles por lado.",
     "too_many_photos": "Llegaste al máximo de fotos. Quita alguna para subir otra.",
     "photos_not_allowed_for_type": "Este tipo de producto no lleva fotos.",
-    "consent_required": "Para subir fotos confirma la autorización."
+    "consent_required": "Para subir fotos confirma la autorización.",
+    "builder_color_required": "Elige el color del empaque o del complemento."
   },
   "errors": {
     "validation": "Revisa los campos marcados.",
@@ -389,7 +390,12 @@
       "blue": "Azul",
       "green": "Verde",
       "burgundy": "Vino",
-      "multicolor": "Multicolor"
+      "multicolor": "Multicolor",
+      "black": "Negro",
+      "gold": "Dorado",
+      "silver": "Plateado",
+      "brown": "Café",
+      "transparent": "Transparente"
     },
     "form": {
       "createTitle": "Nuevo producto",
@@ -810,7 +816,8 @@
       "noTransitions": "Esta cotización ya no admite cambios de estado.",
       "noLines": "Esta cotización no tiene conceptos.",
       "builderLine": "Diseño personalizado",
-      "viewDesign": "Ver diseño"
+      "viewDesign": "Ver diseño",
+      "recipeItemColor": "{quantity} × {name} ({color})"
     },
     "whatsapp": {
       "greeting": "Hola {name}, te comparto la cotización {number} de {shop}:",
@@ -981,7 +988,11 @@
       "restore": "Restaurar",
       "archiveTitle": "¿Archivar este diseño?",
       "archiveBody": "Dejará de aparecer en la lista; las cotizaciones creadas con él no cambian.",
-      "archivedNotice": "Este diseño está archivado: restáuralo para modificarlo."
+      "archivedNotice": "Este diseño está archivado: restáuralo para modificarlo.",
+      "lineTotalColor": "{quantity} × {name} · {color}",
+      "colorOf": "Color de {name}",
+      "colorFixed": "Color: {color}",
+      "chooseColor": "Elige el color de {name}."
     },
     "settings": {
       "title": "Diseñador de ramos",

@@ -18,6 +18,11 @@ export const COLOR_SWATCH_CLASS: Record<CatalogColor, string> = {
   green: 'bg-[#5f8f5a]',
   burgundy: 'bg-[#7b1e3a]',
   multicolor: 'bg-[conic-gradient(#c0392b,#f6c945,#5f8f5a,#5b8def,#7e57c2,#c0392b)]',
+  black: 'bg-[#1f1f1f]',
+  gold: 'bg-[linear-gradient(135deg,#b8860b,#f3d36b,#b8860b)]',
+  silver: 'bg-[linear-gradient(135deg,#9ea3a8,#eef0f2,#9ea3a8)]',
+  brown: 'bg-[#8b5e3c]',
+  transparent: 'bg-[repeating-conic-gradient(#e5e7eb_0%_25%,#ffffff_0%_50%)] bg-[length:8px_8px]',
 };
 
 export const AVAILABILITY_BADGE: Record<Availability, BadgeVariant> = {

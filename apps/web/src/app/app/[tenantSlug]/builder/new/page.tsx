@@ -48,7 +48,7 @@ export default async function NewDesignPage({
       <BouquetEditor
         currency={catalog.currency}
         laborFeeMinor={catalog.laborFeeMinor}
-        options={await builderOptions(catalog)}
+        options={await builderOptions(catalog, ctx.tenantSlug)}
         unusableLines={[]}
         initial={{
           name: t('builder.editor.defaultName'),
@@ -57,6 +57,7 @@ export default async function NewDesignPage({
           budget: '',
           notes: '',
           quantities: {},
+          colors: {},
         }}
         savedTotalMinor={null}
         canViewCosts={catalog.canViewCosts}

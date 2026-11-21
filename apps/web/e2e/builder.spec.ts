@@ -52,6 +52,52 @@ test.describe('Bouquet Builder (fioreria demo, Plus in pilota)', () => {
   });
 });
 
+test.describe('carta e nastro con colore (ADR-030)', () => {
+  test.use({ storageState: 'e2e/.auth/owner.json' });
+
+  test('il colore di carta e nastro è obbligatorio, si salva e arriva nella cotización', async ({
+    page,
+  }) => {
+    await page.goto('/app/las-camelias/builder/new');
+    await page
+      .getByRole('textbox', { name: 'Nombre del diseño' })
+      .fill(`Ramo colores ${Date.now()}`);
+    await page.getByRole('spinbutton', { name: 'Cantidad de Girasol' }).fill('3');
+    await page.getByRole('radio', { name: /^Papel coreano(?! kraft)/ }).check();
+
+    // Senza colore non si salva: si chiede di sceglierlo.
+    await expect(page.getByText('Elige el color de Papel coreano.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Guardar diseño' })).toBeDisabled();
+    const paperColors = page.getByRole('group', { name: 'Color de Papel coreano' });
+    await paperColors.getByText('Lila').click();
+    await expect(paperColors.getByRole('radio', { name: 'Lila' })).toBeChecked();
+
+    await page.getByRole('button', { name: 'Agregar uno de Listón de organza' }).click();
+    const ribbonColors = page.getByRole('group', { name: 'Color de Listón de organza' });
+    await ribbonColors.getByText('Dorado').click();
+    await expect(page.getByText('1 × Papel coreano · Lila')).toBeVisible();
+    await expect(page.getByText('1 × Listón de organza · Dorado')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Guardar diseño' }).click();
+    await expect(page).toHaveURL(/\/builder\/[0-9a-f-]{36}\?saved=1$/);
+    // Dopo il salvataggio i colori restano quelli scelti.
+    await expect(
+      page
+        .getByRole('group', { name: 'Color de Papel coreano' })
+        .getByRole('radio', { name: 'Lila' }),
+    ).toBeChecked();
+
+    await page.getByRole('link', { name: 'Crear cotización' }).click();
+    await page.getByRole('button', { name: 'Cotización para Hotel Casa Fuentes' }).click();
+    await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
+    await expect(
+      page.getByText(
+        'Incluye: 3 × Girasol, 1 × Listón de organza (dorado) y 1 × Papel coreano (lila)',
+      ),
+    ).toBeVisible();
+  });
+});
+
 test.describe('anteprima AI (provider simulato)', () => {
   test.use({ storageState: 'e2e/.auth/owner.json' });
 

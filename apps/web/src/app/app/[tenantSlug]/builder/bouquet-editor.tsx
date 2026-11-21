@@ -22,6 +22,7 @@ import {
   priceBouquet,
   type Availability,
   type BuilderRole,
+  type CatalogColor,
 } from '@floral/domain';
 import { Field, controlProps } from '@/components/form/field';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -30,10 +31,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input, NativeSelect, Textarea } from '@/components/ui/input';
 import { fieldError, idleState, type ActionState } from '@/lib/action-state';
+import { COLOR_SWATCH_CLASS } from '@/lib/catalog-ui';
 import { money } from '@/lib/format';
 import { useActionToast } from '@/lib/use-action-toast';
 import { cn } from '@/lib/utils';
 import { PreviewPanel, type PreviewPanelData } from './preview-panel';
+
+export interface BuilderColorView {
+  readonly value: string;
+  /** Nome del colore già tradotto ("Lila"). */
+  readonly label: string;
+  /** Miniatura della foto di quel colore, se il fiorista l'ha caricata. */
+  readonly photoSrc: string | null;
+}
 
 export interface BuilderOptionView {
   readonly id: string;
@@ -44,6 +54,8 @@ export interface BuilderOptionView {
   readonly availability: Availability;
   /** Unità di vendita già tradotta ("tallo", "manojo", "pieza"). */
   readonly unitLabel: string;
+  /** Colori dell'articolo; per carta, vaso e nastro si sceglie quello del ramo (ADR-030). */
+  readonly colors: readonly BuilderColorView[];
 }
 
 /** Riga salvata il cui articolo oggi non è più utilizzabile (da rimuovere per salvare). */
@@ -60,6 +72,8 @@ export interface BouquetDraft {
   readonly budget: string;
   readonly notes: string;
   readonly quantities: Readonly<Record<string, number>>;
+  /** Colore scelto per carta, vaso e nastri (per ID articolo). */
+  readonly colors: Readonly<Record<string, string>>;
 }
 
 type SaveAction = (prev: ActionState, payload: unknown) => Promise<ActionState>;
@@ -85,7 +99,93 @@ function draftKey(draft: BouquetDraft): string {
   const quantities = Object.entries(draft.quantities)
     .filter(([, quantity]) => quantity > 0)
     .sort(([a], [b]) => a.localeCompare(b));
-  return JSON.stringify({ ...draft, quantities });
+  // Solo i colori degli articoli scelti contano per "modifiche non salvate".
+  const colors = Object.entries(draft.colors)
+    .filter(([id]) => (draft.quantities[id] ?? 0) > 0)
+    .sort(([a], [b]) => a.localeCompare(b));
+  return JSON.stringify({ ...draft, quantities, colors });
+}
+
+/** Carta, vaso e nastri con colori: si sceglie il colore del ramo. */
+function choosesColor(option: BuilderOptionView): boolean {
+  return (option.role === 'PACKAGING' || option.role === 'ACCESSORY') && option.colors.length > 0;
+}
+
+/**
+ * Colore effettivo della riga (stessa regola del server): quello scelto se è ancora fra i
+ * colori dell'articolo, altrimenti l'unico disponibile; null se manca la scelta.
+ */
+function colorOf(option: BuilderOptionView, colors: Readonly<Record<string, string>>) {
+  if (!choosesColor(option)) return null;
+  const chosen = colors[option.id];
+  if (chosen && option.colors.some((color) => color.value === chosen)) return chosen;
+  return option.colors.length === 1 ? (option.colors[0]?.value ?? null) : null;
+}
+
+function ColorChoice({
+  option,
+  value,
+  onChange,
+  disabled,
+}: {
+  option: BuilderOptionView;
+  value: string | null;
+  onChange: (next: string) => void;
+  disabled: boolean;
+}) {
+  const t = useTranslations('builder.editor');
+  if (option.colors.length === 1) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {t('colorFixed', { color: option.colors[0]?.label ?? '' })}
+      </p>
+    );
+  }
+  return (
+    <fieldset disabled={disabled} className="space-y-2">
+      <legend className="text-sm font-medium">{t('colorOf', { name: option.name })}</legend>
+      <div className="flex flex-wrap gap-2">
+        {option.colors.map((color) => {
+          const checked = value === color.value;
+          return (
+            <label
+              key={color.value}
+              className={cn(
+                'flex cursor-pointer items-center gap-2 rounded-xl border bg-card py-1.5 pr-3 pl-1.5 text-sm transition-colors has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/40',
+                checked ? 'border-primary bg-secondary/70 font-medium' : 'hover:bg-muted',
+              )}
+            >
+              <input
+                type="radio"
+                name={`color-${option.id}`}
+                value={color.value}
+                checked={checked}
+                onChange={() => onChange(color.value)}
+                className="sr-only"
+              />
+              {color.photoSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element -- miniatura privata servita da una route autenticata
+                <img
+                  src={color.photoSrc}
+                  alt=""
+                  className="size-8 rounded-lg border object-cover"
+                />
+              ) : (
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'size-6 rounded-full border border-black/10',
+                    COLOR_SWATCH_CLASS[color.value as CatalogColor],
+                  )}
+                />
+              )}
+              {color.label}
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
 }
 
 function clampQuantity(value: number): number {
@@ -225,8 +325,12 @@ export function BouquetEditor({
   const removedCount = unusableLines.length - pendingUnusable.length;
   const dirty = draftKey(draft) !== draftKey(initial) || removedCount > 0;
   const soldOutSelected = selected.filter(({ option }) => option.availability === 'OUT_OF_STOCK');
+  const missingColor = selected.filter(
+    ({ option }) => choosesColor(option) && colorOf(option, draft.colors) === null,
+  );
   // Mai sostituzioni silenziose: i componenti non più disponibili si tolgono a mano.
-  const blocked = pendingUnusable.length > 0 || soldOutSelected.length > 0;
+  const blocked =
+    pendingUnusable.length > 0 || soldOutSelected.length > 0 || missingColor.length > 0;
   const linesError = fieldError(state, 'lines');
 
   const setQuantity = (id: string, quantity: number) =>
@@ -234,6 +338,9 @@ export function BouquetEditor({
       ...current,
       quantities: { ...current.quantities, [id]: clampQuantity(quantity) },
     }));
+
+  const setColor = (id: string, color: string) =>
+    setDraft((current) => ({ ...current, colors: { ...current.colors, [id]: color } }));
 
   const setPackaging = (id: string) =>
     setDraft((current) => {
@@ -251,7 +358,11 @@ export function BouquetEditor({
       size: draft.size,
       budget: draft.budget,
       notes: draft.notes,
-      lines: selected.map(({ option, quantity }) => ({ catalogItemId: option.id, quantity })),
+      lines: selected.map(({ option, quantity }) => ({
+        catalogItemId: option.id,
+        quantity,
+        color: colorOf(option, draft.colors),
+      })),
     };
     startTransition(() => formAction(payload));
   };
@@ -290,14 +401,21 @@ export function BouquetEditor({
       <CardContent className="space-y-4">
         {selected.length > 0 ? (
           <ul className="space-y-1 text-sm" aria-label={t('selection')}>
-            {selected.map(({ option, quantity }) => (
-              <li key={option.id} className="flex justify-between gap-3">
-                <span className="min-w-0 truncate text-muted-foreground">
-                  {t('lineTotal', { quantity, name: option.name })}
-                </span>
-                <span className="tabular-nums">{fmt(option.priceMinor * quantity)}</span>
-              </li>
-            ))}
+            {selected.map(({ option, quantity }) => {
+              const color = option.colors.find(
+                (entry) => entry.value === colorOf(option, draft.colors),
+              );
+              return (
+                <li key={option.id} className="flex justify-between gap-3">
+                  <span className="min-w-0 truncate text-muted-foreground">
+                    {color
+                      ? t('lineTotalColor', { quantity, name: option.name, color: color.label })
+                      : t('lineTotal', { quantity, name: option.name })}
+                  </span>
+                  <span className="tabular-nums">{fmt(option.priceMinor * quantity)}</span>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="text-sm text-muted-foreground">{t('empty')}</p>
@@ -388,6 +506,13 @@ export function BouquetEditor({
           </p>
         ) : null}
         <p className="text-xs leading-relaxed text-muted-foreground">{t('pricesNote')}</p>
+        {missingColor.length > 0 && !readOnly ? (
+          <ul className="space-y-1 text-sm text-destructive" role="alert">
+            {missingColor.map(({ option }) => (
+              <li key={option.id}>{t('chooseColor', { name: option.name })}</li>
+            ))}
+          </ul>
+        ) : null}
         {linesError ? (
           <p className="text-sm text-destructive" role="alert">
             {linesError}
@@ -488,32 +613,39 @@ export function BouquetEditor({
                   return (
                     <li
                       key={option.id}
-                      className={cn(
-                        'flex items-center gap-3 px-4 py-3',
-                        quantity > 0 && 'bg-secondary/40',
-                      )}
+                      className={cn('space-y-2 px-4 py-3', quantity > 0 && 'bg-secondary/40')}
                     >
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium break-words">{option.name}</p>
-                        <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                          <span className="tabular-nums">
-                            {t('unitPrice', {
-                              price: fmt(option.priceMinor),
-                              unit: option.unitLabel,
-                            })}
-                          </span>
-                          <AvailabilityBadge availability={option.availability} />
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium break-words">{option.name}</p>
+                          <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                            <span className="tabular-nums">
+                              {t('unitPrice', {
+                                price: fmt(option.priceMinor),
+                                unit: option.unitLabel,
+                              })}
+                            </span>
+                            <AvailabilityBadge availability={option.availability} />
+                          </p>
+                        </div>
+                        {readOnly ? (
+                          <span className="text-sm tabular-nums">{quantity}</span>
+                        ) : (
+                          <Stepper
+                            option={option}
+                            quantity={quantity}
+                            onChange={(next) => setQuantity(option.id, next)}
+                          />
+                        )}
                       </div>
-                      {readOnly ? (
-                        <span className="text-sm tabular-nums">{quantity}</span>
-                      ) : (
-                        <Stepper
+                      {quantity > 0 && choosesColor(option) ? (
+                        <ColorChoice
                           option={option}
-                          quantity={quantity}
-                          onChange={(next) => setQuantity(option.id, next)}
+                          value={colorOf(option, draft.colors)}
+                          onChange={(color) => setColor(option.id, color)}
+                          disabled={readOnly}
                         />
-                      )}
+                      ) : null}
                     </li>
                   );
                 })}
@@ -538,32 +670,43 @@ export function BouquetEditor({
                 <span className="font-medium">{t('noPackaging')}</span>
               </label>
               {packagingOptions.filter(visible).map((option) => (
-                <label
-                  key={option.id}
-                  className={cn(
-                    'flex items-center gap-3 px-4 py-3',
-                    option.availability === 'OUT_OF_STOCK'
-                      ? 'cursor-not-allowed opacity-60'
-                      : 'cursor-pointer',
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="packaging"
-                    value={option.id}
-                    checked={selectedPackaging === option.id}
-                    disabled={option.availability === 'OUT_OF_STOCK'}
-                    onChange={() => setPackaging(option.id)}
-                    className="size-4 accent-primary"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-medium break-words">{option.name}</span>
-                    <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                      <span className="tabular-nums">{fmt(option.priceMinor)}</span>
-                      <AvailabilityBadge availability={option.availability} />
+                <div key={option.id}>
+                  <label
+                    className={cn(
+                      'flex items-center gap-3 px-4 py-3',
+                      option.availability === 'OUT_OF_STOCK'
+                        ? 'cursor-not-allowed opacity-60'
+                        : 'cursor-pointer',
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="packaging"
+                      value={option.id}
+                      checked={selectedPackaging === option.id}
+                      disabled={option.availability === 'OUT_OF_STOCK'}
+                      onChange={() => setPackaging(option.id)}
+                      className="size-4 accent-primary"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium break-words">{option.name}</span>
+                      <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                        <span className="tabular-nums">{fmt(option.priceMinor)}</span>
+                        <AvailabilityBadge availability={option.availability} />
+                      </span>
                     </span>
-                  </span>
-                </label>
+                  </label>
+                  {selectedPackaging === option.id && choosesColor(option) ? (
+                    <div className="px-4 pb-3 pl-11">
+                      <ColorChoice
+                        option={option}
+                        value={colorOf(option, draft.colors)}
+                        onChange={(color) => setColor(option.id, color)}
+                        disabled={readOnly}
+                      />
+                    </div>
+                  ) : null}
+                </div>
               ))}
             </div>
           </fieldset>
