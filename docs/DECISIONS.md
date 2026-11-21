@@ -336,7 +336,8 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
 - **Stile del fiorista senza addestramento:** il fiorista carica 5–10 foto dei suoi ramos migliori
   (con consenso, O-07); a ogni generazione il sistema ne sceglie 1–2 simili e le passa al modello
   come riferimento di stile (ambiente, luce, tecnica di incarto). Prova del 21/11/2026: stile
-  ripreso senza copiare carta e fiori del riferimento.
+  ripreso senza copiare carta e fiori del riferimento. Prova successiva sui conteggi: non
+  attivato per ora (ADR-031).
 - **Addestramento (fine-tuning) per fioreria: non ora.** I modelli migliori nei conteggi non si
   possono addestrare; quelli addestrabili (es. FLUX) erano i peggiori; un modello addestrato tende
   a ripetere i ramos tipici del fiorista (fiori non ordinati); servono 20–50 foto, costo e
@@ -394,6 +395,19 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   altrimenti il campione; salvataggio bloccato finché manca un colore obbligatorio.
 - **Vocabolario:** aggiunti i colori tipici di carte e nastri: negro, dorado, plateado, café,
   transparente.
+
+### ADR-031 — Foto di "Mis ramos" come riferimento nelle anteprime: NON attivate (21/11/2026)
+
+- **Criterio (concordato col founder):** attivare solo se i conteggi dei fiori non peggiorano.
+- **Prova** (`docs/AI_BENCHMARK.md`, 9 immagini): con una foto di stile passata al modello i ramos
+  esatti scendono da 1 su 3 a 1 su 6 e in 4 immagini su 6 compare un oggetto della foto di stile
+  (il vaso di vetro) che non è nella distinta. Ambiente e luce del negozio invece vengono ripresi
+  bene.
+- **Decisione:** le anteprime restano senza foto di riferimento. Le foto di "Mis ramos" restano
+  salvate (con consenso) e la pagina continua a dire che l'uso arriverà più avanti.
+- **Prossime opzioni:** (a) descrivere a parole lo stile di ogni foto con un modello di visione
+  (una volta per foto, ~0,005 USD) e usare solo il testo nel prompt; (b) usarle insieme alla
+  composizione esatta (ADR-028), dove posizioni e numeri li fissa il codice.
 
 ---
 

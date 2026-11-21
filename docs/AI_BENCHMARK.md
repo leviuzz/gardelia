@@ -137,4 +137,24 @@ con le foto dei ramos del fiorista?
 Conclusioni: il prompt v3 (aspetto fatto a mano, eccetto lo stile clásico) è adottato. Lo stile
 del fiorista si ottiene **senza addestramento**, passando 1–2 sue foto come riferimento a ogni
 generazione (il "Reference Selector" della spec §6.3); i numeri esatti restano compito della
-composizione (ADR-028).
+composizione (ADR-028). _Aggiornamento: la prova successiva sui conteggi ha sconsigliato di
+attivarlo per ora (sotto e ADR-031)._
+
+## Foto di "Mis ramos" come riferimento di stile: prova sui conteggi (21/11/2026, ~0,72 USD)
+
+Criterio concordato col founder: attivare solo se i conteggi non peggiorano. Stessi 3 ramos,
+prompt di produzione v3; senza riferimento (1 immagine) e con una foto di stile del fiorista
+(`fal-ai/nano-banana-2/edit`, 2 immagini). Foto di stile volutamente difficile: ramo misto in
+carta nera, in un vaso di vetro, sul bancone del negozio.
+
+| Ramo                                   | Senza riferimento | Con foto di stile (1)           | Con foto di stile (2)                   |
+| -------------------------------------- | ----------------- | ------------------------------- | --------------------------------------- |
+| T1: 3 rose + 3 margherite              | **esatto**        | **esatto**                      | 4 rose, 4 margherite ✗ + vaso copiato ✗ |
+| T2: 2 girasoli + 4 rose bianche, kraft | 5 rose ✗          | 5 rose ✗                        | 5 rose ✗ + vaso copiato ✗               |
+| T3: 4 tulipani + 3 rose + 2 margherite | 5 tulipani ✗      | 3 margherite ✗ + vaso copiato ✗ | 5 rose, 3 margherite ✗ + vaso copiato ✗ |
+
+Esito: ambiente, luce e bancone del negozio vengono ripresi bene, ma i ramos esatti scendono da
+1 su 3 a 1 su 6 e in 4 immagini su 6 compare il vaso di vetro della foto di stile, che non è nella
+distinta (nonostante "do not copy… any other item"). **Non attivato** (ADR-031). Idea da provare
+dopo: descrivere a parole lo stile della foto (un modello di visione, una volta per foto) e
+mettere solo quella descrizione nel prompt, senza passare l'immagine.

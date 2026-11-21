@@ -125,7 +125,7 @@ il **taglio** seguente.
 
 ### I prossimi task (nell'ordine)
 
-1. **Usare "Mis ramos" nelle anteprime**: scelta automatica di 1–2 foto simili per stile come riferimento (spec §6.3), con prova su conteggi e realismo prima di attivarla.
+1. **Stile di "Mis ramos" a parole**: la foto passata al modello peggiora i conteggi (ADR-031); prova (≈0,30 USD) con una descrizione testuale dello stile generata una volta per foto.
 2. **Scontorno automatico** delle foto dei fiori (base della composizione) e scelta della foto di copertina.
 3. **Anteprima esatta**: composizione deterministica dai ritagli (immediata, gratuita), foto realistica dalla composizione (`nano-banana-2/edit`) e controllo automatico dei conteggi con un nuovo tentativo (ADR-028).
 4. Prima del pilota: prova da ~100 immagini → costo reale riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 nell'hosting (P-03, O-04).
@@ -280,3 +280,12 @@ il **taglio** seguente.
 - Verifiche: lint ✅, format ✅, typecheck ✅, `pnpm test` 252/252 ✅ (+7: regola del colore, schema,
   servizi, preventivo, catalogo con foto per colore, prompt e cache), build ✅, E2E 28/28 ✅ (+1:
   colore obbligatorio → salvataggio → cotización).
+
+### 2026-11-21 — Prova: "Mis ramos" come riferimento nelle anteprime (ADR-031)
+
+- Criterio del founder: attivare solo se i numeri dei fiori non peggiorano.
+- Prova (9 immagini, ~0,72 USD): con la foto di stile ramos esatti 1 su 6 contro 1 su 3 senza; in
+  4 immagini su 6 è comparso il vaso di vetro della foto di stile. **Non attivato**; nessuna
+  modifica al codice di produzione (la variante del prompt usata per la prova è stata tolta).
+- Prossimo: provare lo stile descritto a parole, oppure passare allo scontorno e alla composizione.
+- Spesa fal totale: ≈2,9 USD su 10 € (stima da listino).
