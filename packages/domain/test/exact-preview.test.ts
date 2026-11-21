@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   SKETCH_LIMITS,
   SKETCH_SIZE,
+  buildBoxCountPrompt,
   buildCountCheckPrompt,
   buildPreviewSpec,
   buildSketchRenderPrompt,
@@ -11,6 +12,7 @@ import {
   exactPreviewPlan,
   isRibbonLabel,
   layoutBouquetSketch,
+  parseBoxCount,
   parseCountCheck,
   shadeHex,
   type BouquetPreviewSpec,
@@ -242,9 +244,11 @@ describe('boceto', () => {
       cutoutAspects: aspects,
     });
     const kinds = layout.images.map((image) => image.kind);
-    expect(kinds.filter((kind) => kind === 'foliage')).toHaveLength(2);
+    // 2 steli di eucalipto → 4 rametti intorno alla cupola.
+    expect(kinds.filter((kind) => kind === 'foliage')).toHaveLength(4);
     expect(kinds.lastIndexOf('foliage')).toBeLessThan(kinds.indexOf('bloom'));
-    for (const bloom of bloomsOf(layout)) expect(Math.abs(bloom.rotation)).toBeLessThanOrEqual(5);
+    // Clásico: solo la leggera inclinazione verso l'esterno della cupola (≤ 10°) e poco di più.
+    for (const bloom of bloomsOf(layout)) expect(Math.abs(bloom.rotation)).toBeLessThanOrEqual(14);
   });
 
   it('senza ritaglio per un fiore contato non si disegna', () => {
@@ -266,22 +270,23 @@ describe('boceto', () => {
 describe('prompt dal boceto', () => {
   it('chiede di rendere foto il boceto mantenendo numeri e posizioni', () => {
     const prompt = buildSketchRenderPrompt(spec([rose, daisy, eucalyptus, paper, ribbon]));
-    expect(prompt).toContain('Turn this rough collage into a realistic photo');
+    expect(prompt).toContain('Turn this rough collage into a realistic photograph');
     expect(prompt).toContain('exactly 3 red roses ("Rosa roja Freedom")');
     expect(prompt).toContain('exactly 3 white daisies ("Margarita")');
     expect(prompt).toContain('6 flowers in total');
-    expect(prompt).toContain('Do not add, remove, duplicate, merge or hide any flower');
+    expect(prompt).toContain('Do not add, remove or duplicate any flower');
+    expect(prompt).toContain('with the stems hidden inside the wrapping');
     expect(prompt).toContain(
-      'real wrapping paper with natural, irregular folds: "Papel coreano" in pink',
+      'real wrapping paper with soft, natural, irregular folds: "Papel coreano" in pink',
     );
-    expect(prompt).toContain('Turn the flat bow into a real "Listón de satín" in white');
-    expect(prompt).toContain('Greenery: 2 stems of "Eucalipto" (green)');
+    expect(prompt).toContain('The flat bow is a real "Listón de satín" in white');
+    expect(prompt).toContain('Greenery: 2 stems of "Eucalipto" (green) around the flowers');
     expect(prompt).not.toContain('No ribbon');
   });
 
   it('contenitore, complementi non nastro e niente nastro', () => {
     const boxed = buildSketchRenderPrompt(spec([rose, box, card]));
-    expect(boxed).toContain('into a real "Caja redonda" in black');
+    expect(boxed).toContain('is a real "Caja redonda" in black');
     expect(boxed).toContain('Also add: exactly 1 × "Tarjeta" in white');
     const bare = buildSketchRenderPrompt(spec([rose]));
     expect(bare).toContain('No wrapping: hand-tied stems.');
@@ -294,7 +299,7 @@ describe('prompt dal boceto', () => {
       { styleDescription: 'Rustic wooden counter, warm window light.' },
     );
     expect(prompt).toContain(
-      'Photo style of this flower shop: Rustic wooden counter, warm window light.',
+      'in a flower shop: Rustic wooden counter, warm window light, natural depth',
     );
     expect(prompt).not.toContain('{');
     expect(prompt).not.toContain('\n');
@@ -356,5 +361,81 @@ describe('chiave di cache', () => {
     // Job precedenti senza modalità: valgono come PROMPT.
     const { mode: _mode, ...legacy } = prompt;
     expect(canonicalPreviewInput(legacy, generator)).toBe(canonicalPreviewInput(prompt, generator));
+  });
+});
+
+describe('boceto v2: un ramo vero', () => {
+  it('alterna le angolazioni dello stesso fiore senza cambiare i conteggi', () => {
+    const SIDE = '0190a0c0-0000-7000-8000-0000000000b1';
+    const TOP = '0190a0c0-0000-7000-8000-0000000000b2';
+    const layout = layoutBouquetSketch({
+      spec: spec([{ ...rose, quantity: 9, altCutoutPhotoIds: [SIDE, TOP] }, paper]),
+      cutoutAspects: { ...aspects, [SIDE]: 0.9, [TOP]: 1 },
+    });
+    const blooms = bloomsOf(layout);
+    expect(blooms).toHaveLength(9);
+    const used = new Set(blooms.map((bloom) => bloom.photoId));
+    expect(used).toEqual(new Set([ROSE_PHOTO, SIDE, TOP]));
+    for (const bloom of blooms) {
+      expect(bloom.tone).toBeGreaterThan(0.9);
+      expect(bloom.tone).toBeLessThan(1.1);
+    }
+  });
+
+  it('le corolle esterne si disegnano prima: quella più centrale sta davanti', () => {
+    const layout = layoutBouquetSketch({
+      spec: spec([{ ...rose, quantity: 12 }, paper]),
+      cutoutAspects: aspects,
+    });
+    const blooms = bloomsOf(layout);
+    const center = {
+      x: blooms.reduce((sum, b) => sum + b.x, 0) / blooms.length,
+      y: blooms.reduce((sum, b) => sum + b.y, 0) / blooms.length,
+    };
+    const distance = (b: (typeof blooms)[number]) => Math.hypot(b.x - center.x, b.y - center.y);
+    const last = blooms.at(-1)!;
+    expect(distance(last)).toBeLessThanOrEqual(Math.min(...blooms.map(distance)) + 40);
+  });
+
+  it('le angolazioni in più non contano oltre le due e non ripetono la principale', () => {
+    const built = buildPreviewSpec({
+      components: [
+        {
+          ...rose,
+          altCutoutPhotoIds: [ROSE_PHOTO, DAISY_PHOTO, EUCALYPTUS_PHOTO, 'altra'],
+        },
+      ],
+      style: null,
+      size: null,
+    });
+    expect(built.components[0]?.altCutoutPhotoIds).toEqual([DAISY_PHOTO, EUCALYPTUS_PHOTO]);
+    const noPhoto = buildPreviewSpec({
+      components: [{ ...rose, cutoutPhotoId: null, altCutoutPhotoIds: [DAISY_PHOTO] }],
+      style: null,
+      size: null,
+    });
+    expect(noPhoto.components[0]?.altCutoutPhotoIds).toEqual([]);
+  });
+});
+
+describe('seconda opinione con i riquadri', () => {
+  const targets = countTargets(spec([rose, daisy]));
+
+  it('prompt con i tipi, mai con le quantità', () => {
+    const prompt = buildBoxCountPrompt(targets);
+    expect(prompt).toContain('bounding box [ymin, xmin, ymax, xmax]');
+    expect(prompt).toContain('1 = red roses ("Rosa roja Freedom")');
+    expect(prompt).not.toMatch(/\bexactly\b|3 red/);
+  });
+
+  it('conta i riquadri, scarta i doppioni e legge anche JSON rovinato', () => {
+    const output =
+      '```json\n{"blooms": [{"type": 1, "box": [100, 100, 200, 200]}, {"type": 1, "box": [102, 101, 201, 199]},{"type": 1, "box": [100, 300, 200, 400]}, {"type": 2, "box": [300, 100, 400, 200]},Type": 2, "box": [300, 300, 400, 400]}, {"type": 0, "box": [500, 500, 600, 600]}';
+    expect(parseBoxCount(output, targets)).toEqual({ counts: { 1: 2, 2: 2 }, other: 1 });
+    expect(parseBoxCount('{"blooms": []}', targets)).toEqual({
+      counts: { 1: 0, 2: 0 },
+      other: 0,
+    });
+    expect(parseBoxCount('Non vedo fiori.', targets)).toBeNull();
   });
 });

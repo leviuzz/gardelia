@@ -20,9 +20,10 @@ import { SKETCH_LAYOUT_VERSION } from './sketch';
  * troppo simmetriche), tranne lo stile clásico. v4: stile fotografico della fioreria descritto a
  * parole da una foto di "Mis ramos" (ADR-032). v5: anteprima esatta, cioè il boceto costruito dai
  * ritagli reso fotografico (ADR-034); la chiave include i ritagli scelti, il tipo di articolo e la
- * versione del boceto. Cambiarla invalida la cache (nuova chiave).
+ * versione del boceto. v6: boceto a cupola fitta e prompt "foto vera di un ramo" (la v5 dava
+ * foto da collage). Cambiarla invalida la cache (nuova chiave).
  */
-export const AI_PREVIEW_PROMPT_VERSION = 'bouquet-preview-v5';
+export const AI_PREVIEW_PROMPT_VERSION = 'bouquet-preview-v6';
 
 /**
  * EXACT: boceto dai ritagli del fiorista reso fotografico, con i conteggi verificati (ADR-034).
@@ -162,15 +163,18 @@ export interface PreviewComponentInput {
   readonly itemType?: CatalogItemType | null;
   /** Foto scontornata usata nel boceto esatto (ADR-034); null se il prodotto non ne ha. */
   readonly cutoutPhotoId?: string | null;
+  /** Altre angolazioni scontornate dello stesso prodotto (al massimo 2), alternate nel boceto. */
+  readonly altCutoutPhotoIds?: readonly string[] | null;
 }
 
 export interface PreviewComponent extends Omit<
   PreviewComponentInput,
-  'commonName' | 'itemType' | 'cutoutPhotoId'
+  'commonName' | 'itemType' | 'cutoutPhotoId' | 'altCutoutPhotoIds'
 > {
   readonly commonName: string | null;
   readonly itemType: CatalogItemType | null;
   readonly cutoutPhotoId: string | null;
+  readonly altCutoutPhotoIds: readonly string[];
 }
 
 export interface BouquetPreviewSpec {
@@ -226,6 +230,11 @@ export function buildPreviewSpec(input: {
       commonName: component.commonName ? sanitizeLabel(component.commonName, 40) || null : null,
       itemType: component.itemType ?? null,
       cutoutPhotoId: component.cutoutPhotoId ?? null,
+      altCutoutPhotoIds: component.cutoutPhotoId
+        ? [...new Set(component.altCutoutPhotoIds ?? [])]
+            .filter((id) => id !== component.cutoutPhotoId)
+            .slice(0, 2)
+        : [],
     }))
     .sort(
       (a, b) =>
@@ -263,6 +272,7 @@ export function canonicalPreviewInput(
       component.commonName ?? null,
       component.itemType ?? null,
       component.cutoutPhotoId ?? null,
+      component.altCutoutPhotoIds ?? [],
     ]),
   });
 }

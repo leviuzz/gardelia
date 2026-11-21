@@ -1,18 +1,21 @@
 /**
  * Boceto esatto del ramo (ADR-028, ADR-034) — geometria pura e deterministica.
  *
- *  - Si costruisce dai ritagli delle foto del fiorista: UN ritaglio per ogni stelo contato
+ *  - Si costruisce dai ritagli delle foto del fiorista: UNA corolla per ogni stelo contato
  *    della distinta, quindi il numero di fiori è esatto per costruzione.
+ *  - v2 (21/11/2026): come un ramo vero, corolle fitte a cupola (le esterne dietro, le centrali
+ *    davanti), steli nascosti nella carta, angolazioni diverse dello stesso fiore alternate.
+ *    La v1 (fiori sparsi su steli dritti) dava foto da collage.
  *  - Stessa distinta → stesso boceto (generatore pseudo-casuale con seme dalla distinta).
  *  - Qui solo posizioni, misure e colori; il disegno vero (SVG + ritagli) lo fa il core.
- *  - I fiori restano ben separati e interi, così l'AI li mantiene e un modello di visione
- *    può contarli.
+ *  - Ogni corolla resta in gran parte visibile, così l'AI la mantiene e un modello di visione
+ *    può contarla.
  */
 import type { BouquetPreviewSpec, PreviewComponent } from './ai';
 import type { CatalogColor } from './colors';
 
 /** Cambiarla cambia il boceto, quindi anche la chiave di cache delle anteprime. */
-export const SKETCH_LAYOUT_VERSION = 'sketch-v1';
+export const SKETCH_LAYOUT_VERSION = 'sketch-v2';
 
 /** Lato del boceto (px): quadrato come le immagini generate. */
 export const SKETCH_SIZE = 1024;
@@ -141,6 +144,8 @@ export interface SketchImagePlacement {
   readonly rotation: number;
   /** Ritaglio specchiato: con una sola foto per fiore, i fiori non sembrano tutti uguali. */
   readonly flip: boolean;
+  /** Luminosità relativa (≈ 0,92–1,06): piccole differenze di luce fra fiori uguali. */
+  readonly tone: number;
 }
 
 export interface SketchWrap {
@@ -174,7 +179,7 @@ export interface SketchLayout {
     readonly size: number;
     readonly color: string;
   } | null;
-  /** In ordine di disegno: follaje, riempimento, poi i fiori dall'alto verso il basso. */
+  /** In ordine di disegno: follaje, riempimento, poi i fiori dall'esterno verso il centro. */
   readonly images: readonly SketchImagePlacement[];
 }
 
@@ -224,40 +229,34 @@ function interleave(quantities: readonly number[], total: number): number[] {
   return order;
 }
 
-/** Posizioni dei fiori nella cupola (relative al centro), prima della variazione naturale. */
-function domeSlots(count: number, rx: number, ry: number, bloom: number, angle0: number) {
+/** Posizioni delle corolle nella cupola (relative al centro), prima della variazione naturale. */
+function domeSlots(count: number, radius: number, bloom: number, angle0: number) {
   if (count === 1) return [{ x: 0, y: 0 }];
   if (count === 2) {
     return [
-      { x: -0.42 * rx, y: 0 },
-      { x: 0.42 * rx, y: 0 },
+      { x: -0.3 * bloom, y: -0.1 * bloom },
+      { x: 0.32 * bloom, y: 0.12 * bloom },
     ];
   }
   if (count === 3) {
     return [
-      { x: 0, y: -0.4 * ry },
-      { x: -0.46 * rx, y: 0.24 * ry },
-      { x: 0.46 * rx, y: 0.24 * ry },
+      { x: 0.05 * bloom, y: -0.42 * bloom },
+      { x: -0.45 * bloom, y: 0.25 * bloom },
+      { x: 0.5 * bloom, y: 0.22 * bloom },
     ];
   }
-  // Spirale di Vogel: distribuzione uniforme e naturale per qualsiasi numero.
-  const usableX = rx - 0.42 * bloom;
-  const usableY = ry - 0.42 * bloom;
+  // Spirale di Vogel in un disco, appena schiacciato: la cupola vista di fronte.
+  const usable = radius - 0.45 * bloom;
   return Array.from({ length: count }, (_, index) => {
-    const radius = Math.sqrt((index + 0.5) / count);
+    const distance = Math.sqrt((index + 0.5) / count) * usable;
     const theta = angle0 + index * GOLDEN_ANGLE;
-    return { x: radius * usableX * Math.cos(theta), y: radius * usableY * Math.sin(theta) };
+    return { x: distance * Math.cos(theta), y: distance * Math.sin(theta) * 0.86 };
   });
 }
 
-/** Allontana i fiori troppo vicini (ognuno deve restare ben visibile) restando nella cupola. */
-function relax(
-  points: { x: number; y: number }[],
-  minDistance: number,
-  rx: number,
-  ry: number,
-): void {
-  for (let iteration = 0; iteration < 60; iteration++) {
+/** Allontana le corolle troppo vicine (ognuna deve restare in gran parte visibile). */
+function relax(points: { x: number; y: number }[], minDistance: number): void {
+  for (let iteration = 0; iteration < 80; iteration++) {
     let moved = false;
     for (let i = 0; i < points.length; i++) {
       for (let j = i + 1; j < points.length; j++) {
@@ -281,14 +280,6 @@ function relax(
         moved = true;
       }
     }
-    for (const point of points) {
-      const outside = (point.x / rx) ** 2 + (point.y / ry) ** 2;
-      if (outside > 1) {
-        const scale = 1 / Math.sqrt(outside);
-        point.x *= scale;
-        point.y *= scale;
-      }
-    }
     if (!moved) break;
   }
 }
@@ -304,20 +295,27 @@ function layoutSeed(spec: BouquetPreviewSpec): number {
         component.quantity,
         component.colors,
         component.cutoutPhotoId,
+        component.altCutoutPhotoIds,
       ]),
     ]),
   );
 }
 
+/** Ritagli di un componente: la foto principale (di frente) e le altre angolazioni. */
+function cutoutsOf(component: PreviewComponent): string[] {
+  return component.cutoutPhotoId ? [component.cutoutPhotoId, ...component.altCutoutPhotoIds] : [];
+}
+
 /**
  * Disposizione del boceto. Richiede un ritaglio per ogni fiore contato (vedi
  * `exactPreviewPlan`); follaje e fiori di riempimento senza ritaglio restano solo nel prompt.
+ * Le proporzioni dei fiori sono quelle delle corolle (il core toglie gli steli dai ritagli).
  */
 export function layoutBouquetSketch(input: SketchLayoutInput): SketchLayout {
   const { spec } = input;
   const size = SKETCH_SIZE;
   const random = seededRandom(layoutSeed(spec));
-  const natural = spec.style !== 'CLASSIC';
+  const classic = spec.style === 'CLASSIC';
   const aspectOf = (photoId: string) => input.cutoutAspects[photoId] ?? 1;
 
   const flowers = countedFlowers(spec);
@@ -329,78 +327,102 @@ export function layoutBouquetSketch(input: SketchLayoutInput): SketchLayout {
     throw new Error(`numero di steli fuori dai limiti del boceto: ${stems}`);
   }
 
-  // Cupola dei fiori: più steli, cupola più ampia e fiori più piccoli.
-  const rx = clamp((0.2 + 0.035 * Math.sqrt(stems)) * size, 0.22 * size, 0.34 * size);
-  const ry = rx * (natural ? 0.74 : 0.82);
-  const bloom = clamp(2 * Math.sqrt((0.95 * rx * ry) / stems), 0.1 * size, 0.3 * size);
+  // Cupola: più steli, cupola più ampia e corolle più piccole, sempre fitte come in un ramo.
+  const radius = clamp(150 + 55 * Math.sqrt(stems), 200, 380);
+  const bloom = clamp(radius * 2 * Math.sqrt(0.9 / stems) * 1.12, 110, 300);
   const cx = size / 2;
-  const cy = size / 2 - (0.32 * size - 0.65 * bloom) / 2;
-
-  const points = domeSlots(stems, rx, ry, bloom, natural ? random() * 2 * Math.PI : -Math.PI / 2);
-  if (natural) {
-    for (const point of points) {
-      // Altezze e distanze leggermente diverse, come in un ramo fatto a mano.
-      point.x += (random() - 0.5) * 0.3 * bloom;
-      point.y += (random() - 0.5) * 0.3 * bloom;
-    }
+  const points = domeSlots(stems, radius, bloom, classic ? -Math.PI / 2 : random() * 2 * Math.PI);
+  const jitter = classic ? 0.1 : 0.22;
+  for (const point of points) {
+    point.x += (random() - 0.5) * jitter * bloom;
+    point.y += (random() - 0.5) * jitter * bloom;
   }
-  if (stems > 1) relax(points, 0.76 * bloom, rx, ry);
+  if (stems > 1) relax(points, 0.64 * bloom);
 
+  // Tipi alternati; per ogni tipo, le sue angolazioni a turno (partenza casuale).
   const order = interleave(
     flowers.map((flower) => flower.quantity),
     stems,
   );
-  const blooms: SketchImagePlacement[] = points.map((point, slot) => {
-    const flower = flowers[order[slot]!]!;
-    const photoId = flower.cutoutPhotoId!;
-    const side = bloom * (natural ? 0.92 + random() * 0.16 : 1);
+  const turns = flowers.map(() => Math.floor(random() * 3));
+  const farthest = Math.max(1, ...points.map((point) => Math.hypot(point.x, point.y)));
+  const heads = points.map((point, slot) => {
+    const typeIndex = order[slot]!;
+    const flower = flowers[typeIndex]!;
+    const variants = cutoutsOf(flower);
+    const photoId = variants[turns[typeIndex]! % variants.length]!;
+    turns[typeIndex]! += 1;
+    const ring = Math.hypot(point.x, point.y) / farthest;
+    // Le corolle esterne sono un po' più piccole e inclinate verso l'esterno (prospettiva).
+    const side = bloom * (1 - 0.14 * ring) * (0.94 + random() * 0.12);
     const box = fitBox(aspectOf(photoId), side);
     return {
-      photoId,
-      catalogItemId: flower.catalogItemId,
-      kind: 'bloom',
-      x: cx + point.x,
-      y: cy + point.y,
-      width: box.width,
-      height: box.height,
-      rotation: (random() - 0.5) * (natural ? 36 : 10),
-      flip: natural ? random() < 0.5 : slot % 2 === 1,
+      ring,
+      placement: {
+        photoId,
+        catalogItemId: flower.catalogItemId,
+        kind: 'bloom' as const,
+        x: point.x,
+        y: point.y,
+        width: box.width,
+        height: box.height,
+        rotation:
+          (point.x / farthest) * (classic ? 10 : 18) + (random() - 0.5) * (classic ? 8 : 16),
+        flip: random() < 0.5,
+        tone: 0.93 + random() * 0.12,
+      },
     };
   });
 
-  // Follaje con ritaglio: rametti sul bordo superiore della cupola, verso l'esterno.
+  // Posizione verticale: tutto il ramo (cupola, carta, legatura, steli) centrato nel quadro.
   const foliage = spec.components.filter(
     (component) => component.role === 'FOLIAGE' && component.cutoutPhotoId,
   );
+  const highest = Math.min(...heads.map(({ placement }) => placement.y - placement.height / 2));
+  const lowestCenter = Math.max(...heads.map(({ placement }) => placement.y));
+  const frontTopRel = lowestCenter + 0.22 * bloom;
+  const tieRel = frontTopRel + 0.2 * size;
+  const top = highest - (foliage.length > 0 ? 0.35 * bloom : 0.05 * bloom);
+  const bottom = tieRel + 0.11 * size;
+  const cy = size / 2 - (top + bottom) / 2;
+  const tie: SketchPoint = {
+    x: cx + (classic ? 0 : (random() - 0.5) * 0.02 * size),
+    y: cy + tieRel,
+  };
+
+  // Follaje con ritaglio: rametti intorno alla cupola, dietro i fiori, verso l'esterno.
   const sprigWanted = foliage.map((component) =>
-    component.saleUnit === 'STEM' ? component.quantity : component.quantity * 3,
+    component.saleUnit === 'STEM' ? component.quantity * 2 : component.quantity * 4,
   );
   const sprigTotal = Math.min(
     SKETCH_LIMITS.maxFoliageSprigs,
     sprigWanted.reduce((sum, value) => sum + value, 0),
   );
-  const sprigOrder = interleave(sprigWanted, sprigTotal);
-  const sprigs: SketchImagePlacement[] = sprigOrder.map((componentIndex, index) => {
-    const component = foliage[componentIndex]!;
-    const photoId = component.cutoutPhotoId!;
-    const spread = sprigTotal === 1 ? 0.5 : index / (sprigTotal - 1);
-    // Da sinistra (−165°) a destra (−15°) passando per l'alto, con piccole variazioni.
-    const angle = ((-165 + spread * 150 + (random() - 0.5) * 14) * Math.PI) / 180;
-    const box = fitBox(aspectOf(photoId), bloom * 1.15);
-    return {
-      photoId,
-      catalogItemId: component.catalogItemId,
-      kind: 'foliage',
-      x: cx + Math.cos(angle) * rx * 0.94,
-      y: cy + Math.sin(angle) * ry * 0.94,
-      width: box.width,
-      height: box.height,
-      rotation: (angle * 180) / Math.PI + 90 + (random() - 0.5) * 16,
-      flip: random() < 0.5,
-    };
-  });
+  const sprigs: SketchImagePlacement[] = interleave(sprigWanted, sprigTotal).map(
+    (componentIndex, index) => {
+      const component = foliage[componentIndex]!;
+      const variants = cutoutsOf(component);
+      const photoId = variants[index % variants.length]!;
+      const spread = sprigTotal === 1 ? 0.5 : index / (sprigTotal - 1);
+      // Da sinistra (−170°) a destra (−10°) passando per l'alto.
+      const angle = ((-170 + spread * 160 + (random() - 0.5) * 14) * Math.PI) / 180;
+      const box = fitBox(aspectOf(photoId), bloom * 1.25);
+      return {
+        photoId,
+        catalogItemId: component.catalogItemId,
+        kind: 'foliage',
+        x: cx + Math.cos(angle) * (farthest + bloom * 0.35),
+        y: cy + Math.sin(angle) * (farthest * 0.86 + bloom * 0.3),
+        width: box.width,
+        height: box.height,
+        rotation: (angle * 180) / Math.PI + 90 + (random() - 0.5) * 16,
+        flip: random() < 0.5,
+        tone: 0.95 + random() * 0.08,
+      };
+    },
+  );
 
-  // Fiori di riempimento (a mazzo) con ritaglio: piccoli, fra i fiori, dietro.
+  // Fiori di riempimento (a mazzo) con ritaglio: piccoli, fra le corolle, dietro.
   const fillers = spec.components.filter(
     (component) =>
       component.role === 'FLOWER' && component.saleUnit !== 'STEM' && component.cutoutPhotoId,
@@ -411,22 +433,24 @@ export function layoutBouquetSketch(input: SketchLayoutInput): SketchLayout {
     fillerWanted.reduce((sum, value) => sum + value, 0),
   );
   const fillerSprigs: SketchImagePlacement[] = interleave(fillerWanted, fillerTotal).map(
-    (componentIndex) => {
+    (componentIndex, index) => {
       const component = fillers[componentIndex]!;
-      const photoId = component.cutoutPhotoId!;
+      const variants = cutoutsOf(component);
+      const photoId = variants[index % variants.length]!;
       const angle = random() * 2 * Math.PI;
-      const radius = 0.35 + random() * 0.6;
-      const box = fitBox(aspectOf(photoId), bloom * 0.7);
+      const distance = farthest * (0.45 + random() * 0.6);
+      const box = fitBox(aspectOf(photoId), bloom * 0.6);
       return {
         photoId,
         catalogItemId: component.catalogItemId,
         kind: 'filler',
-        x: cx + Math.cos(angle) * rx * radius,
-        y: cy + Math.sin(angle) * ry * radius,
+        x: cx + Math.cos(angle) * distance,
+        y: cy + Math.sin(angle) * distance * 0.86,
         width: box.width,
         height: box.height,
         rotation: (random() - 0.5) * 60,
         flip: random() < 0.5,
+        tone: 0.95 + random() * 0.08,
       };
     },
   );
@@ -435,22 +459,17 @@ export function layoutBouquetSketch(input: SketchLayoutInput): SketchLayout {
   const packaging = spec.components.filter((component) => component.role === 'PACKAGING');
   const containerItem = packaging.find((component) => component.itemType === 'CONTAINER');
   const papers = packaging.filter((component) => component.itemType !== 'CONTAINER');
-  const tie: SketchPoint = {
-    x: cx + (natural ? (random() - 0.5) * 0.03 * size : 0),
-    y: cy + ry + 0.2 * size,
-  };
-  const lowestBloom = Math.max(...blooms.map((placement) => placement.y + placement.height / 2));
+  const halfWidth = farthest + 0.55 * bloom + 0.03 * size;
 
   let wrap: SketchWrap | null = null;
   let container: SketchLayout['container'] = null;
   if (containerItem) {
-    const top = Math.min(cy + ry * 0.45, lowestBloom - 0.25 * bloom);
-    const height = Math.min(0.3 * size, size * 0.97 - top);
+    const containerTop = cy + frontTopRel - 0.05 * size;
     container = {
-      x: cx - rx * 0.9,
-      y: top,
-      width: rx * 1.8,
-      height,
+      x: cx - halfWidth * 0.8,
+      y: containerTop,
+      width: halfWidth * 1.6,
+      height: Math.min(0.3 * size, size * 0.97 - containerTop),
       color: hexOf(containerItem.colors, NEUTRAL_PAPER),
     };
   } else if (papers.length > 0) {
@@ -458,30 +477,30 @@ export function layoutBouquetSketch(input: SketchLayoutInput): SketchLayout {
     const frontColor = papers[1]
       ? paperHex(papers[1])
       : shadeHex(backColor, backColor === SKETCH_COLOR_HEX.black ? -0.25 : 0.07);
-    const jitter = () => (natural ? (random() - 0.5) * 0.05 * size : 0);
-    const half = rx + 0.05 * size;
+    const peak = () => (classic ? 0 : (random() - 0.5) * 0.04 * size);
+    // Il foglio dietro sale ai lati della cupola; quello davanti copre steli e base delle corolle
+    // più basse (mai i loro centri: restano contabili).
     const back: SketchPoint[] = [
-      { x: tie.x - 0.035 * size, y: tie.y },
-      { x: cx - half, y: cy + 0.05 * ry },
-      { x: cx - half * 0.92 + jitter(), y: cy - ry * 0.55 - 0.05 * size + jitter() },
-      { x: cx - half * 0.45, y: cy - ry * 0.75 },
-      { x: cx + jitter(), y: cy - ry - 0.02 * size },
-      { x: cx + half * 0.45, y: cy - ry * 0.8 },
-      { x: cx + half * 0.95 + jitter(), y: cy - ry * 0.55 - 0.08 * size + jitter() },
-      { x: cx + half, y: cy + 0.08 * ry },
-      { x: tie.x + 0.035 * size, y: tie.y },
-      { x: tie.x + 0.022 * size, y: tie.y + 0.09 * size },
-      { x: tie.x - 0.022 * size, y: tie.y + 0.09 * size },
+      { x: tie.x - 0.03 * size, y: tie.y },
+      { x: cx - halfWidth, y: cy + 0.1 * farthest },
+      { x: cx - halfWidth * 0.95 + peak(), y: cy - farthest * 0.75 - 0.04 * size + peak() },
+      { x: cx - halfWidth * 0.4, y: cy - farthest * 0.55 },
+      { x: cx + halfWidth * 0.45, y: cy - farthest * 0.6 },
+      { x: cx + halfWidth * 0.97 + peak(), y: cy - farthest * 0.8 - 0.06 * size + peak() },
+      { x: cx + halfWidth, y: cy + 0.12 * farthest },
+      { x: tie.x + 0.03 * size, y: tie.y },
+      { x: tie.x + 0.02 * size, y: tie.y + 0.08 * size },
+      { x: tie.x - 0.02 * size, y: tie.y + 0.08 * size },
     ];
-    // Il foglio davanti copre gli steli e appena il bordo dei fiori più bassi.
-    const frontTop = lowestBloom - 0.1 * bloom;
-    const tilt = natural ? (random() < 0.5 ? -1 : 1) * 0.035 * size : 0;
+    const tilt = classic ? 0 : (random() < 0.5 ? -1 : 1) * 0.03 * size;
+    const frontTop = cy + frontTopRel;
     const front: SketchPoint[] = [
-      { x: cx - rx * 0.98, y: frontTop + tilt },
-      { x: cx + rx * 0.98, y: frontTop - tilt },
+      { x: cx - halfWidth * 0.92, y: frontTop + tilt - 0.02 * size },
+      { x: cx - halfWidth * 0.2, y: frontTop + 0.01 * size },
+      { x: cx + halfWidth * 0.92, y: frontTop - tilt - 0.02 * size },
       { x: tie.x + 0.03 * size, y: tie.y + 0.01 * size },
-      { x: tie.x + 0.022 * size, y: tie.y + 0.09 * size },
-      { x: tie.x - 0.022 * size, y: tie.y + 0.09 * size },
+      { x: tie.x + 0.02 * size, y: tie.y + 0.08 * size },
+      { x: tie.x - 0.02 * size, y: tie.y + 0.08 * size },
       { x: tie.x - 0.03 * size, y: tie.y + 0.01 * size },
     ];
     wrap = {
@@ -493,20 +512,24 @@ export function layoutBouquetSketch(input: SketchLayoutInput): SketchLayout {
     };
   }
 
-  // Steli: da ogni fiore al punto di legatura; sotto, le estremità tagliate.
-  const stemLines: { from: SketchPoint; to: SketchPoint }[] = blooms.map((placement) => ({
-    from: { x: placement.x, y: placement.y + placement.height * 0.15 },
-    to: container
-      ? { x: placement.x * 0.4 + cx * 0.6, y: container.y + 0.05 * size }
-      : { x: tie.x + (placement.x - cx) * 0.04, y: tie.y },
-  }));
+  // Steli: senza carta né contenitore si vedono dalle corolle alla legatura; sempre le
+  // estremità tagliate sotto la legatura (con il contenitore restano dentro).
+  const stemLines: { from: SketchPoint; to: SketchPoint }[] = [];
+  if (!wrap && !container) {
+    for (const { placement } of heads) {
+      stemLines.push({
+        from: { x: cx + placement.x, y: cy + placement.y + placement.height * 0.2 },
+        to: { x: tie.x + placement.x * 0.04, y: tie.y },
+      });
+    }
+  }
   if (!container) {
     const ends = Math.min(stems, 10);
     for (let index = 0; index < ends; index++) {
-      const offset = (index - (ends - 1) / 2) * 0.009 * size;
+      const offset = (index - (ends - 1) / 2) * 0.008 * size;
       stemLines.push({
         from: { x: tie.x + offset, y: tie.y },
-        to: { x: tie.x + offset * 1.7, y: tie.y + 0.14 * size },
+        to: { x: tie.x + offset * 1.6, y: tie.y + 0.12 * size },
       });
     }
   }
@@ -519,11 +542,16 @@ export function layoutBouquetSketch(input: SketchLayoutInput): SketchLayout {
   const ribbon = ribbonItem
     ? {
         x: container ? cx : tie.x,
-        y: container ? container.y + 0.18 * size : tie.y,
-        size: 0.11 * size,
+        y: container ? container.y + 0.15 * size : tie.y,
+        size: 0.1 * size,
         color: hexOf(ribbonItem.colors, NEUTRAL_RIBBON),
       }
     : null;
+
+  // Ordine di disegno: dall'esterno verso il centro (le corolle centrali stanno davanti).
+  const blooms = heads
+    .sort((a, b) => b.ring - a.ring || a.placement.y - b.placement.y)
+    .map(({ placement }) => ({ ...placement, x: cx + placement.x, y: cy + placement.y }));
 
   return {
     version: SKETCH_LAYOUT_VERSION,
@@ -531,10 +559,10 @@ export function layoutBouquetSketch(input: SketchLayoutInput): SketchLayout {
     background: BACKGROUND,
     stemColor: STEM_COLOR,
     stems: stemLines,
-    stemWidth: clamp(0.045 * bloom, 6, 14),
+    stemWidth: clamp(0.04 * bloom, 6, 12),
     wrap,
     container,
     ribbon,
-    images: [...sprigs, ...fillerSprigs, ...[...blooms].sort((a, b) => a.y - b.y || a.x - b.x)],
+    images: [...sprigs, ...fillerSprigs, ...blooms],
   };
 }
