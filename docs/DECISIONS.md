@@ -726,11 +726,12 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   (avanzamento allo stesso commit già provato dalla CI) → `prod` solo con il via libera esplicito
   del founder.
 - **Vercel:** ogni progetto pubblica il proprio ramo di produzione. `apps/web/vercel.json` spegne i
-  deploy dei rami `claude/**` (`git.deploymentEnabled`) e salta ogni build che non sia di
-  produzione (`ignoreCommand` su `VERCEL_ENV`). Così il codice di un ramo non può girare per
-  sbaglio contro il database di un altro ambiente (le variabili inserite all'import possono valere
-  anche per le anteprime). Le anteprime per PR (PLATFORM_PLAN §4) torneranno con un database
-  proprio.
+  deploy dei rami `claude/**` (`git.deploymentEnabled`): il lavoro in corso non va mai online né
+  gira contro il database di prova. Le anteprime per PR (PLATFORM_PLAN §4) torneranno con un
+  database proprio. **Tolto il 22/11/2026:** un `ignoreCommand` che saltava ogni build non di
+  produzione (`[ "$VERCEL_ENV" != production ]`): su Vercel annullava anche i deploy del ramo di
+  produzione (deploy del rilascio firmato annullato con "Ignored Build Step"). Se servirà fermare
+  le anteprime di altri rami, si userà l'Ignored Build Step del singolo progetto, provato prima.
 - **GitHub:** ramo predefinito `staging` (PR e workflow manuali partono da lì). CI a ogni push di
   `staging`, `prod` e dei rami di lavoro, e su ogni PR.
 - **Supera** il "merge su `main`" del PLATFORM_PLAN: il ramo `main` non esiste.

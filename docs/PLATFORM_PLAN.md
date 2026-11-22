@@ -255,8 +255,7 @@ prima del pilota (insieme a O-07 sul consenso per le foto). Il piano non fa assu
    è verde.
 3. **Più avanti, anteprima automatica su ogni PR** (Vercel): branch Neon proprio con le migrazioni
    della PR e il seed demo, AI simulata, link nella PR per provarla dal telefono. Finché non c'è un
-   database per le anteprime restano spente: Vercel costruisce solo il ramo di produzione di ogni
-   progetto (`apps/web/vercel.json`).
+   database per le anteprime, i rami di lavoro non creano deploy (`apps/web/vercel.json`).
 4. **Push su `staging` → deploy automatico su `gardelia-staging`**, con le migrazioni applicate
    **prima** del deploy (ruolo proprietario) e un **test di fumo** automatico (salute, login, una
    pagina per area).

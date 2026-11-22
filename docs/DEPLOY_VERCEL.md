@@ -167,8 +167,8 @@ ricomponi `DATABASE_URL`.
      ridistribuisci;
    - apri `<indirizzo>/api/health`: deve rispondere `{"status":"ok"}`.
 7. **Aggiornamenti:** ogni push su `staging` va online da solo. Ci arriva un blocco finito con
-   tutti i controlli verdi; `prod` si muove solo con il via libera del founder (ADR-041). Vercel
-   costruisce solo il ramo di produzione del progetto: i push sugli altri rami non creano deploy.
+   tutti i controlli verdi; `prod` si muove solo con il via libera del founder (ADR-041). I rami
+   di lavoro (`claude/…`) non creano deploy (`apps/web/vercel.json`).
    **Sul piano Hobby** Vercel pubblica solo i commit fatti dal titolare dell'account: quelli di
    Claude vengono ignorati senza avvisi, e da quest'anno anche i Deploy Hook. Per questo ogni
    rilascio su `staging` è un commit di rilascio (merge del ramo di lavoro già verificato dalla
