@@ -113,11 +113,17 @@ mese gratis).
    claim SQL rispetta il limite di fal (10 richieste contemporanee). La funzione è separata dalle
    pagine, quindi un picco di AI non rallenta il sito. In locale (e in un eventuale container) resta
    il worker nel processo: un'opzione di configurazione sceglie il "motore".
-2. **Limite di 4,5 MB per richiesta e per risposta delle funzioni.** Le foto partono già ridotte
-   nel browser (lato lungo ≤ 2048 px, JPEG) e una per richiesta; il limite del server scende da
-   8 a 4 MB. Le immagini grandi (boceto PNG, foto AI) si servono in streaming o con URL firmati di
-   R2 a breve scadenza, dopo il controllo di permessi e fioreria. Per Flora Studio, caricamento
-   diretto su R2.
+2. **Limite di 4,5 MB per richiesta e per risposta delle funzioni.** Oggi siamo ben sotto
+   (misurato il 22/11): foto caricate 0,3–1,5 MB (ridotte nel browser a ≤ 2048 px, una per
+   richiesta), immagine AI ~0,1 MB (JPEG 1K), foto senza fondo ~0,4–0,5 MB, boceto ~0,9 MB (la più
+   grande). Rischi: (a) se il browser non riesce a ridurre una foto invia l'originale, fino a 8 MB
+   accettati dal server → oltre 4,5 MB Vercel la rifiuta con un errore poco chiaro; (b) in futuro
+   Flora Studio (foto di ambienti), immagini AI 2K/4K e video superano il limite. Soluzione, da fare
+   nel blocco Vercel: le immagini si servono con URL firmati di R2 a breve scadenza, dopo il
+   controllo di permessi e fioreria (i byte non passano dalla funzione: più veloce e meno costoso);
+   caricamento diretto su R2 con permesso temporaneo per i file grandi; limite del server a 4 MB con
+   un messaggio chiaro. Su Render il limite non c'è, ma gli URL firmati restano il modo corretto di
+   servire file grandi.
 3. **Database.** L'app usa l'URL con pool di Neon (PgBouncer), le migrazioni l'URL diretto. Il
    contesto RLS usa già `set_config(..., true)` dentro la transazione, compatibile con il pool. I
    limiti di tentativi del login sono già salvati nel database, quindi valgono anche con molte
