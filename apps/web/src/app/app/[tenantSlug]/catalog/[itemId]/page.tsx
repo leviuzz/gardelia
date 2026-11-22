@@ -15,12 +15,12 @@ import {
   type TenantContext,
 } from '@floral/core';
 import { isCurrencyCode, minorToDecimalString } from '@floral/domain';
+import { AvailabilityBadge } from '@/components/common/status-badges';
 import { ArchiveControl } from '@/components/archive-control';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AVAILABILITY_BADGE } from '@/lib/catalog-ui';
 import { money, percentFromBps } from '@/lib/format';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
@@ -110,9 +110,7 @@ export default async function ItemPage({
         description={
           <span className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{t(`catalog.types.${item.type}`)}</Badge>
-            <Badge variant={AVAILABILITY_BADGE[item.availability]}>
-              {t(`catalog.availability.${item.availability}`)}
-            </Badge>
+            <AvailabilityBadge availability={item.availability} />
             {item.variety ? <span>{item.variety}</span> : null}
             {item.canonicalName ? <span>· {item.canonicalName}</span> : null}
           </span>

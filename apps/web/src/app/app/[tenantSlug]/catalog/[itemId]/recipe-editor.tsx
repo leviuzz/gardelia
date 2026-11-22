@@ -9,6 +9,8 @@ import {
   type CatalogItemType,
   type SubstitutionPolicy,
 } from '@floral/domain';
+import { ActionButton } from '@/components/form/action-button';
+import { QuantityForm } from '@/components/form/quantity-form';
 import { Field, controlProps } from '@/components/form/field';
 import { SubmitButton } from '@/components/form/submit-button';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +18,7 @@ import { Input, NativeSelect, Textarea } from '@/components/ui/input';
 import { fieldError, idleState, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 import { money } from '@/lib/format';
-import { useActionToast, useToastActionState } from '@/lib/use-action-toast';
+import { useActionToast } from '@/lib/use-action-toast';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -46,11 +48,7 @@ export function RecipeLineRow({
   showCosts: boolean;
 }) {
   const t = useTranslations('recipe');
-  const [updateState, updateFormAction] = useToastActionState(line.updateAction);
-  // La riga rimossa viene smontata: il toast deve partire alla fine dell'azione.
-  const [, removeFormAction] = useToastActionState(line.removeAction);
   const lineCost = line.unitCostMinor !== null ? line.unitCostMinor * line.quantity : null;
-  const quantityError = fieldError(updateState, 'quantity');
 
   return (
     <li className="flex flex-wrap items-center gap-3 py-3 sm:flex-nowrap">
@@ -73,29 +71,16 @@ export function RecipeLineRow({
         </div>
       </div>
       {canEdit ? (
-        <form
-          action={updateFormAction}
-          onSubmit={preserveOnSubmit(updateFormAction)}
-          className="flex items-center gap-2"
-        >
-          <label htmlFor={`qty-${line.id}`} className="sr-only">
-            {t('quantity')}
-          </label>
-          <Input
-            id={`qty-${line.id}`}
-            name="quantity"
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={RECIPE_LIMITS.quantityMax}
-            defaultValue={line.quantity}
-            aria-invalid={quantityError ? true : undefined}
-            className="h-9 w-20 text-right tabular-nums"
-          />
-          <SubmitButton size="sm" variant="secondary">
-            {t('updateQuantity')}
-          </SubmitButton>
-        </form>
+        <QuantityForm
+          key={`${line.id}-${line.quantity}`}
+          action={line.updateAction}
+          id={`qty-${line.id}`}
+          quantity={line.quantity}
+          max={RECIPE_LIMITS.quantityMax}
+          label={t('quantity')}
+          submitLabel={t('updateQuantity')}
+          inputClassName="text-right"
+        />
       ) : (
         <span className="w-16 text-right font-medium tabular-nums">× {line.quantity}</span>
       )}
@@ -105,15 +90,13 @@ export function RecipeLineRow({
         </span>
       ) : null}
       {canEdit ? (
-        <form action={removeFormAction}>
-          <SubmitButton
-            size="icon-sm"
-            variant="ghost"
-            aria-label={t('removeLine', { name: line.name })}
-          >
-            <Trash />
-          </SubmitButton>
-        </form>
+        <ActionButton
+          action={line.removeAction}
+          size="icon-sm"
+          variant="ghost"
+          aria-label={t('removeLine', { name: line.name })}
+          icon={<Trash />}
+        />
       ) : null}
     </li>
   );

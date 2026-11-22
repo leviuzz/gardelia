@@ -22,8 +22,8 @@ import {
   priceBouquet,
   type Availability,
   type BuilderRole,
-  type CatalogColor,
 } from '@floral/domain';
+import { ColorSwatch } from '@/components/common/color-swatch';
 import { Field, controlProps } from '@/components/form/field';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +31,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input, NativeSelect, Textarea } from '@/components/ui/input';
 import { fieldError, idleState, type ActionState } from '@/lib/action-state';
-import { COLOR_SWATCH_CLASS } from '@/lib/catalog-ui';
 import { money } from '@/lib/format';
 import { useActionToast } from '@/lib/use-action-toast';
 import { cn } from '@/lib/utils';
@@ -171,13 +170,7 @@ function ColorChoice({
                   className="size-8 rounded-lg border object-cover"
                 />
               ) : (
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    'size-6 rounded-full border border-black/10',
-                    COLOR_SWATCH_CLASS[color.value as CatalogColor],
-                  )}
-                />
+                <ColorSwatch color={color.value} size="md" />
               )}
               {color.label}
             </label>

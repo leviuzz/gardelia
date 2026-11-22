@@ -2,11 +2,12 @@
 
 import { ImagePlus, LoaderCircle, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { ActionButton } from '@/components/form/action-button';
 import { controlProps, Field } from '@/components/form/field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { ActionState } from '@/lib/action-state';
-import { useToastActionState } from '@/lib/use-action-toast';
+
 import type { PhotoUploadState } from './use-photo-upload';
 
 /** Selettore dei file (più foto insieme) con suggerimento ed errore. */
@@ -70,20 +71,15 @@ export function RemovePhotoButton({
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   label: string;
 }) {
-  const [, formAction, pending] = useToastActionState(action);
   return (
-    <form action={formAction}>
-      <Button
-        type="submit"
-        variant="secondary"
-        size="icon-sm"
-        className="bg-card/90 shadow-sm backdrop-blur"
-        disabled={pending}
-        aria-label={label}
-        title={label}
-      >
-        {pending ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Trash2 />}
-      </Button>
-    </form>
+    <ActionButton
+      action={action}
+      variant="secondary"
+      size="icon-sm"
+      className="bg-card/90 shadow-sm backdrop-blur"
+      aria-label={label}
+      title={label}
+      icon={<Trash2 />}
+    />
   );
 }

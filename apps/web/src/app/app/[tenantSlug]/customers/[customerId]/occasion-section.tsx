@@ -4,6 +4,7 @@ import { CalendarHeart, Plus, Trash } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { OCCASION_TYPES, type OccasionType } from '@floral/domain';
+import { ActionButton } from '@/components/form/action-button';
 import { Field, controlProps } from '@/components/form/field';
 import { SubmitButton } from '@/components/form/submit-button';
 import { Badge } from '@/components/ui/badge';
@@ -28,13 +29,14 @@ export interface OccasionView {
 }
 
 function RemoveOccasionButton({ action, label }: { action: Action; label: string }) {
-  const [, formAction] = useToastActionState(action);
   return (
-    <form action={formAction}>
-      <SubmitButton size="icon-sm" variant="ghost" aria-label={label}>
-        <Trash />
-      </SubmitButton>
-    </form>
+    <ActionButton
+      action={action}
+      size="icon-sm"
+      variant="ghost"
+      aria-label={label}
+      icon={<Trash />}
+    />
   );
 }
 

@@ -11,10 +11,10 @@ import {
   isBuilderComponentType,
   isCanonicalLinkable,
   type Availability,
-  type CatalogColor,
   type CatalogItemType,
   type SaleUnit,
 } from '@floral/domain';
+import { ColorSwatch } from '@/components/common/color-swatch';
 import { Field, controlProps } from '@/components/form/field';
 import { FormAlert } from '@/components/form/form-alert';
 import { SubmitButton } from '@/components/form/submit-button';
@@ -22,9 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox, Input, NativeSelect, Textarea } from '@/components/ui/input';
 import { fieldError, idleState, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
-import { COLOR_SWATCH_CLASS } from '@/lib/catalog-ui';
 import { useActionToast } from '@/lib/use-action-toast';
-import { cn } from '@/lib/utils';
 
 export interface ItemFormDefaults {
   readonly type: CatalogItemType;
@@ -291,13 +289,7 @@ export function ItemForm({
                     defaultChecked={defaults.colors.includes(color)}
                     className="sr-only"
                   />
-                  <span
-                    className={cn(
-                      'size-3.5 rounded-full border border-black/10',
-                      COLOR_SWATCH_CLASS[color as CatalogColor],
-                    )}
-                    aria-hidden="true"
-                  />
+                  <ColorSwatch color={color} />
                   {t(`colors.${color}`)}
                 </label>
               ))}

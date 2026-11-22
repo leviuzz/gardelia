@@ -1,10 +1,12 @@
 'use client';
 
-import { Check, CheckCheck, Download, Plus, Trash, TriangleExclamationPoint } from 'lucide-react';
+import { CheckCheck, Download, Plus, Trash, TriangleExclamationPoint } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { ActionButton } from '@/components/form/action-button';
 import { Field, controlProps } from '@/components/form/field';
+import { QuantityForm } from '@/components/form/quantity-form';
 import { SubmitButton } from '@/components/form/submit-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,59 +52,15 @@ export interface QuotableOptionView {
 
 const GROUPS: readonly QuotableGroup[] = ['BOUQUET', 'INGREDIENTS', 'OTHER'];
 
-function QuantityForm({
-  action,
-  lineId,
-  quantity,
-  label,
-}: {
-  action: Action;
-  lineId: string;
-  quantity: number;
-  label: string;
-}) {
-  const t = useTranslations('quotes.editor');
-  const [state, formAction] = useToastActionState(action);
-  const inputId = `qty-${lineId}`;
-  const err = fieldError(state, 'quantity');
-  return (
-    <form action={formAction} onSubmit={preserveOnSubmit(formAction)} className="grid gap-1">
-      <div className="flex items-center gap-1.5">
-        <label htmlFor={inputId} className="sr-only">
-          {label}
-        </label>
-        <Input
-          {...controlProps(inputId, err)}
-          name="quantity"
-          type="number"
-          inputMode="numeric"
-          min={1}
-          max={999}
-          defaultValue={quantity}
-          required
-          className="h-9 w-20"
-        />
-        <SubmitButton size="icon-sm" variant="outline" aria-label={t('update')}>
-          <Check />
-        </SubmitButton>
-      </div>
-      {err ? (
-        <p id={`${inputId}-error`} className="text-sm text-destructive">
-          {err}
-        </p>
-      ) : null}
-    </form>
-  );
-}
-
 function RemoveLineButton({ action, label }: { action: Action; label: string }) {
-  const [, formAction] = useToastActionState(action);
   return (
-    <form action={formAction}>
-      <SubmitButton size="icon-sm" variant="ghost" aria-label={label}>
-        <Trash />
-      </SubmitButton>
-    </form>
+    <ActionButton
+      action={action}
+      size="icon-sm"
+      variant="ghost"
+      aria-label={label}
+      icon={<Trash />}
+    />
   );
 }
 
@@ -191,9 +149,12 @@ export function QuoteLineList({
               <QuantityForm
                 key={`${line.id}-${line.quantity}`}
                 action={line.updateAction}
-                lineId={line.id}
+                id={`qty-${line.id}`}
                 quantity={line.quantity}
+                max={999}
                 label={t('quantityOf', { name: line.description })}
+                submitLabel={t('update')}
+                compact
               />
               <span className="pt-2 text-sm text-muted-foreground tabular-nums">
                 × {line.unitPriceLabel}

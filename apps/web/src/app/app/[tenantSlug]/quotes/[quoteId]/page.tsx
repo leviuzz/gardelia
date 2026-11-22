@@ -20,13 +20,13 @@ import {
   todayInTimeZone,
   whatsappLink,
 } from '@floral/domain';
+import { QuoteStatusBadge } from '@/components/common/status-badges';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { money, phoneForInput } from '@/lib/format';
-import { QUOTE_STATUS_BADGE, calendarDate } from '@/lib/quote-ui';
+import { calendarDate } from '@/lib/quote-ui';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
@@ -210,9 +210,7 @@ export default async function QuotePage({
         title={
           <span className="flex flex-wrap items-center gap-3">
             <span className="tabular-nums">{quote.numberLabel}</span>
-            <Badge variant={QUOTE_STATUS_BADGE[quote.status]} className="font-sans">
-              {t(`quotes.statuses.${quote.status}`)}
-            </Badge>
+            <QuoteStatusBadge status={quote.status} className="font-sans" />
           </span>
         }
         description={

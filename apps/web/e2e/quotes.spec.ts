@@ -31,6 +31,16 @@ test.describe('cotizaciones (propietario)', () => {
     await expect(page.getByTestId('quote-total')).toHaveText('$1,380.00');
     await expect(page.getByText(/Incluye: 12 × Rosa roja/)).toBeVisible();
 
+    // Quantità della riga con il pulsante a spunta: il totale si ricalcola sul server.
+    const quantity = page.getByRole('spinbutton', { name: 'Cantidad de Ramo Clásico 12 rosas' });
+    const quantityForm = page.locator('form').filter({ has: quantity });
+    await quantity.fill('3');
+    await quantityForm.getByRole('button', { name: 'Actualizar' }).click();
+    await expect(page.getByTestId('quote-total')).toHaveText('$2,070.00');
+    await page.getByRole('spinbutton', { name: 'Cantidad de Ramo Clásico 12 rosas' }).fill('2');
+    await quantityForm.getByRole('button', { name: 'Actualizar' }).click();
+    await expect(page.getByTestId('quote-total')).toHaveText('$1,380.00');
+
     // Riga libera con prezzo del fiorista.
     await page.getByRole('button', { name: 'Agregar concepto libre' }).click();
     const custom = customLineForm(page);

@@ -50,6 +50,16 @@ test.describe('catalogo (proprietario)', () => {
     const costing = page.locator('dl').filter({ hasText: 'Costo de materiales' });
     await expect(costing.getByText('$140.00')).toBeVisible();
     await expect(costing.getByText('$360.00 · 72%')).toBeVisible();
+
+    // La quantità di una riga si aggiorna sul posto e i costi si ricalcolano (12 × 14.00).
+    const roseLine = page
+      .getByRole('listitem')
+      .filter({ hasText: 'Rosa roja' })
+      .filter({ has: page.getByRole('spinbutton') });
+    await roseLine.getByRole('spinbutton', { name: 'Cantidad' }).fill('12');
+    await roseLine.getByRole('button', { name: 'Actualizar' }).click();
+    await expect(page.getByText('Cantidad actualizada')).toBeVisible();
+    await expect(costing.getByText('$168.00')).toBeVisible();
   });
 });
 

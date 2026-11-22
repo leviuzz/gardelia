@@ -7,18 +7,12 @@ import {
   type CatalogItemDto,
   type TenantContext,
 } from '@floral/core';
-import {
-  PHOTO_LIMITS,
-  allowsPhotos,
-  canRequestCutout,
-  photoByColor,
-  type CatalogColor,
-} from '@floral/domain';
+import { PHOTO_LIMITS, allowsPhotos, canRequestCutout, photoByColor } from '@floral/domain';
+import { ColorSwatch } from '@/components/common/color-swatch';
 import { CutoutAutoRefresh, RequestCutoutButton } from '@/components/photos/cutout-parts';
 import { RemovePhotoButton } from '@/components/photos/photo-upload-parts';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { COLOR_SWATCH_CLASS } from '@/lib/catalog-ui';
 import { tenantRoutes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import {
@@ -116,13 +110,7 @@ export async function PhotosSection({ ctx, item }: { ctx: TenantContext; item: C
                           <Badge variant="secondary">{view}</Badge>
                           {photo.color ? (
                             <Badge variant="outline" className="gap-1.5">
-                              <span
-                                aria-hidden="true"
-                                className={cn(
-                                  'size-2.5 rounded-full border border-black/10',
-                                  COLOR_SWATCH_CLASS[photo.color as CatalogColor],
-                                )}
-                              />
+                              <ColorSwatch color={photo.color} size="xs" />
                               {colorLabel(photo.color)}
                             </Badge>
                           ) : null}

@@ -3,11 +3,13 @@
 import { MapPin, Pencil, Plus, Trash } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { ActionButton } from '@/components/form/action-button';
+import { AddressFields } from '@/components/form/address-fields';
 import { Field, controlProps } from '@/components/form/field';
 import { SubmitButton } from '@/components/form/submit-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox, Input, NativeSelect } from '@/components/ui/input';
+import { Checkbox, Input } from '@/components/ui/input';
 import { fieldError, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 import { useToastActionState } from '@/lib/use-action-toast';
@@ -53,7 +55,6 @@ function AddressForm({
   submitLabel: string;
 }) {
   const t = useTranslations('customers.addresses');
-  const tOnboarding = useTranslations('onboarding');
   const tCommon = useTranslations('common');
   const [state, formAction] = useToastActionState(action, onDone);
   const err = (field: string) => fieldError(state, field);
@@ -82,78 +83,13 @@ function AddressForm({
           maxLength={120}
         />
       </Field>
-      <Field
-        id={id('addressLine1')}
-        label={tOnboarding('addressLine1')}
-        error={err('addressLine1')}
-        required
-        className="sm:col-span-2"
-      >
-        <Input
-          {...controlProps(id('addressLine1'), err('addressLine1'))}
-          name="addressLine1"
-          defaultValue={defaults?.addressLine1 ?? ''}
-          required
-        />
-      </Field>
-      <Field
-        id={id('addressLine2')}
-        label={tOnboarding('addressLine2')}
-        error={err('addressLine2')}
-      >
-        <Input
-          {...controlProps(id('addressLine2'), err('addressLine2'))}
-          name="addressLine2"
-          defaultValue={defaults?.addressLine2 ?? ''}
-        />
-      </Field>
-      <Field
-        id={id('neighborhood')}
-        label={tOnboarding('neighborhood')}
-        error={err('neighborhood')}
-      >
-        <Input
-          {...controlProps(id('neighborhood'), err('neighborhood'))}
-          name="neighborhood"
-          defaultValue={defaults?.neighborhood ?? ''}
-        />
-      </Field>
-      <Field
-        id={id('postalCode')}
-        label={tOnboarding('postalCode')}
-        error={err('postalCode')}
-        required
-      >
-        <Input
-          {...controlProps(id('postalCode'), err('postalCode'))}
-          name="postalCode"
-          inputMode="numeric"
-          maxLength={5}
-          defaultValue={defaults?.postalCode ?? ''}
-          required
-        />
-      </Field>
-      <Field id={id('city')} label={tOnboarding('city')} error={err('city')} required>
-        <Input
-          {...controlProps(id('city'), err('city'))}
-          name="city"
-          defaultValue={defaults?.city ?? ''}
-          required
-        />
-      </Field>
-      <Field id={id('region')} label={tOnboarding('region')} error={err('region')} required>
-        <NativeSelect
-          {...controlProps(id('region'), err('region'))}
-          name="region"
-          defaultValue={defaults?.region ?? 'AGU'}
-        >
-          {regions.map((region) => (
-            <option key={region.code} value={region.code}>
-              {region.name}
-            </option>
-          ))}
-        </NativeSelect>
-      </Field>
+      <AddressFields
+        regions={regions}
+        defaults={defaults}
+        error={err}
+        layout="compact"
+        idPrefix={`${idPrefix}-`}
+      />
       <Field id={id('recipientPhone')} label={t('recipientPhone')} error={err('recipientPhone')}>
         <Input
           {...controlProps(id('recipientPhone'), err('recipientPhone'))}
@@ -192,13 +128,14 @@ function AddressForm({
 }
 
 function ArchiveAddressButton({ action, label }: { action: Action; label: string }) {
-  const [, formAction] = useToastActionState(action);
   return (
-    <form action={formAction}>
-      <SubmitButton size="icon-sm" variant="ghost" aria-label={label}>
-        <Trash />
-      </SubmitButton>
-    </form>
+    <ActionButton
+      action={action}
+      size="icon-sm"
+      variant="ghost"
+      aria-label={label}
+      icon={<Trash />}
+    />
   );
 }
 

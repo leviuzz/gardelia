@@ -44,8 +44,9 @@ apps/web/
   src/instrumentation.ts      verifica all'avvio che il ruolo DB non possa aggirare la RLS
   src/lib/                    auth (server/client), sessione, contesto tenant, env, form,
                               tenant-action (ossatura delle server action), routes (percorsi)
-  src/components/             design system (ui/), form, app shell, brand, common/ (pezzi
-                              condivisi: immagini private, list/ per le pagine elenco)
+  src/components/             design system (ui/), form/ (campi, gruppi di campi, pulsanti
+                              d'azione, quantità), app shell, brand, common/ (immagini private,
+                              conferme, badge, colori, list/ per le pagine elenco)
   src/app/                    route (auth), onboarding, app/[tenantSlug]/…, invite, api
   e2e/                        Playwright + pozzo SMTP
 packages/core/src/            context, authorization, audit, mailer, email-templates, services/*,

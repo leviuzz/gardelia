@@ -53,4 +53,31 @@ test('invito via email: la persona invitata si registra, accetta ed entra come s
   // Il proprietario lo vede ora tra i membri.
   await page.reload();
   await expect(page.getByText(fullName, { exact: true })).toBeVisible();
+
+  // Disattivazione con conferma: la finestra si chiude solo a operazione riuscita.
+  const memberRow = page.getByRole('listitem').filter({ hasText: fullName });
+  await memberRow.getByRole('button', { name: 'Desactivar' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByText(`¿Desactivar a ${fullName}?`)).toBeVisible();
+  await dialog.getByRole('button', { name: 'Desactivar' }).click();
+  await expect(page.getByText('Miembro desactivado')).toBeVisible();
+  await expect(dialog).toHaveCount(0);
+  await memberRow.getByRole('button', { name: 'Reactivar' }).click();
+  await expect(page.getByText('Miembro reactivado')).toBeVisible();
+  await expect(memberRow.getByRole('button', { name: 'Desactivar' })).toBeVisible();
+});
+
+test('un invito si può cancellare: la riga sparisce e il toast lo conferma', async ({ page }) => {
+  const email = uniqueEmail('revocar');
+  await page.goto('/app/las-camelias/settings/team');
+  await page.getByLabel('Correo electrónico').fill(email);
+  await page.getByLabel('Rol', { exact: true }).selectOption('STAFF');
+  await page.getByRole('button', { name: 'Enviar invitación' }).click();
+  await expect(page.getByText(email, { exact: true })).toBeVisible();
+
+  const invitationRow = page.getByRole('listitem').filter({ hasText: email });
+  await invitationRow.getByRole('button', { name: 'Cancelar invitación' }).click();
+  // Il toast arriva anche se il pulsante sparisce con la riga.
+  await expect(page.getByText('Invitación cancelada')).toBeVisible();
+  await expect(page.getByText(email, { exact: true })).toHaveCount(0);
 });

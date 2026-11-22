@@ -1,11 +1,10 @@
 'use client';
 
-import { LoaderCircle, Scissors } from 'lucide-react';
+import { Scissors } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/components/form/action-button';
 import type { ActionState } from '@/lib/action-state';
-import { useToastActionState } from '@/lib/use-action-toast';
 
 /** Intervallo e durata massima dell'aggiornamento automatico mentre si toglie il fondo. */
 const REFRESH_EVERY_MS = 2500;
@@ -37,13 +36,9 @@ export function RequestCutoutButton({
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   label: string;
 }) {
-  const [, formAction, pending] = useToastActionState(action);
   return (
-    <form action={formAction}>
-      <Button type="submit" variant="outline" size="sm" disabled={pending} aria-busy={pending}>
-        {pending ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Scissors />}
-        {label}
-      </Button>
-    </form>
+    <ActionButton action={action} variant="outline" size="sm" icon={<Scissors />}>
+      {label}
+    </ActionButton>
   );
 }

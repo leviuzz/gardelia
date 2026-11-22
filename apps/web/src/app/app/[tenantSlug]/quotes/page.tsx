@@ -4,15 +4,15 @@ import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { getEntitlements, hasPermission, listQuotes } from '@floral/core';
 import { QUOTE_STATUSES, quoteListFiltersSchema } from '@floral/domain';
+import { QuoteStatusBadge } from '@/components/common/status-badges';
 import { FilterBar } from '@/components/common/list/filter-bar';
 import { ListPagination } from '@/components/common/list/list-pagination';
 import { ListResults } from '@/components/common/list/list-results';
 import { EmptyState, PageHeader } from '@/components/page-header';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/input';
 import { money } from '@/lib/format';
-import { QUOTE_STATUS_BADGE, calendarDate } from '@/lib/quote-ui';
+import { calendarDate } from '@/lib/quote-ui';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 
@@ -130,9 +130,7 @@ export default async function QuotesPage({
                         : t('noValidity'))}
                   </span>
                 </span>
-                <Badge variant={QUOTE_STATUS_BADGE[quote.status]}>
-                  {t(`statuses.${quote.status}`)}
-                </Badge>
+                <QuoteStatusBadge status={quote.status} />
                 <span className="w-28 text-right font-semibold tabular-nums">
                   {money(quote.totalMinor, quote.currency)}
                 </span>

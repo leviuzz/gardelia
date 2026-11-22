@@ -3,12 +3,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { listCatalogItems, type CatalogItemDto } from '@floral/core';
-import {
-  AVAILABILITY_STATES,
-  CATALOG_ITEM_TYPES,
-  catalogListFiltersSchema,
-  type CatalogColor,
-} from '@floral/domain';
+import { AVAILABILITY_STATES, CATALOG_ITEM_TYPES, catalogListFiltersSchema } from '@floral/domain';
+import { AvailabilityBadge } from '@/components/common/status-badges';
+import { ColorSwatch } from '@/components/common/color-swatch';
 import { FilterBar } from '@/components/common/list/filter-bar';
 import { ListPagination } from '@/components/common/list/list-pagination';
 import { ListResults } from '@/components/common/list/list-results';
@@ -16,11 +13,9 @@ import { EmptyState, PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/input';
-import { AVAILABILITY_BADGE, COLOR_SWATCH_CLASS } from '@/lib/catalog-ui';
 import { money } from '@/lib/format';
 import { tenantRoutes, type TenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
-import { cn } from '@/lib/utils';
 import { PrivateImage } from '@/components/common/private-image';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -157,9 +152,7 @@ export default async function CatalogPage({
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Badge variant="secondary">{t(`types.${item.type}`)}</Badge>
-                  <Badge variant={AVAILABILITY_BADGE[item.availability]}>
-                    {t(`availability.${item.availability}`)}
-                  </Badge>
+                  <AvailabilityBadge availability={item.availability} />
                   {item.status === 'ARCHIVED' ? (
                     <Badge variant="muted">{t('archivedBadge')}</Badge>
                   ) : null}
@@ -231,9 +224,7 @@ export default async function CatalogPage({
                   ) : null}
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1.5">
-                      <Badge variant={AVAILABILITY_BADGE[item.availability]}>
-                        {t(`availability.${item.availability}`)}
-                      </Badge>
+                      <AvailabilityBadge availability={item.availability} />
                       {item.status === 'ARCHIVED' ? (
                         <Badge variant="muted">{t('archivedBadge')}</Badge>
                       ) : null}
@@ -263,12 +254,10 @@ function ItemName({ item, routes }: { item: CatalogItemDto; routes: TenantRoutes
       ) : null}
       <span className="flex -space-x-1" aria-hidden="true">
         {(item.colors.length > 0 ? item.colors.slice(0, 3) : ['__none']).map((color) => (
-          <span
+          <ColorSwatch
             key={color}
-            className={cn(
-              'size-3.5 rounded-full border border-black/10 ring-2 ring-card',
-              color === '__none' ? 'bg-muted' : COLOR_SWATCH_CLASS[color as CatalogColor],
-            )}
+            color={color === '__none' ? null : color}
+            className="ring-2 ring-card"
           />
         ))}
       </span>

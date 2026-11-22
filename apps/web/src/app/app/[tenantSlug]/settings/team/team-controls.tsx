@@ -2,21 +2,13 @@
 
 import { Ban, RotateCcw, UserPlus, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useActionState, useRef, useState } from 'react';
+import { useActionState, useRef } from 'react';
 import type { MembershipRole } from '@floral/domain';
+import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
+import { ActionButton } from '@/components/form/action-button';
 import { Field, controlProps } from '@/components/form/field';
 import { SubmitButton } from '@/components/form/submit-button';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Input, NativeSelect } from '@/components/ui/input';
 import { fieldError, idleState, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
@@ -123,62 +115,36 @@ export function MemberStatusControl({
   memberName: string;
 }) {
   const t = useTranslations();
-  const [open, setOpen] = useState(false);
-  const [state, formAction] = useActionState(async (prev: ActionState, formData: FormData) => {
-    const result = await action(prev, formData);
-    setOpen(false);
-    return result;
-  }, idleState);
-  useActionToast(state);
-
   if (!active) {
     return (
-      <form action={formAction}>
-        <SubmitButton size="sm" variant="outline">
-          <RotateCcw />
-          {t('team.reactivate')}
-        </SubmitButton>
-      </form>
+      <ActionButton action={action} size="sm" variant="outline" icon={<RotateCcw />}>
+        {t('team.reactivate')}
+      </ActionButton>
     );
   }
+  // La finestra si chiude solo se la disattivazione riesce (prima si chiudeva anche con un errore).
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <ConfirmActionDialog
+      action={action}
+      trigger={
         <Button size="sm" variant="ghost">
           <Ban />
           {t('team.deactivate')}
         </Button>
-      </DialogTrigger>
-      <DialogContent closeLabel={t('common.close')}>
-        <DialogHeader>
-          <DialogTitle>{t('team.deactivateTitle', { name: memberName })}</DialogTitle>
-          <DialogDescription>{t('team.deactivateBody')}</DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="ghost">{t('common.cancel')}</Button>
-          </DialogClose>
-          <form action={formAction}>
-            <SubmitButton variant="destructive" className="w-full sm:w-auto">
-              {t('team.deactivate')}
-            </SubmitButton>
-          </form>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      }
+      title={t('team.deactivateTitle', { name: memberName })}
+      description={t('team.deactivateBody')}
+      confirmLabel={t('team.deactivate')}
+    />
   );
 }
 
 export function RevokeInvitationButton({ action }: { action: Action }) {
   const t = useTranslations('team');
-  const [state, formAction] = useActionState(action, idleState);
-  useActionToast(state);
+  // Toast alla fine dell'azione: la riga dell'invito sparisce subito dopo.
   return (
-    <form action={formAction}>
-      <SubmitButton size="sm" variant="ghost">
-        <X />
-        {t('revoke')}
-      </SubmitButton>
-    </form>
+    <ActionButton action={action} size="sm" variant="ghost" icon={<X />}>
+      {t('revoke')}
+    </ActionButton>
   );
 }

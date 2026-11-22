@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useActionState, useState } from 'react';
 import { ACQUISITION_CHANNELS, CUSTOMER_TYPES, type CustomerType } from '@floral/domain';
+import { LegalFields } from '@/components/form/legal-fields';
 import { Field, controlProps } from '@/components/form/field';
 import { FormAlert } from '@/components/form/form-alert';
 import { SubmitButton } from '@/components/form/submit-button';
@@ -54,6 +55,7 @@ export function CustomerForm({
   consentNote?: string;
 }) {
   const t = useTranslations('customers');
+  const tCommon = useTranslations('common');
   const [state, formAction] = useActionState(action, idleState);
   useActionToast(mode === 'edit' ? state : idleState);
   const [type, setType] = useState<CustomerType>(defaults.type);
@@ -104,7 +106,7 @@ export function CustomerForm({
               type="tel"
               inputMode="tel"
               defaultValue={defaults.phone}
-              placeholder="449 123 4567"
+              placeholder={tCommon('phonePlaceholder')}
             />
           </Field>
           <Field id="email" label={t('form.email')} error={err('email')}>
@@ -200,23 +202,7 @@ export function CustomerForm({
           <CardDescription>{t('form.fiscalHint')}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-5 sm:grid-cols-2">
-          <Field id="legalName" label={t('form.legalName')} error={err('legalName')}>
-            <Input
-              {...controlProps('legalName', err('legalName'))}
-              name="legalName"
-              defaultValue={defaults.legalName}
-              maxLength={160}
-            />
-          </Field>
-          <Field id="taxId" label={t('form.taxId')} error={err('taxId')}>
-            <Input
-              {...controlProps('taxId', err('taxId'))}
-              name="taxId"
-              defaultValue={defaults.taxId}
-              maxLength={13}
-              className="uppercase"
-            />
-          </Field>
+          <LegalFields defaults={defaults} error={err} />
         </CardContent>
       </Card>
 

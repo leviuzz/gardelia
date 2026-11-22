@@ -2,22 +2,13 @@
 
 import { Ban, CircleCheck, CircleX, LoaderCircle, Printer, Send, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useFormStatus } from 'react-dom';
 import type { QuoteStatus } from '@floral/domain';
+import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import { Field, controlProps } from '@/components/form/field';
 import { SubmitButton } from '@/components/form/submit-button';
 import { Button, type ButtonProps } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Input, Textarea } from '@/components/ui/input';
 import { fieldError, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
@@ -84,8 +75,7 @@ export function QuoteStatusActions({
   transitions: readonly QuoteStatus[];
 }) {
   const t = useTranslations();
-  const [cancelOpen, setCancelOpen] = useState(false);
-  const [, formAction] = useToastActionState(action, () => setCancelOpen(false));
+  const [, formAction] = useToastActionState(action);
   const direct = transitions.filter(isDirect);
 
   if (transitions.length === 0) {
@@ -106,31 +96,19 @@ export function QuoteStatusActions({
         </form>
       ) : null}
       {transitions.includes('CANCELLED') ? (
-        <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
-          <DialogTrigger asChild>
+        <ConfirmActionDialog
+          action={action}
+          trigger={
             <Button variant="ghost" className="w-full text-destructive hover:text-destructive">
               <Ban />
               {t('quotes.editor.transitions.CANCELLED')}
             </Button>
-          </DialogTrigger>
-          <DialogContent closeLabel={t('common.close')}>
-            <DialogHeader>
-              <DialogTitle>{t('quotes.editor.cancelTitle')}</DialogTitle>
-              <DialogDescription>{t('quotes.editor.cancelBody')}</DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="ghost">{t('common.cancel')}</Button>
-              </DialogClose>
-              <form action={formAction}>
-                <input type="hidden" name="status" value="CANCELLED" />
-                <SubmitButton variant="destructive" className="w-full sm:w-auto">
-                  {t('quotes.editor.transitions.CANCELLED')}
-                </SubmitButton>
-              </form>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          }
+          title={t('quotes.editor.cancelTitle')}
+          description={t('quotes.editor.cancelBody')}
+          confirmLabel={t('quotes.editor.transitions.CANCELLED')}
+          fields={{ status: 'CANCELLED' }}
+        />
       ) : null}
     </div>
   );

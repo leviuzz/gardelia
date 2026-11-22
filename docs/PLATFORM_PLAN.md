@@ -296,11 +296,11 @@ runtime, salvo eccezioni elencate).
 | ✅ Pagine elenco: filtri, ricerca, paginazione, vuoto, conteggio           | 4 pagine (+ ricerca clienti)  | `components/common/list/*` + `routes.x.list(query)`      |
 | ✅ Immagini private: route, lettura del file, `<img>`, URL                 | 5 route, 4 servizi, 7 `<img>` | `privateImageRoute`, `readStoredImage`, `<PrivateImage>` |
 | ✅ Percorsi `/app/${slug}/…` scritti a mano                                | 75 in 32 file                 | `routes.ts` (link, redirect, revalidate, immagini)       |
-| Dialoghi di conferma                                                       | 3                             | `ConfirmActionDialog`                                    |
-| Pulsanti-azione e form di quantità                                         | 7 + 2                         | `ActionButton`, `QuantityForm`                           |
-| Campi indirizzo / dati fiscali / profilo                                   | 3 + 3 + 2                     | `AddressFields`, `LegalFields`, `ProfileFields`          |
+| ✅ Dialoghi di conferma                                                    | 3                             | `ConfirmActionDialog`                                    |
+| ✅ Pulsanti-azione e form di quantità                                      | 7 + 2                         | `ActionButton`, `QuantityForm`                           |
+| ✅ Campi indirizzo / dati fiscali / profilo                                | 3 + 3 + 2                     | `AddressFields`, `LegalFields`, `ShopProfileFields`      |
 | Stati vuoti scritti a mano                                                 | 7                             | `EmptyState` con varianti                                |
-| Badge di stato e campioni colore                                           | 3–4 ciascuno                  | `StatusBadge`, `ColorSwatch`                             |
+| ✅ Badge di stato e campioni colore                                        | 3–4 ciascuno                  | `QuoteStatusBadge`, `AvailabilityBadge`, `ColorSwatch`   |
 | Nel core: controllo ID + "non trovato", validazione Zod, paginazione       | 45, 19, 4                     | `assertId`, `parseInput`, `paginate`                     |
 | Date e fusi orari                                                          | 3 pacchetti, 3 convenzioni    | un modulo date unico + formattazione per fioreria        |
 

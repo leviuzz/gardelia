@@ -239,6 +239,19 @@ build ✅ · E2E 41/41 ✅.
 Prossimo blocco della fase 0: altri componenti condivisi (dialoghi di conferma, pulsanti-azione,
 campi indirizzo e fiscali, badge di stato).
 
+**Fase 0, altri componenti condivisi (fatto il 22/11):** un pezzo unico per ciò che era copiato:
+`ConfirmActionDialog` (archiviare, annullare una cotización, disattivare un membro: la finestra si
+chiude solo se l'azione riesce; prima la disattivazione si chiudeva anche con un errore),
+`ActionButton` (10 pulsanti di un solo form, con la rotella al posto dell'icona e il toast anche
+quando la riga sparisce), `QuantityForm` (righe di cotización e ricetta: errore sotto il campo in
+entrambe, prima la ricetta lo segnalava solo con un toast), `AddressFields`, `LegalFields` e
+`ShopProfileFields` (onboarding, impostazioni, clienti: stessi campi, stesso autocompletamento),
+`QuoteStatusBadge`, `AvailabilityBadge` e `ColorSwatch`. Il numero d'esempio del telefono ora è
+un testo di es-MX. Circa 500 righe ripetute in meno. Nuovi E2E: disattivare e riattivare un
+membro, cancellare un invito, cambiare la quantità di una riga di ricetta e di cotización.
+Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 385/385 ✅ · build ✅ ·
+E2E 42/42 ✅.
+
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite
 `prisma` → `@prisma/config`, è chiuso con un override pnpm a ≥ 3.22.1 (`pnpm-workspace.yaml`);

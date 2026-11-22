@@ -2,11 +2,14 @@
 
 import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
+import { AddressFields } from '@/components/form/address-fields';
+import { LegalFields } from '@/components/form/legal-fields';
+import { ShopProfileFields } from '@/components/form/shop-profile-fields';
 import { Field, controlProps } from '@/components/form/field';
 import { FormAlert } from '@/components/form/form-alert';
 import { SubmitButton } from '@/components/form/submit-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input, NativeSelect } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { fieldError, idleState, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 
@@ -36,74 +39,13 @@ export function OnboardingForm({ action, timezones, regions, defaultContactEmail
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-5 sm:grid-cols-2">
-          <Field
-            id="displayName"
-            label={t('displayName')}
-            hint={t('displayNameHint')}
-            error={err('displayName')}
-            required
-            className="sm:col-span-2"
-          >
-            <Input
-              {...controlProps('displayName', err('displayName'), true)}
-              name="displayName"
-              autoComplete="organization"
-              required
-              maxLength={80}
-            />
-          </Field>
-          <Field id="contactPhone" label={t('contactPhone')} error={err('contactPhone')}>
-            <Input
-              {...controlProps('contactPhone', err('contactPhone'))}
-              name="contactPhone"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder="449 123 4567"
-            />
-          </Field>
-          <Field id="contactEmail" label={t('contactEmail')} error={err('contactEmail')}>
-            <Input
-              {...controlProps('contactEmail', err('contactEmail'))}
-              name="contactEmail"
-              type="email"
-              defaultValue={defaultContactEmail}
-            />
-          </Field>
-          <Field
-            id="timezone"
-            label={t('timezone')}
-            error={err('timezone')}
-            className="sm:col-span-2"
-          >
-            <NativeSelect
-              {...controlProps('timezone', err('timezone'))}
-              name="timezone"
-              defaultValue="America/Mexico_City"
-            >
-              {timezones.map((tz) => (
-                <option key={tz.id} value={tz.id}>
-                  {tz.label}
-                </option>
-              ))}
-            </NativeSelect>
-          </Field>
-          <Field id="legalName" label={t('legalName')} error={err('legalName')}>
-            <Input
-              {...controlProps('legalName', err('legalName'))}
-              name="legalName"
-              maxLength={160}
-            />
-          </Field>
-          <Field id="taxId" label={t('taxId')} hint={t('taxIdHint')} error={err('taxId')}>
-            <Input
-              {...controlProps('taxId', err('taxId'), true)}
-              name="taxId"
-              maxLength={13}
-              className="uppercase"
-              autoCapitalize="characters"
-            />
-          </Field>
+          <ShopProfileFields
+            defaults={{ contactEmail: defaultContactEmail }}
+            error={err}
+            timezones={timezones}
+            displayNameHint={t('displayNameHint')}
+          />
+          <LegalFields error={err} taxIdHint={t('taxIdHint')} />
           <div className="grid gap-2 sm:col-span-2">
             <span className="text-sm font-medium">{t('country')}</span>
             <p className="rounded-lg border border-dashed bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
@@ -123,94 +65,7 @@ export function OnboardingForm({ action, timezones, regions, defaultContactEmail
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-5 sm:grid-cols-6">
-          <Field
-            id="addressLine1"
-            label={t('addressLine1')}
-            error={err('location.addressLine1')}
-            required
-            className="sm:col-span-4"
-          >
-            <Input
-              {...controlProps('addressLine1', err('location.addressLine1'))}
-              name="location.addressLine1"
-              autoComplete="address-line1"
-              required
-            />
-          </Field>
-          <Field
-            id="addressLine2"
-            label={t('addressLine2')}
-            error={err('location.addressLine2')}
-            className="sm:col-span-2"
-          >
-            <Input
-              {...controlProps('addressLine2', err('location.addressLine2'))}
-              name="location.addressLine2"
-              autoComplete="address-line2"
-            />
-          </Field>
-          <Field
-            id="neighborhood"
-            label={t('neighborhood')}
-            error={err('location.neighborhood')}
-            className="sm:col-span-3"
-          >
-            <Input
-              {...controlProps('neighborhood', err('location.neighborhood'))}
-              name="location.neighborhood"
-            />
-          </Field>
-          <Field
-            id="postalCode"
-            label={t('postalCode')}
-            error={err('location.postalCode')}
-            required
-            className="sm:col-span-3"
-          >
-            <Input
-              {...controlProps('postalCode', err('location.postalCode'))}
-              name="location.postalCode"
-              inputMode="numeric"
-              autoComplete="postal-code"
-              maxLength={5}
-              pattern="\d{5}"
-              required
-            />
-          </Field>
-          <Field
-            id="city"
-            label={t('city')}
-            error={err('location.city')}
-            required
-            className="sm:col-span-3"
-          >
-            <Input
-              {...controlProps('city', err('location.city'))}
-              name="location.city"
-              autoComplete="address-level2"
-              required
-            />
-          </Field>
-          <Field
-            id="region"
-            label={t('region')}
-            error={err('location.region')}
-            required
-            className="sm:col-span-3"
-          >
-            <NativeSelect
-              {...controlProps('region', err('location.region'))}
-              name="location.region"
-              defaultValue="AGU"
-              required
-            >
-              {regions.map((region) => (
-                <option key={region.code} value={region.code}>
-                  {region.name}
-                </option>
-              ))}
-            </NativeSelect>
-          </Field>
+          <AddressFields regions={regions} error={err} namePrefix="location." layout="wide" />
           <Field
             id="deliveryRadiusKm"
             label={t('deliveryRadiusKm')}
