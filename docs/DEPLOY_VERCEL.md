@@ -110,12 +110,20 @@ Ogni esecuzione dà un segreto nuovo: generane uno per ogni uso.
 
 ## 7. Progetto su Vercel
 
-1. **Importa il repository:** **Add New → Project**, importa `leviuzz/gardelia` e chiama il
-   progetto `gardelia-staging` (l'indirizzo diventa `https://gardelia-staging.vercel.app`).
-2. **Root Directory:** `apps/web`. Framework, build, cron e versione di Node (22) li decide il
-   repository (`apps/web/vercel.json` e `apps/web/package.json`): non cambiarli.
-3. **Environment Variables:** inseriscile **solo per "Production"** (le anteprime per ramo non le
-   usiamo ancora):
+1. **Importa il repository:** accedi con GitHub, **Add New → Project**, importa
+   `leviuzz/gardelia` e chiama il progetto `gardelia-staging` (l'indirizzo diventa
+   `https://gardelia-staging.vercel.app`). Se il repository non compare, dai a Vercel l'accesso
+   solo a `leviuzz/gardelia` dalle impostazioni della GitHub App che propone.
+2. **Root Directory:** **Edit** → `apps/web`; il Framework Preset diventa Next.js da solo.
+   Framework, build, cron, regione e versione di Node (22) li decide il repository
+   (`apps/web/vercel.json` e `apps/web/package.json`): non cambiarli.
+3. **Environment Variables:** il modo più rapido è preparare nella nota privata un blocco
+   `NOME=valore`, una riga per variabile della tabella, e incollarlo tutto nel primo campo
+   **Key**: Vercel crea una riga per variabile. Regole del blocco:
+   - niente spazi attorno a `=` e niente virgolette (anche `EMAIL_FROM` si scrive così com'è);
+   - se un indirizzo del database finisce con `&channel_binding=require`, togli quel pezzo;
+   - servono almeno in "Production": se l'import le mette anche in "Preview" e "Development" va
+     bene, le anteprime per ramo non le usiamo ancora.
 
    | Variabile                                                                | Valore                                                       |
    | ------------------------------------------------------------------------ | ------------------------------------------------------------ |
