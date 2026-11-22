@@ -50,8 +50,8 @@ format ✅ · typecheck ✅ · test 329/329 ✅ (+15 unità del web) · build �
 **Per attivarlo serve il founder:** client OAuth su Google Cloud con dominio e account aziendale
 (passi in ADR-036) e una riga nell'aviso de privacidad (O-07).
 
-**Prossimo:** prova con foto vere di una fioreria del pilota e prova da ~100 immagini (costo
-reale). Vedi "I prossimi task".
+**Prossimo:** niente pilota (D-22, 22/11): si costruisce la V1 completa (`docs/V1_SCOPE.md`) e la
+usano solo founder e tester fino al lancio. Vedi "I prossimi task".
 
 ---
 
@@ -147,10 +147,16 @@ il **taglio** seguente.
 
 ### I prossimi task (nell'ordine)
 
-**In attesa del founder:** piano di piattaforma (`docs/PLATFORM_PLAN.md`: ambienti, hosting,
-rilasci, errori, refactor del codice, roadmap). Rivisto il 21/11 sera su richiesta del founder
-("non risparmiamo"): consigliati **Vercel + Neon** (job AI in funzioni su coda Postgres, anteprima
-con database per ogni PR); Render resta la riserva. Approvato il link pubblico del preventivo (21/11).
+**Decisioni del founder (22/11):** **Vercel + Neon** confermati; budget **20 USD/mese** finché lo
+usa solo lui (Vercel Pro + piani gratuiti di Neon, R2, Resend, Sentry; un solo ambiente online di
+prova); nome proposto **Gardelia** (da verificare: marchi IMPI e dominio, O-03); intestatario
+rinviato (O-02, per ora solo tester); bozze di aviso de privacidad e termini scritte in
+`docs/legal/`, revisione dell'avvocato prima del lancio (O-07); **niente pilota: si lancia la V1
+completa** (D-22, `docs/V1_SCOPE.md`). Approvato il link pubblico del preventivo (21/11).
+
+**Serve dal founder per l'ambiente online di prova:** account Vercel (Pro), Neon, Cloudflare (R2) e
+Resend a suo nome; dominio quando è deciso il nome. Le chiavi vanno nelle variabili di Vercel
+(`docs/CONFIGURATION.md`), mai in chat.
 
 **Fase 0, errori e log (fatto il 22/11):** un errore in una pagina della fioreria non fa più
 sparire il menu (confine d'errore con "Reintentar", "Ir al inicio" e riferimento); 404 dentro il
@@ -197,14 +203,24 @@ E2E 39/39 ✅. Prossimo blocco della fase 0: azioni e percorsi (`defineTenantAct
 `pnpm audit --prod` non trova vulnerabilità; `prisma generate`, migrazioni e 329 test verdi. Da
 togliere quando Prisma aggiornerà la dipendenza.
 
-1. Prima del pilota: foto vere di una fioreria (scontorno e anteprima esatta) e prova da ~100 immagini → costo reale (foto, controlli, scontorni) riconciliato con la fattura fal → prezzi dei pacchetti (ADR-024); `FAL_KEY` e R2 nell'hosting (P-03, O-04).
-2. Boceto: contenitori (caja, florero) disegnati meglio e "tamaño" del ramo; foto: scelta della copertina e "usa l'originale" se il ritaglio non piace. (Fatto: proporzioni per tipo di fiore e angolazioni alternate.)
-3. Link per il cliente: pagina pubblica del preventivo (token, scadenza, revoca) con l'immagine del ramo, da mandare su WhatsApp; privacy da validare (O-07). Oggi l'immagine si scarica e si allega a mano (ADR-035).
-4. Builder pubblico per i clienti della fioreria (AI-BQ-10), dopo il pilota del Builder interno.
-5. Aggiungere un disegno del Builder a un preventivo in bozza esistente.
-6. Ordini da preventivo accettato (Sprint 3) con la stessa distinta.
-7. Contador: IVA nei preventivi e fatturazione dei pacchetti (O-06, O-02).
-8. Pannello admin di piattaforma minimo (oggi CLI) con autenticazione forte e audit.
+Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
+
+1. Resto della fase 0: azioni e percorsi condivisi (`defineTenantAction`, `routes.ts`), pagine
+   elenco condivise; job AI su funzioni Vercel, immagini con URL firmati e caricamento diretto su R2
+   per i file grandi; CI/CD; Sentry e monitor; **ambiente online di prova** (appena ci sono gli
+   account).
+2. Ordini, pagamenti registrati e consegne con calendario; link pubblici di preventivo (approvato)
+   e ordine; aggiungere un disegno del Diseñador a un preventivo in bozza.
+3. Inventario.
+4. Clienti completi: cronologia, etichette, import CSV.
+5. Abbonamenti dei clienti e Floral Care.
+6. Report.
+7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.
+8. Abbonamento a pagamento (Stripe in modalità di prova) e pannello della piattaforma.
+9. Privacy nell'app: pagine, consensi, esportazione e cancellazione dei dati.
+10. Rifinitura generale; Diseñador con foto vere (contenitori, dimensione del ramo, copertina,
+    "usa l'originale"); prova da ~100 immagini → prezzi dei pacchetti (ADR-024); prova con i tester.
+    Contador: IVA e fatturazione (O-06, O-02). Poi il lancio.
 
 ---
 

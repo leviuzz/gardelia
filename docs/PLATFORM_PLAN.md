@@ -1,7 +1,9 @@
 # Piano di piattaforma — ambienti, stack, architettura del codice
 
-**Stato: PROPOSTO (21/11/2026), da approvare dal founder.** Nessuna voce di questo documento è
-una decisione finché non è confermata e riportata in `docs/DECISIONS.md`.
+**Stato: PROPOSTO (21/11/2026), con decisioni del founder del 22/11/2026:** hosting **Vercel +
+Neon** (deciso), budget **20 USD/mese** finché lo usa solo il founder, nessun pilota con clienti
+prima della V1 completa (D-22, `docs/V1_SCOPE.md`). Le voci non ancora confermate restano proposte
+finché non sono riportate in `docs/DECISIONS.md`.
 
 **Revisione del 21/11/2026 (sera).** Il founder chiede di non risparmiare sull'infrastruttura:
 avremo molte fiorerie e un uso intenso di AI (Bouquet Builder e Flora Studio). Rivalutato
@@ -55,6 +57,10 @@ gestione errori e componenti**, **monitorare**.
 ---
 
 ## 2. Ambienti
+
+**Fino al lancio della V1** (decisione del 22/11/2026: niente clienti veri prima): locale + **un
+solo ambiente online di prova**, usato dal founder e dai tester, con dati di prova. Staging e
+produzione separati, come nella tabella, si creano prima del lancio.
 
 | Ambiente         | Scopo                                       | Dati                            | AI                                    | Email                                     | Deploy                            |
 | ---------------- | ------------------------------------------- | ------------------------------- | ------------------------------------- | ----------------------------------------- | --------------------------------- |
@@ -177,7 +183,19 @@ Sceglieremmo Supabase se partissimo da zero e volessimo login, file e tempo real
 servizio. Non è il nostro caso. Per quanto verificato, nessuno dei due ha oggi una regione in
 Messico.
 
-### Costo stimato all'inizio (da verificare sui listini al momento dell'acquisto)
+### Costo adesso, finché lo usa solo il founder (deciso il 22/11/2026: 20 USD/mese)
+
+| Voce                                                      | Al mese                                     |
+| --------------------------------------------------------- | ------------------------------------------- |
+| Vercel Pro (anteprime, cron ogni minuto, funzioni lunghe) | 20 USD, con 20 USD di consumo inclusi       |
+| Neon Free (Postgres; ripristino di poche ore)             | 0                                           |
+| Cloudflare R2, Resend, Sentry: piani gratuiti             | 0                                           |
+| **Totale**                                                | **≈ 20 USD + AI a consumo (pochi dollari)** |
+
+Limite consapevole: con Neon Free il ripristino a un istante copre solo poche ore; va bene per dati
+di prova, non per clienti veri. Prima del lancio si passa ai piani della tabella seguente.
+
+### Costo al lancio (da verificare sui listini al momento dell'acquisto)
 
 | Voce                                                        | Al mese, staging + produzione                  |
 | ----------------------------------------------------------- | ---------------------------------------------- |
@@ -404,18 +422,19 @@ componenti condivisi → divisione dei file grandi insieme alle funzionalità ch
 7. Monitor di disponibilità, drain dei log, avvisi base; backup con primo test di ripristino.
 8. Intestazioni di sicurezza, aggiornamento automatico delle dipendenze, runbook.
 
-### Fase 1 — Pilota ad Aguascalientes
+### Fase 1 — V1 completa, prima di qualsiasi cliente (D-22)
 
-- Sentry su pagine e job AI; 2FA per i proprietari; gestione sessioni.
-- **Link pubblico del preventivo** per il cliente (token, scadenza, revoca): approvato dal founder il
-  21/11/2026; testi di privacy da validare (O-07).
-- Notifiche email (preventivo inviato/accettato); foto vere dei fiori e prova da ~100 immagini AI.
-- Aviso de privacidad e consenso foto validati (O-07).
+Niente pilota: tutto il perimetro e l'ordine di lavoro sono in `docs/V1_SCOPE.md`. In sintesi,
+oltre alla fase 0: ordini, pagamenti registrati e consegne; inventario; clienti completi;
+abbonamenti e Floral Care; report; impostazioni complete ed email; abbonamento a pagamento (Stripe)
+e pannello della piattaforma; privacy nell'app; Sentry, 2FA per i proprietari, gestione sessioni;
+**link pubblico del preventivo** (approvato il 21/11/2026); rifinitura generale; prova con i
+tester e con foto vere. Poi il lancio.
 
 ### Fase 2 — Crescita
 
-- Abbonamenti con Stripe (P-04) e pannello di amministrazione della piattaforma.
-- Ordini e consegne (Sprint 3), WhatsApp Business API, **notifiche push** (PWA).
+- Primo addon: Flora Studio (proposto, da confermare); poi Floral Network.
+- WhatsApp Business API, **notifiche push** (PWA).
 - Builder pubblico per i clienti della fioreria (AI-BQ-10). (Il login con Google è già fatto:
   ADR-036, anticipato su richiesta del founder il 21/11/2026.)
 
@@ -427,14 +446,17 @@ componenti condivisi → divisione dei file grandi insieme alle funzionalità ch
 
 ---
 
-## 11. Decisioni che servono dal founder
+## 11. Decisioni del founder
 
-1. **Hosting:** A (Vercel + Neon, consigliato dopo la revisione del 21/11), B (Render + Neon,
-   riserva) o C (Google Cloud Messico).
-2. **Nome e dominio** definitivi (O-03): servono per email, URL e account.
-3. **Intestatario degli account e dei pagamenti** (entità legale, O-02).
-4. **Budget mensile** di infrastruttura (≈ 60–170 USD + AI) e tetto AI per staging/produzione.
-5. **Regione:** Stati Uniti est adesso, Messico più avanti se servirà.
+1. ✅ **Hosting:** Vercel + Neon (22/11/2026).
+2. 🟡 **Nome e dominio** (O-03): il founder propone **Gardelia**; prima del cambio nel codice
+   servono la ricerca marchi (IMPI, classi 9, 35 e 42) e un dominio libero.
+3. ⏸️ **Intestatario di account e pagamenti** (O-02): rinviato, per ora solo tester.
+4. ✅ **Budget:** 20 USD/mese finché lo usa solo il founder; si rivede prima del lancio.
+5. ✅ **Regione:** Stati Uniti est; Messico più avanti se servirà.
+6. ✅ **Privacy e termini** (O-07): bozze scritte (`docs/legal/`), revisione dell'avvocato prima del
+   lancio.
+7. ✅ **Niente pilota** (D-22): si lancia la V1 completa (`docs/V1_SCOPE.md`).
 
 ---
 

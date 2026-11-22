@@ -10,6 +10,8 @@ prima di modificare codice.
 2. **Decisioni e ADR:** `docs/DECISIONS.md` — aggiornalo quando prendi o cambi una decisione.
 3. **Architettura:** `docs/ARCHITECTURE.md` — come è fatto il sistema e perché.
 4. **Stato e backlog:** `IMPLEMENTATION_PLAN.md` — cosa è fatto, cosa manca, prossimi task.
+   **Perimetro della V1 e criterio di "finito":** `docs/V1_SCOPE.md` (D-22: ai clienti veri arriva solo
+   il prodotto finito, nessun pilota).
 5. Prompt iniziale storico: `docs/CLAUDE_CODE_START.md`.
 
 Se trovi un conflitto fra richiesta dell'utente, spec e decisioni: **segnalalo prima di implementare**.
