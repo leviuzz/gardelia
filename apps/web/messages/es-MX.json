@@ -92,7 +92,7 @@
       "ai_quota_exhausted": "Ya no tienes vistas previas disponibles este mes.",
       "ai_budget_reached": "Las vistas previas no están disponibles por ahora. Inténtalo más tarde.",
       "cutout_unavailable": "Por ahora no podemos quitar el fondo. Inténtalo más tarde.",
-      "cutout_retry_limit": "Ya lo intentamos varias veces con esta foto. Sube otra sobre un fondo liso.",
+      "cutout_retry_limit": "El servicio para quitar el fondo falló varias veces con esta foto: el problema es nuestro, no de la foto. Inténtalo más tarde subiéndola de nuevo.",
       "preview_retry_limit": "Ya lo intentamos varias veces con este diseño: comparte el boceto exacto o ajusta el diseño.",
       "platform_admin_exists": "Ya existe un administrador de la plataforma."
     },

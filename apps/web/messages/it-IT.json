@@ -92,7 +92,7 @@
       "ai_quota_exhausted": "Non hai più anteprime disponibili questo mese.",
       "ai_budget_reached": "Le anteprime non sono disponibili al momento. Riprova più tardi.",
       "cutout_unavailable": "Al momento non possiamo rimuovere lo sfondo. Riprova più tardi.",
-      "cutout_retry_limit": "Abbiamo già provato più volte con questa foto. Caricane un’altra su uno sfondo uniforme.",
+      "cutout_retry_limit": "Il servizio che toglie lo sfondo non ha funzionato più volte con questa foto: il problema è nostro, non della foto. Riprova più tardi caricandola di nuovo.",
       "preview_retry_limit": "Abbiamo già provato più volte con questa composizione: condividi il bozzetto esatto o modifica la composizione.",
       "platform_admin_exists": "Esiste già un amministratore della piattaforma."
     },
