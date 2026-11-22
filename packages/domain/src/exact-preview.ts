@@ -66,6 +66,93 @@ export function exactPreviewPlan(spec: BouquetPreviewSpec): ExactPreviewPlan {
   return { eligible: true, stems, missing: [] };
 }
 
+/**
+ * Parole che da sole non dicono che fiore è (senza accenti, minuscole): segnaposto ("Fiore 1"),
+ * steli e confezioni, miscele, misure, colori e parole di legame, in spagnolo, italiano e
+ * inglese. Esclusi apposta i colori che sono anche fiori (rosa, viola, violeta, lavanda, lila,
+ * lilla, malva): "Rosa" va sempre bene come nome.
+ */
+const GENERIC_NAME_WORDS: ReadonlySet<string> = new Set([
+  // Fiore, stelo, confezione.
+  ...['flor', 'flores', 'florecita', 'florecitas', 'fiore', 'fiori', 'flower', 'flowers'],
+  ...['bloom', 'blooms', 'tallo', 'tallos', 'vara', 'varas', 'stelo', 'steli', 'stem', 'stems'],
+  ...['ramo', 'ramos', 'ramito', 'mazzo', 'mazzi', 'mazzetto', 'bouquet', 'bunch', 'bunches'],
+  ...['manojo', 'paquete', 'pieza', 'piezas', 'pezzo', 'pezzi', 'piece', 'pieces', 'unidad'],
+  ...['unidades', 'unita', 'unit', 'units', 'docena', 'docenas', 'dozzina', 'dozen'],
+  // Segnaposto.
+  ...['articulo', 'articolo', 'item', 'producto', 'prodotto', 'product', 'nuevo', 'nueva'],
+  ...['nuovo', 'nuova', 'new', 'otro', 'otra', 'altro', 'altra', 'other', 'generico'],
+  ...['generica', 'generic', 'sin', 'senza', 'nombre', 'nome', 'name', 'unnamed', 'prueba'],
+  ...['prova', 'test', 'ejemplo', 'esempio', 'example', 'muestra', 'campione', 'sample'],
+  ...['tipo', 'type', 'modelo', 'modello', 'model', 'numero', 'number', 'num'],
+  // Miscele e qualità.
+  ...['mix', 'mixto', 'mixta', 'mixtos', 'mixtas', 'misto', 'mista', 'misti', 'miste', 'mixed'],
+  ...['surtido', 'surtida', 'surtidos', 'surtidas', 'assortito', 'assortita', 'assortiti'],
+  ...['assortite', 'assorted', 'varios', 'varias', 'vari', 'varie', 'various', 'especial'],
+  ...['speciale', 'special', 'premium', 'fino', 'fina', 'fine', 'natural', 'naturale'],
+  ...['fresco', 'fresca', 'fresh', 'importado', 'importada', 'importato', 'importata'],
+  ...['imported', 'nacional', 'nazionale', 'local', 'locale'],
+  // Misure.
+  ...['grande', 'grandes', 'grandi', 'chico', 'chica', 'chicos', 'chicas', 'pequeno'],
+  ...['pequena', 'pequenos', 'pequenas', 'mediano', 'mediana', 'medianos', 'medianas'],
+  ...['medio', 'media', 'piccolo', 'piccola', 'piccoli', 'piccole', 'large', 'small'],
+  ...['medium', 'big', 'mini', 'maxi', 'extra', 'alto', 'alta', 'tall', 'corto', 'corta'],
+  ...['short', 'largo', 'larga', 'lungo', 'lunga', 'long'],
+  // Colori.
+  ...['color', 'colores', 'colore', 'colori', 'colors', 'colored', 'multicolor'],
+  ...['multicolore', 'multicolored', 'rojo', 'roja', 'rojos', 'rojas', 'blanco', 'blanca'],
+  ...['blancos', 'blancas', 'amarillo', 'amarilla', 'amarillos', 'amarillas', 'naranja'],
+  ...['anaranjado', 'anaranjada', 'morado', 'morada', 'azul', 'azules', 'verde', 'verdes'],
+  ...['negro', 'negra', 'dorado', 'dorada', 'plateado', 'plateada', 'cafe', 'crema'],
+  ...['durazno', 'coral', 'fucsia', 'fiusha', 'magenta', 'vino', 'guinda', 'salmon'],
+  ...['rosado', 'rosada', 'rosados', 'rosadas', 'celeste', 'beige', 'purpura', 'rosso'],
+  ...['rossa', 'rossi', 'rosse', 'bianco', 'bianca', 'bianchi', 'bianche', 'giallo'],
+  ...['gialla', 'gialli', 'gialle', 'arancione', 'arancio', 'blu', 'azzurro', 'azzurra'],
+  ...['nero', 'nera', 'oro', 'dorato', 'dorata', 'argento', 'argentato', 'marrone', 'pesca'],
+  ...['corallo', 'bordeaux', 'bordo', 'rosato', 'rosata', 'red', 'white', 'yellow'],
+  ...['orange', 'purple', 'blue', 'green', 'black', 'gold', 'golden', 'silver', 'brown'],
+  ...['cream', 'peach', 'fuchsia', 'burgundy', 'pink'],
+  // Parole di legame (quelle di una o due lettere si scartano comunque).
+  ...['del', 'los', 'las', 'con', 'una', 'gli', 'uno', 'per', 'para', 'por', 'the', 'and'],
+  ...['with', 'for'],
+]);
+
+/**
+ * Il nome dell'articolo (con la varietà) dice che fiore è? Sì se contiene almeno una parola che
+ * non sia generica: "Rosa roja", "Iris azul", "Nube", "Fiore 1 Freedom". No per "Fiore 1",
+ * "Producto nuevo", "Rojo grande" o solo numeri. Euristica voluta larga: un nome che il
+ * modello potrebbe non conoscere ("Nube") non fa scattare l'avviso, perché la tassonomia
+ * globale non ha tutte le specie e un avviso che il fiorista non può togliere sarebbe peggio.
+ */
+export function nameSaysWhichFlower(label: string): boolean {
+  const words =
+    label
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase()
+      .match(/\p{L}+/gu) ?? [];
+  return words.some((word) => word.length > 2 && !GENERIC_NAME_WORDS.has(word));
+}
+
+/**
+ * Fiori del ramo di cui la foto realistica non saprebbe la specie: nessuna specie collegata nel
+ * catalogo e un nome che non dice che fiore è (es. "Fiore 1"). Il modello riceve solo quel nome:
+ * nella prova del founder del 22/11/2026 quattro rose chiamate così sono diventate ortensie.
+ * Non blocca l'anteprima: è un avviso con il link alla scheda. Restituisce gli id degli
+ * articoli, senza ripetizioni, nell'ordine del ramo.
+ */
+export function flowersWithoutSpecies(spec: BouquetPreviewSpec): string[] {
+  const ids = spec.components
+    .filter(
+      (component) =>
+        component.role === 'FLOWER' &&
+        component.commonName === null &&
+        !nameSaysWhichFlower(labelOf(component)),
+    )
+    .map((component) => component.catalogItemId);
+  return [...new Set(ids)];
+}
+
 // -----------------------------------------------------------------------------
 // Prompt: dal boceto alla foto
 // -----------------------------------------------------------------------------

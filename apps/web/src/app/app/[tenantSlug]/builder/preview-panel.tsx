@@ -55,6 +55,8 @@ export interface PreviewPanelData {
     readonly maxStems: number;
     readonly missing: readonly { readonly name: string; readonly href: string }[];
   };
+  /** Fiori senza specie e con un nome generico: la foto realistica potrebbe disegnarne altri. */
+  readonly withoutSpecies: readonly { readonly name: string; readonly href: string }[];
   readonly designName: string;
   readonly productName: string;
   readonly requestAction: (prev: ActionState, formData: FormData) => Promise<ActionState>;
@@ -207,18 +209,7 @@ export function PreviewPanel({ data, dirty }: { data: PreviewPanelData; dirty: b
         {!sketchUrl && data.sketch.reason === 'missing_cutouts' ? (
           <div className="space-y-1.5 rounded-xl border bg-muted/30 p-3 text-sm">
             <p>{t('missingPhotos')}</p>
-            <ul className="flex flex-wrap gap-1.5">
-              {data.sketch.missing.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="inline-flex rounded-full border bg-card px-2.5 py-0.5 text-xs font-medium hover:bg-muted"
-                  >
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <ItemLinks items={data.sketch.missing} />
             <p className="text-xs text-muted-foreground">{t('missingPhotosHint')}</p>
           </div>
         ) : null}
@@ -226,6 +217,13 @@ export function PreviewPanel({ data, dirty }: { data: PreviewPanelData; dirty: b
           <p className="text-sm text-muted-foreground">
             {t('tooManyStems', { max: data.sketch.maxStems })}
           </p>
+        ) : null}
+        {data.withoutSpecies.length > 0 ? (
+          <div className="space-y-1.5 rounded-xl border bg-muted/30 p-3 text-sm">
+            <p>{t('withoutSpecies')}</p>
+            <ItemLinks items={data.withoutSpecies} />
+            <p className="text-xs text-muted-foreground">{t('withoutSpeciesHint')}</p>
+          </div>
         ) : null}
 
         {showButton ? (
@@ -279,5 +277,27 @@ export function PreviewPanel({ data, dirty }: { data: PreviewPanelData; dirty: b
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+/** Articoli del catalogo da sistemare, come etichette che portano alla scheda. */
+function ItemLinks({
+  items,
+}: {
+  items: readonly { readonly name: string; readonly href: string }[];
+}) {
+  return (
+    <ul className="flex flex-wrap gap-1.5">
+      {items.map((item) => (
+        <li key={item.href}>
+          <Link
+            href={item.href}
+            className="inline-flex rounded-full border bg-card px-2.5 py-0.5 text-xs font-medium hover:bg-muted"
+          >
+            {item.name}
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }

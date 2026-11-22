@@ -20,6 +20,7 @@ import {
   EXACT_PREVIEW_LIMITS,
   SKETCH_LIMITS,
   exactPreviewPlan,
+  flowersWithoutSpecies,
   type ExactPreviewBlocker,
   type PreviewMode,
   aiQuotaPeriod,
@@ -90,6 +91,11 @@ export interface BouquetSketchPlanDto {
   readonly maxStems: number;
   /** Fiori contati senza foto senza fondo, per portare il fiorista alla scheda giusta. */
   readonly missing: readonly { readonly id: string; readonly name: string }[];
+  /**
+   * Fiori di cui la foto realistica non saprebbe la specie (né specie collegata né nome
+   * chiaro): avviso con il link alla scheda, non blocca.
+   */
+  readonly withoutSpecies: readonly { readonly id: string; readonly name: string }[];
   /** Cambia quando cambia il boceto (per l'URL dell'immagine); null se non disegnabile. */
   readonly version: string | null;
 }
@@ -556,6 +562,7 @@ export async function getBouquetSketchPlan(
         stems: 0,
         maxStems: SKETCH_LIMITS.maxStems,
         missing: [],
+        withoutSpecies: [],
         version: null,
       };
     }
@@ -570,6 +577,7 @@ export async function getBouquetSketchPlan(
       stems: plan.stems,
       maxStems: SKETCH_LIMITS.maxStems,
       missing: plan.missing.map((id) => ({ id, name: names.get(id) ?? '' })),
+      withoutSpecies: flowersWithoutSpecies(spec).map((id) => ({ id, name: names.get(id) ?? '' })),
       version: plan.eligible ? sketchVersion(spec) : null,
     };
   });

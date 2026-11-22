@@ -93,20 +93,27 @@ export function isRibbonLabel(label: string): boolean {
 
 /**
  * Diametro tipico della corolla (cm), riconosciuto dal nome comune o dal nome del catalogo
- * (spagnolo o inglese). Serve solo alle proporzioni del boceto: un girasole è grande circa tre
- * margherite. "rosa" va per ultima perché in spagnolo è anche un colore ("Tulipán rosa").
+ * (spagnolo, inglese o italiano). Serve solo alle proporzioni del boceto: un girasole è grande
+ * circa tre margherite. "rosa" va per ultima perché in spagnolo e in italiano è anche un colore
+ * ("Tulipán rosa", "Tulipano rosa").
  */
 const BLOOM_SIZE_CM: readonly (readonly [RegExp, number])[] = [
-  [/\b(hortensia|hydrangea)/, 18],
+  [/\b(hortensia|hydrangea|ortensia)/, 18],
   [/\b(girasol|sunflower)/, 15],
-  [/\b(lilium|lily|lilies|azucena)/, 14],
+  [/\b(lilium|lily|lilies|azucena|giglio|gigli)/, 14],
   [/\b(peonia|peony|peonies)/, 12],
   [/\bprotea/, 12],
   [/\b(gerbera|dalia|dahlia|anturio|anthurium)/, 10],
   [/\b(alcatraz|calla|orquidea|orchid)/, 8],
   [/\b(crisantemo|chrysanthemum|pompon)/, 7],
-  [/\b(clavel|carnation|tulipan|tulip|lisianthus|eustoma|ranunculo|ranunculus)/, 6],
-  [/\b(margarita|daisy|daisies|manzanilla|chamomile|astromelia|alstroemeria)/, 5],
+  [
+    /\b(clavel|carnation|garofan|tulipan|tulip|lisianthus|eustoma|ranunculo|ranuncolo|ranunculus)/,
+    6,
+  ],
+  [
+    /\b(margarita|margherit|daisy|daisies|manzanilla|chamomile|camomilla|astromelia|alstroemeria)/,
+    5,
+  ],
   [/\b(rosa|rose|roses)\b/, 8],
 ];
 

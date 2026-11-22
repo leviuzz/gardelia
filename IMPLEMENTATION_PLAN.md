@@ -283,8 +283,16 @@ configurazione ha fatto il suo lavoro); corretti, `/api/health` risponde ok. Gli
 `staging` vanno online con un commit di rilascio firmato dal founder (consenso del 22/11): sul piano
 Hobby Vercel ignora i commit non fatti dal titolare dell'account, anche via Deploy Hook (ADR-041). Rami (ADR-041,
 richiesta del founder): `staging` va online, `prod` sarà la produzione, i rami di lavoro non
-creano deploy. Restano: account del founder, amministratore e piano Plus dal workflow, prova del
-Diseñador con l'AI vera.
+creano deploy. Fatti anche account del founder, amministratore e piano Plus dal workflow.
+
+**Prima prova del Diseñador online (22/11):** lo scontorno falliva al salvataggio su R2 con 411:
+nella funzione di Vercel il corpo partiva come flusso senza `Content-Length`. Ora `R2Storage`
+firma e invia i byte con la lunghezza esplicita (`packages/core/test/storage-r2.test.ts`) e lo
+scontorno funziona; il messaggio dopo troppi tentativi non dà più la colpa alla foto. Nella foto
+realistica quattro rose chiamate "Fiore 1", senza specie, sono diventate ortensie: il Diseñador
+ora avvisa, con il link alla scheda, quando un fiore non ha la specie e il nome non dice che fiore
+è (ADR-034, nota del 22/11). Proposta del founder per dopo: al cliente mostrare la foto originale
+del fiore, nel Diseñador quella senza fondo (punto 10 qui sotto, "usa l'originale").
 
 **Lingue dell'interfaccia (fatto il 22/11, ADR-042):** su richiesta del founder l'interfaccia è
 anche in italiano e in inglese; lo spagnolo resta la lingua predefinita. Ogni persona sceglie la

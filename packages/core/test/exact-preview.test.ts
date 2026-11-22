@@ -205,7 +205,13 @@ describe('boceto esatto', () => {
     const kit = await createKit('Florería Boceto');
     const design = await rosesWithWrap(kit);
     const plan = await getBouquetSketchPlan(kit.shop.staff, design.id);
-    expect(plan).toMatchObject({ eligible: true, reason: null, stems: 3, missing: [] });
+    expect(plan).toMatchObject({
+      eligible: true,
+      reason: null,
+      stems: 3,
+      missing: [],
+      withoutSpecies: [],
+    });
     expect(plan.version).toMatch(/^[0-9a-f]{16}$/);
 
     const sketch = await getBouquetSketch(kit.shop.staff, design.id);
@@ -215,6 +221,21 @@ describe('boceto esatto', () => {
     // Cambia la composizione → cambia la versione (URL dell'immagine).
     const bigger = await rosesWithWrap(kit, 5);
     expect((await getBouquetSketchPlan(kit.shop.owner, bigger.id)).version).not.toBe(plan.version);
+  });
+
+  it('avvisa dei fiori di cui la foto realistica non saprebbe la specie', async () => {
+    const kit = await createKit('Florería Sin especie');
+    const generic = await createCatalogItem(
+      kit.shop.owner,
+      itemInput({ name: 'Fiore 1', variety: null }),
+    );
+    const design = await saveDesign(kit, [
+      { catalogItemId: kit.rose.id, quantity: 2 },
+      { catalogItemId: generic.id, quantity: 3 },
+    ]);
+    const plan = await getBouquetSketchPlan(kit.shop.owner, design.id);
+    // "Rosa roja" si riconosce dal nome; "Fiore 1" (senza varietà) no, e non ha una specie.
+    expect(plan.withoutSpecies).toEqual([{ id: generic.id, name: 'Fiore 1' }]);
   });
 
   it('dice quali fiori non hanno ancora la foto; oltre il limite resta a parole', async () => {

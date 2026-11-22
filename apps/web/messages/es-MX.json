@@ -1063,7 +1063,9 @@
       "retryLimit": "Ya lo intentamos varias veces con este diseño. Puedes compartir el boceto exacto o ajustar el diseño.",
       "missingPhotos": "Para una vista previa con el número exacto de flores, sube una foto de:",
       "missingPhotosHint": "Una foto por flor, de frente; el fondo se quita automáticamente.",
-      "tooManyStems": "La vista previa exacta está disponible para ramos de hasta {max} flores; la de este ramo será aproximada."
+      "tooManyStems": "La vista previa exacta está disponible para ramos de hasta {max} flores; la de este ramo será aproximada.",
+      "withoutSpecies": "Indica la especie de estas flores para que la foto realista las reconozca:",
+      "withoutSpeciesHint": "En el catálogo, elige la «Especie» o escribe en el nombre qué flor es (por ejemplo «Rosa roja»). Sin eso, la IA puede dibujar otra flor."
     }
   },
   "photos": {
