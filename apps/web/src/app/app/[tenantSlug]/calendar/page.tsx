@@ -213,7 +213,10 @@ export default async function CalendarPage({
             </Link>
           </Button>
         </div>
-        <h2 className="font-display text-xl first-letter:uppercase" aria-live="polite">
+        <h2
+          className="font-display text-xl font-semibold first-letter:uppercase"
+          aria-live="polite"
+        >
           {heading}
         </h2>
         <nav
