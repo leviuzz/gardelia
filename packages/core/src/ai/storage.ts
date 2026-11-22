@@ -73,8 +73,9 @@ export class R2Storage implements ObjectStorage {
   readonly driver = 'r2' as const;
   private readonly client: AwsClient;
   private readonly baseUrl: string;
+  private readonly fetchImpl: typeof fetch;
 
-  constructor(config: R2Config) {
+  constructor(config: R2Config, fetchImpl?: typeof fetch) {
     this.client = new AwsClient({
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,
@@ -82,6 +83,7 @@ export class R2Storage implements ObjectStorage {
       region: 'auto',
     });
     this.baseUrl = `https://${config.accountId}.r2.cloudflarestorage.com/${encodeURIComponent(config.bucket)}`;
+    this.fetchImpl = fetchImpl ?? ((input, init) => fetch(input, init));
   }
 
   private urlFor(key: string): string {
@@ -89,25 +91,43 @@ export class R2Storage implements ObjectStorage {
     return `${this.baseUrl}/${key}`;
   }
 
-  async put(key: string, bytes: Uint8Array, contentType: string): Promise<void> {
-    const response = await this.client.fetch(this.urlFor(key), {
-      method: 'PUT',
-      // Copia su un ArrayBuffer proprio (tipo richiesto da fetch).
-      body: new Uint8Array(bytes),
-      headers: { 'Content-Type': contentType },
+  /**
+   * Firma la richiesta (SigV4 con `aws4fetch`) e la invia con il corpo in byte e la sua
+   * lunghezza esplicita. Non si passa a `fetch` l'oggetto `Request` firmato: in una funzione di
+   * Vercel (coda AI) il corpo arrivava a R2 come flusso senza `Content-Length` e R2 rispondeva
+   * 411 (scontorno perso al salvataggio, 22/11/2026). La firma copre lo stesso corpo.
+   */
+  private async send(
+    method: 'GET' | 'PUT' | 'DELETE',
+    key: string,
+    upload?: { readonly bytes: Uint8Array; readonly contentType: string },
+  ): Promise<Response> {
+    const url = this.urlFor(key);
+    // Copia su un ArrayBuffer proprio (tipo richiesto da fetch e dalla firma).
+    const body = upload ? new Uint8Array(upload.bytes) : undefined;
+    const signed = await this.client.sign(url, {
+      method,
+      ...(upload ? { headers: { 'Content-Type': upload.contentType }, body } : {}),
     });
+    const headers = new Headers(signed.headers);
+    if (body) headers.set('Content-Length', String(body.byteLength));
+    return this.fetchImpl(url, { method, headers, ...(body ? { body } : {}) });
+  }
+
+  async put(key: string, bytes: Uint8Array, contentType: string): Promise<void> {
+    const response = await this.send('PUT', key, { bytes, contentType });
     if (!response.ok) throw new Error(`R2 PUT non riuscito (${response.status})`);
   }
 
   async get(key: string): Promise<Uint8Array | null> {
-    const response = await this.client.fetch(this.urlFor(key), { method: 'GET' });
+    const response = await this.send('GET', key);
     if (response.status === 404) return null;
     if (!response.ok) throw new Error(`R2 GET non riuscito (${response.status})`);
     return new Uint8Array(await response.arrayBuffer());
   }
 
   async delete(key: string): Promise<void> {
-    const response = await this.client.fetch(this.urlFor(key), { method: 'DELETE' });
+    const response = await this.send('DELETE', key);
     // S3/R2 rispondono 204 anche se l'oggetto non c'era.
     if (!response.ok && response.status !== 404) {
       throw new Error(`R2 DELETE non riuscito (${response.status})`);
