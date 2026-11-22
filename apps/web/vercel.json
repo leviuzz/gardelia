@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "node scripts/vercel-build.mjs",
-  "ignoreCommand": "[ \"$VERCEL_ENV\" != production ]",
   "git": {
     "deploymentEnabled": {
       "claude/**": false

@@ -280,8 +280,8 @@ tenuto per la produzione; piano Hobby, ramo `staging`; Neon `gardelia-staging` i
 `docs/DEPLOY_VERCEL.md`. Al primo deploy la build ha preparato il database; all'avvio l'app si è
 rifiutata di partire per due segreti troppo corti, elencati per nome nei log (il controllo della
 configurazione ha fatto il suo lavoro); corretti, `/api/health` risponde ok. Gli aggiornamenti di
-`staging` arrivano online con un Deploy Hook chiamato da GitHub (workflow "Deploy staging"): sul
-piano Hobby Vercel ignora i commit non fatti dal titolare dell'account (ADR-041). Rami (ADR-041,
+`staging` vanno online con un commit di rilascio firmato dal founder (consenso del 22/11): sul piano
+Hobby Vercel ignora i commit non fatti dal titolare dell'account, anche via Deploy Hook (ADR-041). Rami (ADR-041,
 richiesta del founder): `staging` va online, `prod` sarà la produzione, i rami di lavoro non
 creano deploy. Restano: account del founder, amministratore e piano Plus dal workflow, prova del
 Diseñador con l'AI vera.

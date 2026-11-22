@@ -726,20 +726,25 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   (avanzamento allo stesso commit già provato dalla CI) → `prod` solo con il via libera esplicito
   del founder.
 - **Vercel:** ogni progetto pubblica il proprio ramo di produzione. `apps/web/vercel.json` spegne i
-  deploy dei rami `claude/**` (`git.deploymentEnabled`) e salta ogni build che non sia di
-  produzione (`ignoreCommand` su `VERCEL_ENV`). Così il codice di un ramo non può girare per
-  sbaglio contro il database di un altro ambiente (le variabili inserite all'import possono valere
-  anche per le anteprime). Le anteprime per PR (PLATFORM_PLAN §4) torneranno con un database
-  proprio.
+  deploy dei rami `claude/**` (`git.deploymentEnabled`): il lavoro in corso non va mai online né
+  gira contro il database di prova. Le anteprime per PR (PLATFORM_PLAN §4) torneranno con un
+  database proprio. **Tolto il 22/11/2026:** un `ignoreCommand` che saltava ogni build non di
+  produzione (`[ "$VERCEL_ENV" != production ]`): su Vercel annullava anche i deploy del ramo di
+  produzione (deploy del rilascio firmato annullato con "Ignored Build Step"). Se servirà fermare
+  le anteprime di altri rami, si userà l'Ignored Build Step del singolo progetto, provato prima.
 - **GitHub:** ramo predefinito `staging` (PR e workflow manuali partono da lì). CI a ogni push di
   `staging`, `prod` e dei rami di lavoro, e su ogni PR.
 - **Supera** il "merge su `main`" del PLATFORM_PLAN: il ramo `main` non esiste.
-- **Deploy sul piano Hobby** (aggiunto il 22/11/2026): Vercel avvia da solo solo i deploy dei
-  commit fatti dal titolare dell'account; quelli di Claude vengono ignorati senza avvisi (solo il
-  primo deploy, avviato dal founder con l'import, era passato). Un Deploy Hook creato dal titolare,
-  chiamato dal workflow "Deploy staging" a ogni push su `staging` (segreto
-  `VERCEL_DEPLOY_HOOK_STAGING`), avvia il deploy dell'ultimo commit del ramo. Non si cambia
-  l'autore dei commit: resta chiaro chi ha scritto cosa.
+- **Deploy sul piano Hobby** (aggiunto il 22/11/2026): Vercel pubblica solo i commit fatti dal
+  titolare dell'account; quelli di Claude vengono ignorati senza avvisi (solo il primo deploy,
+  avviato dal founder con l'import, era passato), e lo stesso vale per i Deploy Hook (provato: la
+  richiesta resta "in attesa" e non crea nulla). **Rilascio su `staging`:** un merge `--no-ff` del
+  ramo di lavoro, solo dopo la CI verde su quel commit, con autore e committer l'account GitHub
+  del founder (indirizzo noreply `76139421+leviuzz@users.noreply.github.com`, nome `leviuzz`) e
+  Claude come coautore nel messaggio. Consenso esplicito del founder del 22/11/2026 ("sì, firma i
+  rilasci di staging a mio nome"). I commit del ramo di lavoro restano firmati da Claude: il merge
+  vale come rilascio, il contenuto resta attribuito a chi l'ha scritto. `prod` non cambia: si
+  aggiorna solo con il via libera del founder, ogni volta.
 
 ### ADR-042 — Interfaccia in spagnolo, italiano e inglese, scelta da ogni persona — ADOTTATO (22/11/2026)
 
