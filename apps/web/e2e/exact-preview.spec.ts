@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
+import { saveSimpleDesign } from './support/builder';
 import { createProduct } from './support/catalog';
 
 /**
@@ -14,12 +15,7 @@ const SPECIES_WARNING =
   'Indica la especie de estas flores para que la foto realista las reconozca:';
 
 async function newDesign(page: Page, name: string, flower: string, quantity: number) {
-  await page.goto('/app/las-camelias/builder/new');
-  await page.getByRole('textbox', { name: 'Nombre del diseño' }).fill(name);
-  await page.getByRole('spinbutton', { name: `Cantidad de ${flower}` }).fill(String(quantity));
-  await page.getByRole('radio', { name: /Papel coreano kraft/ }).check();
-  await page.getByRole('button', { name: 'Guardar diseño' }).click();
-  await expect(page).toHaveURL(/\/builder\/[0-9a-f-]{36}\?saved=1$/);
+  await saveSimpleDesign(page, { name, flower, quantity });
 }
 
 test.describe('anteprima esatta (provider simulato)', () => {
@@ -65,6 +61,7 @@ test.describe('anteprima esatta (provider simulato)', () => {
     await expect(page.getByRole('link', { name: 'Ver el boceto exacto' })).toBeVisible();
 
     // Nella cotización l'immagine resta con la riga, con l'avviso e il download per WhatsApp.
+    await page.getByRole('button', { name: 'Continuar' }).click();
     await page.getByRole('link', { name: 'Crear cotización' }).click();
     await page.getByRole('button', { name: 'Cotización para Hotel Casa Fuentes' }).click();
     await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);

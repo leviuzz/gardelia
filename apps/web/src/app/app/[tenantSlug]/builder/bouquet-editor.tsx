@@ -1,6 +1,8 @@
 'use client';
 
 import {
+  ArrowLeft,
+  ArrowRight,
   FileText,
   LoaderCircle,
   Minus,
@@ -12,6 +14,7 @@ import {
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { startTransition, useActionState, useState } from 'react';
+import { flushSync } from 'react-dom';
 import {
   BUILDER_LIMITS,
   BUILDER_SIZES,
@@ -24,6 +27,7 @@ import {
   type BuilderRole,
 } from '@floral/domain';
 import { ColorSwatch } from '@/components/common/color-swatch';
+import { StepIndicator, type StepItem } from '@/components/common/step-indicator';
 import { Field, controlProps } from '@/components/form/field';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -77,8 +81,6 @@ export interface BouquetDraft {
 }
 
 type SaveAction = (prev: ActionState, payload: unknown) => Promise<ActionState>;
-
-const GROUPS: readonly BuilderRole[] = ['FLOWER', 'FOLIAGE', 'ACCESSORY'];
 
 /** Stesso ordine della distinta salvata dal server: fiori, follaje, complementi, empaque. */
 const ROLE_ORDER: Readonly<Record<BuilderRole, number>> = {
@@ -258,6 +260,9 @@ export function BouquetEditor({
   saveAction,
   quoteHref,
   catalogHref,
+  listHref,
+  previewStep,
+  initialStep = 0,
   preview,
 }: {
   currency: string;
@@ -273,6 +278,12 @@ export function BouquetEditor({
   saveAction: SaveAction;
   quoteHref: string | null;
   catalogHref: string;
+  /** Elenco dei disegni ("Volver a los diseños" nel passo finale). */
+  listHref: string;
+  /** C'è il passo dell'anteprima (AI disponibile per questo disegno). */
+  previewStep: boolean;
+  /** Passo da cui partire (0 = flores); oltre l'ultimo si ferma all'ultimo. */
+  initialStep?: number;
   /** Anteprima AI del disegno salvato; null se non disponibile (nessun provider). */
   preview?: PreviewPanelData | null;
 }) {
@@ -281,6 +292,9 @@ export function BouquetEditor({
   const [draft, setDraft] = useState<BouquetDraft>(initial);
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
   const [query, setQuery] = useState('');
+  const lastStep = previewStep ? 4 : 3;
+  const [step, setStep] = useState(() => Math.min(initialStep, lastStep));
+  const [reached, setReached] = useState(() => Math.min(initialStep, lastStep));
   const [state, formAction, pending] = useActionState(saveAction, idleState);
   useActionToast(state);
   const fmt = (minor: number) => money(minor, currency);
@@ -511,292 +525,472 @@ export function BouquetEditor({
             {linesError}
           </p>
         ) : null}
-        {!readOnly ? (
-          <div className="grid gap-2">
-            <Button
-              type="button"
-              onClick={save}
-              disabled={pending || blocked || composition === 'builder_needs_flower' || !pricing.ok}
-              aria-busy={pending}
-            >
-              {pending ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : null}
-              {pending ? t('saving') : quoteHref === null ? t('save') : t('saveChanges')}
-            </Button>
-            {composition === 'builder_needs_flower' && selected.length > 0 ? (
-              <p className="text-sm text-muted-foreground">{tv('builder_needs_flower')}</p>
-            ) : null}
-            {canQuote && quoteHref !== null ? (
-              dirty ? (
-                <p className="text-sm text-muted-foreground">{t('quoteHint')}</p>
-              ) : (
-                <Button asChild variant="outline">
-                  <Link href={quoteHref}>
-                    <FileText />
-                    {t('createQuote')}
-                  </Link>
-                </Button>
-              )
-            ) : null}
-            {dirty && quoteHref !== null ? (
-              <p className="text-xs text-muted-foreground" aria-live="polite">
-                {t('unsaved')}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
       </CardContent>
     </Card>
   );
 
-  return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-      <div className="min-w-0 space-y-6">
-        {pendingUnusable.length > 0 ? (
-          <Alert variant="warning">
-            <TriangleExclamationPoint aria-hidden="true" />
-            <AlertDescription>
-              <ul className="space-y-2">
-                {pendingUnusable.map((line) => (
-                  <li key={line.id} className="flex items-center justify-between gap-3">
-                    <span>{t('warnings.UNAVAILABLE', { name: line.name })}</span>
-                    {!readOnly ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setRemoved((current) => new Set(current).add(line.id))}
-                      >
-                        <Trash />
-                        {t('remove', { name: line.name })}
-                      </Button>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </AlertDescription>
-          </Alert>
-        ) : null}
+  const isNew = quoteHref === null;
+  const steps: StepItem[] = [
+    { key: 'flowers', label: t('wizard.stepFlowers') },
+    { key: 'greens', label: t('wizard.stepGreens') },
+    { key: 'details', label: t('wizard.stepDetails') },
+    ...(previewStep ? [{ key: 'preview', label: t('wizard.stepPreview') }] : []),
+    { key: 'done', label: t('wizard.stepDone') },
+  ];
+  const currentKey = steps[step]?.key ?? 'flowers';
+  // Un disegno nuovo arriva fino ai dettagli: anteprima e "listo" vengono dopo il salvataggio.
+  const reachable = isNew ? Math.min(reached, 2) : lastStep;
+  const hasFlower = composition !== 'builder_needs_flower';
+  const saveDisabled = pending || blocked || !hasFlower || !pricing.ok || draft.name.trim() === '';
+  const previewReady = preview?.preview?.status === 'SUCCEEDED';
 
-        <div className="relative">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t('search')}
-            aria-label={t('search')}
-            className="pl-9"
-          />
-        </div>
+  function goTo(index: number) {
+    flushSync(() => {
+      setStep(index);
+      setReached((current) => Math.max(current, index));
+      setQuery('');
+    });
+    document.getElementById('builder-step-title')?.focus();
+  }
 
-        {GROUPS.map((role) => {
-          const groupOptions = options.filter((option) => option.role === role && visible(option));
-          if (groupOptions.length === 0) return null;
-          return (
-            <section key={role} aria-labelledby={`group-${role}`} className="space-y-2">
-              <h2 id={`group-${role}`} className="text-sm font-semibold">
-                {t(`groups.${role}`)}
-              </h2>
-              <ul className="divide-y rounded-2xl border bg-card">
-                {groupOptions.map((option) => {
-                  const quantity = draft.quantities[option.id] ?? 0;
-                  return (
-                    <li
-                      key={option.id}
-                      className={cn('space-y-2 px-4 py-3', quantity > 0 && 'bg-secondary/40')}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium break-words">{option.name}</p>
-                          <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                            <span className="tabular-nums">
-                              {t('unitPrice', {
-                                price: fmt(option.priceMinor),
-                                unit: option.unitLabel,
-                              })}
-                            </span>
-                            <AvailabilityBadge availability={option.availability} />
-                          </p>
-                        </div>
-                        {readOnly ? (
-                          <span className="text-sm tabular-nums">{quantity}</span>
-                        ) : (
-                          <Stepper
-                            option={option}
-                            quantity={quantity}
-                            onChange={(next) => setQuantity(option.id, next)}
-                          />
-                        )}
-                      </div>
-                      {quantity > 0 && choosesColor(option) ? (
-                        <ColorChoice
-                          option={option}
-                          value={colorOf(option, draft.colors)}
-                          onChange={(color) => setColor(option.id, color)}
-                          disabled={readOnly}
-                        />
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          );
-        })}
+  /** Cosa manca per lasciare il passo (null = si può andare avanti). */
+  function problemAt(index: number): string | null {
+    if (readOnly) return null;
+    const key = steps[index]?.key;
+    if (key === 'flowers' && !hasFlower) return tv('builder_needs_flower');
+    if (key === 'greens' && missingColor.length > 0) return t('wizard.chooseColors');
+    return null;
+  }
 
-        {packagingOptions.some(visible) || (!term && packagingOptions.length > 0) ? (
-          <fieldset className="space-y-2" disabled={readOnly}>
-            <legend className="mb-2 text-sm font-semibold">{t('groups.PACKAGING')}</legend>
-            <div className="divide-y rounded-2xl border bg-card">
-              <label className="flex cursor-pointer items-center gap-3 px-4 py-3">
-                <input
-                  type="radio"
-                  name="packaging"
-                  value=""
-                  checked={selectedPackaging === ''}
-                  onChange={() => setPackaging('')}
-                  className="size-4 accent-primary"
-                />
-                <span className="font-medium">{t('noPackaging')}</span>
-              </label>
-              {packagingOptions.filter(visible).map((option) => (
-                <div key={option.id}>
-                  <label
-                    className={cn(
-                      'flex items-center gap-3 px-4 py-3',
-                      option.availability === 'OUT_OF_STOCK'
-                        ? 'cursor-not-allowed opacity-60'
-                        : 'cursor-pointer',
-                    )}
+  /** Avanti fino a `target` se i passi lasciati sono a posto; altrimenti ci si ferma lì. */
+  function advanceTo(target: number) {
+    for (let index = step; index < target; index++) {
+      if (problemAt(index)) {
+        goTo(index);
+        return;
+      }
+    }
+    goTo(target);
+  }
+
+  const groupList = (roles: readonly BuilderRole[]) => (
+    <>
+      {roles.map((role) => {
+        const groupOptions = options.filter((option) => option.role === role && visible(option));
+        if (groupOptions.length === 0) return null;
+        return (
+          <section key={role} aria-labelledby={`group-${role}`} className="space-y-2">
+            <h2 id={`group-${role}`} className="text-sm font-semibold">
+              {t(`groups.${role}`)}
+            </h2>
+            <ul className="divide-y rounded-2xl border bg-card">
+              {groupOptions.map((option) => {
+                const quantity = draft.quantities[option.id] ?? 0;
+                return (
+                  <li
+                    key={option.id}
+                    className={cn('space-y-2 px-4 py-3', quantity > 0 && 'bg-secondary/40')}
                   >
-                    <input
-                      type="radio"
-                      name="packaging"
-                      value={option.id}
-                      checked={selectedPackaging === option.id}
-                      disabled={option.availability === 'OUT_OF_STOCK'}
-                      onChange={() => setPackaging(option.id)}
-                      className="size-4 accent-primary"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-medium break-words">{option.name}</span>
-                      <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                        <span className="tabular-nums">{fmt(option.priceMinor)}</span>
-                        <AvailabilityBadge availability={option.availability} />
-                      </span>
-                    </span>
-                  </label>
-                  {selectedPackaging === option.id && choosesColor(option) ? (
-                    <div className="px-4 pb-3 pl-11">
+                    <div className="flex items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium break-words">{option.name}</p>
+                        <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                          <span className="tabular-nums">
+                            {t('unitPrice', {
+                              price: fmt(option.priceMinor),
+                              unit: option.unitLabel,
+                            })}
+                          </span>
+                          <AvailabilityBadge availability={option.availability} />
+                        </p>
+                      </div>
+                      {readOnly ? (
+                        <span className="text-sm tabular-nums">{quantity}</span>
+                      ) : (
+                        <Stepper
+                          option={option}
+                          quantity={quantity}
+                          onChange={(next) => setQuantity(option.id, next)}
+                        />
+                      )}
+                    </div>
+                    {quantity > 0 && choosesColor(option) ? (
                       <ColorChoice
                         option={option}
                         value={colorOf(option, draft.colors)}
                         onChange={(color) => setColor(option.id, color)}
                         disabled={readOnly}
                       />
-                    </div>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </fieldset>
-        ) : null}
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
+    </>
+  );
 
-        {term && !options.some(visible) ? (
-          <p className="text-sm text-muted-foreground">{t('noMatches')}</p>
-        ) : null}
+  const stepRoles: readonly BuilderRole[] =
+    currentKey === 'flowers'
+      ? ['FLOWER']
+      : currentKey === 'greens'
+        ? ['FOLIAGE', 'ACCESSORY', 'PACKAGING']
+        : [];
+  const noMatches =
+    term &&
+    stepRoles.length > 0 &&
+    !options.some((option) => stepRoles.includes(option.role) && visible(option));
 
-        {/* Su telefono il totale resta visibile mentre si scelgono i fiori. */}
-        {pricing.ok && selected.length > 0 ? (
-          <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-20 lg:hidden">
-            <a
-              href="#builder-summary"
-              className="flex items-center justify-between gap-3 rounded-2xl border bg-card/95 px-4 py-3 shadow-lg backdrop-blur"
+  const titles: Readonly<Record<string, readonly [string, string]>> = {
+    flowers: [t('wizard.flowersTitle'), t('wizard.flowersBody')],
+    greens: [t('wizard.greensTitle'), t('wizard.greensBody')],
+    details: [t('wizard.detailsTitle'), t('wizard.detailsBody')],
+    preview: [t('wizard.previewTitle'), t('wizard.previewBody')],
+    done: [t('wizard.doneTitle'), t('wizard.doneBody')],
+  };
+  const [stepTitle, stepBody] = titles[currentKey] ?? ['', ''];
+  const problem = problemAt(step);
+
+  const saveButton = (label: string) => (
+    <Button
+      type="button"
+      size="lg"
+      className="w-full sm:w-auto"
+      onClick={save}
+      disabled={saveDisabled}
+      aria-busy={pending}
+    >
+      {pending ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : null}
+      {pending ? t('saving') : label}
+    </Button>
+  );
+  const continueButton = (
+    <Button
+      type="button"
+      size="lg"
+      className="w-full sm:w-auto"
+      onClick={() => advanceTo(step + 1)}
+      disabled={problem !== null}
+    >
+      {t('wizard.continue')}
+      <ArrowRight aria-hidden="true" />
+    </Button>
+  );
+  const forward =
+    currentKey === 'flowers' || currentKey === 'greens' ? (
+      continueButton
+    ) : currentKey === 'details' ? (
+      isNew && !readOnly ? (
+        saveButton(t('save'))
+      ) : (
+        continueButton
+      )
+    ) : currentKey === 'preview' ? (
+      <Button
+        type="button"
+        size="lg"
+        className="w-full sm:w-auto"
+        variant={previewReady ? 'default' : 'outline'}
+        onClick={() => goTo(step + 1)}
+      >
+        {previewReady ? t('wizard.continue') : t('wizard.skip')}
+        <ArrowRight aria-hidden="true" />
+      </Button>
+    ) : null;
+
+  return (
+    <div className="space-y-6">
+      <StepIndicator
+        steps={steps}
+        current={step}
+        reachable={reachable}
+        onSelect={(index) => (index < step ? goTo(index) : advanceTo(index))}
+      />
+      {!isNew && dirty && !readOnly ? (
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-secondary/50 px-4 py-3"
+          role="status"
+        >
+          <p className="text-sm">{t('unsaved')}</p>
+          <Button
+            type="button"
+            size="sm"
+            onClick={save}
+            disabled={saveDisabled}
+            aria-busy={pending}
+          >
+            {pending ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : null}
+            {pending ? t('saving') : t('saveChanges')}
+          </Button>
+        </div>
+      ) : null}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="min-w-0 space-y-6">
+          {pendingUnusable.length > 0 ? (
+            <Alert variant="warning">
+              <TriangleExclamationPoint aria-hidden="true" />
+              <AlertDescription>
+                <ul className="space-y-2">
+                  {pendingUnusable.map((line) => (
+                    <li key={line.id} className="flex items-center justify-between gap-3">
+                      <span>{t('warnings.UNAVAILABLE', { name: line.name })}</span>
+                      {!readOnly ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setRemoved((current) => new Set(current).add(line.id))}
+                        >
+                          <Trash />
+                          {t('remove', { name: line.name })}
+                        </Button>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          <div className="space-y-1">
+            <h2
+              id="builder-step-title"
+              tabIndex={-1}
+              className="scroll-mt-28 font-display text-xl outline-none"
             >
-              <span className="text-sm text-muted-foreground">{t('total')}</span>
-              <span className="font-semibold tabular-nums">{fmt(pricing.totalMinor)}</span>
-            </a>
+              {stepTitle}
+            </h2>
+            <p className="text-sm text-muted-foreground">{stepBody}</p>
           </div>
-        ) : null}
-      </div>
 
-      <div className="min-w-0 space-y-6 lg:sticky lg:top-6 lg:self-start">
-        {summary}
-        {preview && !readOnly ? <PreviewPanel data={preview} dirty={dirty} /> : null}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('details')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <fieldset className="grid gap-4" disabled={readOnly}>
-              <Field id="design-name" label={t('name')} error={fieldError(state, 'name')} required>
-                <Input
-                  {...controlProps('design-name', fieldError(state, 'name'))}
-                  value={draft.name}
-                  maxLength={BUILDER_LIMITS.name}
-                  onChange={(event) => setDraft({ ...draft, name: event.target.value })}
-                  required
+          {stepRoles.length > 0 ? (
+            <>
+              <div className="relative">
+                <Search
+                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
                 />
-              </Field>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                <Field id="design-style" label={t('style')} error={fieldError(state, 'style')}>
-                  <NativeSelect
-                    {...controlProps('design-style', fieldError(state, 'style'))}
-                    value={draft.style}
-                    onChange={(event) => setDraft({ ...draft, style: event.target.value })}
-                  >
-                    <option value="">{t('notSet')}</option>
-                    {BUILDER_STYLES.map((style) => (
-                      <option key={style} value={style}>
-                        {t(`styles.${style}`)}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </Field>
-                <Field id="design-size" label={t('size')} error={fieldError(state, 'size')}>
-                  <NativeSelect
-                    {...controlProps('design-size', fieldError(state, 'size'))}
-                    value={draft.size}
-                    onChange={(event) => setDraft({ ...draft, size: event.target.value })}
-                  >
-                    <option value="">{t('notSet')}</option>
-                    {BUILDER_SIZES.map((size) => (
-                      <option key={size} value={size}>
-                        {t(`sizes.${size}`)}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </Field>
+                <Input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={t('search')}
+                  aria-label={t('search')}
+                  className="pl-9"
+                />
               </div>
-              <Field
-                id="design-budget"
-                label={t('budget', { currency })}
-                hint={t('budgetHint')}
-                error={fieldError(state, 'budget')}
+
+              {groupList(stepRoles.filter((role) => role !== 'PACKAGING'))}
+              {currentKey === 'greens' ? (
+                <>
+                  {packagingOptions.some(visible) || (!term && packagingOptions.length > 0) ? (
+                    <fieldset className="space-y-2" disabled={readOnly}>
+                      <legend className="mb-2 text-sm font-semibold">
+                        {t('groups.PACKAGING')}
+                      </legend>
+                      <div className="divide-y rounded-2xl border bg-card">
+                        <label className="flex cursor-pointer items-center gap-3 px-4 py-3">
+                          <input
+                            type="radio"
+                            name="packaging"
+                            value=""
+                            checked={selectedPackaging === ''}
+                            onChange={() => setPackaging('')}
+                            className="size-4 accent-primary"
+                          />
+                          <span className="font-medium">{t('noPackaging')}</span>
+                        </label>
+                        {packagingOptions.filter(visible).map((option) => (
+                          <div key={option.id}>
+                            <label
+                              className={cn(
+                                'flex items-center gap-3 px-4 py-3',
+                                option.availability === 'OUT_OF_STOCK'
+                                  ? 'cursor-not-allowed opacity-60'
+                                  : 'cursor-pointer',
+                              )}
+                            >
+                              <input
+                                type="radio"
+                                name="packaging"
+                                value={option.id}
+                                checked={selectedPackaging === option.id}
+                                disabled={option.availability === 'OUT_OF_STOCK'}
+                                onChange={() => setPackaging(option.id)}
+                                className="size-4 accent-primary"
+                              />
+                              <span className="min-w-0 flex-1">
+                                <span className="block font-medium break-words">{option.name}</span>
+                                <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                                  <span className="tabular-nums">{fmt(option.priceMinor)}</span>
+                                  <AvailabilityBadge availability={option.availability} />
+                                </span>
+                              </span>
+                            </label>
+                            {selectedPackaging === option.id && choosesColor(option) ? (
+                              <div className="px-4 pb-3 pl-11">
+                                <ColorChoice
+                                  option={option}
+                                  value={colorOf(option, draft.colors)}
+                                  onChange={(color) => setColor(option.id, color)}
+                                  disabled={readOnly}
+                                />
+                              </div>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    </fieldset>
+                  ) : null}
+                </>
+              ) : null}
+              {noMatches ? <p className="text-sm text-muted-foreground">{t('noMatches')}</p> : null}
+            </>
+          ) : null}
+
+          {currentKey === 'details' ? (
+            <Card>
+              <CardContent>
+                <fieldset className="grid gap-4" disabled={readOnly}>
+                  <Field
+                    id="design-name"
+                    label={t('name')}
+                    error={fieldError(state, 'name')}
+                    required
+                  >
+                    <Input
+                      {...controlProps('design-name', fieldError(state, 'name'))}
+                      value={draft.name}
+                      maxLength={BUILDER_LIMITS.name}
+                      onChange={(event) => setDraft({ ...draft, name: event.target.value })}
+                      required
+                    />
+                  </Field>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                    <Field id="design-style" label={t('style')} error={fieldError(state, 'style')}>
+                      <NativeSelect
+                        {...controlProps('design-style', fieldError(state, 'style'))}
+                        value={draft.style}
+                        onChange={(event) => setDraft({ ...draft, style: event.target.value })}
+                      >
+                        <option value="">{t('notSet')}</option>
+                        {BUILDER_STYLES.map((style) => (
+                          <option key={style} value={style}>
+                            {t(`styles.${style}`)}
+                          </option>
+                        ))}
+                      </NativeSelect>
+                    </Field>
+                    <Field id="design-size" label={t('size')} error={fieldError(state, 'size')}>
+                      <NativeSelect
+                        {...controlProps('design-size', fieldError(state, 'size'))}
+                        value={draft.size}
+                        onChange={(event) => setDraft({ ...draft, size: event.target.value })}
+                      >
+                        <option value="">{t('notSet')}</option>
+                        {BUILDER_SIZES.map((size) => (
+                          <option key={size} value={size}>
+                            {t(`sizes.${size}`)}
+                          </option>
+                        ))}
+                      </NativeSelect>
+                    </Field>
+                  </div>
+                  <Field
+                    id="design-budget"
+                    label={t('budget', { currency })}
+                    hint={t('budgetHint')}
+                    error={fieldError(state, 'budget')}
+                  >
+                    <Input
+                      {...controlProps('design-budget', fieldError(state, 'budget'), true)}
+                      value={draft.budget}
+                      inputMode="decimal"
+                      autoComplete="off"
+                      onChange={(event) => setDraft({ ...draft, budget: event.target.value })}
+                    />
+                  </Field>
+                  <Field id="design-notes" label={t('notes')} error={fieldError(state, 'notes')}>
+                    <Textarea
+                      {...controlProps('design-notes', fieldError(state, 'notes'))}
+                      value={draft.notes}
+                      maxLength={BUILDER_LIMITS.notes}
+                      rows={3}
+                      onChange={(event) => setDraft({ ...draft, notes: event.target.value })}
+                    />
+                  </Field>
+                </fieldset>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {currentKey === 'preview' && preview ? (
+            <PreviewPanel data={preview} dirty={dirty} />
+          ) : null}
+
+          {currentKey === 'done' ? (
+            <Card>
+              <CardContent className="flex flex-col gap-4">
+                {canQuote && quoteHref !== null ? (
+                  dirty ? (
+                    <p className="text-sm text-muted-foreground">{t('quoteHint')}</p>
+                  ) : (
+                    <Button asChild size="lg" className="w-full sm:w-auto sm:self-start">
+                      <Link href={quoteHref}>
+                        <FileText />
+                        {t('createQuote')}
+                      </Link>
+                    </Button>
+                  )
+                ) : null}
+                <Button asChild variant="outline" className="w-full sm:w-auto sm:self-start">
+                  <Link href={listHref}>{t('wizard.backToDesigns')}</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {currentKey !== 'done' ? (
+            <div className="space-y-2">
+              {/* Su telefono uno sotto l'altro, l'azione principale sopra. */}
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+                {step > 0 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    className="w-full sm:w-auto"
+                    onClick={() => goTo(step - 1)}
+                  >
+                    <ArrowLeft aria-hidden="true" />
+                    {t('wizard.back')}
+                  </Button>
+                ) : null}
+                <div className="sm:ml-auto">{forward}</div>
+              </div>
+              {problem ? (
+                <p className="text-sm text-muted-foreground sm:text-right">{problem}</p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* Su telefono il totale resta visibile mentre si scelgono i fiori. */}
+          {pricing.ok && selected.length > 0 ? (
+            <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-20 lg:hidden">
+              <a
+                href="#builder-summary"
+                className="flex items-center justify-between gap-3 rounded-2xl border bg-card/95 px-4 py-3 shadow-lg backdrop-blur"
               >
-                <Input
-                  {...controlProps('design-budget', fieldError(state, 'budget'), true)}
-                  value={draft.budget}
-                  inputMode="decimal"
-                  autoComplete="off"
-                  onChange={(event) => setDraft({ ...draft, budget: event.target.value })}
-                />
-              </Field>
-              <Field id="design-notes" label={t('notes')} error={fieldError(state, 'notes')}>
-                <Textarea
-                  {...controlProps('design-notes', fieldError(state, 'notes'))}
-                  value={draft.notes}
-                  maxLength={BUILDER_LIMITS.notes}
-                  rows={3}
-                  onChange={(event) => setDraft({ ...draft, notes: event.target.value })}
-                />
-              </Field>
-            </fieldset>
-          </CardContent>
-        </Card>
+                <span className="text-sm text-muted-foreground">{t('total')}</span>
+                <span className="font-semibold tabular-nums">{fmt(pricing.totalMinor)}</span>
+              </a>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="min-w-0 space-y-6 lg:sticky lg:top-6 lg:self-start">{summary}</div>
       </div>
     </div>
   );

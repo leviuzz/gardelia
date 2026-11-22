@@ -574,25 +574,32 @@ export function ItemForm({
         </details>
       </WizardStep>
 
-      <div className="flex items-center justify-between gap-3">
+      {/* Su telefono uno sotto l'altro, l'azione principale sopra. */}
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
         {step > 0 ? (
-          <Button type="button" variant="outline" size="lg" onClick={() => goTo(step - 1)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="w-full sm:w-auto"
+            onClick={() => goTo(step - 1)}
+          >
             <ArrowLeft aria-hidden="true" />
             {ts('back')}
           </Button>
-        ) : (
-          <span />
-        )}
-        {step < LAST_FORM_STEP ? (
-          <Button type="button" size="lg" onClick={next}>
-            {ts('continue')}
-            <ArrowRight aria-hidden="true" />
-          </Button>
-        ) : (
-          <SubmitButton size="lg" pendingLabel={t('form.creating')}>
-            {t('form.create')}
-          </SubmitButton>
-        )}
+        ) : null}
+        <div className="sm:ml-auto">
+          {step < LAST_FORM_STEP ? (
+            <Button type="button" size="lg" className="w-full sm:w-auto" onClick={next}>
+              {ts('continue')}
+              <ArrowRight aria-hidden="true" />
+            </Button>
+          ) : (
+            <SubmitButton size="lg" className="w-full sm:w-auto" pendingLabel={t('form.creating')}>
+              {t('form.create')}
+            </SubmitButton>
+          )}
+        </div>
       </div>
     </form>
   );

@@ -309,10 +309,11 @@ L'elenco è una proposta da far controllare a un fiorista (spec §19.6). Il Dise
 senza specie e con un nome generico (ADR-034, nota del 22/11). Ultima verifica: lint ✅ · format ✅
 · typecheck ✅ · test 436/436 ✅ · build ✅ · E2E 49/49 ✅; controllo visivo su desktop e a 320 px.
 
-**Nuovo prodotto a passi (fatto il 22/11, ADR-044, richiesta del founder):** "Nuevo producto" guida
-in cinque passi (cosa è, colori, prezzo, foto facoltativa, listo); la modifica resta un modulo
-unico. Prossimi: il Diseñador a passi con l'anteprima saltabile e il pulsante "Genera un'altra
-versione" della foto realistica (1 credito, con conferma).
+**Procedure guidate (fatto il 22/11, ADR-044, richiesta del founder):** "Nuevo producto" guida in
+cinque passi (cosa è, colori, prezzo, foto facoltativa, listo); la modifica resta un modulo unico.
+Il Diseñador va a passi (flores, follaje y empaque, detalles e salvataggio, vista previa
+facoltativa, listo con la cotización); un disegno salvato si riapre con i passi come schede.
+Prossimo: il pulsante "Genera un'altra versione" della foto realistica (1 credito, con conferma).
 
 **Pulsanti attivi solo quando funzionano (fatto il 22/11):** "Continuar con Google", uscita e i
 moduli di accesso restano disattivati finché la pagina non ha caricato il JavaScript; i moduli

@@ -1047,7 +1047,29 @@
       "lineTotalColor": "{quantity} × {name} · {color}",
       "colorOf": "Color of {name}",
       "colorFixed": "Color: {color}",
-      "chooseColor": "Choose the color for {name}."
+      "chooseColor": "Choose the color for {name}.",
+      "wizard": {
+        "stepFlowers": "Flowers",
+        "stepGreens": "Foliage and wrapping",
+        "stepDetails": "Details",
+        "stepPreview": "Preview",
+        "stepDone": "Done",
+        "flowersTitle": "Which flowers go in?",
+        "flowersBody": "Choose the flowers and how many. The price updates as you go.",
+        "greensTitle": "Foliage, add-ons, and wrapping",
+        "greensBody": "Add foliage and add-ons, and choose the paper or base and its color. It can also go unwrapped.",
+        "detailsTitle": "Name it",
+        "detailsBody": "The name helps you find it later. Style and size also guide the preview.",
+        "previewTitle": "Preview (optional)",
+        "previewBody": "The sketch with the exact number of flowers is free. The realistic photo uses one credit: you can skip this step.",
+        "doneTitle": "Your design is ready",
+        "doneBody": "Create the quote for your customer, or go back to any step to change something.",
+        "continue": "Continue",
+        "back": "Back",
+        "skip": "Skip this step",
+        "backToDesigns": "Back to designs",
+        "chooseColors": "Choose the missing colors to continue."
+      }
     },
     "settings": {
       "title": "Bouquet designer",

@@ -2,7 +2,7 @@ import { ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { getBuilderCatalog, getEntitlements } from '@floral/core';
+import { getBuilderCatalog, getEntitlements, isAiPreviewAvailable } from '@floral/core';
 import { PageHeader } from '@/components/page-header';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
@@ -67,6 +67,8 @@ export default async function NewDesignPage({
         saveAction={saveDesignAction.bind(null, ctx.tenantSlug, null)}
         quoteHref={null}
         catalogHref={routes.catalog.list()}
+        listHref={routes.builder.list()}
+        previewStep={isAiPreviewAvailable()}
       />
     </div>
   );

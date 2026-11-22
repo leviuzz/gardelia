@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { saveSimpleDesign } from './support/builder';
 
 test.describe('Bouquet Builder (fioreria demo, Plus in pilota)', () => {
   test.use({ storageState: 'e2e/.auth/owner.json' });
@@ -22,21 +23,31 @@ test.describe('Bouquet Builder (fioreria demo, Plus in pilota)', () => {
     await expect(page).toHaveURL(/\/builder\/new$/);
 
     const name = `Ramo E2E Builder ${Date.now()}`;
-    await page.getByRole('textbox', { name: 'Nombre del diseño' }).fill(name);
+    // Passo 1: senza fiori non si va avanti.
+    await expect(page.getByRole('button', { name: 'Continuar' })).toBeDisabled();
     await page.getByRole('spinbutton', { name: 'Cantidad de Rosa roja · Freedom' }).fill('7');
     await page.getByRole('button', { name: 'Agregar uno de Tulipán rosa' }).click();
     await page.getByRole('spinbutton', { name: 'Cantidad de Tulipán rosa' }).fill('5');
+    await page.getByRole('button', { name: 'Continuar' }).click();
+    // Passo 2: follaje y empaque.
     await page.getByRole('radio', { name: /Papel coreano kraft/ }).check();
 
     // 7 × 35 + 5 × 55 + 30 (empaque) + 50 (armado) = 600 MXN, calcolato nel browser.
     await expect(page.getByTestId('builder-total')).toHaveText('$600.00');
     await expect(page.getByText('Tulipán rosa: disponibilidad limitada')).toBeVisible();
+    await page.getByRole('button', { name: 'Continuar' }).click();
 
+    // Passo 3: nome e salvataggio.
+    await page.getByRole('textbox', { name: 'Nombre del diseño' }).fill(name);
     await page.getByRole('button', { name: 'Guardar diseño' }).click();
     await expect(page).toHaveURL(/\/builder\/[0-9a-f-]{36}\?saved=1$/);
     await expect(page.getByText('Diseño guardado. Ya puedes crear la cotización.')).toBeVisible();
     await expect(page.getByTestId('builder-total')).toHaveText('$600.00');
 
+    // Passo 4: l'anteprima si può saltare; passo 5: la cotización.
+    await expect(page.getByRole('heading', { name: 'Vista previa (opcional)' })).toBeVisible();
+    await page.getByRole('button', { name: 'Saltar este paso' }).click();
+    await expect(page.getByRole('heading', { name: 'Tu diseño está listo' })).toBeVisible();
     await page.getByRole('link', { name: 'Crear cotización' }).click();
     await expect(page.getByText(`Cotización del diseño «${name}»`)).toBeVisible();
     await page.getByRole('button', { name: 'Cotización para Hotel Casa Fuentes' }).click();
@@ -59,15 +70,13 @@ test.describe('carta e nastro con colore (ADR-030)', () => {
     page,
   }) => {
     await page.goto('/app/las-camelias/builder/new');
-    await page
-      .getByRole('textbox', { name: 'Nombre del diseño' })
-      .fill(`Ramo colores ${Date.now()}`);
     await page.getByRole('spinbutton', { name: 'Cantidad de Girasol' }).fill('3');
+    await page.getByRole('button', { name: 'Continuar' }).click();
     await page.getByRole('radio', { name: /^Papel coreano(?! kraft)/ }).check();
 
-    // Senza colore non si salva: si chiede di sceglierlo.
+    // Senza colore non si va avanti: si chiede di sceglierlo.
     await expect(page.getByText('Elige el color de Papel coreano.')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Guardar diseño' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Continuar' })).toBeDisabled();
     const paperColors = page.getByRole('group', { name: 'Color de Papel coreano' });
     await paperColors.getByText('Lila').click();
     await expect(paperColors.getByRole('radio', { name: 'Lila' })).toBeChecked();
@@ -77,16 +86,22 @@ test.describe('carta e nastro con colore (ADR-030)', () => {
     await ribbonColors.getByText('Dorado').click();
     await expect(page.getByText('1 × Papel coreano · Lila')).toBeVisible();
     await expect(page.getByText('1 × Listón de organza · Dorado')).toBeVisible();
+    await page.getByRole('button', { name: 'Continuar' }).click();
 
+    await page
+      .getByRole('textbox', { name: 'Nombre del diseño' })
+      .fill(`Ramo colores ${Date.now()}`);
     await page.getByRole('button', { name: 'Guardar diseño' }).click();
     await expect(page).toHaveURL(/\/builder\/[0-9a-f-]{36}\?saved=1$/);
-    // Dopo il salvataggio i colori restano quelli scelti.
+    // Dopo il salvataggio i colori restano quelli scelti: nel disegno salvato ogni passo si apre.
+    await page.getByRole('button', { name: /Follaje y empaque/ }).click();
     await expect(
       page
         .getByRole('group', { name: 'Color de Papel coreano' })
         .getByRole('radio', { name: 'Lila' }),
     ).toBeChecked();
 
+    await page.getByRole('button', { name: /Listo/ }).click();
     await page.getByRole('link', { name: 'Crear cotización' }).click();
     await page.getByRole('button', { name: 'Cotización para Hotel Casa Fuentes' }).click();
     await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
@@ -101,15 +116,9 @@ test.describe('carta e nastro con colore (ADR-030)', () => {
 test.describe('anteprima AI (provider simulato)', () => {
   test.use({ storageState: 'e2e/.auth/owner.json' });
 
-  async function saveDesign(page: Page, name: string) {
-    await page.goto('/app/las-camelias/builder/new');
-    await page.getByRole('textbox', { name: 'Nombre del diseño' }).fill(name);
-    // Stessa composizione a ogni esecuzione: dalla seconda in poi si riusa la cache.
-    await page.getByRole('spinbutton', { name: 'Cantidad de Girasol' }).fill('3');
-    await page.getByRole('radio', { name: /Papel coreano kraft/ }).check();
-    await page.getByRole('button', { name: 'Guardar diseño' }).click();
-    await expect(page).toHaveURL(/\/builder\/[0-9a-f-]{36}\?saved=1$/);
-  }
+  // Stessa composizione a ogni esecuzione: dalla seconda in poi si riusa la cache.
+  const saveDesign = (page: Page, name: string) =>
+    saveSimpleDesign(page, { name, flower: 'Girasol', quantity: 3 });
 
   test('si genera su richiesta, è dichiarata come simulazione e si riusa per lo stesso ramo', async ({
     page,

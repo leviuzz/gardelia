@@ -142,6 +142,8 @@ export default async function DesignPage({
         }
       : null;
 
+  const previewStep = preview !== null && !archived;
+
   return (
     <div className="space-y-6">
       {back}
@@ -214,6 +216,10 @@ export default async function DesignPage({
         saveAction={saveDesignAction.bind(null, ctx.tenantSlug, design.id)}
         quoteHref={routes.quotes.new({ configurationId: design.id })}
         catalogHref={routes.catalog.list()}
+        listHref={routes.builder.list()}
+        previewStep={previewStep}
+        // Appena salvato: l'anteprima (facoltativa). Riaperto: il riepilogo, con tutti i passi.
+        initialStep={saved && previewStep ? 3 : 4}
         preview={preview}
       />
     </div>
