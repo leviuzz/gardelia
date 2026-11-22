@@ -815,7 +815,7 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   sincronizzazione in `packages/db`, `listCanonicalFlowers` in core, campo
   `catalog/species-field.tsx`; E2E in spagnolo e in italiano.
 
-### ADR-044 — Procedure guidate: nuovo prodotto (e Diseñador) — ADOTTATO (22/11/2026)
+### ADR-044 — Procedure guidate: nuovo prodotto e Diseñador — ADOTTATO (22/11/2026)
 
 - **Richiesta del founder:** guidare chi aggiunge un fiore, un passo alla volta; lo stesso per il
   Diseñador, con l'anteprima che si può saltare.
@@ -830,7 +830,17 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   perdere nulla. I passi dopo la creazione sono pagine vere: si ricaricano e il tasto indietro
   funziona. La modifica resta un modulo unico con gli stessi gruppi di campi.
 - **Indicatore dei passi** condiviso (`components/common/step-indicator.tsx`): su telefono
-  "Paso 2 de 5 · Colores"; i passi già fatti sono cliccabili.
+  "Paso 2 de 5 · Colores"; i passi già fatti sono cliccabili. Su telefono i pulsanti stanno uno
+  sotto l'altro, con l'azione principale in alto.
+- **Diseñador** (`BouquetEditor`): 1. **Flores** (almeno un fiore per continuare), 2. **Follaje y
+  empaque** (fogliame, complementi, carta o base con il colore: senza colore non si continua), 3. **Detalles** (nome, stile, misura, budget, note) → "Guardar diseño", 4. **Vista previa**,
+  facoltativa: boceto gratis e foto realistica solo su richiesta, "Saltar este paso", 5. **Listo**
+  ("Crear cotización", "Volver a los diseños"). Il riepilogo con il prezzo resta sempre accanto
+  (sotto, su telefono, con il totale fisso in basso). Un disegno nuovo arriva fino ai dettagli;
+  dopo il salvataggio si apre sull'anteprima. Un disegno già salvato si riapre sul passo finale, con
+  tutti i passi cliccabili come schede, e se si cambia qualcosa una barra "Tienes cambios sin
+  guardar" offre "Guardar cambios" da qualsiasi passo. Senza AI (nessun provider) il passo
+  dell'anteprima non c'è. Calcoli, colori e controlli di disponibilità sono quelli di prima.
 
 ---
 

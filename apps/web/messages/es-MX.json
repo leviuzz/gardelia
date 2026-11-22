@@ -1047,7 +1047,29 @@
       "lineTotalColor": "{quantity} × {name} · {color}",
       "colorOf": "Color de {name}",
       "colorFixed": "Color: {color}",
-      "chooseColor": "Elige el color de {name}."
+      "chooseColor": "Elige el color de {name}.",
+      "wizard": {
+        "stepFlowers": "Flores",
+        "stepGreens": "Follaje y empaque",
+        "stepDetails": "Detalles",
+        "stepPreview": "Vista previa",
+        "stepDone": "Listo",
+        "flowersTitle": "¿Qué flores lleva?",
+        "flowersBody": "Elige las flores y cuántas. El precio se calcula al momento.",
+        "greensTitle": "Follaje, complementos y empaque",
+        "greensBody": "Agrega follaje y complementos, y elige el papel o la base con su color. También puede ir sin empaque.",
+        "detailsTitle": "Ponle nombre",
+        "detailsBody": "El nombre te ayuda a encontrarlo después. El estilo y el tamaño también guían la vista previa.",
+        "previewTitle": "Vista previa (opcional)",
+        "previewBody": "El boceto con el número exacto de flores es gratis. La foto realista usa un crédito: puedes saltar este paso.",
+        "doneTitle": "Tu diseño está listo",
+        "doneBody": "Crea la cotización para tu cliente o vuelve a cualquier paso para cambiar algo.",
+        "continue": "Continuar",
+        "back": "Atrás",
+        "skip": "Saltar este paso",
+        "backToDesigns": "Volver a los diseños",
+        "chooseColors": "Elige los colores que faltan para continuar."
+      }
     },
     "settings": {
       "title": "Diseñador de ramos",

@@ -1047,7 +1047,29 @@
       "lineTotalColor": "{quantity} × {name} · {color}",
       "colorOf": "Colore di {name}",
       "colorFixed": "Colore: {color}",
-      "chooseColor": "Scegli il colore di {name}."
+      "chooseColor": "Scegli il colore di {name}.",
+      "wizard": {
+        "stepFlowers": "Fiori",
+        "stepGreens": "Fogliame e incarto",
+        "stepDetails": "Dettagli",
+        "stepPreview": "Anteprima",
+        "stepDone": "Fatto",
+        "flowersTitle": "Quali fiori ci sono?",
+        "flowersBody": "Scegli i fiori e quanti. Il prezzo si calcola subito.",
+        "greensTitle": "Fogliame, complementi e incarto",
+        "greensBody": "Aggiungi fogliame e complementi, e scegli la carta o la base con il suo colore. Può anche essere senza incarto.",
+        "detailsTitle": "Dagli un nome",
+        "detailsBody": "Il nome ti aiuta a ritrovarla. Stile e misura guidano anche l’anteprima.",
+        "previewTitle": "Anteprima (facoltativa)",
+        "previewBody": "Il bozzetto con il numero esatto di fiori è gratis. La foto realistica usa un credito: puoi saltare questo passo.",
+        "doneTitle": "La tua composizione è pronta",
+        "doneBody": "Crea il preventivo per il tuo cliente o torna a un passo per cambiare qualcosa.",
+        "continue": "Continua",
+        "back": "Indietro",
+        "skip": "Salta questo passo",
+        "backToDesigns": "Torna alle composizioni",
+        "chooseColors": "Scegli i colori mancanti per continuare."
+      }
     },
     "settings": {
       "title": "Designer di bouquet",
