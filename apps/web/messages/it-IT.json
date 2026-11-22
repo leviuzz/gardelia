@@ -465,6 +465,31 @@
       "archivedNotice": "Questo prodotto è archiviato.",
       "builderEnabled": "Disponibile nel designer di bouquet",
       "builderEnabledHint": "Si potrà scegliere quando si compongono bouquet su misura nel designer (piano Plus)."
+    },
+    "wizard": {
+      "stepWhat": "Che cos’è",
+      "stepColors": "Colori",
+      "stepPrice": "Prezzo",
+      "stepPhoto": "Foto",
+      "stepDone": "Fatto",
+      "whatTitle": "Che cosa aggiungi?",
+      "whatBody": "Scegli il tipo e scrivi il nome che usi in fioreria. Se è un fiore, la specie si suggerisce da sola.",
+      "colorsTitle": "In che colori ce l’hai?",
+      "colorsBody": "Segna tutti i colori in cui lo vendi. Se non serve, continua senza sceglierne.",
+      "priceTitle": "Quanto costa?",
+      "priceBody": "Il prezzo di vendita è obbligatorio. Il costo è facoltativo e ti aiuta a vedere il margine.",
+      "moreDetails": "Altri dettagli (facoltativi)",
+      "photoTitle": "Aggiungi una foto",
+      "photoBody": "È facoltativa: puoi aggiungerla ora o dopo, dalla scheda del prodotto.",
+      "skipPhoto": "Salta per ora",
+      "doneTitle": "Fatto! «{name}» è nel tuo catalogo.",
+      "doneDesigner": "Ora puoi usarlo nel Designer dei bouquet.",
+      "doneRecipe": "Ora componi la sua ricetta: i fiori e i materiali che contiene e in che quantità.",
+      "addAnother": "Aggiungi un altro prodotto",
+      "viewProduct": "Vedi il prodotto",
+      "goToCatalog": "Vai al catalogo",
+      "useInDesigner": "Usalo nel Designer",
+      "buildRecipe": "Componi la ricetta"
     }
   },
   "recipe": {
@@ -1145,5 +1170,12 @@
     "styleDetected": "Stile: {description}",
     "stylePending": "Lo stile verrà descritto alla prossima anteprima con IA.",
     "keepsBackground": "Qui non rimuoviamo lo sfondo: anche l’ambientazione della foto fa parte del tuo stile."
+  },
+  "steps": {
+    "label": "Passi",
+    "progress": "Passo {current} di {total}",
+    "completed": "{label} (fatto)",
+    "back": "Indietro",
+    "continue": "Continua"
   }
 }

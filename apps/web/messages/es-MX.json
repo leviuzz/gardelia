@@ -465,6 +465,31 @@
       "archivedNotice": "Este producto está archivado.",
       "builderEnabled": "Disponible en el diseñador de ramos",
       "builderEnabledHint": "Se podrá elegir al armar ramos a la medida en el diseñador (plan Plus)."
+    },
+    "wizard": {
+      "stepWhat": "Qué es",
+      "stepColors": "Colores",
+      "stepPrice": "Precio",
+      "stepPhoto": "Foto",
+      "stepDone": "Listo",
+      "whatTitle": "¿Qué vas a agregar?",
+      "whatBody": "Elige el tipo y escribe el nombre como lo llamas en tu florería. Si es una flor, la especie se sugiere sola.",
+      "colorsTitle": "¿En qué colores lo tienes?",
+      "colorsBody": "Marca todos los colores en los que lo vendes. Si no aplica, continúa sin elegir.",
+      "priceTitle": "¿Cuánto cuesta?",
+      "priceBody": "El precio de venta es obligatorio. El costo es opcional y te ayuda a ver tu margen.",
+      "moreDetails": "Más detalles (opcional)",
+      "photoTitle": "Agrega una foto",
+      "photoBody": "Es opcional: puedes agregarla ahora o después, desde el producto.",
+      "skipPhoto": "Saltar por ahora",
+      "doneTitle": "¡Listo! «{name}» ya está en tu catálogo.",
+      "doneDesigner": "Ya puedes usarlo en el diseñador de ramos.",
+      "doneRecipe": "Ahora arma su receta: las flores y materiales que lleva y en qué cantidad.",
+      "addAnother": "Agregar otro producto",
+      "viewProduct": "Ver el producto",
+      "goToCatalog": "Ir al catálogo",
+      "useInDesigner": "Usarlo en el diseñador",
+      "buildRecipe": "Armar la receta"
     }
   },
   "recipe": {
@@ -1145,5 +1170,12 @@
     "styleDetected": "Estilo: {description}",
     "stylePending": "El estilo se describirá en la próxima vista previa con IA.",
     "keepsBackground": "Aquí no quitamos el fondo: el ambiente de la foto también es parte de tu estilo."
+  },
+  "steps": {
+    "label": "Pasos",
+    "progress": "Paso {current} de {total}",
+    "completed": "{label} (hecho)",
+    "back": "Atrás",
+    "continue": "Continuar"
   }
 }

@@ -48,6 +48,9 @@ export function tenantRoutes(slug: string) {
     catalog: {
       list: (query?: QueryValues) => withQuery(catalog, query),
       new: `${catalog}/new`,
+      /** Passi dopo la creazione guidata: foto, poi "listo" (`{ step: 'done' }`). */
+      added: (itemId: string, query?: { readonly step?: 'done' }) =>
+        withQuery(`${catalog}/new/${segment(itemId)}`, query),
       item: (itemId: string, query?: QueryValues) =>
         withQuery(`${catalog}/${segment(itemId)}`, query),
       photo: (photoId: string, size: CatalogPhotoSize = 'full') =>

@@ -815,6 +815,23 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   sincronizzazione in `packages/db`, `listCanonicalFlowers` in core, campo
   `catalog/species-field.tsx`; E2E in spagnolo e in italiano.
 
+### ADR-044 — Procedure guidate: nuovo prodotto (e Diseñador) — ADOTTATO (22/11/2026)
+
+- **Richiesta del founder:** guidare chi aggiunge un fiore, un passo alla volta; lo stesso per il
+  Diseñador, con l'anteprima che si può saltare.
+- **Nuovo prodotto** (`/catalog/new`): 1. **Qué es** (tipo, nome, varietà, specie suggerita), 2. **Colores**, 3. **Precio** (unità, prezzo, costo, disponibilità; SKU, descrizione, etichette,
+  tempi e misure in "Más detalles", chiuso) → "Crear producto", 4. **Foto** (`/catalog/new/[id]`,
+  facoltativa: "Saltar por ahora"), 5. **Listo** (aggiungere un altro prodotto, usarlo nel
+  Diseñador, vedere il prodotto; per un ramo: "Armar la receta"). Tipi senza foto (servizi)
+  passano dal prezzo al passo finale.
+- **Come:** un solo `<form>` con i passi nascosti, così il server riceve tutto insieme e le regole
+  restano quelle di prima. "Continuar" controlla i campi del passo, e Invio vale "Continuar". Un
+  errore del server riporta al passo del campo sbagliato e apre "Más detalles" se serve, senza
+  perdere nulla. I passi dopo la creazione sono pagine vere: si ricaricano e il tasto indietro
+  funziona. La modifica resta un modulo unico con gli stessi gruppi di campi.
+- **Indicatore dei passi** condiviso (`components/common/step-indicator.tsx`): su telefono
+  "Paso 2 de 5 · Colores"; i passi già fatti sono cliccabili.
+
 ---
 
 ## 3. Proposte da approvare

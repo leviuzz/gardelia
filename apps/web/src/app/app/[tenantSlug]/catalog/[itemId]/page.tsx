@@ -1,4 +1,4 @@
-import { ArrowLeft, CircleCheck, TriangleExclamationPoint } from 'lucide-react';
+import { ArrowLeft, TriangleExclamationPoint } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -61,12 +61,10 @@ function decimal(minor: number | null, currency: string): string {
 
 export default async function ItemPage({
   params,
-  searchParams,
 }: PageProps<'/app/[tenantSlug]/catalog/[itemId]'>) {
   const { tenantSlug, itemId } = await params;
   const ctx = await getTenantContext(tenantSlug);
   const item = await loadItem(ctx, itemId);
-  const created = (await searchParams).created === '1';
   const canWrite = hasPermission(ctx, 'catalog:write');
   const t = await getTranslations();
   const slug = ctx.tenantSlug;
@@ -132,12 +130,6 @@ export default async function ItemPage({
         }
       />
 
-      {created ? (
-        <Alert variant="success">
-          <CircleCheck aria-hidden="true" />
-          <AlertDescription>{t('catalog.form.created')}</AlertDescription>
-        </Alert>
-      ) : null}
       {item.status === 'ARCHIVED' ? (
         <Alert variant="warning">
           <TriangleExclamationPoint aria-hidden="true" />
