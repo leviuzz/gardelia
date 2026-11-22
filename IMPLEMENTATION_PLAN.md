@@ -320,8 +320,12 @@ clic la stessa composizione riusa sempre la foto già fatta.
 fioristi):** il modulo "Nuevo cliente" ha la sezione "Fechas especiales" (compleanni, anniversari,
 altre date, anche di un'altra persona, con "avvisa con anticipo"): si salvano col cliente nella
 stessa transazione e un errore resta sulla sua riga. Le date si gestivano già nella scheda del
-cliente, ma solo dopo averlo creato. I clienti demo hanno qualche data. Prossimi: il calendario
-delle date e la promo con l'email automatica.
+cliente, ma solo dopo averlo creato. I clienti demo hanno qualche data.
+
+**Calendario delle date speciali (fatto il 22/11, richiesta del founder, ADR-046):** sezione
+"Calendario" con le viste mese, settimana, giorno e agenda delle date dei clienti attivi; da ogni
+data si scrive su WhatsApp, si apre un preventivo o la scheda del cliente. Vista e data stanno
+nell'URL. Prossimo: la promo per le date speciali con l'email automatica al cliente.
 
 **Pulsanti attivi solo quando funzionano (fatto il 22/11):** "Continuar con Google", uscita e i
 moduli di accesso restano disattivati finché la pagina non ha caricato il JavaScript; i moduli

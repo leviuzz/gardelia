@@ -56,6 +56,9 @@ export function tenantRoutes(slug: string) {
       photo: (photoId: string, size: CatalogPhotoSize = 'full') =>
         sized(`${catalog}/photos/${segment(photoId)}`, size),
     },
+    /** Calendario delle date speciali dei clienti (`view`: month, week, day, agenda). */
+    calendar: (query?: { readonly view?: string; readonly date?: string }) =>
+      withQuery(`${home}/calendar`, query),
     customers: {
       list: (query?: QueryValues) => withQuery(customers, query),
       new: `${customers}/new`,

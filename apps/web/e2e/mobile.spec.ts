@@ -31,6 +31,7 @@ test.describe('propietario', () => {
     const bottomNav = page.getByRole('navigation', { name: 'Navegación principal' }).last();
     await expect(bottomNav.getByRole('link', { name: 'Cotizaciones' })).toBeVisible();
     await bottomNav.getByRole('button', { name: 'Más' }).click();
+    await expect(page.getByRole('menuitem', { name: 'Calendario' })).toBeVisible();
     await page.getByRole('menuitem', { name: 'Equipo' }).click();
     await expect(page).toHaveURL(/\/settings\/team$/);
   });

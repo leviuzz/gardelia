@@ -244,7 +244,8 @@
     "customers": "Customers",
     "more": "More",
     "quotes": "Quotes",
-    "builder": "Designer"
+    "builder": "Designer",
+    "calendar": "Calendar"
   },
   "roles": {
     "OWNER": "Owner",
@@ -285,7 +286,8 @@
     "noUpcomingOccasions": "No occasions in the next 30 days.",
     "contactNow": "Contact",
     "statOpenQuotes": "Open quotes",
-    "openQuotesDetail": "{drafts} in draft · {sent} sent"
+    "openQuotesDetail": "{drafts} in draft · {sent} sent",
+    "viewCalendar": "View calendar"
   },
   "activity": {
     "someone": "Someone",
@@ -1206,5 +1208,32 @@
     "completed": "{label} (done)",
     "back": "Back",
     "continue": "Continue"
+  },
+  "calendar": {
+    "title": "Calendar",
+    "subtitle": "Your customers’ birthdays, anniversaries, and other special dates.",
+    "today": "Today",
+    "previous": "Previous",
+    "next": "Next",
+    "viewLabel": "View",
+    "views": {
+      "month": "Month",
+      "week": "Week",
+      "day": "Day",
+      "agenda": "Agenda"
+    },
+    "more": "+{count} more",
+    "dayCount": "{count, plural, =0 {no dates} one {# date} other {# dates}}",
+    "emptyDay": "No special dates on this day.",
+    "emptyRange": "No special dates in these days.",
+    "monthList": "Dates this month",
+    "viewCustomer": "View customer",
+    "whatsapp": "WhatsApp",
+    "newQuote": "New quote",
+    "yearsBirthday": "turns {count}",
+    "yearsOther": "{count, plural, one {# year} other {# years}}",
+    "addHint": "Dates are added on each customer’s page.",
+    "goToCustomers": "Go to customers",
+    "whatsappText": "Hi {name}, {occasion} is coming up. Shall we prepare some special flowers?"
   }
 }
