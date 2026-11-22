@@ -859,6 +859,28 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   con un avviso, e nessun credito consumato (come ogni fallimento). Audit con
   `anotherVersion: true`.
 
+### ADR-046 — Calendario delle date speciali dei clienti — ADOTTATO (22/11/2026)
+
+- **Richiesta del founder** (dopo i riscontri dei fioristi): un calendario "classico, tipo Google
+  Calendar" con le date dei clienti in arrivo, per mese, settimana e giorno, pensato per
+  aggiungere poi le notifiche (email, promo).
+- **Cosa:** sezione "Calendario" nel menu (su telefono in "Más"), per chi vede i clienti, staff
+  compreso. Viste: **mese** (griglia di settimane intere; su desktop fino a 2 nomi per giorno più
+  "+N más", su telefono pallini per tipo e l'elenco del mese sotto), **settimana** (sette colonne
+  con tipo e cliente; su telefono un giorno sotto l'altro), **giorno** (anni compiuti, WhatsApp
+  con il testo nella lingua della fioreria, "Nueva cotización" per chi crea preventivi, "Ver
+  cliente") e **agenda** (60 giorni, solo i giorni con date, "en N días"). "Hoy", precedente e
+  successivo; ogni giorno si apre con un clic. Dalla dashboard, "Ver calendario".
+- **Come:** vista e data stanno nell'URL (`?view=…&date=AAAA-MM-GG`): i link si condividono, la
+  pagina funziona senza JavaScript e il tasto indietro torna alla vista precedente. Pagina tutta
+  lato server, senza librerie di calendario. Le regole delle date stanno in `domain/calendar.ts`:
+  settimana da domenica in es-MX ed en-US, da lunedì in it-IT; il 29 febbraio cade il 28 negli
+  anni non bisestili; "oggi" è nel fuso della fioreria. `listCalendarOccasions(ctx, { from, to })`
+  in core richiede `customers:read`, legge al massimo 93 giorni e solo i mesi utili, e mostra
+  solo i clienti attivi: un cliente archiviato esce dal calendario.
+- **Per dopo:** il servizio restituisce eventi con data e tipo, quindi altre fonti (consegne,
+  ordini, email promo inviate) si aggiungono con lo stesso intervallo.
+
 ---
 
 ## 3. Proposte da approvare

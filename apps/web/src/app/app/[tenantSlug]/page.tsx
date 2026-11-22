@@ -177,8 +177,15 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
           ) : null}
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex-row items-center justify-between gap-3">
               <CardTitle>{t('dashboard.upcomingOccasions')}</CardTitle>
+              <Link
+                href={routes.calendar()}
+                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+              >
+                {t('dashboard.viewCalendar')}
+                <ArrowRight className="size-3.5" aria-hidden="true" />
+              </Link>
             </CardHeader>
             <CardContent>
               {occasions.length === 0 ? (

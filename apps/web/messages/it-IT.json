@@ -244,7 +244,8 @@
     "customers": "Clienti",
     "more": "Altro",
     "quotes": "Preventivi",
-    "builder": "Designer"
+    "builder": "Designer",
+    "calendar": "Calendario"
   },
   "roles": {
     "OWNER": "Titolare",
@@ -285,7 +286,8 @@
     "noUpcomingOccasions": "Nessuna ricorrenza nei prossimi 30 giorni.",
     "contactNow": "Contatta",
     "statOpenQuotes": "Preventivi aperti",
-    "openQuotesDetail": "{drafts} in bozza · {sent} inviati"
+    "openQuotesDetail": "{drafts} in bozza · {sent} inviati",
+    "viewCalendar": "Vedi calendario"
   },
   "activity": {
     "someone": "Qualcuno",
@@ -1206,5 +1208,32 @@
     "completed": "{label} (fatto)",
     "back": "Indietro",
     "continue": "Continua"
+  },
+  "calendar": {
+    "title": "Calendario",
+    "subtitle": "Compleanni, anniversari e altre date speciali dei tuoi clienti.",
+    "today": "Oggi",
+    "previous": "Precedente",
+    "next": "Successivo",
+    "viewLabel": "Vista",
+    "views": {
+      "month": "Mese",
+      "week": "Settimana",
+      "day": "Giorno",
+      "agenda": "Agenda"
+    },
+    "more": "+{count} altre",
+    "dayCount": "{count, plural, =0 {nessuna data} one {# data} other {# date}}",
+    "emptyDay": "Nessuna data speciale in questo giorno.",
+    "emptyRange": "Nessuna data speciale in questi giorni.",
+    "monthList": "Date del mese",
+    "viewCustomer": "Vedi cliente",
+    "whatsapp": "WhatsApp",
+    "newQuote": "Nuovo preventivo",
+    "yearsBirthday": "compie {count} anni",
+    "yearsOther": "{count, plural, one {# anno} other {# anni}}",
+    "addHint": "Le date si aggiungono nella scheda di ogni cliente.",
+    "goToCustomers": "Vai ai clienti",
+    "whatsappText": "Ciao {name}, si avvicina {occasion}. Ti prepariamo dei fiori speciali?"
   }
 }

@@ -244,7 +244,8 @@
     "customers": "Clientes",
     "more": "Más",
     "quotes": "Cotizaciones",
-    "builder": "Diseñador"
+    "builder": "Diseñador",
+    "calendar": "Calendario"
   },
   "roles": {
     "OWNER": "Propietario",
@@ -285,7 +286,8 @@
     "noUpcomingOccasions": "No hay fechas especiales en los próximos 30 días.",
     "contactNow": "Contactar",
     "statOpenQuotes": "Cotizaciones abiertas",
-    "openQuotesDetail": "{drafts} en borrador · {sent} enviadas"
+    "openQuotesDetail": "{drafts} en borrador · {sent} enviadas",
+    "viewCalendar": "Ver calendario"
   },
   "activity": {
     "someone": "Alguien",
@@ -1206,5 +1208,32 @@
     "completed": "{label} (hecho)",
     "back": "Atrás",
     "continue": "Continuar"
+  },
+  "calendar": {
+    "title": "Calendario",
+    "subtitle": "Cumpleaños, aniversarios y otras fechas especiales de tus clientes.",
+    "today": "Hoy",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "viewLabel": "Vista",
+    "views": {
+      "month": "Mes",
+      "week": "Semana",
+      "day": "Día",
+      "agenda": "Agenda"
+    },
+    "more": "+{count} más",
+    "dayCount": "{count, plural, =0 {sin fechas} one {# fecha} other {# fechas}}",
+    "emptyDay": "Sin fechas especiales este día.",
+    "emptyRange": "Sin fechas especiales en estos días.",
+    "monthList": "Fechas del mes",
+    "viewCustomer": "Ver cliente",
+    "whatsapp": "WhatsApp",
+    "newQuote": "Nueva cotización",
+    "yearsBirthday": "cumple {count}",
+    "yearsOther": "{count, plural, one {# año} other {# años}}",
+    "addHint": "Las fechas se agregan en la ficha de cada cliente.",
+    "goToCustomers": "Ir a clientes",
+    "whatsappText": "Hola {name}, se acerca {occasion}. ¿Te preparamos unas flores especiales?"
   }
 }
