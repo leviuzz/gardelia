@@ -114,8 +114,10 @@ mese gratis).
 1. **Job AI.** Su Vercel non c'è un processo sempre acceso. La coda resta in Postgres: stati,
    crediti, tentativi e lease sono già scritti e testati, e restano la fonte di verità. A
    svuotarla è una **funzione dedicata** (es. `/api/internal/ai/drain`, protetta da un segreto,
-   fino a 800 secondi per invocazione), avviata subito dopo l'accodamento e ogni minuto da un cron
-   di sicurezza che riprende i job rimasti a metà. Un **limite globale di job in parallelo** nel
+   fino a 800 secondi per invocazione con Pro, 300 con Hobby), avviata subito dopo l'accodamento e
+   **anche quando la pagina chiede lo stato di un'anteprima** in attesa da troppo: così i job
+   rimasti a metà ripartono senza dipendere dalla frequenza del cron, che resta solo come rete di
+   sicurezza (ogni minuto con Pro). Un **limite globale di job in parallelo** nel
    claim SQL rispetta il limite di fal (10 richieste contemporanee). La funzione è separata dalle
    pagine, quindi un picco di AI non rallenta il sito. In locale (e in un eventuale container) resta
    il worker nel processo: un'opzione di configurazione sceglie il "motore".
@@ -183,17 +185,30 @@ Sceglieremmo Supabase se partissimo da zero e volessimo login, file e tempo real
 servizio. Non è il nostro caso. Per quanto verificato, nessuno dei due ha oggi una regione in
 Messico.
 
-### Costo adesso, finché lo usa solo il founder (deciso il 22/11/2026: 20 USD/mese)
+### Costo adesso, finché lo usa solo il founder (budget deciso il 22/11/2026: fino a 20 USD/mese)
 
-| Voce                                                      | Al mese                                     |
-| --------------------------------------------------------- | ------------------------------------------- |
-| Vercel Pro (anteprime, cron ogni minuto, funzioni lunghe) | 20 USD, con 20 USD di consumo inclusi       |
-| Neon Free (Postgres; ripristino di poche ore)             | 0                                           |
-| Cloudflare R2, Resend, Sentry: piani gratuiti             | 0                                           |
-| **Totale**                                                | **≈ 20 USD + AI a consumo (pochi dollari)** |
+Proposta del 22/11/2026: **Vercel Hobby (gratuito)** finché l'app la usa solo il founder, **Vercel
+Pro (20 USD/mese)** appena entrano i tester o prima di far pagare chiunque.
 
-Limite consapevole: con Neon Free il ripristino a un istante copre solo poche ore; va bene per dati
-di prova, non per clienti veri. Prima del lancio si passa ai piani della tabella seguente.
+| Voce                          | Ora (solo il founder)                  | Con i tester / al lancio                   |
+| ----------------------------- | -------------------------------------- | ------------------------------------------ |
+| Vercel                        | Hobby: 0                               | Pro: 20 USD, con 20 USD di consumo inclusi |
+| Neon (Postgres)               | Free: 0 (ripristino di poche ore)      | Launch, vedi tabella seguente              |
+| Cloudflare R2, Resend, Sentry | piani gratuiti: 0                      | piani gratuiti finché bastano              |
+| **Totale**                    | **≈ 0 + AI a consumo (pochi dollari)** | **≈ 20 USD + Neon + AI**                   |
+
+Perché Hobby basta adesso e non dopo:
+
+- **Regole di Vercel:** Hobby è "per uso personale, non commerciale". Un prototipo privato prima
+  del lancio è una zona grigia: nel forum di Vercel la risposta ricorrente è "va bene per
+  prototipare; Pro appena fai pagare o intendi far pagare". Con i tester o i pagamenti si passa a
+  Pro; per togliere ogni dubbio prima si può chiedere al supporto di Vercel.
+- **Limiti tecnici di Hobby:** funzioni fino a 5 minuti (le nostre anteprime durano 20–60 secondi),
+  lavori programmati rari (una volta al giorno o ogni 15 minuti: le fonti non concordano), log
+  conservati poco, un solo utente nel team. Il motore dei job AI va progettato per non dipendere
+  dalla frequenza dei lavori programmati (vedi sezione 3, punto 1).
+- **Neon Free:** il ripristino a un istante copre solo poche ore; va bene per dati di prova, non per
+  clienti veri.
 
 ### Costo al lancio (da verificare sui listini al momento dell'acquisto)
 

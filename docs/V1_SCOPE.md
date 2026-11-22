@@ -54,9 +54,9 @@ Ogni schermata e ogni flusso della V1:
 
 ## 4. Fuori dalla V1 (dopo il lancio)
 
-- **Flora Studio** (foto degli ambienti con le piante) e **Floral Network** (domanda B2B): addon
-  separati. Proposta: Flora Studio come primo addon subito dopo il lancio. Da confermare dal
-  founder.
+- **Studio** (foto degli ambienti con le piante; nella spec "Flora Studio", con il nome proposto
+  "Gardelia Studio"): **dopo il lancio**, come primo addon (confermato dal founder il 22/11/2026).
+- **Floral Network** (domanda B2B): addon successivo.
 - Diseñador pubblico per i clienti della fioreria (AI-BQ-10), notifiche push, WhatsApp Business,
   pagamenti online dei clienti delle fiorerie, più sedi, mercato italiano, B2C, accessori, video.
 
