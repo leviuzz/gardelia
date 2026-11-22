@@ -197,6 +197,15 @@ stampare). Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 354/
 pulizia dopo limite, altra fioreria, rete caduta a metà, Mis ramos, file mancante) · build ✅ ·
 E2E 39/39 ✅. Prossimo blocco della fase 0: azioni e percorsi (`defineTenantAction`, `routes.ts`).
 
+**Fase 0, job AI su Vercel (fatto il 22/11, ADR-037):** su Vercel non c'è un processo sempre
+acceso, quindi la coda AI (sempre in Postgres) si svuota con una funzione protetta da
+`CRON_SECRET`, avviata appena si accoda un job, quando una pagina aspetta un job da troppo e una
+volta al giorno da Vercel Cron. Limite globale di 8 job in corso (sotto le 10 richieste di fal),
+atomico anche con più funzioni insieme (nuova migrazione `ai_claim_concurrency_cap`). In locale e
+nei test resta il worker nel processo. Nuove variabili: `AI_WORKER_MODE`, `AI_MAX_CONCURRENT_JOBS`,
+`CRON_SECRET` (`docs/CONFIGURATION.md`). Prossimo: configurazione del deploy su Vercel
+(migrazioni, guida passo passo per creare gli account) e limite di 4 MB sui caricamenti.
+
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite
 `prisma` → `@prisma/config`, è chiuso con un override pnpm a ≥ 3.22.1 (`pnpm-workspace.yaml`);

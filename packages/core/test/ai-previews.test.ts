@@ -31,7 +31,7 @@ import {
   type GeneratedImage,
   type StyleDescriber,
 } from '../src/index';
-import { processNextAiJob } from '../src/ai/worker';
+import { drainAiQueue, processNextAiJob } from '../src/ai/worker';
 import { assignTenantPlan, grantAiCredits } from '../src/platform';
 import { createTestShop, itemInput, type TestShop } from '../src/testing';
 
@@ -466,6 +466,60 @@ describe('generazione, cache e consumo', () => {
     } finally {
       await worker.stop();
     }
+  });
+});
+
+describe('job su funzioni (Vercel, ADR-037)', () => {
+  it('svuotare la coda lavora tutti i job in attesa e si ferma quando non ce ne sono', async () => {
+    const kit = await createKit();
+    const first = await save(kit, 4);
+    const second = await save(kit, 7);
+    await requestBouquetPreview(kit.shop.owner, first.id);
+    await requestBouquetPreview(kit.shop.owner, second.id);
+    const result = await drainAiQueue({
+      budgetMs: 60_000,
+      reserveMs: 0,
+      onlyTenantId: kit.shop.tenant.tenantId,
+    });
+    expect(result).toEqual({ processed: 2, stoppedBecause: 'idle' });
+    for (const design of [first, second]) {
+      expect((await getBouquetPreview(kit.shop.owner, design.id)).preview?.status).toBe(
+        'SUCCEEDED',
+      );
+    }
+  });
+
+  it('senza tempo sufficiente non prende nuovi job: restano in coda per la chiamata dopo', async () => {
+    const kit = await createKit();
+    const design = await save(kit, 5);
+    await requestBouquetPreview(kit.shop.owner, design.id);
+    const result = await drainAiQueue({
+      budgetMs: 290_000,
+      reserveMs: 290_000,
+      onlyTenantId: kit.shop.tenant.tenantId,
+    });
+    expect(result).toEqual({ processed: 0, stoppedBecause: 'deadline' });
+    expect((await getBouquetPreview(kit.shop.owner, design.id)).preview?.status).toBe('QUEUED');
+  });
+
+  it('con il limite di job in corso raggiunto non se ne prende un altro', async () => {
+    const kit = await createKit();
+    const busy = await save(kit, 3);
+    const waiting = await save(kit, 9);
+    await requestBouquetPreview(kit.shop.owner, busy.id);
+    // Un'altra funzione ha appena preso il primo job (lease valido).
+    const claimed = await db.$queryRaw<{ job_id: string }[]>`
+      SELECT * FROM app_claim_ai_job(300, ${kit.shop.tenant.tenantId}::uuid, NULL)`;
+    expect(claimed).toHaveLength(1);
+    await requestBouquetPreview(kit.shop.owner, waiting.id);
+
+    expect(await processNextAiJob({ onlyTenantId: kit.shop.tenant.tenantId, maxRunning: 1 })).toBe(
+      'idle',
+    );
+    expect((await getBouquetPreview(kit.shop.owner, waiting.id)).preview?.status).toBe('QUEUED');
+
+    // Con il limite predefinito (8) il job in attesa parte.
+    expect(await processNextAiJob({ onlyTenantId: kit.shop.tenant.tenantId })).toBe('succeeded');
   });
 });
 

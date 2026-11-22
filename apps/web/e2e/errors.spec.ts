@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { E2E_CRON_SECRET } from '../playwright.config';
 
 /**
  * Gestione degli errori (fase 0): una risorsa che non esiste (o di un'altra fioreria) risponde
@@ -47,4 +48,19 @@ test.describe('errori di validazione senza un campo visibile', () => {
     await expect(page.getByText('Este campo es obligatorio.')).toBeVisible();
     await expect(page).toHaveURL(/\/quotes\/new$/);
   });
+});
+
+test('la funzione dei job AI risponde solo con il segreto (404 altrimenti)', async ({
+  request,
+}) => {
+  const path = '/api/internal/ai/drain';
+  expect((await request.post(path)).status()).toBe(404);
+  expect(
+    (await request.post(path, { headers: { authorization: 'Bearer sbagliato' } })).status(),
+  ).toBe(404);
+  expect(
+    (
+      await request.post(path, { headers: { authorization: `Bearer ${E2E_CRON_SECRET}` } })
+    ).status(),
+  ).toBe(202);
 });

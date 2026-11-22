@@ -31,6 +31,11 @@ const optionalText = z
   .transform((value) => value?.trim() || undefined);
 
 const DEFAULT_AI_MONTHLY_BUDGET_USD = 50;
+/** Job AI in parallelo su tutta la piattaforma: sotto il limite di fal (10 richieste contemporanee). */
+const DEFAULT_AI_MAX_CONCURRENT_JOBS = 8;
+const MAX_AI_CONCURRENT_JOBS = 50;
+/** Lunghezza minima del segreto che protegge l'avvio dei job AI su funzioni. */
+const MIN_CRON_SECRET_LENGTH = 32;
 const R2_VARIABLES = [
   'R2_ACCOUNT_ID',
   'R2_BUCKET',
@@ -47,9 +52,17 @@ const aiFields = {
   AI_PROVIDER: z.enum(['none', 'simulated', 'fal']).default('none'),
   AI_MODEL: optionalText,
   FAL_KEY: optionalText,
-  // Resta testo qui e si controlla nelle regole: così un importo sbagliato non nasconde gli altri
+  // Numeri come testo qui, controllati nelle regole: così un valore sbagliato non nasconde gli altri
   // problemi (le regole fra variabili non girano se un campo fallisce).
   AI_MONTHLY_BUDGET_USD: optionalText,
+  AI_MAX_CONCURRENT_JOBS: optionalText,
+  // Motore dei job AI: `inline` = ciclo nel processo del server (locale, container);
+  // `serverless` = funzione avviata a richiesta (Vercel). Predefinito: serverless su Vercel.
+  AI_WORKER_MODE: z.enum(['inline', 'serverless']).optional(),
+  // Segreto che protegge l'avvio dei job su funzioni (lo usa anche Vercel Cron).
+  CRON_SECRET: optionalText,
+  // Impostata da Vercel in ogni deploy.
+  VERCEL: optionalText,
 };
 
 /** Tetto mensile in USD: predefinito se assente; `null` se non è un importo valido. */
@@ -59,25 +72,73 @@ function budgetUsd(value: string | undefined): number | null {
   return Number.isFinite(usd) && usd >= 0 ? usd : null;
 }
 
-/** Converte il tetto in numero dopo le regole (un valore non valido è già un errore). */
-function withBudgetNumber<T extends { AI_MONTHLY_BUDGET_USD?: string | undefined }>(
+/** Job AI in parallelo: predefinito se assente; `null` se non è un intero fra 1 e 50. */
+function maxConcurrentJobs(value: string | undefined): number | null {
+  if (value === undefined) return DEFAULT_AI_MAX_CONCURRENT_JOBS;
+  const jobs = Number(value);
+  return Number.isInteger(jobs) && jobs >= 1 && jobs <= MAX_AI_CONCURRENT_JOBS ? jobs : null;
+}
+
+export type AiWorkerMode = 'inline' | 'serverless';
+
+function workerMode(config: {
+  AI_WORKER_MODE?: AiWorkerMode | undefined;
+  VERCEL?: string | undefined;
+}): AiWorkerMode {
+  return config.AI_WORKER_MODE ?? (config.VERCEL ? 'serverless' : 'inline');
+}
+
+type AiTextValues = {
+  AI_MONTHLY_BUDGET_USD?: string | undefined;
+  AI_MAX_CONCURRENT_JOBS?: string | undefined;
+  AI_WORKER_MODE?: AiWorkerMode | undefined;
+  VERCEL?: string | undefined;
+};
+
+/** Converte numeri e motore dopo le regole (un valore non valido è già un errore). */
+function withAiValues<T extends AiTextValues>(
   config: T,
-): Omit<T, 'AI_MONTHLY_BUDGET_USD'> & { AI_MONTHLY_BUDGET_USD: number } {
+): Omit<T, 'AI_MONTHLY_BUDGET_USD' | 'AI_MAX_CONCURRENT_JOBS' | 'AI_WORKER_MODE'> & {
+  AI_MONTHLY_BUDGET_USD: number;
+  AI_MAX_CONCURRENT_JOBS: number;
+  AI_WORKER_MODE: AiWorkerMode;
+} {
   return {
     ...config,
     AI_MONTHLY_BUDGET_USD: budgetUsd(config.AI_MONTHLY_BUDGET_USD) ?? DEFAULT_AI_MONTHLY_BUDGET_USD,
+    AI_MAX_CONCURRENT_JOBS:
+      maxConcurrentJobs(config.AI_MAX_CONCURRENT_JOBS) ?? DEFAULT_AI_MAX_CONCURRENT_JOBS,
+    AI_WORKER_MODE: workerMode(config),
   };
 }
 
 function aiRules(
-  config: {
+  config: AiTextValues & {
     APP_URL?: string | undefined;
     AI_PROVIDER: string;
     FAL_KEY?: string | undefined;
-    AI_MONTHLY_BUDGET_USD?: string | undefined;
+    CRON_SECRET?: string | undefined;
   },
   ctx: RefinementContext,
 ): void {
+  if (maxConcurrentJobs(config.AI_MAX_CONCURRENT_JOBS) === null) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['AI_MAX_CONCURRENT_JOBS'],
+      message: `deve essere un numero intero fra 1 e ${MAX_AI_CONCURRENT_JOBS}`,
+    });
+  }
+  if (
+    workerMode(config) === 'serverless' &&
+    config.AI_PROVIDER !== 'none' &&
+    (config.CRON_SECRET?.length ?? 0) < MIN_CRON_SECRET_LENGTH
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['CRON_SECRET'],
+      message: `obbligatoria con i job AI su funzioni (Vercel), almeno ${MIN_CRON_SECRET_LENGTH} caratteri (openssl rand -base64 32)`,
+    });
+  }
   if (budgetUsd(config.AI_MONTHLY_BUDGET_USD) === null) {
     ctx.addIssue({
       code: 'custom',
@@ -102,7 +163,7 @@ function aiRules(
   }
 }
 
-export const aiConfigSchema = z.object(aiFields).superRefine(aiRules).transform(withBudgetNumber);
+export const aiConfigSchema = z.object(aiFields).superRefine(aiRules).transform(withAiValues);
 export type AiConfig = z.infer<typeof aiConfigSchema>;
 
 // --- Archivio ----------------------------------------------------------------------------------
@@ -180,7 +241,7 @@ export const platformConfigSchema = z
     storageRules(config, ctx);
     emailRules(config, ctx);
   })
-  .transform(withBudgetNumber);
+  .transform(withAiValues);
 export type PlatformConfig = z.infer<typeof platformConfigSchema>;
 
 export type EnvSource = Readonly<Record<string, string | undefined>>;

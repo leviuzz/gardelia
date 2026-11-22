@@ -6,7 +6,8 @@
  *  - Verifica che il ruolo database dell'app sia soggetto alla Row-Level Security: in
  *    produzione l'app si rifiuta di partire con un ruolo superuser/BYPASSRLS.
  *  - Anteprime AI (ADR-025) e scontorno delle foto (ADR-033): valida provider e archivio e
- *    avvia il worker in questo processo.
+ *    avvia il worker in questo processo; su Vercel (motore `serverless`, ADR-037) collega invece
+ *    l'accodamento all'avvio della funzione che svuota la coda.
  */
 import { checkRlsSafety, getDb, onSystemContext } from '@floral/db';
 import {
@@ -14,8 +15,11 @@ import {
   createBackgroundRemoverFromEnv,
   createStorageFromEnv,
   logger,
+  onAiJobQueued,
   startAiWorker,
 } from '@floral/core';
+import { aiConfig } from '@floral/core/config';
+import { kickAiDrain } from './lib/ai-kick';
 import { assertConfiguration } from './lib/config-check';
 import { startupRetryDelayMs } from './lib/startup-retry';
 import {
@@ -80,6 +84,13 @@ function startAiWorkerIfConfigured(): void {
   createStorageFromEnv();
   const state = globalThis as { __floralAiWorker?: unknown };
   if (state.__floralAiWorker) return;
+  if (aiConfig().AI_WORKER_MODE === 'serverless') {
+    // Vercel (ADR-037): nessun processo sempre acceso. Ogni job accodato avvia la funzione che
+    // svuota la coda; le pagine in attesa e il cron la riavviano se un job resta indietro.
+    state.__floralAiWorker = onAiJobQueued(kickAiDrain);
+    logger.info({ provider: provider?.id ?? null }, 'job AI su funzioni: avvio a ogni accodamento');
+    return;
+  }
   state.__floralAiWorker = startAiWorker();
   logger.info(
     {

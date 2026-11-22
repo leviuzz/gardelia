@@ -12,6 +12,8 @@ export const MAIL_PORT = Number(process.env.E2E_MAIL_PORT ?? '1125');
 const BASE_URL = `http://localhost:${PORT}`;
 /** Client OAuth finto: Google non viene mai contattato (vedi e2e/support/google-oauth-mock.mjs). */
 export const E2E_GOOGLE_CLIENT_ID = 'floral-e2e.apps.googleusercontent.com';
+/** Segreto di prova per la funzione che svuota la coda dei job AI (ADR-037). */
+export const E2E_CRON_SECRET = 'floral-e2e-cron-secret-0123456789abcdef';
 const GOOGLE_OAUTH_MOCK = fileURLToPath(
   new URL('./e2e/support/google-oauth-mock.mjs', import.meta.url),
 );
@@ -70,6 +72,7 @@ export default defineConfig({
       GOOGLE_CLIENT_ID: E2E_GOOGLE_CLIENT_ID,
       GOOGLE_CLIENT_SECRET: 'floral-e2e-google-secret',
       E2E_GOOGLE_OAUTH_MOCK: '1',
+      CRON_SECRET: E2E_CRON_SECRET,
       NODE_OPTIONS: [process.env.NODE_OPTIONS, `--import=${GOOGLE_OAUTH_MOCK}`]
         .filter(Boolean)
         .join(' '),

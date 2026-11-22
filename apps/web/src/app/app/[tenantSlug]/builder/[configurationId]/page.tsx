@@ -19,6 +19,7 @@ import { BRAND, minorToDecimalString, isCurrencyCode } from '@floral/domain';
 import { ArchiveControl } from '@/components/archive-control';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { kickAiDrainWhileWaiting } from '@/lib/ai-kick';
 import { getTenantContext } from '@/lib/tenant';
 import { requestPreviewAction, saveDesignAction, setDesignArchivedAction } from '../actions';
 import { BouquetEditor } from '../bouquet-editor';
@@ -83,6 +84,10 @@ export default async function DesignPage({
   const format = await getFormatter();
   const previewState =
     !archived && isAiPreviewAvailable() ? await getBouquetPreview(ctx, design.id) : null;
+  // Su Vercel un job rimasto indietro riparte mentre la pagina lo aspetta (ADR-037).
+  kickAiDrainWhileWaiting(
+    previewState?.preview?.status === 'QUEUED' || previewState?.preview?.status === 'RUNNING',
+  );
   const sketchPlan = previewState?.available ? await getBouquetSketchPlan(ctx, design.id) : null;
   const preview: PreviewPanelData | null =
     previewState?.available && previewState.quota && sketchPlan

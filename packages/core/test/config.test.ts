@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ConfigurationError,
+  aiConfig,
   isLocalAppUrl,
   readPlatformConfig,
   type EnvSource,
@@ -91,6 +92,30 @@ describe('configurazione della piattaforma', () => {
     // `X=` nel file .env conta come assente: si usa il predefinito.
     expect(readPlatformConfig({ AI_MONTHLY_BUDGET_USD: ' ' }).AI_MONTHLY_BUDGET_USD).toBe(50);
     expect(aiMonthlyBudgetMicros({ AI_MONTHLY_BUDGET_USD: '12.5' })).toBe(12_500_000);
+  });
+
+  it('motore dei job AI: nel processo in locale, su funzioni su Vercel', () => {
+    expect(aiConfig({}).AI_WORKER_MODE).toBe('inline');
+    expect(aiConfig({ VERCEL: '1', CRON_SECRET: 'c'.repeat(32) }).AI_WORKER_MODE).toBe(
+      'serverless',
+    );
+    expect(aiConfig({ VERCEL: '1', AI_WORKER_MODE: 'inline' }).AI_WORKER_MODE).toBe('inline');
+    expect(aiConfig({}).AI_MAX_CONCURRENT_JOBS).toBe(8);
+    expect(aiConfig({ AI_MAX_CONCURRENT_JOBS: '3' }).AI_MAX_CONCURRENT_JOBS).toBe(3);
+  });
+
+  it('su funzioni serve un segreto lungo; il limite di job va da 1 a 50', () => {
+    const serverlessFal = { ...PUBLIC, ...R2, VERCEL: '1', AI_PROVIDER: 'fal', FAL_KEY: 'k' };
+    expect(issuesOf(serverlessFal)).toEqual([expect.stringMatching(/^CRON_SECRET: /)]);
+    expect(issuesOf({ ...serverlessFal, CRON_SECRET: 'corto' })).toEqual([
+      expect.stringMatching(/^CRON_SECRET: /),
+    ]);
+    expect(issuesOf({ ...serverlessFal, CRON_SECRET: 'c'.repeat(32) })).toEqual([]);
+    // Senza AI non serve il segreto.
+    expect(issuesOf({ ...PUBLIC, ...R2, VERCEL: '1' })).toEqual([]);
+    for (const bad of ['0', '51', '2.5', 'molti']) {
+      expect(issuesOf({ AI_MAX_CONCURRENT_JOBS: bad })[0]).toMatch(/^AI_MAX_CONCURRENT_JOBS: /);
+    }
   });
 
   it('email: SMTP se c’è, altrimenti nel log (ma non in produzione)', () => {

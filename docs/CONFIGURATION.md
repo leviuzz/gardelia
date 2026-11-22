@@ -35,6 +35,8 @@ parte).
 - `AI_PROVIDER=simulated` e `STORAGE_DRIVER=filesystem` solo con un `APP_URL` locale (localhost):
   mai anteprime simulate o file su disco in un ambiente pubblico.
 - `AI_PROVIDER=fal` richiede `FAL_KEY`; `AI_MODEL` deve essere un modello provato.
+- Con i job AI su funzioni (`AI_WORKER_MODE=serverless`, predefinito su Vercel) e un provider AI
+  serve `CRON_SECRET` di almeno 32 caratteri; `AI_MAX_CONCURRENT_JOBS` è un intero da 1 a 50.
 - `STORAGE_DRIVER=r2` richiede le quattro variabili `R2_*`.
 - In produzione (`NODE_ENV=production`) serve `SMTP_URL`.
 - `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`: entrambe o nessuna.
@@ -42,42 +44,46 @@ parte).
 
 ## Elenco
 
-| Variabile                                          | A cosa serve                                                              | Quando serve                   | Predefinito                        | Segreto | Controllata da         |
-| -------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------ | ---------------------------------- | ------- | ---------------------- |
-| `APP_URL`                                          | URL pubblico dell'app; decide se gli adattatori locali sono ammessi       | sempre                         | —                                  | no      | web + piattaforma      |
-| `LOG_LEVEL`                                        | livello dei log JSON (pino)                                               | facoltativa                    | `info`                             | no      | logger                 |
-| `NEXT_TELEMETRY_DISABLED`                          | disattiva la telemetria di Next.js                                        | facoltativa                    | —                                  | no      | Next.js                |
-| `DATABASE_URL`                                     | connessione dell'app: ruolo **senza** `BYPASSRLS` (su Neon, URL con pool) | sempre                         | —                                  | sì      | web + controllo RLS    |
-| `DATABASE_MIGRATION_URL`                           | migrazioni con il ruolo proprietario (su Neon, URL diretto)               | per le migrazioni              | —                                  | sì      | Prisma                 |
-| `DATABASE_POOL_MAX`                                | connessioni massime per processo                                          | facoltativa                    | `10`                               | no      | client del database    |
-| `BETTER_AUTH_SECRET`                               | firma di cookie e token (almeno 32 caratteri)                             | sempre                         | —                                  | sì      | web                    |
-| `BETTER_AUTH_URL`                                  | URL usato da Better Auth                                                  | facoltativa                    | `APP_URL`                          | no      | web                    |
-| `TRUSTED_IP_HEADER`                                | header con l'IP reale dietro proxy (limiti anti-abuso)                    | facoltativa                    | `x-forwarded-for`                  | no      | web                    |
-| `GOOGLE_CLIENT_ID`                                 | login con Google (ADR-036)                                                | facoltativa, con la successiva | —                                  | no      | web                    |
-| `GOOGLE_CLIENT_SECRET`                             | login con Google (ADR-036)                                                | facoltativa, con la precedente | —                                  | sì      | web                    |
-| `SMTP_URL`                                         | invio email (verifiche, inviti, reset)                                    | in produzione                  | in sviluppo le email vanno nel log | sì      | piattaforma (email)    |
-| `EMAIL_FROM`                                       | mittente delle email                                                      | facoltativa                    | `Floral OS <no-reply@localhost>`   | no      | piattaforma (email)    |
-| `AI_PROVIDER`                                      | `none`, `simulated` (solo locale) o `fal`                                 | facoltativa                    | `none`                             | no      | piattaforma (AI)       |
-| `AI_MODEL`                                         | modello di fal per le anteprime                                           | facoltativa                    | `nano-banana-2`                    | no      | adattatore fal         |
-| `FAL_KEY`                                          | chiave di fal.ai                                                          | con `AI_PROVIDER=fal`          | —                                  | sì      | piattaforma (AI)       |
-| `AI_MONTHLY_BUDGET_USD`                            | tetto di spesa AI del mese, in USD                                        | facoltativa                    | `50`                               | no      | piattaforma (AI)       |
-| `STORAGE_DRIVER`                                   | `filesystem` (solo locale) o `r2`                                         | facoltativa                    | `filesystem`                       | no      | piattaforma (archivio) |
-| `STORAGE_DIR`                                      | cartella dell'archivio locale                                             | facoltativa                    | `.storage`                         | no      | piattaforma (archivio) |
-| `R2_ACCOUNT_ID`, `R2_BUCKET`                       | account e bucket di Cloudflare R2                                         | con `STORAGE_DRIVER=r2`        | —                                  | no      | piattaforma (archivio) |
-| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`         | chiavi di accesso a R2                                                    | con `STORAGE_DRIVER=r2`        | —                                  | sì      | piattaforma (archivio) |
-| `SEED_DEMO_PASSWORD`                               | password degli utenti demo (`pnpm db:seed`, mai in produzione)            | sviluppo e test                | —                                  | sì      | seed                   |
-| `TEST_DATABASE_URL`, `TEST_DATABASE_MIGRATION_URL` | database dei test di integrazione                                         | solo test                      | —                                  | sì      | test                   |
+| Variabile                                          | A cosa serve                                                                     | Quando serve                           | Predefinito                                 | Segreto | Controllata da         |
+| -------------------------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------- | ------- | ---------------------- |
+| `APP_URL`                                          | URL pubblico dell'app; decide se gli adattatori locali sono ammessi              | sempre                                 | —                                           | no      | web + piattaforma      |
+| `LOG_LEVEL`                                        | livello dei log JSON (pino)                                                      | facoltativa                            | `info`                                      | no      | logger                 |
+| `NEXT_TELEMETRY_DISABLED`                          | disattiva la telemetria di Next.js                                               | facoltativa                            | —                                           | no      | Next.js                |
+| `DATABASE_URL`                                     | connessione dell'app: ruolo **senza** `BYPASSRLS` (su Neon, URL con pool)        | sempre                                 | —                                           | sì      | web + controllo RLS    |
+| `DATABASE_MIGRATION_URL`                           | migrazioni con il ruolo proprietario (su Neon, URL diretto)                      | per le migrazioni                      | —                                           | sì      | Prisma                 |
+| `DATABASE_POOL_MAX`                                | connessioni massime per processo                                                 | facoltativa                            | `10`                                        | no      | client del database    |
+| `BETTER_AUTH_SECRET`                               | firma di cookie e token (almeno 32 caratteri)                                    | sempre                                 | —                                           | sì      | web                    |
+| `BETTER_AUTH_URL`                                  | URL usato da Better Auth                                                         | facoltativa                            | `APP_URL`                                   | no      | web                    |
+| `TRUSTED_IP_HEADER`                                | header con l'IP reale dietro proxy (limiti anti-abuso)                           | facoltativa                            | `x-forwarded-for`                           | no      | web                    |
+| `GOOGLE_CLIENT_ID`                                 | login con Google (ADR-036)                                                       | facoltativa, con la successiva         | —                                           | no      | web                    |
+| `GOOGLE_CLIENT_SECRET`                             | login con Google (ADR-036)                                                       | facoltativa, con la precedente         | —                                           | sì      | web                    |
+| `SMTP_URL`                                         | invio email (verifiche, inviti, reset)                                           | in produzione                          | in sviluppo le email vanno nel log          | sì      | piattaforma (email)    |
+| `EMAIL_FROM`                                       | mittente delle email                                                             | facoltativa                            | `Floral OS <no-reply@localhost>`            | no      | piattaforma (email)    |
+| `AI_PROVIDER`                                      | `none`, `simulated` (solo locale) o `fal`                                        | facoltativa                            | `none`                                      | no      | piattaforma (AI)       |
+| `AI_MODEL`                                         | modello di fal per le anteprime                                                  | facoltativa                            | `nano-banana-2`                             | no      | adattatore fal         |
+| `FAL_KEY`                                          | chiave di fal.ai                                                                 | con `AI_PROVIDER=fal`                  | —                                           | sì      | piattaforma (AI)       |
+| `AI_MONTHLY_BUDGET_USD`                            | tetto di spesa AI del mese, in USD                                               | facoltativa                            | `50`                                        | no      | piattaforma (AI)       |
+| `AI_WORKER_MODE`                                   | motore dei job AI: `inline` (nel processo) o `serverless` (funzione a richiesta) | facoltativa                            | `serverless` su Vercel, altrimenti `inline` | no      | piattaforma (AI)       |
+| `AI_MAX_CONCURRENT_JOBS`                           | job AI in corso al massimo su tutta la piattaforma                               | facoltativa                            | `8`                                         | no      | piattaforma (AI)       |
+| `CRON_SECRET`                                      | protegge l'avvio dei job AI su funzioni e Vercel Cron                            | con i job su funzioni e un provider AI | —                                           | sì      | piattaforma (AI)       |
+| `STORAGE_DRIVER`                                   | `filesystem` (solo locale) o `r2`                                                | facoltativa                            | `filesystem`                                | no      | piattaforma (archivio) |
+| `STORAGE_DIR`                                      | cartella dell'archivio locale                                                    | facoltativa                            | `.storage`                                  | no      | piattaforma (archivio) |
+| `R2_ACCOUNT_ID`, `R2_BUCKET`                       | account e bucket di Cloudflare R2                                                | con `STORAGE_DRIVER=r2`                | —                                           | no      | piattaforma (archivio) |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`         | chiavi di accesso a R2                                                           | con `STORAGE_DRIVER=r2`                | —                                           | sì      | piattaforma (archivio) |
+| `SEED_DEMO_PASSWORD`                               | password degli utenti demo (`pnpm db:seed`, mai in produzione)                   | sviluppo e test                        | —                                           | sì      | seed                   |
+| `TEST_DATABASE_URL`, `TEST_DATABASE_MIGRATION_URL` | database dei test di integrazione                                                | solo test                              | —                                           | sì      | test                   |
 
 Le variabili `E2E_*` esistono solo nei test end-to-end (porte e Google simulato:
 `apps/web/playwright.config.ts`).
 
 ## Per ambiente
 
-| Variabile                   | Locale                  | Anteprima per PR        | Staging                     | Produzione                  |
-| --------------------------- | ----------------------- | ----------------------- | --------------------------- | --------------------------- |
-| `APP_URL`                   | `http://localhost:3000` | URL dell'anteprima      | `https://staging.<dominio>` | `https://app.<dominio>`     |
-| `DATABASE_URL`              | Postgres in Docker      | branch Neon della PR    | database di staging         | database di produzione      |
-| `AI_PROVIDER`               | `simulated` o `fal`     | `none`                  | `fal` (tetto basso)         | `fal`                       |
-| `STORAGE_DRIVER`            | `filesystem`            | `r2` (bucket di prova)  | `r2` (bucket di staging)    | `r2` (bucket di produzione) |
-| `SMTP_URL`                  | Mailpit                 | cattura, nessun invio   | solo indirizzi del team     | provider reale              |
-| `GOOGLE_CLIENT_ID`/`SECRET` | client di sviluppo      | assenti (URL variabili) | client di staging           | client di produzione        |
+| Variabile                   | Locale                  | Anteprima per PR          | Staging                     | Produzione                  |
+| --------------------------- | ----------------------- | ------------------------- | --------------------------- | --------------------------- |
+| `APP_URL`                   | `http://localhost:3000` | URL dell'anteprima        | `https://staging.<dominio>` | `https://app.<dominio>`     |
+| `DATABASE_URL`              | Postgres in Docker      | branch Neon della PR      | database di staging         | database di produzione      |
+| `AI_PROVIDER`               | `simulated` o `fal`     | `none`                    | `fal` (tetto basso)         | `fal`                       |
+| `AI_WORKER_MODE`            | `inline`                | `serverless` (automatico) | `serverless`                | `serverless`                |
+| `STORAGE_DRIVER`            | `filesystem`            | `r2` (bucket di prova)    | `r2` (bucket di staging)    | `r2` (bucket di produzione) |
+| `SMTP_URL`                  | Mailpit                 | cattura, nessun invio     | solo indirizzi del team     | provider reale              |
+| `GOOGLE_CLIENT_ID`/`SECRET` | client di sviluppo      | assenti (URL variabili)   | client di staging           | client di produzione        |

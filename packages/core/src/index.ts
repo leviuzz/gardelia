@@ -78,7 +78,14 @@ export {
   setObjectStorage,
   type ObjectStorage,
 } from './ai/storage';
-export { startAiWorker, type AiWorkerHandle } from './ai/worker';
+export {
+  DRAIN_RESERVE_MS,
+  drainAiQueue,
+  startAiWorker,
+  type AiWorkerHandle,
+  type DrainResult,
+} from './ai/worker';
+export { onAiJobQueued } from './ai/signal';
 export * from './services/ai-previews';
 export * from './services/catalog-photos';
 export * from './services/style-references';

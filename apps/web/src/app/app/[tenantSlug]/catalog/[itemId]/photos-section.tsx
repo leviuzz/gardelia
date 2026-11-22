@@ -27,6 +27,7 @@ import {
 } from '../photo-actions';
 import { CatalogPhotoUploader } from './catalog-photo-uploader';
 import { PrivateImage } from '@/components/common/private-image';
+import { kickAiDrainWhileWaiting } from '@/lib/ai-kick';
 
 /**
  * Foto dell'articolo: griglia, vista e colore, caricamento e rimozione (solo chi gestisce).
@@ -44,6 +45,8 @@ export async function PhotosSection({ ctx, item }: { ctx: TenantContext; item: C
   const slug = ctx.tenantSlug;
   const colorLabel = (color: string) => t(`catalog.colors.${color}`);
   const anyPending = photos.some((photo) => photo.cutoutStatus === 'PENDING');
+  // Su Vercel uno scontorno rimasto indietro riparte mentre la pagina lo aspetta (ADR-037).
+  kickAiDrainWhileWaiting(anyPending);
 
   return (
     <Card>

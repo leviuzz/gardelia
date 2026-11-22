@@ -111,7 +111,7 @@ mese gratis).
 
 **Cosa cambia nel nostro codice** (lavori della fase 0, utili anche fuori da Vercel):
 
-1. **Job AI.** Su Vercel non c'è un processo sempre acceso. La coda resta in Postgres: stati,
+1. ✅ (22/11, ADR-037) **Job AI.** Su Vercel non c'è un processo sempre acceso. La coda resta in Postgres: stati,
    crediti, tentativi e lease sono già scritti e testati, e restano la fonte di verità. A
    svuotarla è una **funzione dedicata** (es. `/api/internal/ai/drain`, protetta da un segreto,
    fino a 800 secondi per invocazione con Pro, 300 con Hobby), avviata subito dopo l'accodamento e

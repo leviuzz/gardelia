@@ -28,6 +28,7 @@ import {
   isUuid,
   type BouquetPreviewSpec,
 } from '@floral/domain';
+import { aiConfig } from '../config';
 import { logger } from '../logger';
 import { cutoutKeyFor, cutoutThumbKey } from '../media/cutout-keys';
 import {
@@ -445,15 +446,18 @@ export async function processNextAiJob(
     readonly onlyTenantId?: string;
     readonly provider?: AiImageProvider;
     readonly remover?: BackgroundRemover | null;
+    /** Job in corso al massimo su tutta la piattaforma (predefinito: configurazione). */
+    readonly maxRunning?: number;
   } = {},
 ): Promise<AiJobOutcome> {
   const provider = options.provider ?? getAiProvider();
   const remover = options.remover === undefined ? getBackgroundRemover() : options.remover;
   if (!provider && !remover) return 'idle';
   const db = getDb();
+  const maxRunning = options.maxRunning ?? aiConfig().AI_MAX_CONCURRENT_JOBS;
   const claimed = await db.$queryRaw<
     { job_id: string; tenant_id: string; requested_by: string }[]
-  >`SELECT * FROM app_claim_ai_job(${AI_JOB_LEASE_SECONDS}::int, ${options.onlyTenantId ?? null}::uuid)`;
+  >`SELECT * FROM app_claim_ai_job(${AI_JOB_LEASE_SECONDS}::int, ${options.onlyTenantId ?? null}::uuid, ${maxRunning}::int)`;
   const row = claimed[0];
   if (!row) return 'idle';
 
@@ -497,6 +501,40 @@ export async function processNextAiJob(
   } catch (error) {
     return (await failOrRetry(job, scope, error, 'anteprima AI non riuscita')).outcome;
   }
+}
+
+/** Tempo lasciato a un job già iniziato prima che la funzione venga fermata (Vercel). */
+export const DRAIN_RESERVE_MS = 200_000;
+
+export interface DrainResult {
+  readonly processed: number;
+  /** `idle`: coda vuota (o limite di job in corso raggiunto); `deadline`: tempo finito. */
+  readonly stoppedBecause: 'idle' | 'deadline';
+}
+
+/**
+ * Svuota la coda per al massimo `budgetMs` (job su funzioni, ADR-037): lavora un job dopo l'altro
+ * e smette di prenderne di nuovi quando il tempo rimasto non basta più a finirne uno
+ * (`reserveMs`). I job non presi restano in coda per la prossima chiamata; un job interrotto
+ * torna disponibile alla scadenza del lease.
+ */
+export async function drainAiQueue(options: {
+  readonly budgetMs: number;
+  readonly reserveMs?: number;
+  readonly onlyTenantId?: string;
+  readonly provider?: AiImageProvider;
+  readonly remover?: BackgroundRemover | null;
+  readonly maxRunning?: number;
+}): Promise<DrainResult> {
+  const { budgetMs, reserveMs = DRAIN_RESERVE_MS, ...jobOptions } = options;
+  const startedAt = Date.now();
+  let processed = 0;
+  while (Date.now() - startedAt < budgetMs - reserveMs) {
+    const outcome = await processNextAiJob(jobOptions);
+    if (outcome === 'idle') return { processed, stoppedBecause: 'idle' };
+    processed += 1;
+  }
+  return { processed, stoppedBecause: 'deadline' };
 }
 
 export interface AiWorkerHandle {

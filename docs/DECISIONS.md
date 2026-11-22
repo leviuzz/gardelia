@@ -609,6 +609,33 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
 
 ---
 
+### ADR-037 — Job AI su funzioni (Vercel) — ADOTTATO (22/11/2026)
+
+- **Problema:** su Vercel non esiste un processo sempre acceso: il worker nel processo (ADR-025)
+  non può girare. La coda resta in Postgres (stati, crediti, tentativi, lease: fonte di verità).
+- **Motore** (`AI_WORKER_MODE`): `inline` = ciclo nel processo, come prima (locale, test E2E,
+  container); `serverless` = funzione `/api/internal/ai/drain` avviata a richiesta. Predefinito
+  `serverless` quando c'è la variabile `VERCEL`.
+- **Chi avvia la funzione:** il server appena accoda un job (segnale di core, collegato all'avvio
+  con `after`, quindi dopo la risposta all'utente); le pagine che aspettano un job in coda o in
+  corso (al massimo una volta ogni 15 s per istanza: un job rimasto a metà riparte senza attese);
+  Vercel Cron come rete di sicurezza (una volta al giorno, il massimo del piano Hobby).
+- **La funzione** risponde subito 202 e svuota la coda per al massimo 290 s (durata massima
+  Hobby: 300 s); smette di prendere job quando il tempo rimasto non basta a finirne uno (riserva
+  200 s). Protetta da `CRON_SECRET` (confronto in tempo costante); senza segreto valido, 404.
+- **Limite globale di job in corso** (`AI_MAX_CONCURRENT_JOBS`, predefinito 8, sotto le 10
+  richieste contemporanee di fal): in `app_claim_ai_job`, con un lock transazionale che rende
+  atomici conteggio e prelievo anche con molte funzioni insieme.
+- **Segnale:** l'emettitore sta su `globalThis`, perché Next.js può caricare `@floral/core` in più
+  pacchetti dello stesso processo.
+- **Test:** svuotamento fino a coda vuota, stop per tempo, limite di job in corso, segreto, ritmo
+  dei riavvii, regole di configurazione; E2E: la funzione risponde solo con il segreto.
+- **Limiti noti:** le anteprime di prova (URL variabili) non lavorano job AI; una generazione
+  eccezionalmente lunga (oltre 5 minuti) sul piano Hobby si interrompe e riparte alla scadenza
+  del lease. Con Pro la durata massima della funzione sale a 800 s.
+
+---
+
 ## 3. Proposte da approvare
 
 | ID   | Proposta                                                                                                                                                                               | Motivazione                                                                                                                                  | Quando serve                 |
