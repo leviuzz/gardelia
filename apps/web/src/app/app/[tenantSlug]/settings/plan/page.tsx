@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -48,7 +49,7 @@ export default async function PlanPage({ params }: PageProps<'/app/[tenantSlug]/
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <Link
-        href={`/app/${ctx.tenantSlug}/settings`}
+        href={tenantRoutes(ctx.tenantSlug).settings.general}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />

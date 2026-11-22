@@ -1,0 +1,69 @@
+import { describe, expect, it } from 'vitest';
+import { tenantRoutes, withQuery } from '@/lib/routes';
+
+describe('percorsi della fioreria (routes.ts)', () => {
+  const routes = tenantRoutes('las-camelias');
+
+  it('costruisce le pagine principali dallo slug', () => {
+    expect(routes.home).toBe('/app/las-camelias');
+    expect(routes.catalog.list()).toBe('/app/las-camelias/catalog');
+    expect(routes.catalog.new).toBe('/app/las-camelias/catalog/new');
+    expect(routes.customers.detail('c1')).toBe('/app/las-camelias/customers/c1');
+    expect(routes.quotes.detail('q1')).toBe('/app/las-camelias/quotes/q1');
+    expect(routes.builder.design('d1')).toBe('/app/las-camelias/builder/d1');
+    expect(routes.builder.references).toBe('/app/las-camelias/builder/references');
+    expect(routes.settings.general).toBe('/app/las-camelias/settings');
+    expect(routes.settings.team).toBe('/app/las-camelias/settings/team');
+    expect(routes.settings.plan).toBe('/app/las-camelias/settings/plan');
+  });
+
+  it('la query contiene solo i valori presenti, nell’ordine dato', () => {
+    expect(
+      routes.catalog.list({ q: 'rosa roja', type: undefined, status: 'ARCHIVED', page: 2 }),
+    ).toBe('/app/las-camelias/catalog?q=rosa+roja&status=ARCHIVED&page=2');
+    expect(routes.builder.list({ archived: false, page: undefined })).toBe(
+      '/app/las-camelias/builder',
+    );
+    expect(routes.builder.list({ archived: true })).toBe('/app/las-camelias/builder?archived=1');
+    expect(routes.catalog.item('i1', { created: true })).toBe(
+      '/app/las-camelias/catalog/i1?created=1',
+    );
+  });
+
+  it('codifica i valori: un nome con & o # non rompe il link', () => {
+    expect(routes.quotes.list({ q: 'Ana & Luis #2' })).toBe(
+      '/app/las-camelias/quotes?q=Ana+%26+Luis+%232',
+    );
+    expect(routes.quotes.new({ customerId: 'c1', configurationId: null })).toBe(
+      '/app/las-camelias/quotes/new?customerId=c1',
+    );
+    expect(routes.quotes.new()).toBe('/app/las-camelias/quotes/new');
+  });
+
+  it('un ID manomesso resta un solo segmento del percorso', () => {
+    expect(routes.quotes.detail('../settings')).toBe('/app/las-camelias/quotes/..%2Fsettings');
+    expect(routes.catalog.item('a/b?c')).toBe('/app/las-camelias/catalog/a%2Fb%3Fc');
+  });
+
+  it('immagini: la versione grande non porta ?size, le altre sì', () => {
+    expect(routes.catalog.photo('p1')).toBe('/app/las-camelias/catalog/photos/p1');
+    expect(routes.catalog.photo('p1', 'cutout-thumb')).toBe(
+      '/app/las-camelias/catalog/photos/p1?size=cutout-thumb',
+    );
+    expect(routes.builder.referencePhoto('r1', 'thumb')).toBe(
+      '/app/las-camelias/builder/references/r1?size=thumb',
+    );
+    expect(routes.builder.sketch('d1', 3)).toBe('/app/las-camelias/builder/d1/sketch?v=3');
+    expect(routes.builder.preview('j1')).toBe('/app/las-camelias/builder/previews/j1');
+    expect(routes.quotes.lineImage('q1', 'l1')).toBe('/app/las-camelias/quotes/q1/lines/l1/image');
+    expect(routes.quotes.lineImage('q1', 'l1', { download: true })).toBe(
+      '/app/las-camelias/quotes/q1/lines/l1/image?download=1',
+    );
+  });
+
+  it('withQuery senza valori lascia il percorso com’è', () => {
+    expect(withQuery('/x')).toBe('/x');
+    expect(withQuery('/x', { a: '', b: null, c: undefined, d: false })).toBe('/x');
+    expect(withQuery('/x', { n: 0 })).toBe('/x?n=0');
+  });
+});

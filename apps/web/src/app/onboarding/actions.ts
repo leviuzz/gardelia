@@ -5,6 +5,7 @@ import { createTenant } from '@floral/core';
 import { actionError, type ActionState } from '@/lib/actions';
 import { formDataToObject } from '@/lib/form-data';
 import { getRequestMeta } from '@/lib/request-meta';
+import { tenantRoutes } from '@/lib/routes';
 import { requireUser } from '@/lib/session';
 
 export async function createTenantAction(
@@ -24,5 +25,5 @@ export async function createTenantAction(
   } catch (error) {
     return actionError(error);
   }
-  redirect(`/app/${slug}`);
+  redirect(tenantRoutes(slug).home);
 }

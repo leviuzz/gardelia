@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input, NativeSelect } from '@/components/ui/input';
 import { AVAILABILITY_BADGE, COLOR_SWATCH_CLASS } from '@/lib/catalog-ui';
 import { money } from '@/lib/format';
+import { tenantRoutes, type TenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { cn } from '@/lib/utils';
 import { PrivateImage } from '@/components/common/private-image';
@@ -46,20 +47,19 @@ export default async function CatalogPage({
   const result = await listCatalogItems(ctx, query);
   const t = await getTranslations('catalog');
   const tc = await getTranslations('common');
-  const base = `/app/${ctx.tenantSlug}/catalog`;
+  const routes = tenantRoutes(ctx.tenantSlug);
   const hasFilters = Boolean(
     filters.q || filters.type || filters.availability || filters.status !== 'ACTIVE',
   );
 
   function pageHref(page: number): string {
-    const search = new URLSearchParams();
-    if (filters.q) search.set('q', filters.q);
-    if (filters.type) search.set('type', filters.type);
-    if (filters.availability) search.set('availability', filters.availability);
-    if (filters.status !== 'ACTIVE') search.set('status', filters.status);
-    if (page > 1) search.set('page', String(page));
-    const qs = search.toString();
-    return qs ? `${base}?${qs}` : base;
+    return routes.catalog.list({
+      q: filters.q,
+      type: filters.type,
+      availability: filters.availability,
+      status: filters.status === 'ACTIVE' ? undefined : filters.status,
+      page: page > 1 ? page : undefined,
+    });
   }
 
   return (
@@ -70,7 +70,7 @@ export default async function CatalogPage({
         actions={
           result.canWrite ? (
             <Button asChild>
-              <Link href={`${base}/new`}>
+              <Link href={routes.catalog.new}>
                 <Plus />
                 {t('newItem')}
               </Link>
@@ -81,7 +81,7 @@ export default async function CatalogPage({
 
       <form
         method="get"
-        action={base}
+        action={routes.catalog.list()}
         className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto]"
       >
         <div className="relative sm:col-span-2 lg:col-span-1">
@@ -128,7 +128,7 @@ export default async function CatalogPage({
           </Button>
           {hasFilters ? (
             <Button asChild variant="ghost">
-              <Link href={base}>{tc('clearFilters')}</Link>
+              <Link href={routes.catalog.list()}>{tc('clearFilters')}</Link>
             </Button>
           ) : null}
         </div>
@@ -145,7 +145,7 @@ export default async function CatalogPage({
             action={
               result.canWrite ? (
                 <Button asChild>
-                  <Link href={`${base}/new`}>
+                  <Link href={routes.catalog.new}>
                     <Plus />
                     {t('newItem')}
                   </Link>
@@ -165,11 +165,11 @@ export default async function CatalogPage({
             {result.items.map((item) => (
               <li key={item.id}>
                 <Link
-                  href={`${base}/${item.id}`}
+                  href={routes.catalog.item(item.id)}
                   className="block rounded-2xl border bg-card p-4 shadow-xs active:bg-muted/50"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <ItemName item={item} base={base} />
+                    <ItemName item={item} routes={routes} />
                     <span className="shrink-0 text-right font-semibold tabular-nums">
                       {money(item.priceMinor, item.currency)}
                       <span className="block text-xs font-normal text-muted-foreground">
@@ -220,10 +220,10 @@ export default async function CatalogPage({
                   <tr key={item.id} className="group transition-colors hover:bg-muted/30">
                     <td className="px-4 py-3">
                       <Link
-                        href={`${base}/${item.id}`}
+                        href={routes.catalog.item(item.id)}
                         className="block focus-visible:outline-none"
                       >
-                        <ItemName item={item} base={base} />
+                        <ItemName item={item} routes={routes} />
                       </Link>
                     </td>
                     <td className="px-4 py-3">
@@ -308,12 +308,12 @@ export default async function CatalogPage({
   );
 }
 
-function ItemName({ item, base }: { item: CatalogItemDto; base: string }) {
+function ItemName({ item, routes }: { item: CatalogItemDto; routes: TenantRoutes }) {
   return (
     <span className="flex min-w-0 items-center gap-3">
       {item.coverPhotoId ? (
         <PrivateImage
-          src={`${base}/photos/${item.coverPhotoId}?size=thumb`}
+          src={routes.catalog.photo(item.coverPhotoId, 'thumb')}
           alt=""
           className="size-10 shrink-0 rounded-lg border bg-muted object-cover"
         />

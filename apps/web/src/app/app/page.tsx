@@ -6,6 +6,7 @@ import { listUserTenants } from '@floral/core';
 import { Logo } from '@/components/brand/logo';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { tenantRoutes } from '@/lib/routes';
 import { requireUser } from '@/lib/session';
 
 /** Ingresso nell'app: nessuna fioreria → onboarding; una → diretta; più di una → scelta. */
@@ -13,7 +14,7 @@ export default async function AppIndexPage() {
   const user = await requireUser('/app');
   const shops = await listUserTenants(user.id);
   if (shops.length === 0) redirect('/onboarding');
-  if (shops.length === 1 && shops[0]) redirect(`/app/${shops[0].slug}`);
+  if (shops.length === 1 && shops[0]) redirect(tenantRoutes(shops[0].slug).home);
 
   const t = await getTranslations();
   return (
@@ -25,7 +26,7 @@ export default async function AppIndexPage() {
         {shops.map((shop) => (
           <li key={shop.slug}>
             <Link
-              href={`/app/${shop.slug}`}
+              href={tenantRoutes(shop.slug).home}
               className="flex items-center gap-4 rounded-2xl border bg-card p-4 shadow-xs transition-colors hover:bg-muted/50"
             >
               <span className="flex size-10 items-center justify-center rounded-xl bg-secondary text-primary">

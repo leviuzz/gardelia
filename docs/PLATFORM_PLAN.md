@@ -290,19 +290,19 @@ runtime, salvo eccezioni elencate).
 
 **Fine delle copie.** Ciò che oggi è ripetuto diventa un pezzo unico:
 
-| Ripetuto oggi                                                           | Quante volte                  | Diventa                                                  |
-| ----------------------------------------------------------------------- | ----------------------------- | -------------------------------------------------------- |
-| Scheletro delle server action (contesto, errori, revalidate, messaggio) | 38 azioni in 7 file           | `defineTenantAction`                                     |
-| Pagine elenco: filtri, ricerca, paginazione, vuoto, conteggio           | 4 pagine (+ ricerca clienti)  | `components/common/list/*` + `listHref`                  |
-| ✅ Immagini private: route, lettura del file, `<img>`, URL              | 5 route, 4 servizi, 7 `<img>` | `privateImageRoute`, `readStoredImage`, `<PrivateImage>` |
-| Percorsi `/app/${slug}/…` scritti a mano                                | 75 in 32 file                 | `routes.ts` (link, redirect, revalidate, immagini)       |
-| Dialoghi di conferma                                                    | 3                             | `ConfirmActionDialog`                                    |
-| Pulsanti-azione e form di quantità                                      | 7 + 2                         | `ActionButton`, `QuantityForm`                           |
-| Campi indirizzo / dati fiscali / profilo                                | 3 + 3 + 2                     | `AddressFields`, `LegalFields`, `ProfileFields`          |
-| Stati vuoti scritti a mano                                              | 7                             | `EmptyState` con varianti                                |
-| Badge di stato e campioni colore                                        | 3–4 ciascuno                  | `StatusBadge`, `ColorSwatch`                             |
-| Nel core: controllo ID + "non trovato", validazione Zod, paginazione    | 45, 19, 4                     | `assertId`, `parseInput`, `paginate`                     |
-| Date e fusi orari                                                       | 3 pacchetti, 3 convenzioni    | un modulo date unico + formattazione per fioreria        |
+| Ripetuto oggi                                                              | Quante volte                  | Diventa                                                  |
+| -------------------------------------------------------------------------- | ----------------------------- | -------------------------------------------------------- |
+| ✅ Scheletro delle server action (contesto, errori, revalidate, messaggio) | 39 azioni in 7 file           | `runTenantAction` (+ `parseForm`)                        |
+| Pagine elenco: filtri, ricerca, paginazione, vuoto, conteggio              | 4 pagine (+ ricerca clienti)  | `components/common/list/*` + `listHref`                  |
+| ✅ Immagini private: route, lettura del file, `<img>`, URL                 | 5 route, 4 servizi, 7 `<img>` | `privateImageRoute`, `readStoredImage`, `<PrivateImage>` |
+| ✅ Percorsi `/app/${slug}/…` scritti a mano                                | 75 in 32 file                 | `routes.ts` (link, redirect, revalidate, immagini)       |
+| Dialoghi di conferma                                                       | 3                             | `ConfirmActionDialog`                                    |
+| Pulsanti-azione e form di quantità                                         | 7 + 2                         | `ActionButton`, `QuantityForm`                           |
+| Campi indirizzo / dati fiscali / profilo                                   | 3 + 3 + 2                     | `AddressFields`, `LegalFields`, `ProfileFields`          |
+| Stati vuoti scritti a mano                                                 | 7                             | `EmptyState` con varianti                                |
+| Badge di stato e campioni colore                                           | 3–4 ciascuno                  | `StatusBadge`, `ColorSwatch`                             |
+| Nel core: controllo ID + "non trovato", validazione Zod, paginazione       | 45, 19, 4                     | `assertId`, `parseInput`, `paginate`                     |
+| Date e fusi orari                                                          | 3 pacchetti, 3 convenzioni    | un modulo date unico + formattazione per fioreria        |
 
 **Configurazione unica.** ✅ (22/11) Le variabili si leggevano in più punti e si controllavano
 solo al primo login: ora ogni regola è scritta una volta (schema del web e schema della

@@ -661,6 +661,27 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   Vercel, così l'errore è il nostro (chiaro, in spagnolo) e non quello della piattaforma.
 - **Guida per il founder:** `docs/DEPLOY_VERCEL.md` (account, valori, verifiche).
 
+### ADR-039 — Ossatura unica delle server action e percorsi in un solo file — ADOTTATO (22/11/2026)
+
+- **Problema:** 39 server action ripetevano lo stesso scheletro (contesto, try/catch, revalidate,
+  traduzione del messaggio, redirect) e 75 percorsi `/app/${slug}/…` erano scritti a mano in 32
+  file: facile dimenticare il contesto in un'azione nuova o lasciare indietro un link.
+- **Azioni:** `runTenantAction(slug, work)` (`apps/web/src/lib/tenant-action.ts`), con un ordine
+  fisso: contesto della fioreria (fuori dal try, così login e 404 di Next si propagano), lavoro
+  dell'azione (validazione con `parseForm`, servizio), errori → stato del form (`actionError`);
+  solo se il lavoro riesce: pagine da ricaricare → redirect → messaggio. L'azione restituisce
+  `{ revalidate, redirectTo, success | warning }`; i messaggi sono chiavi complete di es-MX (o una
+  funzione col traduttore). `warning`: la modifica c'è ma il toast è un errore (invito creato,
+  email non partita). Le firme restano funzioni esplicite: `.bind()` e `useActionState` invariati.
+- **Percorsi:** `tenantRoutes(slug)` (`apps/web/src/lib/routes.ts`), modulo puro (client e
+  server): pagine, query con `URLSearchParams` (valori vuoti omessi), varianti delle immagini, ID
+  codificati in un solo segmento. Nelle azioni i percorsi vengono dal contesto, mai dallo slug
+  inviato dal client.
+- **Guardia:** `apps/web/test/conventions.test.ts` fallisce se un file `'use server'` della
+  fioreria esporta altro che funzioni, se un'azione non restituisce `runTenantAction(slug, …)` o se
+  compare un `` `/app/${…}` `` fuori da `routes.ts` (provato con un file volutamente sbagliato).
+- **Per l'utente non cambia nulla:** stessi messaggi, redirect e pagine ricaricate (E2E invariati).
+
 ---
 
 ## 3. Proposte da approvare

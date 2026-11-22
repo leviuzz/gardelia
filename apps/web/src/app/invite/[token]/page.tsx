@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { authPath } from '@/lib/auth-paths';
 import { isGoogleLoginEnabled } from '@/lib/env';
+import { tenantRoutes } from '@/lib/routes';
 import { getSession } from '@/lib/session';
 import { acceptInvitationAction } from './actions';
 import { AcceptInvitationForm } from './accept-form';
@@ -50,7 +51,7 @@ export default async function InvitePage({ params }: PageProps<'/invite/[token]'
             <Link
               href={
                 preview.status === 'ACCEPTED' && preview.tenantSlug
-                  ? `/app/${preview.tenantSlug}`
+                  ? tenantRoutes(preview.tenantSlug).home
                   : '/'
               }
             >

@@ -3,10 +3,8 @@
 /**
  * Server action dei preventivi. Prezzi e totali sono calcolati SOLO dal servizio
  * (@floral/core) leggendo il catalogo del tenant: il client invia ID e quantità.
+ * Contesto, errori, pagine da ricaricare e messaggi: `runTenantAction`.
  */
-import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
 import {
   addCatalogItemToQuote,
   addCustomLineToQuote,
@@ -17,39 +15,25 @@ import {
   updateQuoteDetails,
   updateQuoteLineQuantity,
 } from '@floral/core';
-import { actionError, type ActionState } from '@/lib/actions';
+import type { ActionState } from '@/lib/action-state';
 import { formDataToObject } from '@/lib/form-data';
-import { getTenantContext } from '@/lib/tenant';
-
-function quotePath(slug: string, quoteId: string): string {
-  return `/app/${slug}/quotes/${quoteId}`;
-}
+import { runTenantAction, section } from '@/lib/tenant-action';
 
 export async function createQuoteAction(
   slug: string,
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  const customerId = formData.get('customerId');
-  const configurationId = formData.get('configurationId');
-  let quoteId: string;
-  try {
-    // Da un disegno del Builder: prezzo e distinta ricalcolati dal servizio.
-    quoteId =
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const customerId = formData.get('customerId');
+    const configurationId = formData.get('configurationId');
+    // Da un disegno del Diseñador: prezzo e distinta ricalcolati dal servizio.
+    const { id } =
       typeof configurationId === 'string' && configurationId !== ''
-        ? (await createQuoteFromConfiguration(ctx, { configurationId, customerId })).id
-        : (await createQuote(ctx, { customerId })).id;
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/quotes`);
-  redirect(quotePath(ctx.tenantSlug, quoteId));
-}
-
-async function lineAdded(): Promise<ActionState> {
-  const t = await getTranslations('quotes.editor');
-  return { status: 'success', message: t('lineAdded') };
+        ? await createQuoteFromConfiguration(ctx, { configurationId, customerId })
+        : await createQuote(ctx, { customerId });
+    return { revalidate: routes.quotes.list(), redirectTo: routes.quotes.detail(id) };
+  });
 }
 
 export async function addCatalogLineAction(
@@ -58,14 +42,10 @@ export async function addCatalogLineAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await addCatalogItemToQuote(ctx, quoteId, formDataToObject(formData));
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(quotePath(ctx.tenantSlug, quoteId));
-  return lineAdded();
+    return { revalidate: routes.quotes.detail(quoteId), success: 'quotes.editor.lineAdded' };
+  });
 }
 
 export async function addCustomLineAction(
@@ -74,14 +54,10 @@ export async function addCustomLineAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await addCustomLineToQuote(ctx, quoteId, formDataToObject(formData));
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(quotePath(ctx.tenantSlug, quoteId));
-  return lineAdded();
+    return { revalidate: routes.quotes.detail(quoteId), success: 'quotes.editor.lineAdded' };
+  });
 }
 
 export async function updateLineQuantityAction(
@@ -91,15 +67,10 @@ export async function updateLineQuantityAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await updateQuoteLineQuantity(ctx, quoteId, lineId, formData.get('quantity'));
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(quotePath(ctx.tenantSlug, quoteId));
-  const t = await getTranslations('quotes.editor');
-  return { status: 'success', message: t('lineUpdated') };
+    return { revalidate: routes.quotes.detail(quoteId), success: 'quotes.editor.lineUpdated' };
+  });
 }
 
 export async function removeLineAction(
@@ -109,15 +80,10 @@ export async function removeLineAction(
   _prev: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await removeQuoteLine(ctx, quoteId, lineId);
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(quotePath(ctx.tenantSlug, quoteId));
-  const t = await getTranslations('quotes.editor');
-  return { status: 'success', message: t('lineRemoved') };
+    return { revalidate: routes.quotes.detail(quoteId), success: 'quotes.editor.lineRemoved' };
+  });
 }
 
 export async function updateDetailsAction(
@@ -126,15 +92,10 @@ export async function updateDetailsAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await updateQuoteDetails(ctx, quoteId, formDataToObject(formData));
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(quotePath(ctx.tenantSlug, quoteId));
-  const t = await getTranslations('quotes.editor');
-  return { status: 'success', message: t('detailsSaved') };
+    return { revalidate: routes.quotes.detail(quoteId), success: 'quotes.editor.detailsSaved' };
+  });
 }
 
 /** Lo stato richiesto arriva dal pulsante premuto: il servizio verifica la transizione. */
@@ -144,17 +105,11 @@ export async function changeStatusAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  let result: string;
-  try {
-    result = await changeQuoteStatus(ctx, quoteId, formData.get('status'));
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/quotes`, 'layout');
-  const t = await getTranslations('quotes');
-  return {
-    status: 'success',
-    message: t('editor.statusChanged', { status: t(`statuses.${result}`) }),
-  };
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const status = await changeQuoteStatus(ctx, quoteId, formData.get('status'));
+    return {
+      revalidate: section(routes.quotes.list()),
+      success: (t) => t('quotes.editor.statusChanged', { status: t(`quotes.statuses.${status}`) }),
+    };
+  });
 }

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { acceptInvitation } from '@floral/core';
 import { actionError, type ActionState } from '@/lib/actions';
 import { getRequestMeta } from '@/lib/request-meta';
+import { tenantRoutes } from '@/lib/routes';
 import { requireUser } from '@/lib/session';
 
 export async function acceptInvitationAction(
@@ -24,5 +25,5 @@ export async function acceptInvitationAction(
   } catch (error) {
     return actionError(error);
   }
-  redirect(`/app/${slug}`);
+  redirect(tenantRoutes(slug).home);
 }

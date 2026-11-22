@@ -1,7 +1,10 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-import { getTranslations } from 'next-intl/server';
+/**
+ * Server action delle impostazioni e del team: il servizio di @floral/core valida l'input e
+ * ricontrolla permessi e fioreria. Contesto, errori, pagine da ricaricare e messaggi:
+ * `runTenantAction`. Gli ID legati con .bind() arrivano dal client: non sono affidabili.
+ */
 import {
   changeMemberRole,
   getMailer,
@@ -13,29 +16,21 @@ import {
   updateTenantLegal,
   updateTenantProfile,
 } from '@floral/core';
-import { actionError, type ActionState } from '@/lib/actions';
+import type { ActionState } from '@/lib/action-state';
 import { serverEnv } from '@/lib/env';
 import { formDataToObject } from '@/lib/form-data';
-import { getTenantContext } from '@/lib/tenant';
-
-async function saved(): Promise<ActionState> {
-  const t = await getTranslations('settings');
-  return { status: 'success', message: t('saved') };
-}
+import { runTenantAction, section } from '@/lib/tenant-action';
 
 export async function updateProfileAction(
   slug: string,
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await updateTenantProfile(ctx, formDataToObject(formData));
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}`, 'layout');
-  return saved();
+    // Il nome della fioreria compare in tutte le pagine (menu, intestazioni).
+    return { revalidate: section(routes.home), success: 'settings.saved' };
+  });
 }
 
 export async function updateBuilderSettingsAction(
@@ -43,15 +38,10 @@ export async function updateBuilderSettingsAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await updateBuilderSettings(ctx, formDataToObject(formData));
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/builder`, 'layout');
-  const t = await getTranslations('builder.settings');
-  return { status: 'success', message: t('saved') };
+    return { revalidate: section(routes.builder.list()), success: 'builder.settings.saved' };
+  });
 }
 
 export async function updateLegalAction(
@@ -59,14 +49,10 @@ export async function updateLegalAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await updateTenantLegal(ctx, formDataToObject(formData));
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/settings`);
-  return saved();
+    return { revalidate: routes.settings.general, success: 'settings.saved' };
+  });
 }
 
 export async function updateLocationAction(
@@ -74,39 +60,29 @@ export async function updateLocationAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await updatePrimaryLocation(ctx, formDataToObject(formData));
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/settings`);
-  return saved();
+    return { revalidate: routes.settings.general, success: 'settings.saved' };
+  });
 }
 
+/** L'invito resta anche se l'email non parte: lo si dice come errore, con la pagina aggiornata. */
 export async function inviteMemberAction(
   slug: string,
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  const t = await getTranslations('team');
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     const data = formDataToObject(formData);
-    const result = await inviteMember(ctx, data, {
+    const { emailSent } = await inviteMember(ctx, data, {
       mailer: getMailer(),
       appUrl: serverEnv().APP_URL,
     });
-    revalidatePath(`/app/${ctx.tenantSlug}/settings/team`);
-    return result.emailSent
-      ? {
-          status: 'success',
-          message: t('invited', { email: String(data.email ?? '').toLowerCase() }),
-        }
-      : { status: 'error', message: t('invitedNoEmail') };
-  } catch (error) {
-    return actionError(error);
-  }
+    const email = String(data.email ?? '').toLowerCase();
+    return emailSent
+      ? { revalidate: routes.settings.team, success: (t) => t('team.invited', { email }) }
+      : { revalidate: routes.settings.team, warning: 'team.invitedNoEmail' };
+  });
 }
 
 export async function revokeInvitationAction(
@@ -115,15 +91,10 @@ export async function revokeInvitationAction(
   _prev: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await revokeInvitation(ctx, invitationId);
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/settings/team`);
-  const t = await getTranslations('team');
-  return { status: 'success', message: t('revoked') };
+    return { revalidate: routes.settings.team, success: 'team.revoked' };
+  });
 }
 
 export async function changeRoleAction(
@@ -132,15 +103,10 @@ export async function changeRoleAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await changeMemberRole(ctx, membershipId, { role: formData.get('role') });
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/settings/team`);
-  const t = await getTranslations('team');
-  return { status: 'success', message: t('roleChanged') };
+    return { revalidate: routes.settings.team, success: 'team.roleChanged' };
+  });
 }
 
 export async function setMemberActiveAction(
@@ -150,13 +116,11 @@ export async function setMemberActiveAction(
   _prev: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await setMemberActive(ctx, membershipId, active);
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/settings/team`);
-  const t = await getTranslations('team');
-  return { status: 'success', message: active ? t('reactivated') : t('deactivated') };
+    return {
+      revalidate: routes.settings.team,
+      success: active ? 'team.reactivated' : 'team.deactivated',
+    };
+  });
 }

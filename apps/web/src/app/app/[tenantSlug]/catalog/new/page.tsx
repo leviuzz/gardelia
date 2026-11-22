@@ -5,6 +5,7 @@ import { getTranslations } from 'next-intl/server';
 import { hasPermission, listCanonicalFlowers } from '@floral/core';
 import { Forbidden } from '@/components/forbidden';
 import { PageHeader } from '@/components/page-header';
+import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { createItemAction } from '../actions';
 import { ItemForm } from '../item-form';
@@ -26,7 +27,7 @@ export default async function NewItemPage({ params }: PageProps<'/app/[tenantSlu
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <Link
-        href={`/app/${ctx.tenantSlug}/catalog`}
+        href={tenantRoutes(ctx.tenantSlug).catalog.list()}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />

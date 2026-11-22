@@ -2,31 +2,26 @@
 
 /**
  * Server action di "Mis ramos". Una foto per richiesta; il servizio ricontrolla permessi,
- * piano, consenso e immagine. Gli argomenti legati con .bind() non sono fidati.
+ * piano, consenso e immagine. Contesto ed errori: `runTenantAction`. Gli argomenti legati con
+ * .bind() non sono fidati.
  */
-import { revalidatePath } from 'next/cache';
-import { getTranslations } from 'next-intl/server';
 import { addStyleReference, archiveStyleReference } from '@floral/core';
-import { actionError, type ActionState } from '@/lib/actions';
-import { getTenantContext } from '@/lib/tenant';
+import type { ActionState } from '@/lib/action-state';
+import { runTenantAction } from '@/lib/tenant-action';
 import { uploadedBytes } from '@/lib/uploads';
 
 export async function uploadStyleReferenceAction(
   slug: string,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await addStyleReference(ctx, await uploadedBytes(formData), {
       style: formData.get('style'),
       caption: formData.get('caption'),
       consent: formData.get('consent'),
     });
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/builder/references`);
-  return { status: 'success' };
+    return { revalidate: routes.builder.references };
+  });
 }
 
 export async function archiveStyleReferenceAction(
@@ -35,13 +30,8 @@ export async function archiveStyleReferenceAction(
   _prev: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await archiveStyleReference(ctx, referenceId);
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/builder/references`);
-  const t = await getTranslations('styleReferences');
-  return { status: 'success', message: t('removed') };
+    return { revalidate: routes.builder.references, success: 'styleReferences.removed' };
+  });
 }

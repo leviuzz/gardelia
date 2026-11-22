@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AVAILABILITY_BADGE } from '@/lib/catalog-ui';
 import { money, percentFromBps } from '@/lib/format';
+import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
   addRecipeLineAction,
@@ -98,7 +99,7 @@ export default async function ItemPage({
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <Link
-        href={`/app/${slug}/catalog`}
+        href={tenantRoutes(slug).catalog.list()}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />

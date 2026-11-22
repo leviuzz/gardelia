@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { tenantRoutes } from '@/lib/routes';
 
 export interface ShopOption {
   readonly slug: string;
@@ -44,7 +45,7 @@ export function TenantSwitcher({
         </DropdownMenuLabel>
         {shops.map((shop) => (
           <DropdownMenuItem key={shop.slug} asChild>
-            <Link href={`/app/${shop.slug}`}>
+            <Link href={tenantRoutes(shop.slug).home}>
               <Store />
               <span className="flex-1 truncate">{shop.displayName}</span>
               {shop.slug === current.slug ? <Check className="text-primary" /> : null}

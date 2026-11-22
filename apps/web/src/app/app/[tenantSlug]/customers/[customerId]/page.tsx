@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { money, phoneForInput } from '@/lib/format';
 import { QUOTE_STATUS_BADGE } from '@/lib/quote-ui';
+import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
   addAddressAction,
@@ -76,13 +77,14 @@ export default async function CustomerPage({
   const t = await getTranslations();
   const format = await getFormatter();
   const slug = ctx.tenantSlug;
+  const routes = tenantRoutes(slug);
   const date = (value: Date) =>
     format.dateTime(value, { dateStyle: 'medium', timeZone: ctx.timezone });
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <Link
-        href={`/app/${slug}/customers`}
+        href={routes.customers.list()}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
@@ -213,7 +215,7 @@ export default async function CustomerPage({
               <CardTitle>{t('quotes.customerCard.title')}</CardTitle>
               {canQuote ? (
                 <Button asChild size="sm" variant="outline">
-                  <Link href={`/app/${slug}/quotes/new?customerId=${customer.id}`}>
+                  <Link href={routes.quotes.new({ customerId: customer.id })}>
                     <Plus />
                     {t('quotes.customerCard.new')}
                   </Link>
@@ -228,7 +230,7 @@ export default async function CustomerPage({
                   {quotes.slice(0, 5).map((quote) => (
                     <li key={quote.id}>
                       <Link
-                        href={`/app/${slug}/quotes/${quote.id}`}
+                        href={routes.quotes.detail(quote.id)}
                         className="flex items-center gap-3 rounded-lg px-2 py-2.5 text-sm transition-colors hover:bg-muted/40"
                       >
                         <span className="font-medium tabular-nums">{quote.numberLabel}</span>
@@ -245,7 +247,7 @@ export default async function CustomerPage({
               )}
               {quotes.length > 5 ? (
                 <Link
-                  href={`/app/${slug}/quotes?q=${encodeURIComponent(customer.displayName)}`}
+                  href={routes.quotes.list({ q: customer.displayName })}
                   className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
                 >
                   {t('quotes.customerCard.viewAll')}

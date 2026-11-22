@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { phoneForInput } from '@/lib/format';
+import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { createQuoteAction } from '../actions';
 import { CreateForCustomer, CustomerPicker } from './new-quote-form';
@@ -78,20 +79,17 @@ export default async function NewQuotePage({
   const raw = await searchParams;
   const requestedId = single(raw.customerId);
   const t = await getTranslations();
-  const base = `/app/${ctx.tenantSlug}`;
+  const routes = tenantRoutes(ctx.tenantSlug);
   const action = createQuoteAction.bind(null, ctx.tenantSlug);
   const preselected = requestedId ? await findCustomer(ctx, requestedId) : null;
   const requestedDesign = single(raw.configurationId);
   const design = requestedDesign ? await findDesign(ctx, requestedDesign) : null;
   const designId = design?.id ?? null;
-  /** Mantiene il disegno scelto mentre si cerca o si cambia cliente. */
-  const withDesign = (href: string) =>
-    designId ? `${href}${href.includes('?') ? '&' : '?'}configurationId=${designId}` : href;
 
   const header = (
     <>
       <Link
-        href={design ? `${base}/builder/${design.id}` : `${base}/quotes`}
+        href={design ? routes.builder.design(design.id) : routes.quotes.list()}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
@@ -138,7 +136,7 @@ export default async function NewQuotePage({
               />
             )}
             <Link
-              href={withDesign(`${base}/quotes/new`)}
+              href={routes.quotes.new({ configurationId: designId })}
               className="inline-block text-sm font-medium text-primary hover:underline"
             >
               {t('quotes.new.chooseAnother')}
@@ -156,7 +154,7 @@ export default async function NewQuotePage({
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       {header}
-      <form method="get" action={`${base}/quotes/new`} className="flex gap-2">
+      <form method="get" action={routes.quotes.new()} className="flex gap-2">
         {designId ? <input type="hidden" name="configurationId" value={designId} /> : null}
         <div className="relative flex-1">
           <Search
@@ -184,7 +182,7 @@ export default async function NewQuotePage({
             title={t('quotes.new.noMatches')}
             action={
               <Button asChild variant="outline">
-                <Link href={`${base}/customers/new`}>
+                <Link href={routes.customers.new}>
                   <UserPlus />
                   {t('quotes.new.createCustomer')}
                 </Link>
@@ -197,7 +195,7 @@ export default async function NewQuotePage({
             title={t('quotes.new.noCustomers')}
             action={
               <Button asChild>
-                <Link href={`${base}/customers/new`}>
+                <Link href={routes.customers.new}>
                   <UserPlus />
                   {t('quotes.new.createCustomer')}
                 </Link>
@@ -223,7 +221,7 @@ export default async function NewQuotePage({
             }))}
           />
           <Link
-            href={`${base}/customers/new`}
+            href={routes.customers.new}
             className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
           >
             <UserPlus className="size-4" />

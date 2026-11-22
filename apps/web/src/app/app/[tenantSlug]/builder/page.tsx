@@ -7,6 +7,7 @@ import { EmptyState, PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { money } from '@/lib/format';
+import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { cn } from '@/lib/utils';
 import { BuilderUpsell } from './builder-ui';
@@ -27,7 +28,7 @@ export default async function BuilderPage({
   const { tenantSlug } = await params;
   const ctx = await getTenantContext(tenantSlug);
   const t = await getTranslations();
-  const base = `/app/${ctx.tenantSlug}/builder`;
+  const routes = tenantRoutes(ctx.tenantSlug);
   const entitlements = await getEntitlements(ctx);
 
   if (!entitlements.bouquetBuilder) {
@@ -47,24 +48,19 @@ export default async function BuilderPage({
     status: archived ? 'ARCHIVED' : 'ACTIVE',
   });
   const format = await getFormatter();
-  const listHref = (next: number) => {
-    const search = new URLSearchParams();
-    if (archived) search.set('archived', '1');
-    if (next > 1) search.set('page', String(next));
-    const qs = search.toString();
-    return qs ? `${base}?${qs}` : base;
-  };
+  const listHref = (next: number) =>
+    routes.builder.list({ archived, page: next > 1 ? next : undefined });
 
   const newButton = (
     <div className="flex flex-wrap gap-2">
       <Button asChild variant="outline">
-        <Link href={`${base}/references`}>
+        <Link href={routes.builder.references}>
           <Images />
           {t('styleReferences.link')}
         </Link>
       </Button>
       <Button asChild>
-        <Link href={`${base}/new`}>
+        <Link href={routes.builder.new}>
           <Plus />
           {t('builder.newDesign')}
         </Link>
@@ -83,7 +79,7 @@ export default async function BuilderPage({
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-semibold">{t('builder.designs')}</h2>
         <Link
-          href={archived ? base : `${base}?archived=1`}
+          href={routes.builder.list({ archived: !archived })}
           className="text-sm font-medium text-primary hover:underline"
         >
           {archived ? t('builder.showActive') : t('builder.showArchived')}
@@ -107,7 +103,7 @@ export default async function BuilderPage({
             {result.items.map((design) => (
               <li key={design.id}>
                 <Link
-                  href={`${base}/${design.id}`}
+                  href={routes.builder.design(design.id)}
                   className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors hover:bg-muted/40"
                 >
                   <span className="min-w-0 flex-1">

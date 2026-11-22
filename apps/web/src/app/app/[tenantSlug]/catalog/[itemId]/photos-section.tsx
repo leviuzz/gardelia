@@ -19,6 +19,7 @@ import { RemovePhotoButton } from '@/components/photos/photo-upload-parts';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { COLOR_SWATCH_CLASS } from '@/lib/catalog-ui';
+import { tenantRoutes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import {
   archiveCatalogPhotoAction,
@@ -89,7 +90,10 @@ export async function PhotosSection({ ctx, item }: { ctx: TenantContext; item: C
                   ? t('photos.altColor', { name: item.name, color: colorLabel(photo.color), view })
                   : t('photos.alt', { name: item.name, view });
                 const cutoutReady = photo.cutoutStatus === 'READY';
-                const src = `/app/${slug}/catalog/photos/${photo.id}?size=${cutoutReady ? 'cutout-thumb' : 'thumb'}`;
+                const src = tenantRoutes(slug).catalog.photo(
+                  photo.id,
+                  cutoutReady ? 'cutout-thumb' : 'thumb',
+                );
                 return (
                   <li
                     key={photo.id}

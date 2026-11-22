@@ -1,14 +1,11 @@
 'use server';
 
 /**
- * Server action del CRM: contesto tenant → validazione → servizio di @floral/core.
+ * Server action del CRM: validazione con gli schemi del dominio, poi il servizio di
+ * @floral/core. Contesto, errori, pagine da ricaricare e messaggi: `runTenantAction`.
  * Gli ID legati con .bind() arrivano dal client: i servizi li ricontrollano nel tenant.
  */
-import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
 import {
-  ValidationError,
   addCustomerAddress,
   addCustomerOccasion,
   archiveCustomerAddress,
@@ -18,31 +15,23 @@ import {
   updateCustomer,
   updateCustomerAddress,
 } from '@floral/core';
-import { customerFormSchema, toFieldErrors } from '@floral/domain';
-import { actionError, type ActionState } from '@/lib/actions';
-import { formDataToObject } from '@/lib/form-data';
-import { getTenantContext } from '@/lib/tenant';
-
-function parseCustomerForm(country: Parameters<typeof customerFormSchema>[0], formData: FormData) {
-  const parsed = customerFormSchema(country).safeParse(formDataToObject(formData));
-  if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
-  return parsed.data;
-}
+import { customerFormSchema } from '@floral/domain';
+import type { ActionState } from '@/lib/action-state';
+import { formDataToObject, parseForm } from '@/lib/form-data';
+import { runTenantAction, section } from '@/lib/tenant-action';
 
 export async function createCustomerAction(
   slug: string,
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  let customerId: string;
-  try {
-    customerId = (await createCustomer(ctx, parseCustomerForm(ctx.country, formData))).id;
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/customers`);
-  redirect(`/app/${ctx.tenantSlug}/customers/${customerId}?created=1`);
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const { id } = await createCustomer(ctx, parseForm(customerFormSchema(ctx.country), formData));
+    return {
+      revalidate: routes.customers.list(),
+      redirectTo: routes.customers.detail(id, { created: true }),
+    };
+  });
 }
 
 export async function updateCustomerAction(
@@ -51,15 +40,10 @@ export async function updateCustomerAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
-    await updateCustomer(ctx, customerId, parseCustomerForm(ctx.country, formData));
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/customers`, 'layout');
-  const t = await getTranslations('common');
-  return { status: 'success', message: t('changesSaved') };
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await updateCustomer(ctx, customerId, parseForm(customerFormSchema(ctx.country), formData));
+    return { revalidate: section(routes.customers.list()), success: 'common.changesSaved' };
+  });
 }
 
 export async function setCustomerArchivedAction(
@@ -69,15 +53,13 @@ export async function setCustomerArchivedAction(
   _prev: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await setCustomerArchived(ctx, customerId, archived);
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/customers`, 'layout');
-  const t = await getTranslations('customers.form');
-  return { status: 'success', message: archived ? t('archived') : t('restored') };
+    return {
+      revalidate: section(routes.customers.list()),
+      success: archived ? 'customers.form.archived' : 'customers.form.restored',
+    };
+  });
 }
 
 export async function addAddressAction(
@@ -86,15 +68,13 @@ export async function addAddressAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await addCustomerAddress(ctx, customerId, formDataToObject(formData));
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/customers/${customerId}`);
-  const t = await getTranslations('customers.addresses');
-  return { status: 'success', message: t('added') };
+    return {
+      revalidate: routes.customers.detail(customerId),
+      success: 'customers.addresses.added',
+    };
+  });
 }
 
 export async function updateAddressAction(
@@ -104,15 +84,13 @@ export async function updateAddressAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await updateCustomerAddress(ctx, customerId, addressId, formDataToObject(formData));
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/customers/${customerId}`);
-  const t = await getTranslations('customers.addresses');
-  return { status: 'success', message: t('updated') };
+    return {
+      revalidate: routes.customers.detail(customerId),
+      success: 'customers.addresses.updated',
+    };
+  });
 }
 
 export async function archiveAddressAction(
@@ -122,33 +100,29 @@ export async function archiveAddressAction(
   _prev: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await archiveCustomerAddress(ctx, customerId, addressId);
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/customers/${customerId}`);
-  const t = await getTranslations('customers.addresses');
-  return { status: 'success', message: t('removed') };
+    return {
+      revalidate: routes.customers.detail(customerId),
+      success: 'customers.addresses.removed',
+    };
+  });
 }
 
+/** Le ricorrenze compaiono anche nella dashboard ("Próximas fechas"). */
 export async function addOccasionAction(
   slug: string,
   customerId: string,
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await addCustomerOccasion(ctx, customerId, formDataToObject(formData));
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/customers/${customerId}`);
-  revalidatePath(`/app/${ctx.tenantSlug}`);
-  const t = await getTranslations('customers.occasions');
-  return { status: 'success', message: t('added') };
+    return {
+      revalidate: [routes.customers.detail(customerId), routes.home],
+      success: 'customers.occasions.added',
+    };
+  });
 }
 
 export async function removeOccasionAction(
@@ -158,14 +132,11 @@ export async function removeOccasionAction(
   _prev: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await removeCustomerOccasion(ctx, customerId, occasionId);
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/customers/${customerId}`);
-  revalidatePath(`/app/${ctx.tenantSlug}`);
-  const t = await getTranslations('customers.occasions');
-  return { status: 'success', message: t('removed') };
+    return {
+      revalidate: [routes.customers.detail(customerId), routes.home],
+      success: 'customers.occasions.removed',
+    };
+  });
 }

@@ -7,6 +7,7 @@ import { BottomNav, SidebarNav, type NavItem } from '@/components/app-shell/app-
 import { TenantSwitcher } from '@/components/app-shell/tenant-switcher';
 import { UserMenu } from '@/components/app-shell/user-menu';
 import { LogoMark } from '@/components/brand/logo';
+import { tenantRoutes } from '@/lib/routes';
 import { requireUser } from '@/lib/session';
 import { getTenantContext } from '@/lib/tenant';
 
@@ -17,19 +18,19 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
   const shops = await listUserTenants(user.id);
   const t = await getTranslations();
 
-  const base = `/app/${ctx.tenantSlug}`;
+  const routes = tenantRoutes(ctx.tenantSlug);
   const items: NavItem[] = [
-    { href: base, label: t('nav.dashboard'), icon: 'dashboard', exact: true },
-    { href: `${base}/quotes`, label: t('nav.quotes'), icon: 'quotes' },
+    { href: routes.home, label: t('nav.dashboard'), icon: 'dashboard', exact: true },
+    { href: routes.quotes.list(), label: t('nav.quotes'), icon: 'quotes' },
     // Funzione Plus: chi non ce l'ha trova l'invito all'upgrade (mai una finta funzione).
-    { href: `${base}/builder`, label: t('nav.builder'), icon: 'builder', secondary: true },
-    { href: `${base}/customers`, label: t('nav.customers'), icon: 'customers' },
-    { href: `${base}/catalog`, label: t('nav.catalog'), icon: 'catalog' },
+    { href: routes.builder.list(), label: t('nav.builder'), icon: 'builder', secondary: true },
+    { href: routes.customers.list(), label: t('nav.customers'), icon: 'customers' },
+    { href: routes.catalog.list(), label: t('nav.catalog'), icon: 'catalog' },
     // Sezioni d'uso occasionale: su mobile finiscono nel menu "Más".
     ...(hasPermission(ctx, 'members:read')
       ? [
           {
-            href: `${base}/settings/team`,
+            href: routes.settings.team,
             label: t('nav.team'),
             icon: 'team' as const,
             secondary: true,
@@ -39,10 +40,10 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
     ...(hasPermission(ctx, 'tenant:settings:update')
       ? [
           {
-            href: `${base}/settings`,
+            href: routes.settings.general,
             label: t('nav.settings'),
             icon: 'settings' as const,
-            exclude: [`${base}/settings/team`],
+            exclude: [routes.settings.team],
             secondary: true,
           },
         ]
@@ -54,7 +55,7 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] print:block">
       <aside className="sticky top-0 hidden h-dvh flex-col gap-6 border-r border-sidebar-border bg-sidebar px-4 py-5 lg:flex print:hidden!">
-        <Link href={base} className="flex items-center gap-2.5 px-1">
+        <Link href={routes.home} className="flex items-center gap-2.5 px-1">
           <LogoMark />
           <span className="font-display text-lg font-semibold tracking-tight">
             {BRAND.productName}
@@ -69,7 +70,7 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
 
       <div className="flex min-w-0 flex-col">
         <header className="sticky top-0 z-30 flex items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur lg:hidden print:hidden">
-          <Link href={base} aria-label={t('nav.dashboard')}>
+          <Link href={routes.home} aria-label={t('nav.dashboard')}>
             <LogoMark className="size-7" />
           </Link>
           <div className="min-w-0 flex-1">

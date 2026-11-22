@@ -219,6 +219,15 @@ delle funzioni, con il nostro messaggio. Guida: `docs/DEPLOY_VERCEL.md`. Ultima 
 format ✅ · typecheck ✅ · test 366/366 ✅ (+4: primo amministratore e ruolo proprietario) ·
 build ✅ · E2E 40/40 ✅.
 
+**Fase 0, azioni e percorsi (fatto il 22/11, ADR-039):** le 39 server action della fioreria
+passano da un'unica ossatura, `runTenantAction`: contesto per primo, errori tradotti nel form, poi
+pagine da ricaricare, redirect e messaggio. Ogni azione scrive solo validazione (`parseForm`) e
+servizio: 190 righe in meno nei file delle azioni. Tutti i percorsi `/app/…` (link, redirect,
+revalidate, immagini) vengono da `tenantRoutes` (`lib/routes.ts`). Un test guardiano blocca
+un'azione che salta il contesto o un percorso scritto a mano. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 385/385 ✅
+(+19 del web: percorsi, ossatura, guardiano) · build ✅ · E2E 40/40 ✅.
+Prossimo blocco della fase 0: pagine elenco condivise (filtri, ricerca, paginazione, stato vuoto).
+
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite
 `prisma` → `@prisma/config`, è chiuso con un override pnpm a ≥ 3.22.1 (`pnpm-workspace.yaml`);
@@ -227,8 +236,7 @@ togliere quando Prisma aggiornerà la dipendenza.
 
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
-1. Resto della fase 0: azioni e percorsi condivisi (`defineTenantAction`, `routes.ts`), pagine
-   elenco condivise; CI/CD; Sentry e monitor; **ambiente online di prova** (configurazione pronta,
+1. Resto della fase 0: pagine elenco condivise e gli altri componenti ripetuti; CI/CD; Sentry e monitor; **ambiente online di prova** (configurazione pronta,
    ADR-038: appena ci sono gli account); immagini con URL firmati e caricamento diretto su R2
    quando serviranno (Studio, immagini 2K).
 2. Ordini, pagamenti registrati e consegne con calendario; link pubblici di preventivo (approvato)

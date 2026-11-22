@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { startTransition } from 'react';
 import { Button } from '@/components/ui/button';
+import { tenantRoutes } from '@/lib/routes';
 
 /**
  * Errore in una pagina della fioreria: il confine è DENTRO il layout, quindi menu, selettore della
@@ -49,7 +50,7 @@ export default function TenantError({
       <div className="flex flex-wrap justify-center gap-2">
         <Button onClick={retry}>{t('retry')}</Button>
         <Button asChild variant="outline">
-          <Link href={`/app/${tenantSlug}`}>{t('goHome')}</Link>
+          <Link href={tenantRoutes(tenantSlug).home}>{t('goHome')}</Link>
         </Button>
       </div>
     </div>

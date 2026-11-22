@@ -5,6 +5,7 @@ import { getTranslations } from 'next-intl/server';
 import { hasPermission } from '@floral/core';
 import { Forbidden } from '@/components/forbidden';
 import { PageHeader } from '@/components/page-header';
+import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { createCustomerAction } from '../actions';
 import { CustomerForm } from '../customer-form';
@@ -25,7 +26,7 @@ export default async function NewCustomerPage({
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <Link
-        href={`/app/${ctx.tenantSlug}/customers`}
+        href={tenantRoutes(ctx.tenantSlug).customers.list()}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />

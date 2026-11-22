@@ -20,6 +20,7 @@ import { ArchiveControl } from '@/components/archive-control';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { kickAiDrainWhileWaiting } from '@/lib/ai-kick';
+import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { requestPreviewAction, saveDesignAction, setDesignArchivedAction } from '../actions';
 import { BouquetEditor } from '../bouquet-editor';
@@ -55,10 +56,10 @@ export default async function DesignPage({
   const { tenantSlug, configurationId } = await params;
   const ctx = await getTenantContext(tenantSlug);
   const t = await getTranslations();
-  const base = `/app/${ctx.tenantSlug}`;
+  const routes = tenantRoutes(ctx.tenantSlug);
   const back = (
     <Link
-      href={`${base}/builder`}
+      href={routes.builder.list()}
       className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
     >
       <ArrowLeft className="size-4" />
@@ -97,14 +98,12 @@ export default async function DesignPage({
           mode: previewState.mode,
           retryLimitReached: previewState.retryLimitReached,
           sketch: {
-            url: sketchPlan.version
-              ? `${base}/builder/${design.id}/sketch?v=${sketchPlan.version}`
-              : null,
+            url: sketchPlan.version ? routes.builder.sketch(design.id, sketchPlan.version) : null,
             reason: sketchPlan.reason,
             maxStems: sketchPlan.maxStems,
             missing: sketchPlan.missing.map((item) => ({
               name: item.name,
-              href: `${base}/catalog/${item.id}`,
+              href: routes.catalog.item(item.id),
             })),
           },
           quota: {
@@ -129,7 +128,7 @@ export default async function DesignPage({
                 errorCode: previewState.preview.errorCode,
                 imageUrl:
                   previewState.preview.status === 'SUCCEEDED'
-                    ? `${base}/builder/previews/${previewState.preview.jobId}`
+                    ? routes.builder.preview(previewState.preview.jobId)
                     : null,
               }
             : null,
@@ -209,8 +208,8 @@ export default async function DesignPage({
         canQuote={catalog.canQuote && !archived}
         readOnly={archived}
         saveAction={saveDesignAction.bind(null, ctx.tenantSlug, design.id)}
-        quoteHref={`${base}/quotes/new?configurationId=${design.id}`}
-        catalogHref={`${base}/catalog`}
+        quoteHref={routes.quotes.new({ configurationId: design.id })}
+        catalogHref={routes.catalog.list()}
         preview={preview}
       />
     </div>

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
+import { tenantRoutes } from '@/lib/routes';
 
 /**
  * Risorsa non trovata in una pagina della fioreria (anche un ID di un'altra fioreria: sempre 404,
@@ -21,7 +22,7 @@ export default function TenantNotFound() {
       <h1 className="font-display text-2xl font-semibold">{t('pageNotFoundTitle')}</h1>
       <p className="text-muted-foreground">{t('notFound')}</p>
       <Button asChild>
-        <Link href={`/app/${tenantSlug}`}>{t('goHome')}</Link>
+        <Link href={tenantRoutes(tenantSlug).home}>{t('goHome')}</Link>
       </Button>
     </div>
   );

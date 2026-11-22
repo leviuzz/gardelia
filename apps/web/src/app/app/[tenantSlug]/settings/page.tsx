@@ -13,6 +13,7 @@ import { Forbidden } from '@/components/forbidden';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { phoneForInput } from '@/lib/format';
+import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
   updateBuilderSettingsAction,
@@ -47,7 +48,7 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
 
       {hasPermission(ctx, 'billing:read') ? (
         <Link
-          href={`/app/${slug}/settings/plan`}
+          href={tenantRoutes(slug).settings.plan}
           className="flex items-center gap-4 rounded-2xl border bg-card p-4 transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
         >
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
@@ -72,7 +73,7 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
           <dl className="grid gap-3 rounded-xl bg-muted/50 p-4 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-muted-foreground">{t('settings.shopUrl')}</dt>
-              <dd className="font-mono text-xs">/app/{tenant.slug}</dd>
+              <dd className="font-mono text-xs">{tenantRoutes(tenant.slug).home}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">{t('settings.currency')}</dt>

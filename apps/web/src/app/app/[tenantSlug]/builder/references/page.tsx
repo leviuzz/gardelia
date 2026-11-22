@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/page-header';
 import { RemovePhotoButton } from '@/components/photos/photo-upload-parts';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { BuilderUpsell } from '../builder-ui';
 import { archiveStyleReferenceAction, uploadStyleReferenceAction } from './actions';
@@ -35,10 +36,10 @@ export default async function StyleReferencesPage({
   const { tenantSlug } = await params;
   const ctx = await getTenantContext(tenantSlug);
   const t = await getTranslations();
-  const base = `/app/${ctx.tenantSlug}/builder`;
+  const routes = tenantRoutes(ctx.tenantSlug);
   const back = (
     <Link
-      href={base}
+      href={routes.builder.list()}
       className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
     >
       <ArrowLeft className="size-4" />
@@ -96,7 +97,7 @@ export default async function StyleReferencesPage({
               <li key={reference.id} className="relative">
                 <figure className="space-y-1.5">
                   <PrivateImage
-                    src={`${base}/references/${reference.id}?size=thumb`}
+                    src={routes.builder.referencePhoto(reference.id, 'thumb')}
                     alt={
                       reference.style
                         ? t('styleReferences.altStyle', { style: styleLabel(reference.style) })

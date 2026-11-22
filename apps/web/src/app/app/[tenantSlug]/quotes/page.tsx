@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input, NativeSelect } from '@/components/ui/input';
 import { money } from '@/lib/format';
 import { QUOTE_STATUS_BADGE, calendarDate } from '@/lib/quote-ui';
+import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { cn } from '@/lib/utils';
 
@@ -35,23 +36,22 @@ export default async function QuotesPage({
   const t = await getTranslations('quotes');
   const tc = await getTranslations('common');
   const format = await getFormatter();
-  const base = `/app/${ctx.tenantSlug}/quotes`;
+  const routes = tenantRoutes(ctx.tenantSlug);
   const hasFilters = Boolean(filters.q || filters.status);
   const date = (value: string) =>
     format.dateTime(calendarDate(value), { dateStyle: 'medium', timeZone: 'UTC' });
 
   function pageHref(page: number): string {
-    const search = new URLSearchParams();
-    if (filters.q) search.set('q', filters.q);
-    if (filters.status) search.set('status', filters.status);
-    if (page > 1) search.set('page', String(page));
-    const qs = search.toString();
-    return qs ? `${base}?${qs}` : base;
+    return routes.quotes.list({
+      q: filters.q,
+      status: filters.status,
+      page: page > 1 ? page : undefined,
+    });
   }
 
   const newButton = result.canWrite ? (
     <Button asChild>
-      <Link href={`${base}/new`}>
+      <Link href={routes.quotes.new()}>
         <Plus />
         {t('newQuote')}
       </Link>
@@ -65,7 +65,7 @@ export default async function QuotesPage({
     <>
       {canDesign ? (
         <Button asChild variant="outline">
-          <Link href={`/app/${ctx.tenantSlug}/builder/new`}>
+          <Link href={routes.builder.new}>
             <Sparkles />
             {t('designRamo')}
           </Link>
@@ -81,7 +81,7 @@ export default async function QuotesPage({
 
       <form
         method="get"
-        action={base}
+        action={routes.quotes.list()}
         className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]"
       >
         <div className="relative">
@@ -112,7 +112,7 @@ export default async function QuotesPage({
           </Button>
           {hasFilters ? (
             <Button asChild variant="ghost">
-              <Link href={base}>{tc('clearFilters')}</Link>
+              <Link href={routes.quotes.list()}>{tc('clearFilters')}</Link>
             </Button>
           ) : null}
         </div>
@@ -138,7 +138,7 @@ export default async function QuotesPage({
             {result.items.map((quote) => (
               <li key={quote.id}>
                 <Link
-                  href={`${base}/${quote.id}`}
+                  href={routes.quotes.detail(quote.id)}
                   className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors hover:bg-muted/40"
                 >
                   <span className="w-24 shrink-0 text-sm font-medium tabular-nums">

@@ -46,7 +46,7 @@ La logica di business sta in `domain`/`core`, **mai** nelle pagine o nelle serve
 3. Accesso ai dati: solo dentro `withTenantContext(db, ctx, fn)`; **in più** filtra sempre esplicitamente `where: { tenantId: ctx.tenantId, ... }` e imposta `tenantId: ctx.tenantId` nelle create (difesa in profondità).
 4. I servizi ricevono un `TenantContext` ottenuto **solo** da `resolveTenantContext` (sessione + membership attiva). Mai accettare `tenantId` dal client.
 5. Ogni servizio chiama `requirePermission(ctx, '...')` come prima istruzione. I permessi sono definiti SOLO in `packages/domain/src/permissions.ts`.
-6. Ogni pagina e **ogni server action** sotto `/app/[tenantSlug]` chiama `getTenantContext(slug)` (il layout non protegge le action).
+6. Ogni pagina e **ogni server action** sotto `/app/[tenantSlug]` chiama `getTenantContext(slug)` (il layout non protegge le action). Le server action lo fanno passando da `runTenantAction(slug, …)` di `apps/web/src/lib/tenant-action.ts` (il test `apps/web/test/conventions.test.ts` fallisce se un'azione lo salta).
 7. ID non trovato nel tenant → `notFound(ctx, entity, id)` di `core/src/audit.ts` (404 + evento di sicurezza se l'ID è di un altro tenant). Rispondi 404, mai 403, per risorse di altri tenant.
 8. `withSystemContext` (bypass RLS) è vietato da ESLint fuori da: seed/test, `core/src/audit.ts`, `core/src/context.ts`, `core/src/services/team.ts` (inviti via token), `core/src/platform/**` (operazioni di piattaforma, solo CLI: ADR-021; importarlo dal web è vietato). Aggiungerne altri richiede una motivazione in `docs/DECISIONS.md`.
 9. L'app deve connettersi con un ruolo **non** superuser e **senza** BYPASSRLS (`DATABASE_URL`); le migrazioni usano il ruolo proprietario (`DATABASE_MIGRATION_URL`).
@@ -57,7 +57,8 @@ La logica di business sta in `domain`/`core`, **mai** nelle pagine o nelle serve
 - **Denaro:** interi in unità minime (`priceMinor`), valuta ISO per riga; conversioni solo ai bordi con `parseMoneyInput` / `formatMoney`. Mai `float` per importi. Prezzi e commissioni si calcolano **solo lato server**; mai fidarsi di importi inviati dal client.
 - **AI:** il render non determina mai quantità, inventario, costi o prezzi: la distinta (BOM) è la fonte di verità.
 - **Validazione:** schemi Zod in `domain`; messaggi = codici (`required`, `invalid_money`…) tradotti in `messages/es-MX.json` → `validation.*`. I servizi rivalidano sempre l'input.
-- **Form:** server action + `useActionState` + `preserveOnSubmit` (evita che React 19 azzeri i campi su errore) + `useActionToast`. Argomenti legati con `.bind()` arrivano dal client: non sono affidabili.
+- **Form:** server action + `useActionState` + `preserveOnSubmit` (evita che React 19 azzeri i campi su errore) + `useActionToast`. La server action restituisce `runTenantAction(slug, async ({ ctx, routes }) => …)`: valida (`parseForm`), chiama il servizio e dice solo cosa ricaricare, dove andare e quale messaggio mostrare (chiave es-MX). Argomenti legati con `.bind()` arrivano dal client: non sono affidabili.
+- **Percorsi:** ogni URL della fioreria (link, redirect, revalidate, immagini) si costruisce con `tenantRoutes(slug)` di `apps/web/src/lib/routes.ts`; mai `` `/app/${…}` `` a mano (lo controlla lo stesso test).
 - **Auth:** Better Auth gestisce solo l'identità; i form auth usano il client (`/api/auth/*`) così si applica il rate limiting.
 - **Testi UI:** mai stringhe hardcoded nei componenti: chiavi in `apps/web/messages/es-MX.json`.
 - **Audit:** modifiche critiche → `recordAudit(tx, ctx, …)` nella stessa transazione, con diff (`diffFields`). Niente PII o dati fiscali in chiaro nei metadati.

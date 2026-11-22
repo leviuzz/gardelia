@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { getBuilderCatalog, getEntitlements } from '@floral/core';
 import { PageHeader } from '@/components/page-header';
+import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { saveDesignAction } from '../actions';
 import { BouquetEditor } from '../bouquet-editor';
@@ -20,10 +21,10 @@ export default async function NewDesignPage({
   const { tenantSlug } = await params;
   const ctx = await getTenantContext(tenantSlug);
   const t = await getTranslations();
-  const base = `/app/${ctx.tenantSlug}`;
+  const routes = tenantRoutes(ctx.tenantSlug);
   const back = (
     <Link
-      href={`${base}/builder`}
+      href={routes.builder.list()}
       className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
     >
       <ArrowLeft className="size-4" />
@@ -65,7 +66,7 @@ export default async function NewDesignPage({
         readOnly={false}
         saveAction={saveDesignAction.bind(null, ctx.tenantSlug, null)}
         quoteHref={null}
-        catalogHref={`${base}/catalog`}
+        catalogHref={routes.catalog.list()}
       />
     </div>
   );

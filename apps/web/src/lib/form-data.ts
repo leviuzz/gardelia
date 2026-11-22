@@ -1,3 +1,7 @@
+import type { ZodType } from 'zod';
+import { ValidationError } from '@floral/core';
+import { toFieldErrors } from '@floral/domain';
+
 /**
  * FormData → oggetto semplice per la validazione Zod.
  *  - i campi elencati in `multiValueKeys` diventano array (checkbox multipli);
@@ -34,4 +38,19 @@ export function formDataToObject(
     }
   }
   return result;
+}
+
+/**
+ * FormData → input validato con uno schema del dominio. Se non è valido lancia
+ * `ValidationError` con i codici per campo (il runner delle azioni li traduce nel form).
+ * I servizi rivalidano comunque l'input.
+ */
+export function parseForm<T>(
+  schema: ZodType<T>,
+  formData: FormData,
+  multiValueKeys: readonly string[] = [],
+): T {
+  const parsed = schema.safeParse(formDataToObject(formData, multiValueKeys));
+  if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
+  return parsed.data;
 }

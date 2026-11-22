@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input, NativeSelect } from '@/components/ui/input';
 import { initials, phoneForInput } from '@/lib/format';
+import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { cn } from '@/lib/utils';
 
@@ -38,22 +39,21 @@ export default async function CustomersPage({
   const result = await listCustomers(ctx, query);
   const t = await getTranslations('customers');
   const tc = await getTranslations('common');
-  const base = `/app/${ctx.tenantSlug}/customers`;
+  const routes = tenantRoutes(ctx.tenantSlug);
   const hasFilters = Boolean(filters.q || filters.type || filters.status !== 'ACTIVE');
 
   function pageHref(page: number): string {
-    const search = new URLSearchParams();
-    if (filters.q) search.set('q', filters.q);
-    if (filters.type) search.set('type', filters.type);
-    if (filters.status !== 'ACTIVE') search.set('status', filters.status);
-    if (page > 1) search.set('page', String(page));
-    const qs = search.toString();
-    return qs ? `${base}?${qs}` : base;
+    return routes.customers.list({
+      q: filters.q,
+      type: filters.type,
+      status: filters.status === 'ACTIVE' ? undefined : filters.status,
+      page: page > 1 ? page : undefined,
+    });
   }
 
   const newButton = result.canWrite ? (
     <Button asChild>
-      <Link href={`${base}/new`}>
+      <Link href={routes.customers.new}>
         <Plus />
         {t('newCustomer')}
       </Link>
@@ -66,7 +66,7 @@ export default async function CustomersPage({
 
       <form
         method="get"
-        action={base}
+        action={routes.customers.list()}
         className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-[minmax(0,2fr)_repeat(2,minmax(0,1fr))_auto]"
       >
         <div className="relative">
@@ -101,7 +101,7 @@ export default async function CustomersPage({
           </Button>
           {hasFilters ? (
             <Button asChild variant="ghost">
-              <Link href={base}>{tc('clearFilters')}</Link>
+              <Link href={routes.customers.list()}>{tc('clearFilters')}</Link>
             </Button>
           ) : null}
         </div>
@@ -128,7 +128,7 @@ export default async function CustomersPage({
               <li key={customer.id}>
                 <CustomerRow
                   customer={customer}
-                  href={`${base}/${customer.id}`}
+                  href={routes.customers.detail(customer.id)}
                   typeLabel={t(`types.${customer.type}`)}
                   archivedLabel={t('archivedBadge')}
                 />

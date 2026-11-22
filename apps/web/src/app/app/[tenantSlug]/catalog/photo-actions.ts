@@ -1,15 +1,13 @@
 'use server';
 
 /**
- * Server action delle foto del catalogo. Il browser carica una foto per richiesta; ogni
- * action risolve di nuovo il contesto tenant e delega al servizio, che ricontrolla permessi,
- * tenant, tipo e dimensioni dell'immagine. Gli argomenti legati con .bind() non sono fidati.
+ * Server action delle foto del catalogo. Il browser carica una foto per richiesta; il servizio
+ * ricontrolla permessi, fioreria, tipo e dimensioni dell'immagine. Contesto ed errori:
+ * `runTenantAction`. Gli argomenti legati con .bind() non sono fidati.
  */
-import { revalidatePath } from 'next/cache';
-import { getTranslations } from 'next-intl/server';
 import { addCatalogItemPhoto, archiveCatalogItemPhoto, requestPhotoCutout } from '@floral/core';
-import { actionError, type ActionState } from '@/lib/actions';
-import { getTenantContext } from '@/lib/tenant';
+import type { ActionState } from '@/lib/action-state';
+import { runTenantAction, section } from '@/lib/tenant-action';
 import { uploadedBytes } from '@/lib/uploads';
 
 export async function uploadCatalogPhotoAction(
@@ -17,17 +15,13 @@ export async function uploadCatalogPhotoAction(
   itemId: string,
   formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await addCatalogItemPhoto(ctx, itemId, await uploadedBytes(formData), {
       view: formData.get('view'),
       color: formData.get('color'),
     });
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/catalog`, 'layout');
-  return { status: 'success' };
+    return { revalidate: section(routes.catalog.list()) };
+  });
 }
 
 export async function archiveCatalogPhotoAction(
@@ -36,15 +30,10 @@ export async function archiveCatalogPhotoAction(
   _prev: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  try {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
     await archiveCatalogItemPhoto(ctx, photoId);
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/catalog`, 'layout');
-  const t = await getTranslations('photos');
-  return { status: 'success', message: t('removed') };
+    return { revalidate: section(routes.catalog.list()), success: 'photos.removed' };
+  });
 }
 
 /** "Quitar el fondo" / "Reintentar": il servizio decide se si può (stato, limite, spesa). */
@@ -54,14 +43,11 @@ export async function requestPhotoCutoutAction(
   _prev: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  const ctx = await getTenantContext(slug);
-  let queued: boolean;
-  try {
-    ({ queued } = await requestPhotoCutout(ctx, photoId));
-  } catch (error) {
-    return actionError(error);
-  }
-  revalidatePath(`/app/${ctx.tenantSlug}/catalog`, 'layout');
-  const t = await getTranslations('photos');
-  return { status: 'success', message: queued ? t('cutoutRequested') : t('cutoutNotNeeded') };
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const { queued } = await requestPhotoCutout(ctx, photoId);
+    return {
+      revalidate: section(routes.catalog.list()),
+      success: queued ? 'photos.cutoutRequested' : 'photos.cutoutNotNeeded',
+    };
+  });
 }

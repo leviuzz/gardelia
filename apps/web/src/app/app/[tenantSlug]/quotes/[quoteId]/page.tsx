@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { money, phoneForInput } from '@/lib/format';
 import { QUOTE_STATUS_BADGE, calendarDate } from '@/lib/quote-ui';
+import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
   addCatalogLineAction,
@@ -106,6 +107,7 @@ export default async function QuotePage({
   const t = await getTranslations();
   const format = await getFormatter();
   const slug = ctx.tenantSlug;
+  const routes = tenantRoutes(slug);
   const currency = quote.currency;
   const fmt = (minor: number) => money(minor, currency);
   const calendar = (value: string) =>
@@ -143,12 +145,12 @@ export default async function QuotePage({
           : null,
       warning: lineWarning(line, quotableById),
       designHref: line.bouquetConfigurationId
-        ? `/app/${slug}/builder/${line.bouquetConfigurationId}`
+        ? routes.builder.design(line.bouquetConfigurationId)
         : null,
       image: line.image
         ? {
-            url: `/app/${slug}/quotes/${quote.id}/lines/${line.id}/image`,
-            downloadUrl: `/app/${slug}/quotes/${quote.id}/lines/${line.id}/image?download=1`,
+            url: routes.quotes.lineImage(quote.id, line.id),
+            downloadUrl: routes.quotes.lineImage(quote.id, line.id, { download: true }),
             verified: line.image.verified,
             simulated: line.image.simulated,
           }
@@ -196,7 +198,7 @@ export default async function QuotePage({
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <Link
-        href={`/app/${slug}/quotes`}
+        href={routes.quotes.list()}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground print:hidden"
       >
         <ArrowLeft className="size-4" />
@@ -216,7 +218,7 @@ export default async function QuotePage({
         description={
           <span className="flex flex-wrap gap-x-3 gap-y-1">
             <Link
-              href={`/app/${slug}/customers/${quote.customer.id}`}
+              href={routes.customers.detail(quote.customer.id)}
               className="font-medium text-foreground hover:underline"
             >
               {quote.customer.displayName}
@@ -307,7 +309,7 @@ export default async function QuotePage({
                   addCatalogAction={addCatalogLineAction.bind(null, slug, quote.id)}
                   addCustomAction={addCustomLineAction.bind(null, slug, quote.id)}
                   currency={currency}
-                  catalogHref={`/app/${slug}/catalog`}
+                  catalogHref={routes.catalog.list()}
                   options={quotable.map((item) => ({
                     id: item.id,
                     group: groupOf(item),

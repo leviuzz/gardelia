@@ -4,6 +4,7 @@ import { hasPermission, type BuilderCatalogDto, type TenantContext } from '@flor
 import { BRAND } from '@floral/domain';
 import { PlanUpsell } from '@/components/plan-upsell';
 import type { BuilderOptionView } from './bouquet-editor';
+import { tenantRoutes } from '@/lib/routes';
 
 /** Invito all'upgrade del Builder (piano senza `bouquetBuilder`). */
 export async function BuilderUpsell({ ctx }: { ctx: TenantContext }) {
@@ -14,7 +15,7 @@ export async function BuilderUpsell({ ctx }: { ctx: TenantContext }) {
       title={t('builder.upsell.title', { plan: `${BRAND.productName} ${t('plans.names.PLUS')}` })}
       body={t('builder.upsell.body')}
       hint={canSeePlan ? t('builder.upsell.ownerHint') : t('builder.upsell.teamHint')}
-      planHref={canSeePlan ? `/app/${ctx.tenantSlug}/settings/plan` : undefined}
+      planHref={canSeePlan ? tenantRoutes(ctx.tenantSlug).settings.plan : undefined}
       planLabel={t('builder.upsell.seePlan')}
     />
   );
@@ -29,7 +30,7 @@ export async function builderOptions(
   tenantSlug: string,
 ): Promise<BuilderOptionView[]> {
   const t = await getTranslations('catalog');
-  const photoSrc = (photoId: string) => `/app/${tenantSlug}/catalog/photos/${photoId}?size=thumb`;
+  const photoSrc = (photoId: string) => tenantRoutes(tenantSlug).catalog.photo(photoId, 'thumb');
   return catalog.options.map((option) => ({
     id: option.id,
     name: option.variety ? `${option.name} · ${option.variety}` : option.name,

@@ -61,7 +61,8 @@ Esempio: un gerente modifica il prezzo di un articolo.
 
 1. `proxy.ts` assegna `x-request-id`, genera il nonce CSP; se manca il cookie di sessione
    reindirizza a `/login` (solo UX, non sicurezza).
-2. La server action `updateItemAction(slug, itemId, …)` chiama `getTenantContext(slug)`:
+2. La server action `updateItemAction(slug, itemId, …)` passa da `runTenantAction(slug, …)`
+   (`apps/web/src/lib/tenant-action.ts`), che per prima cosa chiama `getTenantContext(slug)`:
    - `getSession()` verifica la sessione con Better Auth (DB, cookie cache firmato di 5 min);
    - `resolveTenantContext` cerca, **dentro `withUserContext`**, una membership `ACTIVE` dell'utente
      su un tenant `ACTIVE` con quello slug. Se non esiste → `notFound()` (404) e, se il tenant
@@ -74,7 +75,11 @@ Esempio: un gerente modifica il prezzo di un articolo.
      `where: { id, tenantId }`, calcola il diff, aggiorna, scrive `AuditLog` **nella stessa transazione**.
    - Se l'ID non esiste nel tenant → `notFound()`: 404 e, se l'ID appartiene a un altro tenant,
      evento `security.cross_tenant_access_attempt`.
-5. La action fa `revalidatePath` e restituisce uno stato tradotto; il form mostra un toast.
+5. Se il servizio riesce, `runTenantAction` ricarica le pagine indicate dall'azione (percorsi da
+   `tenantRoutes`, `apps/web/src/lib/routes.ts`), fa l'eventuale redirect e restituisce il
+   messaggio tradotto; se fallisce, l'errore diventa uno stato del form (errori per campo,
+   conflitti, permessi, piano) e gli errori inattesi vanno nel log con l'ID della richiesta. Il
+   form mostra un toast.
 
 ## 4. Modello di tenancy (dettaglio)
 

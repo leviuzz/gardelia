@@ -15,15 +15,17 @@ import { QUOTE_STATUSES, isMembershipRole, isPlanCode, type QuoteStatus } from '
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { tenantRoutes, type TenantRoutes } from '@/lib/routes';
 import { requireUser } from '@/lib/session';
 import { getTenantContext } from '@/lib/tenant';
 import { cn } from '@/lib/utils';
 
+/** Dove porta ogni passo della guida iniziale. */
 const STEP_LINKS = {
-  first_product: 'catalog/new',
-  first_bouquet_recipe: 'catalog?type=BOUQUET',
-  complete_costs: 'catalog',
-  invite_team: 'settings/team',
+  first_product: (routes: TenantRoutes) => routes.catalog.new,
+  first_bouquet_recipe: (routes: TenantRoutes) => routes.catalog.list({ type: 'BOUQUET' }),
+  complete_costs: (routes: TenantRoutes) => routes.catalog.list(),
+  invite_team: (routes: TenantRoutes) => routes.settings.team,
 } as const;
 
 function isQuoteStatus(value: string): value is QuoteStatus {
@@ -52,7 +54,7 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
   ]);
   const t = await getTranslations();
   const format = await getFormatter();
-  const base = `/app/${ctx.tenantSlug}`;
+  const routes = tenantRoutes(ctx.tenantSlug);
 
   const attention = data.catalog.outOfStock + data.catalog.limited + data.catalog.onRequest;
   const firstName = user.name.split(' ')[0] ?? user.name;
@@ -97,13 +99,13 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
             drafts: data.quotes.drafts,
             sent: data.quotes.sent,
           })}
-          href={`${base}/quotes`}
+          href={routes.quotes.list()}
         />
         <StatCard
           icon={<Flower2 />}
           label={t('dashboard.statActiveItems')}
           value={format.number(data.catalog.activeItems)}
-          href={`${base}/catalog`}
+          href={routes.catalog.list()}
         />
         <StatCard
           icon={<TriangleExclamationPoint />}
@@ -122,7 +124,7 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
             label={t('dashboard.statTeam')}
             value={format.number(data.team.activeMembers)}
             detail={t('dashboard.pendingInvites', { count: data.team.pendingInvitations })}
-            href={`${base}/settings/team`}
+            href={routes.settings.team}
           />
         ) : null}
       </section>
@@ -160,7 +162,7 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
                         <span className="sr-only">{t('dashboard.stepDone')}</span>
                       ) : (
                         <Link
-                          href={`${base}/${STEP_LINKS[step.key]}`}
+                          href={STEP_LINKS[step.key](routes)}
                           className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
                         >
                           {t('dashboard.go')}
@@ -211,7 +213,7 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
                           : t('customers.occasions.inDays', { count: occasion.daysUntil })}
                       </Badge>
                       <Link
-                        href={`${base}/customers/${occasion.customerId}`}
+                        href={routes.customers.detail(occasion.customerId)}
                         className="text-sm font-medium text-primary hover:underline"
                       >
                         {t('dashboard.contactNow')}
