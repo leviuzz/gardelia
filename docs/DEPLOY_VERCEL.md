@@ -52,7 +52,10 @@ avrà nomi propri (`gardelia-production`).
    carta o PayPal: è una verifica, il piano gratuito (10 GB, solo classe "Standard") per le prove
    non costa nulla. Se all'iscrizione chiede di aggiungere un dominio, salta: non serve.
 2. **Crea il bucket:** **Create bucket**, nome `gardelia-staging`:
-   - **Location:** "Automatic" oppure il suggerimento "Eastern North America (ENAM)";
+   - **Location:** "Automatic" e poi **Provide a location hint** → "Eastern North America
+     (ENAM)". Senza suggerimento Cloudflare mette il bucket vicino a chi lo crea (dall'Italia: in
+     Europa), lontano dall'app (Vercel `iad1`, Washington) e dal database (Neon, Virginia). La
+     posizione non si cambia più;
    - **niente "Specify jurisdiction"** (né EU né US): l'app usa l'indirizzo standard di R2
      (`<account-id>.r2.cloudflarestorage.com`) e la giurisdizione non si cambia più;
    - **Default storage class:** "Standard" (il piano gratuito vale solo per questa);
