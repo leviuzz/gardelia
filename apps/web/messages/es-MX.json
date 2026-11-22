@@ -265,7 +265,7 @@
     "pendingInvites": "{count, plural, =0 {sin invitaciones pendientes} one {# invitación pendiente} other {# invitaciones pendientes}}",
     "attentionDetail": "{outOfStock} agotados · {limited} limitados · {onRequest} bajo pedido",
     "gettingStarted": "Primeros pasos",
-    "gettingStartedHint": "Completa estos pasos para aprovechar Floral OS.",
+    "gettingStartedHint": "Completa estos pasos para aprovechar Gardelia.",
     "step_first_product": "Agrega tu primer producto",
     "step_first_bouquet_recipe": "Define la receta de un ramo",
     "step_complete_costs": "Registra los costos de tus insumos",
@@ -278,7 +278,7 @@
     "catalogOk": "Tu catálogo está completo.",
     "recentActivity": "Actividad reciente",
     "noActivity": "Aún no hay actividad registrada.",
-    "comingSoonTitle": "Próximamente en Floral OS",
+    "comingSoonTitle": "Próximamente en Gardelia",
     "comingSoonBody": "Pedidos, pagos y entregas con calendario están en desarrollo. No aparecerán aquí hasta que funcionen de verdad.",
     "upcomingOccasions": "Fechas especiales próximas",
     "noUpcomingOccasions": "No hay fechas especiales en los próximos 30 días.",
@@ -516,7 +516,7 @@
     "legalReadOnly": "Solo la persona propietaria puede modificar estos datos.",
     "locationTitle": "Tienda principal",
     "locationSubtitle": "Dirección desde la que preparas y entregas.",
-    "shopUrl": "Dirección en Floral OS",
+    "shopUrl": "Dirección en Gardelia",
     "currency": "Moneda",
     "saved": "Cambios guardados"
   },
@@ -592,7 +592,7 @@
     "archivedBadge": "Archivado",
     "sources": {
       "MERCHANT_DIRECT": "Cliente propio",
-      "NETWORK_B2B": "Floral Network",
+      "NETWORK_B2B": "Gardelia Network",
       "MARKETPLACE_B2C": "Marketplace",
       "IMPORT": "Importado",
       "MANUAL": "Manual"

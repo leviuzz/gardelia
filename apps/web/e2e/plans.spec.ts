@@ -7,7 +7,7 @@ test.describe('piano (fioreria demo in pilota)', () => {
     await page.goto('/app/las-camelias/settings');
     await page.getByRole('link', { name: /Plan y funciones/ }).click();
     await expect(page).toHaveURL(/\/settings\/plan$/);
-    await expect(page.getByTestId('current-plan')).toHaveText('Floral OS Plus');
+    await expect(page.getByTestId('current-plan')).toHaveText('Gardelia Plus');
     await expect(page.getByText('Piloto', { exact: true })).toBeVisible();
     const builder = page.getByRole('listitem').filter({ hasText: 'Diseñador de ramos' });
     await expect(builder.getByText('Incluido')).toBeVisible();
@@ -21,7 +21,7 @@ test.describe('piano (fioreria senza abbonamento)', () => {
 
   test('senza abbonamento si applica Basic e il Builder richiede Plus', async ({ page }) => {
     await page.goto('/app/flores-del-valle/settings/plan');
-    await expect(page.getByTestId('current-plan')).toHaveText('Floral OS Basic');
+    await expect(page.getByTestId('current-plan')).toHaveText('Gardelia Basic');
     const builder = page.getByRole('listitem').filter({ hasText: 'Diseñador de ramos' });
     await expect(builder.getByText('Disponible en Plus')).toBeVisible();
   });

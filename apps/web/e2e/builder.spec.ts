@@ -150,7 +150,7 @@ test.describe('Bouquet Builder (fioreria Basic)', () => {
   test('senza Plus si vede l’invito all’upgrade, nessuna funzione finta', async ({ page }) => {
     await page.goto('/app/flores-del-valle/builder');
     await expect(
-      page.getByRole('heading', { name: 'El diseñador de ramos está incluido en Floral OS Plus' }),
+      page.getByRole('heading', { name: 'El diseñador de ramos está incluido en Gardelia Plus' }),
     ).toBeVisible();
     await expect(page.getByRole('link', { name: 'Ver mi plan' })).toBeVisible();
     await page.goto('/app/flores-del-valle/builder/new');

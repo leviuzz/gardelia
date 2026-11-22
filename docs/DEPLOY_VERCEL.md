@@ -41,8 +41,8 @@ avrà nomi propri (`gardelia-production`).
 5. **Componi `DATABASE_URL`:**
    - torna in **Connect** e **attiva** "Connection pooling";
    - copia l'indirizzo;
-   - sostituisci utente e password con `floral_app` e la password del punto 3:
-     `postgresql://floral_app:<password>@<host-con-pooler>/neondb?sslmode=require`
+   - sostituisci utente e password con `gardelia_app` e la password del punto 3:
+     `postgresql://gardelia_app:<password>@<host-con-pooler>/neondb?sslmode=require`
    - è **`DATABASE_URL`**. Se per sbaglio usi l'URL del proprietario, l'app si rifiuta di
      partire: protegge la separazione fra fiorerie.
 

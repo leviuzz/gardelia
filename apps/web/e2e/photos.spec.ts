@@ -159,7 +159,7 @@ test.describe('Mis ramos (fioreria Basic)', () => {
   test('senza Plus si vede l’invito all’upgrade', async ({ page }) => {
     await page.goto('/app/flores-del-valle/builder/references');
     await expect(
-      page.getByRole('heading', { name: 'El diseñador de ramos está incluido en Floral OS Plus' }),
+      page.getByRole('heading', { name: 'El diseñador de ramos está incluido en Gardelia Plus' }),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Subir fotos' })).toHaveCount(0);
   });

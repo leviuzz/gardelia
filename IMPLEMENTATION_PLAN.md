@@ -270,6 +270,12 @@ ciclo nel processo fuori da Vercel) salva le scadenze di tutte le fiorerie, ognu
 orario. `CRON_SECRET` ora serve su Vercel anche senza AI. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ ·
 test 390/390 ✅ (+5: scadenze, dati di riferimento) · build ✅ · E2E 43/43 ✅ · CI su GitHub ✅.
 
+**Nome e ambiente online (22/11):** su richiesta del founder l'app si chiama già **Gardelia**
+(anche email e piani: "Gardelia Plus"); la verifica di marchio e dominio resta aperta (O-03). I
+servizi online hanno nomi in inglese (`gardelia-staging`) e il ruolo del database è `gardelia_app`.
+Messa online in corso insieme al founder, passo per passo (`docs/DEPLOY_VERCEL.md`): una build di
+Vercel simulata su database vuoto (migrazioni, dati di riferimento, compilazione) è passata.
+
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite
 `prisma` → `@prisma/config`, è chiuso con un override pnpm a ≥ 3.22.1 (`pnpm-workspace.yaml`);
