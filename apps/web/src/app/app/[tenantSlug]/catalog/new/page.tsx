@@ -37,7 +37,7 @@ export default async function NewItemPage({ params }: PageProps<'/app/[tenantSlu
       <ItemForm
         mode="create"
         action={createItemAction.bind(null, ctx.tenantSlug)}
-        canonicalOptions={canonical.map(({ id, name, category }) => ({ id, name, category }))}
+        canonicalOptions={canonical}
       />
     </div>
   );

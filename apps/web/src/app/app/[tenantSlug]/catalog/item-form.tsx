@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useActionState, useState } from 'react';
+import { useActionState, useMemo, useState } from 'react';
 import {
   ALLOWED_UNITS_BY_TYPE,
   AVAILABILITY_STATES,
@@ -10,9 +10,11 @@ import {
   DEFAULT_UNIT_BY_TYPE,
   isBuilderComponentType,
   isCanonicalLinkable,
+  suggestSpecies,
   type Availability,
   type CatalogItemType,
   type SaleUnit,
+  type SpeciesOption,
 } from '@floral/domain';
 import { ColorSwatch } from '@/components/common/color-swatch';
 import { Field, controlProps } from '@/components/form/field';
@@ -23,6 +25,7 @@ import { Checkbox, Input, NativeSelect, Textarea } from '@/components/ui/input';
 import { fieldError, idleState, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 import { useActionToast } from '@/lib/use-action-toast';
+import { SpeciesField } from './species-field';
 
 export interface ItemFormDefaults {
   readonly type: CatalogItemType;
@@ -43,11 +46,8 @@ export interface ItemFormDefaults {
   readonly isBuilderEnabled: boolean;
 }
 
-export interface CanonicalOption {
-  readonly id: string;
-  readonly name: string;
-  readonly category: string;
-}
+/** Specie della tassonomia pronta per la ricerca (ADR-043). */
+export type CanonicalOption = SpeciesOption;
 
 const EMPTY: ItemFormDefaults = {
   type: 'CUT_FLOWER',
@@ -84,11 +84,20 @@ export function ItemForm({
   useActionToast(mode === 'edit' ? state : idleState);
   const [type, setType] = useState<CatalogItemType>(defaults.type);
   const [saleUnit, setSaleUnit] = useState<SaleUnit>(defaults.saleUnit);
+  const [productName, setProductName] = useState(defaults.name);
   const err = (field: string) => fieldError(state, field);
 
   const units = ALLOWED_UNITS_BY_TYPE[type];
   const linkable = isCanonicalLinkable(type);
-  const canonicalForType = canonicalOptions.filter((option) => option.category === type);
+  const canonicalForType = useMemo(
+    () => canonicalOptions.filter((option) => option.category === type),
+    [canonicalOptions, type],
+  );
+  // Specie riconosciuta dal nome del prodotto ("Rosa roja" → Rosa): vale finché non si sceglie.
+  const suggestion = useMemo(
+    () => suggestSpecies(productName, canonicalForType),
+    [productName, canonicalForType],
+  );
 
   function changeType(next: CatalogItemType) {
     setType(next);
@@ -140,6 +149,7 @@ export function ItemForm({
               {...controlProps('name', err('name'))}
               name="name"
               defaultValue={defaults.name}
+              onChange={(event) => setProductName(event.target.value)}
               placeholder={t('form.namePlaceholder')}
               maxLength={120}
               required
@@ -161,19 +171,19 @@ export function ItemForm({
               hint={t('form.canonicalHint')}
               error={err('canonicalFlowerId')}
             >
-              <NativeSelect
-                {...controlProps('canonicalFlowerId', err('canonicalFlowerId'), true)}
-                name="canonicalFlowerId"
-                defaultValue={defaults.canonicalFlowerId}
+              <SpeciesField
                 key={type}
-              >
-                <option value="">{t('form.canonicalNone')}</option>
-                {canonicalForType.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.name}
-                  </option>
-                ))}
-              </NativeSelect>
+                id="canonicalFlowerId"
+                options={canonicalForType}
+                defaultValue={defaults.canonicalFlowerId}
+                suggestion={suggestion}
+                describedBy={
+                  controlProps('canonicalFlowerId', err('canonicalFlowerId'), true)[
+                    'aria-describedby'
+                  ]
+                }
+                invalid={Boolean(err('canonicalFlowerId'))}
+              />
             </Field>
           ) : (
             <input type="hidden" name="canonicalFlowerId" value="" />

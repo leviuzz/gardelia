@@ -16,6 +16,7 @@ export * from './quote';
 export * from './recipe';
 export * from './sketch';
 export * from './slug';
+export * from './species';
 export * from './team';
 export * from './tenant';
 export * from './validation';

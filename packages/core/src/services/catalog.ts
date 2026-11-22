@@ -22,12 +22,14 @@ import {
   diffFields,
   isUuid,
   resolveLocale,
+  speciesOption,
   toFieldErrors,
   type Availability,
   type CatalogItemInput,
   type CatalogItemType,
   type RecordStatus,
   type SaleUnit,
+  type SpeciesOption,
 } from '@floral/domain';
 import { notFound, recordAudit } from '../audit';
 import { hasPermission, requirePermission } from '../authorization';
@@ -361,15 +363,14 @@ export async function setCatalogItemArchived(
   return result;
 }
 
-export interface CanonicalFlowerOption {
-  readonly id: string;
+export interface CanonicalFlowerOption extends SpeciesOption {
   readonly slug: string;
-  readonly name: string;
-  readonly scientificName: string;
-  readonly category: CanonicalCategory;
 }
 
-/** Tassonomia globale (non contiene dati di tenant). */
+/**
+ * Tassonomia globale (non contiene dati di tenant), pronta per la ricerca nella lingua di chi
+ * usa l'app e per la specie suggerita dal nome del prodotto (ADR-043).
+ */
 export async function listCanonicalFlowers(
   locale: string,
 ): Promise<readonly CanonicalFlowerOption[]> {
@@ -377,11 +378,17 @@ export async function listCanonicalFlowers(
   const flowers = await getDb().canonicalFlower.findMany({ orderBy: { slug: 'asc' } });
   return flowers
     .map((flower) => ({
-      id: flower.id,
       slug: flower.slug,
-      name: localizedName(flower.names, resolved) ?? flower.slug,
-      scientificName: flower.scientificName,
-      category: flower.category,
+      ...speciesOption(
+        {
+          id: flower.id,
+          category: flower.category,
+          scientificName: flower.scientificName,
+          names: flower.names,
+          synonyms: flower.synonyms,
+        },
+        resolved,
+      ),
     }))
     .sort((a, b) => a.name.localeCompare(b.name, resolved));
 }

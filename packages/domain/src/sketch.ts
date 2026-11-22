@@ -98,6 +98,10 @@ export function isRibbonLabel(label: string): boolean {
  * ("Tulipán rosa", "Tulipano rosa").
  */
 const BLOOM_SIZE_CM: readonly (readonly [RegExp, number])[] = [
+  // Varianti piccole prima dei fiori grandi con lo stesso nome (ADR-043).
+  [/\b(spray rose|mini ?rosa|rosa (spray|mini|ramificata)|roselline)/, 4],
+  [/\b(spray carnation|mini ?clavel|clavel (spray|mini)|garofanino|garofano (spray|mini))/, 4],
+  [/\b(mini gerbera|gerbera mini|germini|gerberita)/, 6],
   [/\b(hortensia|hydrangea|ortensia)/, 18],
   [/\b(girasol|sunflower)/, 15],
   [/\b(lilium|lily|lilies|azucena|giglio|gigli)/, 14],

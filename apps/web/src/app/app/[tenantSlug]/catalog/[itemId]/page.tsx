@@ -167,7 +167,7 @@ export default async function ItemPage({
         <ItemForm
           mode="edit"
           action={updateItemAction.bind(null, slug, item.id)}
-          canonicalOptions={canonical.map(({ id, name, category }) => ({ id, name, category }))}
+          canonicalOptions={canonical}
           defaults={defaults}
         />
       ) : (

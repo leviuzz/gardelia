@@ -301,6 +301,14 @@ al cliente e le email restano nella lingua del mercato della fioreria. Ogni test
 nelle tre lingue: lo controlla `apps/web/test/messages.test.ts`. Limite noto: il preventivo
 stampato segue la lingua di chi lo stampa fino alla pagina pubblica del preventivo (V1).
 
+**Specie dei fiori (fatto il 22/11, ADR-043, richiesta del founder):** la tassonomia passa da 14 a
+72 specie usate in Messico (fiori recisi, fogliami, piante) con sinonimi per lingua (nube,
+astromelia, pompón…); il campo Specie del catalogo è una ricerca nella lingua dell'interfaccia,
+con una nota che lo spiega, e la specie viene suggerita dal nome del prodotto ("Rosa roja" → Rosa).
+L'elenco è una proposta da far controllare a un fiorista (spec §19.6). Il Diseñador avvisa dei fiori
+senza specie e con un nome generico (ADR-034, nota del 22/11). Ultima verifica: lint ✅ · format ✅
+· typecheck ✅ · test 436/436 ✅ · build ✅ · E2E 49/49 ✅; controllo visivo su desktop e a 320 px.
+
 **Pulsanti attivi solo quando funzionano (fatto il 22/11):** "Continuar con Google", uscita e i
 moduli di accesso restano disattivati finché la pagina non ha caricato il JavaScript; i moduli
 gestiti solo in JavaScript inviano in POST (prima, un invio anticipato metteva email e password

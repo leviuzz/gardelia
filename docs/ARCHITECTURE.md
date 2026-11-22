@@ -106,7 +106,8 @@ anche con pool di connessioni o PgBouncer in transaction mode. Un test verifica 
 - **Tenant:** leggibile dal tenant corrente **o** dai membri attivi (necessario per risolvere lo slug).
 - **Membership:** leggibile dal tenant corrente o dall'utente stesso; modificabile solo nel contesto del tenant.
 - **AuditLog:** solo SELECT/INSERT → append-only per l'applicazione.
-- **CanonicalFlower:** lettura pubblica, scrittura solo di sistema.
+- **CanonicalFlower:** lettura pubblica, scrittura solo di sistema (dati di riferimento allineati
+  a ogni rilascio; nomi e sinonimi per lingua, ADR-043).
 - Vincoli aggiuntivi nel SQL: CHECK su importi/quantità/valute/slug, indici univoci parziali
   (una sede primaria per tenant, un invito pendente per email).
 
