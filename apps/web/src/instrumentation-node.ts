@@ -1,6 +1,8 @@
 /**
  * Avvio del server Node.js (caricato da `instrumentation.ts` solo nel runtime Node, così
  * il bundle Edge non include moduli Node).
+ *  - Controlla TUTTA la configurazione (web e piattaforma) prima di ogni altra cosa: se qualcosa
+ *    manca o non torna, l'app non parte ed elenca tutti i problemi insieme.
  *  - Verifica che il ruolo database dell'app sia soggetto alla Row-Level Security: in
  *    produzione l'app si rifiuta di partire con un ruolo superuser/BYPASSRLS.
  *  - Anteprime AI (ADR-025) e scontorno delle foto (ADR-033): valida provider e archivio e
@@ -14,6 +16,7 @@ import {
   logger,
   startAiWorker,
 } from '@floral/core';
+import { assertConfiguration } from './lib/config-check';
 import {
   reportRequestError,
   type ErroredRequest,
@@ -30,6 +33,7 @@ export function reportNodeRequestError(
 }
 
 export async function registerNode(): Promise<void> {
+  assertConfiguration();
   onSystemContext(({ reason }) => logger.info({ reason }, 'contesto di sistema (bypass RLS)'));
 
   let report: Awaited<ReturnType<typeof checkRlsSafety>>;

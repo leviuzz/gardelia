@@ -9,6 +9,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
 import { AwsClient } from 'aws4fetch';
+import { storageConfig } from '../config';
 
 export interface ObjectStorage {
   readonly driver: 'filesystem' | 'r2' | 'memory';
@@ -115,43 +116,18 @@ export class MemoryStorage implements ObjectStorage {
   }
 }
 
-/** true se l'app gira solo in locale (sviluppo, test E2E): abilita gli adattatori locali. */
-export function isLocalAppUrl(appUrl: string | undefined): boolean {
-  if (!appUrl) return true;
-  try {
-    const host = new URL(appUrl).hostname;
-    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
-  } catch {
-    return false;
-  }
-}
-
+/** Archivio scelto dalla configurazione (già validata: vedi config.ts). */
 export function createStorageFromEnv(env: NodeJS.ProcessEnv = process.env): ObjectStorage {
-  const driver = env.STORAGE_DRIVER ?? 'filesystem';
-  if (driver === 'r2') {
-    const config = {
-      accountId: env.R2_ACCOUNT_ID ?? '',
-      bucket: env.R2_BUCKET ?? '',
-      accessKeyId: env.R2_ACCESS_KEY_ID ?? '',
-      secretAccessKey: env.R2_SECRET_ACCESS_KEY ?? '',
-    };
-    const missing = Object.entries(config)
-      .filter(([, value]) => !value)
-      .map(([name]) => name);
-    if (missing.length > 0) {
-      throw new Error(`Configurazione R2 incompleta: ${missing.join(', ')}`);
-    }
-    return new R2Storage(config);
+  const config = storageConfig(env);
+  if (config.STORAGE_DRIVER === 'r2') {
+    return new R2Storage({
+      accountId: config.R2_ACCOUNT_ID ?? '',
+      bucket: config.R2_BUCKET ?? '',
+      accessKeyId: config.R2_ACCESS_KEY_ID ?? '',
+      secretAccessKey: config.R2_SECRET_ACCESS_KEY ?? '',
+    });
   }
-  if (driver === 'filesystem') {
-    if (!isLocalAppUrl(env.APP_URL)) {
-      throw new Error(
-        'STORAGE_DRIVER=filesystem è ammesso solo in locale: in produzione usa STORAGE_DRIVER=r2.',
-      );
-    }
-    return new FilesystemStorage(env.STORAGE_DIR ?? '.storage');
-  }
-  throw new Error(`STORAGE_DRIVER non supportato: ${driver}`);
+  return new FilesystemStorage(config.STORAGE_DIR ?? '.storage');
 }
 
 let storage: ObjectStorage | null = null;

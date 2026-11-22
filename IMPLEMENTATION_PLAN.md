@@ -159,7 +159,19 @@ navigazione; ogni errore non gestito finisce nel log JSON con ID della richiesta
 (senza percorsi reali né token); ID della richiesta anche sulle API. Verificato dal vivo con un
 errore provocato apposta (poi rimosso): 500, menu presente, riferimento uguale nel log. Ultima
 verifica: lint ✅ · format ✅ · typecheck ✅ · test 333/333 ✅ · build ✅ · E2E 38/38 ✅.
-Prossimo blocco della fase 0: configurazione unica validata all'avvio.
+
+**Fase 0, configurazione unica (fatto il 22/11):** ogni regola sulle variabili d'ambiente è
+scritta una volta: schema del web (URL, login, database) e schema della piattaforma diviso in AI,
+archivio ed email (`packages/core/src/config.ts`, anche come `@floral/core/config`); gli
+adattatori leggono valori già validati. All'avvio l'app controlla tutto e, se qualcosa non va, il log
+elenca tutti i problemi e ogni richiesta (anche `/api/health`) risponde con un errore: un rilascio
+sbagliato non va in linea (prima alcuni emergevano solo al primo login o al primo invio).
+Tabella delle variabili e valori per ambiente in `docs/CONFIGURATION.md`. Cambio di comportamento:
+con `AI_PROVIDER=fal` senza chiave, o il simulato con un URL pubblico, anche scontorni, conteggio
+e stile ora segnalano l'errore invece di spegnersi in silenzio. Ultima verifica: lint ✅ ·
+format ✅ · typecheck ✅ · test 343/343 ✅ · build ✅ · E2E 38/38 ✅ · avvio con tre errori di
+configurazione provato dal vivo. Prossimo blocco della fase 0: errori silenziosi (avviso nel form,
+riavvio del worker AI).
 
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite

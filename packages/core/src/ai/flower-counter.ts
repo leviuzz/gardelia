@@ -6,7 +6,7 @@
 import { countsMatch, type CountTarget } from '@floral/domain';
 import { FalBoxCounter, FalFlowerCounter } from './fal';
 import type { CountOutcome, FlowerCounter } from './flower-counter-types';
-import { isLocalAppUrl } from './storage';
+import { aiConfig } from '../config';
 
 export type { CountOutcome, FlowerCounter } from './flower-counter-types';
 
@@ -82,14 +82,15 @@ export class SimulatedFlowerCounter implements FlowerCounter {
 export function createFlowerCounterFromEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): FlowerCounter | null {
-  const provider = env.AI_PROVIDER ?? 'none';
-  if (provider === 'fal') {
-    const apiKey = env.FAL_KEY?.trim() ?? '';
-    return apiKey
-      ? new TwoStepFlowerCounter(new FalFlowerCounter({ apiKey }), new FalBoxCounter({ apiKey }))
-      : null;
+  const config = aiConfig(env);
+  if (config.AI_PROVIDER === 'fal') {
+    const apiKey = config.FAL_KEY ?? '';
+    return new TwoStepFlowerCounter(
+      new FalFlowerCounter({ apiKey }),
+      new FalBoxCounter({ apiKey }),
+    );
   }
-  if (provider === 'simulated' && isLocalAppUrl(env.APP_URL)) return new SimulatedFlowerCounter();
+  if (config.AI_PROVIDER === 'simulated') return new SimulatedFlowerCounter();
   return null;
 }
 

@@ -14,7 +14,7 @@ import sharp from 'sharp';
 import type { BouquetPreviewSpec } from '@floral/domain';
 import { DEFAULT_FAL_MODEL, FAL_MODEL_IDS, FalImageProvider, isFalModelId } from './fal';
 import type { AiImageProvider, GeneratedImage } from './provider-types';
-import { isLocalAppUrl } from './storage';
+import { aiConfig } from '../config';
 
 export {
   AiProviderError,
@@ -217,32 +217,17 @@ export class SimulatedImageProvider implements AiImageProvider {
 export function createAiProviderFromEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): AiImageProvider | null {
-  const provider = env.AI_PROVIDER ?? 'none';
-  if (provider === 'none') return null;
-  if (provider === 'simulated') {
-    if (!isLocalAppUrl(env.APP_URL)) {
-      throw new Error(
-        'AI_PROVIDER=simulated è ammesso solo in locale: in produzione non si mostrano anteprime simulate.',
-      );
-    }
-    return new SimulatedImageProvider();
+  // Le regole (simulato solo in locale, chiave fal obbligatoria) stanno in config.ts.
+  const config = aiConfig(env);
+  if (config.AI_PROVIDER === 'none') return null;
+  if (config.AI_PROVIDER === 'simulated') return new SimulatedImageProvider();
+  const model = config.AI_MODEL ?? DEFAULT_FAL_MODEL;
+  if (!isFalModelId(model)) {
+    throw new Error(
+      `AI_MODEL non supportato con fal: ${model} (ammessi: ${FAL_MODEL_IDS.join(', ')}).`,
+    );
   }
-  if (provider === 'fal') {
-    const apiKey = env.FAL_KEY?.trim() ?? '';
-    if (!apiKey) {
-      throw new Error(
-        'AI_PROVIDER=fal richiede FAL_KEY: la chiave va nelle variabili dell’hosting, mai nel repo.',
-      );
-    }
-    const model = env.AI_MODEL?.trim() || DEFAULT_FAL_MODEL;
-    if (!isFalModelId(model)) {
-      throw new Error(
-        `AI_MODEL non supportato con fal: ${model} (ammessi: ${FAL_MODEL_IDS.join(', ')}).`,
-      );
-    }
-    return new FalImageProvider({ apiKey, model });
-  }
-  throw new Error(`AI_PROVIDER non supportato: ${provider}`);
+  return new FalImageProvider({ apiKey: config.FAL_KEY ?? '', model });
 }
 
 let provider: AiImageProvider | null | undefined;
@@ -259,6 +244,5 @@ export function setAiProvider(next: AiImageProvider | null | undefined): void {
 
 /** Tetto di spesa mensile della piattaforma (ADR-024), in micro-USD. */
 export function aiMonthlyBudgetMicros(env: NodeJS.ProcessEnv = process.env): number {
-  const usd = Number(env.AI_MONTHLY_BUDGET_USD ?? '50');
-  return Number.isFinite(usd) && usd >= 0 ? Math.round(usd * 1_000_000) : 50_000_000;
+  return Math.round(aiConfig(env).AI_MONTHLY_BUDGET_USD * 1_000_000);
 }

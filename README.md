@@ -74,6 +74,10 @@ pnpm db:seed                 # dati demo (idempotente)
 pnpm dev                     # http://localhost:3000
 ```
 
+All'avvio l'app controlla tutta la configurazione: se manca qualcosa non parte ed elenca i
+problemi. Tutte le variabili, le regole e i valori per ambiente sono in
+[`docs/CONFIGURATION.md`](docs/CONFIGURATION.md).
+
 Anteprime AI reali in locale (a pagamento, ~0,08 USD l'una): in `.env` imposta `AI_PROVIDER=fal`
 e `FAL_KEY` con la chiave del tuo account fal.ai (mai nel repo). Senza chiave lascia
 `AI_PROVIDER=simulated`.

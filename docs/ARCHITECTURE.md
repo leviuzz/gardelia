@@ -206,8 +206,10 @@ l'attribuzione delle fee future.
   (anche per le API), `digest` (= "Referencia" mostrata all'utente) e il percorso della route,
   mai quello reale. Confini d'errore: dentro il menu della fioreria (`app/[tenantSlug]/error.tsx`,
   `not-found.tsx`, che conserva il 404) e globale (`global-error.tsx`).
-- Segreti solo da variabili d'ambiente validate all'avvio (`src/lib/env.ts`); in produzione mancano →
-  l'app non parte.
+- Segreti solo da variabili d'ambiente. All'avvio si controlla tutta la configurazione: schema del
+  web (`src/lib/env.ts`) e della piattaforma (`packages/core/src/config.ts`, diviso in AI, archivio
+  ed email; ogni adattatore legge solo la sua parte, già validata). Se qualcosa non va l'app non
+  parte ed elenca tutti i problemi (`src/lib/config-check.ts`, `docs/CONFIGURATION.md`).
 
 ## 8. Test
 

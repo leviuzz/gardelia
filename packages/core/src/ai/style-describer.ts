@@ -8,7 +8,7 @@
  */
 import { FalStyleDescriber } from './fal';
 import type { StyleDescriber, StyleDescription } from './style-types';
-import { isLocalAppUrl } from './storage';
+import { aiConfig } from '../config';
 
 export { STYLE_DESCRIBER_PROMPT, type StyleDescriber, type StyleDescription } from './style-types';
 
@@ -30,12 +30,9 @@ export class SimulatedStyleDescriber implements StyleDescriber {
 export function createStyleDescriberFromEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): StyleDescriber | null {
-  const provider = env.AI_PROVIDER ?? 'none';
-  if (provider === 'fal') {
-    const apiKey = env.FAL_KEY?.trim() ?? '';
-    return apiKey ? new FalStyleDescriber({ apiKey }) : null;
-  }
-  if (provider === 'simulated' && isLocalAppUrl(env.APP_URL)) return new SimulatedStyleDescriber();
+  const config = aiConfig(env);
+  if (config.AI_PROVIDER === 'fal') return new FalStyleDescriber({ apiKey: config.FAL_KEY ?? '' });
+  if (config.AI_PROVIDER === 'simulated') return new SimulatedStyleDescriber();
   return null;
 }
 

@@ -341,9 +341,10 @@ describe('FalStyleDescriber (stile a parole, ADR-032)', () => {
         FAL_KEY: SECRET,
       }),
     ).toBeInstanceOf(FalStyleDescriber);
-    expect(
+    // Configurazione non valida (simulato con un URL pubblico): l'app non parte.
+    expect(() =>
       createStyleDescriberFromEnv({ APP_URL: 'https://x.example', AI_PROVIDER: 'simulated' }),
-    ).toBeNull();
+    ).toThrow(/solo in locale/);
     expect(createStyleDescriberFromEnv({ AI_PROVIDER: 'none' })).toBeNull();
   });
 });
@@ -468,13 +469,15 @@ describe('anteprima esatta con fal (ADR-034)', () => {
     const fromEnv = createFlowerCounterFromEnv({ AI_PROVIDER: 'fal', FAL_KEY: 'k' });
     expect(fromEnv).toBeInstanceOf(TwoStepFlowerCounter);
     expect(fromEnv?.model).toBe('anthropic/claude-sonnet-4.5+google/gemini-2.5-pro');
-    expect(createFlowerCounterFromEnv({ AI_PROVIDER: 'fal', FAL_KEY: '' })).toBeNull();
+    expect(() => createFlowerCounterFromEnv({ AI_PROVIDER: 'fal', FAL_KEY: '' })).toThrow(
+      /FAL_KEY/,
+    );
     expect(
       createFlowerCounterFromEnv({ AI_PROVIDER: 'simulated', APP_URL: 'http://localhost:3000' }),
     ).toBeInstanceOf(SimulatedFlowerCounter);
-    expect(
+    expect(() =>
       createFlowerCounterFromEnv({ AI_PROVIDER: 'simulated', APP_URL: 'https://floral.example' }),
-    ).toBeNull();
+    ).toThrow(/solo in locale/);
     expect(createFlowerCounterFromEnv({ AI_PROVIDER: 'none' })).toBeNull();
   });
 });

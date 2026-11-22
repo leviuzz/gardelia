@@ -8,6 +8,7 @@
  */
 import nodemailer, { type Transporter } from 'nodemailer';
 import { BRAND } from '@floral/domain';
+import { emailConfig } from './config';
 import { logger } from './logger';
 
 export interface EmailMessage {
@@ -80,13 +81,11 @@ export class MemoryMailer implements Mailer {
   }
 }
 
+/** SMTP se configurato; in sviluppo, senza SMTP, le email finiscono nel log (config.ts). */
 export function createMailerFromEnv(env: NodeJS.ProcessEnv = process.env): Mailer {
-  const from = env.EMAIL_FROM ?? `${BRAND.productName} <no-reply@localhost>`;
-  if (env.SMTP_URL) return new SmtpMailer(env.SMTP_URL, from);
-  if (env.NODE_ENV === 'production') {
-    throw new Error('SMTP_URL è obbligatoria in produzione: nessun provider email configurato.');
-  }
-  return new ConsoleMailer();
+  const config = emailConfig(env);
+  const from = config.EMAIL_FROM ?? `${BRAND.productName} <no-reply@localhost>`;
+  return config.SMTP_URL ? new SmtpMailer(config.SMTP_URL, from) : new ConsoleMailer();
 }
 
 let mailer: Mailer | null = null;

@@ -11,7 +11,7 @@
 import sharp from 'sharp';
 import { judgeCutout, type CutoutError } from '@floral/domain';
 import { FalBackgroundRemover } from './fal';
-import { isLocalAppUrl } from './storage';
+import { aiConfig } from '../config';
 
 export interface BackgroundRemover {
   readonly id: string;
@@ -177,14 +177,10 @@ export async function finishCutout(
 export function createBackgroundRemoverFromEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): BackgroundRemover | null {
-  const provider = env.AI_PROVIDER ?? 'none';
-  if (provider === 'fal') {
-    const apiKey = env.FAL_KEY?.trim() ?? '';
-    return apiKey ? new FalBackgroundRemover({ apiKey }) : null;
-  }
-  if (provider === 'simulated' && isLocalAppUrl(env.APP_URL)) {
-    return new ChromaKeyBackgroundRemover();
-  }
+  const config = aiConfig(env);
+  if (config.AI_PROVIDER === 'fal')
+    return new FalBackgroundRemover({ apiKey: config.FAL_KEY ?? '' });
+  if (config.AI_PROVIDER === 'simulated') return new ChromaKeyBackgroundRemover();
   return null;
 }
 

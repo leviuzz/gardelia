@@ -1,0 +1,231 @@
+/**
+ * Configurazione della piattaforma (fase 0): le variabili d'ambiente usate dal core, con tutte le
+ * regole che le legano fra loro, scritte UNA volta. È divisa in parti, una per adattatore:
+ *  - AI (anteprime, scontorni, conteggio, stile);
+ *  - archivio (foto e immagini);
+ *  - email.
+ * Ogni adattatore legge solo la sua parte, già validata. All'avvio l'app le controlla TUTTE
+ * insieme (`platformConfigSchema`, vedi `apps/web/src/lib/config-check.ts`) e, se qualcosa non
+ * va, non parte ed elenca tutti i problemi.
+ *
+ * Modulo leggero (solo `zod`): si importa anche da `@floral/core/config` senza caricare il resto
+ * del core. Elenco completo delle variabili: `docs/CONFIGURATION.md`.
+ */
+import { z } from 'zod';
+
+/** true se l'app gira solo in locale (sviluppo, test E2E): abilita gli adattatori locali. */
+export function isLocalAppUrl(appUrl: string | undefined): boolean {
+  if (!appUrl) return true;
+  try {
+    const host = new URL(appUrl).hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  } catch {
+    return false;
+  }
+}
+
+/** Stringa facoltativa: vuota o di soli spazi conta come assente (righe `X=` del file .env). */
+const optionalText = z
+  .string()
+  .optional()
+  .transform((value) => value?.trim() || undefined);
+
+const DEFAULT_AI_MONTHLY_BUDGET_USD = 50;
+const R2_VARIABLES = [
+  'R2_ACCOUNT_ID',
+  'R2_BUCKET',
+  'R2_ACCESS_KEY_ID',
+  'R2_SECRET_ACCESS_KEY',
+] as const;
+
+type RefinementContext = z.RefinementCtx;
+
+// --- AI ----------------------------------------------------------------------------------------
+
+const aiFields = {
+  APP_URL: optionalText,
+  AI_PROVIDER: z.enum(['none', 'simulated', 'fal']).default('none'),
+  AI_MODEL: optionalText,
+  FAL_KEY: optionalText,
+  // Resta testo qui e si controlla nelle regole: così un importo sbagliato non nasconde gli altri
+  // problemi (le regole fra variabili non girano se un campo fallisce).
+  AI_MONTHLY_BUDGET_USD: optionalText,
+};
+
+/** Tetto mensile in USD: predefinito se assente; `null` se non è un importo valido. */
+function budgetUsd(value: string | undefined): number | null {
+  if (value === undefined) return DEFAULT_AI_MONTHLY_BUDGET_USD;
+  const usd = Number(value);
+  return Number.isFinite(usd) && usd >= 0 ? usd : null;
+}
+
+/** Converte il tetto in numero dopo le regole (un valore non valido è già un errore). */
+function withBudgetNumber<T extends { AI_MONTHLY_BUDGET_USD?: string | undefined }>(
+  config: T,
+): Omit<T, 'AI_MONTHLY_BUDGET_USD'> & { AI_MONTHLY_BUDGET_USD: number } {
+  return {
+    ...config,
+    AI_MONTHLY_BUDGET_USD: budgetUsd(config.AI_MONTHLY_BUDGET_USD) ?? DEFAULT_AI_MONTHLY_BUDGET_USD,
+  };
+}
+
+function aiRules(
+  config: {
+    APP_URL?: string | undefined;
+    AI_PROVIDER: string;
+    FAL_KEY?: string | undefined;
+    AI_MONTHLY_BUDGET_USD?: string | undefined;
+  },
+  ctx: RefinementContext,
+): void {
+  if (budgetUsd(config.AI_MONTHLY_BUDGET_USD) === null) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['AI_MONTHLY_BUDGET_USD'],
+      message: 'deve essere un importo in USD ≥ 0',
+    });
+  }
+  if (config.AI_PROVIDER === 'simulated' && !isLocalAppUrl(config.APP_URL)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['AI_PROVIDER'],
+      message:
+        'simulated è ammesso solo in locale: con un APP_URL pubblico non si mostrano anteprime simulate',
+    });
+  }
+  if (config.AI_PROVIDER === 'fal' && !config.FAL_KEY) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['FAL_KEY'],
+      message: 'obbligatoria con AI_PROVIDER=fal (nelle variabili dell’hosting, mai nel repo)',
+    });
+  }
+}
+
+export const aiConfigSchema = z.object(aiFields).superRefine(aiRules).transform(withBudgetNumber);
+export type AiConfig = z.infer<typeof aiConfigSchema>;
+
+// --- Archivio ----------------------------------------------------------------------------------
+
+const storageFields = {
+  APP_URL: optionalText,
+  STORAGE_DRIVER: z.enum(['filesystem', 'r2']).default('filesystem'),
+  STORAGE_DIR: optionalText,
+  R2_ACCOUNT_ID: optionalText,
+  R2_BUCKET: optionalText,
+  R2_ACCESS_KEY_ID: optionalText,
+  R2_SECRET_ACCESS_KEY: optionalText,
+};
+
+function storageRules(
+  config: { APP_URL?: string | undefined; STORAGE_DRIVER: string } & Partial<
+    Record<(typeof R2_VARIABLES)[number], string | undefined>
+  >,
+  ctx: RefinementContext,
+): void {
+  if (config.STORAGE_DRIVER === 'filesystem' && !isLocalAppUrl(config.APP_URL)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['STORAGE_DRIVER'],
+      message: 'filesystem è ammesso solo in locale: con un APP_URL pubblico usa r2',
+    });
+  }
+  if (config.STORAGE_DRIVER === 'r2') {
+    for (const name of R2_VARIABLES) {
+      if (!config[name]) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [name],
+          message: 'obbligatoria con STORAGE_DRIVER=r2',
+        });
+      }
+    }
+  }
+}
+
+export const storageConfigSchema = z.object(storageFields).superRefine(storageRules);
+export type StorageConfig = z.infer<typeof storageConfigSchema>;
+
+// --- Email -------------------------------------------------------------------------------------
+
+const emailFields = {
+  NODE_ENV: optionalText,
+  SMTP_URL: optionalText,
+  EMAIL_FROM: optionalText,
+};
+
+function emailRules(
+  config: { NODE_ENV?: string | undefined; SMTP_URL?: string | undefined },
+  ctx: RefinementContext,
+): void {
+  // In sviluppo, senza SMTP le email finiscono nel log; in produzione servono davvero.
+  if (config.NODE_ENV === 'production' && !config.SMTP_URL) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['SMTP_URL'],
+      message: 'obbligatoria in produzione: senza un provider email non partono verifiche e inviti',
+    });
+  }
+}
+
+export const emailConfigSchema = z.object(emailFields).superRefine(emailRules);
+export type EmailConfig = z.infer<typeof emailConfigSchema>;
+
+// --- Tutto insieme (controllo all'avvio) -------------------------------------------------------
+
+export const platformConfigSchema = z
+  .object({ ...aiFields, ...storageFields, ...emailFields })
+  .superRefine((config, ctx) => {
+    aiRules(config, ctx);
+    storageRules(config, ctx);
+    emailRules(config, ctx);
+  })
+  .transform(withBudgetNumber);
+export type PlatformConfig = z.infer<typeof platformConfigSchema>;
+
+export type EnvSource = Readonly<Record<string, string | undefined>>;
+
+/** Problemi di configurazione leggibili: `VARIABILE: cosa non va` (mai i valori). */
+export function configIssues(error: z.ZodError): string[] {
+  return error.issues.map((issue) =>
+    issue.path.length > 0 ? `${issue.path.join('.')}: ${issue.message}` : issue.message,
+  );
+}
+
+export class ConfigurationError extends Error {
+  constructor(readonly issues: readonly string[]) {
+    super(`Configurazione non valida:\n  - ${issues.join('\n  - ')}`);
+    this.name = 'ConfigurationError';
+  }
+}
+
+function parseConfig<T>(schema: z.ZodType<T>, env: EnvSource): T {
+  const parsed = schema.safeParse(env);
+  if (!parsed.success) throw new ConfigurationError(configIssues(parsed.error));
+  return parsed.data;
+}
+
+/**
+ * Lettore di una parte della configurazione: con l'ambiente del processo la legge una volta sola;
+ * con un ambiente esplicito (test) la valida ogni volta.
+ */
+function configReader<T>(schema: z.ZodType<T>): (env?: EnvSource) => T {
+  let cached: T | undefined;
+  return (env) => {
+    if (env !== undefined && env !== process.env) return parseConfig(schema, env);
+    cached ??= parseConfig(schema, process.env);
+    return cached;
+  };
+}
+
+/** Parte AI: provider, modello, chiave fal, tetto di spesa. */
+export const aiConfig = configReader(aiConfigSchema);
+/** Parte archivio: driver e credenziali R2. */
+export const storageConfig = configReader(storageConfigSchema);
+/** Parte email: SMTP e mittente. */
+export const emailConfig = configReader(emailConfigSchema);
+
+/** Tutta la configurazione della piattaforma, validata insieme. */
+export function readPlatformConfig(env: EnvSource = process.env): PlatformConfig {
+  return parseConfig(platformConfigSchema, env);
+}

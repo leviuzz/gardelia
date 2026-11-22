@@ -1,6 +1,12 @@
 export * from './errors';
 export * from './logger';
 export {
+  ConfigurationError,
+  isLocalAppUrl,
+  readPlatformConfig,
+  type PlatformConfig,
+} from './config';
+export {
   listUserTenants,
   resolveTenantContext,
   type RequestMeta,

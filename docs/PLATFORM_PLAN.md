@@ -260,9 +260,11 @@ runtime, salvo eccezioni elencate).
 | Nel core: controllo ID + "non trovato", validazione Zod, paginazione    | 45, 19, 4                     | `assertId`, `parseInput`, `paginate`                     |
 | Date e fusi orari                                                       | 3 pacchetti, 3 convenzioni    | un modulo date unico + formattazione per fioreria        |
 
-**Configurazione unica.** Oggi le variabili si leggono in più punti e si controllano solo al
-primo login: un solo schema (Zod), validato **all'avvio** di web e worker, passato agli
-adattatori (AI, storage, email). Se manca qualcosa l'app non parte e dice cosa manca.
+**Configurazione unica.** ✅ (22/11) Le variabili si leggevano in più punti e si controllavano
+solo al primo login: ora ogni regola è scritta una volta (schema del web e schema della
+piattaforma diviso in AI, archivio ed email), tutto si controlla **all'avvio** e gli adattatori
+ricevono valori già validati. Se manca qualcosa l'app non parte e dice cosa manca
+(`docs/CONFIGURATION.md`).
 
 **Falle di gestione errori trovate (da chiudere nella fase 0):**
 
@@ -375,7 +377,8 @@ componenti condivisi → divisione dei file grandi insieme alle funzionalità ch
 
 1. **Founder:** dominio e nome definitivo (O-03); account aziendali dei fornitori con 2FA;
    carta di pagamento.
-2. Configurazione per ambiente validata all'avvio (pagine e job AI), tabella delle variabili.
+2. ✅ Configurazione per ambiente validata all'avvio (pagine e job AI), tabella delle variabili
+   (`docs/CONFIGURATION.md`).
 3. **Job AI su funzioni**: svuotamento della coda, cron di sicurezza, limite di parallelismo;
    immagini grandi in streaming o con URL firmati; limite di caricamento a 4 MB.
 4. Progetto Vercel con anteprime e staging, integrazione Neon (branch per anteprima), ruoli del
