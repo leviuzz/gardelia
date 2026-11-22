@@ -108,6 +108,11 @@ del database, senza caratteri da "tradurre"):
 
 Ogni esecuzione dà un segreto nuovo: generane uno per ogni uso.
 
+Niente password con simboli (`?`, `@`, `#`, `/`, `:`…) per il database: dentro l'indirizzo lo
+rompono ("Invalid URL", l'app non si collega e la build si ferma). Per cambiare la password del
+ruolo dell'app: **SQL Editor** di Neon, `ALTER ROLE gardelia_app WITH PASSWORD '<nuova>';`, poi
+ricomponi `DATABASE_URL`.
+
 ## 7. Progetto su Vercel
 
 1. **Importa il repository:** accedi con GitHub, **Add New → Project**, importa
