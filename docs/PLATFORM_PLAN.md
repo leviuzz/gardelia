@@ -278,9 +278,15 @@ ricevono valori già validati. Se manca qualcosa l'app non parte e dice cosa man
    scrive una riga JSON con ID della richiesta, `digest` (il "Referencia" che vede l'utente) e il
    percorso della route (mai quello reale né la query, che possono contenere token). Anche le API
    hanno ora l'ID della richiesta.
-3. Alcuni errori di validazione non si vedono (il campo non è nel form) → avviso nel form.
-4. Se all'avvio il database non risponde, il worker AI non riparte fino al riavvio; nessuna
-   chiusura ordinata → nuovo tentativo all'avvio e arresto pulito.
+3. ✅ (22/11) Alcuni errori di validazione non si vedevano (il campo non è nel form, es. il
+   cliente scelto con un pulsante) → dopo il disegno della pagina, ogni errore per campo che non
+   compare diventa un toast: nessun errore di validazione resta silenzioso, in nessun form.
+4. ✅ (22/11) Se all'avvio il database non rispondeva, il worker AI non ripartiva fino al riavvio
+   → nuovi tentativi in background (2 s, 4 s, 8 s… fino a 60 s); appena il database torna,
+   controllo della RLS e avvio del worker, senza riavviare l'app (provato spegnendo il database).
+   Arresto: un job interrotto torna in coda alla scadenza del lease (300 s); niente gestori di
+   segnali dentro `next start` (rischierebbero di bloccare l'uscita). Con i job su funzioni
+   (Vercel) il worker nel processo non gira in produzione.
 5. Il caricamento delle foto salva i file mentre la transazione del database è aperta → file
    fuori dalla transazione, con pulizia se qualcosa fallisce.
 6. Le letture modificano dati (scadenza di preventivi e inviti) → lavoro programmato (cron).

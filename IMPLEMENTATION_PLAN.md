@@ -173,6 +173,15 @@ format ✅ · typecheck ✅ · test 343/343 ✅ · build ✅ · E2E 38/38 ✅ ·
 configurazione provato dal vivo. Prossimo blocco della fase 0: errori silenziosi (avviso nel form,
 riavvio del worker AI).
 
+**Fase 0, errori silenziosi (fatto il 22/11):** un errore di validazione su un valore che il form
+non mostra (es. il cliente scelto con un pulsante in "Nueva cotización") restava invisibile: ora
+ogni errore per campo che la pagina non mostra diventa un toast, in tutti i form. Se all'avvio il
+database non risponde, l'app ritenta in background (2 s, 4 s, 8 s… fino a 60 s) e avvia il worker AI
+appena il database torna, senza riavvio (provato dal vivo spegnendo e riaccendendo Postgres).
+Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 349/349 ✅ · build ✅ · E2E 39/39 ✅.
+Prossimo blocco della fase 0: immagini private (un solo helper per route, lettura e `<img>`; file
+salvati fuori dalla transazione del database).
+
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite
 `prisma` → `@prisma/config`, è chiuso con un override pnpm a ≥ 3.22.1 (`pnpm-workspace.yaml`);

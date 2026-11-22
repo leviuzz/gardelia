@@ -205,7 +205,10 @@ l'attribuzione delle fee future.
   `onRequestError` (`instrumentation.ts` → `lib/request-errors.ts`): una riga con `requestId`
   (anche per le API), `digest` (= "Referencia" mostrata all'utente) e il percorso della route,
   mai quello reale. Confini d'errore: dentro il menu della fioreria (`app/[tenantSlug]/error.tsx`,
-  `not-found.tsx`, che conserva il 404) e globale (`global-error.tsx`).
+  `not-found.tsx`, che conserva il 404) e globale (`global-error.tsx`). Nei form, un errore di
+  validazione su un campo che la pagina non mostra diventa un toast (`lib/use-action-toast.ts`).
+- All'avvio, se il database non risponde, il controllo della RLS e l'avvio del worker AI si
+  ritentano in background con attesa crescente (`instrumentation-node.ts`).
 - Segreti solo da variabili d'ambiente. All'avvio si controlla tutta la configurazione: schema del
   web (`src/lib/env.ts`) e della piattaforma (`packages/core/src/config.ts`, diviso in AI, archivio
   ed email; ogni adattatore legge solo la sua parte, già validata). Se qualcosa non va l'app non
