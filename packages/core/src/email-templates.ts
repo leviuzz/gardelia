@@ -23,9 +23,10 @@ function layout(
   const body = paragraphs
     .map((p) => `<p style="margin:0 0 16px;line-height:1.6;color:#2f3b33">${p}</p>`)
     .join('');
-  return `<!doctype html><html lang="es-MX"><body style="margin:0;padding:24px;background:#f6f4ef;font-family:Helvetica,Arial,sans-serif">
-<table role="presentation" width="100%" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px">
-<tr><td>
+  // Il margine sta nella cella (non nella tabella): sui telefoni la scheda non esce dallo schermo.
+  return `<!doctype html><html lang="es-MX"><body style="margin:0;padding:16px 12px;background:#f6f4ef;font-family:Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px">
+<tr><td style="padding:28px 24px">
 <p style="margin:0 0 24px;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#3f6b4f">${escapeHtml(BRAND.productName)}</p>
 <h1 style="margin:0 0 16px;font-size:22px;color:#1f2a22">${escapeHtml(title)}</h1>
 ${body}

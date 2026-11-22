@@ -8,6 +8,7 @@ import {
   calendarRange,
   getMarket,
   parseCalendarQuery,
+  parseIsoDate,
   resolveLocale,
   shiftDate,
   toIsoDate,
@@ -84,6 +85,48 @@ export default async function CalendarPage({
     return event.personName ? `${base} · ${translate('of', { name: event.personName })}` : base;
   };
 
+  const todayIso = toIsoDate(today);
+  const shortDate = (iso: string) => {
+    const day = parseIsoDate(iso) ?? today;
+    return format.dateTime(asDate(day), { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  };
+  const promoLine: CalendarText['promo'] = (event) => {
+    const promo = event.promo;
+    if (!promo) return null;
+    switch (promo.status) {
+      case 'SENT':
+        return {
+          tone: 'ok',
+          label: t('promo.sent', {
+            date: format.dateTime(new Date(promo.sentAt), {
+              day: 'numeric',
+              month: 'short',
+              timeZone: ctx.timezone,
+            }),
+          }),
+        };
+      case 'SENDING':
+        return { tone: 'muted', label: t('promo.sending') };
+      case 'FAILED':
+        return { tone: 'warn', label: t('promo.failed') };
+      case 'SCHEDULED': {
+        const label =
+          promo.sendOn <= todayIso
+            ? t('promo.scheduledNext')
+            : t('promo.scheduled', { date: shortDate(promo.sendOn) });
+        // Florería demo: si vede cosa succederebbe, ma non parte nulla (ADR-016).
+        return {
+          tone: 'muted',
+          label: ctx.mode === 'DEMO' ? `${label} ${t('promo.demo')}` : label,
+        };
+      }
+      case 'NO_EMAIL':
+        return { tone: 'muted', label: t('promo.noEmail') };
+      case 'NO_CONSENT':
+        return { tone: 'muted', label: t('promo.noConsent') };
+    }
+  };
+
   const text: CalendarText = {
     title: (event) => titleWith(event, tOccasions),
     years: (event) =>
@@ -106,6 +149,7 @@ export default async function CalendarPage({
     more: (count) => t('more', { count }),
     dayCount: (count) => t('dayCount', { count }),
     emptyDay: t('emptyDay'),
+    promo: promoLine,
     viewCustomer: t('viewCustomer'),
     whatsapp: t('whatsapp'),
     newQuote: t('newQuote'),
@@ -217,12 +261,22 @@ export default async function CalendarPage({
         />
       )}
 
-      <p className="text-sm text-muted-foreground">
-        {t('addHint')}{' '}
-        <Link href={routes.customers.list()} className="font-medium text-primary hover:underline">
-          {t('goToCustomers')}
-        </Link>
-      </p>
+      <div className="space-y-1 text-sm text-muted-foreground">
+        <p>
+          {t('addHint')}{' '}
+          <Link href={routes.customers.list()} className="font-medium text-primary hover:underline">
+            {t('goToCustomers')}
+          </Link>
+        </p>
+        {hasPermission(ctx, 'promotions:manage') ? (
+          <p>
+            {t('promoHint')}{' '}
+            <Link href={routes.promotions} className="font-medium text-primary hover:underline">
+              {t('goToPromotions')}
+            </Link>
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

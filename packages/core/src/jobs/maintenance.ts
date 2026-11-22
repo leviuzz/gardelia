@@ -4,8 +4,9 @@
  * (migrazione `expire_overdue`). Le pagine mostrano già lo stato effettivo calcolato in lettura:
  * questo lavoro rende il dato salvato coerente (filtri, report, esportazioni).
  *
- * La chiamano Vercel Cron (una volta al giorno, `/api/internal/maintenance`) e, fuori da Vercel,
- * il ciclo nel processo del server. È idempotente: una seconda esecuzione non trova nulla.
+ * La chiamano Vercel Cron (una volta al giorno alle 9 del Messico, `/api/internal/maintenance`,
+ * insieme alla promo delle date speciali) e, fuori da Vercel, il ciclo nel processo del server. È
+ * idempotente: una seconda esecuzione non trova nulla.
  */
 import { getDb } from '@floral/db';
 import { logger } from '../logger';

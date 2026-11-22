@@ -37,6 +37,9 @@ aviso definitivi arriveranno prima del lancio commerciale.
 8. **Responsabilità** e limiti nei servizi fra imprese; legge applicabile e foro.
 9. **Cookie:** oggi solo tecnici; confermare che non serva un banner.
 10. **Prezzi, prova, rimborsi, fatture (CFDI):** sezione 3 dei termini, con il contador.
+11. **Email promozionali delle fiorerie ai loro clienti** (ADR-047: sconto per le date speciali,
+    solo con consenso, link di disiscrizione): cosa deve contenere il messaggio, se serve
+    consultare registri di esclusione e se il consenso registrato dal fiorista nell'app basta.
 
 ## Prima del lancio (V1, `docs/V1_SCOPE.md` §2.15)
 

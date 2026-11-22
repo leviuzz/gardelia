@@ -881,6 +881,59 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
 - **Per dopo:** il servizio restituisce eventi con data e tipo, quindi altre fonti (consegne,
   ordini, email promo inviate) si aggiungono con lo stesso intervallo.
 
+### ADR-047 — Promo delle date speciali: email automatica con sconto — ADOTTATO (22/11/2026), aspetti legali DA VALIDARE
+
+- **Richiesta del founder** (dopo i riscontri dei fioristi): una pagina promo "semplicissima" con
+  solo lo sconto (percentuale o importo fisso nella valuta della fioreria) e un'email automatica
+  al cliente per le sue date speciali ("torna, compra un mazzo e hai tot di sconto").
+- **Pagina Promociones** (`/promotions`, nel menu per proprietario e manager, permesso
+  `promotions:manage`): interruttore "Enviar el correo automáticamente", tipo di sconto (1–90 % o
+  importo), come funziona (quanti clienti la ricevono, email degli ultimi 30 giorni) e
+  l'anteprima dell'email vera, nella lingua del mercato della fioreria.
+  **Aggiunto da me, da confermare:** l'interruttore, spento all'inizio, perché nessuna fioreria
+  inizi a scrivere ai suoi clienti senza averlo deciso.
+- **Chi la riceve:** solo i clienti attivi con email **e** consenso alle promozioni (regola della
+  spec: niente promozioni senza consenso). Mai dalle fiorerie DEMO (ADR-016): lì si configura e si
+  vede l'anteprima, ma non parte nulla (`app_occasion_promo_tenants` filtra solo fiorerie LIVE e
+  attive, il lavoro lo ricontrolla).
+- **Quando:** l'email parte quando la prossima ricorrenza cade entro il preavviso della data (il
+  campo "Avisar con días de anticipo", 7 giorni se non cambiato), quindi nessun nuovo parametro.
+  Lo sconto vale fino al giorno della data. Il lavoro gira con la manutenzione giornaliera, il cui
+  cron passa dalle 00:07 alle **9:07 del Messico** (`vercel.json`; col piano Hobby l'ora esatta
+  cade dentro l'ora indicata). Si resta a 2 cron, come previsto da `docs/PLATFORM_PLAN.md`.
+  Le scadenze dei preventivi si calcolano già in lettura, quindi l'ora non cambia nulla per
+  l'utente.
+- **Una sola email per data e anno:** la riga `OccasionPromoEmail` si crea **prima** dell'invio
+  (vincolo unico per data e anno), così due esecuzioni insieme non mandano due email. Le date dello
+  stesso cliente prese lo stesso giorno vanno in un'unica email. Se l'invio fallisce si riprova nei
+  giorni seguenti, fino a 3 tentativi, finché la data non è passata. Un invio interrotto a metà non
+  si ripete: meglio un'email in meno che una doppia. La riga conserva lo sconto promesso e nessun
+  indirizzo email.
+- **Email:** mittente con il nome della fioreria (l'indirizzo resta quello verificato della
+  piattaforma), risposta all'email di contatto della fioreria, pulsante WhatsApp se ha un
+  telefono, contatti, motivo dell'invio e link per non ricevere più promozioni. Intestazioni
+  `List-Unsubscribe` e `List-Unsubscribe-Post` (RFC 8058) per la disiscrizione con un clic dai
+  programmi di posta.
+- **Disiscrizione:** link personale firmato (HMAC con una chiave derivata da
+  `BETTER_AUTH_SECRET`; contiene fioreria e cliente, non scade). La pagina `/unsubscribe/[token]`
+  chiede conferma con un pulsante, perché le anteprime automatiche dei link non devono togliere il
+  consenso. `POST /api/unsubscribe/[token]` serve la disiscrizione con un clic, mentre un GET
+  porta alla pagina. Toglie il consenso del cliente e lo registra nell'attività della fioreria
+  senza dati personali.
+  **Eccezione motivata alla regola "tenant solo dalla sessione":** questo flusso non ha sessione.
+  Fioreria e cliente vengono solo dal link verificato, come per gli inviti. Si usa
+  `withTenantContext` di quella fioreria (RLS attiva), mai un contesto di sistema. Cambiare
+  `BETTER_AUTH_SECRET` invalida i link già inviati.
+- **Calendario:** ogni data dice se la promo è partita, se è fallita, quando partirà, oppure
+  perché non partirà (cliente senza email o senza consenso).
+- **DA VALIDARE (avvocato, `docs/legal/README.md`):** requisiti delle email promozionali inviate
+  dalla fioreria tramite Gardelia, cioè identificazione, disiscrizione ed eventuali registri di
+  esclusione. Va verificato anche che il consenso registrato dal fiorista basti. L'aviso de
+  privacidad della fioreria deve prevedere questo uso (termini, sezione 7).
+- **Per inviare davvero serve il dominio email verificato (P-07):** il mittente di prova del
+  provider consegna solo all'indirizzo del titolare dell'account.
+- **Aperto (O-11):** se la promo resta in tutti i piani o diventa una funzione a pagamento.
+
 ---
 
 ## 3. Proposte da approvare
@@ -913,6 +966,7 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
 | O-08 | Conferma della matrice ruoli: lo STAFF non vede costi; il MANAGER invita solo STAFF e non modifica dati fiscali; lo STAFF compone nel Builder ma non crea preventivi né clienti                                                                                                                                                                                                                                                                               | Founder            | — (default già implementato)                      |
 | O-09 | Chi mantiene la tassonomia canonica dei fiori e con quale copertura                                                                                                                                                                                                                                                                                                                                                                                           | Founder            | Builder, Network                                  |
 | O-10 | Durata della finestra di attribuzione delle fee del Network (spec §8.4)                                                                                                                                                                                                                                                                                                                                                                                       | Founder + legale   | Network                                           |
+| O-11 | La promo delle date speciali (ADR-047) resta in tutti i piani o diventa una funzione a pagamento (`requireEntitlement`)? Oggi è in tutti i piani                                                                                                                                                                                                                                                                                                              | Founder            | Piani e prezzi                                    |
 
 ---
 

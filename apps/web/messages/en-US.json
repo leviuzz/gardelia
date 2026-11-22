@@ -245,7 +245,8 @@
     "more": "More",
     "quotes": "Quotes",
     "builder": "Designer",
-    "calendar": "Calendar"
+    "calendar": "Calendar",
+    "promotions": "Promotions"
   },
   "roles": {
     "OWNER": "Owner",
@@ -334,7 +335,9 @@
     "ai.preview_requested": "{actor} requested an AI preview",
     "ai_credits.granted": "{units} extra previews were added",
     "builder.style_reference_added": "{actor} added a photo to “My bouquets”",
-    "builder.style_reference_archived": "{actor} removed a photo from “My bouquets”"
+    "builder.style_reference_archived": "{actor} removed a photo from “My bouquets”",
+    "tenant.promo_updated": "{actor} changed the special dates promotion",
+    "customer.unsubscribed": "A customer unsubscribed from promotions"
   },
   "catalog": {
     "title": "Catalog",
@@ -664,7 +667,7 @@
       "channel": "How did they hear about you?",
       "channelNone": "Not specified",
       "marketingConsent": "Agrees to receive promotions",
-      "marketingConsentHint": "Check this only if the customer authorized it. Without consent, they won’t be sent promotions.",
+      "marketingConsentHint": "Check this only if the customer authorized it. With their consent and email they'll get the promotion for their special dates (if you turn it on in Promotions).",
       "consentSince": "Consent recorded on {date}",
       "create": "Create customer",
       "creating": "Creating…",
@@ -1234,6 +1237,68 @@
     "yearsOther": "{count, plural, one {# year} other {# years}}",
     "addHint": "Dates are added on each customer’s page.",
     "goToCustomers": "Go to customers",
-    "whatsappText": "Hi {name}, {occasion} is coming up. Shall we prepare some special flowers?"
+    "whatsappText": "Hi {name}, {occasion} is coming up. Shall we prepare some special flowers?",
+    "promo": {
+      "sent": "Promotion sent on {date}",
+      "sending": "Sending the promotion…",
+      "failed": "The promotion couldn't be sent",
+      "scheduled": "The promotion goes out on {date}",
+      "scheduledNext": "The promotion goes out with the next daily send",
+      "demo": "(demo shop: not sent)",
+      "noEmail": "No promotion: the customer has no email",
+      "noConsent": "No promotion: the customer didn't agree to receive promotions"
+    },
+    "promoHint": "Send an automatic discount by email before each date.",
+    "goToPromotions": "Set up the promotion"
+  },
+  "promotions": {
+    "title": "Promotions",
+    "subtitle": "An automatic email with a discount for your customers' special dates.",
+    "saved": "Promotion saved",
+    "demoNotice": "This is a demo flower shop: you can set up the promotion and see the email, but nothing is sent to anyone.",
+    "occasion": {
+      "title": "Special dates promotion",
+      "subtitle": "Choose the discount your customers get before their birthday, anniversary or another special date."
+    },
+    "form": {
+      "enabled": "Send the email automatically",
+      "enabledHint": "Only to customers with an email who agreed to receive promotions.",
+      "kind": "Discount type",
+      "kinds": {
+        "PERCENT": "Percentage",
+        "AMOUNT": "Fixed amount"
+      },
+      "percent": "Discount percentage",
+      "percentHint": "Between {min} and {max}.",
+      "amount": "Discount in {currency}"
+    },
+    "how": {
+      "title": "How it works",
+      "who": "Customers with an email who agreed to receive promotions get it: {reachable} of {total} customers with special dates.",
+      "when": "It goes out a few days before each date, following that date's notice (7 days unless you change it), in the morning.",
+      "validity": "The discount is valid until the date itself: your customer shows the email in store or messages you on WhatsApp, and you apply the discount.",
+      "once": "Only one email per date each year.",
+      "unsubscribe": "Each email has a link to stop receiving promotions; if your customer uses it, their consent is removed.",
+      "sent": "{count, plural, =0 {No emails sent in the last 30 days.} one {# email sent in the last 30 days.} other {# emails sent in the last 30 days.}}",
+      "calendar": "See the upcoming dates"
+    },
+    "noContact": "Add a contact email or phone in Settings so your customers can reply to you.",
+    "goToSettings": "Go to Settings",
+    "preview": {
+      "title": "What your customer will see",
+      "subtitle": "Example with a birthday in 7 days. The email is in your shop's language ({language}).",
+      "subject": "Subject:",
+      "empty": "Choose the discount and save to see the email."
+    }
+  },
+  "unsubscribe": {
+    "question": "Don't want to receive promotions from {shop} anymore?",
+    "explanation": "You'll stop getting emails with discounts for your special dates. If you change your mind, just let the flower shop know.",
+    "confirm": "Yes, stop sending them",
+    "doneTitle": "Done",
+    "done": "You won't receive promotions from {shop} anymore.",
+    "invalidTitle": "Invalid link",
+    "invalid": "This link isn't valid. To stop receiving promotions, reply to the email or contact the flower shop.",
+    "poweredBy": "Email sent with {brand}"
   }
 }

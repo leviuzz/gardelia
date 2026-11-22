@@ -429,7 +429,8 @@ componenti condivisi → divisione dei file grandi insieme alle funzionalità ch
 - **Job lunghi (Flora Studio, video P2):** fal in coda con webhook; Vercel Workflows o Daemons
   solo quando serviranno.
 - **Cron:** ✅ manutenzione giornaliera (scadenza di preventivi e inviti,
-  `/api/internal/maintenance`, ADR-040); poi promemoria delle fechas especiales, pulizia dei file
+  `/api/internal/maintenance`, ADR-040), ✅ con la promo delle fechas especiales (ADR-047; il cron
+  gira alle 9:07 del Messico); poi pulizia dei file
   non più usati, riepilogo giornaliero dei costi AI (Vercel Cron in produzione, Schedules per lo
   staging). Con Hobby i cron sono 2 al giorno: oggi sono usati entrambi (manutenzione e rete di
   sicurezza della coda AI); i prossimi lavori giornalieri entrano nella stessa manutenzione.

@@ -325,7 +325,16 @@ cliente, ma solo dopo averlo creato. I clienti demo hanno qualche data.
 **Calendario delle date speciali (fatto il 22/11, richiesta del founder, ADR-046):** sezione
 "Calendario" con le viste mese, settimana, giorno e agenda delle date dei clienti attivi; da ogni
 data si scrive su WhatsApp, si apre un preventivo o la scheda del cliente. Vista e data stanno
-nell'URL. Prossimo: la promo per le date speciali con l'email automatica al cliente.
+nell'URL.
+
+**Promo delle date speciali (fatto il 22/11, richiesta del founder, ADR-047):** pagina
+"Promociones" con lo sconto (percentuale o importo fisso) e l'anteprima dell'email; email
+automatica ai clienti con email e consenso, qualche giorno prima di ogni data (il preavviso della
+data). Si manda una sola email per data e anno, mai dalle fiorerie demo, e si riprova se fallisce.
+L'email ha un link firmato per non ricevere più promozioni, con pagina di conferma e
+disiscrizione con un clic. Il calendario mostra lo stato della promo per ogni data. Il cron
+giornaliero ora gira alle 9:07 del Messico e fa anche la promo. Da fare per l'invio reale: dominio
+email verificato (P-07); parere legale sulle email promozionali; decisione O-11 (piano).
 
 **Pulsanti attivi solo quando funzionano (fatto il 22/11):** "Continuar con Google", uscita e i
 moduli di accesso restano disattivati finché la pagina non ha caricato il JavaScript; i moduli

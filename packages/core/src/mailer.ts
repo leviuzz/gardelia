@@ -18,6 +18,20 @@ export interface EmailMessage {
   readonly html: string;
   /** Categoria per log/metriche (es. "invitation"). */
   readonly category: string;
+  /**
+   * Nome del mittente al posto di quello della piattaforma (es. la fioreria nelle email ai suoi
+   * clienti). L'indirizzo resta quello di EMAIL_FROM, l'unico verificato.
+   */
+  readonly fromName?: string;
+  /** A chi rispondere (es. l'email di contatto della fioreria). */
+  readonly replyTo?: string;
+  /** Intestazioni aggiuntive (es. List-Unsubscribe nelle email promozionali). */
+  readonly headers?: Readonly<Record<string, string>>;
+}
+
+/** Indirizzo di "Nome <indirizzo>" (o il testo intero se è già solo l'indirizzo). */
+export function emailAddressOf(from: string): string {
+  return /<([^<>]+)>\s*$/.exec(from)?.[1]?.trim() ?? from.trim();
 }
 
 export interface Mailer {
@@ -38,11 +52,15 @@ export class SmtpMailer implements Mailer {
 
   async send(message: EmailMessage): Promise<void> {
     await this.transport.sendMail({
-      from: this.from,
+      from: message.fromName
+        ? { name: message.fromName, address: emailAddressOf(this.from) }
+        : this.from,
       to: message.to,
       subject: message.subject,
       text: message.text,
       html: message.html,
+      ...(message.replyTo ? { replyTo: message.replyTo } : {}),
+      ...(message.headers ? { headers: { ...message.headers } } : {}),
     });
     logger.info({ category: message.category }, 'email inviata');
   }
@@ -58,6 +76,8 @@ export class ConsoleMailer implements Mailer {
         '',
         '──────── EMAIL NON INVIATA (sviluppo: SMTP_URL non configurata) ────────',
         `Per:     ${message.to}`,
+        ...(message.fromName ? [`Da:      ${message.fromName}`] : []),
+        ...(message.replyTo ? [`Rispondi a: ${message.replyTo}`] : []),
         `Oggetto: ${message.subject}`,
         '',
         message.text,

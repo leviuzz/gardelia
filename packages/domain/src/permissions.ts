@@ -49,6 +49,11 @@ export const PERMISSIONS = {
    * richiede di dare il consenso a nome della fioreria.
    */
   'builder:references:write': MANAGEMENT,
+  /**
+   * Promo delle date speciali: attivarla e scegliere lo sconto dell'email automatica ai clienti
+   * che hanno accettato di ricevere promozioni.
+   */
+  'promotions:manage': MANAGEMENT,
   /** Vedere il registro attività (audit) della fioreria. */
   'audit:read': MANAGEMENT,
 } as const satisfies Record<string, readonly MembershipRole[]>;

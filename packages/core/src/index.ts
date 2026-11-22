@@ -19,6 +19,11 @@ export {
   runDailyMaintenance,
   type MaintenanceResult,
 } from './jobs/maintenance';
+export {
+  runOccasionPromos,
+  type OccasionPromoDeps,
+  type OccasionPromoRunResult,
+} from './jobs/occasion-promos';
 export { recordPlatformSecurityEvent } from './audit';
 export {
   ConsoleMailer,
@@ -31,6 +36,15 @@ export {
   type Mailer,
 } from './mailer';
 export { invitationEmail, passwordResetEmail, verificationEmail } from './email-templates';
+export { occasionPromoEmail, type PromoEmailInput } from './promo-email';
+export {
+  createUnsubscribeToken,
+  describeUnsubscribe,
+  readUnsubscribeToken,
+  unsubscribeFromPromotions,
+  unsubscribeUrls,
+  type UnsubscribeInfo,
+} from './promo-unsubscribe';
 export {
   AiProviderError,
   SimulatedImageProvider,
@@ -101,6 +115,7 @@ export * from './services/catalog';
 export * from './services/calendar';
 export * from './services/customers';
 export * from './services/dashboard';
+export * from './services/promotions';
 export * from './services/quotes';
 export * from './services/recipes';
 export * from './services/team';

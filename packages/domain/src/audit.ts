@@ -38,6 +38,7 @@ export function diffFields<T extends object>(
 export const AUDIT_ACTIONS = {
   tenantCreated: 'tenant.created',
   tenantUpdated: 'tenant.updated',
+  tenantPromoUpdated: 'tenant.promo_updated',
   locationUpdated: 'location.updated',
   memberInvited: 'member.invited',
   invitationRevoked: 'invitation.revoked',
@@ -64,6 +65,8 @@ export const AUDIT_ACTIONS = {
   customerAddressArchived: 'customer.address_archived',
   customerOccasionAdded: 'customer.occasion_added',
   customerOccasionRemoved: 'customer.occasion_removed',
+  /** Il cliente ha tolto il consenso alle promozioni dal link dell'email. */
+  customerUnsubscribed: 'customer.unsubscribed',
   quoteCreated: 'quote.created',
   quoteUpdated: 'quote.updated',
   quoteLineAdded: 'quote.line_added',
