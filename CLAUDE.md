@@ -91,4 +91,5 @@ pnpm build && pnpm test:e2e   # Playwright sull'app in modalità produzione
 
 - Branch di lavoro dedicati; commit piccoli e descrittivi (stile conventional commits: `feat`, `fix`, `chore`, `docs`, `test`).
 - Rami stabili (ADR-041): `staging` = ambiente di prova online, ci arriva un blocco finito con tutti i controlli verdi; `prod` = produzione, si aggiorna da `staging` solo con il via libera esplicito del founder. I rami di lavoro (es. `claude/…`) non vanno mai online.
+- Rilascio su `staging` (ADR-041, piano Hobby di Vercel): merge `--no-ff` del ramo di lavoro **dopo la CI verde su quel commit**, con autore e committer il founder (`leviuzz <76139421+leviuzz@users.noreply.github.com>`, consenso del 22/11/2026) e `Co-Authored-By` di Claude nel messaggio; solo così Vercel pubblica. Mai per `prod` senza il via libera del founder.
 - Mai committare `.env`, dump di database o file in `apps/web/e2e/.auth|.mail`.
