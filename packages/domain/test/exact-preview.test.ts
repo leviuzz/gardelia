@@ -10,6 +10,8 @@ import {
   countTargets,
   countsMatch,
   exactPreviewPlan,
+  flowersWithoutSpecies,
+  nameSaysWhichFlower,
   isRibbonLabel,
   layoutBouquetSketch,
   parseBoxCount,
@@ -144,6 +146,65 @@ describe('quando si può fare l’anteprima esatta', () => {
       eligible: false,
       reason: 'no_counted_flowers',
     });
+  });
+});
+
+describe('fiori senza specie (avviso prima della foto realistica)', () => {
+  const generic = {
+    ...rose,
+    catalogItemId: '0190a0c0-0000-7000-8000-00000000000f',
+    name: 'Fiore 1',
+    variety: null,
+    commonName: null,
+  };
+
+  it('segnala solo i fiori senza specie e con un nome che non dice che fiore è', () => {
+    expect(flowersWithoutSpecies(spec([rose, daisy, generic, paper]))).toEqual([
+      generic.catalogItemId,
+    ]);
+    // Una volta per articolo, anche se compare più volte.
+    expect(flowersWithoutSpecies(spec([generic, { ...generic, quantity: 2 }]))).toEqual([
+      generic.catalogItemId,
+    ]);
+  });
+
+  it('un nome chiaro basta anche senza specie (spagnolo, inglese o italiano)', () => {
+    for (const name of ['Rosa roja', 'Red rose', 'Rosa rossa', 'Ortensia blu', 'Margherita']) {
+      expect(flowersWithoutSpecies(spec([{ ...generic, name }]))).toEqual([]);
+    }
+  });
+
+  it('fiori fuori dalla tassonomia con un nome vero: nessun avviso che non si potrebbe togliere', () => {
+    for (const name of ['Iris azul', 'Nube', 'Ave del paraíso', 'Lisianthus', 'Flor de cera']) {
+      expect(nameSaysWhichFlower(name)).toBe(true);
+    }
+    // Anche la varietà conta: "Fiore 1 Freedom" dice al modello che rosa è.
+    expect(flowersWithoutSpecies(spec([{ ...generic, variety: 'Freedom' }]))).toEqual([]);
+  });
+
+  it('nomi segnaposto, solo colori o misure, solo numeri: avviso', () => {
+    for (const name of [
+      'Fiore 1',
+      'Flor #2',
+      'Producto nuevo',
+      'Rojo grande',
+      'Fiori misti',
+      'Mix de flores',
+      'Red',
+      'Stem 12',
+      '123',
+      'Flor A',
+    ]) {
+      expect(nameSaysWhichFlower(name), name).toBe(false);
+    }
+    // I colori che sono anche fiori non rendono generico un nome.
+    for (const name of ['Rosa', 'Viola', 'Lavanda', 'Fiore lilla']) {
+      expect(nameSaysWhichFlower(name), name).toBe(true);
+    }
+  });
+
+  it('fogliame, carta e fiori con la specie non contano', () => {
+    expect(flowersWithoutSpecies(spec([rose, gypsophila, eucalyptus, paper]))).toEqual([]);
   });
 });
 

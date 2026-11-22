@@ -539,6 +539,15 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   piccoli intorno, la carta davanti sotto ogni corolla. Prova: 3 girasoli + 5 margherite in carta
   kraft, esatti (decisi dalla seconda opinione: Claude ne vedeva 4), 3 rose + 3 margherite
   esatte. Boceto `sketch-v3`.
+- **Avviso "fiori senza specie" (22/11/2026).** Prova del founder su staging: quattro rose
+  chiamate "Fiore 1", senza specie, sono diventate ortensie nella foto realistica (il modello
+  riceve solo il nome; il boceto le disegnava di grandezza media). Il Diseñador ora elenca, con
+  il link alla scheda, i fiori senza specie collegata e con un nome fatto solo di parole
+  generiche (segnaposto, colori, misure, numeri: `nameSaysWhichFlower` in
+  `domain/exact-preview.ts`). È un avviso, non blocca: la tassonomia globale ha solo 14 specie,
+  quindi un fiore vero fuori elenco ("Iris", "Nube") non lo fa scattare, altrimenti il fiorista
+  non potrebbe toglierlo. Il riconoscimento delle grandezze ora capisce anche i nomi italiani
+  (ortensia, giglio, garofano, ranuncolo, margherita, camomilla).
 
 ### ADR-035 — Immagine del ramo nel preventivo — ADOTTATO (21/11/2026)
 

@@ -106,6 +106,10 @@ export default async function DesignPage({
               href: routes.catalog.item(item.id),
             })),
           },
+          withoutSpecies: sketchPlan.withoutSpecies.map((item) => ({
+            name: item.name,
+            href: routes.catalog.item(item.id),
+          })),
           quota: {
             includedLimit: previewState.quota.includedLimit,
             includedRemaining: previewState.quota.includedRemaining,

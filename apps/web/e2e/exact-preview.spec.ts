@@ -9,6 +9,8 @@ import { expect, test, type Page } from '@playwright/test';
  * senza consumare crediti della fioreria demo.
  */
 const ROSA = fileURLToPath(new URL('./fixtures/rosa.jpg', import.meta.url));
+const SPECIES_WARNING =
+  'Indica la especie de estas flores para que la foto realista las reconozca:';
 
 async function newDesign(page: Page, name: string, flower: string, quantity: number) {
   await page.goto('/app/las-camelias/builder/new');
@@ -94,5 +96,31 @@ test.describe('anteprima esatta (provider simulato)', () => {
     await expect(link).toHaveAttribute('href', /\/catalog\/[0-9a-f-]{36}$/);
     await expect(page.getByRole('img', { name: /Boceto exacto del ramo/ })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Generar vista previa' })).toBeVisible();
+    // "Girasol" dice già che fiore è: nessun avviso sulla specie.
+    await expect(page.getByText(SPECIES_WARNING)).toHaveCount(0);
+  });
+
+  test('fiore senza specie e con un nome generico: avviso con il link alla scheda', async ({
+    page,
+  }) => {
+    // Articolo creato una volta sola e poi riusato (resta fra un'esecuzione e l'altra).
+    const flower = 'Flor de prueba';
+    await page.goto(`/app/las-camelias/catalog?q=${encodeURIComponent(flower)}`);
+    if ((await page.getByRole('link', { name: flower, exact: true }).count()) === 0) {
+      await page.goto('/app/las-camelias/catalog/new');
+      await page.getByRole('textbox', { name: 'Nombre', exact: true }).fill(flower);
+      await page.getByLabel('Precio de venta (MXN)').fill('20');
+      await page.getByRole('button', { name: 'Crear producto' }).click();
+      await expect(page.getByText('Producto creado')).toBeVisible();
+    }
+
+    await newDesign(page, `Sin especie ${Date.now()}`, flower, 2);
+    const warning = page.getByText(SPECIES_WARNING).locator('..');
+    await expect(warning).toBeVisible();
+    await expect(warning.getByRole('link', { name: flower, exact: true })).toHaveAttribute(
+      'href',
+      /\/catalog\/[0-9a-f-]{36}$/,
+    );
+    await expect(warning.getByText(/elige la «Especie»/)).toBeVisible();
   });
 });

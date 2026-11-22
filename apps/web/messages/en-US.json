@@ -1063,7 +1063,9 @@
       "retryLimit": "We’ve already tried several times with this design. You can share the exact sketch or adjust the design.",
       "missingPhotos": "For a preview with the exact number of flowers, upload a photo of:",
       "missingPhotosHint": "One photo per flower, from the front; the background is removed automatically.",
-      "tooManyStems": "The exact preview is available for bouquets of up to {max} flowers; the preview for this bouquet will be approximate."
+      "tooManyStems": "The exact preview is available for bouquets of up to {max} flowers; the preview for this bouquet will be approximate.",
+      "withoutSpecies": "Set the species of these flowers so the realistic photo recognizes them:",
+      "withoutSpeciesHint": "In the catalog, choose the “Species” or write which flower it is in the name (for example “Red rose”). Without it, the AI may draw a different flower."
     }
   },
   "photos": {
