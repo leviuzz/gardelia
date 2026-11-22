@@ -1,9 +1,12 @@
 name: CI
 
+# Gira su ogni push ai rami di lavoro (oggi il ramo principale del repository è un ramo
+# `claude/…`: con il solo `main` la CI non partiva mai), sulle pull request e a mano.
 on:
   push:
-    branches: [main]
+    branches: [main, 'claude/**']
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -36,6 +39,8 @@ jobs:
       - run: pnpm format:check
       - run: pnpm typecheck
       - run: pnpm test:unit
+      - name: Vulnerabilità note nelle dipendenze di produzione
+        run: pnpm audit --prod --audit-level high
 
   integration:
     name: Test di integrazione (Postgres + RLS)
@@ -60,12 +65,23 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -h localhost -U postgres -f packages/db/scripts/setup-local-roles.sql
         env:
           PGPASSWORD: postgres
+      # Le migrazioni SQL devono produrre esattamente lo schema Prisma: una modifica allo schema
+      # senza migrazione (o il contrario) fa fallire la CI. Il diff si calcola su un database
+      # "ombra" vuoto; SQL personalizzato (RLS, CHECK, funzioni) non conta.
+      - name: Migrazioni allineate allo schema Prisma
+        run: |
+          psql -v ON_ERROR_STOP=1 -h localhost -U postgres -c "CREATE DATABASE floral_shadow OWNER floral_owner"
+          pnpm --filter @floral/db exec prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code
+        env:
+          PGPASSWORD: postgres
+          SHADOW_DATABASE_URL: postgresql://floral_owner:floral_owner_dev@localhost:5432/floral_shadow
       - run: pnpm test:integration
 
   e2e:
     name: End-to-end (Playwright)
     runs-on: ubuntu-latest
-    needs: [quality]
+    # Dopo unit e integrazione: niente minuti spesi sugli E2E se il resto è già rosso.
+    needs: [quality, integration]
     services:
       postgres:
         image: postgres:16.16-alpine
