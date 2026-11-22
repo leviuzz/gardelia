@@ -1,0 +1,154 @@
+# Ambiente online di prova su Vercel — guida passo passo
+
+Per il founder. Risultato: Gardelia online su un indirizzo `https://<progetto>.vercel.app`, da
+provare dal telefono, con il Diseñador e l'AI vera. Costo: **0 USD al mese** di piattaforma con i
+piani gratuiti, più l'AI a consumo (pochi dollari di prove). Decisioni: `docs/DECISIONS.md`
+(P-03, O-04), piano: `docs/PLATFORM_PLAN.md`.
+
+> **Regola d'oro:** chiavi, password e indirizzi di connessione al database **non vanno mai in
+> chat, in email o nel repository**. Si incollano solo nelle impostazioni dei servizi (Vercel,
+> GitHub). Se una chiave finisce per sbaglio in un messaggio, si rigenera.
+
+Tempo: circa un'ora la prima volta.
+
+## 1. Account da creare (tutti gratuiti, a tuo nome)
+
+| Servizio   | A cosa serve                          | Piano                                            |
+| ---------- | ------------------------------------- | ------------------------------------------------ |
+| Vercel     | ospita l'app                          | Hobby, accesso con GitHub                        |
+| Neon       | database                              | Free                                             |
+| Cloudflare | archivio delle foto (R2)              | gratuito (serve una carta, ma 10 GB sono gratis) |
+| Resend     | email (conferma dell'account, inviti) | Free                                             |
+| fal.ai     | immagini AI                           | credito prepagato (es. 10 USD)                   |
+
+## 2. Database (Neon)
+
+1. **Crea il progetto:** nome `gardelia-prueba`, Postgres **16**, regione **AWS US East
+   (N. Virginia)**.
+2. **Copia l'URL del proprietario:** nella pagina del progetto apri **Connect**, scegli il ruolo
+   `neondb_owner` e **disattiva** "Connection pooling". Copia l'indirizzo: è
+   **`DATABASE_MIGRATION_URL`** (lo userà Vercel per aggiornare il database a ogni rilascio).
+3. **Genera una password lunga** per il ruolo dell'app (sezione 6, "Come generare un segreto").
+4. **Crea il ruolo dell'app:**
+   - apri **SQL Editor**;
+   - incolla il contenuto di `packages/db/scripts/setup-hosted-db.sql`;
+   - sostituisci `SOSTITUISCI-CON-LA-PASSWORD-GENERATA` con la password del punto 3;
+   - esegui. La password non salvarla in nessun file.
+5. **Componi `DATABASE_URL`:**
+   - torna in **Connect** e **attiva** "Connection pooling";
+   - copia l'indirizzo;
+   - sostituisci utente e password con `floral_app` e la password del punto 3:
+     `postgresql://floral_app:<password>@<host-con-pooler>/neondb?sslmode=require`
+   - è **`DATABASE_URL`**. Se per sbaglio usi l'URL del proprietario, l'app si rifiuta di
+     partire: protegge la separazione fra fiorerie.
+
+## 3. Archivio delle foto (Cloudflare R2)
+
+1. **Crea il bucket:** **R2** → **Create bucket**, nome `gardelia-prueba`, posizione "Eastern
+   North America". Non renderlo pubblico.
+2. **Crea il token:** **R2** → **Manage API tokens** → **Create API token**, permesso **Object
+   Read & Write**, limitato al bucket `gardelia-prueba`.
+3. **Annota quattro valori:** `R2_ACCOUNT_ID` (Account ID), `R2_BUCKET` (`gardelia-prueba`),
+   `R2_ACCESS_KEY_ID` e `R2_SECRET_ACCESS_KEY` (questi due si vedono una volta sola).
+
+## 4. Email (Resend)
+
+1. **Crea una chiave:** **API Keys** → **Create API Key**, permesso "Sending access".
+2. **Prepara le due variabili:**
+   - `SMTP_URL` = `smtps://resend:<la-chiave>@smtp.resend.com:465`
+   - `EMAIL_FROM` = `Gardelia <onboarding@resend.dev>`
+3. **Limite:** finché non verifichiamo il dominio, Resend invia solo **al tuo indirizzo** (quello
+   dell'account Resend). Per le tue prove basta.
+
+## 5. Immagini AI (fal.ai)
+
+1. **Crea una chiave:** **Keys** → **Add key**. È `FAL_KEY`.
+2. **Ricarica il credito:** **Billing**, ricarica pochi dollari. Ogni foto realistica costa circa
+   0,08–0,10 USD. Il tetto mensile dell'app (`AI_MONTHLY_BUDGET_USD`) protegge comunque la spesa.
+
+## 6. Tre segreti da generare
+
+Servono tre stringhe casuali, tutte diverse: la password del database (sezione 2),
+`BETTER_AUTH_SECRET` e `CRON_SECRET`.
+
+**Come generare un segreto** (64 caratteri fra `0-9` e `a-f`: vanno bene anche dentro l'indirizzo
+del database, senza caratteri da "tradurre"):
+
+- **Su Mac**, nel Terminale: `openssl rand -hex 32`
+- **In qualsiasi browser:** apri la console degli strumenti per sviluppatori e scrivi
+  `Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, '0')).join('')`
+
+Ogni esecuzione dà un segreto nuovo: generane uno per ogni uso.
+
+## 7. Progetto su Vercel
+
+1. **Importa il repository:** **Add New → Project**, importa `leviuzz/gardelia`.
+2. **Root Directory:** `apps/web`. Framework, build, cron e versione di Node (22) li decide il
+   repository (`apps/web/vercel.json` e `apps/web/package.json`): non cambiarli.
+3. **Environment Variables:** inseriscile **solo per "Production"** (le anteprime per ramo non le
+   usiamo ancora):
+
+   | Variabile                                                                | Valore                                                       |
+   | ------------------------------------------------------------------------ | ------------------------------------------------------------ |
+   | `APP_URL`                                                                | `https://<nome-progetto>.vercel.app` (vedi il punto 6)       |
+   | `BETTER_AUTH_URL`                                                        | uguale ad `APP_URL`                                          |
+   | `BETTER_AUTH_SECRET`                                                     | segreto generato (sezione 6)                                 |
+   | `DATABASE_URL`                                                           | sezione 2, punto 5                                           |
+   | `DATABASE_MIGRATION_URL`                                                 | sezione 2, punto 2                                           |
+   | `SMTP_URL`, `EMAIL_FROM`                                                 | sezione 4                                                    |
+   | `STORAGE_DRIVER`                                                         | `r2`                                                         |
+   | `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | sezione 3                                                    |
+   | `AI_PROVIDER`                                                            | `fal`                                                        |
+   | `FAL_KEY`                                                                | sezione 5                                                    |
+   | `AI_MONTHLY_BUDGET_USD`                                                  | per esempio `10`                                             |
+   | `CRON_SECRET`                                                            | segreto generato (sezione 6), diverso dagli altri            |
+   | `ENABLE_EXPERIMENTAL_COREPACK`                                           | `1` (la build usa la stessa versione di pnpm del repository) |
+
+   Elenco completo e regole: `docs/CONFIGURATION.md`.
+
+4. **Ramo di produzione:** è già quello giusto, `claude/fervent-allen-k1t8ii` (l'unico ramo del
+   repository, dove c'è tutto il lavoro): ogni mio push va in linea da solo.
+5. **Deploy.** La prima build applica le migrazioni del database, poi compila l'app.
+6. **Controlla:** in **Settings → Domains** c'è l'indirizzo vero. Se è diverso da `APP_URL`,
+   correggi `APP_URL` e `BETTER_AUTH_URL` e ridistribuisci (**Deployments → ⋯ → Redeploy**). Poi
+   apri `<indirizzo>/api/health`: deve rispondere `{"status":"ok"}`.
+
+Se qualcosa manca o è sbagliato, l'app non parte e i log di Vercel (**Logs**) elencano le
+variabili da sistemare.
+
+## 8. Il tuo account e il piano Plus
+
+1. **Registrati e crea la fioreria:** apri l'app, registrati con **la stessa email del tuo account
+   Resend**, conferma l'email e crea la tua fioreria. L'indirizzo diventa
+   `/app/<indirizzo-della-fioreria>`: annota la parte dopo `/app/`.
+2. **Salva il segreto su GitHub:** nel repository, **Settings → Secrets and variables → Actions
+   → New repository secret**, nome `PLATFORM_DATABASE_URL`, valore uguale a `DATABASE_URL`.
+3. **Diventa amministratore della piattaforma:** su GitHub **Actions → Operazioni di
+   piattaforma → Run workflow**, operazione `bootstrap-admin`, la tua email. Funziona una volta
+   sola.
+4. **Attiva il piano Plus:** lo stesso workflow, operazione `assign-plan`, la tua email,
+   l'indirizzo della fioreria, piano `PLUS`, stato `PILOT`.
+5. **Prova il Diseñador:** aggiungi le foto dei fiori (scontorno automatico), crea un ramo e genera
+   la foto realistica.
+
+## 9. Se qualcosa non va
+
+- **Errore nell'app:** la pagina mostra un "Referencia". Su Vercel, in **Logs**, cerca quel codice:
+  trovi la riga con l'errore. Mandami il codice, mai le chiavi.
+- **Le immagini AI non arrivano:** controlla `FAL_KEY`, il credito su fal e `CRON_SECRET`. Si
+  sbloccano anche riaprendo la pagina del ramo.
+- **Le email non arrivano:** con `onboarding@resend.dev` arrivano solo al tuo indirizzo di Resend;
+  guarda anche lo spam.
+- **La prima apertura dopo una pausa è più lenta** (circa un secondo): il database gratuito si
+  spegne quando nessuno lo usa e si riaccende da solo. È normale.
+
+## 10. Più avanti
+
+- **Entrano i tester:** Vercel Pro (20 USD/mese, regole d'uso commerciale) e una whitelist delle
+  email che possono registrarsi.
+- **Prima del lancio:**
+  - piano Neon a pagamento (backup e ripristino più lunghi);
+  - dominio Gardelia verificato su Resend, così le email partono a tutti;
+  - staging e produzione separati;
+  - Sentry;
+  - client OAuth di Google (ADR-036).

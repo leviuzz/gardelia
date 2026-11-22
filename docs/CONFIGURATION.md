@@ -76,6 +76,17 @@ parte).
 Le variabili `E2E_*` esistono solo nei test end-to-end (porte e Google simulato:
 `apps/web/playwright.config.ts`).
 
+## Fuori dall'app (hosting e GitHub)
+
+| Variabile                      | Dove                          | A cosa serve                                                                                      |
+| ------------------------------ | ----------------------------- | ------------------------------------------------------------------------------------------------- |
+| `VERCEL`, `VERCEL_ENV`         | impostate da Vercel           | `VERCEL` sceglie i job AI su funzioni; con `VERCEL_ENV=production` la build applica le migrazioni |
+| `ENABLE_EXPERIMENTAL_COREPACK` | progetto Vercel, valore `1`   | la build usa la versione di pnpm del repository (`packageManager`)                                |
+| `PLATFORM_DATABASE_URL`        | segreto del repository GitHub | workflow "Operazioni di piattaforma": uguale a `DATABASE_URL` dell'ambiente online (ruolo app)    |
+
+La versione di Node in linea è fissata a 22, come in CI (`engines` di `apps/web/package.json` e
+`.nvmrc`): si cambiano insieme. Passi per creare l'ambiente online: `docs/DEPLOY_VERCEL.md`.
+
 ## Per ambiente
 
 | Variabile                   | Locale                  | Anteprima per PR          | Staging                     | Produzione                  |

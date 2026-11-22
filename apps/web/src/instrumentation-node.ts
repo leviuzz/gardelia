@@ -64,7 +64,7 @@ async function verifyDatabaseThenStartWorker(attempt: number): Promise<void> {
     return;
   }
   if (!report.rlsEffective) {
-    const message = `Il ruolo database "${report.role}" può aggirare la Row-Level Security (superuser o BYPASSRLS). Configura DATABASE_URL con il ruolo applicativo (vedi docs/ARCHITECTURE.md).`;
+    const message = `Il ruolo database "${report.role}" può aggirare la Row-Level Security (superuser, BYPASSRLS o proprietario delle tabelle). Configura DATABASE_URL con il ruolo applicativo (vedi docs/ARCHITECTURE.md).`;
     if (process.env.NODE_ENV === 'production') {
       // Al primo tentativo l'avvio fallisce; più tardi (database tornato) si chiude il processo.
       if (attempt === 1) throw new Error(message);

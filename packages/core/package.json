@@ -13,7 +13,8 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "assign-plan": "tsx scripts/assign-plan.ts",
-    "grant-ai-credits": "tsx scripts/grant-ai-credits.ts"
+    "grant-ai-credits": "tsx scripts/grant-ai-credits.ts",
+    "bootstrap-admin": "tsx scripts/bootstrap-admin.ts"
   },
   "dependencies": {
     "@floral/db": "workspace:*",

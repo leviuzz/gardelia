@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
+import { PHOTO_LIMITS } from '@floral/domain';
 import type { ActionState } from '@/lib/action-state';
 
 /**
@@ -60,6 +61,7 @@ export function usePhotoUpload(
   options: { readonly maxFiles: number; readonly maxSide: number },
 ): PhotoUploadState {
   const t = useTranslations('photos');
+  const tValidation = useTranslations('validation');
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<PhotoUploadState['progress']>(null);
@@ -95,7 +97,16 @@ export function usePhotoUpload(
         for (const [key, value] of data.entries()) {
           if (key !== 'files') payload.append(key, value);
         }
-        payload.set('file', await prepareImageForUpload(file, options.maxSide));
+        const prepared = await prepareImageForUpload(file, options.maxSide);
+        // Se il browser non è riuscito a ridurla e resta troppo grande, non la inviamo: il server
+        // (e la piattaforma) la rifiuterebbero con un errore meno chiaro.
+        if (prepared.size > PHOTO_LIMITS.maxUploadBytes) {
+          problems.push(
+            t('fileProblem', { name: file.name, problem: tValidation('file_too_large') }),
+          );
+          continue;
+        }
+        payload.set('file', prepared);
         const result = await upload(payload);
         if (result.status === 'success') {
           uploaded += 1;

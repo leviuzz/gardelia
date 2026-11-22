@@ -81,6 +81,7 @@ export const AUDIT_ACTIONS = {
   aiCreditsGranted: 'ai_credits.granted',
   securityTenantAccessDenied: 'security.tenant_access_denied',
   securityCrossTenantAccess: 'security.cross_tenant_access_attempt',
+  platformAdminBootstrapped: 'platform.admin_bootstrapped',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

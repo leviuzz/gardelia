@@ -33,9 +33,9 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@floral/domain', '@floral/db', '@floral/core'],
   serverExternalPackages: ['nodemailer'],
   experimental: {
-    // Foto del catalogo e di "Mis ramos": una per richiesta, al massimo 8 MB (ADR-029); il
-    // proxy di Next accetta già fino a 10 MB.
-    serverActions: { bodySizeLimit: '9mb' },
+    // Foto del catalogo e di "Mis ramos": una per richiesta, al massimo 4 MB (ADR-029,
+    // `PHOTO_LIMITS.maxUploadBytes`), sotto il limite di 4,5 MB delle funzioni di Vercel.
+    serverActions: { bodySizeLimit: '5mb' },
   },
   outputFileTracingRoot: repoRoot,
   turbopack: { root: repoRoot },

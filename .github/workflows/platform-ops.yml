@@ -1,0 +1,100 @@
+name: Operazioni di piattaforma
+
+# Operazioni dell'amministratore sull'ambiente online, lanciate a mano da GitHub:
+# Actions → "Operazioni di piattaforma" → Run workflow. Usa il database dell'ambiente online con il
+# ruolo dell'app (segreto del repository PLATFORM_DATABASE_URL). Ogni operazione resta nel registro
+# di audit. Guida: docs/DEPLOY_VERCEL.md.
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Operazione
+        required: true
+        type: choice
+        options:
+          - bootstrap-admin
+          - assign-plan
+          - grant-ai-credits
+      email:
+        description: La tua email (amministratore della piattaforma)
+        required: true
+        type: string
+      tenant:
+        description: Indirizzo della fioreria, la parte dopo /app/ (assign-plan, grant-ai-credits)
+        required: false
+        type: string
+      plan:
+        description: Piano (assign-plan)
+        required: false
+        type: choice
+        default: PLUS
+        options:
+          - PLUS
+          - BASIC
+      status:
+        description: Stato del piano (assign-plan)
+        required: false
+        type: choice
+        default: PILOT
+        options:
+          - PILOT
+          - TRIALING
+          - ACTIVE
+          - CANCELLED
+      units:
+        description: Anteprime AI extra da sbloccare (grant-ai-credits)
+        required: false
+        type: string
+      note:
+        description: Nota per il registro (senza dati personali)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-ops
+  cancel-in-progress: false
+
+jobs:
+  run:
+    name: ${{ inputs.operation }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Esegui l'operazione
+        # Gli input passano dalle variabili d'ambiente, mai interpolati nello script.
+        env:
+          DATABASE_URL: ${{ secrets.PLATFORM_DATABASE_URL }}
+          OPERATION: ${{ inputs.operation }}
+          EMAIL: ${{ inputs.email }}
+          TENANT: ${{ inputs.tenant }}
+          PLAN: ${{ inputs.plan }}
+          STATUS: ${{ inputs.status }}
+          UNITS: ${{ inputs.units }}
+          NOTE: ${{ inputs.note }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL}" ]; then
+            echo "Manca il segreto PLATFORM_DATABASE_URL (vedi docs/DEPLOY_VERCEL.md)." >&2
+            exit 1
+          fi
+          note_args=()
+          if [ -n "${NOTE}" ]; then note_args=(--note "${NOTE}"); fi
+          case "${OPERATION}" in
+            bootstrap-admin)
+              pnpm -s platform:bootstrap-admin --email "${EMAIL}" ;;
+            assign-plan)
+              pnpm -s platform:assign-plan --operator "${EMAIL}" --tenant "${TENANT}" \
+                --plan "${PLAN}" --status "${STATUS}" "${note_args[@]}" ;;
+            grant-ai-credits)
+              pnpm -s platform:grant-ai-credits --operator "${EMAIL}" --tenant "${TENANT}" \
+                --units "${UNITS}" "${note_args[@]}" ;;
+          esac

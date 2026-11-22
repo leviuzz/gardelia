@@ -6,6 +6,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   checkRlsSafety,
+  createDbClient,
   disconnectDb,
   getDb,
   isForeignKeyViolation,
@@ -51,9 +52,27 @@ afterAll(async () => {
 });
 
 describe('configurazione di sicurezza', () => {
-  it('il ruolo applicativo non è superuser né BYPASSRLS', async () => {
+  it('il ruolo applicativo non è superuser, né BYPASSRLS, né proprietario delle tabelle', async () => {
     const report = await checkRlsSafety(db);
-    expect(report.rlsEffective).toBe(true);
+    expect(report).toMatchObject({
+      isSuperuser: false,
+      canBypassRls: false,
+      ownsTables: false,
+      rlsEffective: true,
+    });
+  });
+
+  it('il ruolo delle migrazioni (proprietario delle tabelle) non passa il controllo', async () => {
+    const ownerUrl = process.env.DATABASE_MIGRATION_URL;
+    if (!ownerUrl) throw new Error('DATABASE_MIGRATION_URL mancante nei test di integrazione');
+    const owner = createDbClient({ connectionString: ownerUrl, poolMax: 1 });
+    try {
+      const report = await checkRlsSafety(owner);
+      expect(report.ownsTables).toBe(true);
+      expect(report.rlsEffective).toBe(false);
+    } finally {
+      await owner.$disconnect();
+    }
   });
 
   it('ogni tabella con "tenantId" ha RLS abilitata e forzata, con almeno una policy', async () => {

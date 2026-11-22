@@ -121,8 +121,9 @@ mese gratis).
    claim SQL rispetta il limite di fal (10 richieste contemporanee). La funzione è separata dalle
    pagine, quindi un picco di AI non rallenta il sito. In locale (e in un eventuale container) resta
    il worker nel processo: un'opzione di configurazione sceglie il "motore".
-2. **Limite di 4,5 MB per richiesta e per risposta delle funzioni.** Oggi siamo ben sotto
-   (misurato il 22/11): foto caricate 0,3–1,5 MB (ridotte nel browser a ≤ 2048 px, una per
+2. ✅ in parte (22/11, ADR-038: limite del server a 4 MB con messaggio chiaro; il browser non
+   invia una foto che resta più grande). **Limite di 4,5 MB per richiesta e per risposta delle
+   funzioni.** Oggi siamo ben sotto (misurato il 22/11): foto caricate 0,3–1,5 MB (ridotte nel browser a ≤ 2048 px, una per
    richiesta), immagine AI ~0,1 MB (JPEG 1K), foto senza fondo ~0,4–0,5 MB, boceto ~0,9 MB (la più
    grande). Rischi: (a) se il browser non riesce a ridurre una foto invia l'originale, fino a 8 MB
    accettati dal server → oltre 4,5 MB Vercel la rifiuta con un errore poco chiaro; (b) in futuro
@@ -136,7 +137,10 @@ mese gratis).
    contesto RLS usa già `set_config(..., true)` dentro la transazione, compatibile con il pool. I
    limiti di tentativi del login sono già salvati nel database, quindi valgono anche con molte
    istanze. L'integrazione Neon inserisce in automatico l'URL del ruolo proprietario: si usa solo
-   per le migrazioni, e il controllo all'avvio già blocca un ruolo che aggira la RLS.
+   per le migrazioni, e il controllo all'avvio blocca un ruolo che aggira la RLS, compreso
+   (dal 22/11, ADR-038) il proprietario delle tabelle. Per l'ambiente di prova il progetto Neon si
+   crea a mano e il ruolo dell'app con `packages/db/scripts/setup-hosted-db.sql`
+   (`docs/DEPLOY_VERCEL.md`).
 4. **Log.** Il piano Pro conserva i log per 1 giorno, quindi servono un drain verso un servizio di
    log oppure Observability Plus (30 giorni).
 5. **Cron.** I cron classici di Vercel girano solo in produzione. Per lo staging si usano le
@@ -250,7 +254,8 @@ prima del pilota (insieme a O-07 sul consenso per le foto). Il piano non fa assu
    area).
 5. **Rilascio in produzione approvato** (GitHub Action manuale o tag `vX.Y.Z`): migrazioni prima,
    poi deploy dello stesso build già provato (`vercel deploy --prebuilt --prod`), note di
-   rilascio generate dai commit.
+   rilascio generate dai commit. Finché c'è un solo ambiente di prova (ADR-038) le migrazioni le
+   applica la build di produzione di Vercel, prima di `next build`.
 6. **Migrazioni "espandi e contrai":** mai rompere la versione che sta girando (prima si aggiunge
    la colonna nuova, si rilascia, poi si toglie la vecchia). Così pagine e job AI di versioni
    vicine convivono e il rollback dell'app resta sicuro.
@@ -426,11 +431,14 @@ componenti condivisi → divisione dei file grandi insieme alle funzionalità ch
    carta di pagamento.
 2. ✅ Configurazione per ambiente validata all'avvio (pagine e job AI), tabella delle variabili
    (`docs/CONFIGURATION.md`).
-3. **Job AI su funzioni**: svuotamento della coda, cron di sicurezza, limite di parallelismo;
-   immagini grandi in streaming o con URL firmati; limite di caricamento a 4 MB.
-4. Progetto Vercel con anteprime e staging, integrazione Neon (branch per anteprima), ruoli del
-   database corretti per ambiente, bucket R2, dominio email verificato; configurazione della
-   piattaforma versionata nel repository.
+3. ✅ (22/11, ADR-037/038) **Job AI su funzioni**: svuotamento della coda, cron di sicurezza,
+   limite di parallelismo; limite di caricamento a 4 MB. Quando serviranno (Studio, immagini 2K):
+   immagini grandi in streaming o con URL firmati.
+4. In parte (22/11, ADR-038): configurazione della piattaforma versionata nel repository (build
+   con migrazioni, cron, regione, Node 22, ruoli del database, workflow delle operazioni di
+   piattaforma) e guida passo passo per l'ambiente di prova (`docs/DEPLOY_VERCEL.md`). Manca:
+   account del founder, anteprime e staging, integrazione Neon (branch per anteprima), dominio
+   email verificato.
 5. CI/CD: anteprima per PR, deploy automatico su staging, test di fumo, rilascio in produzione
    approvato, migrazioni prima del deploy.
 6. Gestione errori uniforme e refactor dei componenti ripetuti, nell'ordine della sezione 5.

@@ -27,7 +27,8 @@
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "lint:fix": "eslint . --fix",
     "platform:assign-plan": "pnpm --filter @floral/core run assign-plan",
-    "platform:grant-ai-credits": "pnpm --filter @floral/core run grant-ai-credits"
+    "platform:grant-ai-credits": "pnpm --filter @floral/core run grant-ai-credits",
+    "platform:bootstrap-admin": "pnpm --filter @floral/core run bootstrap-admin"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

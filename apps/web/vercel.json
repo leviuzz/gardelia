@@ -1,5 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "node scripts/vercel-build.mjs",
   "regions": ["iad1"],
-  "crons": [{ "path": "/api/internal/ai/drain", "schedule": "17 6 * * *" }]
+  "crons": [
+    {
+      "path": "/api/internal/ai/drain",
+      "schedule": "17 6 * * *"
+    }
+  ]
 }

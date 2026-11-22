@@ -112,17 +112,31 @@ export interface RlsSafetyReport {
   readonly role: string;
   readonly isSuperuser: boolean;
   readonly canBypassRls: boolean;
-  /** true se il ruolo connesso è soggetto alle policy RLS. */
+  /**
+   * true se il ruolo connesso possiede (o può diventare, con SET ROLE) il proprietario di una
+   * tabella dello schema: potrebbe togliere la RLS con un ALTER TABLE.
+   */
+  readonly ownsTables: boolean;
+  /** true se il ruolo connesso è soggetto alle policy RLS e non può toglierle. */
   readonly rlsEffective: boolean;
 }
 
 /**
- * Verifica che il ruolo connesso NON possa aggirare la RLS (superuser o BYPASSRLS).
- * L'app lo controlla all'avvio e si rifiuta di partire in produzione se non è sicuro.
+ * Verifica che il ruolo connesso NON possa aggirare la RLS: né superuser, né BYPASSRLS, né
+ * proprietario delle tabelle (il ruolo delle migrazioni). L'app lo controlla all'avvio e si
+ * rifiuta di partire in produzione se non è sicuro.
  */
 export async function checkRlsSafety(db: DbClient): Promise<RlsSafetyReport> {
-  const rows = await db.$queryRaw<{ role: string; rolsuper: boolean; rolbypassrls: boolean }[]>`
-    SELECT current_user AS role, r.rolsuper, r.rolbypassrls
+  const rows = await db.$queryRaw<
+    { role: string; rolsuper: boolean; rolbypassrls: boolean; ownsTables: boolean }[]
+  >`
+    SELECT current_user AS role, r.rolsuper, r.rolbypassrls,
+           EXISTS (
+             SELECT 1 FROM pg_class c
+             JOIN pg_namespace n ON n.oid = c.relnamespace
+             WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p')
+               AND pg_has_role(current_user, c.relowner, 'MEMBER')
+           ) AS "ownsTables"
     FROM pg_roles r WHERE r.rolname = current_user`;
   const row = rows[0];
   if (!row) throw new Error('Impossibile leggere gli attributi del ruolo database corrente');
@@ -130,6 +144,7 @@ export async function checkRlsSafety(db: DbClient): Promise<RlsSafetyReport> {
     role: row.role,
     isSuperuser: row.rolsuper,
     canBypassRls: row.rolbypassrls,
-    rlsEffective: !row.rolsuper && !row.rolbypassrls,
+    ownsTables: row.ownsTables,
+    rlsEffective: !row.rolsuper && !row.rolbypassrls && !row.ownsTables,
   };
 }

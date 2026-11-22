@@ -226,16 +226,21 @@ l'attribuzione delle fee future.
 | Integrazione | Vitest + PostgreSQL reale | `packages/db/test`, `packages/core/test` | RLS (anche piani/abbonamenti), seed, isolamento A↔B per ogni entità, ruoli, CRM, preventivi, piani, Builder             |
 | End-to-end   | Playwright + pozzo SMTP   | `apps/web/e2e`                           | registrazione e inviti con email reali, catalogo, preventivi, piano, Builder → preventivo, permessi, isolamento, mobile |
 
-## 9. Note di deploy (per il pilota)
+## 9. Note di deploy
 
-1. Creare due ruoli Postgres: proprietario (migrazioni) e applicativo (`NOSUPERUSER NOBYPASSRLS`),
-   con i privilegi di default di `packages/db/scripts/grant-app-role.sql`.
-2. `DATABASE_MIGRATION_URL` (proprietario) solo nel passo di migrazione (`pnpm db:deploy`);
-   `DATABASE_URL` (applicativo) nel runtime.
-3. Variabili obbligatorie: `APP_URL` (HTTPS), `BETTER_AUTH_SECRET` (≥ 32 caratteri), `DATABASE_URL`,
-   `SMTP_URL`, `EMAIL_FROM`; `TRUSTED_IP_HEADER` coerente con il proxy/CDN.
-4. Anteprime AI: `AI_PROVIDER=fal` + `FAL_KEY` (segreto) + `AI_MODEL` facoltativa,
-   `AI_MONTHLY_BUDGET_USD`; archivio `STORAGE_DRIVER=r2` con le variabili `R2_*` (il provider
-   simulato e l'archivio su file sono rifiutati con un `APP_URL` pubblico).
-5. Health check: `GET /api/health`.
+Guida passo passo per l'ambiente online su Vercel + Neon: `docs/DEPLOY_VERCEL.md` (ADR-038).
+
+1. Due ruoli Postgres: proprietario (migrazioni) e applicativo (`NOSUPERUSER NOBYPASSRLS`, non
+   proprietario delle tabelle), con i privilegi di default di
+   `packages/db/scripts/grant-app-role.sql` (locale e CI) o `setup-hosted-db.sql` (Neon).
+   All'avvio l'app rifiuta un ruolo superuser, BYPASSRLS o proprietario delle tabelle
+   (`checkRlsSafety`).
+2. `DATABASE_MIGRATION_URL` (proprietario, URL diretto) solo nel passo di migrazione: su Vercel la
+   build di produzione (`apps/web/scripts/vercel-build.mjs`), altrove `pnpm db:deploy`.
+   `DATABASE_URL` (applicativo, URL con pool) nel runtime.
+3. Variabili: `docs/CONFIGURATION.md`; l'app le controlla tutte all'avvio e non serve nulla se
+   qualcosa manca.
+4. Health check: `GET /api/health`.
+5. Operazioni di piattaforma (primo amministratore, piani, crediti AI): solo CLI; sull'ambiente
+   online dal workflow GitHub "Operazioni di piattaforma" (`.github/workflows/platform-ops.yml`).
 6. Mai eseguire il seed demo in produzione (lo script si rifiuta con `NODE_ENV=production`).

@@ -23,8 +23,12 @@ export const PHOTO_LIMITS = {
   perItem: 12,
   /** Foto attive in "Mis ramos". */
   references: 30,
-  /** Byte massimi di un file ricevuto dal server (dopo la riduzione nel browser). */
-  maxUploadBytes: 8 * 1024 * 1024,
+  /**
+   * Byte massimi di un file ricevuto dal server (dopo la riduzione nel browser, che di solito
+   * porta una foto a 0,3–1,5 MB). 4 MB: sotto il limite di 4,5 MB per richiesta delle funzioni
+   * di Vercel, così il messaggio d'errore è il nostro e non quello della piattaforma.
+   */
+  maxUploadBytes: 4 * 1024 * 1024,
   /** Pixel massimi decodificati (protezione da immagini "bomba"). */
   maxInputPixels: 50_000_000,
   /** Lato corto minimo per una foto utile (px). */

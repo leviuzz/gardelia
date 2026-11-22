@@ -148,15 +148,16 @@ il **taglio** seguente.
 ### I prossimi task (nell'ordine)
 
 **Decisioni del founder (22/11):** **Vercel + Neon** confermati; budget **20 USD/mese** finché lo
-usa solo lui (Vercel Pro + piani gratuiti di Neon, R2, Resend, Sentry; un solo ambiente online di
-prova); nome proposto **Gardelia** (da verificare: marchi IMPI e dominio, O-03); intestatario
+usa solo lui (Vercel Hobby gratuito finché lo usa solo lui, Pro quando entrano i tester o prima di
+incassare; piani gratuiti di Neon, R2, Resend, Sentry; un solo ambiente online di prova); nome proposto **Gardelia** (da verificare: marchi IMPI e dominio, O-03); intestatario
 rinviato (O-02, per ora solo tester); bozze di aviso de privacidad e termini scritte in
 `docs/legal/`, revisione dell'avvocato prima del lancio (O-07); **niente pilota: si lancia la V1
 completa** (D-22, `docs/V1_SCOPE.md`). Approvato il link pubblico del preventivo (21/11).
 
-**Serve dal founder per l'ambiente online di prova:** account Vercel (Pro), Neon, Cloudflare (R2) e
-Resend a suo nome; dominio quando è deciso il nome. Le chiavi vanno nelle variabili di Vercel
-(`docs/CONFIGURATION.md`), mai in chat.
+**Serve dal founder per l'ambiente online di prova:** account Vercel (Hobby), Neon, Cloudflare
+(R2), Resend e fal a suo nome, seguendo passo passo `docs/DEPLOY_VERCEL.md` (circa un'ora); dominio
+quando è deciso il nome. Le chiavi vanno nelle variabili di Vercel e nei segreti di GitHub, mai in
+chat.
 
 **Fase 0, errori e log (fatto il 22/11):** un errore in una pagina della fioreria non fa più
 sparire il menu (confine d'errore con "Reintentar", "Ir al inicio" e riferimento); 404 dentro il
@@ -206,6 +207,18 @@ nei test resta il worker nel processo. Nuove variabili: `AI_WORKER_MODE`, `AI_MA
 `CRON_SECRET` (`docs/CONFIGURATION.md`). Prossimo: configurazione del deploy su Vercel
 (migrazioni, guida passo passo per creare gli account) e limite di 4 MB sui caricamenti.
 
+**Fase 0, rilascio su Vercel (fatto il 22/11, ADR-038):** tutto ciò che serve per mettere l'app
+in linea è nel repository; manca solo che il founder crei gli account. La build di produzione su
+Vercel applica le migrazioni con il ruolo proprietario prima di `next build` (le anteprime non
+toccano il database); regione `iad1`, cron giornaliero dei job AI, Node 22 come in CI, pnpm del
+repository. Ruolo dell'app su Neon con `setup-hosted-db.sql`; il controllo all'avvio ora rifiuta
+anche il ruolo proprietario delle tabelle. Operazioni di piattaforma dal workflow GitHub
+"Operazioni di piattaforma" (primo amministratore con la nuova CLI `platform:bootstrap-admin`,
+piani, crediti AI), senza installare nulla. Foto fino a 4 MB (prima 8), sotto il limite di 4,5 MB
+delle funzioni, con il nostro messaggio. Guida: `docs/DEPLOY_VERCEL.md`. Ultima verifica: lint ✅ ·
+format ✅ · typecheck ✅ · test 366/366 ✅ (+4: primo amministratore e ruolo proprietario) ·
+build ✅ · E2E 40/40 ✅.
+
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite
 `prisma` → `@prisma/config`, è chiuso con un override pnpm a ≥ 3.22.1 (`pnpm-workspace.yaml`);
@@ -215,9 +228,9 @@ togliere quando Prisma aggiornerà la dipendenza.
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: azioni e percorsi condivisi (`defineTenantAction`, `routes.ts`), pagine
-   elenco condivise; job AI su funzioni Vercel, immagini con URL firmati e caricamento diretto su R2
-   per i file grandi; CI/CD; Sentry e monitor; **ambiente online di prova** (appena ci sono gli
-   account).
+   elenco condivise; CI/CD; Sentry e monitor; **ambiente online di prova** (configurazione pronta,
+   ADR-038: appena ci sono gli account); immagini con URL firmati e caricamento diretto su R2
+   quando serviranno (Studio, immagini 2K).
 2. Ordini, pagamenti registrati e consegne con calendario; link pubblici di preventivo (approvato)
    e ordine; aggiungere un disegno del Diseñador a un preventivo in bozza.
 3. Inventario.

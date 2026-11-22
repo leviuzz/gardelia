@@ -355,12 +355,14 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
 - **Consenso:** "Mis ramos" registra per ogni foto chi ha autorizzato e quando (`consentAt`,
   `consentById`); senza la casella spuntata non si salva nulla. Testo in UI: mai usate per
   addestrare modelli né condivise con altre fiorerie. Il testo legale definitivo resta O-07.
-- **Elaborazione (sharp, nel core):** tipo riconosciuto dai byte (JPEG/PNG/WebP), massimo 8 MB e
-  50 megapixel, lato corto ≥ 320 px; orientamento EXIF applicato e **tutti i metadati eliminati**
-  (niente GPS né dati del telefono); si salvano un JPEG da 1600 px e una miniatura da 480 px. Il
-  browser riduce le foto a 2048 px prima dell'invio solo per velocità: il server rivalida sempre.
-- **Caricamento:** una foto per richiesta (server action con limite 9 MB, sotto i 10 MB del proxy
-  di Next), con avanzamento visibile; una foto sbagliata non blocca le altre.
+- **Elaborazione (sharp, nel core):** tipo riconosciuto dai byte (JPEG/PNG/WebP), massimo 4 MB
+  (8 MB fino al 22/11/2026, ridotto per Vercel: ADR-038) e 50 megapixel, lato corto ≥ 320 px;
+  orientamento EXIF applicato e **tutti i metadati eliminati** (niente GPS né dati del telefono);
+  si salvano un JPEG da 1600 px e una miniatura da 480 px. Il browser riduce le foto a 2048 px
+  prima dell'invio solo per velocità: il server rivalida sempre.
+- **Caricamento:** una foto per richiesta (server action con limite 5 MB; dal 22/11/2026 il browser
+  non invia una foto che resta oltre 4 MB dopo la riduzione e lo dice), con avanzamento visibile;
+  una foto sbagliata non blocca le altre.
 - **Archivio e accesso:** stesso `ObjectStorage` delle anteprime (R2/filesystem), chiavi
   `tenants/{tenantId}/catalog-photos|style-references/{id}[-thumb].jpg`; un CHECK nel database
   impone che la chiave stia sotto il tenant della riga. Le immagini si servono da route private
@@ -633,6 +635,31 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
 - **Limiti noti:** le anteprime di prova (URL variabili) non lavorano job AI; una generazione
   eccezionalmente lunga (oltre 5 minuti) sul piano Hobby si interrompe e riparte alla scadenza
   del lease. Con Pro la durata massima della funzione sale a 800 s.
+
+### ADR-038 — Rilascio su Vercel e operazioni di piattaforma da GitHub — ADOTTATO (22/11/2026)
+
+- **Migrazioni:** le applica la build, solo nei deploy di produzione (`VERCEL_ENV=production`),
+  con il ruolo proprietario (`DATABASE_MIGRATION_URL`, URL diretto di Neon), prima di
+  `next build` (`apps/web/scripts/vercel-build.mjs`). Senza quella variabile la build si ferma. Le
+  anteprime per ramo non toccano mai il database. Le migrazioni restano "espandi e contrai"
+  (PLATFORM_PLAN §4): la versione in linea continua a funzionare mentre arriva la nuova.
+- **Ruoli del database su Neon:** `neondb_owner` per le migrazioni; `floral_app`, creato una volta
+  con `packages/db/scripts/setup-hosted-db.sql` (stessi privilegi del locale), per l'app. Il
+  controllo all'avvio ora rifiuta anche un ruolo **proprietario delle tabelle** (o che può
+  diventarlo con `SET ROLE`), oltre a superuser e BYPASSRLS: chi possiede una tabella può
+  toglierle la RLS. Così l'app non parte se per errore riceve l'URL del proprietario.
+- **Runtime fissato:** Node 22 come in CI (`engines` di `apps/web`, letto da Vercel) e pnpm del
+  repository via Corepack (`ENABLE_EXPERIMENTAL_COREPACK=1` nel progetto).
+- **Operazioni di piattaforma** (ADR-021: mai dal web): un workflow GitHub lanciato a mano
+  (`.github/workflows/platform-ops.yml`) esegue le CLI sull'ambiente online con il ruolo dell'app
+  (segreto `PLATFORM_DATABASE_URL`); gli input passano da variabili d'ambiente, mai interpolati
+  nello script. Il founder non deve installare nulla sul proprio computer.
+- **Primo amministratore:** `pnpm platform:bootstrap-admin --email` nomina il primo
+  `SUPER_ADMIN`, una sola volta (si rifiuta se ne esiste già uno, con un lock contro due esecuzioni
+  insieme); l'utente deve essere attivo e con l'email confermata; resta nel registro di audit.
+- **Caricamenti:** foto fino a 4 MB, sotto il limite di 4,5 MB per richiesta delle funzioni di
+  Vercel, così l'errore è il nostro (chiaro, in spagnolo) e non quello della piattaforma.
+- **Guida per il founder:** `docs/DEPLOY_VERCEL.md` (account, valori, verifiche).
 
 ---
 

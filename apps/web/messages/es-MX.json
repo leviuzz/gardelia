@@ -52,7 +52,7 @@
     "builder_line_limit": "El ramo tiene demasiados productos distintos.",
     "builder_item_not_allowed": "Algún producto no está disponible en el diseñador.",
     "file_required": "Elige al menos una foto.",
-    "file_too_large": "La foto es demasiado grande. Usa una de menos de 8 MB.",
+    "file_too_large": "La foto es demasiado grande. Usa una de menos de 4 MB.",
     "invalid_image": "El archivo no es una foto válida. Usa JPG, PNG o WEBP.",
     "image_too_small": "La foto es muy pequeña: debe medir al menos 320 píxeles por lado.",
     "too_many_photos": "Llegaste al máximo de fotos. Quita alguna para subir otra.",
@@ -91,7 +91,8 @@
       "ai_budget_reached": "Las vistas previas no están disponibles por ahora. Inténtalo más tarde.",
       "cutout_unavailable": "Por ahora no podemos quitar el fondo. Inténtalo más tarde.",
       "cutout_retry_limit": "Ya lo intentamos varias veces con esta foto. Sube otra sobre un fondo liso.",
-      "preview_retry_limit": "Ya lo intentamos varias veces con este diseño: comparte el boceto exacto o ajusta el diseño."
+      "preview_retry_limit": "Ya lo intentamos varias veces con este diseño: comparte el boceto exacto o ajusta el diseño.",
+      "platform_admin_exists": "Ya existe un administrador de la plataforma."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
