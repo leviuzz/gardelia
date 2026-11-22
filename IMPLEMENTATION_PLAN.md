@@ -284,6 +284,24 @@ richiesta del founder): `staging` va online, `prod` sarà la produzione, i rami 
 creano deploy. Restano: account del founder, amministratore e piano Plus dal workflow, prova del
 Diseñador con l'AI vera.
 
+**Lingue dell'interfaccia (fatto il 22/11, ADR-042):** su richiesta del founder l'interfaccia è
+anche in italiano e in inglese; lo spagnolo resta la lingua predefinita. Ogni persona sceglie la
+lingua dal menu dell'account o dalle pagine di accesso (cookie per browser); il messaggio WhatsApp
+al cliente e le email restano nella lingua del mercato della fioreria. Ogni testo nuovo va scritto
+nelle tre lingue: lo controlla `apps/web/test/messages.test.ts`. Limite noto: il preventivo
+stampato segue la lingua di chi lo stampa fino alla pagina pubblica del preventivo (V1).
+
+**Pulsanti attivi solo quando funzionano (fatto il 22/11):** "Continuar con Google", uscita e i
+moduli di accesso restano disattivati finché la pagina non ha caricato il JavaScript; i moduli
+gestiti solo in JavaScript inviano in POST (prima, un invio anticipato metteva email e password
+nell'indirizzo). Un test delle convenzioni lo impone ai moduli nuovi.
+
+**Test E2E instabile da chiarire:** in CI, 2 esecuzioni su circa 10, il ritorno dal Google simulato
+(`google-login.spec.ts`) a volte non risponde entro 10 s, senza errori nel log; in locale non si
+riproduce (4 esecuzioni complete, anche con un solo thread di servizio). Il server dei test ora
+registra i tempi del ritorno, i blocchi dell'event loop e i thread di servizio occupati
+(`e2e/support/google-oauth-mock.mjs`): al prossimo fallimento il log dirà dove si ferma.
+
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite
 `prisma` → `@prisma/config`, è chiuso con un override pnpm a ≥ 3.22.1 (`pnpm-workspace.yaml`);

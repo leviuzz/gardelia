@@ -55,6 +55,11 @@ export interface ResolveTenantContextInput {
   readonly userId: string;
   readonly slug: string;
   readonly request?: RequestMeta;
+  /**
+   * Lingua dell'interfaccia scelta dalla persona per questa richiesta (ADR-042): ha la precedenza
+   * sulla lingua salvata dell'utente e su quella della fioreria. Non dà accesso a nulla.
+   */
+  readonly locale?: string;
 }
 
 /**
@@ -114,7 +119,7 @@ export async function resolveTenantContext(
     country: tenant.marketCountry,
     currency: tenant.currency,
     timezone: tenant.timezone,
-    locale: resolveLocale(membership.user.locale ?? tenant.defaultLocale),
+    locale: resolveLocale(input.locale ?? membership.user.locale ?? tenant.defaultLocale),
     userId: input.userId,
     membershipId: membership.id,
     role: membership.role,

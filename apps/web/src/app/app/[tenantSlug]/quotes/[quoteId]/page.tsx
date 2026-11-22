@@ -15,6 +15,7 @@ import {
 } from '@floral/core';
 import {
   QUOTE_LIMITS,
+  getMarket,
   isIngredientType,
   minorToDecimalString,
   todayInTimeZone,
@@ -164,18 +165,27 @@ export default async function QuotePage({
     };
   });
 
-  // Messaggio WhatsApp costruito sul server dagli stessi dati del preventivo.
+  // Messaggio WhatsApp costruito sul server dagli stessi dati del preventivo. Va al cliente
+  // finale: sempre nella lingua del mercato della fioreria, qualunque lingua abbia scelto chi lo
+  // prepara (ADR-042).
+  const shopLocale = getMarket(ctx.country).defaultLocale;
+  const [tShop, formatShop] = await Promise.all([
+    getTranslations({ locale: shopLocale }),
+    getFormatter({ locale: shopLocale }),
+  ]);
+  const shopCalendar = (value: string) =>
+    formatShop.dateTime(calendarDate(value), { dateStyle: 'long', timeZone: 'UTC' });
   const whatsappText =
     quote.customer.phone && quote.lines.length > 0
       ? [
-          t('quotes.whatsapp.greeting', {
+          tShop('quotes.whatsapp.greeting', {
             name: quote.customer.displayName,
             number: quote.numberLabel,
             shop: ctx.tenantName,
           }),
           '',
           ...quote.lines.map((line) =>
-            t('quotes.whatsapp.line', {
+            tShop('quotes.whatsapp.line', {
               quantity: line.quantity,
               description: line.description,
               total: fmt(line.lineTotalMinor),
@@ -183,11 +193,11 @@ export default async function QuotePage({
           ),
           '',
           ...(quote.discountMinor > 0
-            ? [t('quotes.whatsapp.discount', { amount: fmt(quote.discountMinor) })]
+            ? [tShop('quotes.whatsapp.discount', { amount: fmt(quote.discountMinor) })]
             : []),
-          t('quotes.whatsapp.total', { total: fmt(quote.totalMinor) }),
+          tShop('quotes.whatsapp.total', { total: fmt(quote.totalMinor) }),
           ...(quote.validUntil
-            ? [t('quotes.whatsapp.validUntil', { date: calendar(quote.validUntil) })]
+            ? [tShop('quotes.whatsapp.validUntil', { date: shopCalendar(quote.validUntil) })]
             : []),
           ...(quote.notes ? ['', quote.notes] : []),
         ].join('\n')

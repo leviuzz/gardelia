@@ -735,6 +735,32 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   `staging`, `prod` e dei rami di lavoro, e su ogni PR.
 - **Supera** il "merge su `main`" del PLATFORM_PLAN: il ramo `main` non esiste.
 
+### ADR-042 — Interfaccia in spagnolo, italiano e inglese, scelta da ogni persona — ADOTTATO (22/11/2026)
+
+- **Decisione del founder** (non parla spagnolo): attivare subito italiano e inglese, che la
+  specifica prevedeva "predisposti mediante i18n" (es-MX al lancio). Non cambia il mercato: la
+  lingua predefinita resta **es-MX** e fioristi e clienti in Messico non vedono differenze.
+- **Chi sceglie:** ogni persona, per browser, dal menu dell'account e dalle pagine senza menu
+  (accesso, registrazione, invito, onboarding, pagina iniziale): Español / Italiano / English. La
+  scelta sta in un cookie (`NEXT_LOCALE`, un anno, solo preferenza: nessun dato della fioreria);
+  `i18n/request.ts` lo legge a ogni richiesta, con es-MX se manca o è sconosciuto. Il selettore è
+  un modulo con un pulsante per lingua (funziona anche senza JavaScript).
+- **Dati localizzati:** il contesto della fioreria usa la lingua dell'interfaccia (es. i nomi dei
+  fiori della tassonomia, già presenti in tre lingue).
+- **Cosa resta nella lingua del mercato della fioreria**, qualunque lingua abbia scelto chi lavora:
+  il messaggio WhatsApp al cliente (traduttore esplicito `getTranslations({ locale })`) e le
+  email transazionali (modelli di core, in spagnolo). **Limite noto:** il preventivo stampato/PDF
+  segue per ora la lingua di chi lo stampa (stessa pagina dell'editor); diventa sempre spagnolo con
+  la pagina pubblica del preventivo (V1). Importi e date dei preventivi restano nel formato
+  messicano.
+- **Traduzioni:** `messages/it-IT.json` ed `en-US.json` con le stesse chiavi di `es-MX.json`;
+  termini del Messico tenuti fra parentesi dove servono (RFC, CFDI, colonia). Ogni testo nuovo va
+  scritto nelle tre lingue: `apps/web/test/messages.test.ts` fallisce se manca una chiave o se una
+  traduzione perde un argomento, un plurale o un tag (messaggi ICU analizzati con il parser di
+  FormatJS).
+- **Test:** parità dei messaggi; E2E che cambia lingua (pagina di accesso e menu) e torna allo
+  spagnolo; i test E2E esistenti restano in spagnolo (lingua predefinita).
+
 ---
 
 ## 3. Proposte da approvare

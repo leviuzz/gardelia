@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { MX_REGIONS, MX_TIMEZONES } from '@floral/domain';
 import { Logo } from '@/components/brand/logo';
+import { LanguageSwitcher } from '@/components/i18n/language-switcher';
 import { requireUser } from '@/lib/session';
 import { createTenantAction } from './actions';
 import { OnboardingForm } from './onboarding-form';
@@ -19,10 +20,11 @@ export default async function OnboardingPage() {
 
   return (
     <div className="min-h-dvh bg-[radial-gradient(ellipse_at_top,oklch(0.95_0.025_150),transparent_60%)]">
-      <header className="mx-auto max-w-2xl px-4 pt-8 pb-2">
+      <header className="mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-2 px-4 pt-8 pb-2">
         <Link href="/app" className="inline-flex">
           <Logo />
         </Link>
+        <LanguageSwitcher />
       </header>
       <main className="mx-auto max-w-2xl px-4 pt-6 pb-16">
         <h1 className="font-display text-3xl font-semibold tracking-tight">

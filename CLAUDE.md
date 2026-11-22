@@ -24,7 +24,7 @@ Se trovi un conflitto fra richiesta dell'utente, spec e decisioni: **segnalalo p
 - Nessun segreto nel repo. Ogni nuova variabile va in `.env.example` (con commento) e in `apps/web/src/lib/env.ts` se serve al server web.
 - Non inventare fiscalità messicana (IVA, CFDI), split payment o condizioni legali: prepara adattatori e segnala cosa va validato da professionisti.
 - A fine sessione aggiorna `IMPLEMENTATION_PLAN.md` (fatto/mancante/prossimi passi) e, se serve, `docs/DECISIONS.md`.
-- Lingue: **UI in spagnolo messicano (es-MX)**, codice e identificatori in inglese, documentazione tecnica e commenti in italiano.
+- Lingue: **UI predefinita in spagnolo messicano (es-MX)**, con italiano (it-IT) e inglese (en-US) scelti da ogni persona (ADR-042): **ogni testo nuovo va scritto nelle tre lingue** (`apps/web/messages/*.json`, lo controlla `apps/web/test/messages.test.ts`). Ciò che arriva al cliente finale resta nella lingua del mercato della fioreria. Codice e identificatori in inglese, documentazione tecnica e commenti in italiano.
 
 ## 3. Mappa del monorepo
 

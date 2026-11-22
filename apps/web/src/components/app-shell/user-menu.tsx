@@ -1,17 +1,20 @@
 'use client';
 
-import { LogOut } from 'lucide-react';
+import { Check, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useTransition } from 'react';
+import { ENABLED_LOCALES, LOCALE_NAMES, type SupportedLocale } from '@floral/domain';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { changeLocaleAction } from '@/i18n/actions';
 import { authClient } from '@/lib/auth-client';
 import { initials } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -28,8 +31,18 @@ export function UserMenu({
   compact?: boolean;
 }) {
   const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+
+  // Lingua dell'interfaccia di questo browser (ADR-042): l'azione salva il cookie e ricarica.
+  const changeLocale = (code: SupportedLocale) =>
+    startTransition(async () => {
+      const form = new FormData();
+      form.set('locale', code);
+      await changeLocaleAction(form);
+      router.refresh();
+    });
 
   const signOut = () =>
     startTransition(async () => {
@@ -62,6 +75,26 @@ export function UserMenu({
           <span className="block truncate font-medium">{name}</span>
           <span className="block truncate text-xs text-muted-foreground">{email}</span>
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+            {t('common.language')}
+          </DropdownMenuLabel>
+          {ENABLED_LOCALES.map((code) => (
+            <DropdownMenuItem
+              key={code}
+              lang={code}
+              disabled={pending}
+              aria-current={code === locale ? 'true' : undefined}
+              onSelect={() => {
+                if (code !== locale) changeLocale(code);
+              }}
+            >
+              <Check className={code === locale ? undefined : 'invisible'} aria-hidden="true" />
+              {LOCALE_NAMES[code]}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={signOut} disabled={pending}>
           <LogOut />

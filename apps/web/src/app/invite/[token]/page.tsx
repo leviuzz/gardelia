@@ -8,6 +8,7 @@ import { AuthCard } from '@/components/auth/auth-card';
 import { AuthDivider, GoogleSignInButton } from '@/components/auth/google-sign-in-button';
 import { SignOutButton } from '@/components/auth/sign-out-button';
 import { Logo } from '@/components/brand/logo';
+import { LanguageSwitcher } from '@/components/i18n/language-switcher';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { authPath } from '@/lib/auth-paths';
@@ -141,8 +142,9 @@ export default async function InvitePage({ params }: PageProps<'/invite/[token]'
 
   return (
     <div className="min-h-dvh bg-[radial-gradient(ellipse_at_top,oklch(0.95_0.025_150),transparent_60%)]">
-      <header className="mx-auto w-full max-w-md px-4 pt-8 pb-4">
+      <header className="mx-auto flex w-full max-w-md flex-wrap items-center justify-between gap-2 px-4 pt-8 pb-4">
         <Logo />
+        <LanguageSwitcher />
       </header>
       <main className="mx-auto w-full max-w-md px-4 pb-16">{content}</main>
     </div>

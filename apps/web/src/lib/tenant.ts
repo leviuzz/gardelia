@@ -1,5 +1,6 @@
 import 'server-only';
 import { notFound } from 'next/navigation';
+import { getLocale } from 'next-intl/server';
 import { cache } from 'react';
 import { resolveTenantContext, type TenantContext } from '@floral/core';
 import { getRequestMeta } from './request-meta';
@@ -17,6 +18,8 @@ export const getTenantContext = cache(async (slug: string): Promise<TenantContex
     userId: user.id,
     slug,
     request: await getRequestMeta(),
+    // Lingua dell'interfaccia (ADR-042): i dati localizzati (es. nomi dei fiori) la seguono.
+    locale: await getLocale(),
   });
   if (!ctx) notFound();
   return ctx;

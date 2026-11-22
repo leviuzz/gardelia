@@ -2,6 +2,7 @@ import { Flower2, ListChecks, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { Logo } from '@/components/brand/logo';
+import { LanguageSwitcher } from '@/components/i18n/language-switcher';
 import { Button } from '@/components/ui/button';
 import { getSession } from '@/lib/session';
 
@@ -26,6 +27,9 @@ export default async function LandingPage() {
         aria-hidden="true"
         className="pointer-events-none absolute bottom-[-12rem] left-[-8rem] size-[32rem] rounded-full bg-[radial-gradient(circle,oklch(0.93_0.04_150/0.8),transparent_65%)]"
       />
+      <div className="relative mx-auto flex max-w-6xl justify-end px-4 pt-3 sm:px-6">
+        <LanguageSwitcher />
+      </div>
       <header className="relative mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
         <Logo />
         <nav className="flex items-center gap-2">

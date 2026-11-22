@@ -8,8 +8,57 @@
  * `redirect_uri` e PKCE, e riceve un id_token con quell'identità. Il resto del flusso (stato,
  * cookie, collegamento degli account, sessione) è il codice vero di Better Auth.
  */
+import { lookup } from 'node:dns/promises';
+import http from 'node:http';
+
 if (process.env.E2E_GOOGLE_OAUTH_MOCK === '1') {
   const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
+
+  // --- Diagnostica (solo E2E) --------------------------------------------------------------------
+  // In CI il ritorno da Google ogni tanto non risponde entro 10 s, senza errori nei log. Queste
+  // righe dicono dove si ferma: richiesta mai arrivata, server bloccato (event loop), thread di
+  // servizio occupati (risoluzione dei nomi lenta) o risposta lenta.
+  const stamp = () => new Date().toISOString();
+  const originalEmit = http.Server.prototype.emit;
+  http.Server.prototype.emit = function emitWithCallbackTiming(event, ...args) {
+    if (event === 'request') {
+      const [request, response] = args;
+      if (request.url?.startsWith('/api/auth/callback/')) {
+        const started = Date.now();
+        console.warn(`[e2e] ${stamp()} ritorno da Google ricevuto`);
+        response.on('finish', () =>
+          console.warn(
+            `[e2e] ${stamp()} ritorno da Google: risposta ${response.statusCode} in ${Date.now() - started} ms`,
+          ),
+        );
+        response.on('close', () => {
+          if (!response.writableFinished) {
+            console.warn(
+              `[e2e] ${stamp()} ritorno da Google chiuso senza risposta dopo ${Date.now() - started} ms`,
+            );
+          }
+        });
+      }
+    }
+    return originalEmit.call(this, event, ...args);
+  };
+  let expected = Date.now() + 500;
+  setInterval(() => {
+    const lag = Date.now() - expected;
+    if (lag > 1000) console.warn(`[e2e] ${stamp()} server bloccato per ${lag} ms (event loop)`);
+    expected = Date.now() + 500;
+  }, 500).unref();
+  setInterval(() => {
+    const started = Date.now();
+    void lookup('localhost').then(() => {
+      const took = Date.now() - started;
+      if (took > 1000)
+        console.warn(
+          `[e2e] ${stamp()} risoluzione di localhost lenta: ${took} ms (thread occupati)`,
+        );
+    });
+  }, 2000).unref();
+  // -----------------------------------------------------------------------------------------------
   const realFetch = globalThis.fetch;
 
   const json = (status, body) =>
@@ -86,7 +135,10 @@ if (process.env.E2E_GOOGLE_OAUTH_MOCK === '1') {
   }
 
   globalThis.fetch = async function fetchWithGoogleMock(input, init) {
-    if (requestUrl(input).startsWith(TOKEN_ENDPOINT)) return exchange(init);
+    if (requestUrl(input).startsWith(TOKEN_ENDPOINT)) {
+      console.warn(`[e2e] ${stamp()} scambio del codice con "Google"`);
+      return exchange(init);
+    }
     return realFetch(input, init);
   };
   console.warn('[e2e] endpoint dei token di Google simulato (E2E_GOOGLE_OAUTH_MOCK=1)');
