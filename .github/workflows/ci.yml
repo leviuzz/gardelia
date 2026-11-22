@@ -1,10 +1,10 @@
 name: CI
 
-# Gira su ogni push ai rami di lavoro (oggi il ramo principale del repository è un ramo
-# `claude/…`: con il solo `main` la CI non partiva mai), sulle pull request e a mano.
+# Gira su ogni push dei rami stabili (`staging` = ambiente di prova, `prod` = produzione:
+# ADR-041) e di quelli di lavoro (`claude/…`), sulle pull request e a mano.
 on:
   push:
-    branches: [main, 'claude/**']
+    branches: [staging, prod, 'claude/**']
   pull_request:
   workflow_dispatch:
 

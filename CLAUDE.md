@@ -90,4 +90,5 @@ pnpm build && pnpm test:e2e   # Playwright sull'app in modalità produzione
 ## 8. Git
 
 - Branch di lavoro dedicati; commit piccoli e descrittivi (stile conventional commits: `feat`, `fix`, `chore`, `docs`, `test`).
+- Rami stabili (ADR-041): `staging` = ambiente di prova online, ci arriva un blocco finito con tutti i controlli verdi; `prod` = produzione, si aggiorna da `staging` solo con il via libera esplicito del founder. I rami di lavoro (es. `claude/…`) non vanno mai online.
 - Mai committare `.env`, dump di database o file in `apps/web/e2e/.auth|.mail`.

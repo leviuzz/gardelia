@@ -709,6 +709,24 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   fuso orario (l'ultimo giorno di validità resta valido) su due fiorerie, inviti; E2E: l'endpoint
   risponde solo con il segreto.
 
+### ADR-041 — Rami `staging` e `prod`; online va solo il ramo di produzione di ogni progetto — ADOTTATO (22/11/2026)
+
+- **Decisione del founder:** due rami stabili. `staging` è l'ambiente di prova (progetto Vercel
+  `gardelia-staging`); `prod` è la produzione (progetto `gardelia-production`, dal lancio). I rami
+  di lavoro (es. `claude/…`) non vanno mai online.
+- **Flusso:** ramo di lavoro → `staging` quando un blocco è finito e tutti i controlli sono verdi
+  (avanzamento allo stesso commit già provato dalla CI) → `prod` solo con il via libera esplicito
+  del founder.
+- **Vercel:** ogni progetto pubblica il proprio ramo di produzione. `apps/web/vercel.json` spegne i
+  deploy dei rami `claude/**` (`git.deploymentEnabled`) e salta ogni build che non sia di
+  produzione (`ignoreCommand` su `VERCEL_ENV`). Così il codice di un ramo non può girare per
+  sbaglio contro il database di un altro ambiente (le variabili inserite all'import possono valere
+  anche per le anteprime). Le anteprime per PR (PLATFORM_PLAN §4) torneranno con un database
+  proprio.
+- **GitHub:** ramo predefinito `staging` (PR e workflow manuali partono da lì). CI a ogni push di
+  `staging`, `prod` e dei rami di lavoro, e su ogni PR.
+- **Supera** il "merge su `main`" del PLATFORM_PLAN: il ramo `main` non esiste.
+
 ---
 
 ## 3. Proposte da approvare

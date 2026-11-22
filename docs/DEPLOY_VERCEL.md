@@ -115,14 +115,17 @@ ricomponi `DATABASE_URL`.
 
 ## 7. Progetto su Vercel
 
-1. **Importa il repository:** accedi con GitHub, **Add New → Project**, importa
+1. **Prima, su GitHub:** l'ambiente di prova pubblica il ramo **`staging`** (ADR-041). Nel
+   repository **Settings → General → Default branch** → `staging` → **Update**: così Vercel lo
+   prende da solo all'import. I rami di lavoro (`claude/…`) e `prod` qui non vanno online.
+2. **Importa il repository:** accedi con GitHub, **Add New → Project**, importa
    `leviuzz/gardelia` e chiama il progetto `gardelia-staging` (l'indirizzo diventa
    `https://gardelia-staging.vercel.app`). Se il repository non compare, dai a Vercel l'accesso
    solo a `leviuzz/gardelia` dalle impostazioni della GitHub App che propone.
-2. **Root Directory:** **Edit** → `apps/web`; il Framework Preset diventa Next.js da solo.
-   Framework, build, cron, regione e versione di Node (22) li decide il repository
-   (`apps/web/vercel.json` e `apps/web/package.json`): non cambiarli.
-3. **Environment Variables:** il modo più rapido è preparare nella nota privata un blocco
+3. **Root Directory:** **Edit** → `apps/web` (la cartella dell'app nel repository, non un ramo);
+   il Framework Preset diventa Next.js da solo. Framework, build, cron, regione e versione di Node
+   (22) li decide il repository (`apps/web/vercel.json` e `apps/web/package.json`): non cambiarli.
+4. **Environment Variables:** il modo più rapido è preparare nella nota privata un blocco
    `NOME=valore`, una riga per variabile della tabella, e incollarlo tutto nel primo campo
    **Key**: Vercel crea una riga per variabile. Regole del blocco:
    - niente spazi attorno a `=` e niente virgolette (anche `EMAIL_FROM` si scrive così com'è);
@@ -148,13 +151,18 @@ ricomponi `DATABASE_URL`.
 
    Elenco completo e regole: `docs/CONFIGURATION.md`.
 
-4. **Ramo di produzione:** è già quello giusto, `claude/fervent-allen-k1t8ii` (l'unico ramo del
-   repository, dove c'è tutto il lavoro): ogni mio push va in linea da solo.
 5. **Deploy.** La prima build prepara il database (migrazioni e dati di riferimento, come la
    tassonomia dei fiori), poi compila l'app.
-6. **Controlla:** in **Settings → Domains** c'è l'indirizzo vero. Se è diverso da `APP_URL`,
-   correggi `APP_URL` e `BETTER_AUTH_URL` e ridistribuisci (**Deployments → ⋯ → Redeploy**). Poi
-   apri `<indirizzo>/api/health`: deve rispondere `{"status":"ok"}`.
+6. **Controlla:**
+   - in **Settings → Domains** c'è l'indirizzo vero. Se è diverso da `APP_URL`, correggi
+     `APP_URL` e `BETTER_AUTH_URL` e ridistribuisci (**Deployments → ⋯ → Redeploy**);
+   - il deploy deve venire dal ramo `staging`. Se viene da un altro (progetto importato prima di
+     cambiare il ramo predefinito): **Settings → Environments → Production** → ramo `staging`, poi
+     ridistribuisci;
+   - apri `<indirizzo>/api/health`: deve rispondere `{"status":"ok"}`.
+7. **Aggiornamenti:** ogni push su `staging` va online da solo. Ci arriva un blocco finito con
+   tutti i controlli verdi; `prod` si muove solo con il via libera del founder (ADR-041). Vercel
+   costruisce solo il ramo di produzione del progetto: i push sugli altri rami non creano deploy.
 
 Se qualcosa manca o è sbagliato, l'app non parte e i log di Vercel (**Logs**) elencano le
 variabili da sistemare.
@@ -192,6 +200,6 @@ variabili da sistemare.
 - **Prima del lancio:**
   - piano Neon a pagamento (backup e ripristino più lunghi);
   - dominio Gardelia verificato su Resend, così le email partono a tutti;
-  - staging e produzione separati;
+  - progetto `gardelia-production` (database e chiavi propri) che pubblica il ramo `prod`;
   - Sentry;
   - client OAuth di Google (ADR-036).

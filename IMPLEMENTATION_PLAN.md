@@ -253,8 +253,8 @@ Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 385/385 ✅ · 
 E2E 42/42 ✅.
 
 **Fase 0, CI vera (fatto il 22/11):** la CI su GitHub non era mai partita: si attivava solo con
-un push su `main`, ramo che nel repository non esiste. Ora gira a ogni push dei rami di lavoro
-(`main`, `claude/**`), sulle pull request e a mano, con in più il controllo che le migrazioni
+un push su `main`, ramo che nel repository non esiste. Ora gira a ogni push dei rami stabili e di lavoro
+(`staging`, `prod`, `claude/**`: ADR-041), sulle pull request e a mano, con in più il controllo che le migrazioni
 producano esattamente lo schema Prisma (database "ombra" vuoto), `pnpm audit` delle dipendenze di
 produzione ed E2E solo dopo unit e integrazione. La prima esecuzione vera ha trovato un difetto
 che in locale non si vedeva: la tassonomia dei fiori la caricava solo il seed demo, che in
@@ -274,7 +274,9 @@ test 390/390 ✅ (+5: scadenze, dati di riferimento) · build ✅ · E2E 43/43 �
 (anche email e piani: "Gardelia Plus"); la verifica di marchio e dominio resta aperta (O-03). I
 servizi online hanno nomi in inglese (`gardelia-staging`) e il ruolo del database è `gardelia_app`.
 Messa online in corso insieme al founder, passo per passo (`docs/DEPLOY_VERCEL.md`): una build di
-Vercel simulata su database vuoto (migrazioni, dati di riferimento, compilazione) è passata.
+Vercel simulata su database vuoto (migrazioni, dati di riferimento, compilazione) è passata. Rami
+(ADR-041, richiesta del founder): `staging` va online su `gardelia-staging`, `prod` sarà la
+produzione; i rami di lavoro non creano deploy.
 
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite

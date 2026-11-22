@@ -62,16 +62,18 @@ gestione errori e componenti**, **monitorare**.
 solo ambiente online di prova**, usato dal founder e dai tester, con dati di prova. Staging e
 produzione separati, come nella tabella, si creano prima del lancio.
 
-| Ambiente         | Scopo                                       | Dati                            | AI                                    | Email                                     | Deploy                            |
-| ---------------- | ------------------------------------------- | ------------------------------- | ------------------------------------- | ----------------------------------------- | --------------------------------- |
-| **Locale**       | sviluppo e test                             | Postgres in Docker, seed demo   | simulata (o fal con chiave)           | Mailpit (nessuna email esce)              | a mano                            |
-| **Anteprima PR** | provare una modifica prima di unirla        | branch Neon proprio, seed demo  | simulata                              | catturata, nessun invio reale             | automatico a ogni PR (Vercel)     |
-| **Staging**      | prova completa prima della produzione; demo | **solo dati finti** (seed demo) | fal con tetto basso (es. 10 USD/mese) | solo verso indirizzi del team (allowlist) | automatico a ogni merge su `main` |
-| **Produzione**   | fiorerie vere                               | reali, con backup e ripristino  | fal con tetto mensile                 | reale, dominio verificato                 | manuale (rilascio approvato)      |
+| Ambiente         | Scopo                                       | Dati                            | AI                                    | Email                                     | Deploy                                |
+| ---------------- | ------------------------------------------- | ------------------------------- | ------------------------------------- | ----------------------------------------- | ------------------------------------- |
+| **Locale**       | sviluppo e test                             | Postgres in Docker, seed demo   | simulata (o fal con chiave)           | Mailpit (nessuna email esce)              | a mano                                |
+| **Anteprima PR** | provare una modifica prima di unirla        | branch Neon proprio, seed demo  | simulata                              | catturata, nessun invio reale             | più avanti (oggi spente, ADR-041)     |
+| **Staging**      | prova completa prima della produzione; demo | **solo dati finti** (seed demo) | fal con tetto basso (es. 10 USD/mese) | solo verso indirizzi del team (allowlist) | automatico a ogni push su `staging`   |
+| **Produzione**   | fiorerie vere                               | reali, con backup e ripristino  | fal con tetto mensile                 | reale, dominio verificato                 | da `prod`, col via libera del founder |
 
-Su Vercel lo staging è un **ambiente personalizzato** (uno è incluso nel piano Pro per progetto),
-con dominio, variabili e database propri. Le anteprime sono automatiche: ogni PR ha un URL e,
-tramite l'integrazione Neon, un branch del database creato all'apertura e cancellato alla chiusura.
+Su Vercel staging e produzione sono **due progetti** (`gardelia-staging`, `gardelia-production`),
+ognuno con dominio, variabili e database propri e il proprio ramo di produzione (`staging`,
+`prod`: ADR-041); niente dipende dagli ambienti personalizzati del piano Pro. Le anteprime, quando
+le accenderemo, saranno automatiche: ogni PR avrà un URL e, tramite l'integrazione Neon, un branch
+del database creato all'apertura e cancellato alla chiusura.
 
 Regole:
 
@@ -244,15 +246,22 @@ prima del pilota (insieme a O-07 sul consenso per le foto). Il piano non fa assu
 
 ## 4. Flusso di sviluppo e rilascio
 
-1. **Branch per ogni lavoro → Pull Request → `main`.** Commit piccoli (convenzionali, come oggi).
-2. **CI su ogni PR** (GitHub Actions): lint, format, typecheck, test unit + integrazione su
-   Postgres reale con RLS, build, E2E Playwright. Una PR non si unisce se qualcosa è rosso.
-3. **Anteprima automatica su ogni PR** (Vercel): branch Neon proprio con le migrazioni della PR e
-   il seed demo, AI simulata, link nella PR per provarla dal telefono.
-4. **Merge su `main` → deploy automatico su staging**, con le migrazioni applicate **prima** del
-   deploy (ruolo proprietario) e un **test di fumo** automatico (salute, login, una pagina per
-   area).
-5. **Rilascio in produzione approvato** (GitHub Action manuale o tag `vX.Y.Z`): migrazioni prima,
+1. **Ramo di lavoro → `staging` → `prod`** (decisione del founder, ADR-041). Si lavora su rami
+   dedicati (es. `claude/…`), che non vanno mai online; `staging` riceve un blocco finito con
+   tutti i controlli verdi; `prod` si aggiorna solo da `staging`, con il via libera del founder.
+   Commit piccoli (convenzionali, come oggi).
+2. **CI su ogni push e su ogni PR** (GitHub Actions): lint, format, typecheck, test unit +
+   integrazione su Postgres reale con RLS, build, E2E Playwright. Su `staging` arriva solo ciò che
+   è verde.
+3. **Più avanti, anteprima automatica su ogni PR** (Vercel): branch Neon proprio con le migrazioni
+   della PR e il seed demo, AI simulata, link nella PR per provarla dal telefono. Finché non c'è un
+   database per le anteprime restano spente: Vercel costruisce solo il ramo di produzione di ogni
+   progetto (`apps/web/vercel.json`).
+4. **Push su `staging` → deploy automatico su `gardelia-staging`**, con le migrazioni applicate
+   **prima** del deploy (ruolo proprietario) e un **test di fumo** automatico (salute, login, una
+   pagina per area).
+5. **Rilascio in produzione approvato** (`staging` → `prod`, che pubblica il progetto
+   `gardelia-production`; GitHub Action manuale o tag `vX.Y.Z`): migrazioni prima,
    poi deploy dello stesso build già provato (`vercel deploy --prebuilt --prod`), note di
    rilascio generate dai commit. Finché c'è un solo ambiente di prova (ADR-038) le migrazioni le
    applica la build di produzione di Vercel, prima di `next build`.
@@ -344,7 +353,7 @@ ricevono valori già validati. Se manca qualcosa l'app non parte e dice cosa man
 dopo l'integrazione, cache, controllo che le migrazioni corrispondano allo schema, scansione di
 dipendenze e segreti, `Dockerfile` con build `standalone`, job di deploy. ✅ (22/11) La CI non era
 mai partita (si attivava solo su `main`, che non esiste): ora gira a ogni push dei rami di
-lavoro, con E2E dopo l'integrazione, controllo migrazioni ↔ schema e `pnpm audit`; la prima
+lavoro e di `staging`/`prod` (ADR-041), con E2E dopo l'integrazione, controllo migrazioni ↔ schema e `pnpm audit`; la prima
 esecuzione vera ha trovato la tassonomia caricata solo dal seed demo (corretto, ADR-038).
 Restano: scansione dei segreti, aggiornamenti automatici delle dipendenze, job di deploy.
 
