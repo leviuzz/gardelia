@@ -18,7 +18,6 @@ import {
   toFieldErrors,
   type BuilderStyle,
 } from '@floral/domain';
-import { getObjectStorage } from '../ai/storage';
 import { notFound, recordAudit } from '../audit';
 import { requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
@@ -26,6 +25,7 @@ import { NotFoundError, ValidationError } from '../errors';
 import { normalizeUploadedPhoto } from '../media/images';
 import { requireEntitlement } from './billing';
 import type { PhotoVariant } from './catalog-photos';
+import { readStoredImage, storeFilesThenCommit } from '../media/stored-files';
 
 export interface StyleReferenceDto {
   readonly id: string;
@@ -89,45 +89,51 @@ export async function addStyleReference(
   const id = newId();
   const storageKey = `tenants/${ctx.tenantId}/style-references/${id}.jpg`;
   const thumbKey = `tenants/${ctx.tenantId}/style-references/${id}-thumb.jpg`;
-  const storage = getObjectStorage();
+  // File salvati PRIMA della transazione (che resta breve) e cancellati se non va a buon fine.
+  const files = [
+    { key: storageKey, bytes: image.full.bytes, contentType: image.full.contentType },
+    { key: thumbKey, bytes: image.thumb.bytes, contentType: image.thumb.contentType },
+  ];
+  const reference = await storeFilesThenCommit(files, () =>
+    withTenantContext(getDb(), ctx, async (tx) => {
+      await requireEntitlement(ctx, 'bouquetBuilder', tx);
+      // Serializza i caricamenti della stessa fioreria: il limite non si supera.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`floral:style-ref:${ctx.tenantId}`}))`;
+      const active = await tx.styleReferencePhoto.count({
+        where: { tenantId: ctx.tenantId, status: 'ACTIVE' },
+      });
+      if (active >= PHOTO_LIMITS.references) throw new ValidationError({ file: 'too_many_photos' });
 
-  return withTenantContext(getDb(), ctx, async (tx) => {
-    await requireEntitlement(ctx, 'bouquetBuilder', tx);
-    // Serializza i caricamenti della stessa fioreria: il limite non si supera.
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`floral:style-ref:${ctx.tenantId}`}))`;
-    const active = await tx.styleReferencePhoto.count({
-      where: { tenantId: ctx.tenantId, status: 'ACTIVE' },
-    });
-    if (active >= PHOTO_LIMITS.references) throw new ValidationError({ file: 'too_many_photos' });
-
-    await storage.put(storageKey, image.full.bytes, image.full.contentType);
-    await storage.put(thumbKey, image.thumb.bytes, image.thumb.contentType);
-    const now = new Date();
-    const created = await tx.styleReferencePhoto.create({
-      data: {
-        id,
-        tenantId: ctx.tenantId,
-        style: input.style,
-        caption: input.caption,
-        storageKey,
-        thumbKey,
-        contentType: image.full.contentType,
-        width: image.full.width,
-        height: image.full.height,
-        sizeBytes: image.full.bytes.byteLength,
-        consentAt: now,
-        consentById: ctx.userId,
-        createdById: ctx.userId,
-      },
-    });
-    await recordAudit(tx, ctx, {
-      action: AUDIT_ACTIONS.styleReferenceAdded,
-      entityType: 'StyleReferencePhoto',
-      entityId: id,
-      metadata: { style: input.style, consent: true },
-    });
-    return toDto(created);
-  });
+      const now = new Date();
+      const created = await tx.styleReferencePhoto.create({
+        data: {
+          id,
+          tenantId: ctx.tenantId,
+          style: input.style,
+          caption: input.caption,
+          storageKey,
+          thumbKey,
+          contentType: image.full.contentType,
+          width: image.full.width,
+          height: image.full.height,
+          sizeBytes: image.full.bytes.byteLength,
+          consentAt: now,
+          consentById: ctx.userId,
+          createdById: ctx.userId,
+        },
+      });
+      await recordAudit(tx, ctx, {
+        action: AUDIT_ACTIONS.styleReferenceAdded,
+        entityType: 'StyleReferencePhoto',
+        entityId: id,
+        metadata: { style: input.style, consent: true },
+      });
+      return toDto(created);
+    }),
+  );
+  // La transazione restituisce il record oppure lancia un errore: null non è possibile.
+  if (!reference) throw new Error('foto di "Mis ramos" non registrata');
+  return reference;
 }
 
 export async function archiveStyleReference(
@@ -168,9 +174,9 @@ export async function getStyleReferenceImage(
     });
   });
   if (!reference) return notFound(ctx, 'StyleReferencePhoto', referenceId);
-  const bytes = await getObjectStorage().get(
+  return readStoredImage(
     variant === 'thumb' ? reference.thumbKey : reference.storageKey,
+    reference.contentType,
+    'StyleReferencePhoto',
   );
-  if (!bytes) throw new NotFoundError('StyleReferencePhoto');
-  return { bytes, contentType: reference.contentType };
 }

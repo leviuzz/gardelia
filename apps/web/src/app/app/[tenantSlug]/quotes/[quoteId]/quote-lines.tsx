@@ -12,6 +12,7 @@ import { Input, NativeSelect } from '@/components/ui/input';
 import { fieldError, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 import { useToastActionState } from '@/lib/use-action-toast';
+import { PrivateImage } from '@/components/common/private-image';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -149,10 +150,11 @@ export function QuoteLineList({
               ) : null}
               {line.image ? (
                 <figure className="flex break-inside-avoid flex-col items-start gap-2 pt-1 sm:flex-row sm:gap-3 print:flex-row">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- immagine privata servita da una route autenticata */}
-                  <img
+                  {/* eager: la pagina si stampa/salva in PDF con l'immagine. */}
+                  <PrivateImage
                     src={line.image.url}
                     alt={t('bouquetImageAlt', { name: line.description })}
+                    loading="eager"
                     className="size-28 shrink-0 rounded-xl border bg-muted object-cover sm:size-36 print:size-56"
                   />
                   <figcaption className="min-w-0 space-y-1.5 text-xs text-muted-foreground">

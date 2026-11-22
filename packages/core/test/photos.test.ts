@@ -261,6 +261,91 @@ describe('foto del catalogo', () => {
   });
 });
 
+describe('file salvati fuori dalla transazione (fase 0)', () => {
+  /** Chiavi dell'archivio di una fioreria in una cartella. */
+  function keysOf(shop: TestShop, folder: string): string[] {
+    const prefix = `tenants/${shop.tenant.tenantId}/${folder}/`;
+    return [...storage.objects.keys()].filter((key) => key.startsWith(prefix));
+  }
+
+  /** Archivio che fallisce al secondo salvataggio (es. la rete cade a metà). */
+  class FailingSecondPut extends MemoryStorage {
+    private puts = 0;
+    override async put(key: string, bytes: Uint8Array): Promise<void> {
+      this.puts += 1;
+      if (this.puts === 2) throw new Error('rete interrotta');
+      return super.put(key, bytes);
+    }
+  }
+
+  it('se la registrazione fallisce (limite raggiunto) i file appena salvati si cancellano', async () => {
+    const orchid = await createCatalogItem(shopA.owner, itemInput({ name: 'Orquídea' }));
+    const small = await jpeg(400, 400);
+    for (let i = 0; i < PHOTO_LIMITS.perItem; i++) {
+      await addCatalogItemPhoto(shopA.owner, orchid.id, small, {});
+    }
+    const before = keysOf(shopA, 'catalog-photos');
+    expect(before.length).toBeGreaterThanOrEqual(PHOTO_LIMITS.perItem * 2);
+    await expect(addCatalogItemPhoto(shopA.owner, orchid.id, small, {})).rejects.toMatchObject({
+      fieldErrors: { file: 'too_many_photos' },
+    });
+    expect(keysOf(shopA, 'catalog-photos')).toEqual(before);
+  });
+
+  it('per un articolo di un’altra fioreria non resta nessun file', async () => {
+    const before = keysOf(shopB, 'catalog-photos');
+    await expect(
+      addCatalogItemPhoto(shopB.owner, roseA.id, await jpeg(600, 600), {}),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    expect(keysOf(shopB, 'catalog-photos')).toEqual(before);
+  });
+
+  it('se l’archivio fallisce a metà non restano né il record né il primo file', async () => {
+    const failing = new FailingSecondPut();
+    const photosBefore = await listCatalogItemPhotos(shopA.owner, roseA.id);
+    setObjectStorage(failing);
+    try {
+      await expect(
+        addCatalogItemPhoto(shopA.owner, roseA.id, await jpeg(600, 600), {}),
+      ).rejects.toThrow('rete interrotta');
+      expect(failing.objects.size).toBe(0);
+    } finally {
+      setObjectStorage(storage);
+    }
+    expect(await listCatalogItemPhotos(shopA.owner, roseA.id)).toHaveLength(photosBefore.length);
+  });
+
+  it('Mis ramos: stessa regola se l’archivio fallisce', async () => {
+    await withPlan(shopA, 'PLUS');
+    const failing = new FailingSecondPut();
+    const before = await listStyleReferences(shopA.owner);
+    setObjectStorage(failing);
+    try {
+      await expect(
+        addStyleReference(shopA.owner, await jpeg(800, 800), { style: 'GARDEN', consent: 'on' }),
+      ).rejects.toThrow('rete interrotta');
+      expect(failing.objects.size).toBe(0);
+    } finally {
+      setObjectStorage(storage);
+    }
+    expect(await listStyleReferences(shopA.owner)).toHaveLength(before.length);
+  });
+
+  it('una foto il cui file manca nell’archivio è "non trovata", non un errore del server', async () => {
+    const photo = await addCatalogItemPhoto(shopA.owner, roseA.id, await jpeg(600, 600), {});
+    const fullKey = keysOf(shopA, 'catalog-photos').find((key) => key.endsWith(`${photo.id}.jpg`));
+    expect(fullKey).toBeDefined();
+    storage.objects.delete(fullKey ?? '');
+    await expect(getCatalogPhotoImage(shopA.owner, photo.id, 'full')).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    // La miniatura c'è ancora e si vede.
+    expect(
+      (await getCatalogPhotoImage(shopA.owner, photo.id, 'thumb')).bytes.length,
+    ).toBeGreaterThan(0);
+  });
+});
+
 describe('Mis ramos (riferimenti di stile)', () => {
   it('solo con il piano Plus', async () => {
     await withPlan(shopB, 'BASIC');

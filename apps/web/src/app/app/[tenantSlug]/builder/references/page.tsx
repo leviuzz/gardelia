@@ -17,6 +17,7 @@ import { getTenantContext } from '@/lib/tenant';
 import { BuilderUpsell } from '../builder-ui';
 import { archiveStyleReferenceAction, uploadStyleReferenceAction } from './actions';
 import { ReferenceUploader } from './reference-uploader';
+import { PrivateImage } from '@/components/common/private-image';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('styleReferences');
@@ -94,15 +95,13 @@ export default async function StyleReferencesPage({
             {references.map((reference) => (
               <li key={reference.id} className="relative">
                 <figure className="space-y-1.5">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- immagine privata servita da una route autenticata */}
-                  <img
+                  <PrivateImage
                     src={`${base}/references/${reference.id}?size=thumb`}
                     alt={
                       reference.style
                         ? t('styleReferences.altStyle', { style: styleLabel(reference.style) })
                         : t('styleReferences.alt')
                     }
-                    loading="lazy"
                     className="aspect-square w-full rounded-xl border bg-muted object-cover"
                   />
                   <figcaption className="space-y-1">

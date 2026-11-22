@@ -37,7 +37,6 @@ import {
   type QuoteStatus,
   type SaleUnit,
 } from '@floral/domain';
-import { getObjectStorage } from '../ai/storage';
 import { notFound, recordAudit } from '../audit';
 import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
@@ -52,6 +51,7 @@ import {
   partsToDate,
   recalculateTotals,
 } from './quote-internals';
+import { readStoredImage } from '../media/stored-files';
 
 // -----------------------------------------------------------------------------
 // DTO
@@ -722,7 +722,5 @@ export async function getQuoteLineImage(
   if (!line) return notFound(ctx, 'QuoteLine', lineId);
   const job = line.previewJob;
   if (job?.status !== 'SUCCEEDED' || !job.outputKey) throw new NotFoundError('QuoteLine');
-  const bytes = await getObjectStorage().get(job.outputKey);
-  if (!bytes) throw new NotFoundError('QuoteLine');
-  return { bytes, contentType: job.outputContentType ?? 'image/png' };
+  return readStoredImage(job.outputKey, job.outputContentType ?? 'image/png', 'QuoteLine');
 }

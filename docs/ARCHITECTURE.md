@@ -154,9 +154,13 @@ serve da una route che verifica tenant e permessi.
 
 Foto (ADR-029): il browser riduce le foto e le invia una alla volta → la server action le passa
 al servizio (`catalog-photos`, `style-references`) → `media/images.ts` le valida e le ricodifica
-(niente metadati, 1600 px + miniatura) → archivio privato per tenant e riga nel DB nella stessa
-transazione, con audit. Le route `/catalog/photos/[id]` e `/builder/references/[id]` servono i
-file solo ai membri della fioreria.
+(niente metadati, 1600 px + miniatura) → i file si salvano nell'archivio privato del tenant
+**prima** della transazione (breve, con limiti, riga e audit) e si cancellano se la transazione
+fallisce o non trova l'articolo (`media/stored-files.ts`: `storeFilesThenCommit`). Tutte le immagini
+private (foto, ritagli, anteprime, boceto, immagine del preventivo) passano da un solo helper per
+livello: `readStoredImage` nel core (file mancante → "non trovata" + avviso nel log),
+`privateImageRoute` nelle route (404 per "non esiste", "altra fioreria", "ruolo" e "piano"),
+`<PrivateImage>` nella UI.
 
 Stile della fioreria (ADR-032): all'accodamento il servizio sceglie una foto di "Mis ramos" (stesso
 stile del disegno, poi la prima caricata) e ne mette l'ID nella descrizione del ramo; il worker

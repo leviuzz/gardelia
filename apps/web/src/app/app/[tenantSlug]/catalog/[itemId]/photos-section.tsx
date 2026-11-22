@@ -26,6 +26,7 @@ import {
   uploadCatalogPhotoAction,
 } from '../photo-actions';
 import { CatalogPhotoUploader } from './catalog-photo-uploader';
+import { PrivateImage } from '@/components/common/private-image';
 
 /**
  * Foto dell'articolo: griglia, vista e colore, caricamento e rimozione (solo chi gestisce).
@@ -93,11 +94,9 @@ export async function PhotosSection({ ctx, item }: { ctx: TenantContext; item: C
                     data-cutout={photo.cutoutStatus ?? 'NONE'}
                   >
                     <figure className="space-y-1.5">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- immagine privata servita da una route autenticata */}
-                      <img
+                      <PrivateImage
                         src={src}
                         alt={cutoutReady ? t('photos.cutoutAlt', { description: alt }) : alt}
-                        loading="lazy"
                         className={cn(
                           'aspect-square w-full rounded-xl border',
                           cutoutReady

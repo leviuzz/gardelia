@@ -250,7 +250,7 @@ runtime, salvo eccezioni elencate).
 | ----------------------------------------------------------------------- | ----------------------------- | -------------------------------------------------------- |
 | Scheletro delle server action (contesto, errori, revalidate, messaggio) | 38 azioni in 7 file           | `defineTenantAction`                                     |
 | Pagine elenco: filtri, ricerca, paginazione, vuoto, conteggio           | 4 pagine (+ ricerca clienti)  | `components/common/list/*` + `listHref`                  |
-| Immagini private: route, lettura del file, `<img>`, URL                 | 5 route, 4 servizi, 7 `<img>` | `privateImageRoute`, `readStoredImage`, `<PrivateImage>` |
+| ✅ Immagini private: route, lettura del file, `<img>`, URL              | 5 route, 4 servizi, 7 `<img>` | `privateImageRoute`, `readStoredImage`, `<PrivateImage>` |
 | Percorsi `/app/${slug}/…` scritti a mano                                | 75 in 32 file                 | `routes.ts` (link, redirect, revalidate, immagini)       |
 | Dialoghi di conferma                                                    | 3                             | `ConfirmActionDialog`                                    |
 | Pulsanti-azione e form di quantità                                      | 7 + 2                         | `ActionButton`, `QuantityForm`                           |
@@ -287,10 +287,12 @@ ricevono valori già validati. Se manca qualcosa l'app non parte e dice cosa man
    Arresto: un job interrotto torna in coda alla scadenza del lease (300 s); niente gestori di
    segnali dentro `next start` (rischierebbero di bloccare l'uscita). Con i job su funzioni
    (Vercel) il worker nel processo non gira in produzione.
-5. Il caricamento delle foto salva i file mentre la transazione del database è aperta → file
-   fuori dalla transazione, con pulizia se qualcosa fallisce.
+5. ✅ (22/11) Il caricamento delle foto salvava i file con la transazione aperta (blocchi tenuti
+   durante l'invio in rete, file orfani se la transazione falliva dopo) → file salvati prima,
+   transazione breve, file cancellati se la registrazione fallisce o l'articolo non c'è.
 6. Le letture modificano dati (scadenza di preventivi e inviti) → lavoro programmato (cron).
-7. Le route delle immagini traducono in modo diverso permessi e piano → un solo helper.
+7. ✅ (22/11) Le route delle immagini traducevano in modo diverso permessi e piano (alcuni casi
+   finivano in errore 500) → `privateImageRoute`: 404 uguale per tutti i casi.
 
 **Test e CI.** Si aggiungono test per le utilità del web (form, azioni, immagini); in CI: gli E2E
 dopo l'integrazione, cache, controllo che le migrazioni corrispondano allo schema, scansione di

@@ -17,6 +17,7 @@ import { AVAILABILITY_BADGE, COLOR_SWATCH_CLASS } from '@/lib/catalog-ui';
 import { money } from '@/lib/format';
 import { getTenantContext } from '@/lib/tenant';
 import { cn } from '@/lib/utils';
+import { PrivateImage } from '@/components/common/private-image';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('catalog');
@@ -311,11 +312,9 @@ function ItemName({ item, base }: { item: CatalogItemDto; base: string }) {
   return (
     <span className="flex min-w-0 items-center gap-3">
       {item.coverPhotoId ? (
-        // eslint-disable-next-line @next/next/no-img-element -- immagine privata servita da una route autenticata
-        <img
+        <PrivateImage
           src={`${base}/photos/${item.coverPhotoId}?size=thumb`}
           alt=""
-          loading="lazy"
           className="size-10 shrink-0 rounded-lg border bg-muted object-cover"
         />
       ) : null}

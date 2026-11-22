@@ -6,7 +6,7 @@
  *  - Chiavi sempre sotto `tenants/{tenantId}/…`: le immagini si servono solo tramite una
  *    route dell'app che verifica tenant e permessi, mai con URL pubblici.
  */
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
 import { AwsClient } from 'aws4fetch';
 import { storageConfig } from '../config';
@@ -16,6 +16,8 @@ export interface ObjectStorage {
   put(key: string, bytes: Uint8Array, contentType: string): Promise<void>;
   /** null se l'oggetto non esiste. */
   get(key: string): Promise<Uint8Array | null>;
+  /** Cancella l'oggetto; nessun errore se non esiste. */
+  delete(key: string): Promise<void>;
 }
 
 const KEY_PATTERN = /^tenants\/[0-9a-f-]{36}\/[a-z0-9-]+\/[a-z0-9-]+\.[a-z0-9]+$/;
@@ -53,6 +55,10 @@ export class FilesystemStorage implements ObjectStorage {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
       throw error;
     }
+  }
+
+  async delete(key: string): Promise<void> {
+    await rm(this.pathFor(key), { force: true });
   }
 }
 
@@ -99,6 +105,14 @@ export class R2Storage implements ObjectStorage {
     if (!response.ok) throw new Error(`R2 GET non riuscito (${response.status})`);
     return new Uint8Array(await response.arrayBuffer());
   }
+
+  async delete(key: string): Promise<void> {
+    const response = await this.client.fetch(this.urlFor(key), { method: 'DELETE' });
+    // S3/R2 rispondono 204 anche se l'oggetto non c'era.
+    if (!response.ok && response.status !== 404) {
+      throw new Error(`R2 DELETE non riuscito (${response.status})`);
+    }
+  }
 }
 
 /** Solo per i test: archivio in memoria. */
@@ -113,6 +127,11 @@ export class MemoryStorage implements ObjectStorage {
 
   async get(key: string): Promise<Uint8Array | null> {
     return this.objects.get(key) ?? null;
+  }
+
+  async delete(key: string): Promise<void> {
+    assertStorageKey(key);
+    this.objects.delete(key);
   }
 }
 

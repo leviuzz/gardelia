@@ -34,7 +34,6 @@ import { fitsMonthlyAiBudget } from '../ai/budget';
 import { getFlowerCounter } from '../ai/flower-counter';
 import { getAiProvider, type AiImageProvider } from '../ai/providers';
 import { SketchUnavailableError, renderSketchForTenant } from '../ai/sketch-source';
-import { getObjectStorage } from '../ai/storage';
 import { notifyAiWorker } from '../ai/signal';
 import { notFound, recordAudit } from '../audit';
 import { requirePermission } from '../authorization';
@@ -42,6 +41,7 @@ import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { getEntitlements, requireEntitlement } from './billing';
 import { loadComponents } from './builder-internals';
+import { readStoredImage } from '../media/stored-files';
 
 export type AiPreviewStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
 
@@ -524,9 +524,7 @@ export async function getAiPreviewImage(
     });
   });
   if (!job?.outputKey) return notFound(ctx, 'AiJob', jobId);
-  const bytes = await getObjectStorage().get(job.outputKey);
-  if (!bytes) throw new NotFoundError('AiJob');
-  return { bytes, contentType: job.outputContentType ?? 'image/png' };
+  return readStoredImage(job.outputKey, job.outputContentType ?? 'image/png', 'AiJob');
 }
 
 // -----------------------------------------------------------------------------

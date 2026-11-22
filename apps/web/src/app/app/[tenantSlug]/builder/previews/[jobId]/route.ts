@@ -1,23 +1,10 @@
 /**
- * Immagine di un'anteprima AI: servita solo a chi è membro della fioreria proprietaria
- * (stesso controllo di tenant e permessi dei servizi). Mai URL pubblici dell'archivio.
+ * Immagine di un'anteprima AI: servita solo a chi è membro della fioreria proprietaria e ha il
+ * piano con il Builder. Mai URL pubblici dell'archivio. Regole comuni: lib/private-image-route.ts.
  */
-import { NotFoundError, PlanRequiredError, getAiPreviewImage } from '@floral/core';
-import { notFoundResponse, privateImageResponse } from '@/lib/image-response';
-import { getTenantContext } from '@/lib/tenant';
+import { getAiPreviewImage } from '@floral/core';
+import { privateImageRoute } from '@/lib/private-image-route';
 
-export async function GET(
-  _request: Request,
-  { params }: RouteContext<'/app/[tenantSlug]/builder/previews/[jobId]'>,
-): Promise<Response> {
-  const { tenantSlug, jobId } = await params;
-  const ctx = await getTenantContext(tenantSlug);
-  try {
-    return privateImageResponse(await getAiPreviewImage(ctx, jobId));
-  } catch (error) {
-    if (error instanceof NotFoundError || error instanceof PlanRequiredError) {
-      return notFoundResponse();
-    }
-    throw error;
-  }
-}
+export const GET = privateImageRoute<RouteContext<'/app/[tenantSlug]/builder/previews/[jobId]'>>(
+  (ctx, { jobId }) => getAiPreviewImage(ctx, jobId),
+);

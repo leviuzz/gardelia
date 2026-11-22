@@ -182,6 +182,15 @@ Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 349/349 ✅ · 
 Prossimo blocco della fase 0: immagini private (un solo helper per route, lettura e `<img>`; file
 salvati fuori dalla transazione del database).
 
+**Fase 0, immagini private (fatto il 22/11):** un solo helper per livello. Core: `readStoredImage`
+(file mancante → "non trovata" e avviso nel log, invece di un 500) e `storeFilesThenCommit` (i
+file si salvano prima della transazione, che resta breve, e si cancellano se la registrazione
+fallisce o l'articolo non c'è; l'archivio ha ora `delete`). Web: `privateImageRoute` per le 5
+route (404 uguale per "non esiste", "altra fioreria", "ruolo" e "piano": prima alcuni casi davano 500) e `<PrivateImage>` per le 7 immagini (pigre nelle liste, subito nella pagina del preventivo da
+stampare). Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 354/354 ✅ (+5 sui file:
+pulizia dopo limite, altra fioreria, rete caduta a metà, Mis ramos, file mancante) · build ✅ ·
+E2E 39/39 ✅. Prossimo blocco della fase 0: azioni e percorsi (`defineTenantAction`, `routes.ts`).
+
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite
 `prisma` → `@prisma/config`, è chiuso con un override pnpm a ≥ 3.22.1 (`pnpm-workspace.yaml`);

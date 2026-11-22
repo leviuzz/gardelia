@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ActionState } from '@/lib/action-state';
 import { useToastActionState } from '@/lib/use-action-toast';
+import { PrivateImage } from '@/components/common/private-image';
 
 export interface PreviewPanelData {
   readonly simulated: boolean;
@@ -86,8 +87,12 @@ export function PreviewPanel({ data, dirty }: { data: PreviewPanelData; dirty: b
   const blocked = dirty || data.outdated || data.quota.remaining === 0;
   const sketchImage = (className: string) =>
     sketchUrl ? (
-      // eslint-disable-next-line @next/next/no-img-element -- immagine privata servita da una route autenticata
-      <img src={sketchUrl} alt={t('sketchAlt', { name: data.designName })} className={className} />
+      <PrivateImage
+        src={sketchUrl}
+        alt={t('sketchAlt', { name: data.designName })}
+        loading="eager"
+        className={className}
+      />
     ) : null;
 
   return (
@@ -109,10 +114,10 @@ export function PreviewPanel({ data, dirty }: { data: PreviewPanelData; dirty: b
 
         {status === 'SUCCEEDED' && data.preview?.imageUrl ? (
           <figure className="space-y-2">
-            {/* eslint-disable-next-line @next/next/no-img-element -- immagine privata servita da una route autenticata */}
-            <img
+            <PrivateImage
               src={data.preview.imageUrl}
               alt={t('alt', { name: data.designName })}
+              loading="eager"
               className="aspect-square w-full rounded-xl border bg-muted object-cover"
             />
             <figcaption className="space-y-1 text-xs text-muted-foreground">

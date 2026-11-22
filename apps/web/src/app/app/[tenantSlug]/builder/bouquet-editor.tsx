@@ -36,6 +36,7 @@ import { money } from '@/lib/format';
 import { useActionToast } from '@/lib/use-action-toast';
 import { cn } from '@/lib/utils';
 import { PreviewPanel, type PreviewPanelData } from './preview-panel';
+import { PrivateImage } from '@/components/common/private-image';
 
 export interface BuilderColorView {
   readonly value: string;
@@ -164,8 +165,7 @@ function ColorChoice({
                 className="sr-only"
               />
               {color.photoSrc ? (
-                // eslint-disable-next-line @next/next/no-img-element -- miniatura privata servita da una route autenticata
-                <img
+                <PrivateImage
                   src={color.photoSrc}
                   alt=""
                   className="size-8 rounded-lg border object-cover"

@@ -29,7 +29,6 @@ import {
 import { getBackgroundRemover } from '../ai/background-remover';
 import { fitsMonthlyAiBudget } from '../ai/budget';
 import { notifyAiWorker } from '../ai/signal';
-import { getObjectStorage } from '../ai/storage';
 import { notFound, recordAudit } from '../audit';
 import { requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
@@ -37,6 +36,7 @@ import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { logger } from '../logger';
 import { cutoutThumbKey } from '../media/cutout-keys';
 import { normalizeUploadedPhoto } from '../media/images';
+import { readStoredImage, storeFilesThenCommit } from '../media/stored-files';
 
 export interface CatalogPhotoDto {
   readonly id: string;
@@ -162,55 +162,57 @@ export async function addCatalogItemPhoto(
   const id = newId();
   const storageKey = `tenants/${ctx.tenantId}/catalog-photos/${id}.jpg`;
   const thumbKey = `tenants/${ctx.tenantId}/catalog-photos/${id}-thumb.jpg`;
-  const storage = getObjectStorage();
-
-  const photo = await withTenantContext(getDb(), ctx, async (tx) => {
-    // Blocca l'articolo: due caricamenti simultanei non superano il limite di foto.
-    const rows = await tx.$queryRaw<{ name: string; type: CatalogItemType; colors: string[] }[]>`
+  // File salvati PRIMA della transazione (che resta breve) e cancellati se non va a buon fine.
+  const files = [
+    { key: storageKey, bytes: image.full.bytes, contentType: image.full.contentType },
+    { key: thumbKey, bytes: image.thumb.bytes, contentType: image.thumb.contentType },
+  ];
+  const photo = await storeFilesThenCommit(files, () =>
+    withTenantContext(getDb(), ctx, async (tx) => {
+      // Blocca l'articolo: due caricamenti simultanei non superano il limite di foto.
+      const rows = await tx.$queryRaw<{ name: string; type: CatalogItemType; colors: string[] }[]>`
       SELECT "name", "type", "colors" FROM "CatalogItem"
       WHERE "id" = ${itemId}::uuid AND "tenantId" = ${ctx.tenantId}::uuid
       FOR UPDATE`;
-    const item = rows[0];
-    if (!item) return null;
-    if (!allowsPhotos(item.type))
-      throw new ValidationError({ file: 'photos_not_allowed_for_type' });
-    if (input.color !== null && !item.colors.includes(input.color)) {
-      throw new ValidationError({ color: 'invalid_option' });
-    }
-    const where = { tenantId: ctx.tenantId, catalogItemId: itemId };
-    const active = await tx.catalogItemPhoto.count({ where: { ...where, status: 'ACTIVE' } });
-    if (active >= PHOTO_LIMITS.perItem) throw new ValidationError({ file: 'too_many_photos' });
-    const last = await tx.catalogItemPhoto.aggregate({ where, _max: { sortOrder: true } });
+      const item = rows[0];
+      if (!item) return null;
+      if (!allowsPhotos(item.type))
+        throw new ValidationError({ file: 'photos_not_allowed_for_type' });
+      if (input.color !== null && !item.colors.includes(input.color)) {
+        throw new ValidationError({ color: 'invalid_option' });
+      }
+      const where = { tenantId: ctx.tenantId, catalogItemId: itemId };
+      const active = await tx.catalogItemPhoto.count({ where: { ...where, status: 'ACTIVE' } });
+      if (active >= PHOTO_LIMITS.perItem) throw new ValidationError({ file: 'too_many_photos' });
+      const last = await tx.catalogItemPhoto.aggregate({ where, _max: { sortOrder: true } });
 
-    // Se il salvataggio dei file fallisce la transazione si annulla: nessuna riga orfana.
-    await storage.put(storageKey, image.full.bytes, image.full.contentType);
-    await storage.put(thumbKey, image.thumb.bytes, image.thumb.contentType);
-    const created = await tx.catalogItemPhoto.create({
-      data: {
-        id,
-        tenantId: ctx.tenantId,
-        catalogItemId: itemId,
-        view: input.view,
-        color: input.color,
-        storageKey,
-        thumbKey,
-        contentType: image.full.contentType,
-        width: image.full.width,
-        height: image.full.height,
-        sizeBytes: image.full.bytes.byteLength,
-        sortOrder: (last._max.sortOrder ?? -1) + 1,
-        createdById: ctx.userId,
-      },
-    });
-    await recordAudit(tx, ctx, {
-      action: AUDIT_ACTIONS.catalogPhotoAdded,
-      entityType: 'CatalogItem',
-      entityId: itemId,
-      metadata: { photoId: id, name: item.name, view: input.view, color: input.color },
-    });
-    const queued = await enqueueCutout(tx, ctx, id);
-    return queued ? { ...created, cutoutStatus: 'PENDING' as const } : created;
-  });
+      const created = await tx.catalogItemPhoto.create({
+        data: {
+          id,
+          tenantId: ctx.tenantId,
+          catalogItemId: itemId,
+          view: input.view,
+          color: input.color,
+          storageKey,
+          thumbKey,
+          contentType: image.full.contentType,
+          width: image.full.width,
+          height: image.full.height,
+          sizeBytes: image.full.bytes.byteLength,
+          sortOrder: (last._max.sortOrder ?? -1) + 1,
+          createdById: ctx.userId,
+        },
+      });
+      await recordAudit(tx, ctx, {
+        action: AUDIT_ACTIONS.catalogPhotoAdded,
+        entityType: 'CatalogItem',
+        entityId: itemId,
+        metadata: { photoId: id, name: item.name, view: input.view, color: input.color },
+      });
+      const queued = await enqueueCutout(tx, ctx, id);
+      return queued ? { ...created, cutoutStatus: 'PENDING' as const } : created;
+    }),
+  );
   if (!photo) return notFound(ctx, 'CatalogItem', itemId);
   if (photo.cutoutStatus === 'PENDING') notifyAiWorker();
   return toDto(photo);
@@ -304,13 +306,11 @@ export async function getCatalogPhotoImage(
       throw new NotFoundError('CatalogItemPhoto');
     }
     const key = variant === 'cutout' ? photo.cutoutKey : cutoutThumbKey(photo.cutoutKey);
-    const bytes = await getObjectStorage().get(key);
-    if (!bytes) throw new NotFoundError('CatalogItemPhoto');
-    return { bytes, contentType: 'image/png' };
+    return readStoredImage(key, 'image/png', 'CatalogItemPhoto');
   }
-  const bytes = await getObjectStorage().get(
+  return readStoredImage(
     variant === 'thumb' ? photo.thumbKey : photo.storageKey,
+    photo.contentType,
+    'CatalogItemPhoto',
   );
-  if (!bytes) throw new NotFoundError('CatalogItemPhoto');
-  return { bytes, contentType: photo.contentType };
 }
