@@ -34,7 +34,7 @@ test.describe('promociones (florería demo)', () => {
     await expect(page.getByText('Estás en una florería de demostración: puedes')).toBeVisible();
 
     // Attivarla senza sconto: errore sul campo.
-    const enabled = page.getByLabel('Enviar el correo automáticamente');
+    const enabled = page.getByLabel('Envío automático cada mañana');
     const percent = page.getByLabel('Porcentaje de descuento');
     await page.getByLabel('Porcentaje', { exact: true }).check();
     await enabled.check();
@@ -86,7 +86,7 @@ test.describe('promociones (florería real)', () => {
 
     await page.goto(`/app/${slug}/promotions`);
     await expect(page.getByText('Estás en una florería de demostración: puedes')).toHaveCount(0);
-    await page.getByLabel('Enviar el correo automáticamente').check();
+    await page.getByLabel('Envío automático cada mañana').check();
     await page.getByLabel('Porcentaje de descuento').fill('20');
     await page.getByRole('button', { name: 'Guardar cambios' }).click();
     await expect(page.getByText('20% de descuento para tu cumpleaños')).toBeVisible();
@@ -97,7 +97,7 @@ test.describe('promociones (florería real)', () => {
     await page.goto(`/app/${slug}/customers/new`);
     await page.getByRole('textbox', { name: 'Nombre', exact: true }).fill('Lucía Promo');
     await page.getByLabel('Correo electrónico').fill(customerEmail);
-    await page.getByLabel('Acepta recibir promociones').check();
+    await page.getByLabel('El cliente aceptó recibir promociones').check();
     await page.getByRole('button', { name: 'Agregar fecha' }).click();
     const row = page.getByRole('group', { name: 'Fecha 1' });
     await row.getByRole('spinbutton', { name: 'Día', exact: true }).fill(String(date.day));
@@ -114,11 +114,35 @@ test.describe('promociones (florería real)', () => {
     expect(email.text).toContain('Hola, Lucía Promo:');
     expect(email.text).toContain(shopName);
 
-    // Nel calendario la data dice che la promo è partita.
+    // L'email porta il codice personale; nel calendario la data dice che la promo è partita.
+    const code = /Tu código de descuento: ([A-Z0-9]{3}-[A-Z0-9]{3})/.exec(email.text)?.[1] ?? '';
+    expect(code).toMatch(/^[2-9A-HJ-NP-Z]{3}-[2-9A-HJ-NP-Z]{3}$/);
     await page.goto(`/app/${slug}/calendar?view=day&date=${date.iso}`);
     await expect(page.getByRole('article').filter({ hasText: 'Lucía Promo' })).toContainText(
-      'Promoción enviada el',
+      `código ${code}`,
     );
+
+    // Il cliente scrive su WhatsApp con il codice: la fioreria lo cerca come lo ha scritto lui,
+    // vede che vale e lo segna come usato.
+    await page.goto(`/app/${slug}/promotions`);
+    await page.getByRole('link', { name: 'Ver descuentos' }).click();
+    await expect(page.getByRole('heading', { name: 'Descuentos', level: 1 })).toBeVisible();
+    await page.getByRole('searchbox').fill(code.toLowerCase().replace('-', ' '));
+    await page.getByRole('searchbox').press('Enter');
+    const discount = page.getByRole('article').filter({ hasText: code });
+    await expect(discount).toContainText('Vigente');
+    await expect(discount).toContainText('Lucía Promo');
+    await discount.getByRole('button', { name: 'Marcar como usado' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('Nota (opcional)').fill('Ramo de 12 rosas');
+    await dialog.getByRole('button', { name: 'Marcar como usado' }).click();
+    await expect(page.getByText('Descuento marcado como usado')).toBeVisible();
+    await expect(discount).toContainText('Usado');
+    await expect(discount).toContainText('lo marcó Rosa Martínez — Ramo de 12 rosas');
+
+    // La scheda del cliente lo mostra come usato.
+    await page.goto(customerPath);
+    await expect(page.getByRole('article').filter({ hasText: code })).toContainText('Usado');
 
     // Il cliente, senza sessione, apre il link dell'email e conferma.
     const unsubscribeLink = linkFrom(email, '/unsubscribe/');
@@ -145,6 +169,6 @@ test.describe('promociones (florería real)', () => {
 
     // Il fiorista vede il consenso tolto.
     await page.goto(customerPath);
-    await expect(page.getByLabel('Acepta recibir promociones')).not.toBeChecked();
+    await expect(page.getByLabel('El cliente aceptó recibir promociones')).not.toBeChecked();
   });
 });

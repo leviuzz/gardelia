@@ -58,6 +58,8 @@ export type ConflictReason =
   | 'cutout_unavailable'
   | 'cutout_retry_limit'
   | 'preview_retry_limit'
+  | 'promo_not_sent'
+  | 'promo_already_used'
   | 'platform_admin_exists';
 
 export class ConflictError extends AppError {

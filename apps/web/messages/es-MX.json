@@ -94,7 +94,9 @@
       "cutout_unavailable": "Por ahora no podemos quitar el fondo. Inténtalo más tarde.",
       "cutout_retry_limit": "El servicio para quitar el fondo falló varias veces con esta foto: el problema es nuestro, no de la foto. Inténtalo más tarde subiéndola de nuevo.",
       "preview_retry_limit": "Ya lo intentamos varias veces con este diseño: comparte el boceto exacto o ajusta el diseño.",
-      "platform_admin_exists": "Ya existe un administrador de la plataforma."
+      "platform_admin_exists": "Ya existe un administrador de la plataforma.",
+      "promo_not_sent": "Este correo no llegó al cliente: no hay descuento que marcar.",
+      "promo_already_used": "Este descuento ya está marcado como usado."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -337,7 +339,9 @@
     "builder.style_reference_added": "{actor} agregó una foto a «Mis ramos»",
     "builder.style_reference_archived": "{actor} quitó una foto de «Mis ramos»",
     "tenant.promo_updated": "{actor} cambió la promoción de fechas especiales",
-    "customer.unsubscribed": "Un cliente se dio de baja de las promociones"
+    "customer.unsubscribed": "Un cliente se dio de baja de las promociones",
+    "promo.redeemed": "{actor} marcó como usado un descuento",
+    "promo.redemption_undone": "{actor} quitó el uso de un descuento"
   },
   "catalog": {
     "title": "Catálogo",
@@ -666,8 +670,8 @@
       "tagsHint": "Separadas por comas. Ej. frecuente, empresa",
       "channel": "¿Cómo te conoció?",
       "channelNone": "Sin especificar",
-      "marketingConsent": "Acepta recibir promociones",
-      "marketingConsentHint": "Marca solo si el cliente lo autorizó. Con su consentimiento y su correo recibirá la promoción de sus fechas especiales (si la activas en Promociones).",
+      "marketingConsent": "El cliente aceptó recibir promociones",
+      "marketingConsentHint": "Márcalo solo si el cliente te dio permiso. Si tiene correo y el envío automático está activo en Promociones, recibirá el descuento de sus fechas especiales y podrá darse de baja desde el mismo correo. Guardamos la fecha del consentimiento.",
       "consentSince": "Consentimiento registrado el {date}",
       "create": "Crear cliente",
       "creating": "Creando…",
@@ -754,7 +758,12 @@
       "octubre",
       "noviembre",
       "diciembre"
-    ]
+    ],
+    "promos": {
+      "title": "Promociones",
+      "subtitle": "Descuentos que recibió por sus fechas especiales y si ya los usó.",
+      "empty": "Aún no ha recibido ninguna promoción."
+    }
   },
   "quotes": {
     "title": "Cotizaciones",
@@ -1239,14 +1248,15 @@
     "goToCustomers": "Ir a clientes",
     "whatsappText": "Hola {name}, se acerca {occasion}. ¿Te preparamos unas flores especiales?",
     "promo": {
-      "sent": "Promoción enviada el {date}",
+      "sent": "Promoción enviada el {date} · código {code}",
       "sending": "Enviando la promoción…",
       "failed": "No se pudo enviar la promoción",
       "scheduled": "La promoción se enviará el {date}",
       "scheduledNext": "La promoción sale con el próximo envío diario",
       "demo": "(florería demo: no se envía)",
       "noEmail": "Sin promoción: el cliente no tiene correo",
-      "noConsent": "Sin promoción: el cliente no aceptó recibir promociones"
+      "noConsent": "Sin promoción: el cliente no aceptó recibir promociones",
+      "used": "Promoción usada el {date} · código {code}"
     },
     "promoHint": "Envía un descuento automático por correo antes de cada fecha.",
     "goToPromotions": "Configurar la promoción"
@@ -1261,8 +1271,8 @@
       "subtitle": "Elige el descuento que reciben tus clientes antes de su cumpleaños, aniversario u otra fecha especial."
     },
     "form": {
-      "enabled": "Enviar el correo automáticamente",
-      "enabledHint": "Solo a clientes con correo que aceptaron recibir promociones.",
+      "enabled": "Envío automático cada mañana",
+      "enabledHint": "Con esto activado, cada mañana enviamos el correo, sin que hagas nada, a los clientes con una fecha especial próxima que aceptaron recibir promociones.",
       "kind": "Tipo de descuento",
       "kinds": {
         "PERCENT": "Porcentaje",
@@ -1275,8 +1285,8 @@
     "how": {
       "title": "Cómo funciona",
       "who": "Lo reciben los clientes con correo que aceptaron recibir promociones: {reachable} de {total} clientes con fechas especiales.",
-      "when": "Sale unos días antes de cada fecha, según el aviso de esa fecha (7 días si no lo cambias), por la mañana.",
-      "validity": "El descuento vale hasta el día de la fecha: tu cliente muestra el correo en la tienda o te escribe por WhatsApp, y tú aplicas el descuento.",
+      "when": "Sale solo cada mañana (hacia las 9, hora del centro de México), unos días antes de cada fecha: los del aviso de esa fecha (7 si no lo cambias).",
+      "validity": "Cada correo lleva un código personal. Tu cliente te escribe por WhatsApp con el código (o muestra el correo en la tienda), lo buscas en Descuentos, aplicas el descuento y lo marcas como usado.",
       "once": "Un solo correo por fecha cada año.",
       "unsubscribe": "Cada correo trae un enlace para dejar de recibir promociones; si tu cliente lo usa, se le quita el consentimiento.",
       "sent": "{count, plural, =0 {Ningún correo enviado en los últimos 30 días.} one {# correo enviado en los últimos 30 días.} other {# correos enviados en los últimos 30 días.}}",
@@ -1289,6 +1299,58 @@
       "subtitle": "Ejemplo con un cumpleaños dentro de 7 días. El correo va en el idioma de tu florería ({language}).",
       "subject": "Asunto:",
       "empty": "Elige el descuento y guarda para ver el correo."
+    },
+    "upcoming": {
+      "title": "Próximos envíos",
+      "subtitle": "Correos que saldrán solos en los próximos 7 días.",
+      "off": "El envío automático está apagado: actívalo arriba para que cada mañana salgan los correos.",
+      "empty": "No hay correos programados para los próximos 7 días.",
+      "today": "Hoy",
+      "tomorrow": "Mañana",
+      "row": "{day} · {occasion}",
+      "more": "{count, plural, one {y # más} other {y # más}}"
+    },
+    "discountsCard": {
+      "title": "Descuentos enviados",
+      "subtitle": "Cuando un cliente te escriba con su código, búscalo y márcalo como usado.",
+      "open": "Ver descuentos"
+    },
+    "discounts": {
+      "title": "Descuentos",
+      "subtitle": "Cada correo de promoción lleva un código. Búscalo por código, nombre, correo o teléfono, revisa si sigue vigente y márcalo como usado.",
+      "back": "Promociones",
+      "searchPlaceholder": "Código, nombre, correo o teléfono",
+      "allStatuses": "Todos",
+      "statuses": {
+        "VALID": "Vigente",
+        "USED": "Usado",
+        "EXPIRED": "Vencido"
+      },
+      "counts": {
+        "VALID": "{count, plural, =0 {Ningún descuento vigente} one {# descuento vigente} other {# descuentos vigentes}}",
+        "USED": "{count, plural, =0 {Ningún descuento usado} one {# descuento usado} other {# descuentos usados}}",
+        "EXPIRED": "{count, plural, =0 {Ningún descuento vencido} one {# descuento vencido} other {# descuentos vencidos}}"
+      },
+      "results": "{count, plural, one {# descuento} other {# descuentos}}",
+      "emptyTitle": "Aún no hay descuentos",
+      "emptyBody": "Aquí aparecerá cada correo de promoción enviado, con su código, en cuanto salga el primero.",
+      "noResultsTitle": "Ningún descuento coincide",
+      "noResultsBody": "Revisa el código o busca por el nombre del cliente.",
+      "dates": "Enviado el {sent} · vale hasta el {until}",
+      "usedBy": "Usado el {date} · lo marcó {name}",
+      "usedOn": "Usado el {date}",
+      "markUsed": "Marcar como usado",
+      "markUsedTitle": "¿Marcar el código {code} como usado?",
+      "markUsedBody": "{customer} usa su descuento de {discount}. Ya no aparecerá como vigente.",
+      "noteLabel": "Nota (opcional)",
+      "noteHint": "Por ejemplo, qué compró o el número de cotización.",
+      "confirmUse": "Marcar como usado",
+      "undo": "Deshacer",
+      "undoTitle": "¿Quitar el uso del código {code}?",
+      "undoBody": "El descuento volverá a aparecer como vigente (o vencido, si ya pasó la fecha).",
+      "confirmUndo": "Quitar el uso",
+      "redeemed": "Descuento marcado como usado",
+      "undone": "Se quitó el uso del descuento"
     }
   },
   "unsubscribe": {

@@ -9,9 +9,21 @@
  *  - Lo sconto vale fino al giorno della data.
  */
 import { z } from 'zod';
-import { addDays, daysBetween, yearlyOccurrences, type CalendarDate } from './calendar';
+import {
+  addDays,
+  compareDates,
+  daysBetween,
+  yearlyOccurrences,
+  type CalendarDate,
+} from './calendar';
 import { formatMoney, type CurrencyCode } from './money';
-import { checkboxField, optionalInteger, optionalMoneyField } from './validation';
+import {
+  checkboxField,
+  optionalInteger,
+  optionalMoneyField,
+  optionalText,
+  toTrimmedString,
+} from './validation';
 
 export const DISCOUNT_KINDS = ['PERCENT', 'AMOUNT'] as const;
 export type DiscountKind = (typeof DISCOUNT_KINDS)[number];
@@ -140,3 +152,60 @@ export function duePromoOccurrences<T extends PromoOccasion>(
 export function promoSendDate(date: CalendarDate, remindDaysBefore: number): CalendarDate {
   return addDays(date, -remindDaysBefore);
 }
+
+// -----------------------------------------------------------------------------
+// Codici e registro degli sconti (ADR-048)
+// -----------------------------------------------------------------------------
+
+/**
+ * Ogni email della promo porta un codice personale: il cliente lo scrive su WhatsApp e la
+ * fioreria lo cerca per sapere se lo sconto è suo, se vale ancora e se è già stato usato.
+ * Niente 0/O né 1/I, che scritti a mano o letti al telefono si confondono.
+ */
+export const PROMO_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+export const PROMO_CODE_LENGTH = 6;
+
+/** "k7m 4qh", "K7M-4QH" → "K7M4QH"; null se non può essere un codice. */
+export function normalizePromoCode(input: unknown): string | null {
+  if (typeof input !== 'string') return null;
+  const compact = input.toUpperCase().replace(/[\s-]+/g, '');
+  if (compact.length !== PROMO_CODE_LENGTH) return null;
+  for (const char of compact) if (!PROMO_CODE_ALPHABET.includes(char)) return null;
+  return compact;
+}
+
+/** "K7M4QH" → "K7M-4QH", come si legge nell'email. */
+export function formatPromoCode(code: string): string {
+  return `${code.slice(0, 3)}-${code.slice(3)}`;
+}
+
+export const PROMO_DISCOUNT_STATUSES = ['VALID', 'USED', 'EXPIRED'] as const;
+export type PromoDiscountStatus = (typeof PROMO_DISCOUNT_STATUSES)[number];
+
+/** Sconto inviato: usato; altrimenti valido fino al giorno della data compreso, poi scaduto. */
+export function promoDiscountStatus(
+  discount: { readonly redeemed: boolean; readonly validUntil: CalendarDate },
+  today: CalendarDate,
+): PromoDiscountStatus {
+  if (discount.redeemed) return 'USED';
+  return compareDates(today, discount.validUntil) <= 0 ? 'VALID' : 'EXPIRED';
+}
+
+export const PROMO_DISCOUNT_PAGE_SIZE = 20;
+
+/** Filtri dell'elenco degli sconti inviati (`?q=…&status=…&page=…`). */
+export const promoDiscountFiltersSchema = z.object({
+  q: z.preprocess(toTrimmedString, z.string().max(80).catch('')),
+  status: z.preprocess(toTrimmedString, z.enum(PROMO_DISCOUNT_STATUSES).nullable().catch(null)),
+  page: z.preprocess(
+    (value) => (typeof value === 'string' ? Number(value) : value),
+    z.int().min(1).max(10_000).catch(1),
+  ),
+});
+export type PromoDiscountFilters = z.infer<typeof promoDiscountFiltersSchema>;
+
+/** Nota facoltativa quando si segna uno sconto come usato (es. "Ramo de 24 rosas, COT-0042"). */
+export const PROMO_REDEMPTION_NOTE_MAX = 200;
+export const promoRedemptionSchema = z.object({
+  note: optionalText(PROMO_REDEMPTION_NOTE_MAX),
+});
