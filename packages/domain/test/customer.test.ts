@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   customerAddressSchema,
+  customerCreateFormSchema,
   customerFormSchema,
   isPlatformSource,
   isValidMonthDay,
@@ -69,6 +70,60 @@ describe('form cliente', () => {
     expect(result).not.toHaveProperty('acquisitionSource');
     expect(isPlatformSource('NETWORK_B2B')).toBe(true);
     expect(isPlatformSource('MERCHANT_DIRECT')).toBe(false);
+  });
+});
+
+describe('nuovo cliente con le sue date speciali', () => {
+  const base = { type: 'PERSON', displayName: 'Ana Ruiz', marketingConsent: '' };
+
+  it('le date arrivano come JSON e si validano una per una', () => {
+    const parsed = customerCreateFormSchema('MX').parse({
+      ...base,
+      occasions: JSON.stringify([
+        { type: 'BIRTHDAY', month: '5', day: '10', year: '1990' },
+        { type: 'CUSTOM', label: 'Día de las madres', month: '5', day: '10', personName: 'Mamá' },
+      ]),
+    });
+    expect(parsed.displayName).toBe('Ana Ruiz');
+    expect(parsed.occasions).toHaveLength(2);
+    expect(parsed.occasions[0]).toMatchObject({ type: 'BIRTHDAY', month: 5, day: 10, year: 1990 });
+    expect(parsed.occasions[1]).toMatchObject({ label: 'Día de las madres', remindDaysBefore: 7 });
+  });
+
+  it('senza date va bene; gli errori indicano la data e il campo', () => {
+    expect(customerCreateFormSchema('MX').parse({ ...base, occasions: '' }).occasions).toEqual([]);
+    expect(customerCreateFormSchema('MX').parse(base).occasions).toEqual([]);
+    const result = customerCreateFormSchema('MX').safeParse({
+      ...base,
+      displayName: '',
+      occasions: JSON.stringify([
+        { type: 'BIRTHDAY', month: '5', day: '10' },
+        { type: 'CUSTOM', month: '2', day: '30' },
+      ]),
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(toFieldErrors(result.error)).toMatchObject({
+        displayName: 'required',
+        'occasions.1.day': 'invalid_date',
+        'occasions.1.label': 'required',
+      });
+    }
+  });
+
+  it('JSON rovinato o troppe date: errore, niente dati a metà', () => {
+    expect(customerCreateFormSchema('MX').safeParse({ ...base, occasions: '{' }).success).toBe(
+      false,
+    );
+    const many = Array.from({ length: 31 }, () => ({ type: 'BIRTHDAY', month: '1', day: '1' }));
+    const result = customerCreateFormSchema('MX').safeParse({
+      ...base,
+      occasions: JSON.stringify(many),
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(toFieldErrors(result.error)).toMatchObject({ occasions: 'too_many_items' });
+    }
   });
 });
 

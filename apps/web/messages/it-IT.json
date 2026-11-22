@@ -733,7 +733,8 @@
       "inDays": "{count, plural, one {tra # giorno} other {tra # giorni}}",
       "of": "di {name}",
       "date": "{day} {month}",
-      "dateWithYear": "{day} {month} {year}"
+      "dateWithYear": "{day} {month} {year}",
+      "rowLabel": "Data {number}"
     },
     "months": [
       "gennaio",

@@ -12,6 +12,7 @@ import { Checkbox, Input, NativeSelect, Textarea } from '@/components/ui/input';
 import { fieldError, idleState, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 import { useActionToast } from '@/lib/use-action-toast';
+import { OccasionRowsField } from './occasion-rows-field';
 
 export interface CustomerFormDefaults {
   readonly type: CustomerType;
@@ -159,6 +160,18 @@ export function CustomerForm({
           </div>
         </CardContent>
       </Card>
+
+      {mode === 'create' ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('occasions.title')}</CardTitle>
+            <CardDescription>{t('occasions.subtitle')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <OccasionRowsField error={err} />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

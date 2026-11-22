@@ -15,7 +15,7 @@ import {
   updateCustomer,
   updateCustomerAddress,
 } from '@floral/core';
-import { customerFormSchema } from '@floral/domain';
+import { customerCreateFormSchema, customerFormSchema } from '@floral/domain';
 import type { ActionState } from '@/lib/action-state';
 import { formDataToObject, parseForm } from '@/lib/form-data';
 import { runTenantAction, section } from '@/lib/tenant-action';
@@ -26,7 +26,11 @@ export async function createCustomerAction(
   formData: FormData,
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
-    const { id } = await createCustomer(ctx, parseForm(customerFormSchema(ctx.country), formData));
+    // Il cliente e le sue date speciali (modulo di creazione): salvati insieme.
+    const { id } = await createCustomer(
+      ctx,
+      parseForm(customerCreateFormSchema(ctx.country), formData),
+    );
     return {
       revalidate: routes.customers.list(),
       redirectTo: routes.customers.detail(id, { created: true }),

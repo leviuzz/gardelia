@@ -205,6 +205,53 @@ export function isValidMonthDay(month: number, day: number): boolean {
   return day >= 1 && day <= (DAYS_IN_MONTH[month - 1] ?? 0);
 }
 
+/** Testo facoltativo già tipizzato: vuoto o assente → null. */
+function nullableText(max: number) {
+  return z
+    .string({ error: 'invalid' })
+    .trim()
+    .max(max, { error: 'too_long' })
+    .nullable()
+    .default(null)
+    .transform((value) => (value === '' ? null : value));
+}
+
+function boundedInt(min: number, max: number) {
+  return z
+    .int({ error: 'invalid_number' })
+    .min(min, { error: 'out_of_range' })
+    .max(max, { error: 'out_of_range' });
+}
+
+/** Regole comuni a una data speciale: giorno esistente nel mese, nome per le date personalizzate. */
+function occasionRules(
+  value: { readonly type: OccasionType; readonly label: string | null; month: number; day: number },
+  ctx: z.RefinementCtx,
+): void {
+  if (!isValidMonthDay(value.month, value.day)) {
+    ctx.addIssue({ code: 'custom', path: ['day'], message: 'invalid_date' });
+  }
+  if (value.type === 'CUSTOM' && value.label === null) {
+    ctx.addIssue({ code: 'custom', path: ['label'], message: 'required' });
+  }
+}
+
+/** Data speciale con valori già tipizzati (i servizi la ricontrollano sempre). */
+export const occasionInputSchema = z
+  .object({
+    type: z.enum(OCCASION_TYPES, { error: 'invalid_option' }),
+    label: nullableText(CUSTOMER_LIMITS.occasionLabel),
+    personName: nullableText(CUSTOMER_LIMITS.recipientName),
+    month: boundedInt(1, 12),
+    day: boundedInt(1, 31),
+    year: boundedInt(1900, 2100).nullable().default(null),
+    remindDaysBefore: boundedInt(0, 60).default(7),
+    notes: nullableText(CUSTOMER_LIMITS.occasionNotes),
+  })
+  .superRefine(occasionRules);
+export type OccasionInput = z.infer<typeof occasionInputSchema>;
+
+/** Data speciale dal modulo (testi): converte i campi e applica le stesse regole. */
 export const occasionSchema = z
   .object({
     type: z.preprocess(toTrimmedString, z.enum(OCCASION_TYPES, { error: 'invalid_option' })),
@@ -219,15 +266,38 @@ export const occasionSchema = z
     ),
     notes: optionalText(CUSTOMER_LIMITS.occasionNotes),
   })
-  .superRefine((value, ctx) => {
-    if (!isValidMonthDay(value.month, value.day)) {
-      ctx.addIssue({ code: 'custom', path: ['day'], message: 'invalid_date' });
-    }
-    if (value.type === 'CUSTOM' && value.label === null) {
-      ctx.addIssue({ code: 'custom', path: ['label'], message: 'required' });
-    }
-  });
-export type OccasionInput = z.infer<typeof occasionSchema>;
+  .superRefine(occasionRules);
+
+/** Date speciali inserite insieme al nuovo cliente (al massimo quante ne ha un cliente). */
+export const occasionListSchema = z
+  .array(occasionSchema)
+  .max(CUSTOMER_LIMITS.occasionsPerCustomer, { error: 'too_many_items' });
+
+/** Le stesse, già tipizzate (servizio di creazione del cliente). */
+export const occasionInputListSchema = z
+  .array(occasionInputSchema)
+  .max(CUSTOMER_LIMITS.occasionsPerCustomer, { error: 'too_many_items' });
+
+/** Il modulo le invia come JSON in un campo nascosto (`occasions`); vuoto = nessuna data. */
+const occasionsJsonField = z.preprocess((value) => {
+  if (value === undefined || value === '') return [];
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return null;
+  }
+}, occasionListSchema);
+
+/**
+ * Nuovo cliente con le sue date speciali (modulo di creazione): i campi del cliente come
+ * `customerFormSchema`, più `occasions`. Gli errori di una data arrivano come
+ * `occasions.<indice>.<campo>`.
+ */
+export function customerCreateFormSchema(country: MarketCountry) {
+  return z.intersection(customerFormSchema(country), z.object({ occasions: occasionsJsonField }));
+}
+export type CustomerCreateInput = z.infer<ReturnType<typeof customerCreateFormSchema>>;
 
 function isLeapYear(year: number): boolean {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;

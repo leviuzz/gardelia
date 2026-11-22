@@ -345,6 +345,18 @@ export const DEMO_CUSTOMERS = [
     tags: ['frecuente'],
     acquisitionChannel: 'instagram',
     marketingConsent: true,
+    occasions: [
+      { type: 'BIRTHDAY', label: null, personName: null, month: 12, day: 14, year: 1991 },
+      { type: 'ANNIVERSARY', label: null, personName: null, month: 3, day: 2, year: 2018 },
+      {
+        type: 'CUSTOM',
+        label: 'Día de las madres',
+        personName: 'Su mamá',
+        month: 5,
+        day: 10,
+        year: null,
+      },
+    ],
   },
   {
     type: 'COMPANY',
@@ -356,6 +368,16 @@ export const DEMO_CUSTOMERS = [
     tags: ['empresa', 'recurrente'],
     acquisitionChannel: 'referido',
     marketingConsent: false,
+    occasions: [
+      {
+        type: 'CUSTOM',
+        label: 'Aniversario del hotel',
+        personName: null,
+        month: 1,
+        day: 20,
+        year: 2009,
+      },
+    ],
   },
   {
     type: 'COMPANY',
@@ -367,5 +389,6 @@ export const DEMO_CUSTOMERS = [
     tags: ['empresa', 'floral care'],
     acquisitionChannel: 'visita',
     marketingConsent: false,
+    occasions: [],
   },
 ] as const;

@@ -168,6 +168,41 @@ describe('indirizzi e ricorrenze', () => {
     ).rejects.toBeInstanceOf(ValidationError);
   });
 
+  it('il nuovo cliente nasce con le sue date speciali, tutto o niente', async () => {
+    const local = await createTestShop();
+    const { id } = await createCustomer(local.owner, {
+      ...customerInput(),
+      occasions: [
+        { type: 'BIRTHDAY', month: 5, day: 10, year: 1990 },
+        { type: 'ANNIVERSARY', month: 2, day: 14, personName: null, remindDaysBefore: 10 },
+      ],
+    });
+    const detail = await getCustomer(local.owner, id);
+    expect(
+      detail.occasions.map((occasion) => [occasion.type, occasion.month, occasion.day]),
+    ).toEqual(
+      expect.arrayContaining([
+        ['BIRTHDAY', 5, 10],
+        ['ANNIVERSARY', 2, 14],
+      ]),
+    );
+    expect(detail.occasions.find((occasion) => occasion.type === 'ANNIVERSARY')).toMatchObject({
+      remindDaysBefore: 10,
+    });
+
+    // Una data sbagliata: nessun cliente creato.
+    const before = (await listCustomers(local.owner, {})).total;
+    await expect(
+      createCustomer(local.owner, {
+        ...customerInput({ displayName: 'Cliente con fecha mala' }),
+        occasions: [{ type: 'CUSTOM', month: 2, day: 30 }],
+      }),
+    ).rejects.toMatchObject({
+      fieldErrors: { 'occasions.0.day': 'invalid_date', 'occasions.0.label': 'required' },
+    });
+    expect((await listCustomers(local.owner, {})).total).toBe(before);
+  });
+
   it('elenca le ricorrenze imminenti dei clienti attivi', async () => {
     const local = await createTestShop();
     const { id } = await createCustomer(local.owner, customerInput());
