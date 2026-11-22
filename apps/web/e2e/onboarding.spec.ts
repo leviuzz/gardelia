@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { linkFrom, uniqueEmail, waitForEmail } from './support/mailbox';
+import { createProduct } from './support/catalog';
 
 /**
  * FLOW-A (spec §10): registrazione → verifica email reale → creazione fioreria → primo prodotto.
@@ -45,12 +46,7 @@ test('un nuovo fiorista si registra, verifica l’email, crea la fioreria e il p
   await page.getByRole('link', { name: 'Catálogo' }).first().click();
   await expect(page.getByText('Tu catálogo está vacío')).toBeVisible();
   await page.getByRole('link', { name: 'Nuevo producto' }).first().click();
-  await page.getByRole('textbox', { name: 'Nombre', exact: true }).fill('Rosa roja');
-  await page.getByLabel('Precio de venta (MXN)').fill('38.50');
-  await page.getByLabel('Costo estimado (MXN)').fill('15');
-  await page.getByRole('button', { name: 'Crear producto' }).click();
-
-  await expect(page.getByText('Producto creado')).toBeVisible();
+  await createProduct(page, { name: 'Rosa roja', price: '38.50', cost: '15' });
   await page.getByRole('link', { name: 'Volver' }).click();
   await expect(page.getByRole('table').getByText('$38.50')).toBeVisible();
 });

@@ -28,6 +28,11 @@ describe('percorsi della fioreria (routes.ts)', () => {
     expect(routes.catalog.item('i1', { created: true })).toBe(
       '/app/las-camelias/catalog/i1?created=1',
     );
+    // Passi dopo la creazione guidata di un prodotto: foto, poi "listo".
+    expect(routes.catalog.added('i1')).toBe('/app/las-camelias/catalog/new/i1');
+    expect(routes.catalog.added('i1', { step: 'done' })).toBe(
+      '/app/las-camelias/catalog/new/i1?step=done',
+    );
   });
 
   it('codifica i valori: un nome con & o # non rompe il link', () => {

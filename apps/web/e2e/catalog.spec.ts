@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createProduct } from './support/catalog';
 
 test.use({ storageState: 'e2e/.auth/owner.json' });
 
@@ -7,16 +8,39 @@ test.describe('catalogo (proprietario)', () => {
     const name = `Hortensia azul ${Date.now()}`;
     await page.goto('/app/las-camelias/catalog/new');
 
-    // Validazione lato server: prezzo non valido.
+    // Passo 1: senza nome non si va avanti (il browser segnala il campo).
+    await page.getByRole('button', { name: 'Continuar' }).click();
+    await expect(page.getByRole('heading', { name: '¿Qué vas a agregar?' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Nombre', exact: true })).toBeFocused();
     await page.getByRole('textbox', { name: 'Nombre', exact: true }).fill(name);
+    await page.getByRole('button', { name: 'Continuar' }).click();
+
+    // Passo 2: colori.
+    await expect(page.getByRole('heading', { name: '¿En qué colores lo tienes?' })).toBeVisible();
+    await page.getByText('Azul', { exact: true }).click();
+    await page.getByRole('button', { name: 'Continuar' }).click();
+
+    // Passo 3: validazione lato server del prezzo, si resta sul passo.
+    await expect(page.getByRole('heading', { name: '¿Cuánto cuesta?' })).toBeVisible();
     await page.getByLabel('Precio de venta (MXN)').fill('12,345.00');
     await page.getByRole('button', { name: 'Crear producto' }).click();
     await expect(page.getByText('Escribe un importe válido')).toBeVisible();
-
+    // Si torna indietro senza perdere nulla.
+    await page.getByRole('button', { name: 'Atrás' }).click();
+    await expect(page.getByRole('heading', { name: '¿En qué colores lo tienes?' })).toBeVisible();
+    await page.getByRole('button', { name: 'Continuar' }).click();
     await page.getByLabel('Precio de venta (MXN)').fill('95');
-    await page.getByText('Azul', { exact: true }).click();
     await page.getByRole('button', { name: 'Crear producto' }).click();
+
+    // Passo 4: foto, che si può saltare; passo 5: listo.
     await expect(page.getByText('Producto creado')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Agrega una foto' })).toBeVisible();
+    await page.getByRole('link', { name: 'Saltar por ahora' }).click();
+    await expect(
+      page.getByRole('heading', { name: `¡Listo! «${name}» ya está en tu catálogo.` }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: 'Ver el producto' }).click();
+    await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible();
 
     await page.getByLabel('Precio de venta (MXN)').fill('99.90');
     await page.getByRole('button', { name: 'Guardar cambios' }).click();
@@ -33,10 +57,9 @@ test.describe('catalogo (proprietario)', () => {
   test('la receta di un ramo ricalcola costi e margini', async ({ page }) => {
     const bouquet = `Ramo E2E ${Date.now()}`;
     await page.goto('/app/las-camelias/catalog/new');
-    await page.getByLabel('Tipo de producto').selectOption('BOUQUET');
-    await page.getByRole('textbox', { name: 'Nombre', exact: true }).fill(bouquet);
-    await page.getByLabel('Precio de venta (MXN)').fill('500');
-    await page.getByRole('button', { name: 'Crear producto' }).click();
+    await createProduct(page, { type: 'BOUQUET', name: bouquet, price: '500' });
+    await page.getByRole('link', { name: 'Saltar por ahora' }).click();
+    await page.getByRole('link', { name: 'Armar la receta' }).click();
     await expect(page.getByText('Este ramo aún no tiene ingredientes.')).toBeVisible();
 
     // 10 rose rosse a 14.00 di costo = 140.00
@@ -92,9 +115,13 @@ test.describe('specie del prodotto (ADR-043)', () => {
     await expect(species).toHaveValue('Lisianthus');
     await expect(page.getByText('Sugerida por el nombre del producto.')).toHaveCount(0);
 
+    await page.getByRole('button', { name: 'Continuar' }).click();
+    await page.getByRole('button', { name: 'Continuar' }).click();
     await page.getByLabel('Precio de venta (MXN)').fill('35');
     await page.getByRole('button', { name: 'Crear producto' }).click();
     await expect(page.getByText('Producto creado')).toBeVisible();
+    await page.getByRole('link', { name: 'Saltar por ahora' }).click();
+    await page.getByRole('link', { name: 'Ver el producto' }).click();
     await expect(page.getByRole('combobox', { name: 'Especie' })).toHaveValue('Lisianthus');
 
     // Con la tastiera: frecce e Invio scelgono senza inviare il modulo.

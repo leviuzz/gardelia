@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
+import { createProduct } from './support/catalog';
 
 /**
  * Anteprima esatta (ADR-034) con il provider simulato: la foto del fiore si scontorna in locale,
@@ -108,10 +109,7 @@ test.describe('anteprima esatta (provider simulato)', () => {
     await page.goto(`/app/las-camelias/catalog?q=${encodeURIComponent(flower)}`);
     if ((await page.getByRole('link', { name: flower, exact: true }).count()) === 0) {
       await page.goto('/app/las-camelias/catalog/new');
-      await page.getByRole('textbox', { name: 'Nombre', exact: true }).fill(flower);
-      await page.getByLabel('Precio de venta (MXN)').fill('20');
-      await page.getByRole('button', { name: 'Crear producto' }).click();
-      await expect(page.getByText('Producto creado')).toBeVisible();
+      await createProduct(page, { name: flower, price: '20' });
     }
 
     await newDesign(page, `Sin especie ${Date.now()}`, flower, 2);

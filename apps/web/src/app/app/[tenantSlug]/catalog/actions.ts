@@ -17,6 +17,7 @@ import {
   updateRecipeLineQuantity,
 } from '@floral/core';
 import {
+  allowsPhotos,
   catalogItemFormSchema,
   recipeDetailsFormSchema,
   recipeLineFormSchema,
@@ -35,9 +36,12 @@ export async function createItemAction(
   return runTenantAction(slug, async ({ ctx, routes }) => {
     const input = parseForm(catalogItemFormSchema(ctx.currency), formData, ['colors']);
     const { id } = await createCatalogItem(ctx, input);
+    // Creazione guidata: poi la foto (se il tipo ne ha) e il passo finale.
     return {
       revalidate: routes.catalog.list(),
-      redirectTo: routes.catalog.item(id, { created: true }),
+      redirectTo: allowsPhotos(input.type)
+        ? routes.catalog.added(id)
+        : routes.catalog.added(id, { step: 'done' }),
     };
   });
 }

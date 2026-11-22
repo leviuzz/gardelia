@@ -465,6 +465,31 @@
       "archivedNotice": "This product is archived.",
       "builderEnabled": "Available in the bouquet designer",
       "builderEnabledHint": "It can be chosen when building custom bouquets in the designer (Plus plan)."
+    },
+    "wizard": {
+      "stepWhat": "What it is",
+      "stepColors": "Colors",
+      "stepPrice": "Price",
+      "stepPhoto": "Photo",
+      "stepDone": "Done",
+      "whatTitle": "What are you adding?",
+      "whatBody": "Choose the type and write the name you use in your shop. For flowers, the species is suggested for you.",
+      "colorsTitle": "Which colors do you have it in?",
+      "colorsBody": "Check every color you sell it in. If it doesn’t apply, continue without choosing.",
+      "priceTitle": "How much is it?",
+      "priceBody": "The sale price is required. The cost is optional and helps you see your margin.",
+      "moreDetails": "More details (optional)",
+      "photoTitle": "Add a photo",
+      "photoBody": "It’s optional: add it now or later from the product page.",
+      "skipPhoto": "Skip for now",
+      "doneTitle": "Done! “{name}” is in your catalog.",
+      "doneDesigner": "You can now use it in the bouquet Designer.",
+      "doneRecipe": "Now build its recipe: the flowers and materials it uses, and how many.",
+      "addAnother": "Add another product",
+      "viewProduct": "View the product",
+      "goToCatalog": "Go to the catalog",
+      "useInDesigner": "Use it in the Designer",
+      "buildRecipe": "Build the recipe"
     }
   },
   "recipe": {
@@ -1145,5 +1170,12 @@
     "styleDetected": "Style: {description}",
     "stylePending": "The style will be described with the next AI preview.",
     "keepsBackground": "We don’t remove the background here: the photo’s setting is part of your style too."
+  },
+  "steps": {
+    "label": "Steps",
+    "progress": "Step {current} of {total}",
+    "completed": "{label} (done)",
+    "back": "Back",
+    "continue": "Continue"
   }
 }
