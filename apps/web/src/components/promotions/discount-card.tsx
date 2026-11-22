@@ -45,7 +45,9 @@ export function DiscountCard({
       </span>
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-lg font-semibold tracking-widest">{discount.code}</span>
+          <span className="text-lg font-semibold tracking-widest tabular-nums">
+            {discount.code}
+          </span>
           <Badge variant={STATUS_BADGE[discount.status]}>{text.status}</Badge>
         </div>
         <p className="text-sm break-words">

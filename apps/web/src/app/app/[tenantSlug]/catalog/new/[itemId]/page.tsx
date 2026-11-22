@@ -80,7 +80,9 @@ export default async function AddedItemPage({
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
             <CircleCheck className="size-10 text-primary" aria-hidden="true" />
-            <h2 className="font-display text-2xl">{t('wizard.doneTitle', { name: item.name })}</h2>
+            <h2 className="font-display text-2xl font-semibold">
+              {t('wizard.doneTitle', { name: item.name })}
+            </h2>
             {item.type === 'BOUQUET' ? (
               <p className="max-w-md text-sm text-muted-foreground">{t('wizard.doneRecipe')}</p>
             ) : isBuilderComponentType(item.type) && item.isBuilderEnabled ? (
@@ -127,7 +129,7 @@ export default async function AddedItemPage({
             <AlertDescription>{t('form.created')}</AlertDescription>
           </Alert>
           <div className="space-y-1">
-            <h2 className="font-display text-xl">{t('wizard.photoTitle')}</h2>
+            <h2 className="font-display text-xl font-semibold">{t('wizard.photoTitle')}</h2>
             <p className="text-sm text-muted-foreground">{t('wizard.photoBody')}</p>
           </div>
           <PhotosSection ctx={ctx} item={item} />

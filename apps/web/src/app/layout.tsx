@@ -4,7 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { BRAND } from '@floral/domain';
 import { Toaster } from '@/components/ui/toaster';
-import { fraunces, inter } from './fonts';
+import { roboto } from './fonts';
 import './globals.css';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -27,7 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   await headers();
   const locale = await getLocale();
   return (
-    <html lang={locale} className={`${inter.variable} ${fraunces.variable}`}>
+    <html lang={locale} className={roboto.variable}>
       <body className="min-h-dvh">
         <NextIntlClientProvider>
           {children}

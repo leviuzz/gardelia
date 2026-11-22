@@ -758,7 +758,7 @@ export function BouquetEditor({
             <h2
               id="builder-step-title"
               tabIndex={-1}
-              className="scroll-mt-28 font-display text-xl outline-none"
+              className="scroll-mt-28 font-display text-xl font-semibold outline-none"
             >
               {stepTitle}
             </h2>

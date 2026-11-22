@@ -353,11 +353,21 @@ moduli di accesso restano disattivati finché la pagina non ha caricato il JavaS
 gestiti solo in JavaScript inviano in POST (prima, un invio anticipato metteva email e password
 nell'indirizzo). Un test delle convenzioni lo impone ai moduli nuovi.
 
-**Test E2E instabile da chiarire:** in CI, 2 esecuzioni su circa 10, il ritorno dal Google simulato
-(`google-login.spec.ts`) a volte non risponde entro 10 s, senza errori nel log; in locale non si
-riproduce (4 esecuzioni complete, anche con un solo thread di servizio). Il server dei test ora
-registra i tempi del ritorno, i blocchi dell'event loop e i thread di servizio occupati
-(`e2e/support/google-oauth-mock.mjs`): al prossimo fallimento il log dirà dove si ferma.
+**Test E2E instabile del login Google (corretto il 22/11):** in CI, circa 2 esecuzioni su 10, il
+ritorno dal Google simulato (`google-login.spec.ts`) non rispondeva entro 10 s, senza errori nel log;
+in locale non si riproduceva. La diagnostica del server (`e2e/support/google-oauth-mock.mjs`) ha
+mostrato la causa (CI 57): nessuna riga "ritorno da Google ricevuto", che si scrive appena la
+richiesta arriva al server, e nessun blocco dell'event loop. La richiesta di ritorno restava ferma
+nel browser, dentro l'intercettazione di `accounts.google.com`, che rispondeva con un redirect 302
+(`route.fulfill`). Ora al posto di Google c'è una pagina con il link di ritorno: il test toglie
+l'intercettazione e segue il link, quindi il ritorno è una navigazione normale, come quella che
+parte da Google. Verificato in locale con 15 ripetizioni sotto carico (prima e dopo la modifica:
+93 su 93), da confermare con le prossime CI. La diagnostica resta nel server di test.
+
+**Font Roboto (fatto il 22/11, richiesta del founder):** tutta l'app usa Roboto (testi e titoli) al
+posto di Inter e Fraunces, sempre servito dall'app stessa (pacchetto `@fontsource-variable/roboto`,
+nessuna richiesta a servizi esterni). I titoli senza peso esplicito ora sono in semibold. Le email
+restano con i font di sistema dei programmi di posta.
 
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite
