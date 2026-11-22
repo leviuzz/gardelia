@@ -48,12 +48,26 @@ avrà nomi propri (`gardelia-production`).
 
 ## 3. Archivio delle foto (Cloudflare R2)
 
-1. **Crea il bucket:** **R2** → **Create bucket**, nome `gardelia-staging`, posizione "Eastern
-   North America". Non renderlo pubblico.
-2. **Crea il token:** **R2** → **Manage API tokens** → **Create API token**, permesso **Object
-   Read & Write**, limitato al bucket `gardelia-staging`.
-3. **Annota quattro valori:** `R2_ACCOUNT_ID` (Account ID), `R2_BUCKET` (`gardelia-staging`),
-   `R2_ACCESS_KEY_ID` e `R2_SECRET_ACCESS_KEY` (questi due si vedono una volta sola).
+1. **Attiva R2:** menu a sinistra → **R2 Object Storage**. La prima volta Cloudflare chiede una
+   carta o PayPal: è una verifica, il piano gratuito (10 GB, solo classe "Standard") per le prove
+   non costa nulla. Se all'iscrizione chiede di aggiungere un dominio, salta: non serve.
+2. **Crea il bucket:** **Create bucket**, nome `gardelia-staging`:
+   - **Location:** "Automatic" oppure il suggerimento "Eastern North America (ENAM)";
+   - **niente "Specify jurisdiction"** (né EU né US): l'app usa l'indirizzo standard di R2
+     (`<account-id>.r2.cloudflarestorage.com`) e la giurisdizione non si cambia più;
+   - **Default storage class:** "Standard" (il piano gratuito vale solo per questa);
+   - accesso pubblico spento: le foto le consegna l'app, solo a chi ha i permessi.
+3. **Crea il token:** nella pagina di R2 → **Manage API tokens** → **Create Account API token**:
+   - nome `gardelia-staging`, permesso **Object Read & Write**;
+   - **Apply to specific buckets only** → `gardelia-staging`;
+   - TTL "Forever", nessun filtro IP (Vercel non ha indirizzi fissi).
+4. **Annota quattro valori:**
+   - `R2_ACCESS_KEY_ID` (Access Key ID) e `R2_SECRET_ACCESS_KEY` (Secret Access Key): si vedono
+     **una volta sola**. Se chiudi la pagina prima di copiarli, cancella il token e creane un
+     altro. Il "Token value" non serve;
+   - `R2_ACCOUNT_ID`: l'Account ID, nella pagina di R2 (è anche la parte fra `https://` e
+     `.r2.cloudflarestorage.com` nell'indirizzo mostrato insieme alle chiavi);
+   - `R2_BUCKET`: `gardelia-staging`.
 
 ## 4. Email (Resend)
 
