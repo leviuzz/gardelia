@@ -248,6 +248,63 @@ describe('generazione, cache e consumo', () => {
     expect((await requestBouquetPreview(kit.shop.owner, third.id)).jobId).not.toBe(queued.jobId);
   });
 
+  it('"otra versión": foto nuova dello stesso ramo, un credito, mai due per lo stesso clic', async () => {
+    const kit = await createKit();
+    const design = await save(kit, 5);
+    const first = await requestBouquetPreview(kit.shop.owner, design.id);
+    expect(await runOnce(kit)).toBe('succeeded');
+    expect((await getAiQuota(kit.shop.owner)).includedUsed).toBe(1);
+
+    // Senza l'opzione: stessa immagine, nessun credito.
+    expect(await requestBouquetPreview(kit.shop.owner, design.id)).toMatchObject({
+      jobId: first.jobId,
+      reused: true,
+    });
+
+    // Con l'opzione: nuovo job, un credito; un secondo clic non ne prenota un altro.
+    const another = await requestBouquetPreview(kit.shop.owner, design.id, new Date(), {
+      anotherVersion: true,
+    });
+    expect(another).toMatchObject({ status: 'QUEUED', reused: false });
+    expect(another.jobId).not.toBe(first.jobId);
+    expect(
+      await requestBouquetPreview(kit.shop.owner, design.id, new Date(), { anotherVersion: true }),
+    ).toMatchObject({ jobId: another.jobId, reused: true });
+    expect((await getAiQuota(kit.shop.owner)).includedUsed).toBe(2);
+    // Mentre è in coda si vede la nuova.
+    expect((await getBouquetPreview(kit.shop.owner, design.id)).preview).toMatchObject({
+      jobId: another.jobId,
+      status: 'QUEUED',
+    });
+
+    expect(await runOnce(kit)).toBe('succeeded');
+    const state = await getBouquetPreview(kit.shop.owner, design.id);
+    expect(state.preview).toMatchObject({ jobId: another.jobId, status: 'SUCCEEDED' });
+    expect(state.anotherVersionFailed).toBe(false);
+    // La prima immagine resta (i preventivi che la usano la tengono).
+    expect((await getAiPreviewImage(kit.shop.owner, first.jobId)).bytes.length).toBeGreaterThan(0);
+  });
+
+  it('"otra versión" non riuscita: resta la precedente, nessun credito, ed è segnalato', async () => {
+    const kit = await createKit();
+    const design = await save(kit, 6);
+    const first = await requestBouquetPreview(kit.shop.owner, design.id);
+    expect(await runOnce(kit)).toBe('succeeded');
+    provider.behavior = 'reject';
+    try {
+      await requestBouquetPreview(kit.shop.owner, design.id, new Date(), {
+        anotherVersion: true,
+      });
+      expect(await runOnce(kit)).toBe('failed');
+      const state = await getBouquetPreview(kit.shop.owner, design.id);
+      expect(state.preview).toMatchObject({ jobId: first.jobId, status: 'SUCCEEDED' });
+      expect(state.anotherVersionFailed).toBe(true);
+      expect((await getAiQuota(kit.shop.owner)).includedUsed).toBe(1);
+    } finally {
+      provider.behavior = 'ok';
+    }
+  });
+
   it('BQ-02: se l’AI fallisce ritenta, poi fallisce senza consumare e senza immagine', async () => {
     const kit = await createKit();
     const { id } = await save(kit, 9);
@@ -625,6 +682,9 @@ describe('isolamento A ↔ B', () => {
     await expect(requestBouquetPreview(kitB.shop.owner, designA.id)).rejects.toBeInstanceOf(
       NotFoundError,
     );
+    await expect(
+      requestBouquetPreview(kitB.shop.owner, designA.id, new Date(), { anotherVersion: true }),
+    ).rejects.toBeInstanceOf(NotFoundError);
     await expect(getBouquetPreview(kitB.shop.owner, designA.id)).rejects.toBeInstanceOf(
       NotFoundError,
     );

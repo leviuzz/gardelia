@@ -1116,7 +1116,13 @@
       "missingPhotosHint": "Una foto per fiore, di fronte; lo sfondo viene rimosso automaticamente.",
       "tooManyStems": "L’anteprima esatta è disponibile per bouquet fino a {max} fiori; quella di questo bouquet sarà approssimativa.",
       "withoutSpecies": "Indica la specie di questi fiori, così la foto realistica li riconosce:",
-      "withoutSpeciesHint": "Nel catalogo scegli la «Specie» o scrivi nel nome che fiore è (per esempio «Rosa rossa»). Senza, l’IA può disegnare un altro fiore."
+      "withoutSpeciesHint": "Nel catalogo scegli la «Specie» o scrivi nel nome che fiore è (per esempio «Rosa rossa»). Senza, l’IA può disegnare un altro fiore.",
+      "another": "Genera un’altra versione",
+      "anotherTitle": "Generare un’altra versione?",
+      "anotherBody": "Si crea una foto nuova dello stesso bouquet e si usa 1 credito (te ne restano {remaining}). I preventivi che hanno già questa immagine la conservano.",
+      "anotherConfirm": "Genera, usa 1 credito",
+      "anotherRequested": "Sto generando un’altra versione…",
+      "anotherFailed": "Non è stato possibile generare un’altra versione: resta quella precedente e non è stato scalato nessun credito."
     }
   },
   "photos": {

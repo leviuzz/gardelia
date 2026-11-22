@@ -43,6 +43,25 @@ export async function setDesignArchivedAction(
   });
 }
 
+/**
+ * "Generar otra versión": una foto nuova dello stesso ramo anche se ce n'è già una (1 credito,
+ * confermato nella finestra). I preventivi già creati tengono la loro immagine.
+ */
+export async function requestAnotherPreviewAction(
+  slug: string,
+  configurationId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await requestBouquetPreview(ctx, configurationId, new Date(), { anotherVersion: true });
+    return {
+      revalidate: routes.builder.design(configurationId),
+      success: 'builder.preview.anotherRequested',
+    };
+  });
+}
+
 /** Richiede l'anteprima AI del disegno salvato: credito e cache gestiti dal servizio. */
 export async function requestPreviewAction(
   slug: string,

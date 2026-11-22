@@ -140,6 +140,15 @@ test.describe('anteprima AI (provider simulato)', () => {
     ).toBeVisible();
     await expect(page.getByText('Ya existía una vista previa de este mismo ramo')).toBeVisible();
 
+    // "Generar otra versión" chiede conferma e dice quanti crediti restano. Qui si annulla: il
+    // percorso con il credito è nei test del servizio (così le esecuzioni locali non consumano).
+    await page.getByRole('button', { name: 'Generar otra versión' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('heading', { name: '¿Generar otra versión?' })).toBeVisible();
+    await expect(dialog.getByText(/se usa 1 crédito \(te quedan \d+\)/)).toBeVisible();
+    await dialog.getByRole('button', { name: 'Cancelar' }).click();
+    await expect(dialog).toHaveCount(0);
+
     // L'immagine è privata: un'altra fioreria riceve 404.
     const src = await page
       .getByRole('img', { name: /Vista previa ilustrativa del ramo/ })

@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import type { ActionState } from '@/lib/action-state';
 import { useToastActionState } from '@/lib/use-action-toast';
 import { PrivateImage } from '@/components/common/private-image';
@@ -27,6 +28,8 @@ export interface PreviewPanelData {
   readonly mode: 'EXACT' | 'PROMPT' | null;
   /** Troppe foto scartate per numeri diversi: niente nuovi tentativi per questo ramo. */
   readonly retryLimitReached: boolean;
+  /** L'ultima "otra versión" non è riuscita: si vede ancora la precedente, senza credito usato. */
+  readonly anotherVersionFailed: boolean;
   readonly quota: {
     readonly includedLimit: number;
     readonly includedRemaining: number;
@@ -60,6 +63,8 @@ export interface PreviewPanelData {
   readonly designName: string;
   readonly productName: string;
   readonly requestAction: (prev: ActionState, formData: FormData) => Promise<ActionState>;
+  /** "Generar otra versión" (1 credito, con conferma). */
+  readonly anotherAction: (prev: ActionState, formData: FormData) => Promise<ActionState>;
 }
 
 /**
@@ -155,6 +160,34 @@ export function PreviewPanel({ data, dirty }: { data: PreviewPanelData; dirty: b
                 {sketchImage('size-14 shrink-0 rounded-lg border bg-muted object-cover')}
                 <span>{t('viewSketch')}</span>
               </a>
+            ) : null}
+            {data.anotherVersionFailed ? (
+              <p className="text-sm text-muted-foreground" role="status">
+                {t('anotherFailed')}
+              </p>
+            ) : null}
+            {!data.retryLimitReached ? (
+              <div className="space-y-1">
+                <ConfirmActionDialog
+                  action={data.anotherAction}
+                  trigger={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      disabled={dirty || data.outdated || data.quota.remaining === 0}
+                    >
+                      <RefreshCw aria-hidden="true" />
+                      {t('another')}
+                    </Button>
+                  }
+                  title={t('anotherTitle')}
+                  description={t('anotherBody', { remaining: data.quota.remaining })}
+                  confirmLabel={t('anotherConfirm')}
+                  confirmVariant="default"
+                />
+                {dirty ? <p className="text-xs text-muted-foreground">{t('saveFirst')}</p> : null}
+              </div>
             ) : null}
           </figure>
         ) : inProgress ? (

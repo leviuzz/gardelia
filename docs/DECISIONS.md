@@ -842,6 +842,23 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   guardar" offre "Guardar cambios" da qualsiasi passo. Senza AI (nessun provider) il passo
   dell'anteprima non c'è. Calcoli, colori e controlli di disponibilità sono quelli di prima.
 
+### ADR-045 — "Generar otra versión" della foto realistica — ADOTTATO (22/11/2026)
+
+- **Richiesta del founder:** la foto di un ramo si salva e non si rigenera per lo stesso ramo
+  (cache per fioreria: stessi prodotti, quantità, colori, stile e misura → stessa immagine, senza
+  crediti, anche da un altro disegno). Una nuova foto solo con un pulsante dedicato.
+- **Cosa:** sotto la foto riuscita, "Generar otra versión" apre una conferma: usa 1 credito
+  (mostra quanti ne restano) e i preventivi che hanno già l'immagine la conservano. Disattivato
+  con modifiche non salvate, disegno superato o crediti finiti; nascosto quando i tentativi del
+  conteggio esatto sono esauriti.
+- **Come** (`requestBouquetPreview(..., { anotherVersion: true })`): nuovo job per lo stesso ramo
+  con le stesse regole della prima (quota, tetto di spesa, limite dei conteggi sbagliati); se una
+  generazione dello stesso ramo è già in corso si restituisce quella (mai due crediti per un
+  doppio clic). Si mostra la generazione più recente riuscita o in corso, e i preventivi nuovi
+  prendono l'immagine più recente. Se l'altra versione non riesce si vede ancora la precedente,
+  con un avviso, e nessun credito consumato (come ogni fallimento). Audit con
+  `anotherVersion: true`.
+
 ---
 
 ## 3. Proposte da approvare

@@ -81,6 +81,11 @@ export interface BouquetPreviewStateDto {
   readonly mode: PreviewMode | null;
   /** Troppe foto realistiche scartate per conteggi diversi: niente nuovi tentativi. */
   readonly retryLimitReached: boolean;
+  /**
+   * L'ultima richiesta di "otra versión" non è riuscita: si mostra ancora l'immagine precedente
+   * (e il credito non è stato consumato).
+   */
+  readonly anotherVersionFailed: boolean;
 }
 
 export interface BouquetSketchPlanDto {
@@ -357,19 +362,17 @@ export async function currentPreviewJobId(
   return job?.id ?? null;
 }
 
-/** Anteprima migliore per un ramo: riuscita, poi in corso, poi l'ultimo fallimento. */
+/**
+ * Anteprima da mostrare per un ramo: la più recente riuscita o in corso (dopo "otra versión" la
+ * nuova è in corso, poi riuscita), altrimenti l'ultimo fallimento.
+ */
 async function findPreview(tx: TransactionClient, ctx: TenantContext, inputHash: string) {
   const where = { tenantId: ctx.tenantId, feature: FEATURE, inputHash };
   return (
     (await tx.aiJob.findFirst({
-      where: { ...where, status: 'SUCCEEDED' },
+      where: { ...where, status: { in: ['SUCCEEDED', ...IN_FLIGHT] } },
       orderBy: { createdAt: 'desc' },
-    })) ??
-    (await tx.aiJob.findFirst({
-      where: { ...where, status: { in: [...IN_FLIGHT] } },
-      orderBy: { createdAt: 'desc' },
-    })) ??
-    (await tx.aiJob.findFirst({ where, orderBy: { createdAt: 'desc' } }))
+    })) ?? (await tx.aiJob.findFirst({ where, orderBy: { createdAt: 'desc' } }))
   );
 }
 
@@ -406,6 +409,7 @@ export async function getBouquetPreview(
         outdated: false,
         mode: null,
         retryLimitReached: false,
+        anotherVersionFailed: false,
       };
     }
     const quota = await quotaFor(tx, ctx, new Date());
@@ -418,11 +422,17 @@ export async function getBouquetPreview(
         outdated: true,
         mode: null,
         retryLimitReached: false,
+        anotherVersionFailed: false,
       };
     }
     const spec = withMode(await styledSpec(tx, ctx, config.spec), provider);
     const inputHash = previewHash(spec, provider);
     const job = await findPreview(tx, ctx, inputHash);
+    const latest = await tx.aiJob.findFirst({
+      where: { tenantId: ctx.tenantId, feature: FEATURE, inputHash },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, status: true },
+    });
     return {
       available: true,
       simulated: provider.simulated,
@@ -433,6 +443,11 @@ export async function getBouquetPreview(
       retryLimitReached:
         spec.mode === 'EXACT' &&
         (await countMismatches(tx, ctx, inputHash)) >= EXACT_PREVIEW_LIMITS.mismatchJobs,
+      anotherVersionFailed:
+        job?.status === 'SUCCEEDED' &&
+        latest !== null &&
+        latest.id !== job.id &&
+        (latest.status === 'FAILED' || latest.status === 'CANCELLED'),
     };
   });
   if (!result) return notFound(ctx, 'BouquetConfiguration', configurationId);
@@ -442,11 +457,15 @@ export async function getBouquetPreview(
 /**
  * Richiede l'anteprima del disegno salvato. Se esiste già (o è in corso) per lo stesso
  * ramo la restituisce senza consumare; altrimenti prenota un credito e accoda il job.
+ * Con `anotherVersion` (pulsante "Generar otra versión", confermato dal fiorista) si genera una
+ * foto nuova dello stesso ramo anche se ce n'è già una: prenota un credito come la prima. Se una
+ * generazione è già in corso si restituisce quella: mai due crediti per lo stesso clic.
  */
 export async function requestBouquetPreview(
   ctx: TenantContext,
   configurationId: string,
   now: Date = new Date(),
+  options: { readonly anotherVersion?: boolean } = {},
 ): Promise<AiPreviewDto> {
   requirePermission(ctx, 'builder:use');
   if (!isUuid(configurationId)) throw new NotFoundError('BouquetConfiguration');
@@ -467,7 +486,8 @@ export async function requestBouquetPreview(
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('floral:ai-enqueue'))`;
 
     const existing = await findPreview(tx, ctx, inputHash);
-    if (existing && existing.status !== 'FAILED' && existing.status !== 'CANCELLED') {
+    const inFlight = existing?.status === 'QUEUED' || existing?.status === 'RUNNING';
+    if (inFlight || (existing?.status === 'SUCCEEDED' && !options.anotherVersion)) {
       return { job: existing, reused: true };
     }
 
@@ -506,7 +526,12 @@ export async function requestBouquetPreview(
       action: AUDIT_ACTIONS.aiPreviewRequested,
       entityType: 'AiJob',
       entityId: job.id,
-      metadata: { configurationId: config.id, quotaSource: quota.nextSource, mode: spec.mode },
+      metadata: {
+        configurationId: config.id,
+        quotaSource: quota.nextSource,
+        mode: spec.mode,
+        anotherVersion: options.anotherVersion === true,
+      },
     });
     return { job, reused: false };
   });
