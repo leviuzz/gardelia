@@ -184,6 +184,10 @@ variabili da sistemare.
 
 ## 9. Se qualcosa non va
 
+- **"Internal Server Error" su ogni pagina:** l'app non è partita. In **Logs** cerca
+  "Configurazione non valida": elenca le variabili da sistemare (nome e regola, mai il valore).
+  Correggile in **Settings → Environment Variables** e ridistribuisci. Un segreto troppo corto si
+  rigenera con il metodo della sezione 6 (solo `0-9` e `a-f`).
 - **Errore nell'app:** la pagina mostra un "Referencia". Su Vercel, in **Logs**, cerca quel codice:
   trovi la riga con l'errore. Mandami il codice, mai le chiavi.
 - **Le immagini AI non arrivano:** controlla `FAL_KEY`, il credito su fal e `CRON_SECRET`. Si
