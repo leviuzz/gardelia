@@ -64,3 +64,18 @@ test('la funzione dei job AI risponde solo con il segreto (404 altrimenti)', asy
     ).status(),
   ).toBe(202);
 });
+
+test('la manutenzione giornaliera risponde solo con il segreto e dice cosa ha chiuso', async ({
+  request,
+}) => {
+  const path = '/api/internal/maintenance';
+  expect((await request.get(path)).status()).toBe(404);
+  const response = await request.get(path, {
+    headers: { authorization: `Bearer ${E2E_CRON_SECRET}` },
+  });
+  expect(response.status()).toBe(200);
+  expect(await response.json()).toEqual({
+    quotesExpired: expect.any(Number),
+    invitationsExpired: expect.any(Number),
+  });
+});

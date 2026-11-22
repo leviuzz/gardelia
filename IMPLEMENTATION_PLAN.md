@@ -252,6 +252,24 @@ membro, cancellare un invito, cambiare la quantità di una riga di ricetta e di 
 Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 385/385 ✅ · build ✅ ·
 E2E 42/42 ✅.
 
+**Fase 0, CI vera (fatto il 22/11):** la CI su GitHub non era mai partita: si attivava solo con
+un push su `main`, ramo che nel repository non esiste. Ora gira a ogni push dei rami di lavoro
+(`main`, `claude/**`), sulle pull request e a mano, con in più il controllo che le migrazioni
+producano esattamente lo schema Prisma (database "ombra" vuoto), `pnpm audit` delle dipendenze di
+produzione ed E2E solo dopo unit e integrazione. La prima esecuzione vera ha trovato un difetto
+che in locale non si vedeva: la tassonomia dei fiori la caricava solo il seed demo, che in
+produzione non gira (online il catalogo non si sarebbe collegato alla tassonomia e anteprime e
+boceto avrebbero perso nomi e misure). Ora è un dato di riferimento allineato a ogni rilascio
+(`pnpm db:deploy`, build di Vercel) e prima dei test (ADR-038). Seconda esecuzione: tutto verde su
+GitHub, E2E compresi.
+
+**Fase 0, scadenze senza scritture in lettura (fatto il 22/11, ADR-040):** aprire preventivi o team
+non modifica più il database. Lo stato scaduto si calcola in lettura, anche nei filtri e nei cambi
+di stato; un lavoro giornaliero (funzione SQL `app_expire_overdue`, Vercel Cron alle 06:07 UTC,
+ciclo nel processo fuori da Vercel) salva le scadenze di tutte le fiorerie, ognuna nel suo fuso
+orario. `CRON_SECRET` ora serve su Vercel anche senza AI. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ ·
+test 390/390 ✅ (+5: scadenze, dati di riferimento) · build ✅ · E2E 43/43 ✅ · CI su GitHub ✅.
+
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite
 `prisma` → `@prisma/config`, è chiuso con un override pnpm a ≥ 3.22.1 (`pnpm-workspace.yaml`);

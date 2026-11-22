@@ -104,15 +104,18 @@ describe('configurazione della piattaforma', () => {
     expect(aiConfig({ AI_MAX_CONCURRENT_JOBS: '3' }).AI_MAX_CONCURRENT_JOBS).toBe(3);
   });
 
-  it('su funzioni serve un segreto lungo; il limite di job va da 1 a 50', () => {
+  it('su funzioni (Vercel) serve sempre un segreto lungo; il limite di job va da 1 a 50', () => {
     const serverlessFal = { ...PUBLIC, ...R2, VERCEL: '1', AI_PROVIDER: 'fal', FAL_KEY: 'k' };
     expect(issuesOf(serverlessFal)).toEqual([expect.stringMatching(/^CRON_SECRET: /)]);
     expect(issuesOf({ ...serverlessFal, CRON_SECRET: 'corto' })).toEqual([
       expect.stringMatching(/^CRON_SECRET: /),
     ]);
     expect(issuesOf({ ...serverlessFal, CRON_SECRET: 'c'.repeat(32) })).toEqual([]);
-    // Senza AI non serve il segreto.
-    expect(issuesOf({ ...PUBLIC, ...R2, VERCEL: '1' })).toEqual([]);
+    // Anche senza AI serve: protegge la manutenzione giornaliera (scadenze). In locale no.
+    expect(issuesOf({ ...PUBLIC, ...R2, VERCEL: '1' })).toEqual([
+      expect.stringMatching(/^CRON_SECRET: /),
+    ]);
+    expect(issuesOf({ ...PUBLIC, ...R2, VERCEL: '1', CRON_SECRET: 'c'.repeat(32) })).toEqual([]);
     for (const bad of ['0', '51', '2.5', 'molti']) {
       expect(issuesOf({ AI_MAX_CONCURRENT_JOBS: bad })[0]).toMatch(/^AI_MAX_CONCURRENT_JOBS: /);
     }

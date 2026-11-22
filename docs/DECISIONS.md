@@ -688,6 +688,27 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   compare un `` `/app/${…}` `` fuori da `routes.ts` (provato con un file volutamente sbagliato).
 - **Per l'utente non cambia nulla:** stessi messaggi, redirect e pagine ricaricate (E2E invariati).
 
+### ADR-040 — Scadenze calcolate in lettura, salvate da un lavoro giornaliero — ADOTTATO (22/11/2026)
+
+- **Problema:** aprire l'elenco o il dettaglio dei preventivi, o la pagina del team, faceva un
+  UPDATE (inviati scaduti → EXPIRED, inviti scaduti → EXPIRED): letture che scrivono, transazioni
+  di scrittura su ogni pagina, stato che cambia solo se qualcuno guarda.
+- **Lettura:** lo stato scaduto si calcola con le regole del dominio (`effectiveQuoteStatus`,
+  scaduto dal giorno dopo `validUntil` nel calendario della fioreria): nei DTO, nei filtri
+  ("Enviadas" esclude gli scaduti, "Vencidas" li include) e nei cambi di stato (un inviato scaduto
+  non si accetta). Il team elenca solo gli inviti ancora validi. Nessuna lettura scrive.
+- **Salvataggio:** la funzione SQL `app_expire_overdue()` (SECURITY DEFINER, come
+  `app_claim_ai_job`) chiude in un colpo preventivi e inviti scaduti di tutte le fiorerie, ognuna
+  nel suo fuso orario; `runDailyMaintenance` (core) la chiama. Su Vercel la avvia Vercel Cron
+  ogni giorno alle 06:07 UTC, poco dopo la mezzanotte del Messico (`/api/internal/maintenance`,
+  protetta da `CRON_SECRET`, che ora serve su Vercel anche senza AI); altrove un ciclo nel
+  processo (dopo 30 s e ogni 6 ore). È idempotente.
+- **Audit:** come prima, la scadenza automatica non scrive righe di audit (resta
+  `statusChangedAt`); da rivedere se servirà lo storico per report.
+- **Test:** letture senza scritture, filtri e cambi di stato sullo stato effettivo, scadenza per
+  fuso orario (l'ultimo giorno di validità resta valido) su due fiorerie, inviti; E2E: l'endpoint
+  risponde solo con il segreto.
+
 ---
 
 ## 3. Proposte da approvare

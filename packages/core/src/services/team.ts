@@ -67,15 +67,15 @@ export interface TeamOverview {
 export async function getTeam(ctx: TenantContext): Promise<TeamOverview> {
   requirePermission(ctx, 'members:read');
   return withTenantContext(getDb(), ctx, async (tx) => {
-    await expireStaleInvitations(tx, ctx.tenantId);
     const [members, invitations] = await Promise.all([
       tx.membership.findMany({
         where: { tenantId: ctx.tenantId },
         include: { user: { select: { id: true, name: true, email: true } } },
         orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
       }),
+      // Solo gli inviti ancora validi: quelli scaduti li chiude il lavoro giornaliero.
       tx.invitation.findMany({
-        where: { tenantId: ctx.tenantId, status: 'PENDING' },
+        where: { tenantId: ctx.tenantId, status: 'PENDING', expiresAt: { gt: new Date() } },
         include: { invitedBy: { select: { name: true } } },
         orderBy: { createdAt: 'desc' },
       }),
@@ -100,13 +100,6 @@ export async function getTeam(ctx: TenantContext): Promise<TeamOverview> {
         createdAt: i.createdAt,
       })),
     };
-  });
-}
-
-async function expireStaleInvitations(tx: TransactionClient, tenantId: string): Promise<void> {
-  await tx.invitation.updateMany({
-    where: { tenantId, status: 'PENDING', expiresAt: { lt: new Date() } },
-    data: { status: 'EXPIRED' },
   });
 }
 

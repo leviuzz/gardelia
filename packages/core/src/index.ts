@@ -14,6 +14,11 @@ export {
   type TenantContext,
 } from './context';
 export { hasPermission, requirePermission } from './authorization';
+export {
+  MAINTENANCE_INTERVAL_MS,
+  runDailyMaintenance,
+  type MaintenanceResult,
+} from './jobs/maintenance';
 export { recordPlatformSecurityEvent } from './audit';
 export {
   ConsoleMailer,

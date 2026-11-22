@@ -44,7 +44,6 @@ import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import {
   addDays,
   dateToParts,
-  expireSentQuotes,
   formatDateParts,
   insertDraftQuote,
   lockQuote,
@@ -195,6 +194,24 @@ export interface QuoteListResult {
   readonly canWrite: boolean;
 }
 
+/**
+ * Filtro per stato EFFETTIVO: un preventivo inviato oltre la validità è "scaduto" anche prima che
+ * il lavoro giornaliero lo salvi come tale (le letture non modificano i dati).
+ */
+function quoteStatusWhere(
+  status: QuoteStatus | null | undefined,
+  today: Date,
+): Prisma.QuoteWhereInput {
+  if (!status) return {};
+  if (status === 'SENT') {
+    return { status: 'SENT', OR: [{ validUntil: null }, { validUntil: { gte: today } }] };
+  }
+  if (status === 'EXPIRED') {
+    return { OR: [{ status: 'EXPIRED' }, { status: 'SENT', validUntil: { lt: today } }] };
+  }
+  return { status };
+}
+
 export async function listQuotes(
   ctx: TenantContext,
   rawFilters: unknown,
@@ -202,21 +219,23 @@ export async function listQuotes(
   requirePermission(ctx, 'quotes:read');
   const filters = quoteListFiltersSchema.parse(rawFilters ?? {});
   const numberMatch = /^(?:cot-?)?0*(\d{1,9})$/i.exec(filters.q);
+  const today = partsToDate(todayInTimeZone(ctx.timezone));
   const where: Prisma.QuoteWhereInput = {
     tenantId: ctx.tenantId,
-    ...(filters.status ? { status: filters.status } : {}),
-    ...(filters.q
-      ? {
-          OR: [
-            { customer: { displayName: { contains: filters.q, mode: 'insensitive' } } },
-            { title: { contains: filters.q, mode: 'insensitive' } },
-            ...(numberMatch ? [{ number: Number(numberMatch[1]) }] : []),
-          ],
-        }
-      : {}),
+    AND: [
+      quoteStatusWhere(filters.status, today),
+      filters.q
+        ? {
+            OR: [
+              { customer: { displayName: { contains: filters.q, mode: 'insensitive' } } },
+              { title: { contains: filters.q, mode: 'insensitive' } },
+              ...(numberMatch ? [{ number: Number(numberMatch[1]) }] : []),
+            ],
+          }
+        : {},
+    ],
   };
   return withTenantContext(getDb(), ctx, async (tx) => {
-    await expireSentQuotes(tx, ctx);
     const total = await tx.quote.count({ where });
     const pageCount = Math.max(1, Math.ceil(total / QUOTE_PAGE_SIZE));
     const page = Math.min(filters.page, pageCount);
@@ -244,7 +263,6 @@ export async function listCustomerQuotes(
   requirePermission(ctx, 'quotes:read');
   if (!isUuid(customerId)) return [];
   return withTenantContext(getDb(), ctx, async (tx) => {
-    await expireSentQuotes(tx, ctx);
     const quotes = await tx.quote.findMany({
       where: { tenantId: ctx.tenantId, customerId },
       include: quoteInclude,
@@ -261,7 +279,6 @@ export async function getQuote(ctx: TenantContext, quoteId: string): Promise<Quo
   const canViewCosts = hasPermission(ctx, 'catalog:costs:read');
   const canWrite = hasPermission(ctx, 'quotes:write');
   const result = await withTenantContext(getDb(), ctx, async (tx) => {
-    await expireSentQuotes(tx, ctx);
     const quote = await tx.quote.findFirst({
       where: { id: quoteId, tenantId: ctx.tenantId },
       include: quoteInclude,
@@ -640,11 +657,16 @@ export async function changeQuoteStatus(
   if (!target) throw new ValidationError({ status: 'invalid_option' });
 
   const result = await withTenantContext(getDb(), ctx, async (tx) => {
-    await expireSentQuotes(tx, ctx);
     const quote = await lockQuote(tx, ctx, quoteId);
     if (!quote) return null;
-    if (!canTransitionQuote(quote.status, target))
-      throw new ConflictError('invalid_status_transition');
+    // Stato effettivo: un inviato oltre la validità è scaduto e non cambia più stato, anche se
+    // il lavoro giornaliero non l'ha ancora salvato come tale.
+    const current = effectiveQuoteStatus(
+      quote.status,
+      dateToParts(quote.validUntil),
+      todayInTimeZone(ctx.timezone),
+    );
+    if (!canTransitionQuote(current, target)) throw new ConflictError('invalid_status_transition');
     if (target === 'SENT') {
       const lines = await tx.quoteLine.count({ where: { tenantId: ctx.tenantId, quoteId } });
       if (lines === 0) throw new ConflictError('quote_empty');

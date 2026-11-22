@@ -334,13 +334,19 @@ ricevono valori già validati. Se manca qualcosa l'app non parte e dice cosa man
 5. ✅ (22/11) Il caricamento delle foto salvava i file con la transazione aperta (blocchi tenuti
    durante l'invio in rete, file orfani se la transazione falliva dopo) → file salvati prima,
    transazione breve, file cancellati se la registrazione fallisce o l'articolo non c'è.
-6. Le letture modificano dati (scadenza di preventivi e inviti) → lavoro programmato (cron).
+6. ✅ (22/11, ADR-040) Le letture modificavano dati (scadenza di preventivi e inviti) → lo stato
+   scaduto si calcola in lettura (anche nei filtri e nei cambi di stato) e un lavoro giornaliero
+   lo salva (`app_expire_overdue`: Vercel Cron, o ciclo nel processo fuori da Vercel).
 7. ✅ (22/11) Le route delle immagini traducevano in modo diverso permessi e piano (alcuni casi
    finivano in errore 500) → `privateImageRoute`: 404 uguale per tutti i casi.
 
 **Test e CI.** Si aggiungono test per le utilità del web (form, azioni, immagini); in CI: gli E2E
 dopo l'integrazione, cache, controllo che le migrazioni corrispondano allo schema, scansione di
-dipendenze e segreti, `Dockerfile` con build `standalone`, job di deploy.
+dipendenze e segreti, `Dockerfile` con build `standalone`, job di deploy. ✅ (22/11) La CI non era
+mai partita (si attivava solo su `main`, che non esiste): ora gira a ogni push dei rami di
+lavoro, con E2E dopo l'integrazione, controllo migrazioni ↔ schema e `pnpm audit`; la prima
+esecuzione vera ha trovato la tassonomia caricata solo dal seed demo (corretto, ADR-038).
+Restano: scansione dei segreti, aggiornamenti automatici delle dipendenze, job di deploy.
 
 **Ordine consigliato** (ogni blocco si rilascia da solo, senza fermare il resto): errori e log →
 configurazione → errori silenziosi → immagini private → azioni e percorsi → pagine elenco → altri
@@ -414,9 +420,11 @@ componenti condivisi → divisione dei file grandi insieme alle funzionalità ch
   processo sempre acceso.
 - **Job lunghi (Flora Studio, video P2):** fal in coda con webhook; Vercel Workflows o Daemons
   solo quando serviranno.
-- **Cron:** scadenza dei preventivi, promemoria delle fechas especiales, pulizia dei file non più
-  usati, riepilogo giornaliero dei costi AI (Vercel Cron in produzione, Schedules per lo
-  staging).
+- **Cron:** ✅ manutenzione giornaliera (scadenza di preventivi e inviti,
+  `/api/internal/maintenance`, ADR-040); poi promemoria delle fechas especiales, pulizia dei file
+  non più usati, riepilogo giornaliero dei costi AI (Vercel Cron in produzione, Schedules per lo
+  staging). Con Hobby i cron sono 2 al giorno: oggi sono usati entrambi (manutenzione e rete di
+  sicurezza della coda AI); i prossimi lavori giornalieri entrano nella stessa manutenzione.
 - **Email transazionali** (Resend) dietro l'adattatore che già esiste (`mailer`).
 - **Roadmap integrazioni:** WhatsApp Business API, notifiche push (PWA), pagamenti (Stripe per
   l'abbonamento, Mercado Pago per gli incassi, P-04), CFDI solo con il contador.
@@ -439,8 +447,9 @@ componenti condivisi → divisione dei file grandi insieme alle funzionalità ch
    piattaforma) e guida passo passo per l'ambiente di prova (`docs/DEPLOY_VERCEL.md`). Manca:
    account del founder, anteprime e staging, integrazione Neon (branch per anteprima), dominio
    email verificato.
-5. CI/CD: anteprima per PR, deploy automatico su staging, test di fumo, rilascio in produzione
-   approvato, migrazioni prima del deploy.
+5. In parte (22/11): CI vera a ogni push (lint, tipi, unit, integrazione, migrazioni ↔ schema,
+   audit, E2E). Mancano: anteprima per PR, deploy automatico su staging, test di fumo, rilascio
+   in produzione approvato.
 6. Gestione errori uniforme e refactor dei componenti ripetuti, nell'ordine della sezione 5.
 7. Monitor di disponibilità, drain dei log, avvisi base; backup con primo test di ripristino.
 8. Intestazioni di sicurezza, aggiornamento automatico delle dipendenze, runbook.

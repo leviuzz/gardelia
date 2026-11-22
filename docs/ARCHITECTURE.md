@@ -50,7 +50,8 @@ apps/web/
   src/app/                    route (auth), onboarding, app/[tenantSlug]/…, invite, api
   e2e/                        Playwright + pozzo SMTP
 packages/core/src/            context, authorization, audit, mailer, email-templates, services/*,
-                              ai/ (provider, coda, archivio), media/ (validazione immagini, sharp)
+                              ai/ (provider, coda, archivio), media/ (validazione immagini, sharp),
+                              jobs/ (manutenzione giornaliera: scadenze)
 packages/db/prisma/           schema.prisma, migrations/ (SQL con RLS), seed.ts, seed-data.ts
 packages/db/src/              client, tenancy (contesti RLS), errors, testing
 packages/db/scripts/          provisioning ruoli/database per sviluppo e CI

@@ -8,6 +8,7 @@
  *  - Anteprime AI (ADR-025) e scontorno delle foto (ADR-033): valida provider e archivio e
  *    avvia il worker in questo processo; su Vercel (motore `serverless`, ADR-037) collega invece
  *    l'accodamento all'avvio della funzione che svuota la coda.
+ *  - Manutenzione giornaliera (scadenze): ciclo nel processo; su Vercel la fa Vercel Cron.
  */
 import { checkRlsSafety, getDb, onSystemContext } from '@floral/db';
 import {
@@ -15,7 +16,9 @@ import {
   createBackgroundRemoverFromEnv,
   createStorageFromEnv,
   logger,
+  MAINTENANCE_INTERVAL_MS,
   onAiJobQueued,
+  runDailyMaintenance,
   startAiWorker,
 } from '@floral/core';
 import { aiConfig } from '@floral/core/config';
@@ -75,6 +78,26 @@ async function verifyDatabaseThenStartWorker(attempt: number): Promise<void> {
   }
   if (attempt > 1) logger.info({ attempt }, 'database raggiungibile: avvio completato');
   startAiWorkerIfConfigured();
+  startMaintenanceLoopIfInline();
+}
+
+/**
+ * Manutenzione giornaliera (scadenze di preventivi e inviti) fuori da Vercel: una volta poco dopo
+ * l'avvio e poi ogni 6 ore, nel processo. Su Vercel la chiama Vercel Cron
+ * (`/api/internal/maintenance`). Le pagine mostrano già lo stato effettivo: un'esecuzione saltata
+ * non cambia ciò che vede l'utente.
+ */
+function startMaintenanceLoopIfInline(): void {
+  if (aiConfig().AI_WORKER_MODE === 'serverless') return;
+  const state = globalThis as { __floralMaintenance?: unknown };
+  if (state.__floralMaintenance) return;
+  const run = () => {
+    runDailyMaintenance().catch((error: unknown) =>
+      logger.error({ err: error }, 'manutenzione giornaliera non riuscita'),
+    );
+  };
+  setTimeout(run, 30_000).unref();
+  state.__floralMaintenance = setInterval(run, MAINTENANCE_INTERVAL_MS).unref();
 }
 
 function startAiWorkerIfConfigured(): void {

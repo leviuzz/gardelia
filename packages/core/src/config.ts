@@ -34,7 +34,7 @@ const DEFAULT_AI_MONTHLY_BUDGET_USD = 50;
 /** Job AI in parallelo su tutta la piattaforma: sotto il limite di fal (10 richieste contemporanee). */
 const DEFAULT_AI_MAX_CONCURRENT_JOBS = 8;
 const MAX_AI_CONCURRENT_JOBS = 50;
-/** Lunghezza minima del segreto che protegge l'avvio dei job AI su funzioni. */
+/** Lunghezza minima del segreto che protegge i job su funzioni (coda AI, manutenzione). */
 const MIN_CRON_SECRET_LENGTH = 32;
 const R2_VARIABLES = [
   'R2_ACCOUNT_ID',
@@ -59,7 +59,7 @@ const aiFields = {
   // Motore dei job AI: `inline` = ciclo nel processo del server (locale, container);
   // `serverless` = funzione avviata a richiesta (Vercel). Predefinito: serverless su Vercel.
   AI_WORKER_MODE: z.enum(['inline', 'serverless']).optional(),
-  // Segreto che protegge l'avvio dei job su funzioni (lo usa anche Vercel Cron).
+  // Segreto che protegge i job su funzioni: coda AI e manutenzione giornaliera (anche Vercel Cron).
   CRON_SECRET: optionalText,
   // Impostata da Vercel in ogni deploy.
   VERCEL: optionalText,
@@ -128,15 +128,16 @@ function aiRules(
       message: `deve essere un numero intero fra 1 e ${MAX_AI_CONCURRENT_JOBS}`,
     });
   }
+  // Su funzioni (Vercel) il segreto protegge la coda AI e la manutenzione giornaliera (scadenze):
+  // serve anche senza provider AI.
   if (
     workerMode(config) === 'serverless' &&
-    config.AI_PROVIDER !== 'none' &&
     (config.CRON_SECRET?.length ?? 0) < MIN_CRON_SECRET_LENGTH
   ) {
     ctx.addIssue({
       code: 'custom',
       path: ['CRON_SECRET'],
-      message: `obbligatoria con i job AI su funzioni (Vercel), almeno ${MIN_CRON_SECRET_LENGTH} caratteri (openssl rand -base64 32)`,
+      message: `obbligatoria su Vercel (job AI e manutenzione giornaliera), almeno ${MIN_CRON_SECRET_LENGTH} caratteri (openssl rand -hex 32)`,
     });
   }
   if (budgetUsd(config.AI_MONTHLY_BUDGET_USD) === null) {

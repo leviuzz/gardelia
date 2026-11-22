@@ -52,15 +52,6 @@ export async function nextTenantCounter(
   return value;
 }
 
-/** Porta a EXPIRED i preventivi inviati oltre la validità (calendario del tenant). */
-export async function expireSentQuotes(tx: TransactionClient, ctx: TenantContext): Promise<void> {
-  const today = partsToDate(todayInTimeZone(ctx.timezone));
-  await tx.quote.updateMany({
-    where: { tenantId: ctx.tenantId, status: 'SENT', validUntil: { lt: today } },
-    data: { status: 'EXPIRED', statusChangedAt: new Date() },
-  });
-}
-
 /** Blocca la riga del preventivo fino alla fine della transazione e la restituisce. */
 export async function lockQuote(tx: TransactionClient, ctx: TenantContext, quoteId: string) {
   await tx.$queryRaw`SELECT id FROM "Quote" WHERE id = ${quoteId}::uuid AND "tenantId" = ${ctx.tenantId}::uuid FOR UPDATE`;
