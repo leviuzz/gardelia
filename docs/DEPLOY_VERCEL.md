@@ -87,9 +87,12 @@ avrà nomi propri (`gardelia-production`).
 
 ## 5. Immagini AI (fal.ai)
 
-1. **Crea una chiave:** **Keys** → **Add key**. È `FAL_KEY`.
-2. **Ricarica il credito:** **Billing**, ricarica pochi dollari. Ogni foto realistica costa circa
-   0,08–0,10 USD. Il tetto mensile dell'app (`AI_MONTHLY_BUDGET_USD`) protegge comunque la spesa.
+1. **Crea una chiave solo per questo ambiente:** **Keys** → **Add key**, nome `gardelia-staging`,
+   scope **API** (non "ADMIN"). Si vede una volta sola: copiala **intera**, sono due pezzi separati
+   da `:`. È `FAL_KEY`. Separata dalle chiavi delle prove, si revoca senza toccare il resto.
+2. **Ricarica il credito:** **Billing**, ricarica pochi dollari (es. 10 USD), senza ricarica
+   automatica. Ogni foto realistica costa circa 0,08–0,10 USD. Il tetto mensile dell'app
+   (`AI_MONTHLY_BUDGET_USD`) protegge comunque la spesa.
 
 ## 6. Tre segreti da generare
 
