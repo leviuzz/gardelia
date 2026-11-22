@@ -8,12 +8,16 @@
  *  - solo fiorerie reali (mai DEMO, ADR-016), attive e con la promo accesa (`app_occasion_promo_tenants`);
  *  - al massimo un'email per data e anno: la riga `OccasionPromoEmail` si crea PRIMA dell'invio
  *    (presa in carico unica), così due esecuzioni insieme non mandano due email;
- *  - le date dello stesso cliente che cadono insieme vanno in un'unica email;
+ *  - un'email per data, con il suo codice personale (ADR-048): il cliente lo cita su WhatsApp e la
+ *    fioreria lo verifica e lo segna come usato nella pagina Descuentos;
  *  - se l'invio fallisce si riprova nei giorni seguenti (fino a 3 tentativi) finché la data non
  *    è passata; un invio interrotto a metà non si ripete (meglio un'email in meno che una doppia).
  */
+import { randomInt } from 'node:crypto';
 import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
 import {
+  PROMO_CODE_ALPHABET,
+  PROMO_CODE_LENGTH,
   PROMO_LIMITS,
   activeDiscount,
   duePromoOccurrences,
@@ -68,7 +72,21 @@ interface DueOccasion {
 
 interface Claim {
   readonly id: string;
+  readonly code: string;
   readonly entry: DuePromo<DueOccasion>;
+}
+
+/**
+ * Codice personale a caso (6 caratteri dall'alfabeto senza 0/O né 1/I): unico nella fioreria
+ * per il vincolo del database; nel caso rarissimo di un doppione la riga non si crea e l'email
+ * parte il giorno dopo con un altro codice.
+ */
+export function newPromoCode(): string {
+  let code = '';
+  for (let index = 0; index < PROMO_CODE_LENGTH; index++) {
+    code += PROMO_CODE_ALPHABET.charAt(randomInt(PROMO_CODE_ALPHABET.length));
+  }
+  return code;
 }
 
 interface TenantPlan {
@@ -196,7 +214,7 @@ async function planTenant(
     discountValue: discount.value,
     currency: tenant.currency,
   };
-  const select = { id: true, occasionId: true, occurrenceDate: true } as const;
+  const select = { id: true, occasionId: true, occurrenceDate: true, code: true } as const;
 
   const fresh = due.filter((entry) => !known.has(occurrenceKey(entry.occasion.id, entry.date)));
   const created =
@@ -208,6 +226,7 @@ async function planTenant(
             occasionId: entry.occasion.id,
             customerId: entry.occasion.customerId,
             occurrenceDate: dbDate(entry.date),
+            code: newPromoCode(),
             ...snapshot,
           })),
           // Un'altra esecuzione l'ha già presa: non la si manda una seconda volta.
@@ -240,7 +259,7 @@ async function planTenant(
   const claims: Claim[] = [];
   for (const row of [...created, ...retried]) {
     const entry = dueByKey.get(occurrenceKey(row.occasionId, row.occurrenceDate));
-    if (entry) claims.push({ id: row.id, entry });
+    if (entry) claims.push({ id: row.id, code: row.code, entry });
   }
   return { ...base, claims };
 }
@@ -255,23 +274,14 @@ async function runForTenant(
   const plan = await withTenantContext(db, scope, (tx) => planTenant(tx, tenantId, now));
   if (!plan || plan.claims.length === 0) return { sent: 0, failed: 0 };
 
-  // Le date dello stesso cliente prese oggi vanno in un'unica email, in ordine di data.
-  const byCustomer = new Map<string, Claim[]>();
-  for (const claim of plan.claims) {
-    const list = byCustomer.get(claim.entry.occasion.customerId) ?? [];
-    list.push(claim);
-    byCustomer.set(claim.entry.occasion.customerId, list);
-  }
   const locale = resolveLocale(getMarket(plan.country).defaultLocale);
-
   let sent = 0;
   let failed = 0;
-  for (const [customerId, claims] of byCustomer) {
-    claims.sort((a, b) => a.entry.daysUntil - b.entry.daysUntil);
-    const ids = claims.map((claim) => claim.id);
-    const customer = claims[0]?.entry.occasion.customer;
+  for (const claim of plan.claims) {
+    const { occasion } = claim.entry;
+    const customerId = occasion.customerId;
     let delivered = false;
-    if (customer?.email) {
+    if (occasion.customer.email) {
       const urls = unsubscribeUrls(
         deps.appUrl,
         createUnsubscribeToken(deps.secret, { tenantId, customerId }),
@@ -280,17 +290,18 @@ async function runForTenant(
         await deps.mailer.send(
           occasionPromoEmail({
             locale,
-            to: customer.email,
-            customerName: customer.displayName,
+            to: occasion.customer.email,
+            customerName: occasion.customer.displayName,
             shop: plan.shop,
             currency: plan.currency,
             discount: plan.discount,
-            occasions: claims.map(({ entry }) => ({
-              type: entry.occasion.type,
-              label: entry.occasion.label,
-              personName: entry.occasion.personName,
-              date: entry.date,
-            })),
+            occasion: {
+              type: occasion.type,
+              label: occasion.label,
+              personName: occasion.personName,
+              date: claim.entry.date,
+            },
+            code: claim.code,
             unsubscribeUrl: urls.page,
             oneClickUnsubscribeUrl: urls.oneClick,
           }),
@@ -303,7 +314,7 @@ async function runForTenant(
     // Esito salvato subito dopo ogni invio: un'interruzione lascia al massimo un'email in sospeso.
     await withTenantContext(db, scope, (tx) =>
       tx.occasionPromoEmail.updateMany({
-        where: { tenantId, id: { in: ids } },
+        where: { tenantId, id: claim.id },
         data: delivered
           ? { status: 'SENT', sentAt: now, lastError: null }
           : { status: 'FAILED', lastError: 'send_failed' },

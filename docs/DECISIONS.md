@@ -905,10 +905,10 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   l'utente.
 - **Una sola email per data e anno:** la riga `OccasionPromoEmail` si crea **prima** dell'invio
   (vincolo unico per data e anno), così due esecuzioni insieme non mandano due email. Le date dello
-  stesso cliente prese lo stesso giorno vanno in un'unica email. Se l'invio fallisce si riprova nei
-  giorni seguenti, fino a 3 tentativi, finché la data non è passata. Un invio interrotto a metà non
-  si ripete: meglio un'email in meno che una doppia. La riga conserva lo sconto promesso e nessun
-  indirizzo email.
+  stesso cliente prese lo stesso giorno andavano in un'unica email (superato da ADR-048: un'email
+  per data, ciascuna col suo codice). Se l'invio fallisce si riprova nei giorni seguenti, fino a 3
+  tentativi, finché la data non è passata. Un invio interrotto a metà non si ripete: meglio
+  un'email in meno che una doppia. La riga conserva lo sconto promesso e nessun indirizzo email.
 - **Email:** mittente con il nome della fioreria (l'indirizzo resta quello verificato della
   piattaforma), risposta all'email di contatto della fioreria, pulsante WhatsApp se ha un
   telefono, contatti, motivo dell'invio e link per non ricevere più promozioni. Intestazioni
@@ -932,7 +932,39 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   privacidad della fioreria deve prevedere questo uso (termini, sezione 7).
 - **Per inviare davvero serve il dominio email verificato (P-07):** il mittente di prova del
   provider consegna solo all'indirizzo del titolare dell'account.
-- **Aperto (O-11):** se la promo resta in tutti i piani o diventa una funzione a pagamento.
+- **Piani (O-11, deciso dal founder il 22/11/2026):** la promo resta in tutti i piani; le promo
+  più articolate, quando arriveranno, saranno a pagamento.
+
+### ADR-048 — Codici e registro degli sconti della promo — ADOTTATO (22/11/2026)
+
+- **Richiesta del founder:** "dobbiamo tenere traccia degli sconti fatti e a chi". Quando un
+  cliente scrive su WhatsApp "ho questo sconto", la fioreria deve poter controllare, poi segnare lo
+  sconto come usato. Conferma anche che l'invio deve essere automatico: con l'interruttore acceso
+  le email partono da sole ogni mattina (era già così; ora l'interruttore si chiama "Envío
+  automático cada mañana" e la pagina mostra i prossimi invii dei 7 giorni).
+- **Codice personale:** 6 caratteri senza 0/O né 1/I (es. `K7M-4QH`), unico nella fioreria
+  (vincolo del database). È nell'email, ben visibile, e nel messaggio WhatsApp già scritto
+  ("…código K7M-4QH…"), così arriva alla fioreria insieme alla richiesta. Si cerca come lo scrive
+  il cliente: minuscole, spazi, con o senza trattino.
+- **Un'email per data** (cambia ADR-047): ogni data ha il suo sconto e il suo codice. Due date
+  dello stesso cliente che partono lo stesso giorno danno due email, come prima ne davano una con
+  due date. Il caso è raro, ed è più chiaro di un'email con due codici.
+- **Registro "Descuentos"** (`/promotions/discounts`, proprietario e manager): ogni email partita
+  con codice, cliente, data, sconto, invio e scadenza. Stati: **vigente** fino al giorno della
+  data compreso, **usado**, **vencido**. Si cerca per codice, nome, email o telefono e si filtra
+  per stato, con i totali. "Marcar como usado" chiede conferma e accetta una nota facoltativa (es.
+  "COT-0042, ramo de 24 rosas"); salva chi e quando. "Deshacer" corregge uno sbaglio; entrambe le
+  azioni vanno nell'audit. Anche uno sconto scaduto si può segnare come usato: decide la fioreria,
+  e il registro mostra la data d'uso rispetto alla scadenza.
+- **Si vede anche** nella scheda del cliente (scheda "Promociones": tutti la leggono, solo chi
+  gestisce le promo la modifica) e nel calendario ("Promoción enviada el … · código …" o "usada").
+- **Consenso più esplicito:** la casella dice "El cliente aceptó recibir promociones". La spiegazione
+  aggiunge che con email e invio automatico attivo il cliente riceve lo sconto delle sue date, che
+  può disiscriversi dall'email e che la data del consenso si salva. Resta da validare con l'avvocato
+  se basta (ADR-047).
+- **Per dopo:** collegare lo sconto al preventivo, così si applica da solo (le cotizaciones hanno
+  già uno sconto); promo aggiuntive inviate a mano dalla fioreria (il founder: "magari la
+  facciamo dopo"); il marketplace dei clienti, dove tutto sarà automatico.
 
 ---
 
@@ -966,7 +998,7 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
 | O-08 | Conferma della matrice ruoli: lo STAFF non vede costi; il MANAGER invita solo STAFF e non modifica dati fiscali; lo STAFF compone nel Builder ma non crea preventivi né clienti                                                                                                                                                                                                                                                                               | Founder            | — (default già implementato)                      |
 | O-09 | Chi mantiene la tassonomia canonica dei fiori e con quale copertura                                                                                                                                                                                                                                                                                                                                                                                           | Founder            | Builder, Network                                  |
 | O-10 | Durata della finestra di attribuzione delle fee del Network (spec §8.4)                                                                                                                                                                                                                                                                                                                                                                                       | Founder + legale   | Network                                           |
-| O-11 | La promo delle date speciali (ADR-047) resta in tutti i piani o diventa una funzione a pagamento (`requireEntitlement`)? Oggi è in tutti i piani                                                                                                                                                                                                                                                                                                              | Founder            | Piani e prezzi                                    |
+| O-11 | ✅ **RISOLTA** (founder, 22/11/2026): la promo delle date speciali resta in tutti i piani per ora; le promo più articolate saranno a pagamento (ADR-047)                                                                                                                                                                                                                                                                                                      | Founder            | —                                                 |
 
 ---
 

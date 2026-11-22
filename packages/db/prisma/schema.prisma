@@ -606,6 +606,13 @@ model OccasionPromoEmail {
   sentAt         DateTime?
   /// Motivo dell'ultimo fallimento (codice, es. `send_failed`), mai testo del provider.
   lastError      String?
+  /// Codice personale dello sconto (6 caratteri, senza trattino), unico nella fioreria (ADR-048).
+  code           String
+  /// Sconto usato: quando, chi della fioreria l'ha segnato e una nota facoltativa.
+  redeemedAt     DateTime?
+  /// Nessuna FK, come negli altri riferimenti a chi ha agito: il dato resta anche senza l'utente.
+  redeemedById   String?          @db.Uuid
+  redemptionNote String?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
@@ -615,6 +622,7 @@ model OccasionPromoEmail {
 
   @@unique([tenantId, id])
   @@unique([tenantId, occasionId, occurrenceDate])
+  @@unique([tenantId, code])
   @@index([tenantId, occurrenceDate])
   @@index([tenantId, customerId])
 }

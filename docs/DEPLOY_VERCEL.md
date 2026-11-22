@@ -84,6 +84,15 @@ avrà nomi propri (`gardelia-production`).
      compreso);
    - `EMAIL_FROM` = `Gardelia <onboarding@resend.dev>` (indirizzo di prova di Resend: con il
      dominio Gardelia verificato useremo il nostro).
+4. **Dominio verificato (per scrivere a tutti, anche ai clienti delle fiorerie: ADR-047):** con
+   l'indirizzo di prova le email arrivano solo al titolare dell'account Resend. Quando hai il
+   dominio:
+   - su Resend, **Domains** → **Add domain** (il dominio o un sottodominio, es. `mail.` più il
+     tuo dominio);
+   - copia i record DNS che Resend mostra (SPF, DKIM e, consigliato, DMARC) nel pannello DNS di
+     chi ti ha venduto il dominio, poi aspetta che Resend lo dia per verificato;
+   - su Vercel cambia `EMAIL_FROM` in `Gardelia <no-reply@il-tuo-dominio>` e rifai il deploy.
+     La chiave e `SMTP_URL` restano le stesse.
 
 ## 5. Immagini AI (fal.ai)
 

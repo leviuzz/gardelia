@@ -67,6 +67,9 @@ export const AUDIT_ACTIONS = {
   customerOccasionRemoved: 'customer.occasion_removed',
   /** Il cliente ha tolto il consenso alle promozioni dal link dell'email. */
   customerUnsubscribed: 'customer.unsubscribed',
+  /** Sconto della promo segnato come usato, o tolto il segno (ADR-048). */
+  promoRedeemed: 'promo.redeemed',
+  promoRedemptionUndone: 'promo.redemption_undone',
   quoteCreated: 'quote.created',
   quoteUpdated: 'quote.updated',
   quoteLineAdded: 'quote.line_added',

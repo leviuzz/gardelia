@@ -4,6 +4,7 @@ import { addDays, todayInTimeZone, toIsoDate, type CalendarDate } from '@floral/
 import {
   ForbiddenError,
   MemoryMailer,
+  NotFoundError,
   ValidationError,
   createCustomer,
   createUnsubscribeToken,
@@ -11,9 +12,13 @@ import {
   getCustomer,
   getOccasionPromo,
   listCalendarOccasions,
+  listCustomerPromoDiscounts,
+  listPromoDiscounts,
   previewOccasionPromoEmail,
+  redeemPromoDiscount,
   runOccasionPromos,
   setCustomerArchived,
+  undoPromoRedemption,
   unsubscribeFromPromotions,
   updateOccasionPromo,
   type EmailMessage,
@@ -206,14 +211,14 @@ describe('impostazioni della promo', () => {
 describe('email automatica delle date speciali', () => {
   const mailer = new MemoryMailer();
 
-  it('parte solo per chi ha email e consenso, entro il preavviso; una email per cliente', async () => {
+  it('parte solo per chi ha email e consenso, entro il preavviso; una email per data', async () => {
     await updateOccasionPromo(demo.owner, { enabled: 'on', kind: 'AMOUNT', amount: '100' });
     await updateOccasionPromo(otherOwner, { enabled: 'on', kind: 'AMOUNT', amount: '50' });
     await run(mailer);
 
     const sent = mine(mailer);
     expect(sent.map((message) => message.to).sort()).toEqual(
-      [address('ana'), address('beto'), address('otro')].sort(),
+      [address('ana'), address('beto'), address('beto'), address('otro')].sort(),
     );
 
     const ana = sent.find((message) => message.to === address('ana'))!;
@@ -227,10 +232,19 @@ describe('email automatica delle date speciali', () => {
     );
     expect(ana.headers?.['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
 
-    const beto = sent.find((message) => message.to === address('beto'))!;
-    expect(beto.subject).toBe('15% de descuento para tus fechas especiales');
-    expect(beto.text).toContain('- tu cumpleaños, el ');
-    expect(beto.text).toContain('- Día de la boda, el ');
+    // Ogni email ha il suo codice, anche nel messaggio WhatsApp già scritto.
+    expect(ana.text).toMatch(/Tu código de descuento: [2-9A-HJ-NP-Z]{3}-[2-9A-HJ-NP-Z]{3}/);
+    const code = /Tu código de descuento: ([A-Z0-9-]{7})/.exec(ana.text)?.[1] ?? '';
+    expect(ana.text).toContain(encodeURIComponent(`(código ${code})`));
+
+    // Due date vicine dello stesso cliente: due email, ciascuna con il suo codice.
+    const beto = sent.filter((message) => message.to === address('beto'));
+    expect(beto.map((message) => message.subject).sort()).toEqual([
+      '15% de descuento para Día de la boda',
+      '15% de descuento para tu cumpleaños',
+    ]);
+    const betoCodes = beto.map((message) => /descuento: ([A-Z0-9-]{7})/.exec(message.text)?.[1]);
+    expect(new Set(betoCodes).size).toBe(2);
 
     // L'altra fioreria scrive col suo nome e il suo sconto, senza contatti propri.
     const otro = sent.find((message) => message.to === address('otro'))!;
@@ -314,6 +328,7 @@ describe('email automatica delle date speciali', () => {
           discountKind: 'PERCENT',
           discountValue: 15,
           currency: 'MXN',
+          code: 'HUG234',
         },
       });
       await tx.$executeRaw`UPDATE "OccasionPromoEmail" SET "updatedAt" = now() - interval '2 hours' WHERE id = ${row.id}::uuid`;
@@ -323,6 +338,99 @@ describe('email automatica delle date speciali', () => {
     expect(mine(later)).toEqual([]);
     const [row] = await promoRows(owner, hugo.id);
     expect([row?.status, row?.attempts, row?.lastError]).toEqual(['FAILED', 3, 'interrupted']);
+  });
+});
+
+describe('registro degli sconti (ADR-048)', () => {
+  it('si trova per codice in qualsiasi forma, per nome; filtri e totali per stato', async () => {
+    const all = await listPromoDiscounts(owner, {});
+    // Ana, Beto (due date) e Gina, partita al terzo tentativo; mai le email non partite.
+    expect(all.items.map((discount) => discount.customerName).sort()).toEqual([
+      'Ana',
+      'Beto',
+      'Beto',
+      'Gina',
+    ]);
+    expect(all.counts).toEqual({ VALID: 4, USED: 0, EXPIRED: 0 });
+    const ana = all.items.find((discount) => discount.customerName === 'Ana')!;
+    expect(ana.code).toMatch(/^[2-9A-HJ-NP-Z]{3}-[2-9A-HJ-NP-Z]{3}$/);
+    expect(ana).toMatchObject({
+      status: 'VALID',
+      validUntil: toIsoDate(addDays(TODAY, 7)),
+      discount: { kind: 'PERCENT', value: 15 },
+      occasion: { type: 'BIRTHDAY' },
+    });
+
+    // Il codice come lo scrive il cliente: minuscole, spazi, senza trattino.
+    const typed = ana.code.toLowerCase().replace('-', ' ');
+    expect((await listPromoDiscounts(owner, { q: typed })).items.map((d) => d.id)).toEqual([
+      ana.id,
+    ]);
+    expect((await listPromoDiscounts(owner, { q: 'beto' })).total).toBe(2);
+    expect((await listPromoDiscounts(owner, { status: 'EXPIRED' })).total).toBe(0);
+  });
+
+  it('si segna come usato con una nota, una volta sola, e si può annullare', async () => {
+    const [ana] = (await listPromoDiscounts(owner, { q: 'Ana' })).items;
+    await expect(redeemPromoDiscount(live.staff, ana!.id, {})).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    await expect(
+      redeemPromoDiscount(owner, ana!.id, { note: 'x'.repeat(201) }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await redeemPromoDiscount(live.manager, ana!.id, { note: 'Ramo de 24 rosas, COT-0042' });
+    await expect(redeemPromoDiscount(owner, ana!.id, {})).rejects.toMatchObject({
+      reason: 'promo_already_used',
+    });
+
+    const used = await listPromoDiscounts(owner, { status: 'USED' });
+    expect(used.items).toEqual([
+      expect.objectContaining({
+        customerName: 'Ana',
+        status: 'USED',
+        note: 'Ramo de 24 rosas, COT-0042',
+        redeemedByName: expect.any(String),
+        redeemedAt: expect.any(String),
+      }),
+    ]);
+    expect(used.counts).toEqual({ VALID: 3, USED: 1, EXPIRED: 0 });
+
+    // Scheda del cliente (anche lo staff la legge) e calendario lo dicono.
+    expect((await listCustomerPromoDiscounts(live.staff, ids.ana!)).map((d) => d.status)).toEqual([
+      'USED',
+    ]);
+    const events = await listCalendarOccasions(owner, { from: TODAY, to: addDays(TODAY, 30) });
+    expect(events.find((event) => event.customerName === 'Ana')?.promo).toMatchObject({
+      status: 'SENT',
+      code: ana!.code,
+      redeemedAt: expect.any(String),
+    });
+
+    await undoPromoRedemption(owner, ana!.id);
+    expect((await listPromoDiscounts(owner, { q: ana!.code })).items[0]?.status).toBe('VALID');
+    const audits = await withTenantContext(getDb(), owner, (tx) =>
+      tx.auditLog.findMany({
+        where: { tenantId: owner.tenantId, entityId: ana!.id },
+        orderBy: { createdAt: 'asc' },
+      }),
+    );
+    expect(audits.map((audit) => audit.action)).toEqual([
+      'promo.redeemed',
+      'promo.redemption_undone',
+    ]);
+  });
+
+  it('una fioreria non vede né usa gli sconti di un’altra', async () => {
+    const [ana] = (await listPromoDiscounts(owner, { q: 'Ana' })).items;
+    expect((await listPromoDiscounts(otherOwner, { q: ana!.code })).total).toBe(0);
+    await expect(redeemPromoDiscount(otherOwner, ana!.id, {})).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    await expect(undoPromoRedemption(otherOwner, ana!.id)).rejects.toBeInstanceOf(NotFoundError);
+    expect(await listCustomerPromoDiscounts(otherOwner, ids.ana!)).toEqual([]);
+    expect(
+      (await listPromoDiscounts(otherOwner, {})).items.map((discount) => discount.customerName),
+    ).toEqual(['Otro']);
   });
 });
 

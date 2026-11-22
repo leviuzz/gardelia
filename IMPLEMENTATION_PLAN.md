@@ -333,8 +333,20 @@ automatica ai clienti con email e consenso, qualche giorno prima di ogni data (i
 data). Si manda una sola email per data e anno, mai dalle fiorerie demo, e si riprova se fallisce.
 L'email ha un link firmato per non ricevere più promozioni, con pagina di conferma e
 disiscrizione con un clic. Il calendario mostra lo stato della promo per ogni data. Il cron
-giornaliero ora gira alle 9:07 del Messico e fa anche la promo. Da fare per l'invio reale: dominio
-email verificato (P-07); parere legale sulle email promozionali; decisione O-11 (piano).
+giornaliero ora gira alle 9:07 del Messico e fa anche la promo. La promo resta in tutti i piani
+(O-11).
+
+**Codici e registro degli sconti (fatto il 22/11, richiesta del founder, ADR-048):** ogni email ha
+un codice personale, scritto anche nel messaggio WhatsApp già pronto. La pagina "Descuentos" lo
+cerca come lo scrive il cliente e dice se è vigente, usato o scaduto. "Marcar como usado" salva una
+nota, chi e quando, e si può annullare. Gli sconti si vedono anche nella scheda del cliente e nel
+calendario. Ora parte un'email per data. La pagina Promociones dice chiaramente che l'invio è
+automatico ogni mattina e mostra i prossimi invii. La casella del consenso è più esplicita.
+Prossimi passi:
+
+- dominio email verificato (P-07; il founder lo compra, passi in `docs/DEPLOY_VERCEL.md` §4);
+- parere legale sulle email promozionali;
+- poi: sconto collegato al preventivo, promo aggiuntive inviate a mano, marketplace dei clienti.
 
 **Pulsanti attivi solo quando funzionano (fatto il 22/11):** "Continuar con Google", uscita e i
 moduli di accesso restano disattivati finché la pagina non ha caricato il JavaScript; i moduli

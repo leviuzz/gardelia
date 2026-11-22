@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  PROMO_CODE_ALPHABET,
   duePromoOccurrences,
   formatDiscount,
+  formatPromoCode,
+  normalizePromoCode,
   occasionPromoFormSchema,
+  promoDiscountFiltersSchema,
+  promoDiscountStatus,
+  promoRedemptionSchema,
   promoSendDate,
   toFieldErrors,
   toIsoDate,
@@ -111,5 +117,53 @@ describe('giorni di invio della promo', () => {
 
   it('il giorno di invio è la data meno il preavviso', () => {
     expect(toIsoDate(promoSendDate({ year: 2027, month: 1, day: 3 }, 7))).toBe('2026-12-27');
+  });
+});
+
+describe('codici degli sconti', () => {
+  it('si scrivono come si vuole e si leggono sempre uguali', () => {
+    expect(normalizePromoCode('K7M-4QH')).toBe('K7M4QH');
+    expect(normalizePromoCode(' k7m 4qh ')).toBe('K7M4QH');
+    expect(formatPromoCode('K7M4QH')).toBe('K7M-4QH');
+  });
+
+  it('niente caratteri che si confondono, lunghezza giusta', () => {
+    for (const char of '01OI') expect(PROMO_CODE_ALPHABET).not.toContain(char);
+    expect(normalizePromoCode('K7M-4Q0')).toBeNull();
+    expect(normalizePromoCode('K7M-4Q')).toBeNull();
+    expect(normalizePromoCode('María')).toBeNull();
+    expect(normalizePromoCode(42)).toBeNull();
+  });
+});
+
+describe('stato di uno sconto inviato', () => {
+  const validUntil = { year: 2026, month: 12, day: 14 };
+
+  it('vale fino al giorno della data compreso, poi scade; usato vince su tutto', () => {
+    expect(promoDiscountStatus({ redeemed: false, validUntil }, { ...validUntil, day: 13 })).toBe(
+      'VALID',
+    );
+    expect(promoDiscountStatus({ redeemed: false, validUntil }, validUntil)).toBe('VALID');
+    expect(promoDiscountStatus({ redeemed: false, validUntil }, { ...validUntil, day: 15 })).toBe(
+      'EXPIRED',
+    );
+    expect(promoDiscountStatus({ redeemed: true, validUntil }, { ...validUntil, day: 15 })).toBe(
+      'USED',
+    );
+  });
+
+  it('filtri e nota hanno valori sicuri', () => {
+    expect(promoDiscountFiltersSchema.parse({ q: ' K7M ', status: 'USED', page: '2' })).toEqual({
+      q: 'K7M',
+      status: 'USED',
+      page: 2,
+    });
+    expect(promoDiscountFiltersSchema.parse({ status: 'GRATIS', page: 'x' })).toEqual({
+      q: '',
+      status: null,
+      page: 1,
+    });
+    expect(promoRedemptionSchema.parse({ note: '  ' })).toEqual({ note: null });
+    expect(promoRedemptionSchema.safeParse({ note: 'x'.repeat(201) }).success).toBe(false);
   });
 });

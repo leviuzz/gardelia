@@ -94,7 +94,9 @@
       "cutout_unavailable": "We can’t remove the background right now. Try again later.",
       "cutout_retry_limit": "The background removal service failed several times on this photo: the problem is on our side, not the photo. Try again later by uploading it again.",
       "preview_retry_limit": "We’ve already tried several times with this design: share the exact sketch or adjust the design.",
-      "platform_admin_exists": "A platform administrator already exists."
+      "platform_admin_exists": "A platform administrator already exists.",
+      "promo_not_sent": "This email never reached the customer: there's no discount to mark.",
+      "promo_already_used": "This discount is already marked as used."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -337,7 +339,9 @@
     "builder.style_reference_added": "{actor} added a photo to “My bouquets”",
     "builder.style_reference_archived": "{actor} removed a photo from “My bouquets”",
     "tenant.promo_updated": "{actor} changed the special dates promotion",
-    "customer.unsubscribed": "A customer unsubscribed from promotions"
+    "customer.unsubscribed": "A customer unsubscribed from promotions",
+    "promo.redeemed": "{actor} marked a discount as used",
+    "promo.redemption_undone": "{actor} removed the use of a discount"
   },
   "catalog": {
     "title": "Catalog",
@@ -666,8 +670,8 @@
       "tagsHint": "Separated by commas. E.g., regular, company",
       "channel": "How did they hear about you?",
       "channelNone": "Not specified",
-      "marketingConsent": "Agrees to receive promotions",
-      "marketingConsentHint": "Check this only if the customer authorized it. With their consent and email they'll get the promotion for their special dates (if you turn it on in Promotions).",
+      "marketingConsent": "The customer agreed to receive promotions",
+      "marketingConsentHint": "Check this only if the customer gave you permission. If they have an email and automatic sending is on in Promotions, they'll get the discount for their special dates and can unsubscribe from that same email. We save the date of consent.",
       "consentSince": "Consent recorded on {date}",
       "create": "Create customer",
       "creating": "Creating…",
@@ -754,7 +758,12 @@
       "October",
       "November",
       "December"
-    ]
+    ],
+    "promos": {
+      "title": "Promotions",
+      "subtitle": "Discounts received for their special dates and whether they were used.",
+      "empty": "Hasn't received any promotion yet."
+    }
   },
   "quotes": {
     "title": "Quotes",
@@ -1239,14 +1248,15 @@
     "goToCustomers": "Go to customers",
     "whatsappText": "Hi {name}, {occasion} is coming up. Shall we prepare some special flowers?",
     "promo": {
-      "sent": "Promotion sent on {date}",
+      "sent": "Promotion sent on {date} · code {code}",
       "sending": "Sending the promotion…",
       "failed": "The promotion couldn't be sent",
       "scheduled": "The promotion goes out on {date}",
       "scheduledNext": "The promotion goes out with the next daily send",
       "demo": "(demo shop: not sent)",
       "noEmail": "No promotion: the customer has no email",
-      "noConsent": "No promotion: the customer didn't agree to receive promotions"
+      "noConsent": "No promotion: the customer didn't agree to receive promotions",
+      "used": "Promotion used on {date} · code {code}"
     },
     "promoHint": "Send an automatic discount by email before each date.",
     "goToPromotions": "Set up the promotion"
@@ -1261,8 +1271,8 @@
       "subtitle": "Choose the discount your customers get before their birthday, anniversary or another special date."
     },
     "form": {
-      "enabled": "Send the email automatically",
-      "enabledHint": "Only to customers with an email who agreed to receive promotions.",
+      "enabled": "Automatic sending every morning",
+      "enabledHint": "When it's on, every morning we send the email, with nothing for you to do, to customers with an upcoming special date who agreed to receive promotions.",
       "kind": "Discount type",
       "kinds": {
         "PERCENT": "Percentage",
@@ -1275,8 +1285,8 @@
     "how": {
       "title": "How it works",
       "who": "Customers with an email who agreed to receive promotions get it: {reachable} of {total} customers with special dates.",
-      "when": "It goes out a few days before each date, following that date's notice (7 days unless you change it), in the morning.",
-      "validity": "The discount is valid until the date itself: your customer shows the email in store or messages you on WhatsApp, and you apply the discount.",
+      "when": "It goes out on its own every morning (around 9 a.m. Mexico City time), a few days before each date: as many as that date's notice (7 unless you change it).",
+      "validity": "Each email has a personal code. Your customer messages you on WhatsApp with the code (or shows the email in store): you look it up in Discounts, apply the discount and mark it as used.",
       "once": "Only one email per date each year.",
       "unsubscribe": "Each email has a link to stop receiving promotions; if your customer uses it, their consent is removed.",
       "sent": "{count, plural, =0 {No emails sent in the last 30 days.} one {# email sent in the last 30 days.} other {# emails sent in the last 30 days.}}",
@@ -1289,6 +1299,58 @@
       "subtitle": "Example with a birthday in 7 days. The email is in your shop's language ({language}).",
       "subject": "Subject:",
       "empty": "Choose the discount and save to see the email."
+    },
+    "upcoming": {
+      "title": "Upcoming sends",
+      "subtitle": "Emails that will go out on their own in the next 7 days.",
+      "off": "Automatic sending is off: turn it on above so emails go out every morning.",
+      "empty": "No emails scheduled for the next 7 days.",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "row": "{day} · {occasion}",
+      "more": "{count, plural, one {and # more} other {and # more}}"
+    },
+    "discountsCard": {
+      "title": "Discounts sent",
+      "subtitle": "When a customer messages you with their code, look it up and mark it as used.",
+      "open": "See discounts"
+    },
+    "discounts": {
+      "title": "Discounts",
+      "subtitle": "Each promotion email has a code. Look it up by code, name, email or phone, check whether it's still valid and mark it as used.",
+      "back": "Promotions",
+      "searchPlaceholder": "Code, name, email or phone",
+      "allStatuses": "All",
+      "statuses": {
+        "VALID": "Valid",
+        "USED": "Used",
+        "EXPIRED": "Expired"
+      },
+      "counts": {
+        "VALID": "{count, plural, =0 {No valid discounts} one {# valid discount} other {# valid discounts}}",
+        "USED": "{count, plural, =0 {No used discounts} one {# used discount} other {# used discounts}}",
+        "EXPIRED": "{count, plural, =0 {No expired discounts} one {# expired discount} other {# expired discounts}}"
+      },
+      "results": "{count, plural, one {# discount} other {# discounts}}",
+      "emptyTitle": "No discounts yet",
+      "emptyBody": "Every promotion email sent will show up here with its code as soon as the first one goes out.",
+      "noResultsTitle": "No matching discounts",
+      "noResultsBody": "Check the code or search by the customer's name.",
+      "dates": "Sent on {sent} · valid until {until}",
+      "usedBy": "Used on {date} · marked by {name}",
+      "usedOn": "Used on {date}",
+      "markUsed": "Mark as used",
+      "markUsedTitle": "Mark code {code} as used?",
+      "markUsedBody": "{customer} is using their {discount} discount. It will no longer show as valid.",
+      "noteLabel": "Note (optional)",
+      "noteHint": "For example what they bought or the quote number.",
+      "confirmUse": "Mark as used",
+      "undo": "Undo",
+      "undoTitle": "Remove the use of code {code}?",
+      "undoBody": "The discount will show as valid again (or expired, if the date has passed).",
+      "confirmUndo": "Remove use",
+      "redeemed": "Discount marked as used",
+      "undone": "Discount use removed"
     }
   },
   "unsubscribe": {
