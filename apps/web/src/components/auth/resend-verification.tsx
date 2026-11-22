@@ -7,12 +7,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { authClient } from '@/lib/auth-client';
+import { useHydrated } from '@/lib/use-hydrated';
 
 /** Reinvio del link di verifica. La risposta è sempre la stessa (nessuna enumerazione di account). */
 export function ResendVerification({ defaultEmail, next }: { defaultEmail: string; next: string }) {
   const t = useTranslations('auth');
   const [sent, setSent] = useState(false);
   const [pending, startTransition] = useTransition();
+  const hydrated = useHydrated();
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,7 +37,7 @@ export function ResendVerification({ defaultEmail, next }: { defaultEmail: strin
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form method="post" onSubmit={onSubmit} className="space-y-4">
       <Field id="resend-email" label={t('email')}>
         <Input
           {...controlProps('resend-email')}
@@ -46,7 +48,7 @@ export function ResendVerification({ defaultEmail, next }: { defaultEmail: strin
           required
         />
       </Field>
-      <Button type="submit" variant="outline" className="w-full" disabled={pending}>
+      <Button type="submit" variant="outline" className="w-full" disabled={!hydrated || pending}>
         {t('resendVerification')}
       </Button>
     </form>

@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState, type SVGProps } from 'react';
 import { Button } from '@/components/ui/button';
 import { authClient, authErrorKey } from '@/lib/auth-client';
+import { useHydrated } from '@/lib/use-hydrated';
 
 /**
  * "Continuar con Google" (ADR-036). Better Auth porta il browser su Google; al ritorno l'utente
@@ -21,6 +22,7 @@ export function GoogleSignInButton({
   readonly loginHint?: string | undefined;
 }) {
   const t = useTranslations('auth');
+  const hydrated = useHydrated();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +60,7 @@ export function GoogleSignInButton({
         size="lg"
         className="w-full"
         onClick={onClick}
-        disabled={pending}
+        disabled={!hydrated || pending}
         aria-busy={pending}
       >
         <GoogleLogo className="size-[18px]" />

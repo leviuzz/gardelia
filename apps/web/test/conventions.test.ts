@@ -20,6 +20,24 @@ function sourceFiles(dir: string): string[] {
 
 const read = (file: string) => readFileSync(file, 'utf8');
 
+/** Tag di apertura `<form …>` di un file JSX, anche su più righe e con `=>` negli attributi. */
+function formTags(text: string): string[] {
+  const tags: string[] = [];
+  for (const match of text.matchAll(/<form\b/g)) {
+    let depth = 0;
+    for (let i = match.index; i < text.length; i += 1) {
+      const char = text[i];
+      if (char === '{') depth += 1;
+      else if (char === '}') depth -= 1;
+      else if (char === '>' && depth === 0) {
+        tags.push(text.slice(match.index, i + 1).replace(/\s+/g, ' '));
+        break;
+      }
+    }
+  }
+  return tags;
+}
+
 describe('convenzioni del web', () => {
   it('ogni server action della fioreria passa da runTenantAction (contesto per primo)', () => {
     const actionFiles = sourceFiles(join(src, 'app/app/[tenantSlug]')).filter((file) =>
@@ -42,6 +60,23 @@ describe('convenzioni del web', () => {
       }
     }
     expect(problems).toEqual([]);
+  });
+
+  it('i moduli gestiti solo in JavaScript usano POST: prima dell’idratazione niente dati nell’URL', () => {
+    // Un `<form onSubmit>` senza `action` inviato prima che React colleghi i gestori parte come
+    // modulo HTML: con il GET predefinito email e password finirebbero nell'indirizzo (cronologia,
+    // log dell'hosting). I moduli con `action` (server action) funzionano anche senza JavaScript.
+    const offenders: string[] = [];
+    let clientForms = 0;
+    for (const file of sourceFiles(src).filter((path) => path.endsWith('.tsx'))) {
+      for (const tag of formTags(read(file))) {
+        if (!tag.includes('onSubmit=') || /\saction=/.test(tag)) continue;
+        clientForms += 1;
+        if (!/\smethod="post"/.test(tag)) offenders.push(`${relative(src, file)}: ${tag}`);
+      }
+    }
+    expect(clientForms).toBeGreaterThanOrEqual(7);
+    expect(offenders).toEqual([]);
   });
 
   it('nessun percorso /app/… scritto a mano fuori da lib/routes.ts', () => {

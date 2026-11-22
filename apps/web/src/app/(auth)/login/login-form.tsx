@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { authClient, authErrorKey } from '@/lib/auth-client';
+import { useHydrated } from '@/lib/use-hydrated';
 
 export function LoginForm({ next, defaultEmail }: { next: string; defaultEmail: string }) {
   const t = useTranslations('auth');
@@ -18,6 +19,7 @@ export function LoginForm({ next, defaultEmail }: { next: string; defaultEmail: 
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const hydrated = useHydrated();
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,7 +45,7 @@ export function LoginForm({ next, defaultEmail }: { next: string; defaultEmail: 
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5" noValidate={false}>
+    <form method="post" onSubmit={onSubmit} className="space-y-5" noValidate={false}>
       {error ? (
         <Alert variant="destructive">
           <TriangleExclamationPoint aria-hidden="true" />
@@ -80,7 +82,13 @@ export function LoginForm({ next, defaultEmail }: { next: string; defaultEmail: 
           {t('forgotPassword')}
         </Link>
       </div>
-      <Button type="submit" className="w-full" size="lg" disabled={pending} aria-busy={pending}>
+      <Button
+        type="submit"
+        className="w-full"
+        size="lg"
+        disabled={!hydrated || pending}
+        aria-busy={pending}
+      >
         {pending ? t('loggingIn') : t('loginButton')}
       </Button>
     </form>

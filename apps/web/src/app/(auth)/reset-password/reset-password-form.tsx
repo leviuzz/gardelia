@@ -9,12 +9,14 @@ import { PasswordInput } from '@/components/form/password-input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { authClient, authErrorKey } from '@/lib/auth-client';
+import { useHydrated } from '@/lib/use-hydrated';
 
 export function ResetPasswordForm({ token }: { token: string }) {
   const t = useTranslations('auth');
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
+  const hydrated = useHydrated();
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,7 +52,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form method="post" onSubmit={onSubmit} className="space-y-5">
       {error ? (
         <Alert variant="destructive">
           <TriangleExclamationPoint aria-hidden="true" />
@@ -75,7 +77,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
           required
         />
       </Field>
-      <Button type="submit" className="w-full" size="lg" disabled={pending}>
+      <Button type="submit" className="w-full" size="lg" disabled={!hydrated || pending}>
         {t('resetButton')}
       </Button>
     </form>

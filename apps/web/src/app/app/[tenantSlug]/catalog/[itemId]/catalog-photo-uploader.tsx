@@ -32,7 +32,7 @@ export function CatalogPhotoUploader({
   const colorRequired = byColor && colors.length > 0;
 
   return (
-    <form onSubmit={state.onSubmit} className="space-y-4">
+    <form method="post" onSubmit={state.onSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field id="photo-view" label={t('view')} error={err('view')}>
           <NativeSelect

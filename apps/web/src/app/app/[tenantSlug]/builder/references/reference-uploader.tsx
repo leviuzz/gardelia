@@ -27,7 +27,7 @@ export function ReferenceUploader({
   const err = (field: string) => state.fieldErrors[field];
 
   return (
-    <form onSubmit={state.onSubmit} className="space-y-4">
+    <form method="post" onSubmit={state.onSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field id="reference-style" label={t('style')} error={err('style')}>
           <NativeSelect

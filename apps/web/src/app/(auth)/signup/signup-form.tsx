@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { authClient, authErrorKey } from '@/lib/auth-client';
+import { useHydrated } from '@/lib/use-hydrated';
 
 const MIN_PASSWORD = 10;
 
@@ -19,6 +20,7 @@ export function SignupForm({ next, defaultEmail }: { next: string; defaultEmail:
   const [error, setError] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const hydrated = useHydrated();
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,7 +52,7 @@ export function SignupForm({ next, defaultEmail }: { next: string; defaultEmail:
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form method="post" onSubmit={onSubmit} className="space-y-5">
       {error ? (
         <Alert variant="destructive">
           <TriangleExclamationPoint aria-hidden="true" />
@@ -90,7 +92,13 @@ export function SignupForm({ next, defaultEmail }: { next: string; defaultEmail:
         />
       </Field>
       <p className="text-xs leading-relaxed text-muted-foreground">{t('termsNote')}</p>
-      <Button type="submit" className="w-full" size="lg" disabled={pending} aria-busy={pending}>
+      <Button
+        type="submit"
+        className="w-full"
+        size="lg"
+        disabled={!hydrated || pending}
+        aria-busy={pending}
+      >
         {pending ? t('signingUp') : t('signupButton')}
       </Button>
     </form>
