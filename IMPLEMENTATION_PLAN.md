@@ -358,6 +358,11 @@ nell'indirizzo). Un test delle convenzioni lo impone ai moduli nuovi.
 riproduce (4 esecuzioni complete, anche con un solo thread di servizio). Il server dei test ora
 registra i tempi del ritorno, i blocchi dell'event loop e i thread di servizio occupati
 (`e2e/support/google-oauth-mock.mjs`): al prossimo fallimento il log dirà dove si ferma.
+Il 22/11 (CI 57, entrambi i tentativi) il log ha risposto: nessuna riga "ritorno da Google
+ricevuto", che si scrive appena il server riceve la richiesta, e nessun blocco dell'event loop.
+La richiesta di ritorno non arriva mai al server: il blocco è nel browser o nell'intercettazione
+di `accounts.google.com` del test (`route.fulfill` con il redirect), non nell'app. Il job,
+rieseguito, è passato.
 
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite
