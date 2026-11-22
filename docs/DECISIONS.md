@@ -643,6 +643,12 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   `next build` (`apps/web/scripts/vercel-build.mjs`). Senza quella variabile la build si ferma. Le
   anteprime per ramo non toccano mai il database. Le migrazioni restano "espandi e contrai"
   (PLATFORM_PLAN §4): la versione in linea continua a funzionare mentre arriva la nuova.
+- **Dati di riferimento** (aggiunto il 22/11/2026, scoperto dalla prima CI su un database vuoto):
+  la tassonomia dei fiori la caricava solo il seed demo, che in produzione non gira; online gli
+  articoli non si sarebbero collegati alla tassonomia e anteprime e boceto avrebbero perso nomi e
+  misure. Ora sta in `packages/db/src/reference-data.ts` e si allinea a ogni rilascio dopo le
+  migrazioni (`pnpm db:deploy` = migrazioni + dati di riferimento, anche nella build di Vercel) e
+  prima dei test di integrazione; l'allineamento è idempotente.
 - **Ruoli del database su Neon:** `neondb_owner` per le migrazioni; `floral_app`, creato una volta
   con `packages/db/scripts/setup-hosted-db.sql` (stessi privilegi del locale), per l'app. Il
   controllo all'avvio ora rifiuta anche un ruolo **proprietario delle tabelle** (o che può

@@ -1,6 +1,6 @@
 /**
- * Prepara il database di TEST prima dei test di integrazione: applica le migrazioni
- * (idempotente). Gira nel processo principale di Vitest, una volta per progetto.
+ * Prepara il database di TEST prima dei test di integrazione: applica le migrazioni e i dati
+ * di riferimento (idempotente). Gira nel processo principale di Vitest, una volta per progetto.
  */
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -27,6 +27,13 @@ export default function setup(): void {
   execFileSync('pnpm', ['exec', 'prisma', 'migrate', 'deploy'], {
     cwd: dbPackageDir,
     env: { ...process.env, DATABASE_MIGRATION_URL: migrationUrl },
+    stdio: 'pipe',
+  });
+  // Come in un rilascio vero: dopo le migrazioni arrivano i dati di riferimento (tassonomia),
+  // così i test non dipendono dal seed demo né dall'ordine in cui girano.
+  execFileSync('pnpm', ['exec', 'tsx', 'scripts/sync-reference-data.ts'], {
+    cwd: dbPackageDir,
+    env: { ...process.env, DATABASE_URL: appUrl },
     stdio: 'pipe',
   });
 }

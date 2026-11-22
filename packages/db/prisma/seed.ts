@@ -15,7 +15,6 @@ import { isBuilderComponentType, newId } from '@floral/domain';
 import { createDbClient, type DbClient } from '../src/client';
 import { withSystemContext, type TransactionClient } from '../src/tenancy';
 import {
-  CANONICAL_FLOWERS,
   DEMO_CATALOG,
   DEMO_CUSTOMERS,
   DEMO_RECIPES,
@@ -23,6 +22,7 @@ import {
   DEMO_USERS,
   SECOND_TENANT,
 } from './seed-data';
+import { upsertCanonicalFlowers } from '../src/reference-data';
 
 export interface SeedResult {
   readonly tenants: readonly string[];
@@ -101,19 +101,8 @@ export async function runSeed(db: DbClient, options: { password: string }): Prom
     db,
     { reason: 'seed: dati demo di sviluppo' },
     async (tx) => {
-      for (const flower of CANONICAL_FLOWERS) {
-        await tx.canonicalFlower.upsert({
-          where: { slug: flower.slug },
-          update: {},
-          create: {
-            slug: flower.slug,
-            scientificName: flower.scientificName,
-            category: flower.category,
-            names: flower.names,
-            colors: [...flower.colors],
-          },
-        });
-      }
+      // Dati di riferimento (anche in produzione arrivano con `pnpm db:deploy`).
+      await upsertCanonicalFlowers(tx);
       const canonicalBySlug = new Map(
         (await tx.canonicalFlower.findMany({ select: { id: true, slug: true } })).map((f) => [
           f.slug,

@@ -12,6 +12,8 @@
     "generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
+    "reference-data": "tsx scripts/sync-reference-data.ts",
+    "deploy": "prisma migrate deploy && tsx scripts/sync-reference-data.ts",
     "migrate:status": "prisma migrate status",
     "seed": "tsx prisma/seed.ts",
     "typecheck": "tsc -p tsconfig.json",

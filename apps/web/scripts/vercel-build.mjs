@@ -1,6 +1,7 @@
 /**
  * Build su Vercel. Prima di `next build`, SOLO nei deploy di produzione, applica le migrazioni
- * del database con il ruolo proprietario (`DATABASE_MIGRATION_URL`). Le anteprime per ramo non
+ * del database con il ruolo proprietario (`DATABASE_MIGRATION_URL`) e allinea i dati di
+ * riferimento (tassonomia dei fiori, con `DATABASE_URL`). Le anteprime per ramo non
  * toccano mai il database. Le migrazioni sono "espandi e contrai" (PLATFORM_PLAN §4): la
  * versione in linea continua a funzionare mentre arriva la nuova.
  */
@@ -18,8 +19,8 @@ if (process.env.VERCEL_ENV === 'production') {
     );
     process.exit(1);
   }
-  console.info('Deploy di produzione: applico le migrazioni del database.');
-  run('pnpm --filter @floral/db run migrate:deploy', repoRoot);
+  console.info('Deploy di produzione: migrazioni e dati di riferimento del database.');
+  run('pnpm --filter @floral/db run deploy', repoRoot);
 } else {
   console.info(`Deploy "${process.env.VERCEL_ENV ?? 'locale'}": nessuna migrazione.`);
 }

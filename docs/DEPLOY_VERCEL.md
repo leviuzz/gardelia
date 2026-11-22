@@ -108,7 +108,8 @@ Ogni esecuzione dà un segreto nuovo: generane uno per ogni uso.
 
 4. **Ramo di produzione:** è già quello giusto, `claude/fervent-allen-k1t8ii` (l'unico ramo del
    repository, dove c'è tutto il lavoro): ogni mio push va in linea da solo.
-5. **Deploy.** La prima build applica le migrazioni del database, poi compila l'app.
+5. **Deploy.** La prima build prepara il database (migrazioni e dati di riferimento, come la
+   tassonomia dei fiori), poi compila l'app.
 6. **Controlla:** in **Settings → Domains** c'è l'indirizzo vero. Se è diverso da `APP_URL`,
    correggi `APP_URL` e `BETTER_AUTH_URL` e ridistribuisci (**Deployments → ⋯ → Redeploy**). Poi
    apri `<indirizzo>/api/health`: deve rispondere `{"status":"ok"}`.
