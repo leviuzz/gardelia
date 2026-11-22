@@ -25,7 +25,8 @@
     "phonePlaceholder": "449 123 4567",
     "demo": "Demo",
     "demoBanner": "Estás en una florería de demostración: los datos son ficticios y no se envía nada a clientes reales.",
-    "changesSaved": "Cambios guardados"
+    "changesSaved": "Cambios guardados",
+    "language": "Idioma"
   },
   "validation": {
     "required": "Este campo es obligatorio.",
