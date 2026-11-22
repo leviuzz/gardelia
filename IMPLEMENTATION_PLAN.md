@@ -316,6 +316,13 @@ facoltativa, listo con la cotización); un disegno salvato si riapre con i passi
 Sotto la foto realistica c'è "Generar otra versión" (ADR-045): 1 credito, con conferma; senza quel
 clic la stessa composizione riusa sempre la foto già fatta.
 
+**Date speciali nel nuovo cliente (fatto il 22/11, richiesta del founder dopo i riscontri dei
+fioristi):** il modulo "Nuevo cliente" ha la sezione "Fechas especiales" (compleanni, anniversari,
+altre date, anche di un'altra persona, con "avvisa con anticipo"): si salvano col cliente nella
+stessa transazione e un errore resta sulla sua riga. Le date si gestivano già nella scheda del
+cliente, ma solo dopo averlo creato. I clienti demo hanno qualche data. Prossimi: il calendario
+delle date e la promo con l'email automatica.
+
 **Pulsanti attivi solo quando funzionano (fatto il 22/11):** "Continuar con Google", uscita e i
 moduli di accesso restano disattivati finché la pagina non ha caricato il JavaScript; i moduli
 gestiti solo in JavaScript inviano in POST (prima, un invio anticipato metteva email e password

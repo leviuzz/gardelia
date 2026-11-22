@@ -130,7 +130,7 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
       </section>
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <div className="space-y-6 lg:col-span-3">
+        <div className="min-w-0 space-y-6 lg:col-span-3">
           {pendingSteps > 0 ? (
             <Card>
               <CardHeader>
@@ -262,7 +262,7 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
         </div>
 
         {data.recentActivity ? (
-          <Card className="lg:col-span-2">
+          <Card className="min-w-0 lg:col-span-2">
             <CardHeader>
               <CardTitle>{t('dashboard.recentActivity')}</CardTitle>
             </CardHeader>

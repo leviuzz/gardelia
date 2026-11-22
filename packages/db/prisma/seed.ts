@@ -211,9 +211,21 @@ export async function runSeed(db: DbClient, options: { password: string }): Prom
       for (const customer of DEMO_CUSTOMERS) {
         const existing = await tx.customer.findFirst({
           where: { tenantId: tenantIds.demo, email: customer.email },
-          select: { id: true },
+          select: { id: true, _count: { select: { occasions: true } } },
         });
-        if (existing) continue;
+        if (existing) {
+          // Date speciali per il calendario anche nei database seminati prima che esistessero.
+          if (existing._count.occasions === 0 && customer.occasions.length > 0) {
+            await tx.customerOccasion.createMany({
+              data: customer.occasions.map((occasion) => ({
+                tenantId: tenantIds.demo,
+                customerId: existing.id,
+                ...occasion,
+              })),
+            });
+          }
+          continue;
+        }
         await tx.customer.create({
           data: {
             tenantId: tenantIds.demo,
@@ -228,6 +240,12 @@ export async function runSeed(db: DbClient, options: { password: string }): Prom
             acquisitionChannel: customer.acquisitionChannel,
             marketingConsent: customer.marketingConsent,
             marketingConsentAt: customer.marketingConsent ? new Date() : null,
+            occasions: {
+              create: customer.occasions.map((occasion) => ({
+                tenantId: tenantIds.demo,
+                ...occasion,
+              })),
+            },
           },
         });
       }

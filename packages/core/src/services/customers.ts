@@ -17,6 +17,7 @@ import {
   customerListFiltersSchema,
   isUuid,
   nextOccurrence,
+  occasionInputListSchema,
   occasionSchema,
   toFieldErrors,
   type AcquisitionChannel,
@@ -231,12 +232,23 @@ function parseCustomer(rawInput: unknown) {
   return parsed.data;
 }
 
+/** Nuovo cliente: i suoi dati più le date speciali inserite nello stesso modulo. */
+const customerCreateSchema = customerInputSchema.extend({
+  occasions: occasionInputListSchema.default([]),
+});
+
+/**
+ * Crea il cliente e, nella stessa transazione, le sue date speciali (modulo "Nuevo cliente"):
+ * o tutto o niente.
+ */
 export async function createCustomer(
   ctx: TenantContext,
   rawInput: unknown,
 ): Promise<{ id: string }> {
   requirePermission(ctx, 'customers:write');
-  const input = parseCustomer(rawInput);
+  const parsed = customerCreateSchema.safeParse(rawInput);
+  if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
+  const { occasions, ...input } = parsed.data;
   return withTenantContext(getDb(), ctx, async (tx) => {
     const customer = await tx.customer.create({
       data: {
@@ -262,8 +274,23 @@ export async function createCustomer(
       action: AUDIT_ACTIONS.customerCreated,
       entityType: 'Customer',
       entityId: customer.id,
-      metadata: { type: customer.type, marketingConsent: customer.marketingConsent },
+      metadata: {
+        type: customer.type,
+        marketingConsent: customer.marketingConsent,
+        occasions: occasions.length,
+      },
     });
+    for (const occasionInput of occasions) {
+      const occasion = await tx.customerOccasion.create({
+        data: { tenantId: ctx.tenantId, customerId: customer.id, ...occasionInput },
+      });
+      await recordAudit(tx, ctx, {
+        action: AUDIT_ACTIONS.customerOccasionAdded,
+        entityType: 'CustomerOccasion',
+        entityId: occasion.id,
+        metadata: { customerId: customer.id, type: occasion.type },
+      });
+    }
     return { id: customer.id };
   });
 }

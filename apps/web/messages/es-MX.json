@@ -733,7 +733,8 @@
       "inDays": "{count, plural, one {en # día} other {en # días}}",
       "of": "de {name}",
       "date": "{day} de {month}",
-      "dateWithYear": "{day} de {month} de {year}"
+      "dateWithYear": "{day} de {month} de {year}",
+      "rowLabel": "Fecha {number}"
     },
     "months": [
       "enero",
