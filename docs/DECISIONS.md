@@ -734,6 +734,12 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
 - **GitHub:** ramo predefinito `staging` (PR e workflow manuali partono da lì). CI a ogni push di
   `staging`, `prod` e dei rami di lavoro, e su ogni PR.
 - **Supera** il "merge su `main`" del PLATFORM_PLAN: il ramo `main` non esiste.
+- **Deploy sul piano Hobby** (aggiunto il 22/11/2026): Vercel avvia da solo solo i deploy dei
+  commit fatti dal titolare dell'account; quelli di Claude vengono ignorati senza avvisi (solo il
+  primo deploy, avviato dal founder con l'import, era passato). Un Deploy Hook creato dal titolare,
+  chiamato dal workflow "Deploy staging" a ogni push su `staging` (segreto
+  `VERCEL_DEPLOY_HOOK_STAGING`), avvia il deploy dell'ultimo commit del ramo. Non si cambia
+  l'autore dei commit: resta chiaro chi ha scritto cosa.
 
 ### ADR-042 — Interfaccia in spagnolo, italiano e inglese, scelta da ogni persona — ADOTTATO (22/11/2026)
 

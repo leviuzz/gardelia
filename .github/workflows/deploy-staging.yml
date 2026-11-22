@@ -1,0 +1,33 @@
+name: Deploy staging
+
+# Vercel Hobby crea da solo solo i deploy dei commit fatti dal titolare dell'account: i commit dei
+# rami di lavoro (autore "Claude") vengono ignorati senza avvisi. Un Deploy Hook creato dal
+# titolare avvia invece il deploy dell'ultimo commit di `staging` (ADR-041). Su `staging` arriva
+# solo ciò che ha passato la CI.
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Avvia il deploy su Vercel
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chiama il Deploy Hook di staging
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_STAGING }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::warning::Segreto VERCEL_DEPLOY_HOOK_STAGING mancante: nessun deploy avviato (docs/DEPLOY_VERCEL.md, sezione 7)."
+            exit 0
+          fi
+          curl --fail --silent --show-error --max-time 30 -X POST "$HOOK" > /dev/null
+          echo "Deploy di staging avviato su Vercel (ultimo commit del ramo)."

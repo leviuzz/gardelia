@@ -169,6 +169,17 @@ ricomponi `DATABASE_URL`.
 7. **Aggiornamenti:** ogni push su `staging` va online da solo. Ci arriva un blocco finito con
    tutti i controlli verdi; `prod` si muove solo con il via libera del founder (ADR-041). Vercel
    costruisce solo il ramo di produzione del progetto: i push sugli altri rami non creano deploy.
+   **Sul piano Hobby** Vercel avvia da solo solo i deploy dei commit fatti dal titolare
+   dell'account: quelli di Claude vengono ignorati senza avvisi. Per questo serve un **Deploy
+   Hook**, creato una volta dal titolare:
+   - Vercel → **Settings → Git → Deploy Hooks**: nome `staging`, ramo `staging` → **Create
+     Hook**; copia l'indirizzo (è una chiave: mai in chat);
+   - GitHub → **Settings → Secrets and variables → Actions → New repository secret**:
+     `VERCEL_DEPLOY_HOOK_STAGING` = quell'indirizzo.
+
+   Da lì il workflow "Deploy staging" (`.github/workflows/deploy-staging.yml`) avvia il deploy a
+   ogni push su `staging`. Senza segreto il workflow avvisa e non fa nulla; un deploy si può
+   sempre avviare a mano: **Deployments → ⋯ → Create Deployment** → `staging`.
 
 Se qualcosa manca o è sbagliato, l'app non parte e i log di Vercel (**Logs**) elencano le
 variabili da sistemare.
