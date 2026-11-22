@@ -1,6 +1,6 @@
 # Ambiente online di prova su Vercel — guida passo passo
 
-Per il founder. Risultato: Gardelia online su un indirizzo `https://<progetto>.vercel.app`, da
+Per il founder. Risultato: Gardelia online su un indirizzo `https://gardelia-staging.vercel.app`, da
 provare dal telefono, con il Diseñador e l'AI vera. Costo: **0 USD al mese** di piattaforma con i
 piani gratuiti, più l'AI a consumo (pochi dollari di prove). Decisioni: `docs/DECISIONS.md`
 (P-03, O-04), piano: `docs/PLATFORM_PLAN.md`.
@@ -10,6 +10,10 @@ piani gratuiti, più l'AI a consumo (pochi dollari di prove). Decisioni: `docs/D
 > GitHub). Se una chiave finisce per sbaglio in un messaggio, si rigenera.
 
 Tempo: circa un'ora la prima volta.
+
+Nomi dei servizi in inglese (decisione del founder, 22/11/2026): questo ambiente si chiama
+`gardelia-staging` ovunque (progetto Neon, bucket R2, progetto Vercel). Al lancio la produzione
+avrà nomi propri (`gardelia-production`).
 
 ## 1. Account da creare (tutti gratuiti, a tuo nome)
 
@@ -23,7 +27,7 @@ Tempo: circa un'ora la prima volta.
 
 ## 2. Database (Neon)
 
-1. **Crea il progetto:** nome `gardelia-prueba`, Postgres **16**, regione **AWS US East
+1. **Crea il progetto:** nome `gardelia-staging`, Postgres **16**, regione **AWS US East
    (N. Virginia)**.
 2. **Copia l'URL del proprietario:** nella pagina del progetto apri **Connect**, scegli il ruolo
    `neondb_owner` e **disattiva** "Connection pooling". Copia l'indirizzo: è
@@ -44,11 +48,11 @@ Tempo: circa un'ora la prima volta.
 
 ## 3. Archivio delle foto (Cloudflare R2)
 
-1. **Crea il bucket:** **R2** → **Create bucket**, nome `gardelia-prueba`, posizione "Eastern
+1. **Crea il bucket:** **R2** → **Create bucket**, nome `gardelia-staging`, posizione "Eastern
    North America". Non renderlo pubblico.
 2. **Crea il token:** **R2** → **Manage API tokens** → **Create API token**, permesso **Object
-   Read & Write**, limitato al bucket `gardelia-prueba`.
-3. **Annota quattro valori:** `R2_ACCOUNT_ID` (Account ID), `R2_BUCKET` (`gardelia-prueba`),
+   Read & Write**, limitato al bucket `gardelia-staging`.
+3. **Annota quattro valori:** `R2_ACCOUNT_ID` (Account ID), `R2_BUCKET` (`gardelia-staging`),
    `R2_ACCESS_KEY_ID` e `R2_SECRET_ACCESS_KEY` (questi due si vedono una volta sola).
 
 ## 4. Email (Resend)
@@ -82,7 +86,8 @@ Ogni esecuzione dà un segreto nuovo: generane uno per ogni uso.
 
 ## 7. Progetto su Vercel
 
-1. **Importa il repository:** **Add New → Project**, importa `leviuzz/gardelia`.
+1. **Importa il repository:** **Add New → Project**, importa `leviuzz/gardelia` e chiama il
+   progetto `gardelia-staging` (l'indirizzo diventa `https://gardelia-staging.vercel.app`).
 2. **Root Directory:** `apps/web`. Framework, build, cron e versione di Node (22) li decide il
    repository (`apps/web/vercel.json` e `apps/web/package.json`): non cambiarli.
 3. **Environment Variables:** inseriscile **solo per "Production"** (le anteprime per ramo non le
@@ -90,7 +95,7 @@ Ogni esecuzione dà un segreto nuovo: generane uno per ogni uso.
 
    | Variabile                                                                | Valore                                                       |
    | ------------------------------------------------------------------------ | ------------------------------------------------------------ |
-   | `APP_URL`                                                                | `https://<nome-progetto>.vercel.app` (vedi il punto 6)       |
+   | `APP_URL`                                                                | `https://gardelia-staging.vercel.app` (vedi il punto 6)      |
    | `BETTER_AUTH_URL`                                                        | uguale ad `APP_URL`                                          |
    | `BETTER_AUTH_SECRET`                                                     | segreto generato (sezione 6)                                 |
    | `DATABASE_URL`                                                           | sezione 2, punto 5                                           |
