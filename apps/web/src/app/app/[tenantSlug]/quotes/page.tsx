@@ -1,18 +1,20 @@
-import { ChevronLeft, ChevronRight, FileText, Plus, Search, Sparkles } from 'lucide-react';
+import { FileText, Plus, Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { getEntitlements, hasPermission, listQuotes } from '@floral/core';
 import { QUOTE_STATUSES, quoteListFiltersSchema } from '@floral/domain';
+import { FilterBar } from '@/components/common/list/filter-bar';
+import { ListPagination } from '@/components/common/list/list-pagination';
+import { ListResults } from '@/components/common/list/list-results';
 import { EmptyState, PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input, NativeSelect } from '@/components/ui/input';
+import { NativeSelect } from '@/components/ui/input';
 import { money } from '@/lib/format';
 import { QUOTE_STATUS_BADGE, calendarDate } from '@/lib/quote-ui';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
-import { cn } from '@/lib/utils';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('quotes');
@@ -79,25 +81,12 @@ export default async function QuotesPage({
     <div className="space-y-6">
       <PageHeader title={t('title')} description={t('subtitle')} actions={headerActions} />
 
-      <form
-        method="get"
+      <FilterBar
         action={routes.quotes.list()}
-        className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]"
+        search={{ defaultValue: filters.q, placeholder: t('searchPlaceholder') }}
+        hasFilters={hasFilters}
+        className="sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]"
       >
-        <div className="relative">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            name="q"
-            type="search"
-            defaultValue={filters.q}
-            placeholder={t('searchPlaceholder')}
-            aria-label={tc('search')}
-            className="pl-9"
-          />
-        </div>
         <NativeSelect name="status" defaultValue={filters.status ?? ''} aria-label={tc('filter')}>
           <option value="">{t('allStatuses')}</option>
           {QUOTE_STATUSES.map((status) => (
@@ -106,100 +95,53 @@ export default async function QuotesPage({
             </option>
           ))}
         </NativeSelect>
-        <div className="flex gap-2">
-          <Button type="submit" variant="secondary" className="flex-1">
-            {tc('filter')}
-          </Button>
-          {hasFilters ? (
-            <Button asChild variant="ghost">
-              <Link href={routes.quotes.list()}>{tc('clearFilters')}</Link>
-            </Button>
-          ) : null}
-        </div>
-      </form>
+      </FilterBar>
 
-      {result.items.length === 0 ? (
-        hasFilters ? (
-          <EmptyState icon={<Search />} title={t('noResultsTitle')} body={t('noResultsBody')} />
-        ) : (
+      <ListResults
+        isEmpty={result.items.length === 0}
+        hasFilters={hasFilters}
+        noResults={{ title: t('noResultsTitle'), body: t('noResultsBody') }}
+        empty={
           <EmptyState
             icon={<FileText />}
             title={t('emptyTitle')}
             body={t('emptyBody')}
             action={newButton}
           />
-        )
-      ) : (
-        <>
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            {t('results', { count: result.total })}
-          </p>
-          <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
-            {result.items.map((quote) => (
-              <li key={quote.id}>
-                <Link
-                  href={routes.quotes.detail(quote.id)}
-                  className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors hover:bg-muted/40"
-                >
-                  <span className="w-24 shrink-0 text-sm font-medium tabular-nums">
-                    {quote.numberLabel}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{quote.customerName}</span>
-                    <span className="block truncate text-sm text-muted-foreground">
-                      {quote.title ??
-                        (quote.validUntil
-                          ? t('validUntil', { date: date(quote.validUntil) })
-                          : t('noValidity'))}
-                    </span>
-                  </span>
-                  <Badge variant={QUOTE_STATUS_BADGE[quote.status]}>
-                    {t(`statuses.${quote.status}`)}
-                  </Badge>
-                  <span className="w-28 text-right font-semibold tabular-nums">
-                    {money(quote.totalMinor, quote.currency)}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          {result.pageCount > 1 ? (
-            <nav
-              className="flex items-center justify-between"
-              aria-label={tc('pageOf', { page: result.page, pageCount: result.pageCount })}
-            >
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className={cn(result.page <= 1 && 'pointer-events-none opacity-50')}
+        }
+        count={t('results', { count: result.total })}
+      >
+        <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
+          {result.items.map((quote) => (
+            <li key={quote.id}>
+              <Link
+                href={routes.quotes.detail(quote.id)}
+                className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors hover:bg-muted/40"
               >
-                <Link href={pageHref(result.page - 1)} aria-disabled={result.page <= 1}>
-                  <ChevronLeft />
-                  {tc('previous')}
-                </Link>
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                {tc('pageOf', { page: result.page, pageCount: result.pageCount })}
-              </span>
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className={cn(result.page >= result.pageCount && 'pointer-events-none opacity-50')}
-              >
-                <Link
-                  href={pageHref(result.page + 1)}
-                  aria-disabled={result.page >= result.pageCount}
-                >
-                  {tc('next')}
-                  <ChevronRight />
-                </Link>
-              </Button>
-            </nav>
-          ) : null}
-        </>
-      )}
+                <span className="w-24 shrink-0 text-sm font-medium tabular-nums">
+                  {quote.numberLabel}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{quote.customerName}</span>
+                  <span className="block truncate text-sm text-muted-foreground">
+                    {quote.title ??
+                      (quote.validUntil
+                        ? t('validUntil', { date: date(quote.validUntil) })
+                        : t('noValidity'))}
+                  </span>
+                </span>
+                <Badge variant={QUOTE_STATUS_BADGE[quote.status]}>
+                  {t(`statuses.${quote.status}`)}
+                </Badge>
+                <span className="w-28 text-right font-semibold tabular-nums">
+                  {money(quote.totalMinor, quote.currency)}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <ListPagination page={result.page} pageCount={result.pageCount} href={pageHref} />
+      </ListResults>
     </div>
   );
 }

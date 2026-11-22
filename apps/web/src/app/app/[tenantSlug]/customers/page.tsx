@@ -1,17 +1,19 @@
-import { ChevronLeft, ChevronRight, Plus, Search, Users } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { listCustomers, type CustomerSummaryDto } from '@floral/core';
 import { CUSTOMER_TYPES, customerListFiltersSchema } from '@floral/domain';
+import { FilterBar } from '@/components/common/list/filter-bar';
+import { ListPagination } from '@/components/common/list/list-pagination';
+import { ListResults } from '@/components/common/list/list-results';
 import { EmptyState, PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input, NativeSelect } from '@/components/ui/input';
+import { NativeSelect } from '@/components/ui/input';
 import { initials, phoneForInput } from '@/lib/format';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
-import { cn } from '@/lib/utils';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('customers');
@@ -64,25 +66,12 @@ export default async function CustomersPage({
     <div className="space-y-6">
       <PageHeader title={t('title')} description={t('subtitle')} actions={newButton} />
 
-      <form
-        method="get"
+      <FilterBar
         action={routes.customers.list()}
-        className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-[minmax(0,2fr)_repeat(2,minmax(0,1fr))_auto]"
+        search={{ defaultValue: filters.q, placeholder: t('searchPlaceholder') }}
+        hasFilters={hasFilters}
+        className="sm:grid-cols-[minmax(0,2fr)_repeat(2,minmax(0,1fr))_auto]"
       >
-        <div className="relative">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            name="q"
-            type="search"
-            defaultValue={filters.q}
-            placeholder={t('searchPlaceholder')}
-            aria-label={tc('search')}
-            className="pl-9"
-          />
-        </div>
         <NativeSelect name="type" defaultValue={filters.type ?? ''} aria-label={t('form.type')}>
           <option value="">{t('allTypes')}</option>
           {CUSTOMER_TYPES.map((type) => (
@@ -95,83 +84,36 @@ export default async function CustomersPage({
           <option value="ACTIVE">{t('statusActive')}</option>
           <option value="ARCHIVED">{t('statusArchived')}</option>
         </NativeSelect>
-        <div className="flex gap-2">
-          <Button type="submit" variant="secondary" className="flex-1">
-            {tc('filter')}
-          </Button>
-          {hasFilters ? (
-            <Button asChild variant="ghost">
-              <Link href={routes.customers.list()}>{tc('clearFilters')}</Link>
-            </Button>
-          ) : null}
-        </div>
-      </form>
+      </FilterBar>
 
-      {result.items.length === 0 ? (
-        hasFilters ? (
-          <EmptyState icon={<Search />} title={t('noResultsTitle')} body={t('noResultsBody')} />
-        ) : (
+      <ListResults
+        isEmpty={result.items.length === 0}
+        hasFilters={hasFilters}
+        noResults={{ title: t('noResultsTitle'), body: t('noResultsBody') }}
+        empty={
           <EmptyState
             icon={<Users />}
             title={t('emptyTitle')}
             body={t('emptyBody')}
             action={newButton}
           />
-        )
-      ) : (
-        <>
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            {t('results', { count: result.total })}
-          </p>
-          <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
-            {result.items.map((customer) => (
-              <li key={customer.id}>
-                <CustomerRow
-                  customer={customer}
-                  href={routes.customers.detail(customer.id)}
-                  typeLabel={t(`types.${customer.type}`)}
-                  archivedLabel={t('archivedBadge')}
-                />
-              </li>
-            ))}
-          </ul>
-          {result.pageCount > 1 ? (
-            <nav
-              className="flex items-center justify-between"
-              aria-label={tc('pageOf', { page: result.page, pageCount: result.pageCount })}
-            >
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className={cn(result.page <= 1 && 'pointer-events-none opacity-50')}
-              >
-                <Link href={pageHref(result.page - 1)} aria-disabled={result.page <= 1}>
-                  <ChevronLeft />
-                  {tc('previous')}
-                </Link>
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                {tc('pageOf', { page: result.page, pageCount: result.pageCount })}
-              </span>
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className={cn(result.page >= result.pageCount && 'pointer-events-none opacity-50')}
-              >
-                <Link
-                  href={pageHref(result.page + 1)}
-                  aria-disabled={result.page >= result.pageCount}
-                >
-                  {tc('next')}
-                  <ChevronRight />
-                </Link>
-              </Button>
-            </nav>
-          ) : null}
-        </>
-      )}
+        }
+        count={t('results', { count: result.total })}
+      >
+        <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
+          {result.items.map((customer) => (
+            <li key={customer.id}>
+              <CustomerRow
+                customer={customer}
+                href={routes.customers.detail(customer.id)}
+                typeLabel={t(`types.${customer.type}`)}
+                archivedLabel={t('archivedBadge')}
+              />
+            </li>
+          ))}
+        </ul>
+        <ListPagination page={result.page} pageCount={result.pageCount} href={pageHref} />
+      </ListResults>
     </div>
   );
 }

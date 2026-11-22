@@ -22,11 +22,11 @@ import {
 } from '@floral/core';
 import { customerListFiltersSchema } from '@floral/domain';
 import { Forbidden } from '@/components/forbidden';
+import { SearchInput } from '@/components/common/list/search-input';
 import { EmptyState, PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { phoneForInput } from '@/lib/format';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
@@ -156,20 +156,12 @@ export default async function NewQuotePage({
       {header}
       <form method="get" action={routes.quotes.new()} className="flex gap-2">
         {designId ? <input type="hidden" name="configurationId" value={designId} /> : null}
-        <div className="relative flex-1">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            name="q"
-            type="search"
-            defaultValue={filters.q}
-            placeholder={t('quotes.new.searchCustomersPlaceholder')}
-            aria-label={t('quotes.new.searchCustomers')}
-            className="pl-9"
-          />
-        </div>
+        <SearchInput
+          defaultValue={filters.q}
+          placeholder={t('quotes.new.searchCustomersPlaceholder')}
+          label={t('quotes.new.searchCustomers')}
+          className="flex-1"
+        />
         <Button type="submit" variant="secondary">
           {t('common.search')}
         </Button>

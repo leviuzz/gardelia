@@ -293,7 +293,7 @@ runtime, salvo eccezioni elencate).
 | Ripetuto oggi                                                              | Quante volte                  | Diventa                                                  |
 | -------------------------------------------------------------------------- | ----------------------------- | -------------------------------------------------------- |
 | ✅ Scheletro delle server action (contesto, errori, revalidate, messaggio) | 39 azioni in 7 file           | `runTenantAction` (+ `parseForm`)                        |
-| Pagine elenco: filtri, ricerca, paginazione, vuoto, conteggio              | 4 pagine (+ ricerca clienti)  | `components/common/list/*` + `listHref`                  |
+| ✅ Pagine elenco: filtri, ricerca, paginazione, vuoto, conteggio           | 4 pagine (+ ricerca clienti)  | `components/common/list/*` + `routes.x.list(query)`      |
 | ✅ Immagini private: route, lettura del file, `<img>`, URL                 | 5 route, 4 servizi, 7 `<img>` | `privateImageRoute`, `readStoredImage`, `<PrivateImage>` |
 | ✅ Percorsi `/app/${slug}/…` scritti a mano                                | 75 in 32 file                 | `routes.ts` (link, redirect, revalidate, immagini)       |
 | Dialoghi di conferma                                                       | 3                             | `ConfirmActionDialog`                                    |

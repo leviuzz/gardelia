@@ -226,7 +226,18 @@ servizio: 190 righe in meno nei file delle azioni. Tutti i percorsi `/app/…` (
 revalidate, immagini) vengono da `tenantRoutes` (`lib/routes.ts`). Un test guardiano blocca
 un'azione che salta il contesto o un percorso scritto a mano. Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 385/385 ✅
 (+19 del web: percorsi, ossatura, guardiano) · build ✅ · E2E 40/40 ✅.
-Prossimo blocco della fase 0: pagine elenco condivise (filtri, ricerca, paginazione, stato vuoto).
+
+**Fase 0, pagine elenco (fatto il 22/11):** catalogo, clienti, preventivi e Diseñador usano gli
+stessi pezzi (`components/common/list/`): `FilterBar` (form GET con ricerca, filtri e "Limpiar
+filtros"), `SearchInput` (anche nella scelta del cliente della nuova cotización), `ListResults`
+("nessun risultato con questi filtri" distinto dall'elenco vuoto, conteggio annunciato) e
+`ListPagination` (agli estremi il pulsante è disattivato davvero, non più un link nascosto che
+da tastiera portava a una pagina inesistente). L'elenco degli archiviati del Diseñador ora ha lo
+stesso stato vuoto degli altri. Nuovo E2E: ricerca, nessun risultato, pulizia e pagina 2 con il
+filtro (prima nessun test copriva filtri e paginazione). Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 385/385 ✅ ·
+build ✅ · E2E 41/41 ✅.
+Prossimo blocco della fase 0: altri componenti condivisi (dialoghi di conferma, pulsanti-azione,
+campi indirizzo e fiscali, badge di stato).
 
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite

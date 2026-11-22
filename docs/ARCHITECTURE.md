@@ -42,8 +42,10 @@ apps/web/
   messages/es-MX.json         testi UI (unica lingua attiva)
   src/proxy.ts                CSP con nonce, requestId, redirect login
   src/instrumentation.ts      verifica all'avvio che il ruolo DB non possa aggirare la RLS
-  src/lib/                    auth (server/client), sessione, contesto tenant, env, action, form
-  src/components/             design system (ui/), form, app shell, brand
+  src/lib/                    auth (server/client), sessione, contesto tenant, env, form,
+                              tenant-action (ossatura delle server action), routes (percorsi)
+  src/components/             design system (ui/), form, app shell, brand, common/ (pezzi
+                              condivisi: immagini private, list/ per le pagine elenco)
   src/app/                    route (auth), onboarding, app/[tenantSlug]/…, invite, api
   e2e/                        Playwright + pozzo SMTP
 packages/core/src/            context, authorization, audit, mailer, email-templates, services/*,

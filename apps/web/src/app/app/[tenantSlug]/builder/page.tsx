@@ -1,15 +1,16 @@
-import { ChevronLeft, ChevronRight, Images, Plus, Sparkles } from 'lucide-react';
+import { Archive, Images, Plus, Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { getEntitlements, listBouquetConfigurations } from '@floral/core';
+import { ListPagination } from '@/components/common/list/list-pagination';
+import { ListResults } from '@/components/common/list/list-results';
 import { EmptyState, PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { money } from '@/lib/format';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
-import { cn } from '@/lib/utils';
 import { BuilderUpsell } from './builder-ui';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -86,85 +87,50 @@ export default async function BuilderPage({
         </Link>
       </div>
 
-      {result.items.length === 0 ? (
-        archived ? (
-          <p className="text-sm text-muted-foreground">{t('builder.archivedEmpty')}</p>
-        ) : (
+      <ListResults
+        isEmpty={result.items.length === 0}
+        hasFilters={archived}
+        noResults={{ icon: <Archive />, title: t('builder.archivedEmpty') }}
+        empty={
           <EmptyState
             icon={<Sparkles />}
             title={t('builder.emptyTitle')}
             body={t('builder.emptyBody')}
             action={newButton}
           />
-        )
-      ) : (
-        <>
-          <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
-            {result.items.map((design) => (
-              <li key={design.id}>
-                <Link
-                  href={routes.builder.design(design.id)}
-                  className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors hover:bg-muted/40"
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{design.name}</span>
-                    <span className="block truncate text-sm text-muted-foreground">
-                      {t('builder.flowerCount', { count: design.flowerCount })} ·{' '}
-                      {t('builder.updatedOn', {
-                        date: format.dateTime(design.updatedAt, {
-                          dateStyle: 'medium',
-                          timeZone: ctx.timezone,
-                        }),
-                      })}
-                    </span>
-                  </span>
-                  {design.style ? (
-                    <Badge variant="secondary">{t(`builder.editor.styles.${design.style}`)}</Badge>
-                  ) : null}
-                  <span className="w-28 text-right font-semibold tabular-nums">
-                    {money(design.totalMinor, design.currency)}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          {result.pageCount > 1 ? (
-            <nav
-              className="flex items-center justify-between"
-              aria-label={t('common.pageOf', { page: result.page, pageCount: result.pageCount })}
-            >
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className={cn(result.page <= 1 && 'pointer-events-none opacity-50')}
+        }
+      >
+        <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
+          {result.items.map((design) => (
+            <li key={design.id}>
+              <Link
+                href={routes.builder.design(design.id)}
+                className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors hover:bg-muted/40"
               >
-                <Link href={listHref(result.page - 1)} aria-disabled={result.page <= 1}>
-                  <ChevronLeft />
-                  {t('common.previous')}
-                </Link>
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                {t('common.pageOf', { page: result.page, pageCount: result.pageCount })}
-              </span>
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className={cn(result.page >= result.pageCount && 'pointer-events-none opacity-50')}
-              >
-                <Link
-                  href={listHref(result.page + 1)}
-                  aria-disabled={result.page >= result.pageCount}
-                >
-                  {t('common.next')}
-                  <ChevronRight />
-                </Link>
-              </Button>
-            </nav>
-          ) : null}
-        </>
-      )}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{design.name}</span>
+                  <span className="block truncate text-sm text-muted-foreground">
+                    {t('builder.flowerCount', { count: design.flowerCount })} ·{' '}
+                    {t('builder.updatedOn', {
+                      date: format.dateTime(design.updatedAt, {
+                        dateStyle: 'medium',
+                        timeZone: ctx.timezone,
+                      }),
+                    })}
+                  </span>
+                </span>
+                {design.style ? (
+                  <Badge variant="secondary">{t(`builder.editor.styles.${design.style}`)}</Badge>
+                ) : null}
+                <span className="w-28 text-right font-semibold tabular-nums">
+                  {money(design.totalMinor, design.currency)}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <ListPagination page={result.page} pageCount={result.pageCount} href={listHref} />
+      </ListResults>
     </div>
   );
 }
