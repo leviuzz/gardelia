@@ -63,6 +63,9 @@ const aiFields = {
   CRON_SECRET: optionalText,
   // Impostata da Vercel in ogni deploy.
   VERCEL: optionalText,
+  // Impostata da Vercel: dominio di produzione del progetto, senza `https://` (es.
+  // `gardelia.vercel.app`). L'avvio dei job AI chiama sempre questo, mai APP_URL (porta il segreto).
+  VERCEL_PROJECT_PRODUCTION_URL: optionalText,
 };
 
 /** Tetto mensile in USD: predefinito se assente; `null` se non è un importo valido. */

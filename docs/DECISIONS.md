@@ -622,6 +622,10 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   con `after`, quindi dopo la risposta all'utente); le pagine che aspettano un job in coda o in
   corso (al massimo una volta ogni 15 s per istanza: un job rimasto a metà riparte senza attese);
   Vercel Cron come rete di sicurezza (una volta al giorno, il massimo del piano Hobby).
+- **Dove va l'avvio** (aggiunto il 22/11/2026, primo deploy con un `APP_URL` diverso dal dominio
+  vero): la richiesta porta `CRON_SECRET`, quindi su Vercel va sempre al dominio di produzione
+  del progetto (`VERCEL_PROJECT_PRODUCTION_URL`, impostata da Vercel), mai ad `APP_URL`: un
+  `APP_URL` sbagliato non può mandare il segreto a un sito non nostro. Fuori da Vercel `APP_URL`.
 - **La funzione** risponde subito 202 e svuota la coda per al massimo 290 s (durata massima
   Hobby: 300 s); smette di prendere job quando il tempo rimasto non basta a finirne uno (riserva
   200 s). Protetta da `CRON_SECRET` (confronto in tempo costante); senza segreto valido, 404.
