@@ -10,3 +10,9 @@ onlyBuiltDependencies:
   - esbuild
   - sharp
   - unrs-resolver
+
+# Sicurezza (fase 0): effect <= 3.22.0 ha un ReDoS (GHSA-7589-6fvf-x4pw). Prisma 7.10.1 lo fissa
+# a 3.20.0 nel caricatore della configurazione (`@prisma/config`). Da togliere quando Prisma
+# aggiornerà la dipendenza (controllare con `pnpm audit --prod`).
+overrides:
+  effect: ^3.22.1
