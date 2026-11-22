@@ -278,9 +278,11 @@ togliere quando Prisma aggiornerà la dipendenza.
 
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
-1. Resto della fase 0: pagine elenco condivise e gli altri componenti ripetuti; CI/CD; Sentry e monitor; **ambiente online di prova** (configurazione pronta,
-   ADR-038: appena ci sono gli account); immagini con URL firmati e caricamento diretto su R2
-   quando serviranno (Studio, immagini 2K).
+1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci
+   sono gli account); con gli account, deploy dalla CI e staging, Sentry e monitor, backup con
+   prova di ripristino; scansione dei segreti e aggiornamenti automatici delle dipendenze;
+   divisione dei file grandi insieme alle funzionalità che li toccano; immagini con URL firmati e
+   caricamento diretto su R2 quando serviranno (Studio, immagini 2K).
 2. Ordini, pagamenti registrati e consegne con calendario; link pubblici di preventivo (approvato)
    e ordine; aggiungere un disegno del Diseñador a un preventivo in bozza.
 3. Inventario.

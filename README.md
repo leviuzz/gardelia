@@ -69,7 +69,7 @@ pnpm install                 # genera anche il client Prisma
 cp .env.example .env         # poi imposta BETTER_AUTH_SECRET:
 openssl rand -base64 32      # → incolla il valore in BETTER_AUTH_SECRET
 docker compose up -d         # Postgres (ruoli e database inclusi) + Mailpit
-pnpm db:deploy               # applica le migrazioni (ruolo proprietario)
+pnpm db:deploy               # migrazioni (ruolo proprietario) + dati di riferimento (tassonomia)
 pnpm db:seed                 # dati demo (idempotente)
 pnpm dev                     # http://localhost:3000
 ```
@@ -138,7 +138,7 @@ pnpm platform:grant-ai-credits --operator tu@empresa.mx --tenant las-camelias --
 | `pnpm test:integration`               | Servizi e RLS su `TEST_DATABASE_URL` (migrato automaticamente) |
 | `pnpm test:e2e`                       | Playwright sull'app di produzione (richiede `pnpm build`)      |
 | `pnpm db:migrate`                     | Crea e applica una nuova migrazione (sviluppo)                 |
-| `pnpm db:deploy`                      | Applica le migrazioni (CI/produzione)                          |
+| `pnpm db:deploy`                      | Migrazioni e dati di riferimento (CI/produzione)               |
 | `pnpm db:seed`                        | Dati demo (rifiutato con `NODE_ENV=production`)                |
 | `pnpm platform:assign-plan`           | Assegna il piano a una fioreria (solo operatori SUPER_ADMIN)   |
 | `pnpm platform:grant-ai-credits`      | Sblocca anteprime AI extra pagate (solo operatori SUPER_ADMIN) |

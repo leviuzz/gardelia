@@ -411,10 +411,10 @@ componenti condivisi → divisione dei file grandi insieme alle funzionalità ch
 ## 9. Lavori in background e integrazioni
 
 - **Job AI su Vercel:** la coda resta in Postgres (stati, crediti, tentativi). Una funzione
-  dedicata la svuota: parte subito dopo l'accodamento e ogni minuto con un cron di sicurezza, con
-  un limite globale di job in parallelo (limite di fal). È separata dalle pagine, quindi un picco
-  di AI non rallenta il sito e un rilascio non perde lavoro: un job interrotto torna in coda alla
-  scadenza del lease.
+  dedicata la svuota: parte subito dopo l'accodamento, mentre una pagina aspetta e con un cron di
+  sicurezza (una volta al giorno con Hobby, ogni minuto con Pro), con un limite globale di job in
+  parallelo (limite di fal). È separata dalle pagine, quindi un picco di AI non rallenta il sito
+  e un rilascio non perde lavoro: un job interrotto torna in coda alla scadenza del lease.
 - **Lo stesso codice gira altrove:** il core espone "svuota la coda" e non sa chi lo chiama. In
   locale lo chiama il worker nel processo (come oggi); su un altro hosting lo chiamerebbe un
   processo sempre acceso.
