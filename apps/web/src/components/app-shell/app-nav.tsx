@@ -6,11 +6,14 @@ import {
   FileText,
   Flower2,
   LayoutDashboard,
+  LoaderCircle,
   Settings,
   Sparkles,
   Users,
+  type LucideProps,
 } from 'lucide-react';
-import Link from 'next/link';
+import Link, { useLinkStatus } from 'next/link';
+import type { ComponentType } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   DropdownMenu,
@@ -44,6 +47,29 @@ const ICONS = {
   team: Users,
   settings: Settings,
 };
+/**
+ * Icona di una voce del menu: mentre la pagina scelta arriva dal server diventa una rotella,
+ * così su una connessione lenta si vede che il tocco è stato ricevuto. Va usata dentro un Link.
+ */
+function NavItemIcon({
+  icon: Icon,
+  className,
+}: {
+  readonly icon: ComponentType<LucideProps>;
+  readonly className?: string;
+}) {
+  const { pending } = useLinkStatus();
+  if (pending) {
+    return (
+      <LoaderCircle
+        className={cn(className, 'animate-spin motion-reduce:animate-none')}
+        aria-hidden="true"
+      />
+    );
+  }
+  return <Icon className={className} aria-hidden="true" />;
+}
+
 const GRID_COLUMNS: Record<number, string> = {
   2: 'grid-cols-2',
   3: 'grid-cols-3',
@@ -81,7 +107,10 @@ export function SidebarNav({ items, label }: { items: readonly NavItem[]; label:
                 : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-foreground',
             )}
           >
-            <Icon className={cn('size-4', active ? 'text-primary' : 'text-muted-foreground')} />
+            <NavItemIcon
+              icon={Icon}
+              className={cn('size-4', active ? 'text-primary' : 'text-muted-foreground')}
+            />
             {item.label}
           </Link>
         );
@@ -128,7 +157,7 @@ export function BottomNav({
                 aria-current={active ? 'page' : undefined}
                 className={cn(bottomItemClass, active ? 'text-primary' : 'text-muted-foreground')}
               >
-                <Icon className="size-5" aria-hidden="true" />
+                <NavItemIcon icon={Icon} className="size-5" />
                 <span className="max-w-full truncate">{item.label}</span>
               </Link>
             </li>
@@ -157,7 +186,7 @@ export function BottomNav({
                         aria-current={active ? 'page' : undefined}
                         className={cn(active && 'font-medium text-primary')}
                       >
-                        <Icon />
+                        <NavItemIcon icon={Icon} />
                         {item.label}
                       </Link>
                     </DropdownMenuItem>

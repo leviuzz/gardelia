@@ -201,7 +201,11 @@ l'attribuzione delle fee future.
 - Server action protette dal controllo di origine di Next.js; Better Auth verifica `trustedOrigins`.
 - Redirect post-login solo verso percorsi interni (`safeNextPath`).
 - Log JSON con `requestId`, campi sensibili oscurati; errori inattesi mostrati con un riferimento,
-  mai con dettagli tecnici.
+  mai con dettagli tecnici. Gli errori non gestiti di pagine, route e server action passano da
+  `onRequestError` (`instrumentation.ts` → `lib/request-errors.ts`): una riga con `requestId`
+  (anche per le API), `digest` (= "Referencia" mostrata all'utente) e il percorso della route,
+  mai quello reale. Confini d'errore: dentro il menu della fioreria (`app/[tenantSlug]/error.tsx`,
+  `not-found.tsx`, che conserva il 404) e globale (`global-error.tsx`).
 - Segreti solo da variabili d'ambiente validate all'avvio (`src/lib/env.ts`); in produzione mancano →
   l'app non parte.
 

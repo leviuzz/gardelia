@@ -266,11 +266,16 @@ adattatori (AI, storage, email). Se manca qualcosa l'app non parte e dice cosa m
 
 **Falle di gestione errori trovate (da chiudere nella fase 0):**
 
-1. Solo confini d'errore alla radice: un errore in una pagina della fioreria fa sparire menu e
-   navigazione → confini per sezione, pagine 404/403 della fioreria, errore globale, stati di
-   caricamento (oggi nessuno).
-2. Gli errori di pagine e route non passano dal nostro logger e non hanno l'ID richiesta →
-   registrazione centrale degli errori con ID richiesta, uguale a quello mostrato all'utente.
+1. ✅ (22/11) Solo confini d'errore alla radice: un errore in una pagina della fioreria faceva
+   sparire menu e navigazione → confine d'errore e 404 dentro il menu della fioreria, errore
+   globale; durante la navigazione la voce del menu toccata mostra una rotella. Niente
+   `loading.tsx` a livello di fioreria: con lo streaming un `notFound()` risponderebbe 200 invece
+   di 404 (regola del progetto: 404 per le risorse di altre fiorerie). I caricamenti lenti avranno
+   un `Suspense` nella singola pagina, DOPO il controllo che la risorsa esista.
+2. ✅ (22/11) Gli errori di pagine e route non passavano dal nostro logger → `onRequestError`
+   scrive una riga JSON con ID della richiesta, `digest` (il "Referencia" che vede l'utente) e il
+   percorso della route (mai quello reale né la query, che possono contenere token). Anche le API
+   hanno ora l'ID della richiesta.
 3. Alcuni errori di validazione non si vedono (il campo non è nel form) → avviso nel form.
 4. Se all'avvio il database non risponde, il worker AI non riparte fino al riavvio; nessuna
    chiusura ordinata → nuovo tentativo all'avvio e arresto pulito.

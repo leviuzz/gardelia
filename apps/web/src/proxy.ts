@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 /**
  * Proxy (ex middleware) di Next.js 16:
- *  1. assegna un requestId a ogni richiesta (correlazione log/audit);
+ *  1. assegna un requestId a ogni richiesta, API comprese (correlazione log/audit/errori);
  *  2. imposta un Content-Security-Policy con nonce per richiesta (script inline solo con nonce);
  *  3. redirect ottimistico al login per le aree autenticate senza cookie di sessione.
  *
@@ -62,7 +62,7 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     {
-      source: '/((?!api|_next/static|_next/image|favicon.ico|icon.svg|robots.txt).*)',
+      source: '/((?!_next/static|_next/image|favicon.ico|icon.svg|robots.txt).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },

@@ -98,6 +98,7 @@
     "goHome": "Ir al inicio",
     "errorTitle": "Algo salió mal",
     "errorBody": "Tuvimos un problema al mostrar esta página.",
+    "sectionErrorBody": "No pudimos mostrar esta sección. El menú y el resto de tu florería siguen funcionando.",
     "retry": "Reintentar",
     "errorReference": "Referencia: {digest}",
     "forbiddenTitle": "Sin acceso a esta sección",

@@ -14,6 +14,20 @@ import {
   logger,
   startAiWorker,
 } from '@floral/core';
+import {
+  reportRequestError,
+  type ErroredRequest,
+  type ErroredRequestContext,
+} from './lib/request-errors';
+
+/** Errori non gestiti delle richieste → log strutturato (vedi lib/request-errors.ts). */
+export function reportNodeRequestError(
+  error: unknown,
+  request: ErroredRequest,
+  context: ErroredRequestContext,
+): void {
+  reportRequestError(logger, error, request, context);
+}
 
 export async function registerNode(): Promise<void> {
   onSystemContext(({ reason }) => logger.info({ reason }, 'contesto di sistema (bypass RLS)'));

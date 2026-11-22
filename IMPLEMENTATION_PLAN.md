@@ -152,6 +152,15 @@ rilasci, errori, refactor del codice, roadmap). Rivisto il 21/11 sera su richies
 ("non risparmiamo"): consigliati **Vercel + Neon** (job AI in funzioni su coda Postgres, anteprima
 con database per ogni PR); Render resta la riserva. Approvato il link pubblico del preventivo (21/11).
 
+**Fase 0, errori e log (fatto il 22/11):** un errore in una pagina della fioreria non fa più
+sparire il menu (confine d'errore con "Reintentar", "Ir al inicio" e riferimento); 404 dentro il
+menu con lo stato 404 conservato; errore globale; rotella sulla voce del menu durante la
+navigazione; ogni errore non gestito finisce nel log JSON con ID della richiesta, `digest` e route
+(senza percorsi reali né token); ID della richiesta anche sulle API. Verificato dal vivo con un
+errore provocato apposta (poi rimosso): 500, menu presente, riferimento uguale nel log. Ultima
+verifica: lint ✅ · format ✅ · typecheck ✅ · test 333/333 ✅ · build ✅ · E2E 38/38 ✅.
+Prossimo blocco della fase 0: configurazione unica validata all'avvio.
+
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite
 `prisma` → `@prisma/config`, è chiuso con un override pnpm a ≥ 3.22.1 (`pnpm-workspace.yaml`);
