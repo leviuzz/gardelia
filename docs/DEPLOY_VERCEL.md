@@ -74,12 +74,16 @@ avrà nomi propri (`gardelia-production`).
 
 ## 4. Email (Resend)
 
-1. **Crea una chiave:** **API Keys** → **Create API Key**, permesso "Sending access".
-2. **Prepara le due variabili:**
-   - `SMTP_URL` = `smtps://resend:<la-chiave>@smtp.resend.com:465`
-   - `EMAIL_FROM` = `Gardelia <onboarding@resend.dev>`
-3. **Limite:** finché non verifichiamo il dominio, Resend invia solo **al tuo indirizzo** (quello
-   dell'account Resend). Per le tue prove basta.
+1. **Account:** registrati con l'email che userai anche per entrare nell'app. Finché non
+   verifichiamo il dominio, Resend consegna **solo a quell'indirizzo** (per le prove basta). Se
+   chiede di aggiungere un dominio, salta.
+2. **Crea una chiave:** **API Keys** → **Create API Key**, nome `gardelia-staging`, permesso
+   "Sending access", dominio "All domains". La chiave (inizia con `re_`) si vede una volta sola.
+3. **Prepara le due variabili:**
+   - `SMTP_URL` = `smtps://resend:<la-chiave>@smtp.resend.com:465` (la chiave intera, `re_`
+     compreso);
+   - `EMAIL_FROM` = `Gardelia <onboarding@resend.dev>` (indirizzo di prova di Resend: con il
+     dominio Gardelia verificato useremo il nostro).
 
 ## 5. Immagini AI (fal.ai)
 
