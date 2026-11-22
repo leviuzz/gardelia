@@ -1116,7 +1116,13 @@
       "missingPhotosHint": "One photo per flower, from the front; the background is removed automatically.",
       "tooManyStems": "The exact preview is available for bouquets of up to {max} flowers; the preview for this bouquet will be approximate.",
       "withoutSpecies": "Set the species of these flowers so the realistic photo recognizes them:",
-      "withoutSpeciesHint": "In the catalog, choose the “Species” or write which flower it is in the name (for example “Red rose”). Without it, the AI may draw a different flower."
+      "withoutSpeciesHint": "In the catalog, choose the “Species” or write which flower it is in the name (for example “Red rose”). Without it, the AI may draw a different flower.",
+      "another": "Generate another version",
+      "anotherTitle": "Generate another version?",
+      "anotherBody": "A new photo of the same bouquet is created and 1 credit is used ({remaining} left). Quotes that already have this image keep it.",
+      "anotherConfirm": "Generate, uses 1 credit",
+      "anotherRequested": "Generating another version…",
+      "anotherFailed": "Another version couldn’t be generated: the previous one stays and no credit was used."
     }
   },
   "photos": {

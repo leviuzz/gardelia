@@ -20,8 +20,8 @@ import { useToastActionState } from '@/lib/use-action-toast';
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
 /**
- * Azione da confermare (archiviare, annullare una cotización, disattivare un membro): il
- * pulsante apre la finestra con "Cancelar" e la conferma in rosso. La finestra si chiude solo se
+ * Azione da confermare (archiviare, annullare una cotización, disattivare un membro, usare un
+ * credito): il pulsante apre la finestra con "Cancelar" e la conferma (in rosso se toglie qualcosa). La finestra si chiude solo se
  * l'azione riesce; se fallisce resta aperta e il toast spiega perché.
  */
 export function ConfirmActionDialog({
@@ -30,6 +30,7 @@ export function ConfirmActionDialog({
   title,
   description,
   confirmLabel,
+  confirmVariant = 'destructive',
   fields,
 }: {
   readonly action: Action;
@@ -38,6 +39,8 @@ export function ConfirmActionDialog({
   readonly title: string;
   readonly description: string;
   readonly confirmLabel: string;
+  /** Rosso per le azioni che tolgono qualcosa; normale per quelle che costano (es. un credito). */
+  readonly confirmVariant?: 'destructive' | 'default';
   /** Valori nascosti inviati con la conferma (es. lo stato richiesto). */
   readonly fields?: Readonly<Record<string, string>>;
 }) {
@@ -60,7 +63,7 @@ export function ConfirmActionDialog({
             {Object.entries(fields ?? {}).map(([name, value]) => (
               <input key={name} type="hidden" name={name} value={value} />
             ))}
-            <SubmitButton variant="destructive" className="w-full sm:w-auto">
+            <SubmitButton variant={confirmVariant} className="w-full sm:w-auto">
               {confirmLabel}
             </SubmitButton>
           </form>

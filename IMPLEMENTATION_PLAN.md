@@ -313,7 +313,8 @@ senza specie e con un nome generico (ADR-034, nota del 22/11). Ultima verifica: 
 cinque passi (cosa è, colori, prezzo, foto facoltativa, listo); la modifica resta un modulo unico.
 Il Diseñador va a passi (flores, follaje y empaque, detalles e salvataggio, vista previa
 facoltativa, listo con la cotización); un disegno salvato si riapre con i passi come schede.
-Prossimo: il pulsante "Genera un'altra versione" della foto realistica (1 credito, con conferma).
+Sotto la foto realistica c'è "Generar otra versión" (ADR-045): 1 credito, con conferma; senza quel
+clic la stessa composizione riusa sempre la foto già fatta.
 
 **Pulsanti attivi solo quando funzionano (fatto il 22/11):** "Continuar con Google", uscita e i
 moduli di accesso restano disattivati finché la pagina non ha caricato il JavaScript; i moduli

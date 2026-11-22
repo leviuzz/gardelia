@@ -1116,7 +1116,13 @@
       "missingPhotosHint": "Una foto por flor, de frente; el fondo se quita automáticamente.",
       "tooManyStems": "La vista previa exacta está disponible para ramos de hasta {max} flores; la de este ramo será aproximada.",
       "withoutSpecies": "Indica la especie de estas flores para que la foto realista las reconozca:",
-      "withoutSpeciesHint": "En el catálogo, elige la «Especie» o escribe en el nombre qué flor es (por ejemplo «Rosa roja»). Sin eso, la IA puede dibujar otra flor."
+      "withoutSpeciesHint": "En el catálogo, elige la «Especie» o escribe en el nombre qué flor es (por ejemplo «Rosa roja»). Sin eso, la IA puede dibujar otra flor.",
+      "another": "Generar otra versión",
+      "anotherTitle": "¿Generar otra versión?",
+      "anotherBody": "Se crea una foto nueva del mismo ramo y se usa 1 crédito (te quedan {remaining}). Las cotizaciones que ya tienen esta imagen la conservan.",
+      "anotherConfirm": "Generar, usa 1 crédito",
+      "anotherRequested": "Generando otra versión…",
+      "anotherFailed": "No se pudo generar otra versión: sigue la anterior y no se descontó ningún crédito."
     }
   },
   "photos": {

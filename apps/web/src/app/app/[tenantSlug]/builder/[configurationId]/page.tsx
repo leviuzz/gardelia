@@ -22,7 +22,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { kickAiDrainWhileWaiting } from '@/lib/ai-kick';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
-import { requestPreviewAction, saveDesignAction, setDesignArchivedAction } from '../actions';
+import {
+  requestAnotherPreviewAction,
+  requestPreviewAction,
+  saveDesignAction,
+  setDesignArchivedAction,
+} from '../actions';
 import { BouquetEditor } from '../bouquet-editor';
 import { BuilderUpsell, builderOptions } from '../builder-ui';
 import type { PreviewPanelData } from '../preview-panel';
@@ -97,6 +102,7 @@ export default async function DesignPage({
           outdated: previewState.outdated,
           mode: previewState.mode,
           retryLimitReached: previewState.retryLimitReached,
+          anotherVersionFailed: previewState.anotherVersionFailed,
           sketch: {
             url: sketchPlan.version ? routes.builder.sketch(design.id, sketchPlan.version) : null,
             reason: sketchPlan.reason,
@@ -139,6 +145,7 @@ export default async function DesignPage({
           designName: design.name,
           productName: BRAND.productName,
           requestAction: requestPreviewAction.bind(null, ctx.tenantSlug, design.id),
+          anotherAction: requestAnotherPreviewAction.bind(null, ctx.tenantSlug, design.id),
         }
       : null;
 
