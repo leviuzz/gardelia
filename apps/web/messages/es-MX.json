@@ -245,7 +245,8 @@
     "more": "Más",
     "quotes": "Cotizaciones",
     "builder": "Diseñador",
-    "calendar": "Calendario"
+    "calendar": "Calendario",
+    "promotions": "Promociones"
   },
   "roles": {
     "OWNER": "Propietario",
@@ -334,7 +335,9 @@
     "ai.preview_requested": "{actor} pidió una vista previa con IA",
     "ai_credits.granted": "Se agregaron {units} vistas previas extra",
     "builder.style_reference_added": "{actor} agregó una foto a «Mis ramos»",
-    "builder.style_reference_archived": "{actor} quitó una foto de «Mis ramos»"
+    "builder.style_reference_archived": "{actor} quitó una foto de «Mis ramos»",
+    "tenant.promo_updated": "{actor} cambió la promoción de fechas especiales",
+    "customer.unsubscribed": "Un cliente se dio de baja de las promociones"
   },
   "catalog": {
     "title": "Catálogo",
@@ -664,7 +667,7 @@
       "channel": "¿Cómo te conoció?",
       "channelNone": "Sin especificar",
       "marketingConsent": "Acepta recibir promociones",
-      "marketingConsentHint": "Marca solo si el cliente lo autorizó. Sin consentimiento no se le enviarán promociones.",
+      "marketingConsentHint": "Marca solo si el cliente lo autorizó. Con su consentimiento y su correo recibirá la promoción de sus fechas especiales (si la activas en Promociones).",
       "consentSince": "Consentimiento registrado el {date}",
       "create": "Crear cliente",
       "creating": "Creando…",
@@ -1234,6 +1237,68 @@
     "yearsOther": "{count, plural, one {# año} other {# años}}",
     "addHint": "Las fechas se agregan en la ficha de cada cliente.",
     "goToCustomers": "Ir a clientes",
-    "whatsappText": "Hola {name}, se acerca {occasion}. ¿Te preparamos unas flores especiales?"
+    "whatsappText": "Hola {name}, se acerca {occasion}. ¿Te preparamos unas flores especiales?",
+    "promo": {
+      "sent": "Promoción enviada el {date}",
+      "sending": "Enviando la promoción…",
+      "failed": "No se pudo enviar la promoción",
+      "scheduled": "La promoción se enviará el {date}",
+      "scheduledNext": "La promoción sale con el próximo envío diario",
+      "demo": "(florería demo: no se envía)",
+      "noEmail": "Sin promoción: el cliente no tiene correo",
+      "noConsent": "Sin promoción: el cliente no aceptó recibir promociones"
+    },
+    "promoHint": "Envía un descuento automático por correo antes de cada fecha.",
+    "goToPromotions": "Configurar la promoción"
+  },
+  "promotions": {
+    "title": "Promociones",
+    "subtitle": "Un correo automático con descuento para las fechas especiales de tus clientes.",
+    "saved": "Promoción guardada",
+    "demoNotice": "Estás en una florería de demostración: puedes configurar la promoción y ver el correo, pero no se envía a nadie.",
+    "occasion": {
+      "title": "Promoción de fechas especiales",
+      "subtitle": "Elige el descuento que reciben tus clientes antes de su cumpleaños, aniversario u otra fecha especial."
+    },
+    "form": {
+      "enabled": "Enviar el correo automáticamente",
+      "enabledHint": "Solo a clientes con correo que aceptaron recibir promociones.",
+      "kind": "Tipo de descuento",
+      "kinds": {
+        "PERCENT": "Porcentaje",
+        "AMOUNT": "Monto fijo"
+      },
+      "percent": "Porcentaje de descuento",
+      "percentHint": "Entre {min} y {max}.",
+      "amount": "Descuento en {currency}"
+    },
+    "how": {
+      "title": "Cómo funciona",
+      "who": "Lo reciben los clientes con correo que aceptaron recibir promociones: {reachable} de {total} clientes con fechas especiales.",
+      "when": "Sale unos días antes de cada fecha, según el aviso de esa fecha (7 días si no lo cambias), por la mañana.",
+      "validity": "El descuento vale hasta el día de la fecha: tu cliente muestra el correo en la tienda o te escribe por WhatsApp, y tú aplicas el descuento.",
+      "once": "Un solo correo por fecha cada año.",
+      "unsubscribe": "Cada correo trae un enlace para dejar de recibir promociones; si tu cliente lo usa, se le quita el consentimiento.",
+      "sent": "{count, plural, =0 {Ningún correo enviado en los últimos 30 días.} one {# correo enviado en los últimos 30 días.} other {# correos enviados en los últimos 30 días.}}",
+      "calendar": "Ver las próximas fechas"
+    },
+    "noContact": "Agrega un correo o teléfono de contacto en Ajustes para que tus clientes puedan responderte.",
+    "goToSettings": "Ir a Ajustes",
+    "preview": {
+      "title": "Así lo verá tu cliente",
+      "subtitle": "Ejemplo con un cumpleaños dentro de 7 días. El correo va en el idioma de tu florería ({language}).",
+      "subject": "Asunto:",
+      "empty": "Elige el descuento y guarda para ver el correo."
+    }
+  },
+  "unsubscribe": {
+    "question": "¿Ya no quieres recibir promociones de {shop}?",
+    "explanation": "Dejarás de recibir los correos con descuentos para tus fechas especiales. Si cambias de opinión, avísale a la florería.",
+    "confirm": "Sí, ya no quiero recibirlas",
+    "doneTitle": "Listo",
+    "done": "Ya no recibirás promociones de {shop}.",
+    "invalidTitle": "Enlace no válido",
+    "invalid": "Este enlace no es válido. Si quieres dejar de recibir promociones, responde al correo o contacta a la florería.",
+    "poweredBy": "Correo enviado con {brand}"
   }
 }

@@ -27,6 +27,16 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
     { href: routes.customers.list(), label: t('nav.customers'), icon: 'customers' },
     // Date speciali dei clienti: su mobile nel menu "Más".
     { href: routes.calendar(), label: t('nav.calendar'), icon: 'calendar', secondary: true },
+    ...(hasPermission(ctx, 'promotions:manage')
+      ? [
+          {
+            href: routes.promotions,
+            label: t('nav.promotions'),
+            icon: 'promotions' as const,
+            secondary: true,
+          },
+        ]
+      : []),
     { href: routes.catalog.list(), label: t('nav.catalog'), icon: 'catalog' },
     // Sezioni d'uso occasionale: su mobile finiscono nel menu "Más".
     ...(hasPermission(ctx, 'members:read')

@@ -1,4 +1,4 @@
-import { Cake, CalendarHeart, FileText, Heart, MessageCircle } from 'lucide-react';
+import { Cake, CalendarHeart, FileText, Heart, Mail, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import type { CalendarOccasionDto } from '@floral/core';
 import {
@@ -25,6 +25,10 @@ export interface CalendarText {
   readonly more: (count: number) => string;
   readonly dayCount: (count: number) => string;
   readonly emptyDay: string;
+  /** Email della promo per la data (viste giorno e agenda), o null. */
+  readonly promo: (
+    event: CalendarOccasionDto,
+  ) => { readonly label: string; readonly tone: 'ok' | 'warn' | 'muted' } | null;
   readonly viewCustomer: string;
   readonly whatsapp: string;
   readonly newQuote: string;
@@ -73,6 +77,7 @@ export function EventCard({
 }) {
   const years = text.years(event);
   const whatsapp = links.whatsapp(event);
+  const promo = text.promo(event);
   return (
     <article className="flex flex-col gap-3 rounded-2xl border bg-card p-4 sm:flex-row sm:items-center">
       <div className="flex min-w-0 flex-1 items-start gap-3">
@@ -95,6 +100,19 @@ export function EventCard({
           >
             {event.customerName}
           </Link>
+          {promo ? (
+            <p
+              className={cn(
+                'mt-1 flex items-center gap-1.5 text-xs',
+                promo.tone === 'ok' && 'text-primary',
+                promo.tone === 'warn' && 'text-destructive',
+                promo.tone === 'muted' && 'text-muted-foreground',
+              )}
+            >
+              <Mail className="size-3.5 shrink-0" aria-hidden="true" />
+              {promo.label}
+            </p>
+          ) : null}
         </div>
       </div>
       <div className="flex flex-wrap gap-2 sm:justify-end">

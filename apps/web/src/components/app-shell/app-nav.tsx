@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  BadgePercent,
   CalendarDays,
   Contact,
   Ellipsis,
@@ -25,7 +26,15 @@ import {
 import { cn } from '@/lib/utils';
 
 export type NavIcon =
-  'dashboard' | 'quotes' | 'builder' | 'customers' | 'calendar' | 'catalog' | 'team' | 'settings';
+  | 'dashboard'
+  | 'quotes'
+  | 'builder'
+  | 'customers'
+  | 'calendar'
+  | 'promotions'
+  | 'catalog'
+  | 'team'
+  | 'settings';
 
 export interface NavItem {
   readonly href: string;
@@ -45,6 +54,7 @@ const ICONS = {
   builder: Sparkles,
   customers: Contact,
   calendar: CalendarDays,
+  promotions: BadgePercent,
   catalog: Flower2,
   team: Users,
   settings: Settings,

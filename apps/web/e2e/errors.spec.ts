@@ -65,7 +65,7 @@ test('la funzione dei job AI risponde solo con il segreto (404 altrimenti)', asy
   ).toBe(202);
 });
 
-test('la manutenzione giornaliera risponde solo con il segreto e dice cosa ha chiuso', async ({
+test('i lavori giornalieri rispondono solo con il segreto e dicono cosa hanno fatto', async ({
   request,
 }) => {
   const path = '/api/internal/maintenance';
@@ -77,5 +77,6 @@ test('la manutenzione giornaliera risponde solo con il segreto e dice cosa ha ch
   expect(await response.json()).toEqual({
     quotesExpired: expect.any(Number),
     invitationsExpired: expect.any(Number),
+    promos: { tenants: expect.any(Number), sent: expect.any(Number), failed: expect.any(Number) },
   });
 });

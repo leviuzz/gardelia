@@ -8,7 +8,8 @@
  *  - Anteprime AI (ADR-025) e scontorno delle foto (ADR-033): valida provider e archivio e
  *    avvia il worker in questo processo; su Vercel (motore `serverless`, ADR-037) collega invece
  *    l'accodamento all'avvio della funzione che svuota la coda.
- *  - Manutenzione giornaliera (scadenze): ciclo nel processo; su Vercel la fa Vercel Cron.
+ *  - Manutenzione giornaliera (scadenze) e promo delle date speciali (ADR-047): ciclo nel
+ *    processo; su Vercel le fa Vercel Cron.
  */
 import { checkRlsSafety, getDb, onSystemContext } from '@floral/db';
 import {
@@ -18,12 +19,15 @@ import {
   logger,
   MAINTENANCE_INTERVAL_MS,
   onAiJobQueued,
+  getMailer,
   runDailyMaintenance,
+  runOccasionPromos,
   startAiWorker,
 } from '@floral/core';
 import { aiConfig } from '@floral/core/config';
 import { kickAiDrain } from './lib/ai-kick';
 import { assertConfiguration } from './lib/config-check';
+import { serverEnv } from './lib/env';
 import { startupRetryDelayMs } from './lib/startup-retry';
 import {
   reportRequestError,
@@ -82,10 +86,11 @@ async function verifyDatabaseThenStartWorker(attempt: number): Promise<void> {
 }
 
 /**
- * Manutenzione giornaliera (scadenze di preventivi e inviti) fuori da Vercel: una volta poco dopo
- * l'avvio e poi ogni 6 ore, nel processo. Su Vercel la chiama Vercel Cron
- * (`/api/internal/maintenance`). Le pagine mostrano già lo stato effettivo: un'esecuzione saltata
- * non cambia ciò che vede l'utente.
+ * Manutenzione giornaliera (scadenze di preventivi e inviti) e promo delle date speciali fuori da
+ * Vercel: una volta poco dopo l'avvio e poi ogni 6 ore, nel processo. Su Vercel le chiama Vercel
+ * Cron (`/api/internal/maintenance`, che fa entrambe le cose). Le pagine mostrano già lo
+ * stato effettivo: un'esecuzione saltata non cambia ciò che vede l'utente; la promo non manda mai
+ * due volte la stessa email.
  */
 function startMaintenanceLoopIfInline(): void {
   if (aiConfig().AI_WORKER_MODE === 'serverless') return;
@@ -94,6 +99,14 @@ function startMaintenanceLoopIfInline(): void {
   const run = () => {
     runDailyMaintenance().catch((error: unknown) =>
       logger.error({ err: error }, 'manutenzione giornaliera non riuscita'),
+    );
+    const env = serverEnv();
+    runOccasionPromos({
+      mailer: getMailer(),
+      appUrl: env.APP_URL,
+      secret: env.BETTER_AUTH_SECRET,
+    }).catch((error: unknown) =>
+      logger.error({ err: error }, 'promo delle date speciali non riuscita'),
     );
   };
   setTimeout(run, 30_000).unref();

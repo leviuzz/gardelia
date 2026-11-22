@@ -13,6 +13,7 @@ export * from './money';
 export * from './permissions';
 export * from './photos';
 export * from './plans';
+export * from './promotions';
 export * from './quote';
 export * from './recipe';
 export * from './sketch';

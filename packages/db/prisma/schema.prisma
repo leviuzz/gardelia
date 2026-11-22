@@ -160,6 +160,11 @@ model Tenant {
   quoteValidityDays     Int          @default(7)
   /// Cargo fisso per l'armado di un bouquet del Builder (unità minime); 0 = nessuno.
   builderLaborFeeMinor  Int          @default(0)
+  /// Promo delle date speciali (ADR-047): email automatica con sconto, spenta all'inizio.
+  occasionPromoEnabled  Boolean      @default(false)
+  occasionPromoKind     DiscountKind @default(PERCENT)
+  /// Percentuale intera (1–90) o importo in unità minime; null finché non si sceglie.
+  occasionPromoValue    Int?
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
 
@@ -183,6 +188,7 @@ model Tenant {
   aiCreditGrants    AiCreditGrant[]
   catalogPhotos     CatalogItemPhoto[]
   styleReferences   StyleReferencePhoto[]
+  promoEmails       OccasionPromoEmail[]
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -493,10 +499,11 @@ model Customer {
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
-  tenant    Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  quotes    Quote[]
-  addresses CustomerAddress[]
-  occasions CustomerOccasion[]
+  tenant      Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quotes      Quote[]
+  addresses   CustomerAddress[]
+  occasions   CustomerOccasion[]
+  promoEmails OccasionPromoEmail[]
 
   @@unique([tenantId, id])
   @@index([tenantId, status])
@@ -559,11 +566,56 @@ model CustomerOccasion {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customer Customer @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Cascade)
+  tenant      Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer    Customer             @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Cascade)
+  promoEmails OccasionPromoEmail[]
 
   @@unique([tenantId, id])
   @@index([tenantId, month, day])
+  @@index([tenantId, customerId])
+}
+
+/// Sconto della promo: percentuale intera o importo fisso in unità minime.
+enum DiscountKind {
+  PERCENT
+  AMOUNT
+}
+
+enum PromoEmailStatus {
+  /// Presa in carico, invio in corso.
+  SENDING
+  SENT
+  /// Non partita: si riprova nei giorni seguenti, fino a 3 tentativi, se la data non è passata.
+  FAILED
+}
+
+/// Email della promo per una ricorrenza di una data speciale (ADR-047): al massimo una per data e
+/// anno. Conserva lo sconto promesso anche se la fioreria lo cambia dopo. Nessun indirizzo email.
+model OccasionPromoEmail {
+  id             String           @id @default(uuid(7)) @db.Uuid
+  tenantId       String           @db.Uuid
+  occasionId     String           @db.Uuid
+  customerId     String           @db.Uuid
+  /// Giorno della ricorrenza (fino a cui vale lo sconto).
+  occurrenceDate DateTime         @db.Date
+  status         PromoEmailStatus @default(SENDING)
+  attempts       Int              @default(1)
+  discountKind   DiscountKind
+  discountValue  Int
+  currency       String           @db.Char(3)
+  sentAt         DateTime?
+  /// Motivo dell'ultimo fallimento (codice, es. `send_failed`), mai testo del provider.
+  lastError      String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  tenant   Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  occasion CustomerOccasion @relation(fields: [tenantId, occasionId], references: [tenantId, id], onDelete: Cascade)
+  customer Customer         @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, occasionId, occurrenceDate])
+  @@index([tenantId, occurrenceDate])
   @@index([tenantId, customerId])
 }
 
