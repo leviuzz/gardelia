@@ -626,6 +626,10 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   vero): la richiesta porta `CRON_SECRET`, quindi su Vercel va sempre al dominio di produzione
   del progetto (`VERCEL_PROJECT_PRODUCTION_URL`, impostata da Vercel), mai ad `APP_URL`: un
   `APP_URL` sbagliato non può mandare il segreto a un sito non nostro. Fuori da Vercel `APP_URL`.
+  Se quel dominio rimanda a un altro (es. `gardelia.vercel.app` → `gardelia-staging.vercel.app`,
+  oppure dominio principale → `www`), il rimando si segue a mano, una volta sola e solo verso
+  l'host di `APP_URL` in https: `fetch` lo seguirebbe togliendo il segreto, e un rimando verso un
+  sito esterno non deve riceverlo.
 - **La funzione** risponde subito 202 e svuota la coda per al massimo 290 s (durata massima
   Hobby: 300 s); smette di prendere job quando il tempo rimasto non basta a finirne uno (riserva
   200 s). Protetta da `CRON_SECRET` (confronto in tempo costante); senza segreto valido, 404.

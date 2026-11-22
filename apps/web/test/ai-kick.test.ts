@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { drainUrl, shouldKickAgain, WAITING_KICK_INTERVAL_MS } from '@/lib/ai-kick';
+import {
+  canonicalHost,
+  drainUrl,
+  postAiDrain,
+  shouldKickAgain,
+  WAITING_KICK_INTERVAL_MS,
+} from '@/lib/ai-kick';
 import { isAuthorizedInternalRequest } from '@/lib/internal-auth';
 
 const SECRET = 's'.repeat(40);
@@ -51,6 +57,85 @@ describe('indirizzo della funzione che svuota la coda (la richiesta porta il seg
 
   it('senza nessun indirizzo non parte nulla', () => {
     expect(drainUrl({})).toBeNull();
+  });
+});
+
+describe('avvio quando un dominio del progetto rimanda a un altro', () => {
+  const first = new URL('https://gardelia.vercel.app/api/internal/ai/drain');
+  const appTarget = 'https://gardelia-staging.vercel.app/api/internal/ai/drain';
+  const appHost = 'gardelia-staging.vercel.app';
+
+  function fakeFetch(responses: Response[]) {
+    const calls: { url: string; auth: string | null; redirect: RequestRedirect | undefined }[] = [];
+    const impl = (async (input: string | URL | Request, init?: RequestInit) => {
+      calls.push({
+        url: String(input),
+        auth: new Headers(init?.headers).get('authorization'),
+        redirect: init?.redirect,
+      });
+      const next = responses.shift();
+      if (!next) throw new Error('nessuna risposta prevista');
+      return next;
+    }) as typeof fetch;
+    return { impl, calls };
+  }
+
+  const redirect = (location: string, status = 307) =>
+    new Response(null, { status, headers: { location } });
+
+  it('risposta diretta: una sola chiamata, i rimandi non si seguono da soli', async () => {
+    const { impl, calls } = fakeFetch([new Response(null, { status: 202 })]);
+    expect(await postAiDrain(first, SECRET, appHost, impl)).toEqual({ ok: true, status: 202 });
+    expect(calls).toEqual([{ url: first.href, auth: `Bearer ${SECRET}`, redirect: 'manual' }]);
+  });
+
+  it("rimando verso l'indirizzo dell'app: lo segue una volta, con il segreto", async () => {
+    const { impl, calls } = fakeFetch([redirect(appTarget), new Response(null, { status: 202 })]);
+    expect(await postAiDrain(first, SECRET, appHost, impl)).toEqual({ ok: true, status: 202 });
+    expect(calls.map((call) => call.url)).toEqual([first.href, appTarget]);
+    expect(calls[1]?.auth).toBe(`Bearer ${SECRET}`);
+  });
+
+  it('rimando verso un altro sito, in http, senza APP_URL o non leggibile: il segreto non parte', async () => {
+    const cases: readonly (readonly [Response, string | null])[] = [
+      [redirect('https://sito-esterno.com/api/internal/ai/drain'), appHost],
+      [redirect('http://gardelia-staging.vercel.app/api/internal/ai/drain'), appHost],
+      [redirect(appTarget), null],
+      [new Response(null, { status: 308 }), appHost],
+      [redirect('http://[indirizzo-rotto'), appHost],
+    ];
+    for (const [response, host] of cases) {
+      const { impl, calls } = fakeFetch([response]);
+      const result = await postAiDrain(first, SECRET, host, impl);
+      expect(result.ok).toBe(false);
+      expect(result.reason).toBe('redirect_not_allowed');
+      expect(calls).toHaveLength(1);
+    }
+  });
+
+  it('al massimo un rimando', async () => {
+    const { impl, calls } = fakeFetch([redirect(appTarget), redirect(appTarget, 308)]);
+    expect(await postAiDrain(first, SECRET, appHost, impl)).toEqual({
+      ok: false,
+      status: 308,
+      reason: 'too_many_redirects',
+    });
+    expect(calls).toHaveLength(2);
+  });
+
+  it('la funzione rifiuta (es. segreto diverso): avvio non riuscito', async () => {
+    const { impl } = fakeFetch([new Response(null, { status: 404 })]);
+    expect(await postAiDrain(first, SECRET, appHost, impl)).toEqual({
+      ok: false,
+      status: 404,
+      reason: 'rejected',
+    });
+  });
+
+  it('host canonico: quello di APP_URL, nulla se manca o non è un indirizzo', () => {
+    expect(canonicalHost('https://gardelia-staging.vercel.app')).toBe(appHost);
+    expect(canonicalHost(undefined)).toBeNull();
+    expect(canonicalHost('non è un indirizzo')).toBeNull();
   });
 });
 

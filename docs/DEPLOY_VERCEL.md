@@ -119,8 +119,9 @@ ricomponi `DATABASE_URL`.
    repository **Settings → General → Default branch** → `staging` → **Update**: così Vercel lo
    prende da solo all'import. I rami di lavoro (`claude/…`) e `prod` qui non vanno online.
 2. **Importa il repository:** accedi con GitHub, **Add New → Project**, importa
-   `leviuzz/gardelia` e chiama il progetto `gardelia-staging` (l'indirizzo diventa
-   `https://gardelia-staging.vercel.app`). Se il repository non compare, dai a Vercel l'accesso
+   `leviuzz/gardelia` e chiama il progetto `gardelia-staging` (Vercel propone `gardelia`:
+   cambialo; l'indirizzo diventa `https://gardelia-staging.vercel.app`). L'indirizzo senza
+   suffisso resta per la produzione. Se il repository non compare, dai a Vercel l'accesso
    solo a `leviuzz/gardelia` dalle impostazioni della GitHub App che propone.
 3. **Root Directory:** **Edit** → `apps/web` (la cartella dell'app nel repository, non un ramo);
    il Framework Preset diventa Next.js da solo. Framework, build, cron, regione e versione di Node
@@ -155,7 +156,12 @@ ricomponi `DATABASE_URL`.
    tassonomia dei fiori), poi compila l'app.
 6. **Controlla:**
    - in **Settings → Domains** c'è l'indirizzo vero. Se è diverso da `APP_URL`, correggi
-     `APP_URL` e `BETTER_AUTH_URL` e ridistribuisci (**Deployments → ⋯ → Redeploy**);
+     `APP_URL` e `BETTER_AUTH_URL` e ridistribuisci (**Deployments → ⋯ → Redeploy**). Se il
+     progetto è nato come `gardelia` (indirizzo `gardelia.vercel.app`): rinominalo in
+     `gardelia-staging` (**Settings → General**), aggiungi il dominio
+     `gardelia-staging.vercel.app` e su `gardelia.vercel.app` metti un rimando **307
+     (temporaneo)** verso di esso: l'indirizzo resta nostro per la produzione (un 308 i browser lo
+     ricorderebbero per sempre);
    - il deploy deve venire dal ramo `staging`. Se viene da un altro (progetto importato prima di
      cambiare il ramo predefinito): **Settings → Environments → Production** → ramo `staging`, poi
      ridistribuisci;

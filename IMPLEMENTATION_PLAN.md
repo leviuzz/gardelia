@@ -273,8 +273,9 @@ test 390/390 ✅ (+5: scadenze, dati di riferimento) · build ✅ · E2E 43/43 �
 **Nome e ambiente online (22/11):** su richiesta del founder l'app si chiama già **Gardelia**
 (anche email e piani: "Gardelia Plus"); la verifica di marchio e dominio resta aperta (O-03). I
 servizi online hanno nomi in inglese (`gardelia-staging`) e il ruolo del database è `gardelia_app`.
-**Ambiente online di prova attivo (22/11):** `https://gardelia.vercel.app` (progetto Vercel
-`gardelia`, piano Hobby, ramo `staging`; Neon `gardelia-staging` in US East, bucket R2
+**Ambiente online di prova attivo (22/11):** `https://gardelia-staging.vercel.app` (progetto
+Vercel `gardelia-staging`, nato come `gardelia`: `gardelia.vercel.app` rimanda lì con un 307 ed è
+tenuto per la produzione; piano Hobby, ramo `staging`; Neon `gardelia-staging` in US East, bucket R2
 `gardelia-staging` in ENAM, Resend con il mittente di prova, fal), creato insieme al founder con
 `docs/DEPLOY_VERCEL.md`. Al primo deploy la build ha preparato il database; all'avvio l'app si è
 rifiutata di partire per due segreti troppo corti, elencati per nome nei log (il controllo della

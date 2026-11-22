@@ -41,6 +41,75 @@ export function drainUrl(config: {
   return config.APP_URL ? new URL(AI_DRAIN_PATH, config.APP_URL) : null;
 }
 
+/** Host dell'indirizzo canonico dell'app (`APP_URL`); `null` se manca o non è un indirizzo. */
+export function canonicalHost(appUrl: string | undefined): string | null {
+  if (!appUrl) return null;
+  try {
+    return new URL(appUrl).host;
+  } catch {
+    return null;
+  }
+}
+
+/** Esito di un avvio, per il log (nessun dato sensibile). */
+export interface DrainKickResult {
+  readonly ok: boolean;
+  /** Stato HTTP dell'ultima risposta. */
+  readonly status: number;
+  readonly reason?: 'rejected' | 'redirect_not_allowed' | 'too_many_redirects';
+}
+
+const REDIRECT_STATUSES: ReadonlySet<number> = new Set([301, 302, 303, 307, 308]);
+
+/**
+ * Chiama la funzione che svuota la coda, con il segreto. Un dominio del progetto può rimandare a un
+ * altro (es. `gardelia.vercel.app` → `gardelia-staging.vercel.app`, rimando configurato su
+ * Vercel): `fetch` lo seguirebbe togliendo il segreto, e l'avvio fallirebbe. Lo si segue quindi a
+ * mano, una volta sola e solo verso l'indirizzo canonico dell'app (host di `APP_URL`, in https):
+ * un rimando verso qualunque altro sito non riceve il segreto.
+ */
+export async function postAiDrain(
+  url: URL,
+  secret: string,
+  appHost: string | null,
+  fetchImpl: typeof fetch = fetch,
+): Promise<DrainKickResult> {
+  const post = (target: URL) =>
+    fetchImpl(target, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${secret}` },
+      redirect: 'manual',
+      signal: AbortSignal.timeout(10_000),
+    });
+
+  let response = await post(url);
+  if (REDIRECT_STATUSES.has(response.status)) {
+    const next = redirectTarget(response, url);
+    await response.body?.cancel();
+    if (!next || next.protocol !== 'https:' || appHost === null || next.host !== appHost) {
+      return { ok: false, status: response.status, reason: 'redirect_not_allowed' };
+    }
+    response = await post(next);
+    if (REDIRECT_STATUSES.has(response.status)) {
+      await response.body?.cancel();
+      return { ok: false, status: response.status, reason: 'too_many_redirects' };
+    }
+  }
+  return response.ok
+    ? { ok: true, status: response.status }
+    : { ok: false, status: response.status, reason: 'rejected' };
+}
+
+function redirectTarget(response: Response, from: URL): URL | null {
+  const location = response.headers.get('location');
+  if (!location) return null;
+  try {
+    return new URL(location, from);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Avvia la funzione che svuota la coda dei job AI. Solo con il motore `serverless` (Vercel): in
  * locale e nei container i job li lavora il worker nel processo. Va chiamata dentro una richiesta
@@ -52,14 +121,13 @@ export function kickAiDrain(): void {
   const url = drainUrl(config);
   if (!config.CRON_SECRET || !url) return;
   const secret = config.CRON_SECRET;
+  const appHost = canonicalHost(config.APP_URL);
   after(async () => {
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { authorization: `Bearer ${secret}` },
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (!response.ok) logger.warn({ status: response.status }, 'avvio dei job AI rifiutato');
+      const result = await postAiDrain(url, secret, appHost);
+      if (!result.ok) {
+        logger.warn({ status: result.status, reason: result.reason }, 'avvio dei job AI rifiutato');
+      }
     } catch (error) {
       logger.warn({ err: error }, 'avvio dei job AI non riuscito: riproverà la pagina o il cron');
     }
