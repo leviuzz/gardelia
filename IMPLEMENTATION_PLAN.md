@@ -273,10 +273,15 @@ test 390/390 ✅ (+5: scadenze, dati di riferimento) · build ✅ · E2E 43/43 �
 **Nome e ambiente online (22/11):** su richiesta del founder l'app si chiama già **Gardelia**
 (anche email e piani: "Gardelia Plus"); la verifica di marchio e dominio resta aperta (O-03). I
 servizi online hanno nomi in inglese (`gardelia-staging`) e il ruolo del database è `gardelia_app`.
-Messa online in corso insieme al founder, passo per passo (`docs/DEPLOY_VERCEL.md`): una build di
-Vercel simulata su database vuoto (migrazioni, dati di riferimento, compilazione) è passata. Rami
-(ADR-041, richiesta del founder): `staging` va online su `gardelia-staging`, `prod` sarà la
-produzione; i rami di lavoro non creano deploy.
+**Ambiente online di prova attivo (22/11):** `https://gardelia.vercel.app` (progetto Vercel
+`gardelia`, piano Hobby, ramo `staging`; Neon `gardelia-staging` in US East, bucket R2
+`gardelia-staging` in ENAM, Resend con il mittente di prova, fal), creato insieme al founder con
+`docs/DEPLOY_VERCEL.md`. Al primo deploy la build ha preparato il database; all'avvio l'app si è
+rifiutata di partire per due segreti troppo corti, elencati per nome nei log (il controllo della
+configurazione ha fatto il suo lavoro); corretti, `/api/health` risponde ok. Rami (ADR-041,
+richiesta del founder): `staging` va online, `prod` sarà la produzione, i rami di lavoro non
+creano deploy. Restano: account del founder, amministratore e piano Plus dal workflow, prova del
+Diseñador con l'AI vera.
 
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite
