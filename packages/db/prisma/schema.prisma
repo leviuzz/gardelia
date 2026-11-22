@@ -320,6 +320,8 @@ model CanonicalFlower {
   category       CanonicalCategory
   /// Nomi localizzati: { "es-MX": "Rosa", "it-IT": "Rosa", "en-US": "Rose" }.
   names          Json
+  /// Altri nomi per lingua (ricerca e specie suggerita dal nome): { "es-MX": ["Nube"] }.
+  synonyms       Json              @default("{}")
   colors         String[]
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt

@@ -70,3 +70,63 @@ test.describe('isolamento', () => {
     await expect(page.getByText('Página no encontrada')).toBeVisible();
   });
 });
+
+test.describe('specie del prodotto (ADR-043)', () => {
+  test('suggerita dal nome, cercata nella propria lingua e salvata', async ({ page }) => {
+    const name = `Nube blanca ${Date.now()}`;
+    await page.goto('/app/las-camelias/catalog/new');
+    await page.getByRole('textbox', { name: 'Nombre', exact: true }).fill(name);
+    const species = page.getByRole('combobox', { name: 'Especie' });
+    // Il nome dice che fiore è: la specie arriva da sola, dichiarata.
+    await expect(species).toHaveValue('Nube (Gypsophila)');
+    await expect(page.getByText('Sugerida por el nombre del producto.')).toBeVisible();
+    await expect(page.getByText(/Escribe el nombre de la flor en español/)).toBeVisible();
+
+    // Si cerca nella lingua dell'interfaccia; un nome di un'altra lingua trova lo stesso fiore.
+    await species.fill('garofano');
+    await expect(page.getByRole('option', { name: /Clavel.*también «Garofano»/ })).toBeVisible();
+    await species.fill('xyz');
+    await expect(page.getByText('Ninguna especie con «xyz».', { exact: false })).toBeVisible();
+    await species.fill('lis');
+    await page.getByRole('option', { name: /^Lisianthus/ }).click();
+    await expect(species).toHaveValue('Lisianthus');
+    await expect(page.getByText('Sugerida por el nombre del producto.')).toHaveCount(0);
+
+    await page.getByLabel('Precio de venta (MXN)').fill('35');
+    await page.getByRole('button', { name: 'Crear producto' }).click();
+    await expect(page.getByText('Producto creado')).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Especie' })).toHaveValue('Lisianthus');
+
+    // Con la tastiera: frecce e Invio scelgono senza inviare il modulo.
+    await species.fill('alcatr');
+    await species.press('ArrowDown');
+    await species.press('Enter');
+    await expect(species).toHaveValue('Alcatraz');
+    await page.getByRole('button', { name: 'Quitar especie' }).click();
+    await expect(species).toHaveValue('');
+
+    await page.getByRole('button', { name: 'Archivar' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Archivar' }).click();
+    await expect(page.getByText('Este producto está archivado.')).toBeVisible();
+  });
+
+  test('in italiano si cerca con i nomi italiani, con la nota sulla lingua', async ({
+    page,
+    baseURL,
+  }) => {
+    await page.context().addCookies([{ name: 'NEXT_LOCALE', value: 'it-IT', url: baseURL ?? '' }]);
+    await page.goto('/app/las-camelias/catalog/new');
+    const species = page.getByRole('combobox', { name: 'Specie' });
+    await expect(page.getByText(/Scrivi il nome del fiore in italiano/)).toBeVisible();
+    const firstResult = page.getByRole('listbox', { name: 'Specie' }).getByRole('option').first();
+    await species.fill('garofano');
+    await expect(firstResult).toHaveText(/^Garofano/);
+    await species.fill('girasole');
+    await expect(firstResult).toHaveText(/^Girasole/);
+    // Il nome del prodotto in spagnolo basta: la specie si mostra in italiano.
+    await page.getByRole('textbox', { name: 'Nome', exact: true }).fill('Rosa roja');
+    await species.blur();
+    await expect(species).toHaveValue('Rosa');
+    await expect(page.getByText('Suggerita dal nome del prodotto.')).toBeVisible();
+  });
+});

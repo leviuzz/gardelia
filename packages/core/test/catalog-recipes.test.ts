@@ -68,6 +68,22 @@ describe('catalogo CRUD', () => {
     ).rejects.toBeInstanceOf(ValidationError);
   });
 
+  it('le specie arrivano pronte per la ricerca nella lingua di chi usa l’app (ADR-043)', async () => {
+    const italian = await listCanonicalFlowers('it-IT');
+    const clavel = italian.find((flower) => flower.slug === 'clavel');
+    expect(clavel?.name).toBe('Garofano');
+    expect(clavel?.localTerms.map((term) => term.key)).toContain('garofano');
+    expect(clavel?.otherTerms.map((term) => term.key)).toEqual(
+      expect.arrayContaining(['clavel', 'carnation']),
+    );
+    const spanish = await listCanonicalFlowers('es-MX');
+    const nube = spanish.find((flower) => flower.slug === 'gypsophila');
+    expect(nube?.localTerms.map((term) => term.text)).toContain('Nube');
+    // In ordine alfabetico nella lingua richiesta.
+    const names = spanish.map((flower) => flower.name);
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, 'es-MX')));
+  });
+
   it('collega la tassonomia solo se la categoria è coerente', async () => {
     const flowers = await listCanonicalFlowers('es-MX');
     const rosa = flowers.find((f) => f.slug === 'rosa');

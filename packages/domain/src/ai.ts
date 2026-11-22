@@ -316,8 +316,13 @@ export function describeComponent(component: PreviewComponent): string {
   return `${component.quantity} ${unitText(component.saleUnit, component.quantity)} of "${labelOf(component)}"${colors}`;
 }
 
-/** Plurale inglese dell'ultima parola: rose → roses, daisy → daisies, lily → lilies. */
+/**
+ * Plurale inglese dell'ultima parola: rose → roses, daisy → daisies, lily → lilies. Nei nomi con
+ * "of" si volge al plurale la parte prima: bird of paradise → birds of paradise.
+ */
 export function englishPlural(noun: string): string {
+  const withOf = /^(.+?)(\s+of\s+.+)$/i.exec(noun.trim());
+  if (withOf) return `${englishPlural(withOf[1]!)}${withOf[2]}`;
   const words = noun.trim().split(/\s+/);
   const last = words.pop() ?? '';
   const plural = /[^aeiou]y$/i.test(last)

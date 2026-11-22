@@ -781,6 +781,40 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
 - **Test:** parità dei messaggi; E2E che cambia lingua (pagina di accesso e menu) e torna allo
   spagnolo; i test E2E esistenti restano in spagnolo (lingua predefinita).
 
+### ADR-043 — Specie dei fiori: elenco ampio, ricerca nella propria lingua, specie dal nome — ADOTTATO (22/11/2026), elenco DA VALIDARE
+
+- **Problema** (founder, dopo le ortensie al posto delle rose, ADR-034): la tassonomia globale
+  aveva 14 voci (10 fiori recisi), quella della demo, e il campo Specie era una tendina. Un fiore
+  fuori elenco non è bloccante (il nome del prodotto arriva comunque all'IA), ma la specie dà
+  all'IA il nome inglese preciso e scioglie i nomi locali ("Nube" = gypsophila).
+- **Elenco:** 72 specie vendute dalle fiorerie messicane (45 fiori recisi, 10 fogliami, 17
+  piante), con nomi in es-MX, it-IT, en-US e **sinonimi per lingua** (nube, astromelia, pompón,
+  cartucho, matsumoto, costilla de Adán, teléfono…), nuova colonna `CanonicalFlower.synonyms`.
+  Fonte: `packages/db/src/reference-data.ts`, allineata a ogni rilascio; gli slug esistenti
+  restano. È una **proposta del team, DA VALIDARE con un fiorista** (spec §19.6: catalogo fiori
+  canonico ancora aperto); aggiungere una specie = una voce nel file. Un test controlla tre lingue,
+  colori del vocabolario, slug storici presenti e che ogni nome o sinonimo indichi una sola specie
+  della stessa categoria.
+- **Ricerca dipendente dalla lingua** (richiesta del founder): il campo Specie è una casella di
+  ricerca (combobox ARIA). Ordine dei risultati: nomi e poi sinonimi nella lingua dell'interfaccia,
+  poi quelli delle altre lingue, poi il nome scientifico. Un risultato trovato con un altro nome lo
+  dice ("Clavel · también «Garofano»"). Sotto il campo c'è una **nota**: si scrive il nome nella
+  propria lingua, perché ogni lingua chiama i fiori in modo diverso, o il nome scientifico. Senza
+  risultati, il campo dice che si può lasciare vuoto, perché basta un nome del prodotto chiaro.
+- **Specie suggerita dal nome del prodotto:** "Rosa roja Freedom" → Rosa, "Nube blanca" →
+  Gypsophila. Contano tutte le lingue, perché il nome del prodotto è nella lingua della fioreria.
+  Vince il fiore nominato per primo ("Clavel rosa" è un garofano), a parità il nome più lungo
+  ("Mini rosa" batte "Rosa"); i plurali sono riconosciuti (rosas, alcatraces, gigli). "Rosa" e
+  "lavanda", che sono anche colori, contano solo come prima parola ("Pensamiento rosa" non diventa
+  una rosa). Il suggerimento vale finché la persona non sceglie; è dichiarato sotto il campo e
+  si cambia o si toglie. Un prodotto già salvato senza specie la riceve all'apertura se il nome la
+  indica, e si salva solo con "Guardar cambios".
+- **Effetti collegati:** misure del boceto per le varianti mini (rosa spray 4 cm, mini clavel 4,
+  mini gerbera 6) e plurale inglese "birds of paradise" nel prompt.
+- **Dove:** regole pure in `packages/domain/src/species.ts` (test di dominio), elenco e
+  sincronizzazione in `packages/db`, `listCanonicalFlowers` in core, campo
+  `catalog/species-field.tsx`; E2E in spagnolo e in italiano.
+
 ---
 
 ## 3. Proposte da approvare
