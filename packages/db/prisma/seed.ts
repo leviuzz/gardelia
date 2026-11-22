@@ -240,12 +240,8 @@ export async function runSeed(db: DbClient, options: { password: string }): Prom
             acquisitionChannel: customer.acquisitionChannel,
             marketingConsent: customer.marketingConsent,
             marketingConsentAt: customer.marketingConsent ? new Date() : null,
-            occasions: {
-              create: customer.occasions.map((occasion) => ({
-                tenantId: tenantIds.demo,
-                ...occasion,
-              })),
-            },
+            // tenantId e customerId arrivano dalla relazione con il cliente.
+            occasions: { create: customer.occasions.map((occasion) => ({ ...occasion })) },
           },
         });
       }
