@@ -92,7 +92,7 @@
       "ai_quota_exhausted": "You don’t have any previews left this month.",
       "ai_budget_reached": "Previews aren’t available right now. Try again later.",
       "cutout_unavailable": "We can’t remove the background right now. Try again later.",
-      "cutout_retry_limit": "We’ve already tried several times with this photo. Upload another one on a plain background.",
+      "cutout_retry_limit": "The background removal service failed several times on this photo: the problem is on our side, not the photo. Try again later by uploading it again.",
       "preview_retry_limit": "We’ve already tried several times with this design: share the exact sketch or adjust the design.",
       "platform_admin_exists": "A platform administrator already exists."
     },
