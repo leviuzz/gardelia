@@ -188,6 +188,10 @@ variabili da sistemare.
   "Configurazione non valida": elenca le variabili da sistemare (nome e regola, mai il valore).
   Correggile in **Settings → Environment Variables** e ridistribuisci. Un segreto troppo corto si
   rigenera con il metodo della sezione 6 (solo `0-9` e `a-f`).
+- **Registrazione o login: "No pudimos completar la operación"** e nella rete del browser
+  `Invalid origin`: `APP_URL` e `BETTER_AUTH_URL` non sono l'indirizzo da cui apri l'app.
+  Mettili uguali all'indirizzo vero (`https://…`, senza `/` finale) e ridistribuisci: le
+  variabili nuove valgono solo dal deploy successivo.
 - **Errore nell'app:** la pagina mostra un "Referencia". Su Vercel, in **Logs**, cerca quel codice:
   trovi la riga con l'errore. Mandami il codice, mai le chiavi.
 - **Le immagini AI non arrivano:** controlla `FAL_KEY`, il credito su fal e `CRON_SECRET`. Si
