@@ -121,7 +121,7 @@ export default async function QuotesPage({
                 <span className="w-24 shrink-0 text-sm font-medium tabular-nums">
                   {quote.numberLabel}
                 </span>
-                <span className="min-w-0 flex-1">
+                <span className="min-w-0 flex-1 basis-48">
                   <span className="block truncate font-medium">{quote.customerName}</span>
                   <span className="block truncate text-sm text-muted-foreground">
                     {quote.title ??
@@ -131,7 +131,7 @@ export default async function QuotesPage({
                   </span>
                 </span>
                 <QuoteStatusBadge status={quote.status} />
-                <span className="w-28 text-right font-semibold tabular-nums">
+                <span className="ml-auto w-28 text-right font-semibold tabular-nums">
                   {money(quote.totalMinor, quote.currency)}
                 </span>
               </Link>

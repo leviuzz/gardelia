@@ -107,7 +107,7 @@ export default async function BuilderPage({
                 href={routes.builder.design(design.id)}
                 className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors hover:bg-muted/40"
               >
-                <span className="min-w-0 flex-1">
+                <span className="min-w-0 flex-1 basis-48">
                   <span className="block truncate font-medium">{design.name}</span>
                   <span className="block truncate text-sm text-muted-foreground">
                     {t('builder.flowerCount', { count: design.flowerCount })} ·{' '}
@@ -122,7 +122,7 @@ export default async function BuilderPage({
                 {design.style ? (
                   <Badge variant="secondary">{t(`builder.editor.styles.${design.style}`)}</Badge>
                 ) : null}
-                <span className="w-28 text-right font-semibold tabular-nums">
+                <span className="ml-auto w-28 text-right font-semibold tabular-nums">
                   {money(design.totalMinor, design.currency)}
                 </span>
               </Link>
