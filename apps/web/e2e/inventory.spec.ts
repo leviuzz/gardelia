@@ -98,6 +98,52 @@ test.describe.serial('inventario', () => {
     });
   });
 
+  test.describe('compras (proprietario)', () => {
+    test.use({ storageState: 'e2e/.auth/owner.json' });
+
+    test('una compra con proveedor nuovo aggiorna giacenza e costo reale; si annulla', async ({
+      page,
+    }) => {
+      const supplier = `Mercado E2E ${Date.now()}`;
+      await page.goto(`${SHOP}/inventory/purchases`);
+      await page.getByRole('link', { name: 'Nueva compra' }).first().click();
+      await page
+        .getByLabel('Proveedor', { exact: true })
+        .selectOption({ label: 'Proveedor nuevo…' });
+      await page.getByLabel('Nombre del proveedor nuevo').fill(supplier);
+      await page
+        .getByLabel('Producto', { exact: true })
+        .selectOption({ label: `${name} (tallos)` });
+      await page.getByLabel('Cantidad', { exact: true }).fill('4x25');
+      await page.getByLabel('Total pagado', { exact: true }).fill('1300');
+      await expect(page.getByText('$13.00 por tallo')).toBeVisible();
+      await expect(page.getByText('Total de la compra: $1,300.00')).toBeVisible();
+      await page.getByRole('button', { name: 'Registrar compra' }).click();
+
+      await expect(
+        page.getByText('Compra registrada: la mercancía ya está en las existencias.'),
+      ).toBeVisible();
+      await expect(page.getByText(supplier)).toBeVisible();
+      await expect(page.getByRole('cell', { name: '100 tallos' })).toBeVisible();
+
+      // 50 al costo del catalogo (14,00) + 100 a 13,00 → costo reale 13,33.
+      await openItem(page);
+      await expect(page.getByText('150 tallos').first()).toBeVisible();
+      await expect(page.getByText('$13.33')).toBeVisible();
+      await page.getByRole('button', { name: 'Usar este costo en el catálogo' }).click();
+      await expect(page.getByText('Listo: el catálogo ya usa el costo real.')).toBeVisible();
+
+      // Anular la compra: la merce esce, niente si cancella.
+      await page.goto(`${SHOP}/inventory/purchases?q=${encodeURIComponent(supplier)}`);
+      await page.getByRole('link', { name: new RegExp(supplier) }).click();
+      await page.getByRole('button', { name: 'Anular compra' }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Anular compra' }).click();
+      await expect(page.getByText(/Esta compra se anuló/)).toBeVisible();
+      await openItem(page);
+      await expect(page.getByText('50 tallos').first()).toBeVisible();
+    });
+  });
+
   test.describe('staff', () => {
     test.use({ storageState: 'e2e/.auth/staff.json' });
 

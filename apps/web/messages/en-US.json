@@ -1826,7 +1826,8 @@
     "tabs": {
       "label": "Inventory sections",
       "stock": "Stock",
-      "movements": "Movements"
+      "movements": "Movements",
+      "purchases": "Purchases"
     },
     "upsell": {
       "title": "Inventory is included in {plan}",
@@ -1883,7 +1884,7 @@
       "minimum": "Alert me at",
       "minimumHint": "We let you know when that many or fewer are left. Optional.",
       "previous": "Last time you had {quantity}.",
-      "costNote": "Today's stock is valued at your catalog cost.",
+      "costNote": "Today's stock takes your catalog cost; your purchases will show the real cost.",
       "limitNote": "Showing the first {max} products; search to find others.",
       "submit": "Start tracking",
       "started": "{count, plural, one {Done: you now track # product.} other {Done: you now track # products.}}",
@@ -1905,7 +1906,7 @@
       "catalogCost": "Catalog cost",
       "noCost": "No cost",
       "value": "Stock value",
-      "negative": "{quantity} missing. Once you have the goods, count again to fix it.",
+      "negative": "{quantity} missing. Record a purchase or count again to fix it.",
       "catalogLink": "See in the catalog",
       "catalogArchived": "This product is archived in the catalog.",
       "notTracked": "You no longer track this product. Its movements are kept.",
@@ -1922,7 +1923,11 @@
         "LIMITED": "Mark as limited",
         "AVAILABLE": "Mark as available"
       },
-      "availabilityChanged": "Done: the catalog already shows the change."
+      "availabilityChanged": "Done: the catalog already shows the change.",
+      "noRealCost": "No purchases yet",
+      "costDiff": "{diff} vs. the catalog",
+      "useRealCost": "Use this cost in the catalog",
+      "realCostApplied": "Done: the catalog now uses the real cost."
     },
     "actions": {
       "use": "Record use",
@@ -2004,14 +2009,16 @@
       "body": "Stock of every product, alerts when it runs out and everything that comes in and goes out."
     },
     "validation": {
-      "none_selected": "Enter how many you have of at least one product."
+      "none_selected": "Enter how many you have of at least one product.",
+      "no_lines": "Add at least one product to the purchase."
     },
     "conflict": {
       "insufficient_stock": "There is not enough stock: check the quantity or confirm to record it anyway.",
       "item_archived": "You no longer track this product: track it again to record movements.",
       "already_tracked": "Someone started tracking these products at the same time. Reload the page.",
       "entry_not_reversible": "This movement cannot be reversed: fix the stock with a count.",
-      "entry_already_reversed": "This movement was already reversed."
+      "entry_already_reversed": "This movement was already reversed.",
+      "no_real_cost": "This product has no real cost yet: record a purchase."
     },
     "activity": {
       "tracking_started": "{units, plural, one {{actor} started tracking {name} in the inventory} other {{actor} started tracking # products in the inventory}}",
@@ -2020,7 +2027,92 @@
       "stock_used": "{lines, plural, one {{actor} recorded the use of {units} × {name}} other {{actor} recorded the use of materials for # products}}",
       "stock_wasted": "{actor} recorded waste of {units} × {name}",
       "stock_counted": "{actor} counted {name}: there are now {units}",
-      "entry_reversed": "{lines, plural, one {{actor} reversed a movement of {name}} other {{actor} reversed a movement of # products}}"
+      "entry_reversed": "{lines, plural, one {{actor} reversed a movement of {name}} other {{actor} reversed a movement of # products}}",
+      "purchase_recorded": "{lines, plural, one {{actor} recorded a purchase of {units} × {name}} other {{actor} recorded a purchase of # products}}",
+      "supplier_created": "{actor} added the supplier {name}",
+      "supplier_updated": "{actor} changed the supplier {name}",
+      "supplier_archived": "{actor} archived the supplier {name}",
+      "supplier_restored": "{actor} restored the supplier {name}",
+      "real_cost_applied": "{actor} used the real cost of {name} in the catalog"
+    },
+    "purchases": {
+      "title": "Purchases",
+      "subtitle": "What you buy from the wholesaler or at the market: the goods come in and the real cost is updated.",
+      "new": "New purchase",
+      "suppliersLink": "Suppliers",
+      "searchPlaceholder": "Search by supplier or note",
+      "results": "{count, plural, =0 {No purchases} one {# purchase} other {# purchases}}",
+      "emptyTitle": "You have not recorded any purchase yet",
+      "emptyBody": "Record what you buy: the goods go into your stock and you will know what each flower really costs you.",
+      "noResultsTitle": "No purchases match this search",
+      "noResultsBody": "Try another supplier or note.",
+      "noSupplier": "No supplier",
+      "lines": "{count, plural, one {# product} other {# products}}",
+      "reversed": "Reversed",
+      "form": {
+        "title": "New purchase",
+        "subtitle": "Enter what you bought and how much you paid for each product.",
+        "back": "Back to purchases",
+        "supplier": "Supplier",
+        "supplierNone": "No supplier",
+        "supplierNew": "New supplier…",
+        "newSupplierName": "New supplier name",
+        "date": "Purchase date",
+        "reference": "Note or invoice (optional)",
+        "referenceHint": "For example: market note 118.",
+        "product": "Product",
+        "choose": "Choose a product",
+        "quantity": "Quantity",
+        "quantityHint": "You can write 4x25 if you bought 4 bunches of 25.",
+        "total": "Total paid",
+        "unitCost": "{amount} per {unit}",
+        "addLine": "Add product",
+        "removeLine": "Remove product",
+        "purchaseTotal": "Purchase total: {amount}",
+        "submit": "Record purchase",
+        "noProducts": "First choose in Stock the products you want to track."
+      },
+      "detail": {
+        "title": "Purchase of {date}",
+        "back": "Back to purchases",
+        "supplier": "Supplier",
+        "reference": "Note or invoice",
+        "recordedBy": "Recorded by: {name}",
+        "product": "Product",
+        "quantity": "Quantity",
+        "unitCost": "Unit cost",
+        "total": "Total",
+        "purchaseTotal": "Purchase total",
+        "created": "Purchase recorded: the goods are already in stock.",
+        "reverse": "Reverse purchase",
+        "reverseTitle": "Reverse this purchase?",
+        "reverseBody": "The goods leave the stock and the real cost goes back to what it was. Nothing is deleted.",
+        "reverseConfirm": "Reverse purchase",
+        "reversedNotice": "This purchase was reversed: its goods already left the stock."
+      }
+    },
+    "suppliers": {
+      "title": "Suppliers",
+      "subtitle": "The wholesalers and markets where you buy.",
+      "back": "Back to purchases",
+      "add": "Add supplier",
+      "name": "Name",
+      "phone": "Phone (optional)",
+      "notes": "Note (optional)",
+      "save": "Save",
+      "edit": "Edit",
+      "archive": "Archive",
+      "restore": "Restore",
+      "archived": "Archived",
+      "purchases": "{count, plural, =0 {No purchases} one {# purchase} other {# purchases}}",
+      "emptyTitle": "You have no suppliers yet",
+      "emptyBody": "Add them here or when you record a purchase.",
+      "created": "Supplier added.",
+      "saved": "Changes saved.",
+      "archivedDone": "Supplier archived.",
+      "restoredDone": "Supplier restored.",
+      "showArchived": "Show archived too",
+      "hideArchived": "Hide archived"
     }
   }
 }

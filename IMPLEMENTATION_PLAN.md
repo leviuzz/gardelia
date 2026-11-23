@@ -539,6 +539,16 @@ Registri e movimenti non si modificano né si cancellano (RLS), la giacenza è s
 movimenti. Testi nel namespace `inventory` delle tre lingue. Verifiche locali, dopo l'integrazione di staging (consegne, link pubblici, ruta): lint ✅ · format ✅ · typecheck ✅ · test 638/638 ✅ (33 nuovi: 15 di dominio, 14 d'integrazione con isolamento A↔B, concorrenza e invarianti, 1 sui permessi, 3 del web) · build ✅ · E2E 73/73 ✅ (3 nuovi: proprietario, staff, fioreria Basic); controllo visivo a 1280 e 320 px. Prossimi: blocco 2 compras y proveedores (costo reale),
 blocco 3 apartados con vencimiento, blocco 4 avvisi nel pannello e costo dei ramos.
 
+**Inventario, blocco 2 (fatto il 23/11, ADR-061):** scheda "Compras" (solo proprietario e manager).
+"Nueva compra" con proveedor esistente, nuovo o nessuno, giorno, nota e righe con quantità ("100" o
+"4x25") e totale pagato, con il costo per unità e il totale mentre si scrive. La merce entra e il
+costo reale (media ponderata) si aggiorna; "Anular compra" lo riporta com'era. Pagina dei
+proveedores (aggiungere, modificare, archiviare). Nella scheda del prodotto il costo reale accanto a
+quello del catalogo, con la differenza, e "Usar este costo en el catálogo" (un clic, valore letto dal
+server). Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test 650/650 ✅ (12 nuovi: 5 di
+dominio, 7 d'integrazione con isolamento A↔B) · build ✅ · E2E 74/74 ✅ (1 nuovo: compra con proveedor nuovo, costo reale, anulación); controllo a 1280 e 320 px. Prossimi: blocco 3
+apartados con vencimiento, blocco 4 avvisi nel pannello e costo dei ramos.
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci
@@ -550,8 +560,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
    e ordine; aggiungere un disegno del Diseñador a un preventivo in bozza. Poi il marketplace per i
    clienti (D-26, deciso il 23/11: registrazione obbligatoria, pagamento diretto alla fioreria) e la
    ruta del día gratuita (D-27). Blocchi A1–C5 in `docs/ORDERS_MARKETPLACE_PLAN.md`; si parte da A1.
-3. Inventario: blocco 1 fatto (ADR-060); poi compras y proveedores, apartados, avvisi nel pannello e
-   costo dei ramos.
+3. Inventario: blocchi 1 e 2 fatti (ADR-060, ADR-061); poi apartados, avvisi nel pannello e costo
+   dei ramos.
 4. Clienti completi: cronologia, etichette, import CSV.
 5. Abbonamenti dei clienti e Floral Care.
 6. Report.

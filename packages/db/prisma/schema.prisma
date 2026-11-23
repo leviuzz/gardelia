@@ -181,6 +181,7 @@ model Tenant {
   inventoryItems    InventoryItem[]
   inventoryEntries  InventoryEntry[]
   inventoryMoves    InventoryMovement[]
+  suppliers         Supplier[]
   customers         Customer[]
   customerAddresses CustomerAddress[]
   customerOccasions CustomerOccasion[]
@@ -531,12 +532,17 @@ model InventoryEntry {
   note            String?
   /// Solo per REVERSAL: il registro annullato (una sola anulación per registro).
   reversesEntryId String?            @db.Uuid
+  /// Solo per PURCHASE: proveedor (facoltativo), factura o nota, giorno della compra.
+  supplierId      String?            @db.Uuid
+  reference       String?
+  purchasedOn     DateTime?          @db.Date
   createdById     String?            @db.Uuid
   /// Quando è successo (es. il giorno della compra); di solito coincide con createdAt.
   occurredAt      DateTime           @default(now())
   createdAt       DateTime           @default(now())
 
   tenant     Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier   Supplier?           @relation(fields: [tenantId, supplierId], references: [tenantId, id], onDelete: Restrict)
   reverses   InventoryEntry?     @relation("InventoryReversal", fields: [tenantId, reversesEntryId], references: [tenantId, id], onDelete: Restrict)
   reversedBy InventoryEntry?     @relation("InventoryReversal")
   movements  InventoryMovement[]
@@ -546,6 +552,25 @@ model InventoryEntry {
   @@unique([tenantId, id, kind])
   @@unique([tenantId, reversesEntryId])
   @@index([tenantId, occurredAt])
+}
+
+/// Proveedor della fioreria (mayorista, mercado) per le compras (ADR-061). Si archivia, non si cancella.
+model Supplier {
+  id         String       @id @default(uuid(7)) @db.Uuid
+  tenantId   String       @db.Uuid
+  name       String
+  phone      String?
+  notes      String?
+  status     RecordStatus @default(ACTIVE)
+  archivedAt DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  purchases InventoryEntry[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, status, name])
 }
 
 /// Riga di un registro: di quanto cambia la giacenza di un prodotto e a che costo.
@@ -564,6 +589,8 @@ model InventoryMovement {
   unitCostMinor         Int?
   /// Costo del catalogo al momento (costo previsto). NULL = non compilato.
   expectedUnitCostMinor Int?
+  /// Solo per PURCHASE: totale pagato per la riga (il costo per unità è arrotondato).
+  totalCostMinor        Int?
   currency              String             @db.Char(3)
   createdAt             DateTime           @default(now())
 

@@ -19,6 +19,7 @@ import {
   INVENTORY_LIMITS,
   INVENTORY_PAGE_SIZE,
   availableQuantity,
+  averageCostAfterRemoval,
   inventoryItemSettingsSchema,
   inventoryListFiltersSchema,
   inventoryMovementFiltersSchema,
@@ -249,21 +250,31 @@ export async function listInventory(
   });
 }
 
+export interface InventoryItemDetailDto extends InventoryItemDto {
+  /** C'è almeno una compra (non annullata o no): il costo reale viene dalle compras (ADR-061). */
+  readonly hasPurchases: boolean;
+}
+
 export async function getInventoryItem(
   ctx: TenantContext,
   inventoryItemId: string,
-): Promise<InventoryItemDto> {
+): Promise<InventoryItemDetailDto> {
   requirePermission(ctx, 'inventory:read');
   if (!isUuid(inventoryItemId)) throw new NotFoundError('InventoryItem');
-  const row = await withTenantContext(getDb(), ctx, async (tx) => {
+  const found = await withTenantContext(getDb(), ctx, async (tx) => {
     await requireEntitlement(ctx, 'inventory', tx);
-    return tx.inventoryItem.findFirst({
+    const row = await tx.inventoryItem.findFirst({
       where: { id: inventoryItemId, tenantId: ctx.tenantId },
       select: itemSelect,
     });
+    if (!row) return null;
+    const purchases = await tx.inventoryMovement.count({
+      where: { tenantId: ctx.tenantId, inventoryItemId: row.id, kind: 'PURCHASE' },
+    });
+    return { row, hasPurchases: purchases > 0 };
   });
-  if (!row) return notFound(ctx, 'InventoryItem', inventoryItemId);
-  return toItemDto(row, ctx);
+  if (!found) return notFound(ctx, 'InventoryItem', inventoryItemId);
+  return { ...toItemDto(found.row, ctx), hasPurchases: found.hasPurchases };
 }
 
 /**
@@ -837,7 +848,14 @@ export async function reverseInventoryEntry(
           id: true,
           kind: true,
           reversedBy: { select: { id: true } },
-          movements: { select: { inventoryItemId: true, quantity: true, unitCostMinor: true } },
+          movements: {
+            select: {
+              inventoryItemId: true,
+              quantity: true,
+              unitCostMinor: true,
+              totalCostMinor: true,
+            },
+          },
         },
       });
       if (!entry) return false;
@@ -856,7 +874,24 @@ export async function reverseInventoryEntry(
         if (quantity < 0 && missingFor(item, -quantity) > 0 && !input.confirmShortage) {
           throw new ConflictError('inventory_insufficient_stock');
         }
-        return { item, quantity, unitCostMinor: movement.unitCostMinor };
+        // Una compra annullata esce dal costo medio, al prezzo pagato (ADR-061).
+        const removedCost =
+          entry.kind === 'PURCHASE'
+            ? (movement.totalCostMinor ?? stockValue(movement.quantity, movement.unitCostMinor))
+            : null;
+        return {
+          item,
+          quantity,
+          unitCostMinor: movement.unitCostMinor,
+          ...(removedCost !== null
+            ? {
+                newAvgUnitCostMinor: averageCostAfterRemoval(item, {
+                  quantity: movement.quantity,
+                  totalCostMinor: removedCost,
+                }),
+              }
+            : {}),
+        };
       });
       await writeInventoryEntry(tx, ctx, { kind: 'REVERSAL', reversesEntryId: entry.id, lines });
       const single = lines.length === 1 ? lines[0] : undefined;

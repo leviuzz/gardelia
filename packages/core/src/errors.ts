@@ -81,7 +81,8 @@ export type ConflictReason =
   | 'inventory_item_archived'
   | 'inventory_already_tracked'
   | 'inventory_entry_not_reversible'
-  | 'inventory_entry_already_reversed';
+  | 'inventory_entry_already_reversed'
+  | 'inventory_no_real_cost';
 
 export class ConflictError extends AppError {
   readonly code = 'conflict' as const;

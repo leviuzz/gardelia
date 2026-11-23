@@ -90,6 +90,9 @@ export default async function InventoryPage({
         current="stock"
         stockHref={routes.inventory.list()}
         movementsHref={routes.inventory.movements()}
+        purchasesHref={
+          hasPermission(ctx, 'inventory:write') ? routes.inventory.purchases() : undefined
+        }
       />
 
       {Number.isInteger(started) && single(raw.started) !== undefined ? (

@@ -61,6 +61,9 @@ export default async function InventoryMovementsPage({
         current="movements"
         stockHref={routes.inventory.list()}
         movementsHref={routes.inventory.movements()}
+        purchasesHref={
+          hasPermission(ctx, 'inventory:write') ? routes.inventory.purchases() : undefined
+        }
       />
       <form
         method="get"
@@ -74,8 +77,7 @@ export default async function InventoryMovementsPage({
           className="sm:max-w-xs"
         >
           <option value="">{t('movements.allKinds')}</option>
-          {/* Le compras arrivano con il blocco 2 (ADR-061): fino ad allora il filtro non c'è. */}
-          {INVENTORY_ENTRY_KINDS.filter((kind) => kind !== 'PURCHASE').map((kind) => (
+          {INVENTORY_ENTRY_KINDS.map((kind) => (
             <option key={kind} value={kind}>
               {t(`kinds.${kind}`)}
             </option>

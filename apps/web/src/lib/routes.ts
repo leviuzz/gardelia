@@ -121,6 +121,13 @@ export function tenantRoutes(slug: string) {
         withQuery(`${inventory}/${segment(inventoryItemId)}`, query),
       /** Tutti i movimenti (`kind`, `page`). */
       movements: (query?: QueryValues) => withQuery(`${inventory}/movements`, query),
+      /** Compras al mayorista (ADR-061): elenco (`q`, `page`), nuova, scheda. */
+      purchases: (query?: QueryValues) => withQuery(`${inventory}/purchases`, query),
+      newPurchase: `${inventory}/purchases/new`,
+      purchase: (entryId: string, query?: QueryValues) =>
+        withQuery(`${inventory}/purchases/${segment(entryId)}`, query),
+      /** Proveedores (`archived=1` per vedere anche gli archiviati). */
+      suppliers: (query?: QueryValues) => withQuery(`${inventory}/suppliers`, query),
     },
     builder: {
       list: (query?: QueryValues) => withQuery(builder, query),
