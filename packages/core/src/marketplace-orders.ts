@@ -418,12 +418,17 @@ export async function placeMarketplaceOrder(
       if (!totals.ok) throw new ValidationError({ lines: totals.error });
 
       // Cliente del CRM della fioreria: quello con la stessa email, o uno nuovo.
-      const acquisitionSource = options.fromSearch ? 'MARKETPLACE_B2C' : 'MERCHANT_DIRECT';
       const existing = await tx.customer.findFirst({
         where: { tenantId, status: 'ACTIVE', email: { equals: user.email, mode: 'insensitive' } },
         orderBy: { createdAt: 'asc' },
-        select: { id: true },
+        select: { id: true, acquisitionSource: true },
       });
+      // Origine (fee D-24): portato da Gardelia solo se arriva dalla ricerca E non era già un
+      // cliente della fioreria (sui clienti propri non c'è fee).
+      const acquisitionSource =
+        options.fromSearch && (!existing || existing.acquisitionSource === 'MARKETPLACE_B2C')
+          ? 'MARKETPLACE_B2C'
+          : 'MERCHANT_DIRECT';
       const customer =
         existing ??
         (await tx.customer.create({

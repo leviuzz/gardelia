@@ -14,6 +14,7 @@ import {
   cancelOrder,
   changeOrderStatus,
   createCatalogItem,
+  createCustomer,
   expireUnacceptedOrders,
   getCheckoutForm,
   getOnlineStoreSettings,
@@ -327,6 +328,38 @@ describe("invio dell'ordine", () => {
     });
   });
 
+  it('un cliente che la fioreria aveva già non diventa "portato da Gardelia"', async () => {
+    const own = await createCustomer(shop.owner, {
+      type: 'PERSON',
+      displayName: 'Carla (cliente de siempre)',
+      legalName: null,
+      taxId: null,
+      email: carla.email.toUpperCase(),
+      phone: null,
+      notes: null,
+      preferences: null,
+      restrictions: null,
+      tags: [],
+      acquisitionChannel: null,
+      marketingConsent: false,
+    });
+    const placed = await placeMarketplaceOrder(
+      carla,
+      shop.tenant.slug,
+      orderForm({ fulfillmentMode: 'PICKUP', window: '' }),
+      { fromSearch: true },
+      deps,
+    );
+    const order = await getOrder(shop.owner, placed.orderId);
+    expect(order.customer.id).toBe(own.id);
+    expect(order).toMatchObject({
+      acquisitionSource: 'MERCHANT_DIRECT',
+      fulfillmentMode: 'PICKUP',
+      deliveryFeeMinor: 0,
+      deliveryAddress: null,
+    });
+  });
+
   it('giorno, fascia e prodotti seguono le regole della fioreria', async () => {
     const fail = (overrides: Record<string, unknown>) =>
       placeMarketplaceOrder(
@@ -402,7 +435,9 @@ describe("invio dell'ordine", () => {
       currency: 'MXN',
       trackingPath,
     });
-    expect(await listBuyerOrders(carla, SECRET)).toEqual([]);
+    expect((await listBuyerOrders(carla, SECRET)).map((order) => order.fulfillmentMode)).toEqual([
+      'PICKUP',
+    ]);
   });
 
   describe('la fioreria risponde', () => {
