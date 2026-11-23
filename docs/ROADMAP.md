@@ -23,7 +23,8 @@ Prodotto, nell'ordine di `docs/V1_SCOPE.md` §5:
    i clienti** (D-26, deciso dal founder il 23/11/2026): pagine pubbliche, ricerca per indirizzo,
    pagina di ogni fioreria, ordine del cliente registrato, pagamento diretto alla fioreria. Blocchi
    A1–C5 in `docs/ORDERS_MARKETPLACE_PLAN.md`.
-3. Inventario.
+3. Inventario (blocco 1 fatto: giacenze, movimenti e avvisi, ADR-060; poi compras, apartados e
+   costo dei ramos).
 4. Clienti completi: cronologia, etichette, import CSV.
 5. Abbonamenti dei clienti e Floral Care.
 6. Report.
@@ -92,6 +93,8 @@ La base del marketplace è nella V1 (D-26). Qui arriva quello che serve quando c
 ## Più avanti
 
 - Più città in Messico; marketplace degli accessori; video in Studio; mercato italiano.
+- **Organizzazioni per le catene** (D-28): un account crea organizzazioni e sotto ognuna più
+  fiorerie; trasferimenti di merce e report insieme.
 
 ## Soglie da tenere d'occhio
 

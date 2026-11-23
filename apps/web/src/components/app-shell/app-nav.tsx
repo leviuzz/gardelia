@@ -2,6 +2,7 @@
 
 import {
   BadgePercent,
+  Boxes,
   CalendarDays,
   ClipboardList,
   Contact,
@@ -35,6 +36,7 @@ export type NavIcon =
   | 'calendar'
   | 'promotions'
   | 'catalog'
+  | 'inventory'
   | 'team'
   | 'settings';
 
@@ -59,6 +61,7 @@ const ICONS = {
   calendar: CalendarDays,
   promotions: BadgePercent,
   catalog: Flower2,
+  inventory: Boxes,
   team: Users,
   settings: Settings,
 };

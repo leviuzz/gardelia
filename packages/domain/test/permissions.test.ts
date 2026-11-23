@@ -32,6 +32,15 @@ describe('matrice dei permessi', () => {
     expect(can('MANAGER', 'builder:delete')).toBe(true);
   });
 
+  it('inventario: tutti vedono le giacenze, registrano solo proprietario e manager', () => {
+    for (const role of ['OWNER', 'MANAGER', 'STAFF'] as const) {
+      expect(can(role, 'inventory:read')).toBe(true);
+    }
+    expect(can('OWNER', 'inventory:write')).toBe(true);
+    expect(can('MANAGER', 'inventory:write')).toBe(true);
+    expect(can('STAFF', 'inventory:write')).toBe(false);
+  });
+
   it('limita i ruoli assegnabili via invito', () => {
     expect(invitableRoles('OWNER')).toEqual(['OWNER', 'MANAGER', 'STAFF']);
     expect(invitableRoles('MANAGER')).toEqual(['STAFF']);

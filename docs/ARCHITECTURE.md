@@ -149,6 +149,7 @@ principi a livello di servizi e ruoli (TEN-01).
 | Piani      | SaasPlan (globale), TenantSubscription                                | v0: assegnazione manuale da CLI, nessun pagamento (ADR-021) |
 | Builder    | BouquetConfiguration, BouquetConfigurationLine                        | deterministico (ADR-023); anteprime AI nello Sprint 2       |
 | AI         | AiJob (coda di anteprime e scontorni), AiCreditGrant                  | pipeline completa; provider fal.ai/Nano Banana 2 (ADR-026)  |
+| Inventario | InventoryItem, InventoryEntry, InventoryMovement                      | giacenze, movimenti e avvisi (ADR-060)                      |
 
 Flusso del valore (Sprint 1): **catalogo** (prezzi, costi, disponibilità, flag Builder) →
 **Builder** (`priceBouquet`, stessa funzione in browser e server) → **preventivo** (riga `BUILDER`
@@ -206,6 +207,16 @@ preventivi dalla route `/quotes/[id]/lines/[lineId]/image` (`?download=1` per Wh
 Colore di carta e nastro (ADR-030): l'editor invia `{catalogItemId, quantity, color}`; il server
 calcola il colore effettivo con `resolveLineColor` sui colori attuali dell'articolo, lo salva sulla
 riga e lo riporta nella distinta del preventivo e nel prompt dell'anteprima.
+
+Inventario (ADR-060): la fioreria sceglie i prodotti da controllare (`startInventoryTracking`,
+existencia inicial al costo del catalogo). Ogni operazione è un registro (`InventoryEntry`) con una
+riga per prodotto (`InventoryMovement`); `writeInventoryEntry` scrive registro, righe e giacenza
+nella stessa transazione, con le righe di `InventoryItem` bloccate in ordine di id, e salva in ogni
+riga la giacenza dopo, il costo reale (medio) e quello del catalogo del momento. Registri e
+movimenti non si modificano né si cancellano (RLS solo SELECT e INSERT): uno sbaglio si annulla con
+un registro `REVERSAL`. Per gli ordini il core espone `checkStockTx` e `consumeStockTx`, da usare
+nella transazione dell'ordine: senza il piano o per i prodotti non controllati non registrano nulla.
+La disponibilità del catalogo non dipende dalla giacenza: l'inventario propone il clic.
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per

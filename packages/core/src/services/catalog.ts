@@ -15,6 +15,7 @@ import {
 } from '@floral/db';
 import {
   AUDIT_ACTIONS,
+  AVAILABILITY_STATES,
   CATALOG_PAGE_SIZE,
   INGREDIENT_TYPES,
   catalogItemInputSchema,
@@ -361,6 +362,44 @@ export async function setCatalogItemArchived(
   });
   if (!result) return notFound(ctx, 'CatalogItem', itemId);
   return result;
+}
+
+/**
+ * Cambia solo la disponibilità di un prodotto: il clic dall'inventario quando la giacenza dice che
+ * è finito, o che c'è di nuovo (ADR-060). La giacenza non la cambia mai da sola.
+ */
+export async function setCatalogItemAvailability(
+  ctx: TenantContext,
+  itemId: string,
+  availability: unknown,
+): Promise<void> {
+  requirePermission(ctx, 'catalog:write');
+  if (!isUuid(itemId)) throw new NotFoundError('CatalogItem');
+  if (!isAvailability(availability)) throw new ValidationError({ availability: 'invalid_option' });
+  const found = await withTenantContext(getDb(), ctx, async (tx) => {
+    const existing = await tx.catalogItem.findFirst({
+      where: { id: itemId, tenantId: ctx.tenantId },
+      select: { id: true, name: true, availability: true },
+    });
+    if (!existing) return false;
+    if (existing.availability === availability) return true;
+    await tx.catalogItem.update({ where: { id: existing.id }, data: { availability } });
+    await recordAudit(tx, ctx, {
+      action: AUDIT_ACTIONS.catalogItemUpdated,
+      entityType: 'CatalogItem',
+      entityId: existing.id,
+      metadata: {
+        name: existing.name,
+        changes: { availability: { from: existing.availability, to: availability } },
+      },
+    });
+    return true;
+  });
+  if (!found) await notFound(ctx, 'CatalogItem', itemId);
+}
+
+function isAvailability(value: unknown): value is Availability {
+  return typeof value === 'string' && (AVAILABILITY_STATES as readonly string[]).includes(value);
 }
 
 export interface CanonicalFlowerOption extends SpeciesOption {

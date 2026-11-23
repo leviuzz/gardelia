@@ -38,10 +38,17 @@ export default async function PlanPage({ params }: PageProps<'/app/[tenantSlug]/
     ? t('plans.features.aiPreviews.body', { count: plan.entitlements.aiPreviewsPerMonth || 25 })
     : t('plans.features.aiPreviewsSoon.body');
 
-  const features: { key: string; state: FeatureState; body?: string }[] = [
+  const features: { key: string; state: FeatureState; title?: string; body?: string }[] = [
     { key: 'catalog', state: 'included' },
     { key: 'customersQuotes', state: 'included' },
     { key: 'team', state: 'included' },
+    {
+      key: 'inventory',
+      state: plan.entitlements.inventory ? 'included' : 'upgrade',
+      // Testi nel namespace dell'inventario (ADR-060).
+      title: t('inventory.planFeature.title'),
+      body: t('inventory.planFeature.body'),
+    },
     { key: 'bouquetBuilder', state: plan.entitlements.bouquetBuilder ? 'included' : 'upgrade' },
     { key: 'aiPreviews', state: aiState, body: aiBody },
   ];
@@ -114,7 +121,9 @@ export default async function PlanPage({ params }: PageProps<'/app/[tenantSlug]/
                   )}
                 </span>
                 <div className="min-w-0 flex-1 text-sm">
-                  <p className="font-medium">{t(`plans.features.${feature.key}.title`)}</p>
+                  <p className="font-medium">
+                    {feature.title ?? t(`plans.features.${feature.key}.title`)}
+                  </p>
                   <p className="text-muted-foreground">
                     {feature.body ?? t(`plans.features.${feature.key}.body`)}
                   </p>

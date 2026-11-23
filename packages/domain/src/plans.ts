@@ -25,6 +25,8 @@ const GRANTING_STATUSES: readonly SubscriptionStatus[] = ['PILOT', 'TRIALING', '
 export const planEntitlementsSchema = z.object({
   /** Bouquet Builder (composizione guidata con prezzo deterministico). */
   bouquetBuilder: z.boolean().catch(false),
+  /** Inventario: giacenze, movimenti e avvisi (ADR-060; nel Plus, domani Profesional, D-23). */
+  inventory: z.boolean().catch(false),
   /**
    * Anteprime AI incluse al mese. Il consumo arriva con la pipeline AI (S1-12); la
    * politica sui tentativi falliti è la decisione aperta O-05.
@@ -34,11 +36,12 @@ export const planEntitlementsSchema = z.object({
 export type PlanEntitlements = z.infer<typeof planEntitlementsSchema>;
 
 /** Entitlements booleani (funzioni on/off), utilizzabili con `requireEntitlement`. */
-export const FEATURE_ENTITLEMENTS = ['bouquetBuilder'] as const;
+export const FEATURE_ENTITLEMENTS = ['bouquetBuilder', 'inventory'] as const;
 export type FeatureEntitlement = (typeof FEATURE_ENTITLEMENTS)[number];
 
 export const NO_ENTITLEMENTS: PlanEntitlements = Object.freeze({
   bouquetBuilder: false,
+  inventory: false,
   aiPreviewsPerMonth: 0,
 });
 

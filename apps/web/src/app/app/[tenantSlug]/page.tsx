@@ -73,7 +73,10 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
 
   function describeActivity(entry: ActivityEntry): string {
     const actor = entry.actorName ?? t('activity.someone');
-    const key = `activity.${entry.action}`;
+    // Moduli con i testi nel proprio namespace (ADR-060): `inventory.x` → `inventory.activity.x`.
+    const [module, ...rest] = entry.action.split('.');
+    const moduleKey = `${module}.activity.${rest.join('.')}`;
+    const key = t.has(`activity.${entry.action}`) ? `activity.${entry.action}` : moduleKey;
     const roleValue =
       metadataString(entry.metadata, 'to') ?? metadataString(entry.metadata, 'role');
     const statusValue = metadataString(entry.metadata, 'to');
@@ -96,6 +99,7 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
             : '—',
       plan: planValue && isPlanCode(planValue) ? t(`plans.names.${planValue}`) : '—',
       units: metadataNumber(entry.metadata, 'units') ?? 0,
+      lines: metadataNumber(entry.metadata, 'lines') ?? 1,
     };
     return t.has(key) ? t(key, values) : t('activity.fallback', values);
   }
