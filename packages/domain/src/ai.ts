@@ -11,7 +11,6 @@
  */
 import type { BUILDER_SIZES, BUILDER_STYLES, BuilderRole } from './builder';
 import type { CatalogItemType, SaleUnit } from './catalog';
-import { SKETCH_LAYOUT_VERSION } from './sketch';
 
 /**
  * v2 (21/11/2026, docs/AI_BENCHMARK.md): conteggi espliciti per tipo e totale, nome comune
@@ -21,9 +20,13 @@ import { SKETCH_LAYOUT_VERSION } from './sketch';
  * parole da una foto di "Mis ramos" (ADR-032). v5: anteprima esatta, cioè il boceto costruito dai
  * ritagli reso fotografico (ADR-034); la chiave include i ritagli scelti, il tipo di articolo e la
  * versione del boceto. v6: boceto a cupola fitta e prompt "foto vera di un ramo" (la v5 dava
- * foto da collage). Cambiarla invalida la cache (nuova chiave).
+ * foto da collage). v7: disposizione libera da fiorista con il ricontrollo dei numeri e la
+ * correzione dei fiori in più (la v6 copiava la disposizione piatta del boceto). v8: fiori visti
+ * di lato e di tre quarti, al massimo circa uno su quattro di fronte (con la v7 le rose
+ * guardavano quasi tutte la fotocamera). v9: niente collage al modello, solo le foto dei fiori
+ * come riferimento (con la v8 le rose erano girate di lato). Cambiarla invalida la cache.
  */
-export const AI_PREVIEW_PROMPT_VERSION = 'bouquet-preview-v6';
+export const AI_PREVIEW_PROMPT_VERSION = 'bouquet-preview-v9';
 
 /**
  * EXACT: boceto dai ritagli del fiorista reso fotografico, con i conteggi verificati (ADR-034).
@@ -191,6 +194,13 @@ export interface BouquetPreviewSpec {
   readonly mode?: PreviewMode;
 }
 
+/** Spec salvata in un job (JSON dal database): forma minima prima di usarla. */
+export function isBouquetPreviewSpec(value: unknown): value is BouquetPreviewSpec {
+  if (!value || typeof value !== 'object') return false;
+  const spec = value as Partial<BouquetPreviewSpec>;
+  return spec.version === 1 && Array.isArray(spec.components) && spec.components.length > 0;
+}
+
 const ROLE_ORDER: Readonly<Record<BuilderRole, number>> = {
   FLOWER: 0,
   FOLIAGE: 1,
@@ -257,7 +267,8 @@ export function canonicalPreviewInput(
     provider: generator.provider,
     model: generator.model,
     mode,
-    sketch: mode === 'EXACT' ? SKETCH_LAYOUT_VERSION : null,
+    // Dalla v9 la foto nasce dalle foto dei fiori (gli id dei ritagli sono qui sotto), non dal
+    // boceto: un boceto ridisegnato non deve costare una foto nuova.
     style: spec.style,
     size: spec.size,
     styleReferenceId: spec.styleReferenceId ?? null,

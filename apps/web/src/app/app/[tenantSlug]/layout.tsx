@@ -30,7 +30,7 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
     ...(hasPermission(ctx, 'promotions:manage')
       ? [
           {
-            href: routes.promotions,
+            href: routes.promotions.home,
             label: t('nav.promotions'),
             icon: 'promotions' as const,
             secondary: true,

@@ -6,6 +6,8 @@
 import sharp, { type OverlayOptions } from 'sharp';
 import { bloomHeadFor } from './bloom-head';
 import {
+  SKETCH_CROWDING,
+  colorNameOf,
   countedFlowers,
   layoutBouquetSketch,
   shadeHex,
@@ -156,6 +158,149 @@ export async function renderSketch(
   return new Uint8Array(png);
 }
 
+/** La visibilità si misura su un quadro a 1/4 del boceto: veloce e abbastanza preciso. */
+const VISIBILITY_SCALE = 0.25;
+
+/** Verde di foglie e sepali: non è un petalo (un fiore nascosto con le foglie fuori non si conta). */
+function isFoliageGreen(r: number, g: number, b: number): boolean {
+  const max = Math.max(r, g, b);
+  if (max < 40 || max - Math.min(r, g, b) < 25) return false;
+  return g === max && g - r > 12 && g - b > 8;
+}
+
+interface PlacedMask {
+  readonly left: number;
+  readonly top: number;
+  readonly width: number;
+  readonly height: number;
+  /** 1 = pixel pieno del ritaglio (copre ciò che sta sotto). */
+  readonly opaque: Uint8Array;
+  /** 1 = petalo: pieno e non verde; per un fiore quasi tutto verde, tutto il pieno. */
+  readonly petals: Uint8Array;
+}
+
+/** Maschera di un ritaglio con le stesse trasformazioni del disegno (misura, specchio, rotazione). */
+async function placedMask(
+  cutout: Uint8Array,
+  placement: SketchLayout['images'][number],
+  scale: number,
+): Promise<PlacedMask> {
+  const transparent = { r: 0, g: 0, b: 0, alpha: 0 };
+  const { data, info } = await sharp(cutout)
+    .ensureAlpha()
+    .resize(
+      Math.max(2, Math.round(placement.width * scale)),
+      Math.max(2, Math.round(placement.height * scale)),
+      { fit: 'contain', background: transparent },
+    )
+    .flop(placement.flip)
+    .rotate(placement.rotation, { background: transparent })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const pixels = info.width * info.height;
+  const opaque = new Uint8Array(pixels);
+  const petals = new Uint8Array(pixels);
+  let opaqueCount = 0;
+  let petalCount = 0;
+  for (let index = 0; index < pixels; index++) {
+    const offset = index * info.channels;
+    if ((data[offset + 3] ?? 0) < 128) continue;
+    opaque[index] = 1;
+    opaqueCount += 1;
+    if (!isFoliageGreen(data[offset]!, data[offset + 1]!, data[offset + 2]!)) {
+      petals[index] = 1;
+      petalCount += 1;
+    }
+  }
+  if (petalCount < opaqueCount * 0.15) petals.set(opaque);
+  return {
+    left: Math.round(placement.x * scale - info.width / 2),
+    top: Math.round(placement.y * scale - info.height / 2),
+    width: info.width,
+    height: info.height,
+    opaque,
+    petals,
+  };
+}
+
+/**
+ * Quanta parte dei petali di ogni corolla resta visibile nel boceto (0–1), nell'ordine delle
+ * corolle in `layout.images` (boceto v4). Si dipingono le corolle nell'ordine di disegno e per
+ * ognuna si contano i suoi petali rimasti in cima; fuori dal quadro conta come nascosto. Carta e
+ * follaje non contano: la carta davanti copre al massimo la base delle corolle più basse.
+ */
+export async function bloomVisibility(
+  layout: SketchLayout,
+  cutouts: ReadonlyMap<string, Uint8Array>,
+): Promise<number[]> {
+  const side = Math.round(layout.size * VISIBILITY_SCALE);
+  const blooms = layout.images.filter((image) => image.kind === 'bloom');
+  const masks = await Promise.all(
+    blooms.map((bloom) => {
+      const cutout = cutouts.get(bloom.photoId);
+      if (!cutout) throw new Error(`ritaglio non caricato: ${bloom.photoId}`);
+      return placedMask(cutout, bloom, VISIBILITY_SCALE);
+    }),
+  );
+  const owner = new Int16Array(side * side).fill(-1);
+  masks.forEach((mask, index) => {
+    for (let y = 0; y < mask.height; y++) {
+      const row = mask.top + y;
+      if (row < 0 || row >= side) continue;
+      for (let x = 0; x < mask.width; x++) {
+        const column = mask.left + x;
+        if (column < 0 || column >= side || !mask.opaque[y * mask.width + x]) continue;
+        owner[row * side + column] = index;
+      }
+    }
+  });
+  return masks.map((mask, index) => {
+    let total = 0;
+    let visible = 0;
+    for (let y = 0; y < mask.height; y++) {
+      for (let x = 0; x < mask.width; x++) {
+        if (!mask.petals[y * mask.width + x]) continue;
+        total += 1;
+        const row = mask.top + y;
+        const column = mask.left + x;
+        if (row >= 0 && row < side && column >= 0 && column < side) {
+          if (owner[row * side + column] === index) visible += 1;
+        }
+      }
+    }
+    return total === 0 ? 1 : visible / total;
+  });
+}
+
+/**
+ * Colore dei petali di un ritaglio (media dei pixel pieni e non verdi), nel vocabolario del
+ * catalogo. Serve a descrivere il fiore al controllo dei conteggi quando il catalogo non dice il
+ * colore (ADR-034, 23/11). null se la foto non ha abbastanza petali o il colore è indistinto.
+ */
+export async function petalColorOf(png: Uint8Array): Promise<string | null> {
+  const { data, info } = await sharp(png)
+    .ensureAlpha()
+    .resize(96, 96, { fit: 'inside' })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  let red = 0;
+  let green = 0;
+  let blue = 0;
+  let count = 0;
+  for (let offset = 0; offset < data.length; offset += info.channels) {
+    if ((data[offset + 3] ?? 0) < 128) continue;
+    const r = data[offset]!;
+    const g = data[offset + 1]!;
+    const b = data[offset + 2]!;
+    if (isFoliageGreen(r, g, b)) continue;
+    red += r;
+    green += g;
+    blue += b;
+    count += 1;
+  }
+  return count < 20 ? null : colorNameOf(red / count, green / count, blue / count);
+}
+
 /** Foto scontornate che il boceto userà (fiori contati, riempimento e follaje con ritaglio). */
 export function sketchPhotoIds(spec: BouquetPreviewSpec): string[] {
   const ids = new Set<string>();
@@ -184,12 +329,19 @@ function flowerPhotoIds(spec: BouquetPreviewSpec): Set<string> {
 
 /**
  * Boceto completo di una distinta: carica i ritagli (miniature PNG con trasparenza), ne legge le
- * proporzioni, calcola la disposizione e la disegna.
+ * proporzioni, calcola la disposizione e la disegna. Boceto v4: se una corolla resta troppo
+ * coperta dalle altre, si riprova con corolle più piccole e distanziate (`SKETCH_CROWDING`),
+ * perché un fiore nascosto qui sparisce anche dalla foto realistica e il conteggio fallisce.
  */
 export async function renderBouquetSketch(
   spec: BouquetPreviewSpec,
   loadCutout: (photoId: string) => Promise<Uint8Array | null>,
-): Promise<{ png: Uint8Array; layout: SketchLayout }> {
+): Promise<{
+  png: Uint8Array;
+  layout: SketchLayout;
+  /** Colore dei petali di ogni foto di fiore (per il controllo dei conteggi). */
+  photoColors: Record<string, string | null>;
+}> {
   const cutouts = new Map<string, Uint8Array>();
   const cutoutAspects: Record<string, number> = {};
   const flowers = flowerPhotoIds(spec);
@@ -204,6 +356,18 @@ export async function renderBouquetSketch(
       cutoutAspects[photoId] = meta.width && meta.height ? meta.width / meta.height : 1;
     }),
   );
-  const layout = layoutBouquetSketch({ spec, cutoutAspects });
-  return { png: await renderSketch(layout, cutouts), layout };
+  let chosen: { layout: SketchLayout; minVisible: number } | null = null;
+  for (let crowding = 0; crowding < SKETCH_CROWDING.levels; crowding++) {
+    const layout = layoutBouquetSketch({ spec, cutoutAspects, crowding });
+    const minVisible = Math.min(1, ...(await bloomVisibility(layout, cutouts)));
+    if (!chosen || minVisible > chosen.minVisible) chosen = { layout, minVisible };
+    if (minVisible >= SKETCH_CROWDING.minVisible) break;
+  }
+  const layout = chosen!.layout;
+  const photoColors: Record<string, string | null> = {};
+  for (const photoId of flowers) {
+    const head = cutouts.get(photoId);
+    if (head) photoColors[photoId] = await petalColorOf(head);
+  }
+  return { png: await renderSketch(layout, cutouts), layout, photoColors };
 }

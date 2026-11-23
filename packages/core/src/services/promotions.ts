@@ -148,14 +148,14 @@ export async function previewOccasionPromoEmail(
     },
     currency: ctx.currency,
     discount: { kind, value: tenant.occasionPromoValue },
-    occasions: [
-      {
-        type: 'BIRTHDAY',
-        label: null,
-        personName: null,
-        date: addDays(todayInTimeZone(tenant.timezone, now), 7),
-      },
-    ],
+    occasion: {
+      type: 'BIRTHDAY',
+      label: null,
+      personName: null,
+      date: addDays(todayInTimeZone(tenant.timezone, now), 7),
+    },
+    // Codice d'esempio: ogni email vera ha il suo.
+    code: 'ABC234',
     unsubscribeUrl: '#',
     oneClickUnsubscribeUrl: '#',
   });

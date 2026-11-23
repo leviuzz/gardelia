@@ -639,7 +639,7 @@ function WizardStep({
           <CardTitle
             id={`item-step-${index}`}
             tabIndex={-1}
-            className="font-display text-xl outline-none"
+            className="font-display text-xl font-semibold outline-none"
           >
             {title}
           </CardTitle>

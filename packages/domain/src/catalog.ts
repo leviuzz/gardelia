@@ -41,7 +41,7 @@ export const RECORD_STATUSES = ['ACTIVE', 'ARCHIVED'] as const;
 export type RecordStatus = (typeof RECORD_STATUSES)[number];
 
 /** Vocabolario controllato dei colori (filtri, Builder, matching futuro). */
-export { CATALOG_COLORS, type CatalogColor } from './colors';
+export { CATALOG_COLORS, colorNameOf, type CatalogColor } from './colors';
 
 /** Unità di vendita ammesse per ciascuna tipologia. */
 export const ALLOWED_UNITS_BY_TYPE: Readonly<Record<CatalogItemType, readonly SaleUnit[]>> = {

@@ -85,6 +85,7 @@ Le variabili `E2E_*` esistono solo nei test end-to-end (porte e Google simulato:
 | `VERCEL_PROJECT_PRODUCTION_URL` | impostata da Vercel           | dominio di produzione del progetto: l'avvio dei job AI (con il segreto) va sempre lì, mai ad `APP_URL` |
 | `ENABLE_EXPERIMENTAL_COREPACK`  | progetto Vercel, valore `1`   | la build usa la versione di pnpm del repository (`packageManager`)                                     |
 | `PLATFORM_DATABASE_URL`         | segreto del repository GitHub | workflow "Operazioni di piattaforma": uguale a `DATABASE_URL` dell'ambiente online (ruolo app)         |
+| `FAL_KEY`, `R2_*` (4)           | segreti del repository GitHub | facoltativi, solo per le foto dei dati di prova (`test-data`, ADR-049): gli stessi valori di Vercel    |
 
 La versione di Node in linea è fissata a 22, come in CI (`engines` di `apps/web/package.json` e
 `.nvmrc`): si cambiano insieme. Passi per creare l'ambiente online: `docs/DEPLOY_VERCEL.md`.

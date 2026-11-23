@@ -15,14 +15,28 @@ on:
           - bootstrap-admin
           - assign-plan
           - grant-ai-credits
+          - test-data
+          - confirm-user
       email:
         description: La tua email (amministratore della piattaforma)
         required: true
         type: string
-      tenant:
-        description: Indirizzo della fioreria, la parte dopo /app/ (assign-plan, grant-ai-credits)
+      person:
+        description: Email della persona da confermare (solo confirm-user)
         required: false
         type: string
+      tenant:
+        description: Indirizzo della fioreria, la parte dopo /app/, non un'email (assign-plan, grant-ai-credits, test-data; facoltativo in confirm-user)
+        required: false
+        type: string
+      role:
+        description: Ruolo nella fioreria, solo se l'hai indicata (confirm-user)
+        required: false
+        type: choice
+        default: MANAGER
+        options:
+          - MANAGER
+          - STAFF
       plan:
         description: Piano (assign-plan)
         required: false
@@ -49,6 +63,11 @@ on:
         description: Nota per il registro (senza dati personali)
         required: false
         type: string
+      photos:
+        description: Genera le foto dei fiori con l'AI (test-data, ~0,08 USD a foto)
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -70,21 +89,43 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Esegui l'operazione
-        # Gli input passano dalle variabili d'ambiente, mai interpolati nello script.
+        if: inputs.operation != 'test-data'
+        # Il repository è pubblico: questi log li legge chiunque. Gli input si leggono dal file
+        # dell'evento, mai da `env:` (GitHub stampa quelle variabili in chiaro all'inizio del passo)
+        # né interpolati nello script; email, fioreria e nota si mascherano prima di ogni output.
         env:
           DATABASE_URL: ${{ secrets.PLATFORM_DATABASE_URL }}
-          OPERATION: ${{ inputs.operation }}
-          EMAIL: ${{ inputs.email }}
-          TENANT: ${{ inputs.tenant }}
-          PLAN: ${{ inputs.plan }}
-          STATUS: ${{ inputs.status }}
-          UNITS: ${{ inputs.units }}
-          NOTE: ${{ inputs.note }}
         run: |
           set -euo pipefail
+          input() { jq -r --arg name "$1" '.inputs[$name] | if . == null then "" else tostring end' "${GITHUB_EVENT_PATH}"; }
+          mask() { if [ -n "$1" ]; then echo "::add-mask::$1"; fi; }
+          # Anche in minuscolo: le CLI normalizzano le email e le maschere distinguono le maiuscole.
+          EMAIL="$(input email)"; mask "${EMAIL}"; mask "${EMAIL,,}"
+          TENANT="$(input tenant)"; mask "${TENANT}"; mask "${TENANT,,}"
+          NOTE="$(input note)"; mask "${NOTE}"
+          PERSON="$(input person)"; mask "${PERSON}"; mask "${PERSON,,}"
+          OPERATION="$(input operation)"
+          PLAN="$(input plan)"
+          STATUS="$(input status)"
+          UNITS="$(input units)"
+          ROLE="$(input role)"
           if [ -z "${DATABASE_URL}" ]; then
             echo "Manca il segreto PLATFORM_DATABASE_URL (vedi docs/DEPLOY_VERCEL.md)." >&2
             exit 1
+          fi
+          # Un indirizzo di fioreria non contiene mai "@": un'email lì è finita nel campo sbagliato.
+          if [[ "${TENANT}" == *@* ]]; then
+            if [ "${OPERATION}" = "confirm-user" ] && [ -z "${PERSON}" ]; then
+              echo "::notice::L'email scritta in «Indirizzo della fioreria» è usata come email della persona."
+              PERSON="${TENANT}"; TENANT=""
+            else
+              echo "In «Indirizzo della fioreria» va la parte dopo /app/ (es. gardelias), non un'email." >&2
+              exit 2
+            fi
+          fi
+          if [ "${OPERATION}" = "confirm-user" ] && [ -z "${PERSON}" ]; then
+            echo "Scrivi l'email della persona nel campo «Email della persona da confermare»." >&2
+            exit 2
           fi
           note_args=()
           if [ -n "${NOTE}" ]; then note_args=(--note "${NOTE}"); fi
@@ -97,4 +138,43 @@ jobs:
             grant-ai-credits)
               pnpm -s platform:grant-ai-credits --operator "${EMAIL}" --tenant "${TENANT}" \
                 --units "${UNITS}" "${note_args[@]}" ;;
+            confirm-user)
+              tenant_args=()
+              if [ -n "${TENANT}" ]; then tenant_args=(--tenant "${TENANT}" --role "${ROLE}"); fi
+              pnpm -s platform:confirm-user --operator "${EMAIL}" --email "${PERSON}" \
+                "${tenant_args[@]}" ;;
           esac
+      - name: Dati di prova
+        if: inputs.operation == 'test-data'
+        # Clienti con date speciali, prodotti e (se ci sono i segreti di fal e dell'archivio R2,
+        # gli stessi di Vercel) le foto dei fiori. Le chiavi arrivano solo a questo passo; gli
+        # input, come sopra, dal file dell'evento e mascherati.
+        env:
+          DATABASE_URL: ${{ secrets.PLATFORM_DATABASE_URL }}
+          FAL_KEY: ${{ secrets.FAL_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          set -euo pipefail
+          input() { jq -r --arg name "$1" '.inputs[$name] | if . == null then "" else tostring end' "${GITHUB_EVENT_PATH}"; }
+          mask() { if [ -n "$1" ]; then echo "::add-mask::$1"; fi; }
+          EMAIL="$(input email)"; mask "${EMAIL}"; mask "${EMAIL,,}"
+          TENANT="$(input tenant)"; mask "${TENANT}"; mask "${TENANT,,}"
+          PHOTOS="$(input photos)"
+          if [ -z "${DATABASE_URL}" ]; then
+            echo "Manca il segreto PLATFORM_DATABASE_URL (vedi docs/DEPLOY_VERCEL.md)." >&2
+            exit 1
+          fi
+          photo_args=()
+          if [ "${PHOTOS:-true}" = "true" ]; then
+            if [ -n "${FAL_KEY}" ] && [ -n "${R2_ACCOUNT_ID}" ] && [ -n "${R2_BUCKET}" ] \
+              && [ -n "${R2_ACCESS_KEY_ID}" ] && [ -n "${R2_SECRET_ACCESS_KEY}" ]; then
+              export STORAGE_DRIVER=r2 AI_PROVIDER=fal
+              photo_args=(--photos fal)
+            else
+              echo "::warning::Foto saltate: mancano i segreti FAL_KEY e R2_* (vedi docs/DEPLOY_VERCEL.md)."
+            fi
+          fi
+          pnpm -s platform:test-data --operator "${EMAIL}" --tenant "${TENANT}" "${photo_args[@]}"

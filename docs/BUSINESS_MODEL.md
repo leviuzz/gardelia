@@ -14,11 +14,14 @@ USD (ipotesi).
 **Struttura DECISA dal founder (23/11/2026):** tre livelli più qualche add-on, al posto di Basic/Plus
 (D-05, D-16). **Prezzi PROPOSTI**, in MXN al mese + IVA (IVA inclusa o esclusa: O-06).
 
-| Livello         | MXN/mese |  ~€ | Contiene                                                                                                                                                     |
-| --------------- | -------: | --: | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Esencial**    |      699 |  34 | clienti, catalogo, calendario e date speciali, preventivi, **ordini, consegne, pagamenti registrati**, report di base, 2 utenti                              |
-| **Profesional** |    1.199 |  58 | Esencial + inventario e margini, abbonamenti dei clienti e Floral Care, promo delle date speciali (ADR-047), Diseñador con **15 immagini** al mese, 3 utenti |
-| **Premium**     |    1.899 |  92 | Profesional + promozioni avanzate, Diseñador con **30 immagini**, Diseñador pubblico, priorità sugli ordini dei privati, 5 utenti                            |
+| Livello         | MXN/mese |  ~€ | Contiene                                                                                                                                                    |
+| --------------- | -------: | --: | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Esencial**    |      699 |  34 | clienti, catalogo, calendario e date speciali con la loro promo (ADR-047), preventivi, **ordini, consegne, pagamenti registrati**, report di base, 2 utenti |
+| **Profesional** |    1.199 |  58 | Esencial + inventario e margini, abbonamenti dei clienti e Floral Care, Diseñador con **15 immagini** al mese, 3 utenti                                     |
+| **Premium**     |    1.899 |  92 | Profesional + promozioni più articolate, Diseñador con **30 immagini**, Diseñador pubblico, priorità sugli ordini dei privati, 5 utenti                     |
+
+La promo delle date speciali resta in tutti i livelli; le promozioni più articolate sono a
+pagamento (decisione del founder del 22/11/2026, O-11).
 
 - **Al lancio solo Esencial e Profesional (PROPOSTO).** Il Premium apre quando esistono le funzioni
   che lo distinguono (Studio, Diseñador pubblico, priorità sugli ordini): la V1 non vende funzioni

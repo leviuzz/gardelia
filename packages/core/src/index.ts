@@ -54,6 +54,7 @@ export {
   type AiImageProvider,
   type AiProviderErrorCode,
   type GeneratedImage,
+  type ImageInput,
 } from './ai/providers';
 export {
   FAL_MODEL_IDS,
@@ -73,7 +74,7 @@ export {
   type CountOutcome,
   type FlowerCounter,
 } from './ai/flower-counter';
-export { renderBouquetSketch, renderSketch } from './ai/sketch-renderer';
+export { bloomVisibility, renderBouquetSketch, renderSketch } from './ai/sketch-renderer';
 export {
   ChromaKeyBackgroundRemover,
   createBackgroundRemoverFromEnv,
@@ -115,6 +116,7 @@ export * from './services/catalog';
 export * from './services/calendar';
 export * from './services/customers';
 export * from './services/dashboard';
+export * from './services/promo-discounts';
 export * from './services/promotions';
 export * from './services/quotes';
 export * from './services/recipes';

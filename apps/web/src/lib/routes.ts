@@ -59,8 +59,12 @@ export function tenantRoutes(slug: string) {
     /** Calendario delle date speciali dei clienti (`view`: month, week, day, agenda). */
     calendar: (query?: { readonly view?: string; readonly date?: string }) =>
       withQuery(`${home}/calendar`, query),
-    /** Promo delle date speciali: sconto dell'email automatica (ADR-047). */
-    promotions: `${home}/promotions`,
+    promotions: {
+      /** Promo delle date speciali: sconto dell'email automatica (ADR-047). */
+      home: `${home}/promotions`,
+      /** Registro degli sconti inviati, con ricerca per codice (ADR-048). */
+      discounts: (query?: QueryValues) => withQuery(`${home}/promotions/discounts`, query),
+    },
     customers: {
       list: (query?: QueryValues) => withQuery(customers, query),
       new: `${customers}/new`,

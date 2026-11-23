@@ -27,6 +27,7 @@ import {
   sniffImageType,
   type AiImageProvider,
   type GeneratedImage,
+  type ImageInput,
 } from './provider-types';
 import type { BackgroundRemover } from './background-remover';
 import type { FlowerCounter } from './flower-counter-types';
@@ -39,10 +40,13 @@ export interface FalModelProfile {
   readonly estimatedCostMicros: number;
   /** Corpo della richiesta: sempre una sola immagine quadrata JPEG, restituita inline. */
   body(prompt: string): Record<string, unknown>;
-  /** Variante "modifica" che parte da un'immagine (il boceto esatto, ADR-034), se esiste. */
+  /**
+   * Variante "modifica" che parte da immagini (le foto dei fiori o la foto da correggere, ADR-034),
+   * se esiste.
+   */
   readonly edit?: {
     readonly endpoint: string;
-    body(prompt: string, imageUrl: string): Record<string, unknown>;
+    body(prompt: string, imageUrls: readonly string[]): Record<string, unknown>;
   };
 }
 
@@ -59,12 +63,13 @@ export const FAL_MODELS = {
       output_format: 'jpeg',
       sync_mode: true,
     }),
-    // Stesso listino stimato; provata il 21/11/2026 (boceto → foto, conteggi esatti).
+    // Stesso listino stimato; provata il 21/11/2026 (boceto → foto) e il 23/11/2026 (foto dei
+    // fiori come riferimento, più immagini insieme).
     edit: {
       endpoint: 'fal-ai/nano-banana-2/edit',
-      body: (prompt: string, imageUrl: string) => ({
+      body: (prompt: string, imageUrls: readonly string[]) => ({
         prompt,
-        image_urls: [imageUrl],
+        image_urls: [...imageUrls],
         num_images: 1,
         aspect_ratio: '1:1',
         resolution: '1K',
@@ -117,7 +122,7 @@ export class FalImageProvider implements AiImageProvider {
   readonly simulated = false;
   readonly model: string;
   readonly estimatedCostMicros: number;
-  readonly supportsSketch: boolean;
+  readonly acceptsImages: boolean;
   // Campi privati veri: la chiave non finisce in JSON.stringify né nei log.
   readonly #apiKey: string;
   readonly #profile: FalModelProfile;
@@ -133,16 +138,16 @@ export class FalImageProvider implements AiImageProvider {
     this.#fetch = options.fetch ?? ((input, init) => fetch(input, init));
     this.model = this.#profile.endpoint;
     this.estimatedCostMicros = this.#profile.estimatedCostMicros;
-    this.supportsSketch = this.#profile.edit !== undefined;
+    this.acceptsImages = this.#profile.edit !== undefined;
   }
 
   async generate(request: {
     readonly prompt: string;
     readonly signal: AbortSignal;
-    readonly image?: { readonly bytes: Uint8Array; readonly contentType: string };
+    readonly images?: readonly ImageInput[];
   }): Promise<GeneratedImage> {
     try {
-      return await this.#run(request.prompt, request.signal, request.image);
+      return await this.#run(request.prompt, request.signal, request.images ?? []);
     } catch (error) {
       throw toProviderError(error);
     }
@@ -151,18 +156,21 @@ export class FalImageProvider implements AiImageProvider {
   async #run(
     prompt: string,
     signal: AbortSignal,
-    image?: { readonly bytes: Uint8Array; readonly contentType: string },
+    images: readonly ImageInput[],
   ): Promise<GeneratedImage> {
     const edit = this.#profile.edit;
-    if (image && !edit) {
-      throw new AiProviderError('invalid_request', 'il modello non parte da un boceto');
+    if (images.length > 0 && !edit) {
+      throw new AiProviderError('invalid_request', 'il modello non parte da immagini');
     }
-    const endpoint = image && edit ? edit.endpoint : this.#profile.endpoint;
+    const endpoint = images.length > 0 && edit ? edit.endpoint : this.#profile.endpoint;
     const body =
-      image && edit
+      images.length > 0 && edit
         ? edit.body(
             prompt,
-            `data:${image.contentType};base64,${Buffer.from(image.bytes).toString('base64')}`,
+            images.map(
+              (image) =>
+                `data:${image.contentType};base64,${Buffer.from(image.bytes).toString('base64')}`,
+            ),
           )
         : this.#profile.body(prompt);
     const response = await this.#fetch(`${this.#baseUrl}/${endpoint}`, {

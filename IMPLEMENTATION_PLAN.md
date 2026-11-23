@@ -333,19 +333,101 @@ automatica ai clienti con email e consenso, qualche giorno prima di ogni data (i
 data). Si manda una sola email per data e anno, mai dalle fiorerie demo, e si riprova se fallisce.
 L'email ha un link firmato per non ricevere più promozioni, con pagina di conferma e
 disiscrizione con un clic. Il calendario mostra lo stato della promo per ogni data. Il cron
-giornaliero ora gira alle 9:07 del Messico e fa anche la promo. Da fare per l'invio reale: dominio
-email verificato (P-07); parere legale sulle email promozionali; decisione O-11 (piano).
+giornaliero ora gira alle 9:07 del Messico e fa anche la promo. La promo resta in tutti i piani
+(O-11).
+
+**Codici e registro degli sconti (fatto il 22/11, richiesta del founder, ADR-048):** ogni email ha
+un codice personale, scritto anche nel messaggio WhatsApp già pronto. La pagina "Descuentos" lo
+cerca come lo scrive il cliente e dice se è vigente, usato o scaduto. "Marcar como usado" salva una
+nota, chi e quando, e si può annullare. Gli sconti si vedono anche nella scheda del cliente e nel
+calendario. Ora parte un'email per data. La pagina Promociones dice chiaramente che l'invio è
+automatico ogni mattina e mostra i prossimi invii. La casella del consenso è più esplicita.
+Prossimi passi:
+
+- dominio email verificato (P-07; il founder lo compra, passi in `docs/DEPLOY_VERCEL.md` §4);
+- parere legale sulle email promozionali;
+- poi: sconto collegato al preventivo, promo aggiuntive inviate a mano, marketplace dei clienti.
 
 **Pulsanti attivi solo quando funzionano (fatto il 22/11):** "Continuar con Google", uscita e i
 moduli di accesso restano disattivati finché la pagina non ha caricato il JavaScript; i moduli
 gestiti solo in JavaScript inviano in POST (prima, un invio anticipato metteva email e password
 nell'indirizzo). Un test delle convenzioni lo impone ai moduli nuovi.
 
-**Test E2E instabile da chiarire:** in CI, 2 esecuzioni su circa 10, il ritorno dal Google simulato
-(`google-login.spec.ts`) a volte non risponde entro 10 s, senza errori nel log; in locale non si
-riproduce (4 esecuzioni complete, anche con un solo thread di servizio). Il server dei test ora
-registra i tempi del ritorno, i blocchi dell'event loop e i thread di servizio occupati
-(`e2e/support/google-oauth-mock.mjs`): al prossimo fallimento il log dirà dove si ferma.
+**Test E2E instabile del login Google (corretto il 22/11):** in CI, circa 2 esecuzioni su 10, il
+ritorno dal Google simulato (`google-login.spec.ts`) non rispondeva entro 10 s, senza errori nel log;
+in locale non si riproduceva. La diagnostica del server (`e2e/support/google-oauth-mock.mjs`) ha
+mostrato la causa (CI 57): nessuna riga "ritorno da Google ricevuto", che si scrive appena la
+richiesta arriva al server, e nessun blocco dell'event loop. La richiesta di ritorno restava ferma
+nel browser, dentro l'intercettazione di `accounts.google.com`, che rispondeva con un redirect 302
+(`route.fulfill`). Ora al posto di Google c'è una pagina con il link di ritorno: il test toglie
+l'intercettazione e segue il link, quindi il ritorno è una navigazione normale, come quella che
+parte da Google. Verificato in locale con 15 ripetizioni sotto carico (prima e dopo la modifica:
+93 su 93), da confermare con le prossime CI. La diagnostica resta nel server di test.
+
+**Dati di prova di una fioreria (fatto il 23/11, richiesta del founder, ADR-049):** l'operazione
+di piattaforma `test-data` (`pnpm platform:test-data`, o il workflow "Operazioni di piattaforma")
+riempie una fioreria del founder con 23 clienti inventati e le loro 26 date speciali nei prossimi
+giorni e mesi, più "Cliente de prueba (tú)" con la sua email per ricevere la promo vera. Aggiunge 18
+prodotti `PRB-…` (fiori e verdi con la specie, carte, nastro) e la foto di ogni fiore generata da
+fal (~1,20 USD in tutto), con gli scontorni. Passa dai servizi veri, si può rilanciare e scrive solo
+in una fioreria di cui l'operatore è proprietario o manager. Provata in locale su una fioreria vera
+(con foto segnaposto): calendario, agenda, catalogo e promo pieni. Per le foto su staging servono i
+segreti GitHub `FAL_KEY` e `R2_*` (`docs/DEPLOY_VERCEL.md` §8.6). Verifiche: lint ✅ · format ✅ · typecheck ✅ ·
+test 485/485 ✅ (+7: conteggi e rilancio, calendario e consenso, codici e specie, foto fallita,
+rifiuti per non amministratore, fioreria altrui e staff, prompt della foto).
+
+**"Non va la generazione AI" su staging (23/11, segnalazione del founder):** nei log di Vercel le
+righe rosse sono solo avvisi di Node (modalità SSL di `pg`, query in parallelo sullo stesso client),
+non errori. Il job dell'anteprima era arrivato in fondo con una riga informativa: con ogni probabilità
+foto realistica scartata perché i fiori non coincidevano con la distinta (ADR-034), senza che lo
+schermo dicesse perché. Ora il Diseñador mostra cosa ha contato il controllo nell'ultima foto
+(trovati di attesi per ogni fiore, fiori estranei). Funziona anche per i job già scartati e il log
+riporta gli stessi numeri. **Causa trovata con il founder:** nel boceto 2 boccioli rosa finivano
+dietro 3 rose rosse aperte e sparivano anche dalla foto realistica. Boceto v4 (ADR-034): ogni corolla
+deve restare visibile per almeno il 60% dei petali, altrimenti il boceto si ridisegna più arioso.
+Da osservare: i prodotti fotografati in bocciolo e il controllo che ignora i boccioli chiusi. Poi, con
+tutti i fiori visibili, il controllo non riconosceva "Fiore 1" (nome generico, nessun colore in
+catalogo): ora ogni tipo arriva al controllo anche con il colore misurato sulla sua foto. Con i
+numeri giusti, la foto era però rigida, una copia del boceto. v7: ramo naturale disposto dal modello,
+poi la correzione dei fiori in più sulla stessa foto; sul ramo del founder 4 richieste su 4
+verificate, a ~0,24 USD l'una (ADR-034, `docs/AI_BENCHMARK.md`). v8: con la v7 le rose guardavano
+quasi tutte verso la fotocamera ("non ci siamo ancora con la direzione delle rose"); ora il prompt
+chiede fiori visti da angolazioni diverse e al massimo circa uno su quattro di fronte. Provato su 3
+rose + 2 tulipani (3 su 3 verificate al primo colpo) e su 12 rose (6 su 6 verificate).
+Il founder ha bocciato anche la v8: rose "orizzontali", girate di lato e ammucchiate. v9: il
+modello non riceve più il collage ma le foto scontornate dei fiori del catalogo, una per tipo, e
+compone un ramo in cui ogni corolla segue il suo stelo; il boceto resta l'anteprima esatta gratuita.
+Prova: 6 rami naturali su 6 con i numeri verificati, contro 3 su 6 partendo dal collage. Codice: il
+generatore accetta più immagini (`images`), `loadFlowerReferences` carica i ritagli (fondo bianco,
+massimo 1024 px), `buildReferenceRenderPrompt`; la versione del boceto non è più nella chiave della
+cache delle foto. **Da fare:** pubblicare su staging quando il founder approva la direzione, e
+ricaricare il credito fal, finito durante le prove del 23/11 (la stessa chiave serve staging).
+
+**Eliminare un disegno del Diseñador (fatto il 23/11, richiesta del founder, ADR-051):** accanto ad
+"Archivar" c'è "Eliminar" (solo proprietario e manager, con conferma). Cancella il disegno e le foto
+generate per lui dall'archivio. Se un preventivo lo usa, la finestra spiega che si può solo
+archiviare. I crediti già usati non tornano. Le foto che mostra un preventivo o un altro disegno
+identico restano. Una foto in preparazione blocca l'eliminazione finché non finisce. Test:
+5 d'integrazione (compresa l'altra fioreria che riceve 404) e un E2E.
+Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 513/513 ✅ · build ✅ · E2E del
+Diseñador 8/8 ✅. Nei test d'integrazione il tetto di spesa AI ora è altissimo: il database di
+test locale accumulava la spesa finta del mese, finché ogni anteprima rispondeva "tetto raggiunto".
+Il test del tetto resta.
+
+**Tester senza email di conferma (fatto il 23/11, richiesta del founder, ADR-050):** operazione di
+piattaforma `confirm-user`. L'amministratore conferma a mano l'email di una persona registrata e, se
+serve, la aggiunge a una fioreria come manager o staff, con audit. Serve finché il dominio email non
+è verificato; poi tornano le email normali.
+
+**Log pubblici del workflow di piattaforma (corretto il 23/11):** il repository è pubblico e
+l'email dell'operatore compariva in chiaro nei log delle operazioni (variabili `env:` stampate da
+GitHub). Ora gli input si leggono dal file dell'evento e si mascherano (ADR-038, operazioni di
+piattaforma). Restano da cancellare i log delle due esecuzioni del 22/11.
+
+**Font Roboto (fatto il 22/11, richiesta del founder):** tutta l'app usa Roboto (testi e titoli) al
+posto di Inter e Fraunces, sempre servito dall'app stessa (pacchetto `@fontsource-variable/roboto`,
+nessuna richiesta a servizi esterni). I titoli senza peso esplicito ora sono in semibold. Le email
+restano con i font di sistema dei programmi di posta.
 
 **Fase 0, sicurezza delle dipendenze (fatto il 22/11):** Better Auth all'ultima versione stabile
 (1.7.27). L'avviso alto su `effect` 3.20.0 (ReDoS, GHSA-7589-6fvf-x4pw), arrivato tramite

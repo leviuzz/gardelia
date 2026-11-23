@@ -6,6 +6,7 @@ import {
   Phone,
   Plus,
   TriangleExclamationPoint,
+  Undo2,
 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -14,15 +15,21 @@ import { getFormatter, getTranslations } from 'next-intl/server';
 import {
   NotFoundError,
   getCustomer,
+  canRedeemPromoDiscounts,
   hasPermission,
+  listCustomerPromoDiscounts,
   listCustomerQuotes,
   type CustomerDetailDto,
   type TenantContext,
 } from '@floral/core';
 import { MX_REGIONS, whatsappLink } from '@floral/domain';
+import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import { QuoteStatusBadge } from '@/components/common/status-badges';
 import { ArchiveControl } from '@/components/archive-control';
 import { PageHeader } from '@/components/page-header';
+import { DiscountCard } from '@/components/promotions/discount-card';
+import { discountTextBuilder } from '@/components/promotions/discount-text';
+import { RedeemDiscountDialog } from '@/components/promotions/redeem-discount-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -42,6 +49,7 @@ import {
 import { CustomerForm } from '../customer-form';
 import { AddressSection } from './address-section';
 import { OccasionSection } from './occasion-section';
+import { redeemPromoDiscountAction, undoPromoRedemptionAction } from '../../promotions/actions';
 
 async function loadCustomer(ctx: TenantContext, customerId: string): Promise<CustomerDetailDto> {
   try {
@@ -72,6 +80,10 @@ export default async function CustomerPage({
   const ctx = await getTenantContext(tenantSlug);
   const customer = await loadCustomer(ctx, customerId);
   const quotes = await listCustomerQuotes(ctx, customer.id);
+  // Sconti della promo ricevuti dal cliente (ADR-048): quando scrive con un codice, si vede qui.
+  const discounts = await listCustomerPromoDiscounts(ctx, customer.id);
+  const canRedeem = canRedeemPromoDiscounts(ctx);
+  const discountText = await discountTextBuilder(ctx.timezone);
   const canQuote = hasPermission(ctx, 'quotes:write') && customer.status === 'ACTIVE';
   const created = (await searchParams).created === '1';
   const t = await getTranslations();
@@ -285,6 +297,53 @@ export default async function CustomerPage({
                   removeAction: removeOccasionAction.bind(null, slug, customer.id, occasion.id),
                 }))}
               />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('customers.promos.title')}</CardTitle>
+              <CardDescription>{t('customers.promos.subtitle')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {discounts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('customers.promos.empty')}</p>
+              ) : (
+                discounts.map((discount) => {
+                  const text = discountText(discount);
+                  return (
+                    <DiscountCard
+                      key={discount.id}
+                      discount={discount}
+                      text={text}
+                      customerHref={null}
+                      actions={
+                        !canRedeem ? null : discount.status === 'USED' ? (
+                          <ConfirmActionDialog
+                            action={undoPromoRedemptionAction.bind(null, slug, discount.id)}
+                            trigger={
+                              <Button variant="ghost" size="sm">
+                                <Undo2 aria-hidden="true" />
+                                {t('promotions.discounts.undo')}
+                              </Button>
+                            }
+                            title={t('promotions.discounts.undoTitle', { code: discount.code })}
+                            description={t('promotions.discounts.undoBody')}
+                            confirmLabel={t('promotions.discounts.confirmUndo')}
+                            confirmVariant="default"
+                          />
+                        ) : (
+                          <RedeemDiscountDialog
+                            action={redeemPromoDiscountAction.bind(null, slug, discount.id)}
+                            code={discount.code}
+                            customerName={discount.customerName}
+                            discount={text.discount}
+                          />
+                        )
+                      }
+                    />
+                  );
+                })
+              )}
             </CardContent>
           </Card>
         </div>

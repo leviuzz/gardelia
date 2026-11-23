@@ -94,17 +94,21 @@ export default async function CalendarPage({
     const promo = event.promo;
     if (!promo) return null;
     switch (promo.status) {
-      case 'SENT':
-        return {
-          tone: 'ok',
-          label: t('promo.sent', {
-            date: format.dateTime(new Date(promo.sentAt), {
-              day: 'numeric',
-              month: 'short',
-              timeZone: ctx.timezone,
-            }),
-          }),
-        };
+      case 'SENT': {
+        const day = (value: string) =>
+          format.dateTime(new Date(value), {
+            day: 'numeric',
+            month: 'short',
+            timeZone: ctx.timezone,
+          });
+        // Con il codice: quando il cliente scrive "ho questo sconto", lo si riconosce subito.
+        return promo.redeemedAt
+          ? {
+              tone: 'muted',
+              label: t('promo.used', { date: day(promo.redeemedAt), code: promo.code }),
+            }
+          : { tone: 'ok', label: t('promo.sent', { date: day(promo.sentAt), code: promo.code }) };
+      }
       case 'SENDING':
         return { tone: 'muted', label: t('promo.sending') };
       case 'FAILED':
@@ -209,7 +213,10 @@ export default async function CalendarPage({
             </Link>
           </Button>
         </div>
-        <h2 className="font-display text-xl first-letter:uppercase" aria-live="polite">
+        <h2
+          className="font-display text-xl font-semibold first-letter:uppercase"
+          aria-live="polite"
+        >
           {heading}
         </h2>
         <nav
@@ -271,7 +278,10 @@ export default async function CalendarPage({
         {hasPermission(ctx, 'promotions:manage') ? (
           <p>
             {t('promoHint')}{' '}
-            <Link href={routes.promotions} className="font-medium text-primary hover:underline">
+            <Link
+              href={routes.promotions.home}
+              className="font-medium text-primary hover:underline"
+            >
               {t('goToPromotions')}
             </Link>
           </p>

@@ -27,9 +27,12 @@ import {
   buildPreviewSpec,
   canonicalPreviewInput,
   computeAiQuota,
+  countMismatchSummary,
+  isBouquetPreviewSpec,
   isUuid,
   type AiQuota,
   type BouquetPreviewSpec,
+  type CountMismatchSummary,
 } from '@floral/domain';
 import { fitsMonthlyAiBudget } from '../ai/budget';
 import { getFlowerCounter } from '../ai/flower-counter';
@@ -60,6 +63,11 @@ export interface AiPreviewDto {
   /** Numero di fiori ricontrollato da un modello di visione; null = non verificato. */
   readonly verified: boolean | null;
   readonly errorCode: string | null;
+  /**
+   * Foto scartata perché i fiori non coincidono (`count_mismatch`): cosa ha contato il controllo
+   * nell'ultima foto, per dire al fiorista perché non si mostra. null negli altri casi.
+   */
+  readonly countCheck: CountMismatchSummary | null;
   readonly createdAt: Date;
   readonly finishedAt: Date | null;
 }
@@ -140,6 +148,10 @@ function toDto(
     mode: input?.mode === 'EXACT' ? 'EXACT' : 'PROMPT',
     verified: typeof output?.verified === 'boolean' ? output.verified : null,
     errorCode: job.errorCode,
+    countCheck:
+      job.errorCode === 'count_mismatch' && isBouquetPreviewSpec(job.input)
+        ? countMismatchSummary(job.input, job.output)
+        : null,
     createdAt: job.createdAt,
     finishedAt: job.finishedAt,
   };
@@ -188,14 +200,22 @@ function englishName(names: Prisma.JsonValue | undefined): string | null {
   return typeof value === 'string' && value.trim() ? value : null;
 }
 
-/** Composizione attuale del disegno salvato → descrizione per il modello (o null se superata). */
+/**
+ * Composizione attuale del disegno salvato → descrizione per il modello (o null se superata).
+ * Solo i disegni attivi, salvo `includeArchived` (un archiviato ripristinato rivede la sua foto).
+ */
 async function specForConfiguration(
   tx: TransactionClient,
   ctx: TenantContext,
   configurationId: string,
+  options: { readonly includeArchived?: boolean } = {},
 ): Promise<{ id: string; spec: BouquetPreviewSpec | null } | null> {
   const config = await tx.bouquetConfiguration.findFirst({
-    where: { id: configurationId, tenantId: ctx.tenantId, status: 'ACTIVE' },
+    where: {
+      id: configurationId,
+      tenantId: ctx.tenantId,
+      ...(options.includeArchived ? {} : { status: 'ACTIVE' as const }),
+    },
     include: { lines: { where: { tenantId: ctx.tenantId } } },
   });
   if (!config) return null;
@@ -300,11 +320,12 @@ async function styledSpec(
 }
 
 /**
- * Modalità della richiesta: esatta se il provider sa partire da un boceto e ogni fiore contato
- * ha il suo ritaglio. In modalità PROMPT i ritagli non cambiano l'immagine: fuori dalla chiave.
+ * Modalità della richiesta: esatta se il provider sa partire da immagini (le foto dei fiori) e
+ * ogni fiore contato ha il suo ritaglio. In modalità PROMPT i ritagli non cambiano l'immagine:
+ * fuori dalla chiave.
  */
 function withMode(spec: BouquetPreviewSpec, provider: AiImageProvider): BouquetPreviewSpec {
-  if (provider.supportsSketch && exactPreviewPlan(spec).eligible) return { ...spec, mode: 'EXACT' };
+  if (provider.acceptsImages && exactPreviewPlan(spec).eligible) return { ...spec, mode: 'EXACT' };
   return {
     ...spec,
     mode: 'PROMPT',
@@ -360,6 +381,127 @@ export async function currentPreviewJobId(
     select: { id: true },
   });
   return job?.id ?? null;
+}
+
+/**
+ * Hash di un'anteprima la cui immagine è stata cancellata con il suo disegno (ADR-051): il job
+ * resta per i crediti e i costi già spesi, ma con questo prefisso non fa più da cache.
+ */
+export const DELETED_PREVIEW_HASH_PREFIX = 'deleted:';
+
+export interface ReleasedPreviews {
+  /** Immagini da cancellare dall'archivio, DOPO il commit. */
+  readonly deletedKeys: readonly string[];
+  /** Immagini tenute: le usa un preventivo o un altro disegno identico. */
+  readonly kept: number;
+}
+
+/**
+ * Un altro disegno (attivo o archiviato) che OGGI compone lo stesso ramo del job e quindi ne
+ * mostra l'immagine dalla cache per contenuto; null se nessuno (o senza generatore configurato).
+ */
+async function identicalDesignShowing(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  deletedId: string,
+  job: { readonly inputHash: string; readonly input: Prisma.JsonValue },
+): Promise<string | null> {
+  const provider = getAiProvider();
+  if (!provider || !isBouquetPreviewSpec(job.input)) return null;
+  const spec = job.input;
+  // Stessi articoli, quantità, stile e misura: condizione necessaria per lo stesso hash.
+  const candidates = await tx.bouquetConfiguration.findMany({
+    where: {
+      tenantId: ctx.tenantId,
+      id: { not: deletedId },
+      style: spec.style,
+      size: spec.size,
+      AND: spec.components.map((component) => ({
+        lines: {
+          some: {
+            tenantId: ctx.tenantId,
+            catalogItemId: component.catalogItemId,
+            quantity: component.quantity,
+          },
+        },
+      })),
+    },
+    select: { id: true },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+  });
+  for (const candidate of candidates) {
+    const config = await specForConfiguration(tx, ctx, candidate.id, { includeArchived: true });
+    if (!config?.spec) continue;
+    const current = withMode(await styledSpec(tx, ctx, config.spec), provider);
+    if (previewHash(current, provider) === job.inputHash) return candidate.id;
+  }
+  return null;
+}
+
+/**
+ * Anteprime di un disegno che sta per essere eliminato (ADR-051), nella stessa transazione. I job
+ * restano (i crediti e i costi già spesi non si restituiscono) ma si staccano dal disegno. Le
+ * immagini si cancellano, tranne quelle che:
+ *  - una riga di preventivo mostra (la cotización conserva la sua foto);
+ *  - un altro disegno identico mostra ora (la cache è per contenuto): passano a lui, che le
+ *    cancellerà se un giorno viene eliminato.
+ * Una generazione in corso blocca l'eliminazione: la sua immagine arriverebbe dopo.
+ */
+export async function releaseConfigurationPreviews(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  configurationId: string,
+): Promise<ReleasedPreviews> {
+  const jobs = await tx.aiJob.findMany({
+    where: { tenantId: ctx.tenantId, bouquetConfigurationId: configurationId },
+    select: { id: true, status: true, inputHash: true, input: true, outputKey: true },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+  });
+  if (jobs.some((job) => job.status === 'QUEUED' || job.status === 'RUNNING')) {
+    throw new ConflictError('ai_preview_in_progress');
+  }
+  const withImage = jobs.filter(
+    (job): job is typeof job & { outputKey: string } => job.outputKey !== null,
+  );
+  const quoted = await tx.quoteLine.findMany({
+    where: { tenantId: ctx.tenantId, previewJobId: { in: withImage.map((job) => job.id) } },
+    select: { previewJobId: true },
+  });
+  const inQuotes = new Set(quoted.map((line) => line.previewJobId));
+  // "Otra versión" dà più immagini con lo stesso hash: un solo controllo per hash.
+  const heirs = new Map<string, string | null>();
+  const deletedKeys: string[] = [];
+  let kept = 0;
+  for (const job of withImage) {
+    if (!heirs.has(job.inputHash)) {
+      heirs.set(job.inputHash, await identicalDesignShowing(tx, ctx, configurationId, job));
+    }
+    const heir = heirs.get(job.inputHash) ?? null;
+    if (heir || inQuotes.has(job.id)) {
+      kept++;
+      await tx.aiJob.updateMany({
+        where: { id: job.id, tenantId: ctx.tenantId },
+        data: { bouquetConfigurationId: heir },
+      });
+      continue;
+    }
+    deletedKeys.push(job.outputKey);
+    await tx.aiJob.updateMany({
+      where: { id: job.id, tenantId: ctx.tenantId },
+      data: {
+        bouquetConfigurationId: null,
+        outputKey: null,
+        outputContentType: null,
+        inputHash: `${DELETED_PREVIEW_HASH_PREFIX}${job.inputHash}`,
+      },
+    });
+  }
+  // Gli altri (falliti o annullati) restano con il loro hash: il limite di riprova vale ancora.
+  await tx.aiJob.updateMany({
+    where: { tenantId: ctx.tenantId, bouquetConfigurationId: configurationId },
+    data: { bouquetConfigurationId: null },
+  });
+  return { deletedKeys, kept };
 }
 
 /**

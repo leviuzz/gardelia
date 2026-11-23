@@ -10,6 +10,7 @@ import { getDb, withTenantContext } from '@floral/db';
 import {
   compareDates,
   daysBetween,
+  formatPromoCode,
   monthsInRange,
   promoSendDate,
   toIsoDate,
@@ -27,7 +28,14 @@ import { ValidationError } from '../errors';
  * promo (spenta, data passata senza email) non ne hanno.
  */
 export type CalendarPromo =
-  | { readonly status: 'SENT'; readonly sentAt: string }
+  | {
+      readonly status: 'SENT';
+      readonly sentAt: string;
+      /** Codice dello sconto, già nel formato dell'email ("K7M-4QH"). */
+      readonly code: string;
+      /** Quando la fioreria l'ha segnato come usato (ADR-048), o null. */
+      readonly redeemedAt: string | null;
+    }
   | { readonly status: 'SENDING' | 'FAILED' }
   /** `sendOn` è oggi se il momento è già arrivato: parte col prossimo invio giornaliero. */
   | { readonly status: 'SCHEDULED'; readonly sendOn: string }
@@ -96,7 +104,14 @@ export async function listCalendarOccasions(
         tenantId: ctx.tenantId,
         occurrenceDate: { gte: dbDate(range.from), lte: dbDate(range.to) },
       },
-      select: { occasionId: true, occurrenceDate: true, status: true, sentAt: true },
+      select: {
+        occasionId: true,
+        occurrenceDate: true,
+        status: true,
+        sentAt: true,
+        code: true,
+        redeemedAt: true,
+      },
     });
     return {
       occasions,
@@ -120,7 +135,12 @@ export async function listCalendarOccasions(
     const email = emailsByKey.get(`${occasion.id}:${iso}`);
     if (email) {
       return email.status === 'SENT' && email.sentAt
-        ? { status: 'SENT', sentAt: email.sentAt.toISOString() }
+        ? {
+            status: 'SENT',
+            sentAt: email.sentAt.toISOString(),
+            code: formatPromoCode(email.code),
+            redeemedAt: email.redeemedAt?.toISOString() ?? null,
+          }
         : { status: email.status === 'SENDING' ? 'SENDING' : 'FAILED' };
     }
     if (!promoOn || compareDates(date, today) < 0) return null;

@@ -88,13 +88,17 @@
       "invalid_status_transition": "Questo cambio di stato non è consentito.",
       "builder_configuration_archived": "Questa composizione è archiviata: ripristinala per modificarla.",
       "builder_configuration_outdated": "Qualche prodotto della composizione non è più disponibile: controlla la composizione prima di fare il preventivo.",
+      "builder_configuration_in_quote": "Questa composizione è in un preventivo: non si può eliminare, solo archiviare.",
+      "ai_preview_in_progress": "Si sta generando una foto di questa composizione: aspetta che finisca e riprova.",
       "ai_unavailable": "Le anteprime con IA non sono disponibili al momento.",
       "ai_quota_exhausted": "Non hai più anteprime disponibili questo mese.",
       "ai_budget_reached": "Le anteprime non sono disponibili al momento. Riprova più tardi.",
       "cutout_unavailable": "Al momento non possiamo rimuovere lo sfondo. Riprova più tardi.",
       "cutout_retry_limit": "Il servizio che toglie lo sfondo non ha funzionato più volte con questa foto: il problema è nostro, non della foto. Riprova più tardi caricandola di nuovo.",
       "preview_retry_limit": "Abbiamo già provato più volte con questa composizione: condividi il bozzetto esatto o modifica la composizione.",
-      "platform_admin_exists": "Esiste già un amministratore della piattaforma."
+      "platform_admin_exists": "Esiste già un amministratore della piattaforma.",
+      "promo_not_sent": "Questa email non è arrivata al cliente: non c'è uno sconto da segnare.",
+      "promo_already_used": "Questo sconto è già segnato come usato."
     },
     "pageNotFoundTitle": "Pagina non trovata",
     "pageNotFoundBody": "La pagina non esiste o non hai accesso.",
@@ -298,6 +302,7 @@
     "member.invited": "{actor} ha invitato una persona come {role}",
     "invitation.revoked": "{actor} ha annullato un invito",
     "invitation.accepted": "{actor} ha raggiunto il team",
+    "member.added_by_platform": "{actor} ha aggiunto una persona al team come {role} (supporto della piattaforma)",
     "member.role_changed": "{actor} ha cambiato il ruolo di un membro in {role}",
     "member.deactivated": "{actor} ha disattivato un membro del team",
     "member.reactivated": "{actor} ha riattivato un membro del team",
@@ -332,12 +337,15 @@
     "builder.configuration_updated": "{actor} ha aggiornato la composizione «{name}»",
     "builder.configuration_archived": "{actor} ha archiviato la composizione «{name}»",
     "builder.configuration_restored": "{actor} ha ripristinato la composizione «{name}»",
+    "builder.configuration_deleted": "{actor} ha eliminato la composizione «{name}»",
     "ai.preview_requested": "{actor} ha richiesto un’anteprima con IA",
     "ai_credits.granted": "Sono state aggiunte {units} anteprime extra",
     "builder.style_reference_added": "{actor} ha aggiunto una foto a «I miei bouquet»",
     "builder.style_reference_archived": "{actor} ha rimosso una foto da «I miei bouquet»",
     "tenant.promo_updated": "{actor} ha cambiato la promozione delle date speciali",
-    "customer.unsubscribed": "Un cliente ha smesso di ricevere le promozioni"
+    "customer.unsubscribed": "Un cliente ha smesso di ricevere le promozioni",
+    "promo.redeemed": "{actor} ha segnato come usato uno sconto",
+    "promo.redemption_undone": "{actor} ha tolto l'uso di uno sconto"
   },
   "catalog": {
     "title": "Catalogo",
@@ -666,8 +674,8 @@
       "tagsHint": "Separate da virgole. Es. abituale, azienda",
       "channel": "Come ti ha conosciuto?",
       "channelNone": "Non specificato",
-      "marketingConsent": "Accetta di ricevere promozioni",
-      "marketingConsentHint": "Spunta solo se il cliente lo ha autorizzato. Con il consenso e l'email riceverà la promozione delle sue date speciali (se la attivi in Promozioni).",
+      "marketingConsent": "Il cliente ha accettato di ricevere promozioni",
+      "marketingConsentHint": "Spuntalo solo se il cliente ti ha dato il permesso. Se ha un'email e l'invio automatico è attivo in Promozioni, riceverà lo sconto per le sue date speciali e potrà disiscriversi dalla stessa email. Salviamo la data del consenso.",
       "consentSince": "Consenso registrato il {date}",
       "create": "Crea cliente",
       "creating": "Creazione…",
@@ -754,7 +762,12 @@
       "ottobre",
       "novembre",
       "dicembre"
-    ]
+    ],
+    "promos": {
+      "title": "Promozioni",
+      "subtitle": "Sconti ricevuti per le sue date speciali e se li ha già usati.",
+      "empty": "Non ha ancora ricevuto nessuna promozione."
+    }
   },
   "quotes": {
     "title": "Preventivi",
@@ -959,6 +972,7 @@
     "showArchived": "Mostra archiviate",
     "showActive": "Mostra attive",
     "archivedEmpty": "Nessuna composizione archiviata.",
+    "deletedNotice": "Composizione eliminata.",
     "flowerCount": "{count, plural, one {# fiore} other {# fiori}}",
     "updatedOn": "Aggiornata il {date}",
     "upsell": {
@@ -1050,6 +1064,11 @@
       "archiveTitle": "Archiviare questa composizione?",
       "archiveBody": "Non comparirà più nell’elenco; i preventivi creati con essa non cambiano.",
       "archivedNotice": "Questa composizione è archiviata: ripristinala per modificarla.",
+      "delete": "Elimina",
+      "deleteTitle": "Eliminare questa composizione?",
+      "deleteBody": "La composizione e le sue foto generate con l’IA vengono cancellate per sempre. Non si può annullare e i crediti già usati non vengono restituiti.",
+      "deleteInQuoteTitle": "Questa composizione è in un preventivo",
+      "deleteInQuoteBody": "Non si può eliminare perché il preventivo conserva la sua composizione e la sua foto. Se non ti serve più, puoi archiviarla.",
       "lineTotalColor": "{quantity} × {name} · {color}",
       "colorOf": "Colore di {name}",
       "colorFixed": "Colore: {color}",
@@ -1108,15 +1127,20 @@
       "requested": "Anteprima in preparazione",
       "styled": "Con lo stile delle tue foto in «I miei bouquet».",
       "generateExact": "Genera foto realistica",
-      "runningExact": "Stiamo trasformando il bozzetto in foto e controllando il numero di fiori…",
+      "runningExact": "Stiamo creando la foto con i tuoi fiori e controllando il numero di fiori…",
       "verified": "Numero di fiori verificato",
-      "disclaimerExact": "Foto creata con l’IA a partire dal bozzetto esatto. Il bouquet reale può variare per forma e tonalità; il prezzo e la ricetta non cambiano.",
+      "disclaimerExact": "Foto creata con l’IA a partire dalle foto dei tuoi fiori. Il bouquet reale può variare per forma e tonalità; il prezzo e la ricetta non cambiano.",
       "sketchTitle": "Bozzetto esatto",
       "sketchAlt": "Bozzetto esatto del bouquet «{name}»",
       "sketchCaption": "Realizzato con le foto dei tuoi fiori, senza IA: il numero esatto di fiori, con i colori della tua composizione.",
-      "sketchNext": "Con l’IA lo trasformiamo in una foto realistica e controlliamo che il numero di fiori corrisponda.",
+      "sketchNext": "Con l’IA creiamo una foto realistica a partire dalle foto dei tuoi fiori e controlliamo che il numero di fiori corrisponda.",
       "viewSketch": "Vedi il bozzetto esatto",
       "countMismatch": "La foto realistica non ha rispettato il numero di fiori, quindi non la mostriamo e non è stata scalata dal tuo saldo. Il bozzetto invece è esatto.",
+      "countCheck": {
+        "title": "Nell'ultima foto il controllo ha contato:",
+        "line": "{name}: {found} su {expected}",
+        "other": "{count, plural, one {# fiore che non è nel ramo} other {# fiori che non sono nel ramo}}"
+      },
       "retryLimit": "Abbiamo già provato più volte con questa composizione. Puoi condividere il bozzetto esatto o modificare la composizione.",
       "missingPhotos": "Per un’anteprima con il numero esatto di fiori, carica una foto di:",
       "missingPhotosHint": "Una foto per fiore, di fronte; lo sfondo viene rimosso automaticamente.",
@@ -1239,14 +1263,15 @@
     "goToCustomers": "Vai ai clienti",
     "whatsappText": "Ciao {name}, si avvicina {occasion}. Ti prepariamo dei fiori speciali?",
     "promo": {
-      "sent": "Promozione inviata il {date}",
+      "sent": "Promozione inviata il {date} · codice {code}",
       "sending": "Invio della promozione in corso…",
       "failed": "Non è stato possibile inviare la promozione",
       "scheduled": "La promozione partirà il {date}",
       "scheduledNext": "La promozione parte col prossimo invio giornaliero",
       "demo": "(fioreria demo: non parte)",
       "noEmail": "Niente promozione: il cliente non ha l'email",
-      "noConsent": "Niente promozione: il cliente non ha accettato di ricevere promozioni"
+      "noConsent": "Niente promozione: il cliente non ha accettato di ricevere promozioni",
+      "used": "Promozione usata il {date} · codice {code}"
     },
     "promoHint": "Invia uno sconto automatico per email prima di ogni data.",
     "goToPromotions": "Configura la promozione"
@@ -1261,8 +1286,8 @@
       "subtitle": "Scegli lo sconto che ricevono i tuoi clienti prima del compleanno, dell'anniversario o di un'altra data speciale."
     },
     "form": {
-      "enabled": "Invia l'email automaticamente",
-      "enabledHint": "Solo ai clienti con email che hanno accettato di ricevere promozioni.",
+      "enabled": "Invio automatico ogni mattina",
+      "enabledHint": "Quando è attivo, ogni mattina inviamo l'email, senza che tu faccia nulla, ai clienti con una data speciale vicina che hanno accettato di ricevere promozioni.",
       "kind": "Tipo di sconto",
       "kinds": {
         "PERCENT": "Percentuale",
@@ -1275,8 +1300,8 @@
     "how": {
       "title": "Come funziona",
       "who": "La ricevono i clienti con email che hanno accettato di ricevere promozioni: {reachable} su {total} clienti con date speciali.",
-      "when": "Parte qualche giorno prima di ogni data, secondo il preavviso di quella data (7 giorni se non lo cambi), al mattino.",
-      "validity": "Lo sconto vale fino al giorno della data: il cliente mostra l'email in negozio o ti scrive su WhatsApp, e tu applichi lo sconto.",
+      "when": "Parte da sola ogni mattina (verso le 9, ora di Città del Messico), qualche giorno prima di ogni data: quelli del preavviso della data (7 se non lo cambi).",
+      "validity": "Ogni email ha un codice personale. Il cliente ti scrive su WhatsApp con il codice (o mostra l'email in negozio): lo cerchi in Sconti, applichi lo sconto e lo segni come usato.",
       "once": "Una sola email per data ogni anno.",
       "unsubscribe": "Ogni email ha un link per non ricevere più promozioni; se il cliente lo usa, il suo consenso viene tolto.",
       "sent": "{count, plural, =0 {Nessuna email inviata negli ultimi 30 giorni.} one {# email inviata negli ultimi 30 giorni.} other {# email inviate negli ultimi 30 giorni.}}",
@@ -1289,6 +1314,58 @@
       "subtitle": "Esempio con un compleanno fra 7 giorni. L'email è nella lingua della tua fioreria ({language}).",
       "subject": "Oggetto:",
       "empty": "Scegli lo sconto e salva per vedere l'email."
+    },
+    "upcoming": {
+      "title": "Prossimi invii",
+      "subtitle": "Email che partiranno da sole nei prossimi 7 giorni.",
+      "off": "L'invio automatico è spento: attivalo qui sopra perché ogni mattina partano le email.",
+      "empty": "Nessuna email in programma nei prossimi 7 giorni.",
+      "today": "Oggi",
+      "tomorrow": "Domani",
+      "row": "{day} · {occasion}",
+      "more": "{count, plural, one {e # altra} other {e altre #}}"
+    },
+    "discountsCard": {
+      "title": "Sconti inviati",
+      "subtitle": "Quando un cliente ti scrive con il suo codice, cercalo e segnalo come usato.",
+      "open": "Vedi gli sconti"
+    },
+    "discounts": {
+      "title": "Sconti",
+      "subtitle": "Ogni email della promozione ha un codice. Cercalo per codice, nome, email o telefono, controlla se vale ancora e segnalo come usato.",
+      "back": "Promozioni",
+      "searchPlaceholder": "Codice, nome, email o telefono",
+      "allStatuses": "Tutti",
+      "statuses": {
+        "VALID": "Valido",
+        "USED": "Usato",
+        "EXPIRED": "Scaduto"
+      },
+      "counts": {
+        "VALID": "{count, plural, =0 {Nessuno sconto valido} one {# sconto valido} other {# sconti validi}}",
+        "USED": "{count, plural, =0 {Nessuno sconto usato} one {# sconto usato} other {# sconti usati}}",
+        "EXPIRED": "{count, plural, =0 {Nessuno sconto scaduto} one {# sconto scaduto} other {# sconti scaduti}}"
+      },
+      "results": "{count, plural, one {# sconto} other {# sconti}}",
+      "emptyTitle": "Ancora nessuno sconto",
+      "emptyBody": "Qui comparirà ogni email della promozione inviata, con il suo codice, appena parte la prima.",
+      "noResultsTitle": "Nessuno sconto corrisponde",
+      "noResultsBody": "Controlla il codice o cerca per nome del cliente.",
+      "dates": "Inviato il {sent} · vale fino al {until}",
+      "usedBy": "Usato il {date} · segnato da {name}",
+      "usedOn": "Usato il {date}",
+      "markUsed": "Segna come usato",
+      "markUsedTitle": "Segnare il codice {code} come usato?",
+      "markUsedBody": "{customer} usa il suo sconto del {discount}. Non comparirà più come valido.",
+      "noteLabel": "Nota (facoltativa)",
+      "noteHint": "Per esempio cosa ha comprato o il numero del preventivo.",
+      "confirmUse": "Segna come usato",
+      "undo": "Annulla",
+      "undoTitle": "Togliere l'uso del codice {code}?",
+      "undoBody": "Lo sconto tornerà valido (o scaduto, se la data è passata).",
+      "confirmUndo": "Togli l'uso",
+      "redeemed": "Sconto segnato come usato",
+      "undone": "Uso dello sconto tolto"
     }
   },
   "unsubscribe": {

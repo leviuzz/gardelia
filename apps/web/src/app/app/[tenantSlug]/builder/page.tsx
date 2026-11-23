@@ -1,4 +1,4 @@
-import { Archive, Images, Plus, Sparkles } from 'lucide-react';
+import { Archive, CircleCheck, Images, Plus, Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -6,6 +6,7 @@ import { getEntitlements, listBouquetConfigurations } from '@floral/core';
 import { ListPagination } from '@/components/common/list/list-pagination';
 import { ListResults } from '@/components/common/list/list-results';
 import { EmptyState, PageHeader } from '@/components/page-header';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { money } from '@/lib/format';
@@ -43,6 +44,8 @@ export default async function BuilderPage({
 
   const raw = await searchParams;
   const archived = single(raw.archived) === '1';
+  // Arrivo da "Eliminar" (il toast si perde con il redirect): lo conferma un avviso.
+  const deleted = single(raw.deleted) === '1';
   const page = Number(single(raw.page) ?? '1');
   const result = await listBouquetConfigurations(ctx, {
     page: Number.isFinite(page) ? page : 1,
@@ -76,6 +79,13 @@ export default async function BuilderPage({
         description={t('builder.subtitle')}
         actions={newButton}
       />
+
+      {deleted ? (
+        <Alert variant="success">
+          <CircleCheck aria-hidden="true" />
+          <AlertDescription>{t('builder.deletedNotice')}</AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-semibold">{t('builder.designs')}</h2>

@@ -557,6 +557,65 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   quindi un fiore vero fuori elenco ("Iris", "Nube") non lo fa scattare, altrimenti il fiorista
   non potrebbe toglierlo. Il riconoscimento delle grandezze ora capisce anche i nomi italiani
   (ortensia, giglio, garofano, ranuncolo, margherita, camomilla).
+- **Perché la foto non si mostra (23/11/2026).** Il founder su staging: "non va la generazione
+  AI". Dai log il job era arrivato in fondo (riga informativa, non un errore): con ogni
+  probabilità foto scartata per numeri diversi, ma né lo schermo né il log dicevano quali. Ora,
+  quando la foto si scarta, il Diseñador mostra cosa ha contato il controllo nell'ultima foto:
+  per ogni fiore a stelo "trovati di attesi" (in grassetto quelli diversi) e i fiori che non sono
+  nel ramo. I dati erano già salvati in ogni job (`output.checks`), quindi si vedono anche per i
+  job già scartati, ricaricando la pagina. La regola di accettazione non cambia. Il log della foto
+  scartata riporta gli stessi numeri: tipo della distinta, attesi e trovati, mai nomi.
+- **v4 (23/11/2026): ogni fiore resta visibile.** Caso del founder su staging: 3 rose rosse aperte
+  e 2 boccioli rosa. Nel boceto i boccioli finivano quasi del tutto dietro le rose, la foto
+  realistica li perdeva e il controllo, giustamente, scartava la foto. Il boceto controllava solo
+  la distanza fra i centri, non quanto di ogni fiore resta in vista. Ora il core misura sulle forme
+  vere dei ritagli la parte dei petali di ogni corolla rimasta visibile (foglie e sepali verdi
+  esclusi, fuori dal quadro = nascosto). Sotto il 60% ridisegna con corolle più piccole del 7% e
+  più distanziate, al massimo 4 volte (`SKETCH_CROWDING`): il ramo resta fitto quando si può.
+  Inoltre il bordo inclinato della carta davanti non sale più sopra il centro delle corolle più
+  basse. Boceto `sketch-v4`: cambia la chiave di cache, quindi i ramos già scartati si possono
+  rigenerare. **Da osservare:** il controllo dei conteggi ignora i "boccioli chiusi", quindi un
+  prodotto fotografato in bocciolo (rose) potrebbe non essere contato. Se succede, si cambia il
+  prompt dopo una prova vera.
+- **Colore dalla foto nel controllo (23/11/2026).** Secondo tentativo del founder, con il boceto
+  v4: tutti i fiori erano visibili, ma il controllo ha contato "Fiore 1: 0 su 3" più "3 fiori che
+  non sono nel ramo". Il modello di visione riceve i tipi come nome e colore del catalogo, e "Fiore
+  1" (nome generico, senza specie e senza colore) non gli diceva che erano rose rosse. Ora il core
+  misura il colore medio dei petali sulla foto di ogni fiore, cioè quella del boceto, foglie verdi
+  escluse. Se il catalogo non ha colore, il tipo diventa `"Fiore 1" (red)`; se ne ha un altro, si
+  scrivono entrambi ("looks red in the photo"). La regola di accettazione non cambia.
+- **v7 (23/11/2026): foto naturale e correzione dei fiori in più.** Con i numeri finalmente giusti
+  il founder ha bocciato l'aspetto: "la direzione dei fiori non è naturale, mantiene la posizione
+  della bozza". Ora il boceto dice solo quali fiori e quanti, e il modello dispone il ramo come un
+  fiorista (altezze e direzioni diverse, tre quarti) e alla fine ricontrolla i numeri. Se il
+  controllo trova solo fiori in più dei tipi della distinta, una seconda passata sulla stessa foto
+  li toglie lasciando il resto com'è (`buildCountFixPrompt`); se mancano fiori o ce ne sono di
+  estranei, si rifà la foto. Al massimo 3 immagini per richiesta (`generationsPerJob`), ognuna
+  controllata, e ci si ferma alla prima giusta (`renderVerifiedPhoto`). Prova sul ramo del founder:
+  4 richieste su 4 verificate e naturali, 0,22–0,26 USD a richiesta (prima ~0,09), dettagli in
+  `docs/AI_BENCHMARK.md`. Il credito del fiorista resta uno solo e solo a successo; il costo in più
+  è della piattaforma. Prompt `bouquet-preview-v7`: cambia la chiave di cache.
+- **v8 (23/11/2026): fiori visti da angolazioni diverse.** Con la v7 il founder: "non ci siamo
+  ancora con la direzione delle rose", cioè quasi tutte rivolte verso la fotocamera. Causa: il
+  collage mostra ogni corolla di fronte e la frase "fai ogni fiore come nel collage" spingeva il
+  modello a copiarne anche l'angolazione. Ora il prompt chiede stesso tipo, colore e apertura del
+  collage, ma visti come in un ramo vero: quasi tutti di lato o di tre quarti e al massimo circa uno
+  su quattro rivolto verso la fotocamera, almeno uno (`maxFacingCamera`). Prove: 3 rose + 2
+  tulipani, 3 su 3 verificate al primo colpo con una sola rosa di fronte; 12 rose, 6 su 6
+  verificate (dettagli in `docs/AI_BENCHMARK.md`). Prompt `bouquet-preview-v8`: cambia la chiave
+  di cache.
+- **v9 (23/11/2026): niente collage al modello, solo le foto dei fiori.** Il founder sulla v8: "i
+  fiori sono orizzontali, non sono naturali". Guardate a piena risoluzione, le rose centrali erano
+  teste girate di lato e ammucchiate, staccate dai loro steli: da v6 a v8 il modello partiva dal
+  collage, dove ogni corolla è vista di fronte, e le frasi sulle angolazioni le spostavano senza
+  attaccarle a uno stelo. Ora il modello riceve le foto scontornate dei fiori del catalogo, una per
+  tipo (al massimo 8: prima i fiori contati, poi riempitivi e verde con foto), e compone un ramo
+  vero in cui ogni corolla sta sul suo stelo e ne segue la direzione, fotografato di fronte e un
+  po' dall'alto. Carta, nastro e contenitore sono descritti a parole. Il boceto resta l'anteprima
+  esatta gratuita, ma non va più al modello. Il numero esatto resta garantito dal controllo e dalla
+  correzione dei fiori in più. Prova: 6 rami naturali su 6 con i numeri verificati, contro 3 su 6
+  partendo dal collage descritto come vista dall'alto (`docs/AI_BENCHMARK.md`). Costo uguale.
+  Prompt `bouquet-preview-v9`: cambia la chiave di cache.
 
 ### ADR-035 — Immagine del ramo nel preventivo — ADOTTATO (21/11/2026)
 
@@ -684,8 +743,12 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   repository via Corepack (`ENABLE_EXPERIMENTAL_COREPACK=1` nel progetto).
 - **Operazioni di piattaforma** (ADR-021: mai dal web): un workflow GitHub lanciato a mano
   (`.github/workflows/platform-ops.yml`) esegue le CLI sull'ambiente online con il ruolo dell'app
-  (segreto `PLATFORM_DATABASE_URL`); gli input passano da variabili d'ambiente, mai interpolati
-  nello script. Il founder non deve installare nulla sul proprio computer.
+  (segreto `PLATFORM_DATABASE_URL`). Il founder non deve installare nulla sul proprio computer.
+  **Corretto il 23/11:** il repository è pubblico e GitHub stampa in chiaro le variabili `env:` di
+  ogni passo, quindi l'email dell'operatore finiva nei log visibili a tutti. Ora gli input si
+  leggono dal file dell'evento (`$GITHUB_EVENT_PATH`, con `jq`), mai da `env:` né interpolati nello
+  script. Email, fioreria e nota si mascherano (`::add-mask::`) prima di qualsiasi output; in
+  `env:` restano solo i segreti, che GitHub mostra come `***`.
 - **Primo amministratore:** `pnpm platform:bootstrap-admin --email` nomina il primo
   `SUPER_ADMIN`, una sola volta (si rifiuta se ne esiste già uno, con un lock contro due esecuzioni
   insieme); l'utente deve essere attivo e con l'email confermata; resta nel registro di audit.
@@ -914,10 +977,10 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   l'utente.
 - **Una sola email per data e anno:** la riga `OccasionPromoEmail` si crea **prima** dell'invio
   (vincolo unico per data e anno), così due esecuzioni insieme non mandano due email. Le date dello
-  stesso cliente prese lo stesso giorno vanno in un'unica email. Se l'invio fallisce si riprova nei
-  giorni seguenti, fino a 3 tentativi, finché la data non è passata. Un invio interrotto a metà non
-  si ripete: meglio un'email in meno che una doppia. La riga conserva lo sconto promesso e nessun
-  indirizzo email.
+  stesso cliente prese lo stesso giorno andavano in un'unica email (superato da ADR-048: un'email
+  per data, ciascuna col suo codice). Se l'invio fallisce si riprova nei giorni seguenti, fino a 3
+  tentativi, finché la data non è passata. Un invio interrotto a metà non si ripete: meglio
+  un'email in meno che una doppia. La riga conserva lo sconto promesso e nessun indirizzo email.
 - **Email:** mittente con il nome della fioreria (l'indirizzo resta quello verificato della
   piattaforma), risposta all'email di contatto della fioreria, pulsante WhatsApp se ha un
   telefono, contatti, motivo dell'invio e link per non ricevere più promozioni. Intestazioni
@@ -941,7 +1004,120 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   privacidad della fioreria deve prevedere questo uso (termini, sezione 7).
 - **Per inviare davvero serve il dominio email verificato (P-07):** il mittente di prova del
   provider consegna solo all'indirizzo del titolare dell'account.
-- **Aperto (O-11):** se la promo resta in tutti i piani o diventa una funzione a pagamento.
+- **Piani (O-11, deciso dal founder il 22/11/2026):** la promo resta in tutti i piani; le promo
+  più articolate, quando arriveranno, saranno a pagamento.
+
+### ADR-048 — Codici e registro degli sconti della promo — ADOTTATO (22/11/2026)
+
+- **Richiesta del founder:** "dobbiamo tenere traccia degli sconti fatti e a chi". Quando un
+  cliente scrive su WhatsApp "ho questo sconto", la fioreria deve poter controllare, poi segnare lo
+  sconto come usato. Conferma anche che l'invio deve essere automatico: con l'interruttore acceso
+  le email partono da sole ogni mattina (era già così; ora l'interruttore si chiama "Envío
+  automático cada mañana" e la pagina mostra i prossimi invii dei 7 giorni).
+- **Codice personale:** 6 caratteri senza 0/O né 1/I (es. `K7M-4QH`), unico nella fioreria
+  (vincolo del database). È nell'email, ben visibile, e nel messaggio WhatsApp già scritto
+  ("…código K7M-4QH…"), così arriva alla fioreria insieme alla richiesta. Si cerca come lo scrive
+  il cliente: minuscole, spazi, con o senza trattino.
+- **Un'email per data** (cambia ADR-047): ogni data ha il suo sconto e il suo codice. Due date
+  dello stesso cliente che partono lo stesso giorno danno due email, come prima ne davano una con
+  due date. Il caso è raro, ed è più chiaro di un'email con due codici.
+- **Registro "Descuentos"** (`/promotions/discounts`, proprietario e manager): ogni email partita
+  con codice, cliente, data, sconto, invio e scadenza. Stati: **vigente** fino al giorno della
+  data compreso, **usado**, **vencido**. Si cerca per codice, nome, email o telefono e si filtra
+  per stato, con i totali. "Marcar como usado" chiede conferma e accetta una nota facoltativa (es.
+  "COT-0042, ramo de 24 rosas"); salva chi e quando. "Deshacer" corregge uno sbaglio; entrambe le
+  azioni vanno nell'audit. Anche uno sconto scaduto si può segnare come usato: decide la fioreria,
+  e il registro mostra la data d'uso rispetto alla scadenza.
+- **Si vede anche** nella scheda del cliente (scheda "Promociones": tutti la leggono, solo chi
+  gestisce le promo la modifica) e nel calendario ("Promoción enviada el … · código …" o "usada").
+- **Consenso più esplicito:** la casella dice "El cliente aceptó recibir promociones". La spiegazione
+  aggiunge che con email e invio automatico attivo il cliente riceve lo sconto delle sue date, che
+  può disiscriversi dall'email e che la data del consenso si salva. Resta da validare con l'avvocato
+  se basta (ADR-047).
+- **Per dopo:** collegare lo sconto al preventivo, così si applica da solo (le cotizaciones hanno
+  già uno sconto); promo aggiuntive inviate a mano dalla fioreria (il founder: "magari la
+  facciamo dopo"); il marketplace dei clienti, dove tutto sarà automatico.
+
+### ADR-049 — Dati di prova di una fioreria (operazione di piattaforma) — ADOTTATO (23/11/2026)
+
+- **Richiesta del founder:** "uno script per il db che mi aggiunga clienti e fiori per testare il
+  negozio… le foto dei fiori puoi generarle te… aggiungi anche eventi nel calendario".
+- **Dove:** operazione di piattaforma `test-data` (CLI `pnpm platform:test-data`, workflow
+  "Operazioni di piattaforma", ADR-021), non un pulsante nell'app: non è una funzione per i
+  fioristi e nessun dato inventato va presentato come reale nell'interfaccia.
+- **Come:** passa dai servizi veri (validazione, audit con l'operatore come autore, RLS) con il
+  contesto dell'operatore. Servono due cose: amministratore della piattaforma **e** proprietario o
+  manager della fioreria (`catalog:write`, `customers:write`). Su una fioreria altrui risponde 404 e
+  non scrive nulla.
+- **Cosa aggiunge:** 18 prodotti con codice `PRB-…` (13 fiori e 2 verdi con la specie, 2 carte, 1
+  nastro), prezzi INDICATIVI in MXN, non un listino; 23 clienti inventati con etichetta `prueba`,
+  email `@example.com` (dominio riservato agli esempi, RFC 2606), telefoni 555 e 26 date speciali.
+  Le date sono contate da oggi, nel fuso della fioreria, così calendario e "Próximos envíos" si
+  riempiono subito; la festa della mamma è fissa al 10 maggio.
+- **Promo:** i clienti inventati non hanno il consenso, quindi la promo automatica non scrive a
+  indirizzi falsi. In più c'è "Cliente de prueba (tú)": email dell'operatore, consenso, compleanno
+  fra 3 giorni. Con la promo attiva gli arriva l'email vera con il codice.
+- **Rilanciabile:** aggiunge solo ciò che manca (prodotti per codice, clienti per nome). Le foto si
+  aggiungono solo ai prodotti attivi che non ne hanno, quindi non si generano (né pagano) due volte.
+  Una foto che fallisce non ferma le altre.
+- **Foto:** una per ogni fiore e verde, generata da fal con lo stesso modello delle anteprime
+  (~0,08 USD l'una, 15 foto ≈ 1,20 USD): un fiore solo, fondo liso, niente testo. Non passa dalla
+  coda AI, quindi resta fuori dal tetto mensile (`AI_MONTHLY_BUDGET_USD`). La lancia a mano un
+  amministratore e la stima si stampa prima di partire. Gli scontorni passano invece dalla coda
+  (tetto incluso) e la CLI li lavora subito, solo per quella fioreria. Nel workflow i segreti
+  `FAL_KEY` e `R2_*` arrivano solo al passo `test-data`; senza, si aggiunge tutto tranne le foto.
+  I segnaposto (cerchi colorati) funzionano solo con l'archivio su disco, cioè solo in locale: mai
+  online.
+
+### ADR-050 — Accesso confermato a mano dall'amministratore (senza email di conferma) — ADOTTATO (23/11/2026)
+
+- **Problema:** senza dominio verificato su Resend le email (conferma, inviti, nuova password)
+  arrivano solo al titolare dell'account Resend, quindi i tester non riescono a entrare. Il
+  founder: "aggiungiamo la persona con uno script sul db e basta".
+- **Decisione:** operazione di piattaforma `confirm-user` (CLI `pnpm platform:confirm-user`,
+  workflow "Operazioni di piattaforma"). La persona si registra da sola sul sito e sceglie la sua
+  password: l'operazione non crea account e non tocca password. L'amministratore ne conferma
+  l'email e, se indica una fioreria, la aggiunge al team come **manager o staff**. Il proprietario
+  nasce solo creando la propria fioreria. Se la persona è già nel team, il ruolo non cambia (si
+  cambia dalla pagina Equipo).
+- **Garanzie:** solo un `SUPER_ADMIN` attivo. Tutto in una transazione, quindi un rifiuto (persona
+  o fioreria inesistente, ruolo non ammesso) non cambia nulla. Audit: email confermata (evento di
+  piattaforma) e ingresso nel team (attività della fioreria: "… (soporte de la plataforma)").
+  Nel workflow le email e la fioreria sono mascherate, anche in minuscolo.
+- **Responsabilità:** chi conferma garantisce che l'email è davvero di quella persona, perché la
+  conferma salta la prova di possesso. Va usata solo per persone conosciute, finché il dominio non
+  è verificato (`docs/DEPLOY_VERCEL.md` §4.4).
+
+### ADR-051 — Eliminare un disegno del Diseñador con le sue foto — ADOTTATO (23/11/2026)
+
+- **Richiesta del founder:** "un elimina bouquet dal designer oltre che archivia, che elimina anche
+  il bouquet generato dalla memoria". Fra le opzioni proposte ha scelto "elimina se non è in un
+  preventivo".
+- **Eccezione voluta** alla regola "nessuna cancellazione fisica di dati commerciali"
+  (CLAUDE.md §5), solo per i disegni del Builder. Un disegno non ancora quotato è una bozza di
+  lavoro, non un documento commerciale. Un disegno usato in un preventivo non si elimina mai: la
+  cotización conserva composizione e foto, quindi resta solo "Archivar".
+- **Cosa si cancella:** il disegno e le sue righe (FK in cascata) e le foto generate per lui
+  nell'archivio (R2). Le foto si cancellano dopo il commit: se una cancellazione fallisce resta un
+  file orfano, registrato nel log, e mai un record che punta a un file sparito.
+- **Cosa resta:**
+  - Le righe `AiJob`, staccate dal disegno e senza immagine. Il credito già usato resta usato e il
+    costo resta nel tetto della piattaforma. L'hash prende il prefisso `deleted:`, così la cache
+    per contenuto non ripropone una foto che non c'è più.
+  - Le foto che un preventivo mostra (`QuoteLine.previewJobId`), anche se il preventivo è di un
+    altro disegno.
+  - Le foto che un altro disegno identico, attivo o archiviato, mostra oggi dalla cache (stessa
+    composizione, stesso stile e misura): passano a quel disegno e si cancelleranno con lui.
+  - I job falliti, con il loro hash: il limite di riprova per quel ramo vale ancora.
+- **Regole:**
+  - Permesso nuovo `builder:delete`, solo proprietario e manager. Lo staff compone e archivia.
+  - Si conferma in una finestra che dice che non si può annullare e che i crediti non tornano.
+  - Una foto in preparazione blocca l'eliminazione (`ai_preview_in_progress`): la sua immagine
+    arriverebbe dopo.
+  - La riga del disegno si blocca (`FOR UPDATE`), così un preventivo o un'anteprima chiesti nello
+    stesso istante non lasciano riferimenti a un disegno sparito.
+  - Audit `builder.configuration_deleted` con nome e numero di foto cancellate e tenute.
+  - Un'altra fioreria riceve 404.
 
 ---
 
@@ -975,7 +1151,7 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
 | O-08 | Conferma della matrice ruoli: lo STAFF non vede costi; il MANAGER invita solo STAFF e non modifica dati fiscali; lo STAFF compone nel Builder ma non crea preventivi né clienti                                                                                                                                                                                                                                                                                                                                 | Founder            | — (default già implementato)                      |
 | O-09 | Chi mantiene la tassonomia canonica dei fiori e con quale copertura                                                                                                                                                                                                                                                                                                                                                                                                                                             | Founder            | Builder, Network                                  |
 | O-10 | Durata della finestra di attribuzione delle fee del Network (spec §8.4). Proposta del 23/11/2026: 12 mesi (D-25)                                                                                                                                                                                                                                                                                                                                                                                                | Founder + legale   | Network                                           |
-| O-11 | La promo delle date speciali (ADR-047) resta in tutti i piani o diventa una funzione a pagamento (`requireEntitlement`)? Oggi è in tutti i piani. Proposta del 23/11/2026 (D-23): nel Profesional; il Premium aggiungerà promozioni avanzate, da definire                                                                                                                                                                                                                                                       | Founder            | Piani e prezzi                                    |
+| O-11 | ✅ **RISOLTA** (founder, 22/11/2026): la promo delle date speciali resta in tutti i piani per ora; le promo più articolate saranno a pagamento (ADR-047)                                                                                                                                                                                                                                                                                                                                                        | Founder            | —                                                 |
 | O-12 | Fase gratuita iniziale (detta dal founder il 22/11/2026): solo con la V1 completa (D-22) o prima? Durata, quota AI ridotta (proposta 10 immagini), termini che annunciano il passaggio a pagamento; "precio de fundador" per i primi 20 fioristi (proposta: −30% per 12 mesi). Senza incassi non serve ancora la partita IVA                                                                                                                                                                                    | Founder            | Lancio                                            |
 | O-13 | Ruolo e compenso della partner sul territorio (spec §19, punto 11): proposta a percentuale, il 30% della fee dei clienti che porta per il primo anno, con accordo scritto. Il contador deve dire se l'attività abituale in Messico per una partita IVA italiana crea una stabile organizzazione                                                                                                                                                                                                                 | Founder + contador | Aziende (D-25)                                    |
 

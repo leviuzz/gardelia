@@ -251,3 +251,78 @@ Nota operativa: fal accetta al massimo 10 richieste contemporanee per account.
 5 margherite esatti grazie alla seconda opinione (Claude contava 4 margherite, una era mezza
 coperta dalla carta; Gemini Pro 5), 34 s in tutto. I girasoli risultano circa tre volte le
 margherite, come nella realtà.
+
+## Foto naturale con i numeri giusti: prompt v7 e correzione (23/11/2026, ~4,3 USD)
+
+Giudizio del founder sulla foto della v6, verificata: "la direzione dei fiori non è naturale,
+mantiene la posizione della bozza". Prove sul suo boceto (3 rose rosse + 2 tulipani rosa), stesso
+modello (Nano Banana 2 edit) e stesso controllo dei conteggi (Claude + seconda opinione Gemini).
+
+| Variante                                                     | Foto con i numeri giusti                     | Aspetto                          |
+| ------------------------------------------------------------ | -------------------------------------------- | -------------------------------- |
+| A — prompt v6 ("nelle stesse posizioni")                     | 2 su 2                                       | rigido, copia del boceto         |
+| B — stesse posizioni, teste girate in 3D                     | 1 su 3, poi 3 su 4 con il ricontrollo finale | poco più naturale                |
+| C — disposizione libera da fiorista                          | 1 su 3, poi 2 su 4                           | naturale; spesso un fiore in più |
+| C + correzione dei fiori in più sulla stessa foto            | 2 su 3 foto sbagliate sistemate              | resta naturale                   |
+| **v7 in produzione** (C + correzione, al massimo 3 immagini) | **4 richieste su 4**                         | naturale                         |
+
+- Lasciare libero il modello rende il ramo naturale ma aggiunge spesso un fiore (soprattutto
+  tulipani). Togliere un fiore da una foto è molto più affidabile che ottenerla giusta subito.
+- v7: foto naturale dal boceto → conteggio → se ci sono solo fiori in più, una passata che li toglie
+  lasciando il resto com'è → nuovo conteggio; altrimenti nuova foto. Nelle 4 richieste finali la
+  prima foto aveva sempre fiori in più e la correzione ha sempre centrato i numeri: 0,22–0,26 USD e
+  37–76 s a richiesta (prima: ~0,09 USD).
+- Da osservare: con la libertà le rose tendono a diventare "classiche" anche se la foto del
+  prodotto è una rosa da giardino aperta.
+
+## Fiori visti da angolazioni diverse: prompt v8 (23/11/2026, ~3,3 USD)
+
+Giudizio del founder sulla v7: "non ci siamo ancora con la direzione delle rose", cioè quasi tutte
+rivolte verso la fotocamera. Il collage mostra ogni corolla di fronte e la frase "fai ogni fiore
+come nel collage" ne faceva copiare anche l'angolazione. Stessa pipeline v7 (correzione compresa),
+cambia solo quella frase. Sul boceto del founder (3 rose rosse + 2 tulipani rosa):
+
+| Variante                                                                  | Foto verificate                      | Rose rivolte alla fotocamera |
+| ------------------------------------------------------------------------- | ------------------------------------ | ---------------------------- |
+| a — stesso aspetto del collage, "rose viste da angolazioni diverse"       | 3 su 3 (2 con la correzione)         | 2 su 3 di solito             |
+| b — "il collage le mostra di fronte, nella foto al massimo una di fronte" | 3 su 3 al primo colpo                | 1–2 su 3                     |
+| **c — come b, per qualsiasi fiore, con tipo, colore e apertura (v8)**     | **3 su 3 al primo colpo**            | **1, a volte 2, su 3**       |
+| d — c + "si vedono il lato dei petali e la base verde"                    | 1 su 3, con 0,40 USD per le scartate | 1 su 3                       |
+
+Con 12 rose rosse (stile clásico, boceto da una foto vera scontornata):
+
+| Variante                                    | Foto verificate                  | Aspetto                                             |
+| ------------------------------------------- | -------------------------------- | --------------------------------------------------- |
+| "al massimo una rivolta alla fotocamera"    | 3 su 3 (una dopo 3 immagini)     | una naturale, due a cupola con molte rose di fronte |
+| **"al massimo tre" (circa una su quattro)** | **3 su 3 (una dopo 3 immagini)** | **angolazioni varie in tutte e tre**                |
+
+- v8: stesso tipo, colore e apertura del collage, "ma visti da angolazioni diverse come in un ramo
+  vero", e al massimo circa un fiore su quattro rivolto verso la fotocamera, almeno uno
+  (`maxFacingCamera`: 1 fino a 7 fiori, 3 con 12, 6 con 24).
+- Il costo non cambia: 0,09 USD quando la prima foto è giusta, fino a ~0,40 USD con 3 immagini.
+- Descrivere il lato dei petali e la base verde (d) peggiora i conteggi: scartata.
+
+## Foto dei fiori come riferimento, senza collage: prompt v9 (23/11/2026, ~2,9 USD)
+
+Giudizio del founder sulla v8: "i fiori sono orizzontali, non sono naturali, non convincono per
+nulla". Guardate a piena risoluzione (la v8 era stata giudicata sulle miniature: errore), le rose
+centrali erano teste girate di lato e ammucchiate, staccate dai loro steli. Causa comune da v6 a
+v8: il modello parte dal collage, dove ogni corolla è vista di fronte, e le frasi sulle angolazioni
+la spostano senza attaccarla a uno stelo. Due strade, stessa correzione dei fiori in più e stesso
+controllo dei conteggi, giudicate guardando ogni corolla rispetto al suo stelo:
+
+| Strada                                                                                                                                          | 3 rose + 2 tulipani                        | 12 rose                                                 | Numeri giusti |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------- | ------------- |
+| **R — al modello le foto dei fiori (una per tipo), niente collage; "ogni corolla sta sul suo stelo e ne segue la direzione", un po' dall'alto** | **3 naturali su 3**                        | **3 naturali su 3**                                     | 6 su 6        |
+| S — il collage descritto come vista dall'alto, stessa frase sugli steli                                                                         | 2 su 3 (una con teste giganti ammucchiate) | 1 su 3 (due con teste girate e ammucchiate, come la v8) | 6 su 6        |
+
+- Costo uguale alle versioni precedenti: 0,09–0,36 USD a richiesta (0,09 quando la prima foto è
+  giusta).
+- Le foto dei fiori erano una rosa rossa con lo stelo (scontornata) e un tulipano rosa generato
+  come foto da catalogo: le rose della foto finale somigliano a quella di riferimento.
+- Adottata R (v9). Prova con il codice finale su rami con carta, nastro e verde: 12 rose in carta
+  coreana nera con listón rosso (verificata, 13 → correzione → 12) e 6 rose con eucalipto, carta
+  rosa e listón bianco (6 a occhio; il secondo conteggio non è partito perché il credito fal era
+  finito). Carta con pieghe vere, nastro annodato, eucalipto riconoscibile.
+- Il modello aggiunge a volte uno spago dove gli steli sono legati, anche se il prompt lo esclude:
+  dettaglio da osservare, non conta nei fiori.

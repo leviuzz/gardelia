@@ -1,9 +1,32 @@
-import { CalendarDays, Info, Mail, TriangleExclamationPoint } from 'lucide-react';
+import {
+  CalendarDays,
+  Info,
+  Mail,
+  Send,
+  TicketPercent,
+  TriangleExclamationPoint,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
-import { getOccasionPromo, hasPermission, previewOccasionPromoEmail } from '@floral/core';
-import { LOCALE_NAMES, minorToDecimalString } from '@floral/domain';
+import { getFormatter, getTranslations } from 'next-intl/server';
+import {
+  getOccasionPromo,
+  hasPermission,
+  listCalendarOccasions,
+  listPromoDiscounts,
+  previewOccasionPromoEmail,
+} from '@floral/core';
+import {
+  LOCALE_NAMES,
+  PROMO_DISCOUNT_STATUSES,
+  PROMO_LIMITS,
+  addDays,
+  minorToDecimalString,
+  parseIsoDate,
+  toIsoDate,
+  todayInTimeZone,
+} from '@floral/domain';
+import { Button } from '@/components/ui/button';
 import { Forbidden } from '@/components/forbidden';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -31,9 +54,45 @@ export default async function PromotionsPage({
 
   const view = await getOccasionPromo(ctx);
   const preview = await previewOccasionPromoEmail(ctx);
+  const discounts = await listPromoDiscounts(ctx, {});
   const t = await getTranslations('promotions');
+  const tOccasions = await getTranslations('customers.occasions');
+  const format = await getFormatter();
   const routes = tenantRoutes(ctx.tenantSlug);
   const { settings } = view;
+
+  // Prossimi invii automatici (7 giorni): le date che partono col preavviso più lungo sono fino a
+  // 60 giorni avanti. Stesse regole del calendario (ADR-046/047).
+  const today = todayInTimeZone(ctx.timezone);
+  const horizon = toIsoDate(addDays(today, 7));
+  const upcoming = (
+    await listCalendarOccasions(ctx, {
+      from: today,
+      to: addDays(today, 7 + PROMO_LIMITS.lookaheadDays),
+    })
+  )
+    .flatMap((event) =>
+      event.promo?.status === 'SCHEDULED' && event.promo.sendOn <= horizon
+        ? [{ event, sendOn: event.promo.sendOn }]
+        : [],
+    )
+    .sort((a, b) => a.sendOn.localeCompare(b.sendOn) || a.event.date.localeCompare(b.event.date));
+  const dayLabel = (iso: string) => {
+    const day = parseIsoDate(iso) ?? today;
+    const offset = Math.round(
+      (Date.UTC(day.year, day.month - 1, day.day) -
+        Date.UTC(today.year, today.month - 1, today.day)) /
+        86_400_000,
+    );
+    if (offset <= 0) return t('upcoming.today');
+    if (offset === 1) return t('upcoming.tomorrow');
+    return format.dateTime(new Date(Date.UTC(day.year, day.month - 1, day.day, 12)), {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -111,6 +170,77 @@ export default async function PromotionsPage({
                 </AlertDescription>
               </Alert>
             )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-5">
+        <Card className="min-w-0 lg:col-span-3">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Send className="size-4 text-primary" aria-hidden="true" />
+              {t('upcoming.title')}
+            </CardTitle>
+            <CardDescription>{t('upcoming.subtitle')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!settings.enabled ? (
+              <p className="text-sm text-muted-foreground">{t('upcoming.off')}</p>
+            ) : upcoming.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t('upcoming.empty')}</p>
+            ) : (
+              <ul className="divide-y rounded-xl border">
+                {upcoming.slice(0, 10).map(({ event, sendOn }) => (
+                  <li
+                    key={event.key}
+                    className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 px-3 py-2 text-sm"
+                  >
+                    <Link
+                      href={routes.customers.detail(event.customerId)}
+                      className="min-w-0 font-medium break-words hover:underline"
+                    >
+                      {event.customerName}
+                    </Link>
+                    <span className="text-muted-foreground">
+                      {t('upcoming.row', {
+                        day: dayLabel(sendOn),
+                        occasion:
+                          event.type === 'CUSTOM' && event.label
+                            ? event.label
+                            : tOccasions(`types.${event.type}`),
+                      })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {upcoming.length > 10 ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {t('upcoming.more', { count: upcoming.length - 10 })}
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card className="min-w-0 lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TicketPercent className="size-4 text-primary" aria-hidden="true" />
+              {t('discountsCard.title')}
+            </CardTitle>
+            <CardDescription>{t('discountsCard.subtitle')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ul className="space-y-1 text-sm">
+              {PROMO_DISCOUNT_STATUSES.map((status) => (
+                <li key={status}>
+                  {t(`discounts.counts.${status}`, { count: discounts.counts[status] })}
+                </li>
+              ))}
+            </ul>
+            <Button asChild variant="outline">
+              <Link href={routes.promotions.discounts()}>{t('discountsCard.open')}</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>

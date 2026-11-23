@@ -16,15 +16,13 @@
  *    si mostra mai come fedele (il boceto, esatto, resta visibile nel Diseñador).
  */
 import { setTimeout as delay } from 'node:timers/promises';
-import sharp from 'sharp';
 import { getDb, withTenantContext, type Prisma } from '@floral/db';
 import {
-  EXACT_PREVIEW_LIMITS,
   buildPreviewPrompt,
-  buildSketchRenderPrompt,
+  buildReferenceRenderPrompt,
   cleanStyleDescription,
   countTargets,
-  countsMatch,
+  isBouquetPreviewSpec,
   isUuid,
   type BouquetPreviewSpec,
 } from '@floral/domain';
@@ -38,18 +36,17 @@ import {
   type AiImageProvider,
   type GeneratedImage,
 } from './providers';
-import { getFlowerCounter, type CountOutcome } from './flower-counter';
-import { SketchUnavailableError, renderSketchForTenant } from './sketch-source';
+import { GENERATION_TIMEOUT_MS, renderVerifiedPhoto } from './exact-render';
+import { getFlowerCounter } from './flower-counter';
+import { loadFlowerReferences } from './reference-source';
+import { SketchUnavailableError } from './sketch-source';
 import { finishCutout, getBackgroundRemover, type BackgroundRemover } from './background-remover';
 import { onAiJobQueued } from './signal';
 import { getObjectStorage } from './storage';
 import { getStyleDescriber } from './style-describer';
 
-// Anteprima esatta: fino a 2 foto e 2 controlli, quindi più tempo di una generazione semplice.
+// Anteprima esatta: fino a 3 immagini e 3 controlli, quindi più tempo di una generazione semplice.
 export const AI_JOB_LEASE_SECONDS = 300;
-const GENERATION_TIMEOUT_MS = 120_000;
-// Primo conteggio (~5 s) e, se serve, la seconda opinione (fino a ~40 s).
-const COUNT_TIMEOUT_MS = 150_000;
 
 /** Attesa prima del tentativo successivo: 15 s, 30 s, 60 s… */
 export function retryDelayMs(attempt: number): number {
@@ -61,12 +58,6 @@ const EXTENSION: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/webp': 'webp',
 };
-
-function isPreviewSpec(value: unknown): value is BouquetPreviewSpec {
-  if (!value || typeof value !== 'object') return false;
-  const spec = value as Partial<BouquetPreviewSpec>;
-  return spec.version === 1 && Array.isArray(spec.components) && spec.components.length > 0;
-}
 
 export type AiJobOutcome = 'idle' | 'succeeded' | 'retry' | 'failed';
 
@@ -322,10 +313,10 @@ async function completePreview(
 }
 
 /**
- * Anteprima esatta (ADR-034): boceto dai ritagli → foto realistica → conteggio dei fiori con un
- * modello di visione. Si accetta la prima foto con gli stessi numeri della distinta; dopo
- * `attemptsPerJob` foto diverse il job si chiude FAILED (`count_mismatch`) senza credito. Se il
- * controllo stesso non risponde, la foto si mostra come un'anteprima normale (non verificata).
+ * Anteprima esatta (ADR-034): boceto dai ritagli → foto realistica naturale → conteggio dei fiori
+ * con un modello di visione, con la correzione dei fiori in più (`renderVerifiedPhoto`). Si accetta
+ * la prima foto con gli stessi numeri della distinta; se nessuna li ha, il job si chiude FAILED
+ * (`count_mismatch`) senza credito. Se il controllo non risponde, la foto si mostra non verificata.
  */
 async function processExactPreview(
   job: NonNullable<ClaimedJob>,
@@ -340,38 +331,21 @@ async function processExactPreview(
       ? await styleDescriptionFor(scope, referenceId)
       : { text: null, costMicros: 0 };
     spent += style.costMicros;
-    const sketch = await renderSketchForTenant(scope, spec);
-    const source = {
-      bytes: new Uint8Array(await sharp(sketch.png).jpeg({ quality: 90 }).toBuffer()),
-      contentType: 'image/jpeg',
-    };
-    const prompt = buildSketchRenderPrompt(spec, { styleDescription: style.text });
-    const counter = getFlowerCounter();
-    const targets = countTargets(spec);
-    const checks: CountOutcome[] = [];
-    let accepted: { image: GeneratedImage; verified: boolean | null } | null = null;
-    for (let attempt = 1; attempt <= EXACT_PREVIEW_LIMITS.attemptsPerJob && !accepted; attempt++) {
-      const image = await provider.generate({
-        prompt,
-        spec,
-        image: source,
-        signal: AbortSignal.timeout(GENERATION_TIMEOUT_MS),
-      });
-      spent += image.costMicros ?? provider.estimatedCostMicros;
-      if (!counter) {
-        accepted = { image, verified: null };
-        break;
-      }
-      try {
-        const result = await counter.count(
-          { bytes: image.bytes, contentType: image.contentType },
-          targets,
-          AbortSignal.timeout(COUNT_TIMEOUT_MS),
-        );
-        spent += result.costMicros ?? counter.estimatedCostMicros;
-        checks.push(result);
-        if (countsMatch(targets, result)) accepted = { image, verified: true };
-      } catch (error) {
+    // v9: il modello riceve le foto dei fiori del catalogo, non il boceto (che copiava).
+    const references = await loadFlowerReferences(scope, spec);
+    const prompt = buildReferenceRenderPrompt(spec, { styleDescription: style.text });
+    // Il colore vero di ogni fiore, misurato sulla sua foto, quando il catalogo non lo dice.
+    const targetOptions = { photoColors: references.photoColors };
+    const targets = countTargets(spec, targetOptions);
+    const render = await renderVerifiedPhoto({
+      provider,
+      counter: getFlowerCounter(),
+      spec,
+      references: references.images,
+      prompt,
+      targets,
+      targetOptions,
+      onCountUnavailable: (error) =>
         logger.warn(
           {
             jobId: job.id,
@@ -379,10 +353,10 @@ async function processExactPreview(
             code: error instanceof AiProviderError ? error.code : 'unexpected',
           },
           'controllo dei conteggi non disponibile: anteprima non verificata',
-        );
-        accepted = { image, verified: null };
-      }
-    }
+        ),
+    });
+    spent += render.spentMicros;
+    const { accepted, checks } = render;
     const totalCost = (job.providerCostMicros ?? 0) + spent;
     const output = {
       mode: 'EXACT',
@@ -392,6 +366,7 @@ async function processExactPreview(
         counts: check.counts,
         other: check.other,
         decidedBy: check.decidedBy ?? 'first',
+        step: check.step,
       })),
     } satisfies Prisma.InputJsonValue;
     if (!accepted) {
@@ -412,7 +387,18 @@ async function processExactPreview(
         }),
       );
       logger.info(
-        { jobId: job.id, tenantId: job.tenantId, attempts: checks.length },
+        {
+          jobId: job.id,
+          tenantId: job.tenantId,
+          attempts: checks.length,
+          // Solo numeri (tipo della distinta → steli attesi / fiori trovati), mai nomi.
+          expected: Object.fromEntries(targets.map((target) => [target.index, target.expected])),
+          found: checks.map((check) => ({
+            step: check.step,
+            counts: check.counts,
+            other: check.other,
+          })),
+        },
         'anteprima esatta scartata: i fiori non coincidono con la distinta',
       );
       return 'failed';
@@ -468,7 +454,8 @@ export async function processNextAiJob(
 
   try {
     if (!provider) throw new AiProviderError('invalid_request', 'provider non configurato');
-    if (!isPreviewSpec(job.input)) throw new AiProviderError('provider_error', 'input non valido');
+    if (!isBouquetPreviewSpec(job.input))
+      throw new AiProviderError('provider_error', 'input non valido');
     if (job.provider !== provider.id || job.model !== provider.model) {
       // Provider cambiato dopo l'accodamento: si rigenera con quello attuale solo su nuova
       // richiesta (la chiave di cache include il modello).

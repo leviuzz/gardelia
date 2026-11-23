@@ -4,9 +4,10 @@ import { linkFrom, uniqueEmail, waitForEmail } from './support/mailbox';
 
 /**
  * Login con Google (ADR-036). Google non viene mai contattato: il test intercetta la pagina
- * di autorizzazione e torna alla callback come farebbe Google (con un `code` o un errore);
- * il server scambia il `code` con l'endpoint simulato (e2e/support/google-oauth-mock.mjs).
- * Stato, cookie, PKCE, collegamento degli account e sessione sono il codice reale.
+ * di autorizzazione, mostra al suo posto una pagina con il link di ritorno alla callback (con un
+ * `code` o un errore, come farebbe Google) e lo segue; il server scambia il `code` con
+ * l'endpoint simulato (e2e/support/google-oauth-mock.mjs). Stato, cookie, PKCE, collegamento
+ * degli account e sessione sono il codice reale.
  */
 interface GoogleIdentity {
   readonly sub: string;
@@ -26,32 +27,68 @@ const CLIENT_IP = `198.51.100.${1 + Math.floor(Math.random() * 254)}`;
 const CLIENT_HEADERS = { 'x-forwarded-for': CLIENT_IP };
 test.use({ extraHTTPHeaders: CLIENT_HEADERS });
 
-/** Prepara la risposta di "Google" e restituisce l'URL di autorizzazione richiesto. */
-async function googleWillAnswer(page: Page, answer: GoogleAnswer): Promise<() => URL> {
+const GOOGLE_PAGES = 'https://accounts.google.com/**';
+const BACK_TO_APP = 'Volver a la app (Google simulado)';
+
+interface SimulatedGoogle {
+  /** URL di autorizzazione aperto dall'app (dopo `returnToApp`). */
+  readonly authorizeUrl: () => URL;
+  /** Dalla pagina di "Google" si torna all'app, come chi sceglie l'account. */
+  readonly returnToApp: () => Promise<void>;
+}
+
+/** Callback dell'app con la risposta di "Google": un `code` con l'identità, o un errore. */
+function callbackFor(authorize: URL, answer: GoogleAnswer): string {
+  const back = new URL(authorize.searchParams.get('redirect_uri') ?? '');
+  back.searchParams.set('state', authorize.searchParams.get('state') ?? '');
+  if ('error' in answer) {
+    back.searchParams.set('error', answer.error);
+  } else {
+    const { emailVerified = true, ...identity } = answer.identity;
+    const code = Buffer.from(
+      JSON.stringify({ ...identity, email_verified: emailVerified }),
+    ).toString('base64url');
+    back.searchParams.set('code', code);
+  }
+  return back.toString();
+}
+
+function escapeHtml(value: string): string {
+  return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
+}
+
+/**
+ * Prepara la risposta di "Google". Al posto di Google compare una pagina con il link di ritorno:
+ * NON un redirect 302 dall'intercettazione. In CI quel redirect ogni tanto restava fermo nel
+ * browser e la richiesta di ritorno non arrivava mai al server (nessuna riga "ritorno da Google
+ * ricevuto" nel log). Prima di seguire il link l'intercettazione si toglie: il ritorno è una
+ * navigazione normale, come quella che parte da Google.
+ */
+async function googleWillAnswer(page: Page, answer: GoogleAnswer): Promise<SimulatedGoogle> {
   let authorizeUrl: URL | null = null;
-  await page.route(
-    'https://accounts.google.com/**',
-    async (route) => {
-      const url = new URL(route.request().url());
-      authorizeUrl = url;
-      const back = new URL(url.searchParams.get('redirect_uri') ?? '');
-      back.searchParams.set('state', url.searchParams.get('state') ?? '');
-      if ('error' in answer) {
-        back.searchParams.set('error', answer.error);
-      } else {
-        const { emailVerified = true, ...identity } = answer.identity;
-        const code = Buffer.from(
-          JSON.stringify({ ...identity, email_verified: emailVerified }),
-        ).toString('base64url');
-        back.searchParams.set('code', code);
-      }
-      await route.fulfill({ status: 302, headers: { location: back.toString() } });
+  await page.route(GOOGLE_PAGES, async (route) => {
+    const url = new URL(route.request().url());
+    // Solo la pagina di autorizzazione; il resto (es. l'icona della pagina) non esiste.
+    if (!url.pathname.startsWith('/o/oauth2/')) return route.fulfill({ status: 404, body: '' });
+    authorizeUrl = url;
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/html; charset=utf-8',
+      body: `<!doctype html><meta charset="utf-8"><title>Google (simulado)</title><a href="${escapeHtml(callbackFor(url, answer))}">${BACK_TO_APP}</a>`,
+    });
+  });
+  return {
+    authorizeUrl: () => {
+      if (!authorizeUrl) throw new Error('Google non è stato chiamato');
+      return authorizeUrl;
     },
-    { times: 1 },
-  );
-  return () => {
-    if (!authorizeUrl) throw new Error('Google non è stato chiamato');
-    return authorizeUrl;
+    returnToApp: async () => {
+      await expect(page).toHaveURL(/^https:\/\/accounts\.google\.com\//);
+      const back = page.getByRole('link', { name: BACK_TO_APP, exact: true });
+      await expect(back).toBeVisible();
+      await page.unroute(GOOGLE_PAGES);
+      await back.click();
+    },
   };
 }
 
@@ -97,12 +134,13 @@ test.describe('login con Google', () => {
     const identity = { sub: googleSub(), email: uniqueEmail('google'), name: 'Lucía Torres' };
 
     await page.goto('/signup');
-    const authorize = await googleWillAnswer(page, { identity });
+    const google = await googleWillAnswer(page, { identity });
     await page.getByRole('button', { name: 'Continuar con Google' }).click();
+    await google.returnToApp();
 
     // Senza account e senza fiorerie si arriva all'onboarding, già autenticati.
     await expect(page).toHaveURL(/\/onboarding$/);
-    const url = authorize();
+    const url = google.authorizeUrl();
     expect(url.pathname).toBe('/o/oauth2/v2/auth');
     expect(url.searchParams.get('client_id')).toBe(E2E_GOOGLE_CLIENT_ID);
     expect(url.searchParams.get('redirect_uri')).toBe(`${baseURL}/api/auth/callback/google`);
@@ -123,8 +161,9 @@ test.describe('login con Google', () => {
     // Seconda volta, da un browser pulito: stesso account Google, dritto alla fioreria.
     const again = await cleanPage(browser);
     await again.goto('/login');
-    await googleWillAnswer(again, { identity });
+    const googleAgain = await googleWillAnswer(again, { identity });
     await again.getByRole('button', { name: 'Continuar con Google' }).click();
+    await googleAgain.returnToApp();
     await expect(again).toHaveURL(/\/app\/floreria-google-\d+$/);
     await expect(again.getByRole('heading', { name: 'Hola, Lucía' })).toBeVisible();
     await again.context().close();
@@ -144,10 +183,11 @@ test.describe('login con Google', () => {
     // Stessa email su Google (verificata): entra nello STESSO account, nome invariato.
     const google = await cleanPage(browser);
     await google.goto('/login');
-    await googleWillAnswer(google, {
+    const simulated = await googleWillAnswer(google, {
       identity: { sub: googleSub(), email, name: 'Marta I. (Google)' },
     });
     await google.getByRole('button', { name: 'Continuar con Google' }).click();
+    await simulated.returnToApp();
     await expect(google).toHaveURL(/\/app\/floreria-marta-\d+$/);
     await expect(google.getByRole('heading', { name: 'Hola, Marta' })).toBeVisible();
     await google.context().close();
@@ -164,8 +204,11 @@ test.describe('login con Google', () => {
     // Il vero titolare entra con Google: Better Auth rifiuta il collegamento automatico.
     const owner = await cleanPage(browser);
     await owner.goto('/login');
-    await googleWillAnswer(owner, { identity: { sub: googleSub(), email, name: 'Titular Real' } });
+    const google = await googleWillAnswer(owner, {
+      identity: { sub: googleSub(), email, name: 'Titular Real' },
+    });
     await owner.getByRole('button', { name: 'Continuar con Google' }).click();
+    await google.returnToApp();
     await expect(owner).toHaveURL(/\/login\?error=account_not_linked/);
     await expect(
       owner.getByText('Ya existe una cuenta con este correo, pero aún no está confirmada.', {
@@ -180,10 +223,11 @@ test.describe('login con Google', () => {
   test('email non verificata da Google: nessuna sessione e link di conferma', async ({ page }) => {
     const email = uniqueEmail('sinverificar');
     await page.goto('/signup');
-    await googleWillAnswer(page, {
+    const google = await googleWillAnswer(page, {
       identity: { sub: googleSub(), email, name: 'Rosa Sin Verificar', emailVerified: false },
     });
     await page.getByRole('button', { name: 'Continuar con Google' }).click();
+    await google.returnToApp();
     await expect(page).toHaveURL(/\/signup\?error=email_not_verified/);
     await expect(
       page.getByText('Google no ha confirmado este correo.', { exact: false }),
@@ -195,8 +239,9 @@ test.describe('login con Google', () => {
 
   test('annullare su Google riporta all’accesso con un avviso', async ({ page }) => {
     await page.goto('/login');
-    await googleWillAnswer(page, { error: 'access_denied' });
+    const google = await googleWillAnswer(page, { error: 'access_denied' });
     await page.getByRole('button', { name: 'Continuar con Google' }).click();
+    await google.returnToApp();
     await expect(page).toHaveURL(/\/login\?error=access_denied/);
     await expect(
       page.getByText('Cancelaste el acceso con Google.', { exact: false }),
@@ -223,16 +268,17 @@ test.describe('invito accettato con Google', () => {
 
     const guest = await cleanPage(browser);
     await guest.goto(inviteUrl);
-    const authorize = await googleWillAnswer(guest, {
+    const google = await googleWillAnswer(guest, {
       identity: { sub: googleSub(), email, name: 'Diego Google' },
     });
     await guest.getByRole('button', { name: 'Continuar con Google' }).click();
+    await google.returnToApp();
     // Di ritorno sull'invito, ora autenticata: compare il pulsante per accettare.
     const accept = guest.getByRole('button', { name: 'Aceptar invitación' });
     await expect(accept).toBeVisible();
     await expect(guest).toHaveURL(/\/invite\//);
     // Google propone subito l'account dell'invito.
-    expect(authorize().searchParams.get('login_hint')).toBe(email);
+    expect(google.authorizeUrl().searchParams.get('login_hint')).toBe(email);
 
     await accept.click();
     await expect(guest).toHaveURL(/\/app\/las-camelias$/);

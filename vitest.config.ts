@@ -14,6 +14,11 @@ const integrationEnv = {
   DATABASE_MIGRATION_URL: process.env.TEST_DATABASE_MIGRATION_URL ?? '',
   NODE_ENV: 'test',
   LOG_LEVEL: process.env.LOG_LEVEL_TEST ?? 'silent',
+  // Il tetto di spesa AI è di tutta la piattaforma e il database di test non si svuota fra
+  // un'esecuzione e l'altra: in locale la spesa (finta) del mese cresce a ogni giro finché ogni
+  // anteprima risponde `ai_budget_reached`. Qui un tetto altissimo; il test del tetto usa un
+  // costo ancora più alto (ai-previews.test.ts).
+  AI_MONTHLY_BUDGET_USD: '100000',
 };
 
 export default defineConfig({
