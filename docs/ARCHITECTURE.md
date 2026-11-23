@@ -98,6 +98,9 @@ Esempio: un gerente modifica il prezzo di un articolo.
 I valori sono impostati con `set_config(…, true)`: valgono solo per la transazione corrente,
 anche con pool di connessioni o PgBouncer in transaction mode. Un test verifica che il contesto non
 "trapeli" su altre connessioni del pool.
+Ogni connessione del pool esegue una query alla volta (`SerialClient` in
+`packages/db/src/serial-client.ts`, ADR-053): in una transazione Prisma lancia insieme le query
+delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stessa connessione.
 
 ### Policy RLS (migrazione `tenant_rls`)
 

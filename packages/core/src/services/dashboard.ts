@@ -60,23 +60,32 @@ export async function getDashboard(ctx: TenantContext): Promise<DashboardData> {
   const canSeeAudit = hasPermission(ctx, 'audit:read');
   const tenantId = ctx.tenantId;
 
+  // Una transazione è una sola connessione: le query vanno comunque una alla volta, quindi si
+  // scrivono in fila (un Promise.all farebbe pensare a un parallelismo che non c'è).
   return withTenantContext(getDb(), ctx, async (tx) => {
     const active = { tenantId, status: 'ACTIVE' } as const;
-    const [grouped, outOfStock, limited, onRequest, bouquetsWithoutRecipe, recipesWithLines] =
-      await Promise.all([
-        tx.catalogItem.groupBy({ by: ['type'], where: active, _count: { _all: true } }),
-        tx.catalogItem.count({ where: { ...active, availability: 'OUT_OF_STOCK' } }),
-        tx.catalogItem.count({ where: { ...active, availability: 'LIMITED' } }),
-        tx.catalogItem.count({ where: { ...active, availability: 'ON_REQUEST' } }),
-        tx.catalogItem.count({
-          where: {
-            ...active,
-            type: 'BOUQUET',
-            OR: [{ recipe: null }, { recipe: { lines: { none: {} } } }],
-          },
-        }),
-        tx.bouquetRecipe.count({ where: { tenantId, lines: { some: {} } } }),
-      ]);
+    const grouped = await tx.catalogItem.groupBy({
+      by: ['type'],
+      where: active,
+      _count: { _all: true },
+    });
+    const outOfStock = await tx.catalogItem.count({
+      where: { ...active, availability: 'OUT_OF_STOCK' },
+    });
+    const limited = await tx.catalogItem.count({ where: { ...active, availability: 'LIMITED' } });
+    const onRequest = await tx.catalogItem.count({
+      where: { ...active, availability: 'ON_REQUEST' },
+    });
+    const bouquetsWithoutRecipe = await tx.catalogItem.count({
+      where: {
+        ...active,
+        type: 'BOUQUET',
+        OR: [{ recipe: null }, { recipe: { lines: { none: {} } } }],
+      },
+    });
+    const recipesWithLines = await tx.bouquetRecipe.count({
+      where: { tenantId, lines: { some: {} } },
+    });
 
     const byType = Object.fromEntries(CATALOG_ITEM_TYPES.map((type) => [type, 0])) as Record<
       CatalogItemType,
@@ -93,16 +102,14 @@ export async function getDashboard(ctx: TenantContext): Promise<DashboardData> {
 
     const today = todayInTimeZone(ctx.timezone);
     const todayDate = new Date(Date.UTC(today.year, today.month - 1, today.day));
-    const [draftQuotes, sentQuotes] = await Promise.all([
-      tx.quote.count({ where: { tenantId, status: 'DRAFT' } }),
-      tx.quote.count({
-        where: {
-          tenantId,
-          status: 'SENT',
-          OR: [{ validUntil: null }, { validUntil: { gte: todayDate } }],
-        },
-      }),
-    ]);
+    const draftQuotes = await tx.quote.count({ where: { tenantId, status: 'DRAFT' } });
+    const sentQuotes = await tx.quote.count({
+      where: {
+        tenantId,
+        status: 'SENT',
+        OR: [{ validUntil: null }, { validUntil: { gte: todayDate } }],
+      },
+    });
 
     const team = canSeeTeam
       ? {
