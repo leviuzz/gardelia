@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { accountRoutes, isAccountPath, tenantRoutes, withQuery } from '@/lib/routes';
+import {
+  accountRoutes,
+  buyerRoutes,
+  isAccountPath,
+  publicStoreRoutes,
+  tenantRoutes,
+  withQuery,
+} from '@/lib/routes';
 
 describe('percorsi della fioreria (routes.ts)', () => {
   const routes = tenantRoutes('las-camelias');
@@ -121,5 +128,16 @@ describe('conto del cliente (routes.ts)', () => {
     expect(isAccountPath('/cuentas')).toBe(false);
     expect(isAccountPath('/app')).toBe(false);
     expect(isAccountPath('/onboarding')).toBe(false);
+  });
+
+  it('"Hacer pedido" in una tienda è una destinazione di chi compra (ADR-067)', () => {
+    const store = publicStoreRoutes('las-camelias');
+    expect(store.checkout()).toBe('/f/las-camelias/pedido');
+    expect(store.checkout({ producto: 'p1' })).toBe('/f/las-camelias/pedido?producto=p1');
+    expect(isAccountPath(store.checkout())).toBe(true);
+    expect(isAccountPath(store.checkout({ producto: 'p1' }))).toBe(true);
+    expect(isAccountPath(store.home)).toBe(false);
+    expect(isAccountPath('/f/las-camelias/pedidos')).toBe(false);
+    expect(buyerRoutes.fromSearch('las-camelias')).toBe('/buscar/ir/las-camelias');
   });
 });

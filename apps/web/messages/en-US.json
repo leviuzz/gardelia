@@ -116,7 +116,10 @@
       "public_link_unavailable": "This document can’t be shared in its current status.",
       "order_not_delivery": "Only home delivery orders have a driver.",
       "order_not_ready": "The bouquet photo is uploaded once the order is ready.",
-      "order_not_handed_over": "Who received it is recorded after delivery or pickup."
+      "order_not_handed_over": "Who received it is recorded after delivery or pickup.",
+      "order_not_pending": "This order is no longer waiting to be accepted.",
+      "order_date_passed": "This order’s date has passed: change it with the customer before accepting it.",
+      "order_needs_acceptance": "This online order is confirmed with “Accept order”, which notifies the customer."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -313,7 +316,24 @@
     "addressesSubtitle": "Save them once and you won't have to type them again.",
     "floristTitle": "Do you own a flower shop?",
     "floristBody": "Register it on Gardelia to manage orders, customers and deliveries from your phone.",
-    "floristCta": "Register my shop"
+    "floristCta": "Register my shop",
+    "orders": {
+      "title": "My orders",
+      "subtitle": "The orders you placed in flower shops’ online shops.",
+      "empty": "You haven’t placed any orders yet.",
+      "find": "Find flower shops",
+      "statuses": {
+        "PENDING_ACCEPTANCE": "Waiting for the shop",
+        "CONFIRMED": "Accepted",
+        "IN_PREPARATION": "Being prepared",
+        "READY": "Ready",
+        "OUT_FOR_DELIVERY": "On its way",
+        "DELIVERED": "Delivered",
+        "PICKED_UP": "Picked up",
+        "CANCELLED": "Cancelled",
+        "DRAFT": "Draft"
+      }
+    }
   },
   "store": {
     "title": "Online shop",
@@ -364,14 +384,16 @@
     "shareWhatsapp": "Share on WhatsApp",
     "conflict": {
       "needs_items": "Mark at least one product as shown online to publish your shop.",
-      "needs_contact": "Add the flower shop's phone in Settings to publish your shop."
+      "needs_contact": "Add the flower shop's phone in Settings to publish your shop.",
+      "needs_payment": "Choose at least one payment method to receive online orders."
     },
     "activity": {
       "updated": "{actor} updated the online shop",
       "published": "{actor} published the online shop",
       "unpublished": "{actor} took the online shop offline",
       "image_set": "{actor} changed the online shop logo or cover",
-      "image_removed": "{actor} removed the online shop logo or cover"
+      "image_removed": "{actor} removed the online shop logo or cover",
+      "orders_updated": "{actor} changed online orders"
     },
     "imagesTitle": "Logo and cover",
     "imagesSubtitle": "How people recognize your flower shop on the page and when you share the link.",
@@ -388,7 +410,29 @@
     "changeCover": "Change cover",
     "removeLogo": "Remove logo",
     "removeCover": "Remove cover",
-    "imageRemoved": "Image removed."
+    "imageRemoved": "Image removed.",
+    "validation": {
+      "needs_payment": "While online orders are on, keep at least one payment method."
+    },
+    "orders": {
+      "title": "Online orders",
+      "subtitle": "Your customers choose products, date and delivery from your shop; you accept or decline each order and they pay you directly.",
+      "on": "On",
+      "off": "Off",
+      "enabled": "Receive orders from my online shop",
+      "enabledHint": "You get an email for every order. If nobody answers within 3 days, it cancels itself and we tell the customer.",
+      "leadDays": "Minimum notice",
+      "leadDaysHint": "The first day the customer can choose for delivery or pickup.",
+      "leadDaysOption": "{count, plural, =0 {Same day} one {# day before} other {# days before}}",
+      "saved": "Online orders saved.",
+      "pending": "{count, plural, one {# online order to accept} other {# online orders to accept}}",
+      "blockers": {
+        "store_needs_payment": "Choose at least one payment method, so customers know how to pay you.",
+        "store_needs_contact": "Add the shop’s phone number, so customers can call you."
+      },
+      "goToPayment": "Payment methods",
+      "notPublished": "Your shop is not published yet: orders will arrive once you publish it."
+    }
   },
   "publicStore": {
     "demoNotice": "Demo flower shop: products and prices are examples.",
@@ -442,7 +486,10 @@
     "notFoundTitle": "This shop is not available",
     "notFoundBody": "The link may be mistyped, or the flower shop has taken it offline.",
     "logoAlt": "{name} logo",
-    "coverAlt": "Photo of {name}"
+    "coverAlt": "Photo of {name}",
+    "orderCta": "Place an order",
+    "orderHow": "Choose online, the shop confirms and you pay them directly.",
+    "orderOnline": "Order online"
   },
   "timezones": {
     "America/Mexico_City": "Central Time (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -586,7 +633,10 @@
     "public_link.revoked": "{actor} turned off the link for {number}",
     "order.assigned": "{actor} changed the driver of {number}",
     "order.photo_added": "{actor} uploaded the bouquet photo for {number}",
-    "order.receiver_recorded": "{actor} recorded who received {number}"
+    "order.receiver_recorded": "{actor} recorded who received {number}",
+    "order.placed_online": "{actor} placed order {number} from the online shop",
+    "order.accepted": "{actor} accepted online order {number}",
+    "order.expired": "Online order {number} was cancelled because nobody accepted it in time"
   },
   "catalog": {
     "title": "Catalog",
@@ -1191,7 +1241,8 @@
       "week": "This week",
       "past": "Earlier",
       "all": "All",
-      "drafts": "Drafts"
+      "drafts": "Drafts",
+      "pending": "To accept"
     },
     "statuses": {
       "DRAFT": "Draft",
@@ -1487,6 +1538,23 @@
       "save": "Save",
       "saved": "Delivery recorded.",
       "photoAlt": "Finished bouquet for order {number}"
+    },
+    "online": {
+      "pendingAlert": "{count, plural, one {You have # online order to accept.} other {You have # online orders to accept.}}",
+      "review": "Review",
+      "accepted": "Order accepted: we emailed the customer.",
+      "badge": "Online",
+      "panelTitle": "Online order to accept",
+      "panelBody": "Check the products, date and delivery fee (if something changes, adjust it below with the customer’s agreement). When you accept it, we send them the total and how to pay you. If nobody answers within {days} days, it cancels itself.",
+      "accept": "Accept order",
+      "reject": "Decline",
+      "rejectTitle": "Decline the order",
+      "rejectBody": "We email the customer this reason, so explain it kindly (for example, if you have no flowers for that date).",
+      "rejectReason": "Reason (the customer will see it)",
+      "rejectConfirm": "Decline order",
+      "cancelNotice": "The customer placed this order online: we will email them the reason.",
+      "buyerNotes": "Customer comments",
+      "askManager": "Only owners and managers can accept or decline online orders."
     }
   },
   "plans": {
@@ -2020,7 +2088,14 @@
       "contactText": "Hi, I have a question about order {number}.",
       "photoAlt": "Photo of your finished bouquet",
       "photoCaption": "Here’s your bouquet",
-      "receivedBy": "Received by {name}."
+      "receivedBy": "Received by {name}.",
+      "sent": "Done! We sent your order to {shop}. We’ll email you when they accept it.",
+      "waiting": "Waiting for {shop} to accept your order. If they don’t answer within {days} days, we cancel it and let you know. Don’t pay anything yet.",
+      "cancelReason": "Reason: {reason}",
+      "howToPay": "How to pay",
+      "payWith": "The shop accepts: {methods}.",
+      "payAsk": "Ask the shop how to pay.",
+      "payDirect": "You pay the shop directly: Gardelia doesn’t receive your money."
     }
   },
   "shareLink": {
@@ -2506,6 +2581,73 @@
       "unknown": "A product has no cost",
       "previous": "Previous month",
       "next": "Next month"
+    }
+  },
+  "checkout": {
+    "title": "Place an order",
+    "subtitle": "Choose your products and when you want them. {shop} confirms the order and you pay the shop directly.",
+    "pendingLimit": "You already have {count} orders waiting for this shop to answer. Wait for their reply or message them on WhatsApp.",
+    "myOrders": "See my orders",
+    "noItems": "This shop has no products to order online right now.",
+    "steps": {
+      "products": "Products",
+      "delivery": "Delivery",
+      "card": "Card",
+      "confirm": "Confirm"
+    },
+    "less": "One less {name}",
+    "more": "One more {name}",
+    "chooseProduct": "Choose at least one product.",
+    "subtotal": "Subtotal",
+    "mode": "How do you want it?",
+    "modes": {
+      "DELIVERY": "Home delivery",
+      "PICKUP": "Pick up at the shop"
+    },
+    "pickupAt": "Pick it up at: {address}",
+    "pickupWhere": "Where you pick it up",
+    "dateDelivery": "Delivery day",
+    "datePickup": "Pickup day",
+    "dateHint": "Choose a day the shop is open.",
+    "closedDay": "The shop is closed that day: choose another one.",
+    "window": "Time",
+    "anyTime": "Any time",
+    "windowRange": "{start}–{end}",
+    "address": "Delivery address",
+    "newAddress": "Another address",
+    "saveAddress": "Save this address to my account",
+    "recipientName": "Who receives it",
+    "recipientHint": "If you leave it empty, we use the one on the saved address.",
+    "recipientPhone": "Recipient’s phone",
+    "deliveryNotes": "Delivery directions",
+    "deliveryNotesPlaceholder": "Cross streets, green gate, it’s a surprise…",
+    "cardMessage": "Card message",
+    "cardMessageHint": "We write it on the card that comes with your flowers. You can leave it empty.",
+    "cardSignature": "Signature",
+    "cardAnonymous": "Keep it anonymous",
+    "buyerNotes": "Comments for the shop",
+    "buyerNotesHint": "For example: pastel colors, no lilies.",
+    "deliveryFee": "Delivery",
+    "feeToConfirm": "Confirmed by the shop",
+    "total": "Total",
+    "contactPhone": "Your phone",
+    "contactPhoneHint": "So the shop can call you if needed.",
+    "howItWorks": "What happens next?",
+    "acceptFirst": "{shop} reviews your order and we email you as soon as they accept it, with the total and how to pay. If they don’t answer within {days} days, we cancel it and let you know.",
+    "payDirect": "You pay the shop directly ({methods}). Don’t pay anything yet.",
+    "payDirectNoMethods": "You pay the shop directly: they’ll tell you how when they accept. Don’t pay anything yet.",
+    "dataShared": "We share your name, your email ({email}) and your phone with {shop} to handle this order.",
+    "send": "Send order",
+    "sending": "Sending…",
+    "validation": {
+      "no_items": "Choose at least one product.",
+      "date_too_soon": "That day is no longer possible: choose a later date.",
+      "date_too_far": "Choose a date within the next 60 days.",
+      "closed_day": "The shop is closed that day: choose another one."
+    },
+    "conflict": {
+      "closed": "This shop is not taking online orders right now.",
+      "pending_limit": "You already have 3 orders waiting for this shop to answer. Wait for their reply or message them."
     }
   }
 }

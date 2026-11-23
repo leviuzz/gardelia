@@ -35,17 +35,28 @@ export const MARKETPLACE_ORDER_LIMITS = {
   buyerNotes: 500,
 } as const;
 
-/** Righe del modulo: campi `qty.<itemId>` con la quantità → solo quelle maggiori di zero. */
+/**
+ * Righe del modulo: campi `qty.<itemId>` con la quantità → solo quelle maggiori di zero. Accetta
+ * sia i campi piatti sia l'oggetto annidato `{ qty: { <itemId>: "2" } }` di `formDataToObject`.
+ */
 export function marketplaceLinesFromForm(
   values: Readonly<Record<string, unknown>>,
-): { itemId: string; quantity: number }[] {
-  const lines: { itemId: string; quantity: number }[] = [];
-  for (const [key, raw] of Object.entries(values)) {
-    if (!key.startsWith('qty.')) continue;
-    const quantity = Number(typeof raw === 'string' ? raw.trim() : raw);
-    if (Number.isFinite(quantity) && quantity > 0) {
-      lines.push({ itemId: key.slice(4), quantity });
-    }
+): { itemId: string; quantity: unknown }[] {
+  const entries: [string, unknown][] = Object.entries(values)
+    .filter(([key]) => key.startsWith('qty.'))
+    .map(([key, raw]) => [key.slice(4), raw]);
+  const nested = values.qty;
+  if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+    entries.push(...Object.entries(nested as Record<string, unknown>));
+  }
+  const lines: { itemId: string; quantity: unknown }[] = [];
+  for (const [itemId, raw] of entries) {
+    const text = typeof raw === 'string' ? raw.trim() : raw;
+    if (text === '' || text === undefined || text === null) continue;
+    const quantity = Number(text);
+    // Zero = non scelto; tutto il resto (anche 1.5 o "abc") passa allo schema, che lo rifiuta.
+    if (quantity === 0) continue;
+    lines.push({ itemId, quantity: Number.isFinite(quantity) ? quantity : text });
   }
   return lines;
 }

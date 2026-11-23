@@ -89,6 +89,8 @@ export interface CheckoutFormDto {
     readonly currency: string;
     readonly logoId: string | null;
     readonly isDemo: boolean;
+    /** Telefono di contatto (E.164), o null. */
+    readonly phone: string | null;
     /** Dove si ritira (sede principale), o null. */
     readonly pickupAddress: string | null;
     readonly paymentMethods: readonly StorePaymentMethod[];
@@ -145,6 +147,7 @@ export async function getCheckoutForm(
             currency: true,
             mode: true,
             timezone: true,
+            contactPhone: true,
             deliveryClosedWeekdays: true,
             defaultDeliveryFeeMinor: true,
           },
@@ -214,6 +217,7 @@ export async function getCheckoutForm(
         currency: tenant.currency,
         logoId: store.logoId,
         isDemo: tenant.mode === 'DEMO',
+        phone: tenant.contactPhone,
         pickupAddress: location
           ? [location.addressLine1, location.neighborhood, location.city].filter(Boolean).join(', ')
           : null,

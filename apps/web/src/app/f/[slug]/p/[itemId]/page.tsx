@@ -1,4 +1,4 @@
-import { ArrowLeft, Flower2, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Flower2, MessageCircle, ShoppingBag } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -27,7 +27,8 @@ export async function generateMetadata({
 
 /**
  * Un prodotto della pagina pubblica (ADR-065): foto, prezzo, di cosa è fatto, e "Pedir por
- * WhatsApp" con il nome e il link già scritti (l'ordine online arriva con C4).
+ * WhatsApp" con il nome e il link già scritti; con gli ordini online (C4, ADR-067) anche "Pedir en
+ * línea", che apre il modulo con il prodotto già scelto.
  */
 export default async function PublicStoreItemPage({ params }: PageProps<'/f/[slug]/p/[itemId]'>) {
   const { slug, itemId } = await params;
@@ -145,9 +146,26 @@ export default async function PublicStoreItemPage({ params }: PageProps<'/f/[slu
             </dl>
           ) : null}
 
-          {store.phone && item.availability !== 'OUT_OF_STOCK' ? (
+          {store.ordersEnabled && item.availability !== 'OUT_OF_STOCK' ? (
             <div className="space-y-2">
               <Button asChild size="lg" className="w-full sm:w-auto">
+                <Link href={routes.checkout({ producto: item.id })}>
+                  <ShoppingBag />
+                  {t('orderOnline')}
+                </Link>
+              </Button>
+              <p className="text-xs text-muted-foreground">{t('orderHow')}</p>
+            </div>
+          ) : null}
+
+          {store.phone && item.availability !== 'OUT_OF_STOCK' ? (
+            <div className="space-y-2">
+              <Button
+                asChild
+                size="lg"
+                variant={store.ordersEnabled ? 'outline' : 'default'}
+                className="w-full sm:w-auto"
+              >
                 <a
                   href={whatsappLink(store.phone, orderText)}
                   target="_blank"

@@ -1,4 +1,4 @@
-import { Clock, CreditCard, Flower2, MapPin, Truck } from 'lucide-react';
+import { Clock, CreditCard, Flower2, MapPin, ShoppingBag, Truck } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -7,6 +7,7 @@ import { getPublicStore } from '@floral/core';
 import { BRAND, WEEKDAYS_FROM_MONDAY } from '@floral/domain';
 import { StoreShell } from '@/components/public/store-shell';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { serverEnv } from '@/lib/env';
 import { money } from '@/lib/format';
 import { storeShellProps } from '@/lib/public-store';
@@ -36,8 +37,8 @@ export async function generateMetadata({ params }: PageProps<'/f/[slug]'>): Prom
 
 /**
  * Pagina pubblica della fioreria (marketplace, blocco C2, ADR-065): chi compra vede i prodotti
- * visibili, come consegna e come si paga, e scrive alla fioreria. Gli ordini online arrivano con
- * C4: fino ad allora nessun pulsante che li prometta.
+ * visibili, come consegna e come si paga, e scrive alla fioreria. Se la fioreria riceve ordini
+ * online (C4, ADR-067), "Hacer un pedido" porta al modulo; altrimenti nessun pulsante li promette.
  */
 export default async function PublicStorePage({ params }: PageProps<'/f/[slug]'>) {
   const { slug } = await params;
@@ -93,6 +94,17 @@ export default async function PublicStorePage({ params }: PageProps<'/f/[slug]'>
         ) : null}
         {store.description ? (
           <p className="mt-4 leading-relaxed whitespace-pre-line">{store.description}</p>
+        ) : null}
+        {store.ordersEnabled && store.items.length > 0 ? (
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <Button asChild size="lg">
+              <Link href={routes.checkout()}>
+                <ShoppingBag />
+                {t('orderCta')}
+              </Link>
+            </Button>
+            <p className="text-sm text-muted-foreground">{t('orderHow')}</p>
+          </div>
         ) : null}
       </section>
 
@@ -197,7 +209,9 @@ export default async function PublicStorePage({ params }: PageProps<'/f/[slug]'>
                 </span>
               </li>
             ) : null}
-            <li className="text-muted-foreground">{t('deliveryAsk')}</li>
+            {store.ordersEnabled ? null : (
+              <li className="text-muted-foreground">{t('deliveryAsk')}</li>
+            )}
           </ul>
         </div>
         {store.paymentMethods.length > 0 || store.paymentInstructions ? (

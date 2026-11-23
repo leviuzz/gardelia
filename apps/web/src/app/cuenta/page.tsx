@@ -1,16 +1,26 @@
-import { ArrowRight, Store } from 'lucide-react';
+import { ArrowRight, ChevronRight, ShoppingBag, Store } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
-import { getPlacesProvider, listUserTenants, openBuyerAccount } from '@floral/core';
+import { getFormatter, getTranslations } from 'next-intl/server';
+import {
+  getPlacesProvider,
+  listBuyerOrders,
+  listUserTenants,
+  openBuyerAccount,
+} from '@floral/core';
 import { MX_REGIONS } from '@floral/domain';
 import { AddressBook } from '@/components/addresses/address-book';
 import { SignOutButton } from '@/components/auth/sign-out-button';
 import { PlacesConfigProvider } from '@/components/form/address-search';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getBuyerContext } from '@/lib/buyer';
-import { phoneForInput } from '@/lib/format';
+import { serverEnv } from '@/lib/env';
+import { money, phoneForInput } from '@/lib/format';
+import { ORDER_STATUS_BADGE } from '@/lib/order-ui';
+import { calendarDate } from '@/lib/quote-ui';
+import { buyerRoutes, publicStoreRoutes } from '@/lib/routes';
 import {
   addBuyerAddressAction,
   archiveBuyerAddressAction,
@@ -28,14 +38,19 @@ const REGIONS = MX_REGIONS.map(({ code, name }) => ({ code, name }));
 const REGION_NAMES = new Map<string, string>(REGIONS.map((region) => [region.code, region.name]));
 
 /**
- * "Mi cuenta" di chi compra (blocco C1): dati di contatto e indirizzi di consegna salvati. Aprirla
- * la prima volta crea il conto cliente; da lì l'accesso porta qui invece che alla creazione di
- * una fioreria.
+ * "Mi cuenta" di chi compra (blocco C1): i suoi ordini online (C4, ADR-067), dati di contatto e
+ * indirizzi di consegna salvati. Aprirla la prima volta crea il conto cliente; da lì l'accesso porta
+ * qui invece che alla creazione di una fioreria.
  */
 export default async function AccountPage() {
   const ctx = await getBuyerContext();
-  const [account, shops] = await Promise.all([openBuyerAccount(ctx), listUserTenants(ctx.userId)]);
+  const [account, shops, orders] = await Promise.all([
+    openBuyerAccount(ctx),
+    listUserTenants(ctx.userId),
+    listBuyerOrders(ctx, serverEnv().BETTER_AUTH_SECRET),
+  ]);
   const t = await getTranslations();
+  const format = await getFormatter();
 
   return (
     <div className="space-y-6">
@@ -45,6 +60,67 @@ export default async function AccountPage() {
           {t('account.greeting', { name: account.name })}
         </p>
       </div>
+
+      <Card id="pedidos" className="scroll-mt-20">
+        <CardHeader>
+          <CardTitle>{t('account.orders.title')}</CardTitle>
+          <CardDescription>{t('account.orders.subtitle')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {orders.length === 0 ? (
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-secondary text-primary">
+                <ShoppingBag className="size-5" aria-hidden="true" />
+              </span>
+              <p className="min-w-0 flex-1 text-sm text-muted-foreground">
+                {t('account.orders.empty')}
+              </p>
+              <Button asChild variant="outline" size="sm">
+                <Link href={buyerRoutes.home}>{t('account.orders.find')}</Link>
+              </Button>
+            </div>
+          ) : (
+            <ul className="divide-y rounded-xl border">
+              {orders.map((order) => (
+                <li key={order.orderId}>
+                  <Link
+                    href={order.trackingPath ?? publicStoreRoutes(order.shopSlug).home}
+                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{order.shopName}</span>
+                      <span className="block text-sm text-muted-foreground first-letter:uppercase">
+                        <span className="tabular-nums">{order.numberLabel}</span>
+                        {order.scheduledDate
+                          ? ` · ${format.dateTime(calendarDate(order.scheduledDate), {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'short',
+                              timeZone: 'UTC',
+                            })}`
+                          : ''}
+                        {` · ${t(`orders.modes.${order.fulfillmentMode}`)}`}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 flex-col items-end gap-1">
+                      <Badge variant={ORDER_STATUS_BADGE[order.status]}>
+                        {t(`account.orders.statuses.${order.status}`)}
+                      </Badge>
+                      <span className="text-sm font-medium tabular-nums">
+                        {money(order.totalMinor, order.currency)}
+                      </span>
+                    </span>
+                    <ChevronRight
+                      className="size-4 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       {shops.length > 0 ? (
         <Card>

@@ -284,6 +284,8 @@ export interface OrderListResult {
   readonly pageCount: number;
   readonly when: OrderWhenFilter;
   readonly canWrite: boolean;
+  /** Ordini online in attesa di risposta, con qualsiasi filtro (per l'avviso in cima). */
+  readonly pendingCount: number;
 }
 
 function whenWhere(when: OrderWhenFilter, today: DateParts): Prisma.OrderWhereInput {
@@ -304,6 +306,8 @@ function whenWhere(when: OrderWhenFilter, today: DateParts): Prisma.OrderWhereIn
       return { scheduledDate: { not: null } };
     case 'drafts':
       return { status: 'DRAFT' };
+    case 'pending':
+      return { status: 'PENDING_ACCEPTANCE' };
   }
 }
 
@@ -348,7 +352,10 @@ export async function listOrders(
             { number: 'asc' },
           ];
   return withTenantContext(getDb(), ctx, async (tx) => {
-    const total = await tx.order.count({ where });
+    const [total, pendingCount] = await Promise.all([
+      tx.order.count({ where }),
+      tx.order.count({ where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE' } }),
+    ]);
     const pageCount = Math.max(1, Math.ceil(total / ORDER_PAGE_SIZE));
     const page = Math.min(filters.page, pageCount);
     const orders = await tx.order.findMany({
@@ -365,6 +372,7 @@ export async function listOrders(
       pageCount,
       when: filters.when,
       canWrite: hasPermission(ctx, 'orders:write'),
+      pendingCount,
     };
   });
 }

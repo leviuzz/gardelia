@@ -1,8 +1,14 @@
-import { Ban, Check } from 'lucide-react';
+import { Ban, Check, CircleCheck, CreditCard, Hourglass } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { getPublicOrder } from '@floral/core';
-import { BRAND, DEFAULT_LOCALE, MX_REGIONS, type OrderStatus } from '@floral/domain';
+import {
+  BRAND,
+  DEFAULT_LOCALE,
+  MARKETPLACE_ORDER_LIMITS,
+  MX_REGIONS,
+  type OrderStatus,
+} from '@floral/domain';
 import { PrivateImage } from '@/components/common/private-image';
 import { PublicLines, PublicTotals } from '@/components/public/public-lines';
 import { PublicInvalidLink, PublicShell } from '@/components/public/public-shell';
@@ -27,8 +33,13 @@ const JOURNEY: Record<'DELIVERY' | 'PICKUP', readonly OrderStatus[]> = {
  * Pedido aperto dal cliente con il link della fioreria (ADR-056): a che punto è, quando e dove si
  * consegna, cosa contiene, cosa resta da pagare. Mai note interne né costi.
  */
-export default async function PublicOrderPage({ params }: PageProps<'/pedido/[token]'>) {
+export default async function PublicOrderPage({
+  params,
+  searchParams,
+}: PageProps<'/pedido/[token]'>) {
   const { token } = await params;
+  // Appena inviato dalla tienda en línea (ADR-067).
+  const justSent = (await searchParams).enviado === '1';
   const order = await getPublicOrder(serverEnv().BETTER_AUTH_SECRET, token);
   const locale = order?.shop.locale ?? DEFAULT_LOCALE;
   const t = await getTranslations({ locale, namespace: 'publicLink' });
@@ -83,10 +94,36 @@ export default async function PublicOrderPage({ params }: PageProps<'/pedido/[to
         </p>
       </header>
 
+      {justSent && !cancelled ? (
+        <Alert variant="success">
+          <CircleCheck aria-hidden="true" />
+          <AlertDescription>{t('order.sent', { shop: order.shop.name })}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {order.status === 'PENDING_ACCEPTANCE' ? (
+        <Alert variant="warning">
+          <Hourglass aria-hidden="true" />
+          <AlertDescription>
+            {t('order.waiting', {
+              shop: order.shop.name,
+              days: MARKETPLACE_ORDER_LIMITS.acceptDays,
+            })}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       {cancelled ? (
         <Alert variant="info">
           <Ban aria-hidden="true" />
-          <AlertDescription>{t('order.cancelled')}</AlertDescription>
+          <AlertDescription>
+            {t('order.cancelled')}
+            {order.online?.cancelReason ? (
+              <span className="mt-1 block">
+                {t('order.cancelReason', { reason: order.online.cancelReason })}
+              </span>
+            ) : null}
+          </AlertDescription>
         </Alert>
       ) : (
         <ol className="grid gap-3" aria-label={t('order.progress')}>
@@ -130,6 +167,33 @@ export default async function PublicOrderPage({ params }: PageProps<'/pedido/[to
           })}
         </ol>
       )}
+
+      {order.online &&
+      !cancelled &&
+      order.status !== 'PENDING_ACCEPTANCE' &&
+      order.balanceMinor > 0 ? (
+        <section className="space-y-2 rounded-2xl border bg-card p-4 text-sm">
+          <h2 className="flex items-center gap-2 font-medium">
+            <CreditCard className="size-4 text-primary" aria-hidden="true" />
+            {t('order.howToPay')}
+          </h2>
+          <p>
+            {order.online.paymentMethods.length > 0
+              ? t('order.payWith', {
+                  methods: order.online.paymentMethods
+                    .map((method) => tAll(`publicStore.payment.${method}`))
+                    .join(', '),
+                })
+              : t('order.payAsk')}
+          </p>
+          {order.online.paymentInstructions ? (
+            <p className="whitespace-pre-line text-muted-foreground">
+              {order.online.paymentInstructions}
+            </p>
+          ) : null}
+          <p className="text-xs text-muted-foreground">{t('order.payDirect')}</p>
+        </section>
+      ) : null}
 
       {order.photoId || order.receivedBy ? (
         <section className="space-y-3">

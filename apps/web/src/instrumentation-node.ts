@@ -28,6 +28,7 @@ import { aiConfig } from '@floral/core/config';
 import { kickAiDrain } from './lib/ai-kick';
 import { assertConfiguration } from './lib/config-check';
 import { serverEnv } from './lib/env';
+import { orderMailDeps } from './lib/order-mail';
 import { startupRetryDelayMs } from './lib/startup-retry';
 import {
   reportRequestError,
@@ -97,7 +98,7 @@ function startMaintenanceLoopIfInline(): void {
   const state = globalThis as { __floralMaintenance?: unknown };
   if (state.__floralMaintenance) return;
   const run = () => {
-    runDailyMaintenance().catch((error: unknown) =>
+    runDailyMaintenance(orderMailDeps()).catch((error: unknown) =>
       logger.error({ err: error }, 'manutenzione giornaliera non riuscita'),
     );
     const env = serverEnv();

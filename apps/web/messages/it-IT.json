@@ -116,7 +116,10 @@
       "public_link_unavailable": "Nel suo stato attuale questo documento non si può condividere.",
       "order_not_delivery": "Solo gli ordini a domicilio hanno un fattorino.",
       "order_not_ready": "La foto del mazzo si carica quando l’ordine è pronto.",
-      "order_not_handed_over": "Chi l’ha ricevuto si indica dopo la consegna o il ritiro."
+      "order_not_handed_over": "Chi l’ha ricevuto si indica dopo la consegna o il ritiro.",
+      "order_not_pending": "Questo ordine non è più da accettare.",
+      "order_date_passed": "La data di questo ordine è già passata: cambiala d’accordo con il cliente prima di accettarlo.",
+      "order_needs_acceptance": "Questo ordine online si conferma con «Accetta l’ordine», che avvisa il cliente."
     },
     "pageNotFoundTitle": "Pagina non trovata",
     "pageNotFoundBody": "La pagina non esiste o non hai accesso.",
@@ -313,7 +316,24 @@
     "addressesSubtitle": "Salvali una volta e non dovrai riscriverli.",
     "floristTitle": "Hai una fioreria?",
     "floristBody": "Registrala su Gardelia per gestire ordini, clienti e consegne dal telefono.",
-    "floristCta": "Registra la mia fioreria"
+    "floristCta": "Registra la mia fioreria",
+    "orders": {
+      "title": "I miei ordini",
+      "subtitle": "Gli ordini che hai fatto nei negozi online delle fiorerie.",
+      "empty": "Non hai ancora fatto ordini.",
+      "find": "Cerca fiorerie",
+      "statuses": {
+        "PENDING_ACCEPTANCE": "In attesa della fioreria",
+        "CONFIRMED": "Accettato",
+        "IN_PREPARATION": "In preparazione",
+        "READY": "Pronto",
+        "OUT_FOR_DELIVERY": "In consegna",
+        "DELIVERED": "Consegnato",
+        "PICKED_UP": "Ritirato",
+        "CANCELLED": "Annullato",
+        "DRAFT": "Bozza"
+      }
+    }
   },
   "store": {
     "title": "Negozio online",
@@ -364,14 +384,16 @@
     "shareWhatsapp": "Condividi su WhatsApp",
     "conflict": {
       "needs_items": "Segna almeno un prodotto come visibile online per pubblicare il negozio.",
-      "needs_contact": "Aggiungi il telefono della fioreria nelle Impostazioni per pubblicare il negozio."
+      "needs_contact": "Aggiungi il telefono della fioreria nelle Impostazioni per pubblicare il negozio.",
+      "needs_payment": "Scegli almeno una forma di pagamento per ricevere ordini online."
     },
     "activity": {
       "updated": "{actor} ha aggiornato il negozio online",
       "published": "{actor} ha pubblicato il negozio online",
       "unpublished": "{actor} ha ritirato il negozio online",
       "image_set": "{actor} ha cambiato il logo o la copertina del negozio online",
-      "image_removed": "{actor} ha tolto il logo o la copertina del negozio online"
+      "image_removed": "{actor} ha tolto il logo o la copertina del negozio online",
+      "orders_updated": "{actor} ha cambiato gli ordini online"
     },
     "imagesTitle": "Logo e copertina",
     "imagesSubtitle": "Così riconoscono la tua fioreria sulla pagina e quando condividi il link.",
@@ -388,7 +410,29 @@
     "changeCover": "Cambia la copertina",
     "removeLogo": "Togli il logo",
     "removeCover": "Togli la copertina",
-    "imageRemoved": "Immagine tolta."
+    "imageRemoved": "Immagine tolta.",
+    "validation": {
+      "needs_payment": "Con gli ordini online attivi, lascia almeno una forma di pagamento."
+    },
+    "orders": {
+      "title": "Ordini online",
+      "subtitle": "I tuoi clienti scelgono prodotti, data e consegna dal tuo negozio; tu accetti o rifiuti ogni ordine e ti pagano direttamente.",
+      "on": "Attivi",
+      "off": "Disattivati",
+      "enabled": "Ricevere ordini dal mio negozio online",
+      "enabledHint": "Ti arriva un’email per ogni ordine. Se nessuno risponde entro 3 giorni, si annulla da solo e avvisiamo il cliente.",
+      "leadDays": "Anticipo minimo",
+      "leadDaysHint": "Il primo giorno che il cliente può scegliere per la consegna o il ritiro.",
+      "leadDaysOption": "{count, plural, =0 {Anche in giornata} one {# giorno prima} other {# giorni prima}}",
+      "saved": "Ordini online salvati.",
+      "pending": "{count, plural, one {# ordine online da accettare} other {# ordini online da accettare}}",
+      "blockers": {
+        "store_needs_payment": "Scegli almeno una forma di pagamento, così il cliente sa come pagarti.",
+        "store_needs_contact": "Aggiungi il telefono della fioreria, così il cliente può chiamarti."
+      },
+      "goToPayment": "Forme di pagamento",
+      "notPublished": "Il tuo negozio non è ancora pubblicato: gli ordini arriveranno quando lo pubblichi."
+    }
   },
   "publicStore": {
     "demoNotice": "Fioreria di prova: prodotti e prezzi sono di esempio.",
@@ -442,7 +486,10 @@
     "notFoundTitle": "Questo negozio non è disponibile",
     "notFoundBody": "Forse il link è scritto male o la fioreria lo ha ritirato.",
     "logoAlt": "Logo di {name}",
-    "coverAlt": "Foto di {name}"
+    "coverAlt": "Foto di {name}",
+    "orderCta": "Fai un ordine",
+    "orderHow": "Scegli online, la fioreria conferma e la paghi direttamente.",
+    "orderOnline": "Ordina online"
   },
   "timezones": {
     "America/Mexico_City": "Ora del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -586,7 +633,10 @@
     "public_link.revoked": "{actor} ha disattivato il link di {number}",
     "order.assigned": "{actor} ha cambiato il fattorino di {number}",
     "order.photo_added": "{actor} ha caricato la foto del mazzo di {number}",
-    "order.receiver_recorded": "{actor} ha indicato chi ha ricevuto {number}"
+    "order.receiver_recorded": "{actor} ha indicato chi ha ricevuto {number}",
+    "order.placed_online": "{actor} ha fatto l’ordine {number} dal negozio online",
+    "order.accepted": "{actor} ha accettato l’ordine online {number}",
+    "order.expired": "L’ordine online {number} si è annullato perché nessuno l’ha accettato in tempo"
   },
   "catalog": {
     "title": "Catalogo",
@@ -1191,7 +1241,8 @@
       "week": "Questa settimana",
       "past": "Precedenti",
       "all": "Tutti",
-      "drafts": "Bozze"
+      "drafts": "Bozze",
+      "pending": "Da accettare"
     },
     "statuses": {
       "DRAFT": "Bozza",
@@ -1487,6 +1538,23 @@
       "save": "Salva",
       "saved": "Consegna registrata.",
       "photoAlt": "Mazzo finito dell’ordine {number}"
+    },
+    "online": {
+      "pendingAlert": "{count, plural, one {Hai # ordine online da accettare.} other {Hai # ordini online da accettare.}}",
+      "review": "Vedi",
+      "accepted": "Ordine accettato: abbiamo avvisato il cliente per email.",
+      "badge": "Online",
+      "panelTitle": "Ordine online da accettare",
+      "panelBody": "Controlla prodotti, data e costo di consegna (se qualcosa cambia, modificalo qui sotto d’accordo con il cliente). Accettandolo gli mandiamo il totale e come pagarti. Se nessuno risponde entro {days} giorni, si annulla da solo.",
+      "accept": "Accetta l’ordine",
+      "reject": "Rifiuta",
+      "rejectTitle": "Rifiutare l’ordine",
+      "rejectBody": "Scriviamo al cliente con questo motivo: spiegalo con gentilezza (per esempio, se non hai fiori per quella data).",
+      "rejectReason": "Motivo (lo vedrà il cliente)",
+      "rejectConfirm": "Rifiuta l’ordine",
+      "cancelNotice": "Il cliente ha fatto questo ordine online: gli manderemo un’email con il motivo.",
+      "buyerNotes": "Commenti del cliente",
+      "askManager": "Solo proprietari e manager possono accettare o rifiutare gli ordini online."
     }
   },
   "plans": {
@@ -2020,7 +2088,14 @@
       "contactText": "Ciao, ho una domanda sull’ordine {number}.",
       "photoAlt": "Foto del tuo mazzo finito",
       "photoCaption": "Ecco il tuo mazzo",
-      "receivedBy": "L’ha ricevuto {name}."
+      "receivedBy": "L’ha ricevuto {name}.",
+      "sent": "Fatto! Abbiamo mandato il tuo ordine a {shop}. Ti avvisiamo per email quando lo accetta.",
+      "waiting": "In attesa che {shop} accetti il tuo ordine. Se non risponde entro {days} giorni, lo annulliamo e ti avvisiamo. Per ora non pagare nulla.",
+      "cancelReason": "Motivo: {reason}",
+      "howToPay": "Come pagare",
+      "payWith": "La fioreria accetta: {methods}.",
+      "payAsk": "Chiedi alla fioreria come pagare.",
+      "payDirect": "Paghi direttamente la fioreria: Gardelia non riceve i tuoi soldi."
     }
   },
   "shareLink": {
@@ -2506,6 +2581,73 @@
       "unknown": "Manca il costo di qualche prodotto",
       "previous": "Mese precedente",
       "next": "Mese successivo"
+    }
+  },
+  "checkout": {
+    "title": "Fai un ordine",
+    "subtitle": "Scegli i prodotti e quando li vuoi. {shop} conferma l’ordine e paghi direttamente la fioreria.",
+    "pendingLimit": "Hai già {count} ordini in attesa di risposta da questa fioreria. Aspetta che ti rispondano o scrivi loro su WhatsApp.",
+    "myOrders": "Vedi i miei ordini",
+    "noItems": "Per ora questa fioreria non ha prodotti da ordinare online.",
+    "steps": {
+      "products": "Prodotti",
+      "delivery": "Consegna",
+      "card": "Biglietto",
+      "confirm": "Conferma"
+    },
+    "less": "Uno in meno di {name}",
+    "more": "Uno in più di {name}",
+    "chooseProduct": "Scegli almeno un prodotto.",
+    "subtotal": "Subtotale",
+    "mode": "Come lo vuoi?",
+    "modes": {
+      "DELIVERY": "Consegna a domicilio",
+      "PICKUP": "Ritiro in negozio"
+    },
+    "pickupAt": "Lo ritiri in: {address}",
+    "pickupWhere": "Dove lo ritiri",
+    "dateDelivery": "Giorno di consegna",
+    "datePickup": "Giorno del ritiro",
+    "dateHint": "Scegli un giorno in cui la fioreria è aperta.",
+    "closedDay": "La fioreria è chiusa quel giorno: scegline un altro.",
+    "window": "Orario",
+    "anyTime": "A qualsiasi ora",
+    "windowRange": "{start}–{end}",
+    "address": "Indirizzo di consegna",
+    "newAddress": "Un altro indirizzo",
+    "saveAddress": "Salva questo indirizzo nel mio account",
+    "recipientName": "Chi riceve",
+    "recipientHint": "Se lo lasci vuoto, usiamo quello dell’indirizzo salvato.",
+    "recipientPhone": "Telefono di chi riceve",
+    "deliveryNotes": "Indicazioni per la consegna",
+    "deliveryNotesPlaceholder": "Tra via X e via Y, portone verde, è una sorpresa…",
+    "cardMessage": "Messaggio del biglietto",
+    "cardMessageHint": "Lo scriviamo sul biglietto che accompagna i fiori. Puoi lasciarlo vuoto.",
+    "cardSignature": "Firma",
+    "cardAnonymous": "Anonimo",
+    "buyerNotes": "Commenti per la fioreria",
+    "buyerNotesHint": "Per esempio: colori pastello, niente gigli.",
+    "deliveryFee": "Consegna",
+    "feeToConfirm": "Lo conferma la fioreria",
+    "total": "Totale",
+    "contactPhone": "Il tuo telefono",
+    "contactPhoneHint": "Così la fioreria può chiamarti se serve.",
+    "howItWorks": "Cosa succede dopo?",
+    "acceptFirst": "{shop} controlla il tuo ordine e ti scriviamo appena lo accetta, con il totale e come pagare. Se non risponde entro {days} giorni, lo annulliamo e ti avvisiamo.",
+    "payDirect": "Paghi direttamente la fioreria ({methods}). Per ora non pagare nulla.",
+    "payDirectNoMethods": "Paghi direttamente la fioreria: ti dirà come quando accetta. Per ora non pagare nulla.",
+    "dataShared": "Condividiamo il tuo nome, la tua email ({email}) e il tuo telefono con {shop} per gestire questo ordine.",
+    "send": "Invia l’ordine",
+    "sending": "Invio…",
+    "validation": {
+      "no_items": "Scegli almeno un prodotto.",
+      "date_too_soon": "Quel giorno non è più possibile: scegli una data successiva.",
+      "date_too_far": "Scegli una data entro i prossimi 60 giorni.",
+      "closed_day": "La fioreria è chiusa quel giorno: scegline un altro."
+    },
+    "conflict": {
+      "closed": "Questa fioreria per ora non riceve ordini online.",
+      "pending_limit": "Hai già 3 ordini in attesa di risposta da questa fioreria. Aspetta che ti rispondano o scrivi loro."
     }
   }
 }

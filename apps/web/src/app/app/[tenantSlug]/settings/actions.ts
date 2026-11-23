@@ -18,6 +18,7 @@ import {
   setStoreImage,
   updateBuilderSettings,
   updateDeliverySettings,
+  updateOnlineOrderSettings,
   updateOnlineStore,
   updatePrimaryLocation,
   updateTenantLegal,
@@ -189,6 +190,18 @@ export async function updateOnlineStoreAction(
   return runTenantAction(slug, async ({ ctx, routes }) => {
     await updateOnlineStore(ctx, formDataToObject(formData, ['paymentMethods']));
     return { revalidate: routes.settings.store, success: 'store.saved' };
+  });
+}
+
+/** "Pedidos en línea": accesi o spenti e anticipo minimo (ADR-067). */
+export async function updateOnlineOrderSettingsAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await updateOnlineOrderSettings(ctx, formDataToObject(formData));
+    return { revalidate: routes.settings.store, success: 'store.orders.saved' };
   });
 }
 

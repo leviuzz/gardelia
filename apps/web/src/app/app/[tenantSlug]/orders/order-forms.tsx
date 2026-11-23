@@ -13,6 +13,7 @@ import {
   type OrderStatus,
 } from '@floral/domain';
 import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
+import { RadioCard } from '@/components/form/radio-card';
 import { AddressFields } from '@/components/form/address-fields';
 import { Field, controlProps } from '@/components/form/field';
 import { SubmitButton } from '@/components/form/submit-button';
@@ -33,7 +34,6 @@ import { fieldError, type ActionState } from '@/lib/action-state';
 import { isBackStep } from '@/lib/order-ui';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 import { useToastActionState } from '@/lib/use-action-toast';
-import { cn } from '@/lib/utils';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -86,39 +86,6 @@ export interface WindowOption {
 
 function windowKey(window: { readonly start: string; readonly end: string }): string {
   return `${window.start}-${window.end}`;
-}
-
-function RadioCard({
-  name,
-  value,
-  checked,
-  onChange,
-  children,
-}: {
-  readonly name: string;
-  readonly value: string;
-  readonly checked: boolean;
-  readonly onChange: () => void;
-  readonly children: React.ReactNode;
-}) {
-  return (
-    <label
-      className={cn(
-        'flex cursor-pointer items-center gap-3 rounded-xl border bg-card px-4 py-3 text-sm transition-colors has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/40',
-        checked ? 'border-primary bg-secondary/70 font-medium' : 'hover:bg-muted',
-      )}
-    >
-      <input
-        type="radio"
-        name={name}
-        value={value}
-        checked={checked}
-        onChange={onChange}
-        className="size-4 shrink-0 accent-primary"
-      />
-      <span className="min-w-0">{children}</span>
-    </label>
-  );
 }
 
 /**
@@ -493,27 +460,53 @@ export function OrderStepActions({
 }
 
 /** Annullare chiede il motivo, che resta nella cronologia. */
-export function CancelOrderDialog({ action }: { readonly action: Action }) {
+/**
+ * "Cancelar pedido". Per un ordine della tienda en línea il motivo arriva a chi compra per email:
+ * `online` lo dice, `reject` è il rifiuto di un ordine ancora da accettare (ADR-067).
+ */
+export function CancelOrderDialog({
+  action,
+  variant = 'cancel',
+}: {
+  readonly action: Action;
+  readonly variant?: 'cancel' | 'online' | 'reject';
+}) {
   const t = useTranslations('orders.detail');
+  const to = useTranslations('orders.online');
   const tc = useTranslations('common');
+  const reject = variant === 'reject';
   const [open, setOpen] = useState(false);
   const [state, formAction] = useToastActionState(action, () => setOpen(false));
   const err = fieldError(state, 'reason');
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="w-full text-destructive hover:text-destructive">
+        <Button
+          variant={reject ? 'outline' : 'ghost'}
+          className="w-full text-destructive hover:text-destructive"
+        >
           <Ban />
-          {t('cancel')}
+          {reject ? to('reject') : t('cancel')}
         </Button>
       </DialogTrigger>
       <DialogContent closeLabel={tc('close')}>
         <DialogHeader>
-          <DialogTitle>{t('cancelTitle')}</DialogTitle>
-          <DialogDescription>{t('cancelBody')}</DialogDescription>
+          <DialogTitle>{reject ? to('rejectTitle') : t('cancelTitle')}</DialogTitle>
+          <DialogDescription>
+            {reject
+              ? to('rejectBody')
+              : variant === 'online'
+                ? `${t('cancelBody')} ${to('cancelNotice')}`
+                : t('cancelBody')}
+          </DialogDescription>
         </DialogHeader>
         <form action={formAction} onSubmit={preserveOnSubmit(formAction)} className="grid gap-4">
-          <Field id="cancel-reason" label={t('cancelReason')} error={err} required>
+          <Field
+            id="cancel-reason"
+            label={variant === 'cancel' ? t('cancelReason') : to('rejectReason')}
+            error={err}
+            required
+          >
             <Textarea
               {...controlProps('cancel-reason', err)}
               name="reason"
@@ -529,7 +522,7 @@ export function CancelOrderDialog({ action }: { readonly action: Action }) {
               </Button>
             </DialogClose>
             <SubmitButton variant="destructive" className="w-full sm:w-auto">
-              {t('cancelConfirm')}
+              {reject ? to('rejectConfirm') : t('cancelConfirm')}
             </SubmitButton>
           </DialogFooter>
         </form>

@@ -1,4 +1,4 @@
-import { ClipboardList, FileText, Plus, Store, Truck } from 'lucide-react';
+import { ClipboardList, FileText, Globe, Plus, Store, Truck } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -9,6 +9,7 @@ import { FilterBar } from '@/components/common/list/filter-bar';
 import { ListPagination } from '@/components/common/list/list-pagination';
 import { ListResults } from '@/components/common/list/list-results';
 import { EmptyState, PageHeader } from '@/components/page-header';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox, NativeSelect } from '@/components/ui/input';
 import { money } from '@/lib/format';
@@ -95,8 +96,26 @@ export default async function OrdersPage({
       <OrdersTabs routes={routes} current="list" />
       <PageHeader title={t('title')} description={t('subtitle')} actions={actions} />
 
+      {result.pendingCount > 0 && filters.when !== 'pending' ? (
+        <Alert variant="warning">
+          <Globe aria-hidden="true" />
+          <AlertDescription className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {t('online.pendingAlert', { count: result.pendingCount })}
+            <Link
+              href={href({ when: 'pending', page: 1 })}
+              className="font-medium underline-offset-4 hover:underline"
+            >
+              {t('online.review')}
+            </Link>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <nav aria-label={tc('filter')} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-        {ORDER_WHEN_FILTERS.map((when) => (
+        {/* "Por aceptar" solo quando c'è qualcosa da accettare (o è il filtro scelto). */}
+        {ORDER_WHEN_FILTERS.filter(
+          (when) => when !== 'pending' || result.pendingCount > 0 || filters.when === 'pending',
+        ).map((when) => (
           <Link
             key={when}
             href={href({ when, page: 1 })}
@@ -109,6 +128,7 @@ export default async function OrdersPage({
             )}
           >
             {t(`when.${when}`)}
+            {when === 'pending' ? ` (${result.pendingCount})` : null}
           </Link>
         ))}
       </nav>

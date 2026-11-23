@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
 import { toast } from 'sonner';
 import {
+  MARKETPLACE_ORDER_LIMITS,
   PHOTO_LIMITS,
   STORE_LIMITS,
   STORE_PAYMENT_METHODS,
@@ -17,7 +18,7 @@ import { usePhotoUpload } from '@/components/photos/use-photo-upload';
 import { Field, controlProps } from '@/components/form/field';
 import { SubmitButton } from '@/components/form/submit-button';
 import { Button } from '@/components/ui/button';
-import { Checkbox, Input, Textarea } from '@/components/ui/input';
+import { Checkbox, Input, NativeSelect, Textarea } from '@/components/ui/input';
 import { fieldError, idleState, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 import { useActionToast } from '@/lib/use-action-toast';
@@ -94,6 +95,63 @@ export function StoreInfoForm({
           maxLength={STORE_LIMITS.paymentInstructions}
           rows={2}
         />
+      </Field>
+      <SubmitButton className="w-fit">{tc('save')}</SubmitButton>
+    </form>
+  );
+}
+
+/**
+ * "Pedidos en línea" (ADR-067): se chi compra può ordinare dalla pagina e con quanto anticipo.
+ * Accenderli richiede un modo di pagare e il telefono (il servizio lo ricontrolla).
+ */
+export function OnlineOrdersForm({
+  action,
+  defaults,
+  canEnable,
+}: {
+  readonly action: Action;
+  readonly defaults: { readonly ordersEnabled: boolean; readonly minLeadDays: number };
+  /** Falso se manca qualcosa per accenderli (l'elenco lo mostra la pagina). */
+  readonly canEnable: boolean;
+}) {
+  const t = useTranslations('store.orders');
+  const tc = useTranslations('common');
+  const [state, formAction] = useActionState(action, idleState);
+  useActionToast(state);
+  const err = (field: string) => fieldError(state, field);
+  return (
+    <form action={formAction} onSubmit={preserveOnSubmit(formAction)} className="grid gap-5">
+      <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-4">
+        <Checkbox
+          name="ordersEnabled"
+          defaultChecked={defaults.ordersEnabled}
+          disabled={!canEnable && !defaults.ordersEnabled}
+          className="mt-0.5"
+        />
+        <span className="grid gap-1">
+          <span className="text-sm font-medium">{t('enabled')}</span>
+          <span className="text-sm text-muted-foreground">{t('enabledHint')}</span>
+        </span>
+      </label>
+      <Field
+        id="store-lead-days"
+        label={t('leadDays')}
+        hint={t('leadDaysHint')}
+        error={err('minLeadDays')}
+      >
+        <NativeSelect
+          {...controlProps('store-lead-days', err('minLeadDays'), true)}
+          name="minLeadDays"
+          defaultValue={String(defaults.minLeadDays)}
+          className="sm:max-w-xs"
+        >
+          {Array.from({ length: MARKETPLACE_ORDER_LIMITS.leadDaysMax + 1 }, (_, days) => (
+            <option key={days} value={days}>
+              {t('leadDaysOption', { count: days })}
+            </option>
+          ))}
+        </NativeSelect>
       </Field>
       <SubmitButton className="w-fit">{tc('save')}</SubmitButton>
     </form>

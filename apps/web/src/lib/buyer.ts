@@ -21,7 +21,11 @@ export type BuyerActionWork = (scope: { readonly ctx: BuyerContext }) => Promise
  * Ossatura delle server action di "Mi cuenta", gemella di `runTenantAction`: contesto dalla
  * sessione PRIMA di tutto, errori del servizio → stato del form, poi ricarica e messaggio.
  */
-export async function runBuyerAction(work: BuyerActionWork): Promise<ActionState> {
-  const ctx = await getBuyerContext();
+export async function runBuyerAction(
+  work: BuyerActionWork,
+  /** Dove tornare dopo l'accesso se la sessione è scaduta (es. il modulo d'ordine). */
+  options: { readonly next?: string } = {},
+): Promise<ActionState> {
+  const ctx = await getBuyerContext(options.next);
   return settleAction(nextOutcomeDeps, () => work({ ctx }));
 }

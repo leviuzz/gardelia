@@ -372,6 +372,8 @@ export const orderCancelSchema = z.object({
  */
 export const ORDER_WHEN_FILTERS = [
   'upcoming',
+  /** Ordini della tienda en línea in attesa di risposta (ADR-067). */
+  'pending',
   'today',
   'tomorrow',
   'week',

@@ -119,7 +119,9 @@ function StoreList({
         return (
           <li key={store.slug}>
             <Link
-              href={routes.home}
+              // Passa dalla rotta dell'attribuzione: l'ordine sarà "portato da Gardelia" (D-24).
+              href={buyerRoutes.fromSearch(store.slug)}
+              prefetch={false}
               className="flex items-center gap-4 rounded-2xl border bg-card p-4 shadow-xs transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
             >
               <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-white">

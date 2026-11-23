@@ -20,6 +20,22 @@ describe('righe dal modulo', () => {
         other: '5',
       }),
     ).toEqual([{ itemId: 'a1', quantity: 2 }]);
+    // Forma annidata di formDataToObject.
+    expect(marketplaceLinesFromForm({ qty: { a1: '3', b2: '0' } })).toEqual([
+      { itemId: 'a1', quantity: 3 },
+    ]);
+  });
+
+  it('quantità strane non spariscono: le rifiuta lo schema', () => {
+    const lines = marketplaceLinesFromForm({ qty: { a1: '1.5', b2: 'abc', c3: '-1' } });
+    expect(lines).toHaveLength(3);
+    const parsed = marketplaceOrderSchema('MX').safeParse({
+      lines: lines.map((line) => ({ ...line, itemId: '0192f5c1-6b2f-7000-8000-000000000001' })),
+      fulfillmentMode: 'PICKUP',
+      scheduledDate: '2026-11-25',
+      contactPhone: '449 555 0101',
+    });
+    expect(parsed.success).toBe(false);
   });
 });
 

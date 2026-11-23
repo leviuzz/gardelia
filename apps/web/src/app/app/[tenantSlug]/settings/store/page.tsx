@@ -17,10 +17,11 @@ import { getTenantContext } from '@/lib/tenant';
 import {
   removeStoreImageAction,
   setOnlineStorePublishedAction,
+  updateOnlineOrderSettingsAction,
   updateOnlineStoreAction,
   uploadStoreImageAction,
 } from '../actions';
-import { StoreImageField, StoreInfoForm, StoreLinkCard } from './store-forms';
+import { OnlineOrdersForm, StoreImageField, StoreInfoForm, StoreLinkCard } from './store-forms';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('store');
@@ -29,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * "Mi tienda en línea" (marketplace, blocco C2, ADR-065): stato della pagina pubblica, cosa manca
- * per pubblicarla, presentazione e forme di pagamento.
+ * per pubblicarla, ordini online (C4, ADR-067), presentazione e forme di pagamento.
  */
 export default async function StoreSettingsPage({
   params,
@@ -147,6 +148,63 @@ export default async function StoreSettingsPage({
 
       <Card>
         <CardHeader>
+          <CardTitle className="flex flex-wrap items-center gap-2">
+            {t('store.orders.title')}
+            {settings.ordersEnabled ? (
+              <Badge variant="success">{t('store.orders.on')}</Badge>
+            ) : (
+              <Badge variant="secondary">{t('store.orders.off')}</Badge>
+            )}
+          </CardTitle>
+          <CardDescription>{t('store.orders.subtitle')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {settings.pendingOrders > 0 ? (
+            <p className="text-sm">
+              <Link
+                href={routes.orders.list({ when: 'pending' })}
+                className="font-medium text-primary hover:underline"
+              >
+                {t('store.orders.pending', { count: settings.pendingOrders })}
+              </Link>
+            </p>
+          ) : null}
+          {!settings.ordersEnabled && settings.ordersBlockers.length > 0 ? (
+            <ul className="grid gap-2">
+              {settings.ordersBlockers.map((blocker) => (
+                <li
+                  key={blocker}
+                  className="flex flex-wrap items-center gap-3 rounded-xl border p-3 text-sm"
+                >
+                  <CircleAlert className="size-4 shrink-0 text-warning" aria-hidden="true" />
+                  <span className="min-w-0 flex-1">{t(`store.orders.blockers.${blocker}`)}</span>
+                  <Link
+                    href={
+                      blocker === 'store_needs_payment' ? '#store-info' : routes.settings.general
+                    }
+                    className="font-medium text-primary hover:underline"
+                  >
+                    {blocker === 'store_needs_payment'
+                      ? t('store.orders.goToPayment')
+                      : t('store.goToProfile')}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <OnlineOrdersForm
+            action={updateOnlineOrderSettingsAction.bind(null, slug)}
+            canEnable={settings.ordersBlockers.length === 0}
+            defaults={{ ordersEnabled: settings.ordersEnabled, minLeadDays: settings.minLeadDays }}
+          />
+          {settings.ordersEnabled && !settings.isPublished ? (
+            <p className="text-sm text-muted-foreground">{t('store.orders.notPublished')}</p>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>{t('store.imagesTitle')}</CardTitle>
           <CardDescription>{t('store.imagesSubtitle')}</CardDescription>
         </CardHeader>
@@ -168,7 +226,7 @@ export default async function StoreSettingsPage({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="store-info" className="scroll-mt-20">
         <CardHeader>
           <CardTitle>{t('store.infoTitle')}</CardTitle>
           <CardDescription>{t('store.infoSubtitle')}</CardDescription>
