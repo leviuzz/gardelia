@@ -23,6 +23,7 @@ import {
   type PublicLinkKind,
   type QuoteStatus,
   type SaleUnit,
+  type StorePaymentMethod,
   type SupportedLocale,
 } from '@floral/domain';
 import type { RequestMeta } from './context';
@@ -340,6 +341,16 @@ export interface PublicOrderDto {
   readonly receivedBy: string | null;
   /** Foto del ramo finito (ADR-058): il suo ID cambia l'URL quando la foto cambia. */
   readonly photoId: string | null;
+  /**
+   * Ordine fatto dalla tienda en línea (ADR-067): come si paga (pagamento diretto) e, se la
+   * fioreria l'ha rifiutato o annullato, il motivo che ha scritto per chi compra. Null per gli
+   * ordini del banco (il motivo lì è interno).
+   */
+  readonly online: {
+    readonly paymentMethods: readonly StorePaymentMethod[];
+    readonly paymentInstructions: string | null;
+    readonly cancelReason: string | null;
+  } | null;
 }
 
 export async function getPublicOrder(
@@ -367,6 +378,12 @@ export async function getPublicOrder(
       where: { tenantId: scope.tenantId, orderId: order.id, status: 'ACTIVE' },
       select: { id: true },
     });
+    const store = order.placedOnline
+      ? await tx.onlineStore.findUnique({
+          where: { tenantId: scope.tenantId },
+          select: { paymentMethods: true, paymentInstructions: true },
+        })
+      : null;
     const delivery =
       order.fulfillmentMode === 'DELIVERY' &&
       order.deliveryAddressLine1 &&
@@ -411,6 +428,13 @@ export async function getPublicOrder(
       receivedBy:
         order.status === 'DELIVERED' || order.status === 'PICKED_UP' ? order.handoverName : null,
       photoId: order.status === 'CANCELLED' ? null : (photo?.id ?? null),
+      online: order.placedOnline
+        ? {
+            paymentMethods: (store?.paymentMethods ?? []) as StorePaymentMethod[],
+            paymentInstructions: store?.paymentInstructions ?? null,
+            cancelReason: order.status === 'CANCELLED' ? order.cancelReason : null,
+          }
+        : null,
     };
   });
 }

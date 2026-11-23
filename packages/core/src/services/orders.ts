@@ -64,6 +64,7 @@ import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { readStoredImage } from '../media/stored-files';
+import { buyerOrderMail, sendOrderMails, type OrderMailDeps } from '../order-mail';
 import { requireEntitlement } from './billing';
 import {
   catalogLineDraft,
@@ -193,6 +194,10 @@ export interface OrderDetailDto extends OrderSummaryDto {
   readonly deliveryFeeMinor: number;
   readonly balanceMinor: number;
   readonly acquisitionSource: AcquisitionSource;
+  /** Fatto da chi compra dalla tienda en línea (ADR-067). */
+  readonly placedOnline: boolean;
+  /** Commenti di chi compra per la fioreria. */
+  readonly buyerNotes: string | null;
   readonly cancelReason: string | null;
   readonly statusChangedAt: Date;
   readonly lines: readonly OrderLineDto[];
@@ -216,6 +221,8 @@ export interface OrderDetailDto extends OrderSummaryDto {
     readonly canSetReceiver: boolean;
   };
   readonly canCancel: boolean;
+  /** Ordine online "Por aceptar" che chi guarda può accettare (o rifiutare: `canCancel`). */
+  readonly canAccept: boolean;
   /** Borrador che chi guarda può scartare. */
   readonly canDiscard: boolean;
   readonly canRecordPayments: boolean;
@@ -277,6 +284,8 @@ export interface OrderListResult {
   readonly pageCount: number;
   readonly when: OrderWhenFilter;
   readonly canWrite: boolean;
+  /** Ordini online in attesa di risposta, con qualsiasi filtro (per l'avviso in cima). */
+  readonly pendingCount: number;
 }
 
 function whenWhere(when: OrderWhenFilter, today: DateParts): Prisma.OrderWhereInput {
@@ -297,6 +306,8 @@ function whenWhere(when: OrderWhenFilter, today: DateParts): Prisma.OrderWhereIn
       return { scheduledDate: { not: null } };
     case 'drafts':
       return { status: 'DRAFT' };
+    case 'pending':
+      return { status: 'PENDING_ACCEPTANCE' };
   }
 }
 
@@ -341,7 +352,10 @@ export async function listOrders(
             { number: 'asc' },
           ];
   return withTenantContext(getDb(), ctx, async (tx) => {
-    const total = await tx.order.count({ where });
+    const [total, pendingCount] = await Promise.all([
+      tx.order.count({ where }),
+      tx.order.count({ where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE' } }),
+    ]);
     const pageCount = Math.max(1, Math.ceil(total / ORDER_PAGE_SIZE));
     const page = Math.min(filters.page, pageCount);
     const orders = await tx.order.findMany({
@@ -358,6 +372,7 @@ export async function listOrders(
       pageCount,
       when: filters.when,
       canWrite: hasPermission(ctx, 'orders:write'),
+      pendingCount,
     };
   });
 }
@@ -387,15 +402,17 @@ export async function listCustomerOrders(
   });
 }
 
-/** Passi che il ruolo di chi guarda può fare (accettare vuole `orders:write`, il resto `orders:fulfill`). */
+/**
+ * Passi del banco che il ruolo di chi guarda può fare (`orders:fulfill`). Accettare un ordine online
+ * non è un passo: ha il suo pulsante e la sua email (`acceptOnlineOrder`).
+ */
 export function allowedOrderSteps(
   ctx: TenantContext,
   status: OrderStatus,
   mode: FulfillmentMode,
 ): OrderStatus[] {
-  return orderStepsFrom(status, mode).filter((to) =>
-    hasPermission(ctx, isOrderAcceptance(status, to) ? 'orders:write' : 'orders:fulfill'),
-  );
+  if (!hasPermission(ctx, 'orders:fulfill')) return [];
+  return orderStepsFrom(status, mode).filter((to) => !isOrderAcceptance(status, to));
 }
 
 export async function getOrder(ctx: TenantContext, orderId: string): Promise<OrderDetailDto> {
@@ -477,6 +494,8 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
     balanceMinor:
       order.status === 'CANCELLED' ? 0 : orderBalanceMinor(order.paidMinor, order.totalMinor),
     acquisitionSource: order.acquisitionSource,
+    placedOnline: order.placedOnline,
+    buyerNotes: order.buyerNotes,
     cancelReason: order.cancelReason,
     statusChangedAt: order.statusChangedAt,
     lines: lines.map((line) => {
@@ -538,6 +557,7 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
       canSetReceiver: hasPermission(ctx, 'orders:fulfill') && isOrderHandedOver(order.status),
     },
     canCancel: canWrite && canCancelOrder(order.status),
+    canAccept: canWrite && order.status === 'PENDING_ACCEPTANCE',
     canDiscard: canWrite && order.status === 'DRAFT',
     canRecordPayments: hasPermission(ctx, 'orders:payments') && acceptsOrderPayments(order.status),
   };
@@ -891,10 +911,9 @@ export async function changeOrderStatus(
   const result = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await lockOrder(tx, ctx, orderId);
     if (!order) return null;
-    requirePermission(
-      ctx,
-      isOrderAcceptance(order.status, target) ? 'orders:write' : 'orders:fulfill',
-    );
+    // L'ordine online si accetta con "Aceptar pedido", che avvisa chi compra.
+    if (isOrderAcceptance(order.status, target)) throw new ConflictError('order_needs_acceptance');
+    requirePermission(ctx, 'orders:fulfill');
     if (!canStepOrder(order.status, target, order.fulfillmentMode)) {
       throw new ConflictError('invalid_status_transition');
     }
@@ -923,10 +942,15 @@ export async function changeOrderStatus(
   return result;
 }
 
+/**
+ * "Cancelar pedido" (o "Rechazar" per un ordine online ancora da accettare). Se l'ordine è stato
+ * fatto online, chi compra riceve un'email con il motivo (`mail`, facoltativo nei test).
+ */
 export async function cancelOrder(
   ctx: TenantContext,
   orderId: string,
   rawInput: unknown,
+  mail: OrderMailDeps | null = null,
 ): Promise<void> {
   requirePermission(ctx, 'orders:write');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
@@ -936,7 +960,7 @@ export async function cancelOrder(
 
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await lockOrder(tx, ctx, orderId);
-    if (!order) return false;
+    if (!order) return null;
     if (!canCancelOrder(order.status)) throw new ConflictError('invalid_status_transition');
     await tx.order.update({
       where: { id: order.id },
@@ -958,9 +982,57 @@ export async function cancelOrder(
       entityId: order.id,
       metadata: { number: formatOrderNumber(order.number), from: order.status },
     });
-    return true;
+    const kind = order.status === 'PENDING_ACCEPTANCE' ? 'rejected' : 'cancelled';
+    return { message: mail ? await buyerOrderMail(tx, ctx.tenantId, order.id, kind, mail) : null };
   });
-  if (!found) await notFound(ctx, 'Order', orderId);
+  if (!found) return notFound(ctx, 'Order', orderId);
+  if (mail && found.message) await sendOrderMails(mail.mailer, [found.message]);
+}
+
+/**
+ * "Aceptar pedido": un ordine della tienda en línea diventa confermato e chi compra riceve
+ * un'email con il totale e come pagare. Il giorno non deve essere già passato (prima si cambia).
+ */
+export async function acceptOnlineOrder(
+  ctx: TenantContext,
+  orderId: string,
+  mail: OrderMailDeps | null = null,
+): Promise<void> {
+  requirePermission(ctx, 'orders:write');
+  if (!isUuid(orderId)) throw new NotFoundError('Order');
+  const found = await withTenantContext(getDb(), ctx, async (tx) => {
+    const order = await lockOrder(tx, ctx, orderId);
+    if (!order) return null;
+    if (order.status !== 'PENDING_ACCEPTANCE') throw new ConflictError('order_not_pending');
+    const today = partsToDate(todayInTimeZone(ctx.timezone));
+    if (!order.scheduledDate || order.scheduledDate < today) {
+      throw new ConflictError('order_date_passed');
+    }
+    await tx.order.update({
+      where: { id: order.id },
+      data: { status: 'CONFIRMED', statusChangedAt: new Date() },
+    });
+    await tx.orderStatusEvent.create({
+      data: {
+        tenantId: ctx.tenantId,
+        orderId: order.id,
+        fromStatus: order.status,
+        toStatus: 'CONFIRMED',
+        createdById: ctx.userId,
+      },
+    });
+    await recordAudit(tx, ctx, {
+      action: AUDIT_ACTIONS.orderAccepted,
+      entityType: 'Order',
+      entityId: order.id,
+      metadata: { number: formatOrderNumber(order.number) },
+    });
+    return {
+      message: mail ? await buyerOrderMail(tx, ctx.tenantId, order.id, 'accepted', mail) : null,
+    };
+  });
+  if (!found) return notFound(ctx, 'Order', orderId);
+  if (mail && found.message) await sendOrderMails(mail.mailer, [found.message]);
 }
 
 /**

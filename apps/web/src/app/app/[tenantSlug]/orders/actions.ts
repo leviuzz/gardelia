@@ -6,6 +6,7 @@
  * Contesto, errori, pagine da ricaricare e messaggi: `runTenantAction`.
  */
 import {
+  acceptOnlineOrder,
   addCatalogItemToOrder,
   addOrderPhoto,
   assignOrder,
@@ -29,6 +30,7 @@ import {
 import type { ActionState } from '@/lib/action-state';
 import { serverEnv } from '@/lib/env';
 import { formDataToObject } from '@/lib/form-data';
+import { orderMailDeps } from '@/lib/order-mail';
 import { uploadedBytes } from '@/lib/uploads';
 import { runTenantAction, section } from '@/lib/tenant-action';
 
@@ -82,8 +84,22 @@ export async function cancelOrderAction(
   formData: FormData,
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
-    await cancelOrder(ctx, orderId, formDataToObject(formData));
+    // Un ordine online: chi compra riceve un'email con il motivo.
+    await cancelOrder(ctx, orderId, formDataToObject(formData), orderMailDeps());
     return { revalidate: section(routes.orders.list()), success: 'orders.detail.cancelled' };
+  });
+}
+
+/** "Aceptar pedido" (ordine della tienda en línea): chi compra riceve totale e come pagare. */
+export async function acceptOnlineOrderAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await acceptOnlineOrder(ctx, orderId, orderMailDeps());
+    return { revalidate: section(routes.orders.list()), success: 'orders.online.accepted' };
   });
 }
 

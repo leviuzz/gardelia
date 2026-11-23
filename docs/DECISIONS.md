@@ -1678,6 +1678,62 @@ Blocco C3 di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26). Avviato dal founder ("vai
   10 de mayo) come filtri, che richiedono di classificare i prodotti; attribuzione della fee (D-24)
   dalla ricerca, che si registra con l'ordine (C4).
 
+### ADR-067 — Ordine del cliente dalla tienda en línea: accettazione, email e scadenza — ADOTTATO (23/11/2026)
+
+Blocco C4 di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26). Avviato dal founder ("ok vai avanti con C4").
+
+- **Chi può ordinare:** chi ha un conto (sessione verificata, ADR-064) da una tienda pubblicata con
+  **"Recibir pedidos en línea"** acceso. Gli ordini online sono un interruttore a parte nella tienda,
+  spento di partenza: per accenderlo servono almeno una forma di pagamento e il telefono. Con gli
+  ordini accesi non si tolgono tutte le forme di pagamento. **Anticipo minimo** scelto dalla fioreria
+  (0–14 giorni, predefinito 1).
+- **Contesto ristretto, mai di sistema:** chi compra non è membro della fioreria. Lo slug diventa una
+  fioreria solo con la funzione `app_public_store_tenant` (tienda pubblicata), poi tutto avviene in
+  `withTenantContext({ tenantId, userId: <chi compra> })` con la RLS attiva: le tabelle della
+  fioreria per quel solo tenant, e — perché `app.user_id` è chi compra — anche i SUOI indirizzi
+  salvati (RLS per utente). Nessun `withSystemContext` dal web.
+- **Il modulo (`/f/<slug>/pedido`)** è a passi (prodotti → consegna → tarjeta e commenti → riepilogo
+  e telefono), nella lingua del mercato della fioreria come la sua pagina. Manda solo ID e quantità:
+  **prezzi, costo di consegna e totali li decide il server** dal catalogo (righe con lo stesso
+  snapshot degli ordini del banco) e dal costo di consegna predefinito della fioreria (0 = "lo
+  confirma la florería", il totale si mostra "sin envío"). Regole del giorno: anticipo, al massimo 60
+  giorni, e **i giorni di chiusura bloccano** (al banco sono solo un avviso: online nessuno decide);
+  la fascia deve essere una di quelle della fioreria, o "a cualquier hora".
+- **L'ordine nasce "Por aceptar" (`PENDING_ACCEPTANCE`)** con `placedOnline` e `buyerUserId`, un
+  link di tracciamento (ADR-056) e i commenti di chi compra (`buyerNotes`). Il cliente entra nel CRM
+  della fioreria: si collega a quello attivo con la stessa email, altrimenti se ne crea uno (senza
+  consenso alle promozioni). Il telefono resta nel profilo di chi compra; "Guardar esta dirección"
+  salva l'indirizzo nuovo in "Mi cuenta". Limite: **3 ordini in attesa per persona e fioreria**
+  (contro lo spam), con un lock per persona e fioreria contro gli invii contemporanei.
+- **La fioreria risponde:** "Aceptar pedido" (proprietari e gerenti, `orders:write`) è un'azione a
+  parte, non un passo del banco: conferma e scrive a chi compra il totale e **come pagare** (forme e
+  dati della tienda; il pagamento resta diretto, D-26). Prima di accettare si possono cambiare
+  prodotti, data e costo di consegna d'accordo con il cliente; un ordine col giorno già passato non
+  si accetta. **"Rechazar"** è l'annullamento con un motivo che chi compra legge (email e pagina);
+  annullare dopo averlo accettato avvisa allo stesso modo. Avviso "Tienes N pedidos en línea por
+  aceptar" e filtro "Por aceptar" in Pedidos, email ai proprietari e gerenti a ogni ordine.
+- **Scadenza (PROPOSTO):** un ordine che nessuno accetta in **3 giorni**, o il cui giorno passa, si
+  annulla da solo nella manutenzione giornaliera e chi compra lo sa per email. La funzione SQL
+  `app_pending_orders_to_expire` sceglie solo gli ID; l'annullamento avviene nel contesto di ogni
+  fioreria, ricontrollando le condizioni sotto lock. Il motivo scritto è un testo fisso nella lingua
+  del mercato.
+- **Email** (es-MX, lingua del mercato): "Recibimos tu pedido", "Nuevo pedido en línea" (alla
+  fioreria), "aceptó tu pedido", "no puede atender / fue cancelado". Mittente col nome della fioreria
+  e risposta al suo contatto; l'invio avviene dopo il commit e non fa mai fallire l'operazione.
+- **"Mis pedidos"** in "Mi cuenta": la funzione `app_buyer_orders()` (SECURITY DEFINER) restituisce
+  gli ordini di `app.user_id` in tutte le fiorerie, con i soli dati che chi compra vede già nel suo
+  link; l'utente non è mai un parametro.
+- **Attribuzione (D-24):** dalla ricerca (`/buscar`) le tiendas si aprono passando da
+  `/buscar/ir/<slug>`, che ricorda lo slug in un cookie per **30 giorni** (PROPOSTO; la finestra
+  definitiva è O-10). L'ordine è `MARKETPLACE_B2C` se chi compra è arrivato così **e** non era già un
+  cliente della fioreria (sui clienti propri nessuna fee); altrimenti `MERCHANT_DIRECT`. La fee non
+  si incassa ancora.
+- **DA VALIDARE:** termini per i consumatori e aviso de privacidad di chi compra (C5); se il cookie
+  dell'attribuzione va citato nell'aviso; i 3 giorni per accettare e il limite di 3 ordini in attesa.
+- **Non fatto:** il cliente che annulla da solo un ordine in attesa (oggi scrive alla fioreria);
+  costo di consegna per distanza; consumo dell'inventario dagli ordini; email a ogni cambio di stato
+  dopo l'accettazione (lo stato si vede nel link).
+
 ### ADR-070 — Clienti completi: cronologia, etichette e filtri, import da CSV — ADOTTATO (23/11/2026)
 
 Numerata 070: 066 è già la home per chi compra e 067–069 restano ai blocchi del marketplace

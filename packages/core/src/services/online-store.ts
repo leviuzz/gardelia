@@ -1,8 +1,8 @@
 /**
  * "Mi tienda en línea" (marketplace, blocco C2, ADR-065): impostazioni della pagina pubblica della
- * fioreria. Si pubblica solo con almeno un prodotto visibile e il telefono di contatto (fino agli
- * ordini online, C4, il cliente scrive alla fioreria). I pagamenti restano diretti: qui ci sono
- * solo le informazioni da mostrare.
+ * fioreria. Si pubblica solo con almeno un prodotto visibile e il telefono di contatto. Gli ordini
+ * online (C4, ADR-067) si accendono a parte e chiedono anche un modo di pagare. I pagamenti restano
+ * diretti: qui ci sono solo le informazioni da mostrare.
  */
 import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
 import {
@@ -10,8 +10,11 @@ import {
   ONLINE_ITEM_TYPES,
   isStoreImageKind,
   newId,
+  onlineOrderSettingsSchema,
+  onlineOrdersBlockers,
   onlineStoreFormSchema,
   storePublishBlockers,
+  type OnlineOrdersBlocker,
   toFieldErrors,
   type StoreImageKind,
   type StorePaymentMethod,
@@ -37,10 +40,16 @@ export interface OnlineStoreSettingsDto {
   /** ID delle immagini (cambiano a ogni sostituzione), o null. */
   readonly logoId: string | null;
   readonly coverId: string | null;
+  /** Ordini online (ADR-067): accesi, anticipo minimo, cosa manca per accenderli. */
+  readonly ordersEnabled: boolean;
+  readonly minLeadDays: number;
+  readonly ordersBlockers: readonly OnlineOrdersBlocker[];
+  /** Ordini online in attesa di risposta. */
+  readonly pendingOrders: number;
 }
 
 async function readState(tx: TransactionClient, ctx: TenantContext) {
-  const [store, onlineItems, tenant] = await Promise.all([
+  const [store, onlineItems, tenant, pendingOrders] = await Promise.all([
     tx.onlineStore.findUnique({ where: { tenantId: ctx.tenantId } }),
     tx.catalogItem.count({
       where: {
@@ -54,25 +63,33 @@ async function readState(tx: TransactionClient, ctx: TenantContext) {
       where: { id: ctx.tenantId },
       select: { contactPhone: true },
     }),
+    tx.order.count({ where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE' } }),
   ]);
-  return { store, onlineItems, contactPhone: tenant.contactPhone };
+  return { store, onlineItems, contactPhone: tenant.contactPhone, pendingOrders };
 }
 
 export async function getOnlineStoreSettings(ctx: TenantContext): Promise<OnlineStoreSettingsDto> {
   requirePermission(ctx, 'tenant:read');
-  const { store, onlineItems, contactPhone } = await withTenantContext(getDb(), ctx, (tx) =>
-    readState(tx, ctx),
+  const { store, onlineItems, contactPhone, pendingOrders } = await withTenantContext(
+    getDb(),
+    ctx,
+    (tx) => readState(tx, ctx),
   );
+  const paymentMethods = (store?.paymentMethods ?? []) as StorePaymentMethod[];
   return {
     isPublished: store?.isPublished ?? false,
     publishedAt: store?.publishedAt ?? null,
     description: store?.description ?? null,
-    paymentMethods: (store?.paymentMethods ?? []) as StorePaymentMethod[],
+    paymentMethods,
     paymentInstructions: store?.paymentInstructions ?? null,
     onlineItems,
     blockers: storePublishBlockers({ onlineItems, contactPhone }),
     logoId: store?.logoId ?? null,
     coverId: store?.coverId ?? null,
+    ordersEnabled: store?.ordersEnabled ?? false,
+    minLeadDays: store?.minLeadDays ?? 1,
+    ordersBlockers: onlineOrdersBlockers({ paymentMethods, contactPhone }),
+    pendingOrders,
   };
 }
 
@@ -99,6 +116,10 @@ export async function updateOnlineStore(ctx: TenantContext, rawInput: unknown): 
       before.paymentInstructions !== input.paymentInstructions ? 'paymentInstructions' : null,
     ].filter((field): field is string => field !== null);
     if (changedFields.length === 0) return;
+    // Con gli ordini online accesi, chi compra deve sapere come pagare.
+    if (before.ordersEnabled && input.paymentMethods.length === 0) {
+      throw new ValidationError({ paymentMethods: 'store_needs_payment' });
+    }
     await tx.onlineStore.update({
       where: { tenantId: ctx.tenantId },
       data: {
@@ -113,6 +134,56 @@ export async function updateOnlineStore(ctx: TenantContext, rawInput: unknown): 
       entityId: ctx.tenantId,
       // Solo cosa è cambiato: i testi (anche i dati bancari) non vanno nel registro.
       metadata: { changedFields },
+    });
+  });
+}
+
+/**
+ * "Pedidos en línea" (ADR-067): se chi compra può ordinare dalla pagina e con quanti giorni di
+ * anticipo. Accenderli richiede un modo di pagare e il telefono; spegnerli non tocca gli ordini già
+ * arrivati (si accettano o rifiutano come sempre).
+ */
+export async function updateOnlineOrderSettings(
+  ctx: TenantContext,
+  rawInput: unknown,
+): Promise<void> {
+  requirePermission(ctx, 'tenant:settings:update');
+  const parsed = onlineOrderSettingsSchema.safeParse(rawInput);
+  if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
+  const input = parsed.data;
+  await withTenantContext(getDb(), ctx, async (tx) => {
+    await ensureStore(tx, ctx);
+    await tx.$queryRaw`SELECT "tenantId" FROM "OnlineStore" WHERE "tenantId" = ${ctx.tenantId}::uuid FOR UPDATE`;
+    const { store, contactPhone } = await readState(tx, ctx);
+    if (!store) return;
+    if (store.ordersEnabled === input.ordersEnabled && store.minLeadDays === input.minLeadDays) {
+      return;
+    }
+    if (input.ordersEnabled && !store.ordersEnabled) {
+      const [blocker] = onlineOrdersBlockers({
+        paymentMethods: store.paymentMethods,
+        contactPhone,
+      });
+      if (blocker) throw new ConflictError(blocker);
+    }
+    await tx.onlineStore.update({
+      where: { tenantId: ctx.tenantId },
+      data: { ordersEnabled: input.ordersEnabled, minLeadDays: input.minLeadDays },
+    });
+    await recordAudit(tx, ctx, {
+      action: AUDIT_ACTIONS.storeOrdersUpdated,
+      entityType: 'OnlineStore',
+      entityId: ctx.tenantId,
+      metadata: {
+        changes: {
+          ...(store.ordersEnabled !== input.ordersEnabled
+            ? { ordersEnabled: { from: store.ordersEnabled, to: input.ordersEnabled } }
+            : {}),
+          ...(store.minLeadDays !== input.minLeadDays
+            ? { minLeadDays: { from: store.minLeadDays, to: input.minLeadDays } }
+            : {}),
+        },
+      },
     });
   });
 }

@@ -55,6 +55,18 @@ export {
   type PlacesProvider,
 } from './places';
 export {
+  expireUnacceptedOrders,
+  getCheckoutForm,
+  listBuyerOrders,
+  placeMarketplaceOrder,
+  type BuyerOrderDto,
+  type CheckoutFormDto,
+  type CheckoutItemDto,
+  type PlaceOrderOptions,
+  type PlacedOrderDto,
+} from './marketplace-orders';
+export type { OrderMailDeps } from './order-mail';
+export {
   listPublicStoreCities,
   refreshStoreCoordinates,
   searchPublicStores,

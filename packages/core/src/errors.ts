@@ -94,7 +94,17 @@ export type ConflictReason =
   | 'customers_import_nothing'
   /** "Mi tienda en línea" (ADR-065): cosa manca per pubblicare. */
   | 'store_needs_items'
-  | 'store_needs_contact';
+  | 'store_needs_contact'
+  /** Ordini online (ADR-067): per riceverli serve un modo di pagare. */
+  | 'store_needs_payment'
+  /** Chi compra: la tienda non riceve ordini, o ne ha già troppi in attesa da questa persona. */
+  | 'checkout_closed'
+  | 'checkout_pending_limit'
+  /** La fioreria: l'ordine online non è (più) da accettare, o il suo giorno è già passato. */
+  | 'order_not_pending'
+  | 'order_date_passed'
+  /** Un ordine "Por aceptar" si conferma solo con "Aceptar pedido" (che lo scrive al cliente). */
+  | 'order_needs_acceptance';
 
 export class ConflictError extends AppError {
   readonly code = 'conflict' as const;

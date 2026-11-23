@@ -372,6 +372,8 @@ export const orderCancelSchema = z.object({
  */
 export const ORDER_WHEN_FILTERS = [
   'upcoming',
+  /** Ordini della tienda en línea in attesa di risposta (ADR-067). */
+  'pending',
   'today',
   'tomorrow',
   'week',
@@ -393,3 +395,7 @@ export const orderListFiltersSchema = z.object({
   ),
 });
 export type OrderListFilters = z.infer<typeof orderListFiltersSchema>;
+
+/** Campi del modulo di consegna riusati dall'ordine del cliente online (ADR-067). */
+export const orderDateField = requiredDate;
+export const optionalUuidField = optionalUuid;

@@ -4,7 +4,7 @@
  * limiti dei testi.
  */
 import { z } from 'zod';
-import { checkboxField, multiValueField, optionalText } from './validation';
+import { checkboxField, multiValueField, optionalText, requiredInteger } from './validation';
 
 /**
  * Tipi di prodotto che un cliente può volere dalla pagina pubblica: ramos, piante, fiori sciolti
@@ -41,6 +41,32 @@ export const onlineStoreFormSchema = z.object({
   paymentInstructions: optionalText(STORE_LIMITS.paymentInstructions),
 });
 export type OnlineStoreInput = z.infer<typeof onlineStoreFormSchema>;
+
+/**
+ * "Pedidos en línea" (ADR-067): se chi compra può ordinare dalla pagina e con quanti giorni di
+ * anticipo (0 = anche per oggi).
+ */
+export const onlineOrderSettingsSchema = z.object({
+  ordersEnabled: checkboxField(),
+  minLeadDays: requiredInteger({ min: 0, max: 14 }),
+});
+export type OnlineOrderSettingsInput = z.infer<typeof onlineOrderSettingsSchema>;
+
+/**
+ * Cosa manca per ricevere ordini: chi compra deve sapere come pagare (il pagamento è diretto con
+ * la fioreria) e poterla chiamare.
+ */
+export type OnlineOrdersBlocker = 'store_needs_payment' | 'store_needs_contact';
+
+export function onlineOrdersBlockers(input: {
+  readonly paymentMethods: readonly string[];
+  readonly contactPhone: string | null;
+}): OnlineOrdersBlocker[] {
+  const blockers: OnlineOrdersBlocker[] = [];
+  if (input.paymentMethods.length === 0) blockers.push('store_needs_payment');
+  if (!input.contactPhone) blockers.push('store_needs_contact');
+  return blockers;
+}
 
 /** Interruttore "Publicar mi tienda". */
 export const storePublishSchema = z.object({ publish: checkboxField() });

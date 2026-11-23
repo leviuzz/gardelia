@@ -188,7 +188,12 @@ export const accountRoutes = {
  * invece che alla fioreria.
  */
 export function isAccountPath(path: string): boolean {
-  return path === accountRoutes.home || path.startsWith(`${accountRoutes.home}/`);
+  return (
+    path === accountRoutes.home ||
+    path.startsWith(`${accountRoutes.home}/`) ||
+    // "Hacer pedido" in una tienda en línea (ADR-067): chi accede sta comprando.
+    /^\/f\/[^/]+\/pedido(?:[/?]|$)/.test(path)
+  );
 }
 
 /**
@@ -204,6 +209,8 @@ export function publicStoreRoutes(slug: string) {
     /** Logo o copertina della tienda: l'ID attuale è nell'indirizzo. */
     image: (kind: 'LOGO' | 'COVER', imageId: string) =>
       `${home}/imagen/${kind === 'LOGO' ? 'logo' : 'portada'}/${segment(imageId)}`,
+    /** "Hacer pedido" (ADR-067); `producto` = un prodotto già scelto. */
+    checkout: (query?: QueryValues) => withQuery(`${home}/pedido`, query),
     /** Foto di un prodotto visibile (`thumb` = miniatura). */
     photo: (itemId: string, photoId: string, options?: { readonly thumb?: boolean }) =>
       withQuery(`${item(itemId)}/foto/${segment(photoId)}`, {
@@ -218,4 +225,9 @@ export const buyerRoutes = {
   florists: '/floristas',
   /** Ricerca: `ciudad`, oppure `lat`/`lng` (+ `dir` da mostrare), oppure `direccion` salvata. */
   search: (query?: QueryValues) => withQuery('/buscar', query),
+  /**
+   * Dalla ricerca alla tienda: segna che chi compra è arrivato da Gardelia (origine degli ordini,
+   * fee D-24) e porta alla pagina della fioreria.
+   */
+  fromSearch: (slug: string) => `/buscar/ir/${segment(slug)}`,
 } as const;

@@ -558,6 +558,25 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Ordine del cliente dalla tienda en línea, blocco C4 (fatto il 23/11, ADR-067):** in Tienda en línea
+"Pedidos en línea" (interruttore, anticipo minimo 0–14 giorni; servono una forma di pagamento e il telefono).
+Con gli ordini accesi la pagina della fioreria e quella del prodotto mostrano "Hacer un pedido" / "Pedir en
+línea": modulo a passi `/f/<slug>/pedido` (prodotti, consegna o ritiro con giorno, fascia e indirizzo salvato
+o nuovo, tarjeta e commenti, riepilogo e telefono), con l'accesso richiesto e i testi per chi compra. Prezzi,
+costo di consegna e totali dal server; giorni di chiusura e anticipo bloccano; massimo 3 ordini in attesa per
+persona e fioreria. L'ordine nasce "Por aceptar" con link di tracciamento, cliente collegato al CRM per
+email; email a chi compra e a proprietari e gerenti. La fioreria lo accetta (email con totale e come pagare)
+o lo rifiuta con un motivo che il cliente legge; avviso e filtro "Por aceptar" in Pedidos. Senza risposta in
+3 giorni (o col giorno passato) si annulla nella manutenzione giornaliera. "Mis pedidos" in "Mi cuenta".
+Attribuzione dalla ricerca (`/buscar/ir/<slug>`, cookie di 30 giorni): `MARKETPLACE_B2C` solo per chi non
+era già cliente della fioreria. Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test 793/793 ✅ (23
+nuovi: 6 di dominio, 14 d'integrazione con isolamento A↔B fra fiorerie e fra persone, 3 del web) ·
+migrazioni = schema ✅ · build ✅ · E2E 84/84 ✅ (1 nuovo: dalla scheda del prodotto alla registrazione,
+all'ordine, all'accettazione e a "Mis pedidos"); controllo visivo a 320 e 1280 px. Dopo l'unione con l'import dei clienti (migrazione rinominata a `20261123232000` per seguire
+quelle già su staging): test 810/810 ✅ · E2E 85/85 ✅. Prossimi: C5 (termini per
+i consumatori e privacy di chi compra); costo di consegna per distanza; scarico dell'inventario dagli
+ordini; chi compra che annulla da solo un ordine in attesa.
+
 **Home per chi compra e ricerca delle fiorerie, blocco C3 (fatto il 23/11, ADR-066):** `/` è ora la home di
 chi compra fiori ("¿A dónde enviamos tus flores?", come funziona, rimando per i fioristi); la presentazione
 del gestionale è su `/floristas`. Ricerca per città per tutti (nessuna chiamata a Google), per indirizzo con

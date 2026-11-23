@@ -1,4 +1,4 @@
-import { ArrowLeft, Info, MessageCircle, Printer } from 'lucide-react';
+import { ArrowLeft, Check, Globe, Info, MessageCircle, Printer } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -16,6 +16,7 @@ import {
   type TenantContext,
 } from '@floral/core';
 import {
+  MARKETPLACE_ORDER_LIMITS,
   MX_REGIONS,
   PHOTO_LIMITS,
   canShareOrder,
@@ -28,8 +29,10 @@ import {
 import { PrivateImage } from '@/components/common/private-image';
 import { ShareLinkPanel } from '@/components/common/share-link-card';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status-badges';
+import { ActionButton } from '@/components/form/action-button';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { serverEnv } from '@/lib/env';
@@ -39,6 +42,7 @@ import { deliveryFormOptions } from '@/lib/delivery-options';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
+  acceptOnlineOrderAction,
   assignOrderAction,
   cancelOrderAction,
   changeOrderStatusAction,
@@ -204,6 +208,12 @@ export default async function OrderPage({
           <span className="flex flex-wrap items-center gap-3">
             <span className="tabular-nums">{order.numberLabel}</span>
             <OrderStatusBadge status={order.status} className="font-sans" />
+            {order.placedOnline ? (
+              <Badge variant="secondary" className="font-sans">
+                <Globe aria-hidden="true" />
+                {t('orders.online.badge')}
+              </Badge>
+            ) : null}
             {order.status === 'CANCELLED' ? null : (
               <span className="font-sans">
                 <PaymentStatusBadge status={order.paymentStatus} />
@@ -262,6 +272,51 @@ export default async function OrderPage({
           {order.customer.phone ? ` · ${phoneForInput(order.customer.phone)}` : ''}
         </p>
       </div>
+
+      {order.status === 'PENDING_ACCEPTANCE' ? (
+        <Card
+          className="border-warning/40 bg-warning-soft/40 print:hidden"
+          data-testid="online-pending"
+        >
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="size-5 text-primary" aria-hidden="true" />
+              {t('orders.online.panelTitle')}
+            </CardTitle>
+            <CardDescription>
+              {t('orders.online.panelBody', { days: MARKETPLACE_ORDER_LIMITS.acceptDays })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {order.buyerNotes ? (
+              <div className="text-sm">
+                <p className="font-medium">{t('orders.online.buyerNotes')}</p>
+                <p className="mt-1 rounded-xl bg-card p-3 whitespace-pre-line">
+                  {order.buyerNotes}
+                </p>
+              </div>
+            ) : null}
+            {order.canAccept ? (
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <ActionButton
+                  action={acceptOnlineOrderAction.bind(null, slug, order.id)}
+                  icon={<Check />}
+                >
+                  {t('orders.online.accept')}
+                </ActionButton>
+                <div className="sm:w-auto">
+                  <CancelOrderDialog
+                    action={cancelOrderAction.bind(null, slug, order.id)}
+                    variant="reject"
+                  />
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t('orders.online.askManager')}</p>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
 
       {order.status === 'CANCELLED' && order.cancelReason ? (
         <Alert variant="info">
@@ -384,6 +439,12 @@ export default async function OrderPage({
                   <div>
                     <dt className="text-muted-foreground">{t('orders.detail.deliveryNotes')}</dt>
                     <dd className="whitespace-pre-line">{order.deliveryNotes}</dd>
+                  </div>
+                ) : null}
+                {order.buyerNotes ? (
+                  <div className="sm:col-span-2">
+                    <dt className="text-muted-foreground">{t('orders.online.buyerNotes')}</dt>
+                    <dd className="whitespace-pre-line">{order.buyerNotes}</dd>
                   </div>
                 ) : null}
                 <div className="sm:col-span-2">
@@ -585,13 +646,21 @@ export default async function OrderPage({
               ) : null}
             </CardHeader>
             <CardContent className="grid gap-2">
-              <OrderStepActions
-                action={changeOrderStatusAction.bind(null, slug, order.id)}
-                current={order.status}
-                steps={order.nextSteps}
-              />
-              {order.canCancel ? (
-                <CancelOrderDialog action={cancelOrderAction.bind(null, slug, order.id)} />
+              {order.status === 'PENDING_ACCEPTANCE' ? (
+                <p className="text-sm text-muted-foreground">{t('orders.online.stepsAfter')}</p>
+              ) : (
+                <OrderStepActions
+                  action={changeOrderStatusAction.bind(null, slug, order.id)}
+                  current={order.status}
+                  steps={order.nextSteps}
+                />
+              )}
+              {/* L'ordine da accettare si rifiuta dal pannello in cima. */}
+              {order.canCancel && order.status !== 'PENDING_ACCEPTANCE' ? (
+                <CancelOrderDialog
+                  action={cancelOrderAction.bind(null, slug, order.id)}
+                  variant={order.placedOnline ? 'online' : 'cancel'}
+                />
               ) : null}
             </CardContent>
           </Card>

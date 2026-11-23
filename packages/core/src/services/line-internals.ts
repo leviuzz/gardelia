@@ -56,16 +56,17 @@ export interface LineDraft {
  */
 export async function catalogLineDraft(
   tx: TransactionClient,
-  ctx: TenantContext,
+  // Basta la fioreria: lo usano anche gli ordini del cliente online, senza un membro (ADR-067).
+  scope: { readonly tenantId: string },
   catalogItemId: string,
 ): Promise<LineDraft> {
   const item = await tx.catalogItem.findFirst({
-    where: { id: catalogItemId, tenantId: ctx.tenantId, status: 'ACTIVE' },
+    where: { id: catalogItemId, tenantId: scope.tenantId, status: 'ACTIVE' },
     include: {
       recipe: {
         include: {
           lines: {
-            where: { tenantId: ctx.tenantId },
+            where: { tenantId: scope.tenantId },
             include: { ingredient: true },
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
           },

@@ -2,7 +2,8 @@
  * Lavori giornalieri della piattaforma: Vercel Cron li chiama una volta al giorno, alle 9 del
  * Messico (`vercel.json`; col piano Hobby l'ora è indicativa, dentro l'ora indicata).
  *  1. Manutenzione (fase 0): porta a EXPIRED preventivi e inviti scaduti di tutte le fiorerie
- *     (`runDailyMaintenance`, core). Le pagine mostrano già lo stato effettivo: l'ora non conta.
+ *     e annulla gli ordini online mai accettati, scrivendolo a chi compra (`runDailyMaintenance`,
+ *     core). Le pagine mostrano già lo stato effettivo: l'ora non conta.
  *  2. Promo delle date speciali (ADR-047): le email con lo sconto ai clienti (`runOccasionPromos`);
  *     per questo il cron gira di mattina e non a mezzanotte.
  * I due lavori sono indipendenti: se uno fallisce l'altro gira lo stesso. Protetta da
@@ -20,6 +21,7 @@ import {
 import { aiConfig } from '@floral/core/config';
 import { serverEnv } from '@/lib/env';
 import { isAuthorizedInternalRequest } from '@/lib/internal-auth';
+import { orderMailDeps } from '@/lib/order-mail';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -31,7 +33,7 @@ async function handle(request: Request): Promise<Response> {
   let maintenance: MaintenanceResult | null = null;
   let promos: OccasionPromoRunResult | null = null;
   try {
-    maintenance = await runDailyMaintenance();
+    maintenance = await runDailyMaintenance(orderMailDeps());
   } catch (error) {
     logger.error({ err: error }, 'manutenzione giornaliera non riuscita');
   }
