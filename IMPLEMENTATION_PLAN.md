@@ -457,7 +457,9 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
    divisione dei file grandi insieme alle funzionalità che li toccano; immagini con URL firmati e
    caricamento diretto su R2 quando serviranno (Studio, immagini 2K).
 2. Ordini, pagamenti registrati e consegne con calendario; link pubblici di preventivo (approvato)
-   e ordine; aggiungere un disegno del Diseñador a un preventivo in bozza.
+   e ordine; aggiungere un disegno del Diseñador a un preventivo in bozza. Poi il marketplace per i
+   clienti (D-26, deciso il 23/11: registrazione obbligatoria, pagamento diretto alla fioreria) e la
+   ruta del día gratuita (D-27). Blocchi A1–C5 in `docs/ORDERS_MARKETPLACE_PLAN.md`; si parte da A1.
 3. Inventario.
 4. Clienti completi: cronologia, etichette, import CSV.
 5. Abbonamenti dei clienti e Floral Care.
