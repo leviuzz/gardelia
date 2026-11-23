@@ -26,6 +26,12 @@ describe('matrice dei permessi', () => {
     expect(can('STAFF', 'audit:read')).toBe(false);
   });
 
+  it('lo staff compone e archivia disegni, ma eliminarli per sempre è di proprietario e manager', () => {
+    expect(can('STAFF', 'builder:use')).toBe(true);
+    expect(can('STAFF', 'builder:delete')).toBe(false);
+    expect(can('MANAGER', 'builder:delete')).toBe(true);
+  });
+
   it('limita i ruoli assegnabili via invito', () => {
     expect(invitableRoles('OWNER')).toEqual(['OWNER', 'MANAGER', 'STAFF']);
     expect(invitableRoles('MANAGER')).toEqual(['STAFF']);

@@ -6,6 +6,7 @@
  * da ricaricare e messaggi: `runTenantAction`.
  */
 import {
+  deleteBouquetConfiguration,
   requestBouquetPreview,
   saveBouquetConfiguration,
   setBouquetConfigurationArchived,
@@ -40,6 +41,25 @@ export async function setDesignArchivedAction(
   return runTenantAction(slug, async ({ ctx, routes }) => {
     await setBouquetConfigurationArchived(ctx, configurationId, archived);
     return { revalidate: section(routes.builder.list()), success: 'common.changesSaved' };
+  });
+}
+
+/**
+ * "Eliminar" (confermato nella finestra): via il disegno e le sue foto generate, solo se nessun
+ * preventivo lo usa (ADR-051). Si torna alla lista, che lo conferma con un avviso.
+ */
+export async function deleteDesignAction(
+  slug: string,
+  configurationId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await deleteBouquetConfiguration(ctx, configurationId);
+    return {
+      revalidate: section(routes.builder.list()),
+      redirectTo: routes.builder.list({ deleted: true }),
+    };
   });
 }
 

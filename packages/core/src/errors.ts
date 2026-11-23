@@ -52,6 +52,8 @@ export type ConflictReason =
   | 'invalid_status_transition'
   | 'builder_configuration_archived'
   | 'builder_configuration_outdated'
+  | 'builder_configuration_in_quote'
+  | 'ai_preview_in_progress'
   | 'ai_unavailable'
   | 'ai_quota_exhausted'
   | 'ai_budget_reached'

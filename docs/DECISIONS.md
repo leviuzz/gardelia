@@ -1067,6 +1067,37 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   conferma salta la prova di possesso. Va usata solo per persone conosciute, finché il dominio non
   è verificato (`docs/DEPLOY_VERCEL.md` §4.4).
 
+### ADR-051 — Eliminare un disegno del Diseñador con le sue foto — ADOTTATO (23/11/2026)
+
+- **Richiesta del founder:** "un elimina bouquet dal designer oltre che archivia, che elimina anche
+  il bouquet generato dalla memoria". Fra le opzioni proposte ha scelto "elimina se non è in un
+  preventivo".
+- **Eccezione voluta** alla regola "nessuna cancellazione fisica di dati commerciali"
+  (CLAUDE.md §5), solo per i disegni del Builder. Un disegno non ancora quotato è una bozza di
+  lavoro, non un documento commerciale. Un disegno usato in un preventivo non si elimina mai: la
+  cotización conserva composizione e foto, quindi resta solo "Archivar".
+- **Cosa si cancella:** il disegno e le sue righe (FK in cascata) e le foto generate per lui
+  nell'archivio (R2). Le foto si cancellano dopo il commit: se una cancellazione fallisce resta un
+  file orfano, registrato nel log, e mai un record che punta a un file sparito.
+- **Cosa resta:**
+  - Le righe `AiJob`, staccate dal disegno e senza immagine. Il credito già usato resta usato e il
+    costo resta nel tetto della piattaforma. L'hash prende il prefisso `deleted:`, così la cache
+    per contenuto non ripropone una foto che non c'è più.
+  - Le foto che un preventivo mostra (`QuoteLine.previewJobId`), anche se il preventivo è di un
+    altro disegno.
+  - Le foto che un altro disegno identico, attivo o archiviato, mostra oggi dalla cache (stessa
+    composizione, stesso stile e misura): passano a quel disegno e si cancelleranno con lui.
+  - I job falliti, con il loro hash: il limite di riprova per quel ramo vale ancora.
+- **Regole:**
+  - Permesso nuovo `builder:delete`, solo proprietario e manager. Lo staff compone e archivia.
+  - Si conferma in una finestra che dice che non si può annullare e che i crediti non tornano.
+  - Una foto in preparazione blocca l'eliminazione (`ai_preview_in_progress`): la sua immagine
+    arriverebbe dopo.
+  - La riga del disegno si blocca (`FOR UPDATE`), così un preventivo o un'anteprima chiesti nello
+    stesso istante non lasciano riferimenti a un disegno sparito.
+  - Audit `builder.configuration_deleted` con nome e numero di foto cancellate e tenute.
+  - Un'altra fioreria riceve 404.
+
 ---
 
 ## 3. Proposte da approvare

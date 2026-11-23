@@ -81,6 +81,7 @@ export const AUDIT_ACTIONS = {
   builderConfigurationUpdated: 'builder.configuration_updated',
   builderConfigurationArchived: 'builder.configuration_archived',
   builderConfigurationRestored: 'builder.configuration_restored',
+  builderConfigurationDeleted: 'builder.configuration_deleted',
   aiPreviewRequested: 'ai.preview_requested',
   styleReferenceAdded: 'builder.style_reference_added',
   styleReferenceArchived: 'builder.style_reference_archived',

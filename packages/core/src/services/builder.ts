@@ -33,7 +33,8 @@ import { notFound, recordAudit } from '../audit';
 import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
-import { currentPreviewJobId } from './ai-previews';
+import { deleteUnusedFiles } from '../media/stored-files';
+import { currentPreviewJobId, releaseConfigurationPreviews } from './ai-previews';
 import { requireEntitlement } from './billing';
 import {
   componentSelect,
@@ -115,6 +116,8 @@ export interface BouquetConfigurationDto extends BouquetConfigurationSummaryDto 
   readonly estimatedCostMinor: number | null;
   readonly createdAt: Date;
   readonly lines: readonly BouquetConfigurationLineDto[];
+  /** In almeno un preventivo: non si può eliminare, solo archiviare (ADR-051). */
+  readonly usedInQuotes: boolean;
 }
 
 export interface BouquetConfigurationListResult {
@@ -250,9 +253,9 @@ export async function getBouquetConfiguration(
   requirePermission(ctx, 'builder:use');
   if (!isUuid(configurationId)) throw new NotFoundError('BouquetConfiguration');
   const canViewCosts = hasPermission(ctx, 'catalog:costs:read');
-  const config = await withTenantContext(getDb(), ctx, async (tx) => {
+  const found = await withTenantContext(getDb(), ctx, async (tx) => {
     await requireEntitlement(ctx, 'bouquetBuilder', tx);
-    return tx.bouquetConfiguration.findFirst({
+    const config = await tx.bouquetConfiguration.findFirst({
       where: { id: configurationId, tenantId: ctx.tenantId },
       include: {
         lines: {
@@ -262,8 +265,14 @@ export async function getBouquetConfiguration(
         },
       },
     });
+    if (!config) return null;
+    const quoteLines = await tx.quoteLine.count({
+      where: { tenantId: ctx.tenantId, bouquetConfigurationId: config.id },
+    });
+    return { config, usedInQuotes: quoteLines > 0 };
   });
-  if (!config) return notFound(ctx, 'BouquetConfiguration', configurationId);
+  if (!found) return notFound(ctx, 'BouquetConfiguration', configurationId);
+  const { config, usedInQuotes } = found;
   return {
     ...toSummary(config),
     budgetMinor: config.budgetMinor,
@@ -285,6 +294,7 @@ export async function getBouquetConfiguration(
       availability: line.catalogItem.availability,
       usable: isUsable(line.catalogItem),
     })),
+    usedInQuotes,
   };
 }
 
@@ -423,6 +433,54 @@ export async function setBouquetConfigurationArchived(
     return true;
   });
   if (!found) await notFound(ctx, 'BouquetConfiguration', configurationId);
+}
+
+/**
+ * Elimina per sempre un disegno con le foto generate per lui (ADR-051: eccezione voluta dal
+ * founder alla regola "nessuna cancellazione fisica"). Solo se nessun preventivo lo usa: la
+ * cotización conserva composizione e foto, quindi lì si archivia. I crediti AI già usati non si
+ * restituiscono: i job restano, staccati dal disegno (`releaseConfigurationPreviews`).
+ */
+export async function deleteBouquetConfiguration(
+  ctx: TenantContext,
+  configurationId: string,
+): Promise<{ readonly deletedImages: number; readonly keptImages: number }> {
+  requirePermission(ctx, 'builder:delete');
+  if (!isUuid(configurationId)) throw new NotFoundError('BouquetConfiguration');
+  const released = await withTenantContext(getDb(), ctx, async (tx) => {
+    await requireEntitlement(ctx, 'bouquetBuilder', tx);
+    // Riga bloccata: un preventivo o un'anteprima chiesti nello stesso istante aspettano (e poi
+    // trovano il disegno sparito) oppure arrivano prima e si vedono qui sotto.
+    const [existing] = await tx.$queryRaw<{ id: string; name: string }[]>`
+      SELECT "id", "name" FROM "BouquetConfiguration"
+      WHERE "id" = ${configurationId}::uuid AND "tenantId" = ${ctx.tenantId}::uuid
+      FOR UPDATE`;
+    if (!existing) return null;
+    const quoteLines = await tx.quoteLine.count({
+      where: { tenantId: ctx.tenantId, bouquetConfigurationId: existing.id },
+    });
+    if (quoteLines > 0) throw new ConflictError('builder_configuration_in_quote');
+    const previews = await releaseConfigurationPreviews(tx, ctx, existing.id);
+    // Le righe del disegno se ne vanno con lui (FK in cascata).
+    await tx.bouquetConfiguration.deleteMany({
+      where: { id: existing.id, tenantId: ctx.tenantId },
+    });
+    await recordAudit(tx, ctx, {
+      action: AUDIT_ACTIONS.builderConfigurationDeleted,
+      entityType: 'BouquetConfiguration',
+      entityId: existing.id,
+      metadata: {
+        name: existing.name,
+        deletedImages: previews.deletedKeys.length,
+        keptImages: previews.kept,
+      },
+    });
+    return previews;
+  });
+  if (!released) return notFound(ctx, 'BouquetConfiguration', configurationId);
+  // Dopo il commit: nel peggiore dei casi resta un file orfano, mai un record senza file.
+  await deleteUnusedFiles(released.deletedKeys);
+  return { deletedImages: released.deletedKeys.length, keptImages: released.kept };
 }
 
 /**
