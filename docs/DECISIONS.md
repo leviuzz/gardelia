@@ -1634,8 +1634,17 @@ Blocco C2 di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26). Avviato dal founder ("vai
   pubblici. Una fioreria di prova mostra l'avviso "Florería de demostración".
 - **Piano:** per ora in tutti i piani. **DA VALIDARE** dal founder se resta così o se una parte
   (es. più prodotti, dominio proprio) diventa di Plus.
-- **Non fatto (prossimi passi):** logo e foto di copertina della fioreria; ordine dal cliente con
-  accettazione (C4); ricerca per indirizzo e home per chi compra (C3); opzioni del ramo (misura,
+- **Logo e copertina (C2b, 23/11/2026, "vai avanti con logo e foto della fioreria"):** in Tienda en
+  línea si carica un logo (salvato piccolo, 480 px) e una foto di copertina (1600 px), con la stessa
+  catena delle foto del catalogo (riduzione nel browser, controllo e conversione in JPEG sul server,
+  file salvati prima della transazione). Si sostituiscono o si tolgono; i file sostituiti restano
+  nell'archivio (nessuna cancellazione fisica). L'ID dell'immagine è nell'indirizzo
+  (`/f/<slug>/imagen/logo|portada/<id>`): cambia a ogni sostituzione, quindi la cache del browser
+  non mostra mai quella vecchia; si serve solo l'immagine attuale di una tienda pubblicata.
+  Anteprima nelle impostazioni anche prima di pubblicare (rotta privata). La copertina (o il logo)
+  è anche l'immagine dell'anteprima quando si condivide il link (Open Graph). Audit
+  `store.image_set` / `store.image_removed` con il solo tipo.
+- **Non fatto (prossimi passi):** ordine dal cliente con accettazione (C4); ricerca per indirizzo e home per chi compra (C3); opzioni del ramo (misura,
   colori di carta e nastro) che servono all'ordine; sitemap e anteprime per i social.
 
 ### ADR-066 — Clienti completi: cronologia, etichette e filtri, import da CSV — ADOTTATO (23/11/2026)

@@ -8,16 +8,21 @@ import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
   ONLINE_ITEM_TYPES,
+  isStoreImageKind,
+  newId,
   onlineStoreFormSchema,
   storePublishBlockers,
   toFieldErrors,
+  type StoreImageKind,
   type StorePaymentMethod,
   type StorePublishBlocker,
 } from '@floral/domain';
 import { recordAudit } from '../audit';
 import { requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
-import { ConflictError, ValidationError } from '../errors';
+import { ConflictError, NotFoundError, ValidationError } from '../errors';
+import { normalizeUploadedPhoto } from '../media/images';
+import { readStoredImage, storeFilesThenCommit, type StoredImage } from '../media/stored-files';
 
 export interface OnlineStoreSettingsDto {
   readonly isPublished: boolean;
@@ -29,6 +34,9 @@ export interface OnlineStoreSettingsDto {
   readonly onlineItems: number;
   /** Cosa manca per pubblicare (vuoto = si può). */
   readonly blockers: readonly StorePublishBlocker[];
+  /** ID delle immagini (cambiano a ogni sostituzione), o null. */
+  readonly logoId: string | null;
+  readonly coverId: string | null;
 }
 
 async function readState(tx: TransactionClient, ctx: TenantContext) {
@@ -63,6 +71,8 @@ export async function getOnlineStoreSettings(ctx: TenantContext): Promise<Online
     paymentInstructions: store?.paymentInstructions ?? null,
     onlineItems,
     blockers: storePublishBlockers({ onlineItems, contactPhone }),
+    logoId: store?.logoId ?? null,
+    coverId: store?.coverId ?? null,
   };
 }
 
@@ -131,4 +141,85 @@ export async function setOnlineStorePublished(ctx: TenantContext, publish: boole
       metadata: { onlineItems },
     });
   });
+}
+
+function checkKind(kind: unknown): StoreImageKind {
+  if (!isStoreImageKind(kind)) throw new ValidationError({ kind: 'invalid_option' });
+  return kind;
+}
+
+const IMAGE_COLUMNS = {
+  LOGO: { id: 'logoId', key: 'logoKey' },
+  COVER: { id: 'coverId', key: 'coverKey' },
+} as const;
+
+/**
+ * Carica (o sostituisce) il logo o la foto di copertina. Il logo si salva piccolo (miniatura), la
+ * copertina grande. I file si salvano PRIMA della transazione e si tolgono se non va a buon fine;
+ * quelli sostituiti restano nell'archivio (nessuna cancellazione fisica, come le foto del catalogo).
+ */
+export async function setStoreImage(
+  ctx: TenantContext,
+  rawKind: unknown,
+  file: Uint8Array,
+): Promise<{ readonly id: string }> {
+  requirePermission(ctx, 'tenant:settings:update');
+  const kind = checkKind(rawKind);
+  const image = await normalizeUploadedPhoto(file);
+  const id = newId();
+  const key = `tenants/${ctx.tenantId}/store/${kind === 'LOGO' ? 'logo' : 'cover'}-${id}.jpg`;
+  const version = kind === 'LOGO' ? image.thumb : image.full;
+  const columns = IMAGE_COLUMNS[kind];
+  await storeFilesThenCommit(
+    [{ key, bytes: version.bytes, contentType: version.contentType }],
+    () =>
+      withTenantContext(getDb(), ctx, async (tx) => {
+        await ensureStore(tx, ctx);
+        await tx.onlineStore.update({
+          where: { tenantId: ctx.tenantId },
+          data: { [columns.id]: id, [columns.key]: key },
+        });
+        await recordAudit(tx, ctx, {
+          action: AUDIT_ACTIONS.storeImageSet,
+          entityType: 'OnlineStore',
+          entityId: ctx.tenantId,
+          metadata: { kind, imageId: id },
+        });
+        return true;
+      }),
+  );
+  return { id };
+}
+
+/** Toglie il logo o la copertina dalla pagina. */
+export async function removeStoreImage(ctx: TenantContext, rawKind: unknown): Promise<void> {
+  requirePermission(ctx, 'tenant:settings:update');
+  const kind = checkKind(rawKind);
+  const columns = IMAGE_COLUMNS[kind];
+  await withTenantContext(getDb(), ctx, async (tx) => {
+    const store = await tx.onlineStore.findUnique({ where: { tenantId: ctx.tenantId } });
+    if (!store?.[columns.id]) return;
+    await tx.onlineStore.update({
+      where: { tenantId: ctx.tenantId },
+      data: { [columns.id]: null, [columns.key]: null },
+    });
+    await recordAudit(tx, ctx, {
+      action: AUDIT_ACTIONS.storeImageRemoved,
+      entityType: 'OnlineStore',
+      entityId: ctx.tenantId,
+      metadata: { kind },
+    });
+  });
+}
+
+/** L'immagine per l'anteprima nelle impostazioni (anche con la tienda non pubblicata). */
+export async function getStoreImage(ctx: TenantContext, rawKind: unknown): Promise<StoredImage> {
+  requirePermission(ctx, 'tenant:read');
+  const kind = checkKind(rawKind);
+  const store = await withTenantContext(getDb(), ctx, (tx) =>
+    tx.onlineStore.findUnique({ where: { tenantId: ctx.tenantId } }),
+  );
+  const key = store?.[IMAGE_COLUMNS[kind].key];
+  if (!key) throw new NotFoundError('OnlineStore');
+  return readStoredImage(key, 'image/jpeg', 'OnlineStore');
 }

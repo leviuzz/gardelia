@@ -103,6 +103,8 @@ export const AUDIT_ACTIONS = {
   storeUpdated: 'store.updated',
   storePublished: 'store.published',
   storeUnpublished: 'store.unpublished',
+  storeImageSet: 'store.image_set',
+  storeImageRemoved: 'store.image_removed',
   /** Inventario (ADR-060): prodotti controllati e registri di magazzino. */
   inventoryTrackingStarted: 'inventory.tracking_started',
   inventoryTrackingStopped: 'inventory.tracking_stopped',

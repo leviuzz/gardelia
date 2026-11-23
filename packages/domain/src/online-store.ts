@@ -58,3 +58,11 @@ export function storePublishBlockers(input: {
   if (!input.contactPhone) blockers.push('store_needs_contact');
   return blockers;
 }
+
+/** Immagini della tienda: logo (piccolo, accanto al nome) e copertina (larga, in alto). */
+export const STORE_IMAGE_KINDS = ['LOGO', 'COVER'] as const;
+export type StoreImageKind = (typeof STORE_IMAGE_KINDS)[number];
+
+export function isStoreImageKind(value: unknown): value is StoreImageKind {
+  return typeof value === 'string' && (STORE_IMAGE_KINDS as readonly string[]).includes(value);
+}

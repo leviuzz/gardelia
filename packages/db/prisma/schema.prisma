@@ -453,6 +453,12 @@ model OnlineStore {
   paymentMethods      String[]  @default([])
   /// Testo pubblico (es. CLABE e banca per il trasferimento).
   paymentInstructions String?
+  /// Logo (JPEG piccolo) e foto di copertina (JPEG grande): l'ID cambia a ogni sostituzione ed è
+  /// nell'indirizzo pubblico, così il browser non mostra mai la versione vecchia.
+  logoId              String?   @db.Uuid
+  logoKey             String?
+  coverId             String?   @db.Uuid
+  coverKey            String?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 

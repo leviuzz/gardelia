@@ -56,6 +56,7 @@ export {
 } from './places';
 export {
   getPublicStore,
+  getPublicStoreImage,
   getPublicStoreItem,
   getPublicStoreItemPhoto,
   type PublicStoreDto,

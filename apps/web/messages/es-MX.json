@@ -326,8 +326,26 @@
     "activity": {
       "updated": "{actor} actualizó la tienda en línea",
       "published": "{actor} publicó la tienda en línea",
-      "unpublished": "{actor} retiró la tienda en línea"
-    }
+      "unpublished": "{actor} retiró la tienda en línea",
+      "image_set": "{actor} cambió el logo o la portada de la tienda en línea",
+      "image_removed": "{actor} quitó el logo o la portada de la tienda en línea"
+    },
+    "imagesTitle": "Logo y portada",
+    "imagesSubtitle": "Así reconocen tu florería en la página y cuando compartes el enlace.",
+    "logo": "Logo",
+    "logoHint": "De preferencia cuadrado; se ve pequeño junto al nombre.",
+    "cover": "Foto de portada",
+    "coverHint": "Horizontal: tu tienda, tus flores o tu mejor arreglo.",
+    "logoFile": "Archivo del logo",
+    "coverFile": "Archivo de la portada",
+    "imageFileHint": "JPG, PNG o WebP. Se ajusta el tamaño antes de subirla.",
+    "uploadLogo": "Subir logo",
+    "changeLogo": "Cambiar logo",
+    "uploadCover": "Subir portada",
+    "changeCover": "Cambiar portada",
+    "removeLogo": "Quitar logo",
+    "removeCover": "Quitar portada",
+    "imageRemoved": "Imagen quitada."
   },
   "publicStore": {
     "demoNotice": "Florería de demostración: los productos y precios son de prueba.",
@@ -379,7 +397,9 @@
     "whatsappItem": "Hola, me interesa «{name}» ({price}) de su tienda en línea: {url}",
     "paysWith": "Formas de pago: {methods}.",
     "notFoundTitle": "Esta tienda no está disponible",
-    "notFoundBody": "Puede que el enlace esté mal escrito o que la florería la haya retirado."
+    "notFoundBody": "Puede que el enlace esté mal escrito o que la florería la haya retirado.",
+    "logoAlt": "Logo de {name}",
+    "coverAlt": "Foto de {name}"
   },
   "timezones": {
     "America/Mexico_City": "Tiempo del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
