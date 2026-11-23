@@ -1030,6 +1030,21 @@
       "title": "Promotions",
       "subtitle": "Discounts received for their special dates and whether they were used.",
       "empty": "Hasn't received any promotion yet."
+    },
+    "timeline": {
+      "title": "History",
+      "subtitle": "What has happened with this customer, most recent first.",
+      "customerCreated": "Customer added",
+      "quoteCreated": "Quote {number} created",
+      "quoteStatus": "Quote {number}: {status}",
+      "orderCreated": "Order {number} created ({status})",
+      "orderStatus": "Order {number}: {status}",
+      "reason": "Reason: {note}",
+      "payment": "{kind} of {amount} ({method}) · Order {number}",
+      "paymentReversed": "Reversal of a {amount} payment · Order {number}",
+      "promoSent": "We sent the {occasion} promotion with the code {code}",
+      "promoRedeemed": "Used the code {code}",
+      "more": "Show more"
     }
   },
   "quotes": {
