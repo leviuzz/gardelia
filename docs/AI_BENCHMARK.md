@@ -326,3 +326,20 @@ controllo dei conteggi, giudicate guardando ogni corolla rispetto al suo stelo:
   finito). Carta con pieghe vere, nastro annodato, eucalipto riconoscibile.
 - Il modello aggiunge a volte uno spago dove gli steli sono legati, anche se il prompt lo esclude:
   dettaglio da osservare, non conta nei fiori.
+
+**Ramo del founder con la v9 (23/11/2026, ~1,7 USD).** Su staging la sua prima richiesta (4 rose da
+giardino + 3 tulipani rosa) è stata scartata: "Rosa roja: 5 su 4". Rifatta 6 volte con foto di
+riferimento simili alle sue (rosa aperta vista di fronte, solo la testa; tulipano rosa):
+
+| Esito                        | Richieste | Passaggi                                                              |
+| ---------------------------- | --------- | --------------------------------------------------------------------- |
+| giusta alla prima foto       | 1         | foto                                                                  |
+| giusta dopo una correzione   | 3         | foto con 1–3 fiori in più → correzione                                |
+| scartata (3 immagini finite) | 2         | foto → correzione che lascia 1 fiore in più → foto nuova con 1 in più |
+
+- Tutte le foto riuscite sono naturali, anche con una foto di riferimento vista di fronte.
+- Il controllo conta giusto: ricontate a occhio anche le foto scartate.
+- Il modello aggiunge spesso un fiore e la correzione lo toglie bene, ma la regola "una correzione
+  non si corregge" faceva rifare la foto da capo, e la foto nuova aveva di nuovo un fiore in più.
+  Ora si corregge di nuovo la stessa foto se l'ultima correzione ha tolto almeno un fiore: le due
+  richieste scartate avrebbero avuto la seconda correzione al terzo passaggio.

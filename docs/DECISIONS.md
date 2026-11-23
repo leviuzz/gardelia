@@ -616,6 +616,13 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   correzione dei fiori in più. Prova: 6 rami naturali su 6 con i numeri verificati, contro 3 su 6
   partendo dal collage descritto come vista dall'alto (`docs/AI_BENCHMARK.md`). Costo uguale.
   Prompt `bouquet-preview-v9`: cambia la chiave di cache.
+- **Correzione ripetuta (23/11/2026).** Primo test del founder con la v9 (4 rose + 3 tulipani):
+  scartata, "Rosa roja: 5 su 4". Prova con 6 richieste: il controllo conta giusto, è il modello che
+  aggiunge spesso un fiore; la correzione lo toglie, ma la regola "una correzione non si corregge"
+  faceva rifare la foto da capo, che aveva di nuovo un fiore in più, e i 3 tentativi finivano. Ora
+  una foto con soli fiori in più si corregge anche se è già una correzione, purché l'ultima
+  correzione ne abbia tolto almeno uno (`extraFlowerCount`); se non ne ha tolto nessuno, o mancano
+  fiori, si rifà da capo. Sempre al massimo 3 immagini: costo massimo invariato.
 
 ### ADR-035 — Immagine del ramo nel preventivo — ADOTTATO (21/11/2026)
 
