@@ -7,6 +7,7 @@
  */
 import {
   addCatalogItemToOrder,
+  addOrderPhoto,
   assignOrder,
   addCustomLineToOrder,
   cancelOrder,
@@ -18,6 +19,7 @@ import {
   recordOrderPayment,
   removeOrderLine,
   reverseOrderPayment,
+  setOrderReceiver,
   revokePublicLink,
   sharePublicLink,
   updateOrderDiscount,
@@ -27,6 +29,7 @@ import {
 import type { ActionState } from '@/lib/action-state';
 import { serverEnv } from '@/lib/env';
 import { formDataToObject } from '@/lib/form-data';
+import { uploadedBytes } from '@/lib/uploads';
 import { runTenantAction, section } from '@/lib/tenant-action';
 
 export async function createOrderFromQuoteAction(
@@ -265,5 +268,33 @@ export async function assignOrderAction(
   return runTenantAction(slug, async ({ ctx, routes }) => {
     await assignOrder(ctx, orderId, formData.get('assignee'));
     return { revalidate: section(routes.orders.list()), success: 'orders.assign.saved' };
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Prova di consegna (ADR-058)
+// -----------------------------------------------------------------------------
+
+/** Foto del ramo finito, una per richiesta: il servizio ricontrolla permessi, stato e immagine. */
+export async function uploadOrderPhotoAction(
+  slug: string,
+  orderId: string,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await addOrderPhoto(ctx, orderId, await uploadedBytes(formData));
+    return { revalidate: section(routes.orders.list()) };
+  });
+}
+
+export async function setOrderReceiverAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await setOrderReceiver(ctx, orderId, formDataToObject(formData));
+    return { revalidate: section(routes.orders.list()), success: 'orders.handover.saved' };
   });
 }

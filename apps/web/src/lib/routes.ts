@@ -102,6 +102,12 @@ export function tenantRoutes(slug: string) {
       /** Il mese con gli ordini per giorno (`month` = AAAA-MM). */
       calendar: (query?: { readonly month?: string }) => withQuery(`${orders}/calendar`, query),
       detail: (orderId: string) => `${orders}/${segment(orderId)}`,
+      /** Foto del ramo finito (prova di consegna; `thumb` = miniatura). */
+      photo: (orderId: string, options?: { readonly thumb?: boolean; readonly v?: string }) =>
+        withQuery(`${orders}/${segment(orderId)}/photo`, {
+          size: options?.thumb ? 'thumb' : undefined,
+          v: options?.v,
+        }),
       /** Tarjeta da stampare (formato biglietto). */
       card: (orderId: string) => `${orders}/${segment(orderId)}/card`,
       /** Immagine del ramo di una riga (`download`: si scarica, per allegarla su WhatsApp). */

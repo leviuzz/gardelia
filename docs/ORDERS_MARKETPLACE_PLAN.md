@@ -184,7 +184,7 @@ sull'indirizzo dell'ordine: si riempiono con Google Places quando c'è la chiave
 | **A2** | 🟡 Impostazioni di consegna: fasce, chiusure e costo proposto fatti (ADR-055); costi per distanza e coordinate aspettano O-14          |
 | **A3** | ✅ Stampa di comanda e tarjeta; link pubblici di ordine e preventivo (con accettazione); WhatsApp con il link (ADR-056)                |
 | **B1** | ✅ Calendario delle consegne, Hoy salen, Producción del día (ADR-057)                                                                  |
-| **B2** | 🟡 Ruta del día e repartidor fatti (ADR-058); prova di consegna (foto e chi riceve) da fare                                            |
+| **B2** | ✅ Ruta del día, repartidor e prova di consegna (foto del ramo e chi riceve) (ADR-058)                                                 |
 | **C1** | Conto del cliente: registrazione divisa (cliente / fioreria), instradamento dopo il login, `/cuenta`, indirizzi (ADR dati del cliente) |
 | **C2** | Mi tienda en línea e pagina pubblica della fioreria (ADR catalogo pubblico)                                                            |
 | **C3** | Home per chi compra e ricerca per indirizzo                                                                                            |

@@ -49,6 +49,7 @@ export {
   acceptPublicQuote,
   getPublicLineImage,
   getPublicOrder,
+  getPublicOrderPhoto,
   getPublicQuote,
   publicLinkUrl,
   type AcceptQuoteResult,
@@ -135,6 +136,7 @@ export * from './services/promotions';
 export * from './services/orders';
 export * from './services/order-schedule';
 export * from './services/delivery-route';
+export * from './services/order-handover';
 export * from './services/delivery-settings';
 export * from './services/public-links';
 export * from './services/quotes';

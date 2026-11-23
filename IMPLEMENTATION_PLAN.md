@@ -523,6 +523,13 @@ typecheck ✅ · test unit 294/294 ✅ · integrazione 311/311 ✅ (5 nuovi con 
 schema ✅ · build ✅ · E2E 70/70 ✅ (1 nuovo, proprietaria e repartidor); controllo visivo a 390 px.
 Prossimi: prova di consegna (foto e chi riceve), poi il marketplace (C1–C5).
 
+**Prova di consegna (fatto il 23/11, ADR-058):** nella scheda dell'ordine la sezione "Prueba de entrega":
+da "pronto" in poi si carica la foto del ramo finito (anche dal telefono del repartidor), dopo la
+consegna o il ritiro si indica chi l'ha ricevuto; il cliente vede "Así quedó tu ramo" e il nome nel suo
+link. Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test unit 294/294 ✅ · integrazione 316/316 ✅
+(5 nuovi con isolamento A↔B) · migrazioni = schema ✅ · build ✅ · E2E 70/70 ✅ (flusso del link esteso
+fino alla foto). Prossimi: Google Places (deciso dal founder il 23/11, O-14), poi il marketplace.
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci

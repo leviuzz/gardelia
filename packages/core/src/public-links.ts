@@ -336,6 +336,10 @@ export interface PublicOrderDto {
   readonly balanceMinor: number;
   /** Passi già fatti, dal primo all'ultimo (senza il borrador). */
   readonly history: readonly { readonly status: OrderStatus; readonly at: Date }[];
+  /** Chi ha ricevuto il ramo (dopo la consegna o il ritiro). */
+  readonly receivedBy: string | null;
+  /** Foto del ramo finito (ADR-058): il suo ID cambia l'URL quando la foto cambia. */
+  readonly photoId: string | null;
 }
 
 export async function getPublicOrder(
@@ -358,6 +362,10 @@ export async function getPublicOrder(
       where: { tenantId: scope.tenantId, orderId: order.id },
       orderBy: [{ createdAt: 'asc' }],
       select: { toStatus: true, createdAt: true },
+    });
+    const photo = await tx.orderPhoto.findFirst({
+      where: { tenantId: scope.tenantId, orderId: order.id, status: 'ACTIVE' },
+      select: { id: true },
     });
     const delivery =
       order.fulfillmentMode === 'DELIVERY' &&
@@ -400,6 +408,9 @@ export async function getPublicOrder(
       history: events
         .filter((event) => event.toStatus !== 'DRAFT')
         .map((event) => ({ status: event.toStatus, at: event.createdAt })),
+      receivedBy:
+        order.status === 'DELIVERED' || order.status === 'PICKED_UP' ? order.handoverName : null,
+      photoId: order.status === 'CANCELLED' ? null : (photo?.id ?? null),
     };
   });
 }
@@ -450,6 +461,32 @@ export async function getPublicLineImage(
     );
   } catch (error) {
     // File mancante nell'archivio (già registrato): per il cliente l'immagine semplicemente non c'è.
+    if (error instanceof NotFoundError) return null;
+    throw error;
+  }
+}
+
+/** Foto del ramo finito dell'ordine del link (`thumb` = miniatura); null se non c'è. */
+export async function getPublicOrderPhoto(
+  secret: string,
+  token: unknown,
+  variant: 'thumb' | 'full',
+): Promise<StoredImage | null> {
+  const photo = await withActiveLink(secret, token, 'ORDER', async (tx, scope) => {
+    if (!scope.orderId) return null;
+    return tx.orderPhoto.findFirst({
+      where: { tenantId: scope.tenantId, orderId: scope.orderId, status: 'ACTIVE' },
+      select: { storageKey: true, thumbKey: true, contentType: true },
+    });
+  });
+  if (!photo) return null;
+  try {
+    return await readStoredImage(
+      variant === 'thumb' ? photo.thumbKey : photo.storageKey,
+      photo.contentType,
+      'OrderPhoto',
+    );
+  } catch (error) {
     if (error instanceof NotFoundError) return null;
     throw error;
   }

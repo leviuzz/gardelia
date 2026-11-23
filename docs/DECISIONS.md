@@ -1307,9 +1307,9 @@ Blocco B1 di `docs/ORDERS_MARKETPLACE_PLAN.md`.
 - **Chi vede:** tutta la squadra (`orders:read`); i passi seguono i permessi (`orders:fulfill`); niente
   costi. Borradores e ordini annullati non compaiono.
 
-### ADR-058 — Ruta del día e repartidor — ADOTTATO (23/11/2026)
+### ADR-058 — Ruta del día, repartidor e prova di consegna — ADOTTATO (23/11/2026)
 
-Blocco B2 di `docs/ORDERS_MARKETPLACE_PLAN.md`, senza la prova di consegna (prossimo passo).
+Blocco B2 di `docs/ORDERS_MARKETPLACE_PLAN.md`.
 
 - **Repartidor:** un ordine a domicilio aperto si assegna a un membro **attivo** della fioreria
   (`Order.assignedMembershipId`, FK composita verso `Membership`; CHECK: solo a domicilio; passando a
@@ -1326,6 +1326,11 @@ Blocco B2 di `docs/ORDERS_MARKETPLACE_PLAN.md`, senza la prova di consegna (pros
 - **Ordine per vicinanza:** non c'è ancora, di proposito: servono le coordinate degli indirizzi
   (Google Places, O-14). Fino ad allora le fermate restano in ordine di fascia, come previsto dal
   piano, e la pagina lo dice.
+- **Prova di consegna:** da "pronto" in poi chi fa avanzare gli ordini (`orders:fulfill`, anche il
+  repartidor) carica la **foto del ramo finito** (`OrderPhoto`, file privati, una attiva per ordine,
+  la precedente archiviata); dopo consegna o ritiro indica **chi l'ha ricevuto**
+  (`Order.handoverName`, CHECK 1–120 caratteri). Il cliente vede foto ("Así quedó tu ramo") e nome
+  nel suo link; nel registro di audit solo che è stato fatto, mai il nome.
 
 ---
 

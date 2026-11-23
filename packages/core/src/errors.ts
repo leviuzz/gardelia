@@ -76,7 +76,9 @@ export type ConflictReason =
   | 'delivery_window_exists'
   | 'delivery_window_limit'
   | 'public_link_unavailable'
-  | 'order_not_delivery';
+  | 'order_not_delivery'
+  | 'order_not_ready'
+  | 'order_not_handed_over';
 
 export class ConflictError extends AppError {
   readonly code = 'conflict' as const;

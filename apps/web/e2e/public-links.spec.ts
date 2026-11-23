@@ -76,7 +76,10 @@ test.describe('link pubblici (propietaria)', () => {
     await customer.context().close();
   });
 
-  test('il cliente segue il pedido e la tarjeta si stampa', async ({ page, browser }) => {
+  test('il cliente segue il pedido fino alla foto del ramo, e la tarjeta si stampa', async ({
+    page,
+    browser,
+  }) => {
     await sentQuote(page);
     await page.getByRole('button', { name: 'Marcar como aceptada' }).click();
     await expect(page.getByText('Estado actualizado: Aceptada')).toBeVisible();
@@ -106,6 +109,25 @@ test.describe('link pubblici (propietaria)', () => {
     await expect(
       progress.getByRole('listitem').filter({ hasText: 'En preparación' }).getByText('paso actual'),
     ).toHaveCount(1);
+
+    // Prova di consegna (ADR-058): foto del ramo finito e chi l'ha ritirato; il cliente le vede.
+    await page.getByRole('button', { name: 'Marcar listo' }).click();
+    await expect(page.getByText('Pedido marcado como «Listo»')).toBeVisible();
+    await page
+      .getByRole('button', { name: 'Foto del ramo terminado' })
+      .setInputFiles('e2e/fixtures/ramo.jpg');
+    await page.getByRole('button', { name: 'Subir foto' }).click();
+    await expect(page.getByText('Se subió 1 foto')).toBeVisible();
+    await expect(page.getByRole('img', { name: /Ramo terminado del pedido PED-/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Marcar recogido' }).click();
+    await expect(page.getByText('Pedido marcado como «Recogido»')).toBeVisible();
+    await page.getByRole('textbox', { name: '¿Quién lo recibió?' }).fill('Carmen');
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await expect(page.getByText('Entrega registrada.')).toBeVisible();
+    await customer.reload();
+    await expect(customer.getByText('Así quedó tu ramo')).toBeVisible();
+    await expect(customer.getByRole('img', { name: 'Foto de tu ramo terminado' })).toBeVisible();
+    await expect(customer.getByText('Lo recibió Carmen.')).toBeVisible();
     await customer.context().close();
 
     await page.goto(orderUrl);

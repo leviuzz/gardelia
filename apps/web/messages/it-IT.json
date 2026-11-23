@@ -114,7 +114,9 @@
       "delivery_window_exists": "Questa fascia c’è già.",
       "delivery_window_limit": "Hai raggiunto il massimo di fasce.",
       "public_link_unavailable": "Nel suo stato attuale questo documento non si può condividere.",
-      "order_not_delivery": "Solo gli ordini a domicilio hanno un fattorino."
+      "order_not_delivery": "Solo gli ordini a domicilio hanno un fattorino.",
+      "order_not_ready": "La foto del mazzo si carica quando l’ordine è pronto.",
+      "order_not_handed_over": "Chi l’ha ricevuto si indica dopo la consegna o il ritiro."
     },
     "pageNotFoundTitle": "Pagina non trovata",
     "pageNotFoundBody": "La pagina non esiste o non hai accesso.",
@@ -383,7 +385,9 @@
     "quote.accepted_online": "Il cliente ha accettato il preventivo {number} dal link",
     "public_link.created": "{actor} ha condiviso il link di {number}",
     "public_link.revoked": "{actor} ha disattivato il link di {number}",
-    "order.assigned": "{actor} ha cambiato il fattorino di {number}"
+    "order.assigned": "{actor} ha cambiato il fattorino di {number}",
+    "order.photo_added": "{actor} ha caricato la foto del mazzo di {number}",
+    "order.receiver_recorded": "{actor} ha indicato chi ha ricevuto {number}"
   },
   "catalog": {
     "title": "Catalogo",
@@ -1261,6 +1265,21 @@
       "nobody": "Non assegnato",
       "save": "Salva",
       "saved": "Fattorino aggiornato."
+    },
+    "handover": {
+      "title": "Prova di consegna",
+      "hint": "Una foto del mazzo finito e chi l’ha ricevuto. Il cliente le vede nel suo link di monitoraggio.",
+      "photo": "Foto del mazzo finito",
+      "photoHint": "Scattala col telefono prima che esca o alla consegna.",
+      "uploadPhoto": "Carica foto",
+      "changePhoto": "Cambia foto",
+      "cancel": "Annulla",
+      "noPhotoYet": "La foto si può caricare quando l’ordine è pronto.",
+      "receivedByLabel": "Chi l’ha ricevuto?",
+      "receivedBy": "L’ha ricevuto {name}.",
+      "save": "Salva",
+      "saved": "Consegna registrata.",
+      "photoAlt": "Mazzo finito dell’ordine {number}"
     }
   },
   "plans": {
@@ -1791,7 +1810,10 @@
       "deliveryFee": "Consegna",
       "paid": "Pagato",
       "balance": "Da pagare",
-      "contactText": "Ciao, ho una domanda sull’ordine {number}."
+      "contactText": "Ciao, ho una domanda sull’ordine {number}.",
+      "photoAlt": "Foto del tuo mazzo finito",
+      "photoCaption": "Ecco il tuo mazzo",
+      "receivedBy": "L’ha ricevuto {name}."
     }
   },
   "shareLink": {

@@ -14,6 +14,7 @@ import {
   AUDIT_ACTIONS,
   ORDER_LIMITS,
   acceptsOrderPayments,
+  acceptsOrderPhoto,
   areOrderLinesEditable,
   ORDER_PAGE_SIZE,
   ORDER_STATUSES,
@@ -29,6 +30,7 @@ import {
   formatTimeOfDay,
   isOrderAcceptance,
   isOrderEditable,
+  isOrderHandedOver,
   isUuid,
   orderBalanceMinor,
   orderCancelSchema,
@@ -199,6 +201,15 @@ export interface OrderDetailDto extends OrderSummaryDto {
   readonly linesEditable: boolean;
   /** Repartidor (solo a domicilio). */
   readonly assignee: { readonly membershipId: string; readonly name: string } | null;
+  /** Prova di consegna (ADR-058): chi ha ricevuto e foto del ramo finito. */
+  readonly handover: {
+    readonly receivedBy: string | null;
+    readonly photo: { readonly id: string; readonly createdAt: Date } | null;
+    /** Chi guarda può caricare la foto (da "pronto" in poi). */
+    readonly canAddPhoto: boolean;
+    /** Chi guarda può indicare chi ha ricevuto (dopo consegna o ritiro). */
+    readonly canSetReceiver: boolean;
+  };
   readonly canCancel: boolean;
   /** Borrador che chi guarda può scartare. */
   readonly canDiscard: boolean;
@@ -392,6 +403,11 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
         ...orderInclude,
         quote: { select: { id: true, number: true } },
         assignedTo: { select: { id: true, user: { select: { name: true } } } },
+        photos: {
+          where: { status: 'ACTIVE' },
+          select: { id: true, createdAt: true },
+          take: 1,
+        },
       },
     });
     if (!order) return null;
@@ -509,6 +525,12 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
     assignee: order.assignedTo
       ? { membershipId: order.assignedTo.id, name: order.assignedTo.user.name }
       : null,
+    handover: {
+      receivedBy: order.handoverName,
+      photo: order.photos[0] ?? null,
+      canAddPhoto: hasPermission(ctx, 'orders:fulfill') && acceptsOrderPhoto(order.status),
+      canSetReceiver: hasPermission(ctx, 'orders:fulfill') && isOrderHandedOver(order.status),
+    },
     canCancel: canWrite && canCancelOrder(order.status),
     canDiscard: canWrite && order.status === 'DRAFT',
     canRecordPayments: hasPermission(ctx, 'orders:payments') && acceptsOrderPayments(order.status),
