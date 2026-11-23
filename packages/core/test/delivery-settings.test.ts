@@ -32,6 +32,9 @@ describe('impostazioni di consegna', () => {
       windows: [],
       closedWeekdays: [],
       defaultFeeMinor: 0,
+      // Costo per distanza (ADR-069): nessuna fascia, e senza la sede scelta con Google nessuna posizione.
+      feeTiers: [],
+      origin: null,
       canWrite: false,
     });
   });

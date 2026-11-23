@@ -119,7 +119,9 @@
       "order_not_handed_over": "Who received it is recorded after delivery or pickup.",
       "order_not_pending": "This order is no longer waiting to be accepted.",
       "order_date_passed": "This order’s date has passed: change it with the customer before accepting it.",
-      "order_needs_acceptance": "This online order is confirmed with “Accept order”, which notifies the customer."
+      "order_needs_acceptance": "This online order is confirmed with “Accept order”, which notifies the customer.",
+      "delivery_fee_tier_exists": "You already have a rate for that distance.",
+      "delivery_fee_tier_limit": "You reached the maximum number of rates."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -522,7 +524,9 @@
     "coverAlt": "Photo of {name}",
     "orderCta": "Place an order",
     "orderHow": "Choose online, the shop confirms and you pay them directly.",
-    "orderOnline": "Order online"
+    "orderOnline": "Order online",
+    "feeByDistance": "Delivery by distance: {tiers}.",
+    "feeTier": "up to {km} km {fee}"
   },
   "timezones": {
     "America/Mexico_City": "Central Time (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -706,6 +710,10 @@
     "public_link": {
       "created": "{actor} shared the link for {number}",
       "revoked": "{actor} turned off the link for {number}"
+    },
+    "delivery_fee_tier": {
+      "added": "{actor} added a delivery rate by distance",
+      "removed": "{actor} removed a delivery rate by distance"
     }
   },
   "catalog": {
@@ -943,7 +951,20 @@
       "windowAdded": "Time window added.",
       "windowRemoved": "Time window removed.",
       "removeWindow": "Remove the time window {window}",
-      "windowLimit": "You’ve reached the maximum of {max} time windows."
+      "windowLimit": "You’ve reached the maximum of {max} time windows.",
+      "tiersTitle": "Delivery fee by distance",
+      "tiersHint": "Distance is measured in a straight line from your shop. If an address is farther than your last rate, your online shop only offers pickup there.",
+      "tiersNoGoogle": "Measuring distances needs Google Maps, which isn’t set up yet. Until then, the usual fee applies.",
+      "tiersNoLocation": "To measure distances, choose your shop’s address with “Search address” in Shop address. Until then, the usual fee applies.",
+      "noTiers": "No rates by distance: the usual fee applies.",
+      "tierUpTo": "Up to {km} km",
+      "tierKm": "Maximum distance (km)",
+      "tierFee": "Fee ({currency})",
+      "addTier": "Add rate",
+      "removeTier": "Remove the {tier} rate",
+      "tierLimit": "You reached the maximum of {max} rates.",
+      "tierAdded": "Rate added.",
+      "tierRemoved": "Rate removed."
     }
   },
   "team": {
@@ -1587,7 +1608,11 @@
       "created": "Order created",
       "closedDay": "According to your settings, the shop is closed that day. You can still record it.",
       "window": "Time",
-      "customWindow": "Another time"
+      "customWindow": "Another time",
+      "distanceButton": "Calculate by distance",
+      "distanceFee": "{km} km in a straight line: {fee}.",
+      "distanceOutOfZone": "{km} km in a straight line: farther than your last rate ({max} km). Type the fee by hand.",
+      "distanceUnknown": "We don’t know where this address is: choose it with “Search address” to measure the distance."
     },
     "whatsapp": {
       "greeting": "Hi {name}, we confirm your order {number} from {shop}.",
@@ -2846,14 +2871,20 @@
       "no_items": "Choose at least one product.",
       "date_too_soon": "That day is no longer possible: choose a later date.",
       "date_too_far": "Choose a date within the next 60 days.",
-      "closed_day": "The shop is closed that day: choose another one."
+      "closed_day": "The shop is closed that day: choose another one.",
+      "out_of_zone": "The shop doesn’t deliver that far: choose another address or pick up at the shop."
     },
     "conflict": {
       "closed": "This shop is not taking online orders right now.",
       "pending_limit": "You already have 3 orders waiting for this shop to answer. Wait for their reply or message them."
     },
     "totalWithoutDelivery": "Total without delivery",
-    "acceptTerms": "By sending the order you accept the <terms>Terms for buyers</terms> and the <privacy>Privacy notice</privacy>."
+    "acceptTerms": "By sending the order you accept the <terms>Terms for buyers</terms> and the <privacy>Privacy notice</privacy>.",
+    "outOfZone": "This address is {km} km away and the shop delivers up to {max} km. Choose another address or pick up at the shop.",
+    "feeByDistance": "Delivery by distance: {tiers}.",
+    "feeTier": "up to {km} km {fee}",
+    "feeFree": "Free",
+    "feeDistance": "{km} km away"
   },
   "legal": {
     "linksLabel": "Legal documents",

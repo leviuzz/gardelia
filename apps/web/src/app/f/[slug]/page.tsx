@@ -183,7 +183,15 @@ export default async function PublicStorePage({ params }: PageProps<'/f/[slug]'>
             {closedDays.length > 0 ? (
               <li>{t('closedDays', { days: closedDays.join(', ') })}</li>
             ) : null}
-            {store.delivery.defaultFeeMinor > 0 ? (
+            {store.delivery.feeTiers.length > 0 ? (
+              <li>
+                {t('feeByDistance', {
+                  tiers: store.delivery.feeTiers
+                    .map((tier) => t('feeTier', { km: tier.maxKm, fee: fmt(tier.feeMinor) }))
+                    .join(' · '),
+                })}
+              </li>
+            ) : store.delivery.defaultFeeMinor > 0 ? (
               <li>{t('deliveryFee', { fee: fmt(store.delivery.defaultFeeMinor) })}</li>
             ) : null}
             {store.delivery.radiusKm ? (

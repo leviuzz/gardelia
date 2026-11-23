@@ -1,14 +1,20 @@
 'use client';
 
-import { Ban, LoaderCircle, Trash, TriangleExclamationPoint, Undo2 } from 'lucide-react';
+import { Ban, LoaderCircle, Route, Trash, TriangleExclamationPoint, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
   ORDER_LIMITS,
   ORDER_PAYMENT_INPUT_KINDS,
   PAYMENT_METHODS,
   isClosedOn,
+  isCurrencyCode,
+  minorToDecimalString,
+  quoteDeliveryFee,
+  readCoordinates,
+  type Coordinates,
+  type DeliveryFeeTier,
   type FulfillmentMode,
   type OrderStatus,
 } from '@floral/domain';
@@ -31,6 +37,7 @@ import {
 } from '@/components/ui/dialog';
 import { Checkbox, Input, NativeSelect, Textarea } from '@/components/ui/input';
 import { fieldError, type ActionState } from '@/lib/action-state';
+import { money } from '@/lib/format';
 import { isBackStep } from '@/lib/order-ui';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 import { useToastActionState } from '@/lib/use-action-toast';
@@ -41,6 +48,15 @@ export interface SavedAddressOption {
   readonly id: string;
   /** Una riga: etichetta, via e colonia. */
   readonly label: string;
+  /** Posizione ancora valida (Google Places), per il costo per distanza; o null. */
+  readonly coordinates: Coordinates | null;
+}
+
+/** Fasce di distanza e posizione della tienda (ADR-069), per "Calcular por distancia". */
+export interface DistancePricing {
+  readonly origin: Coordinates;
+  readonly tiers: readonly DeliveryFeeTier[];
+  readonly defaultFeeMinor: number;
 }
 
 export interface FulfillmentDefaults {
@@ -103,6 +119,7 @@ export function FulfillmentForm({
   formKey,
   windows,
   closedWeekdays,
+  distance = null,
 }: {
   readonly action: Action;
   readonly defaults: FulfillmentDefaults;
@@ -117,9 +134,13 @@ export function FulfillmentForm({
   readonly windows: readonly WindowOption[];
   /** Giorni di chiusura (0 = domenica): avviso, non blocco. */
   readonly closedWeekdays: readonly number[];
+  /** Con le fasce di distanza: pulsante che propone il costo (si può sempre cambiare). */
+  readonly distance?: DistancePricing | null;
 }) {
   const t = useTranslations('orders');
   const [state, formAction] = useToastActionState(action);
+  const feeRef = useRef<HTMLInputElement>(null);
+  const [distanceNote, setDistanceNote] = useState<string | null>(null);
   const err = (field: string) => fieldError(state, field);
   const [mode, setMode] = useState<FulfillmentMode>(defaults.fulfillmentMode);
   const [addressChoice, setAddressChoice] = useState(
@@ -340,6 +361,7 @@ export function FulfillmentForm({
           >
             <Input
               {...controlProps('order-delivery-fee', err('deliveryFee'))}
+              ref={feeRef}
               name="deliveryFee"
               inputMode="decimal"
               autoComplete="off"
@@ -347,6 +369,56 @@ export function FulfillmentForm({
               placeholder="0"
             />
           </Field>
+          {distance ? (
+            <div className="-mt-2 grid gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-fit"
+                onClick={(event) => {
+                  const form = event.currentTarget.form;
+                  const field = (name: string) =>
+                    (form?.elements.namedItem(name) as HTMLInputElement | null)?.value;
+                  const to = newAddress
+                    ? readCoordinates(field('latitude'), field('longitude'))
+                    : (addresses.find((address) => address.id === addressChoice)?.coordinates ??
+                      null);
+                  const quote = quoteDeliveryFee({
+                    tiers: distance.tiers,
+                    defaultFeeMinor: distance.defaultFeeMinor,
+                    from: distance.origin,
+                    to,
+                  });
+                  if (quote.kind === 'distance') {
+                    if (feeRef.current && isCurrencyCode(currency)) {
+                      feeRef.current.value = minorToDecimalString(quote.feeMinor, currency);
+                    }
+                    setDistanceNote(
+                      t('form.distanceFee', {
+                        km: quote.distanceKm,
+                        fee: money(quote.feeMinor, currency),
+                      }),
+                    );
+                  } else if (quote.kind === 'out_of_zone') {
+                    setDistanceNote(
+                      t('form.distanceOutOfZone', { km: quote.distanceKm, max: quote.maxKm }),
+                    );
+                  } else {
+                    setDistanceNote(t('form.distanceUnknown'));
+                  }
+                }}
+              >
+                <Route />
+                {t('form.distanceButton')}
+              </Button>
+              {distanceNote ? (
+                <p className="text-sm text-muted-foreground" role="status">
+                  {distanceNote}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

@@ -75,6 +75,9 @@ export type ConflictReason =
   | 'order_total_below_paid'
   | 'delivery_window_exists'
   | 'delivery_window_limit'
+  /** Costo per distanza (ADR-069): stessa distanza già presente, troppe fasce. */
+  | 'delivery_fee_tier_exists'
+  | 'delivery_fee_tier_limit'
   | 'public_link_unavailable'
   | 'order_not_delivery'
   | 'order_not_ready'

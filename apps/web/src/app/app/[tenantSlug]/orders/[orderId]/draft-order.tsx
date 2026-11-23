@@ -15,7 +15,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { money } from '@/lib/format';
-import { deliveryFormOptions } from '@/lib/delivery-options';
+import { deliveryFormOptions, savedAddressOptions } from '@/lib/delivery-options';
 import { tenantRoutes } from '@/lib/routes';
 import { confirmDraftOrderAction, discardDraftOrderAction } from '../actions';
 import { DiscardDraftButton, FulfillmentForm } from '../order-forms';
@@ -167,12 +167,8 @@ export async function DraftOrderView({
                   submitLabel={t('orders.draft.confirm')}
                   windows={delivery.windows}
                   closedWeekdays={delivery.closedWeekdays}
-                  addresses={customer.addresses.map((address) => ({
-                    id: address.id,
-                    label: [address.label, address.addressLine1, address.neighborhood]
-                      .filter(Boolean)
-                      .join(' · '),
-                  }))}
+                  distance={delivery.distance}
+                  addresses={savedAddressOptions(customer.addresses)}
                   defaults={{
                     fulfillmentMode: 'DELIVERY',
                     scheduledDate: today,

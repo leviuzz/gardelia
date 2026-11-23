@@ -16,6 +16,7 @@ import {
   customerAddressSchema,
   customerInputSchema,
   customerListFiltersSchema,
+  freshCoordinates,
   isUuid,
   nextOccurrence,
   nextStoredPlace,
@@ -25,6 +26,7 @@ import {
   upcomingMonthDays,
   type AcquisitionChannel,
   type AcquisitionSource,
+  type Coordinates,
   type CustomerType,
   type OccasionType,
   type RecordStatus,
@@ -60,6 +62,8 @@ export interface CustomerAddressDto {
   readonly isDefault: boolean;
   /** Google Places (ADR-059): presente se l'indirizzo è stato scelto fra i suggerimenti. */
   readonly placeId: string | null;
+  /** Coordinate ancora valide (30 giorni), per il costo per distanza (ADR-069); o null. */
+  readonly coordinates: Coordinates | null;
 }
 
 export interface CustomerOccasionDto {
@@ -119,6 +123,7 @@ function toAddressDto(address: Prisma.CustomerAddressGetPayload<object>): Custom
     deliveryNotes: address.deliveryNotes,
     isDefault: address.isDefault,
     placeId: address.placeId,
+    coordinates: freshCoordinates(address, new Date()),
   };
 }
 

@@ -558,6 +558,16 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Costo di consegna per distanza (fatto il 23/11, ADR-069):** in Ajustes → Entregas fino a 8 fasce "hasta X km
+→ $Y", con l'avviso se manca Google o la posizione della tienda. Distanza in linea retta dalla tienda
+all'indirizzo (coordinate di Google, mai scadute); regola unica nel dominio (fascia, fuori zona, o costo
+abituale). Ordini online: il server applica la fascia e rifiuta il fuori zona a domicilio; il pedido mostra
+le fasce e il costo con la distanza. Al banco "Calcular por distancia" propone il costo, sempre modificabile.
+La pagina della tienda elenca le fasce. La manutenzione rinnova le coordinate anche delle fiorerie con
+fasce. Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test 829/829 (nuovi: 3 di dominio, 6 d'integrazione con
+fuori zona, coordinate scadute e isolamento A↔B) ✅ · migrazioni = schema ✅ · build ✅ · E2E 87/87 (1 nuovo: fasce
+nelle impostazioni) ✅; controllo visivo con coordinate vere a 320 e 1280 px.
+
 **Documenti legali e diritti di chi compra, blocco C5 (fatto il 23/11, ADR-068):** bozza aggiornata
 dell'aviso de privacidad (chi compra, dati degli ordini e di chi riceve, condivisione con la fioreria,
 cookie dell'attribuzione) e nuova bozza dei **termini per chi compra**, senza regole di legge inventate

@@ -15,7 +15,7 @@ import { MX_REGIONS, todayInTimeZone } from '@floral/domain';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
-import { deliveryFormOptions } from '@/lib/delivery-options';
+import { deliveryFormOptions, savedAddressOptions } from '@/lib/delivery-options';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { createOrderFromQuoteAction } from '../../../orders/actions';
@@ -88,12 +88,8 @@ export default async function QuoteToOrderPage({
               submitLabel={t('orders.form.create')}
               windows={delivery.windows}
               closedWeekdays={delivery.closedWeekdays}
-              addresses={customer.addresses.map((address) => ({
-                id: address.id,
-                label: [address.label, address.addressLine1, address.neighborhood]
-                  .filter(Boolean)
-                  .join(' · '),
-              }))}
+              distance={delivery.distance}
+              addresses={savedAddressOptions(customer.addresses)}
               defaults={{
                 fulfillmentMode: 'DELIVERY',
                 scheduledDate: today,

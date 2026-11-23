@@ -38,7 +38,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { serverEnv } from '@/lib/env';
 import { money, phoneForInput } from '@/lib/format';
 import { calendarDate } from '@/lib/quote-ui';
-import { deliveryFormOptions } from '@/lib/delivery-options';
+import { deliveryFormOptions, savedAddressOptions } from '@/lib/delivery-options';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
@@ -512,12 +512,8 @@ export default async function OrderPage({
                     submitLabel={t('orders.form.save')}
                     windows={deliveryOptions.windows}
                     closedWeekdays={deliveryOptions.closedWeekdays}
-                    addresses={customer.addresses.map((address) => ({
-                      id: address.id,
-                      label: [address.label, address.addressLine1, address.neighborhood]
-                        .filter(Boolean)
-                        .join(' · '),
-                    }))}
+                    distance={deliveryOptions.distance}
+                    addresses={savedAddressOptions(customer.addresses)}
                     defaults={{
                       fulfillmentMode: order.fulfillmentMode,
                       scheduledDate,

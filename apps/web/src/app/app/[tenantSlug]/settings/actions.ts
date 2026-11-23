@@ -6,10 +6,12 @@
  * `runTenantAction`. Gli ID legati con .bind() arrivano dal client: non sono affidabili.
  */
 import {
+  addDeliveryFeeTier,
   addDeliveryWindow,
   changeMemberRole,
   getMailer,
   inviteMember,
+  removeDeliveryFeeTier,
   removeDeliveryWindow,
   revokeInvitation,
   removeStoreImage,
@@ -162,6 +164,36 @@ export async function addDeliveryWindowAction(
     return {
       revalidate: [routes.settings.general, section(routes.orders.list())],
       success: 'settings.delivery.windowAdded',
+    };
+  });
+}
+
+/** Costo per distanza (ADR-069): "Hasta X km: $Y". */
+export async function addDeliveryFeeTierAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await addDeliveryFeeTier(ctx, formDataToObject(formData));
+    return {
+      revalidate: [routes.settings.general, section(routes.orders.list())],
+      success: 'settings.delivery.tierAdded',
+    };
+  });
+}
+
+export async function removeDeliveryFeeTierAction(
+  slug: string,
+  tierId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await removeDeliveryFeeTier(ctx, tierId);
+    return {
+      revalidate: [routes.settings.general, section(routes.orders.list())],
+      success: 'settings.delivery.tierRemoved',
     };
   });
 }

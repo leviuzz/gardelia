@@ -1777,6 +1777,36 @@ Blocco C5 di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26). Avviato dal founder ("ok 
 - **Non fatto:** esportazione e cancellazione per le fiorerie (servono regole sui dati del negozio e
   sugli obblighi fiscali); caselle di consenso; testi definitivi.
 
+### ADR-069 — Costo di consegna per distanza a fasce di km — ADOTTATO (23/11/2026)
+
+Completa il blocco A2 di `docs/ORDERS_MARKETPLACE_PLAN.md` (O-14 → Google Places, ADR-059). Avviato
+dal founder ("vai avanti con il costo di consegna per distanza").
+
+- **Fasce:** in Ajustes → Entregas, "Costo de envío por distancia": fino a 8 fasce "hasta X km →
+  $Y" (da 0,1 a 100 km, un decimale; costo anche 0 = gratis). Tabella `DeliveryFeeTier` (metri
+  interi, RLS, CHECK sui limiti, una fascia per distanza). Il costo abituale resta e vale quando la
+  distanza non si conosce.
+- **Distanza in linea retta** fra la posizione della tienda principale e quella dell'indirizzo
+  (coordinate di Google, valide 30 giorni). Nessuna chiamata in più a Google (le Routes API costano:
+  la distanza su strada è un'evoluzione possibile). La pagina lo dice ("en línea recta").
+- **Regola unica (dominio, `quoteDeliveryFee`):** la prima fascia che arriva fin lì; oltre
+  l'ultima = **fuori zona**; senza fasce, senza la posizione della tienda o dell'indirizzo = costo
+  abituale. Mai un calcolo con coordinate scadute.
+- **Ordini online (ADR-067):** il server applica la fascia; un indirizzo fuori zona non si può
+  ordinare a domicilio (si può ritirare). Il modulo riceve fasce e posizione della tienda e mostra
+  lo stesso calcolo uscendo dal passo "Entrega" ("Envío $80 · a 2 km"; "Sin costo" se la fascia è
+  0; "lo confirma la florería" se non si sa). La pagina della tienda elenca le fasce.
+- **Al banco:** "Calcular por distancia" accanto al costo di consegna (indirizzo salvato con
+  posizione, o nuovo scelto con "Buscar dirección") propone il costo della fascia, che si può sempre
+  cambiare; fuori zona lo dice e lascia scrivere a mano. Il pulsante c'è solo con fasce e posizione
+  della tienda.
+- **Coordinate della tienda sempre fresche:** la manutenzione le richiede a Google non più solo per
+  le tiendas pubblicate (ADR-066) ma anche per le fiorerie con fasce di distanza
+  (`app_store_places_to_refresh` sostituita). Senza Google o senza la sede scelta con "Buscar
+  dirección", le impostazioni lo spiegano e vale il costo abituale.
+- **Non fatto:** distanza su strada; il raggio della ricerca (`deliveryRadiusKm`) resta separato
+  dall'ultima fascia.
+
 ### ADR-070 — Clienti completi: cronologia, etichette e filtri, import da CSV — ADOTTATO (23/11/2026)
 
 Numerata 070: 066 è già la home per chi compra e 067–069 restano ai blocchi del marketplace
