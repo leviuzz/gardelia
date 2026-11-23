@@ -216,7 +216,9 @@ riga la giacenza dopo, il costo reale (medio) e quello del catalogo del momento.
 movimenti non si modificano né si cancellano (RLS solo SELECT e INSERT): uno sbaglio si annulla con
 un registro `REVERSAL`. Per gli ordini il core espone `checkStockTx` e `consumeStockTx`, da usare
 nella transazione dell'ordine: senza il piano o per i prodotti non controllati non registrano nulla.
-La disponibilità del catalogo non dipende dalla giacenza: l'inventario propone il clic.
+La disponibilità del catalogo non dipende dalla giacenza: l'inventario propone il clic. Compras
+(ADR-061): un registro `PURCHASE` con proveedor (`Supplier`), giorno e factura, e righe con il
+totale pagato; ogni riga aggiorna il costo medio, l'anulación lo toglie.
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per

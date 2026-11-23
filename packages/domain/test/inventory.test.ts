@@ -3,6 +3,12 @@ import {
   INVENTORY_LIMITS,
   availableQuantity,
   averageCostAfterReceipt,
+  averageCostAfterRemoval,
+  costDifferenceBps,
+  parsePackQuantity,
+  purchaseInputSchema,
+  supplierInputSchema,
+  unitCostOf,
   inventoryListFiltersSchema,
   inventoryMovementFiltersSchema,
   isInventoryItemType,
@@ -210,5 +216,93 @@ describe('form dei movimenti', () => {
     });
     expect(inventoryMovementFiltersSchema.parse({ kind: 'WASTE' }).kind).toBe('WASTE');
     expect(inventoryMovementFiltersSchema.parse({ kind: 'GIFT' }).kind).toBeNull();
+  });
+});
+
+describe('compras al mayorista (ADR-061)', () => {
+  it('quantità come al mercato: "100" o paquetes per unità', () => {
+    expect(parsePackQuantity('100')).toBe(100);
+    expect(parsePackQuantity('4x25')).toBe(100);
+    expect(parsePackQuantity(' 4 × 25 ')).toBe(100);
+    expect(parsePackQuantity('3*10')).toBe(30);
+    expect(parsePackQuantity('4X25')).toBe(100);
+    expect(parsePackQuantity('2,5')).toBeNull();
+    expect(parsePackQuantity('x25')).toBeNull();
+    expect(parsePackQuantity('')).toBeNull();
+  });
+
+  it('il costo medio torna com’era quando si annulla la compra', () => {
+    const before = { onHand: 50, avgUnitCostMinor: 1000 };
+    const purchase = { quantity: 100, totalCostMinor: 130_000 };
+    const after = averageCostAfterReceipt(before, purchase);
+    expect(after).toBe(1200);
+    expect(averageCostAfterRemoval({ onHand: 150, avgUnitCostMinor: after }, purchase)).toBe(1000);
+    // Se non resta merce, o il costo non è noto, il costo medio resta quello che era.
+    expect(averageCostAfterRemoval({ onHand: 100, avgUnitCostMinor: 1300 }, purchase)).toBe(1300);
+    expect(averageCostAfterRemoval({ onHand: 120, avgUnitCostMinor: null }, purchase)).toBeNull();
+    // Mai sotto zero (merce già usata a un costo diverso).
+    expect(
+      averageCostAfterRemoval(
+        { onHand: 110, avgUnitCostMinor: 1 },
+        { quantity: 100, totalCostMinor: 500_000 },
+      ),
+    ).toBe(0);
+  });
+
+  it('costo per unità e differenza dal catalogo', () => {
+    expect(unitCostOf(1000, 30)).toBe(33);
+    expect(costDifferenceBps(1300, 1000)).toBe(3000);
+    expect(costDifferenceBps(900, 1000)).toBe(-1000);
+    expect(costDifferenceBps(900, null)).toBeNull();
+    expect(costDifferenceBps(null, 1000)).toBeNull();
+    expect(costDifferenceBps(900, 0)).toBeNull();
+  });
+
+  it('modulo della compra: righe per indice, proveedor facoltativo, data valida', () => {
+    const schema = purchaseInputSchema('MXN');
+    const parsed = schema.parse({
+      supplierId: '',
+      newSupplierName: ' Mercado de Jamaica ',
+      purchasedOn: '2026-11-20',
+      reference: '',
+      lines: {
+        '1': { inventoryItemId: PAPER, quantity: '10', total: '50' },
+        '0': { inventoryItemId: ROSE, quantity: '4x25', total: '1300' },
+      },
+    });
+    expect(parsed).toEqual({
+      supplierId: null,
+      newSupplierName: 'Mercado de Jamaica',
+      purchasedOn: { year: 2026, month: 11, day: 20 },
+      reference: null,
+      lines: [
+        { inventoryItemId: ROSE, quantity: 100, total: 130_000 },
+        { inventoryItemId: PAPER, quantity: 10, total: 5000 },
+      ],
+    });
+    const errors = (input: unknown) => {
+      const result = schema.safeParse(input);
+      return result.success ? null : toFieldErrors(result.error);
+    };
+    expect(errors({ lines: {} })).toMatchObject({ lines: 'inventory_no_lines' });
+    expect(
+      errors({
+        purchasedOn: '2026-02-30',
+        lines: { '0': { inventoryItemId: ROSE, quantity: '1', total: '1' } },
+      }),
+    ).toMatchObject({ purchasedOn: 'invalid_date' });
+    expect(
+      errors({ lines: { '0': { inventoryItemId: ROSE, quantity: '0x5', total: 'mucho' } } }),
+    ).toMatchObject({ 'lines.0.quantity': 'out_of_range', 'lines.0.total': 'invalid_money' });
+  });
+
+  it('proveedor: nome obbligatorio, telefono del mercato', () => {
+    const schema = supplierInputSchema('MX');
+    expect(schema.parse({ name: 'Flores Toño', phone: '449 555 0123', notes: '' })).toEqual({
+      name: 'Flores Toño',
+      phone: '+524495550123',
+      notes: null,
+    });
+    expect(schema.safeParse({ name: '' }).success).toBe(false);
   });
 });

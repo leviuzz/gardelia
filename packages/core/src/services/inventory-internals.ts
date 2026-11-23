@@ -98,8 +98,10 @@ export interface MovementLine {
   readonly quantity: number;
   /** Costo reale per unità di questo movimento (prezzo della compra o costo medio). */
   readonly unitCostMinor: number | null;
-  /** Nuovo costo medio del prodotto dopo il movimento (solo per gli ingressi con costo). */
+  /** Nuovo costo medio del prodotto dopo il movimento (ingressi con costo, anulación di compras). */
   readonly newAvgUnitCostMinor?: number | null;
+  /** Solo per le righe di una compra: il totale pagato (ADR-061). */
+  readonly totalCostMinor?: number;
 }
 
 export interface WrittenEntry {
@@ -122,6 +124,12 @@ export async function writeInventoryEntry(
     readonly note?: string | null;
     readonly occurredAt?: Date;
     readonly reversesEntryId?: string;
+    /** Solo per le compras (ADR-061): proveedor, factura e giorno della compra. */
+    readonly purchase?: {
+      readonly supplierId: string | null;
+      readonly reference: string | null;
+      readonly purchasedOn: Date;
+    };
     readonly lines: readonly MovementLine[];
   },
 ): Promise<WrittenEntry> {
@@ -141,6 +149,13 @@ export async function writeInventoryEntry(
       kind: entry.kind,
       note: entry.note ?? null,
       reversesEntryId: entry.reversesEntryId ?? null,
+      ...(entry.purchase
+        ? {
+            supplierId: entry.purchase.supplierId,
+            reference: entry.purchase.reference,
+            purchasedOn: entry.purchase.purchasedOn,
+          }
+        : {}),
       createdById: ctx.userId,
       ...(entry.occurredAt ? { occurredAt: entry.occurredAt } : {}),
     },
@@ -156,6 +171,7 @@ export async function writeInventoryEntry(
       balanceAfter: balances.get(line.item.id) ?? line.item.onHand + line.quantity,
       unitCostMinor: line.unitCostMinor,
       expectedUnitCostMinor: line.item.catalogCostMinor,
+      totalCostMinor: line.totalCostMinor ?? null,
       currency: line.item.currency,
     })),
   });

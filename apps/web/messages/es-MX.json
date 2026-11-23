@@ -1858,7 +1858,8 @@
     "tabs": {
       "label": "Secciones del inventario",
       "stock": "Existencias",
-      "movements": "Movimientos"
+      "movements": "Movimientos",
+      "purchases": "Compras"
     },
     "upsell": {
       "title": "El inventario está incluido en {plan}",
@@ -1915,7 +1916,7 @@
       "minimum": "Avísame con",
       "minimumHint": "Te avisamos cuando queden esos o menos. Opcional.",
       "previous": "La última vez tenías {quantity}.",
-      "costNote": "Las existencias de hoy se valoran con el costo de tu catálogo.",
+      "costNote": "Las existencias de hoy toman el costo de tu catálogo; con tus compras verás el costo real.",
       "limitNote": "Se muestran los primeros {max} productos; busca para encontrar otros.",
       "submit": "Empezar a controlar",
       "started": "{count, plural, one {Listo: ahora controlas # producto.} other {Listo: ahora controlas # productos.}}",
@@ -1937,7 +1938,7 @@
       "catalogCost": "Costo del catálogo",
       "noCost": "Sin costo",
       "value": "Valor de la mercancía",
-      "negative": "Faltan {quantity}. Cuando tengas la mercancía, cuenta de nuevo para corregirlo.",
+      "negative": "Faltan {quantity}. Registra una compra o cuenta de nuevo para corregirlo.",
       "catalogLink": "Ver en el catálogo",
       "catalogArchived": "Este producto está archivado en el catálogo.",
       "notTracked": "Ya no controlas este producto. Sus movimientos se conservan.",
@@ -1954,7 +1955,11 @@
         "LIMITED": "Marcar como limitado",
         "AVAILABLE": "Marcar como disponible"
       },
-      "availabilityChanged": "Listo: el catálogo ya muestra el cambio."
+      "availabilityChanged": "Listo: el catálogo ya muestra el cambio.",
+      "noRealCost": "Sin compras todavía",
+      "costDiff": "{diff} vs. el catálogo",
+      "useRealCost": "Usar este costo en el catálogo",
+      "realCostApplied": "Listo: el catálogo ya usa el costo real."
     },
     "actions": {
       "use": "Registrar uso",
@@ -2036,14 +2041,16 @@
       "body": "Existencias de cada producto, avisos cuando se acaban y todo lo que entra y sale."
     },
     "validation": {
-      "none_selected": "Escribe cuántos tienes de al menos un producto."
+      "none_selected": "Escribe cuántos tienes de al menos un producto.",
+      "no_lines": "Agrega al menos un producto a la compra."
     },
     "conflict": {
       "insufficient_stock": "No alcanza la mercancía: revisa la cantidad o confirma para registrarlo de todos modos.",
       "item_archived": "Ya no controlas este producto: vuelve a controlarlo para registrar movimientos.",
       "already_tracked": "Alguien empezó a controlar estos productos al mismo tiempo. Recarga la página.",
       "entry_not_reversible": "Este movimiento no se puede anular: corrige las existencias con un conteo.",
-      "entry_already_reversed": "Este movimiento ya se anuló."
+      "entry_already_reversed": "Este movimiento ya se anuló.",
+      "no_real_cost": "Este producto todavía no tiene un costo real: registra una compra."
     },
     "activity": {
       "tracking_started": "{units, plural, one {{actor} empezó a controlar {name} en el inventario} other {{actor} empezó a controlar # productos en el inventario}}",
@@ -2052,7 +2059,92 @@
       "stock_used": "{lines, plural, one {{actor} registró el uso de {units} × {name}} other {{actor} registró el uso de materiales de # productos}}",
       "stock_wasted": "{actor} registró una merma de {units} × {name}",
       "stock_counted": "{actor} contó {name}: ahora hay {units}",
-      "entry_reversed": "{lines, plural, one {{actor} anuló un movimiento de {name}} other {{actor} anuló un movimiento de # productos}}"
+      "entry_reversed": "{lines, plural, one {{actor} anuló un movimiento de {name}} other {{actor} anuló un movimiento de # productos}}",
+      "purchase_recorded": "{lines, plural, one {{actor} registró una compra de {units} × {name}} other {{actor} registró una compra de # productos}}",
+      "supplier_created": "{actor} agregó el proveedor {name}",
+      "supplier_updated": "{actor} cambió el proveedor {name}",
+      "supplier_archived": "{actor} archivó el proveedor {name}",
+      "supplier_restored": "{actor} recuperó el proveedor {name}",
+      "real_cost_applied": "{actor} usó el costo real de {name} en el catálogo"
+    },
+    "purchases": {
+      "title": "Compras",
+      "subtitle": "Lo que compras al mayorista o en el mercado: la mercancía entra y el costo real se actualiza.",
+      "new": "Nueva compra",
+      "suppliersLink": "Proveedores",
+      "searchPlaceholder": "Buscar por proveedor o nota",
+      "results": "{count, plural, =0 {Sin compras} one {# compra} other {# compras}}",
+      "emptyTitle": "Todavía no registras compras",
+      "emptyBody": "Registra lo que compras: la mercancía entra a las existencias y sabrás cuánto te cuesta de verdad cada flor.",
+      "noResultsTitle": "Ninguna compra con esta búsqueda",
+      "noResultsBody": "Prueba con otro proveedor o nota.",
+      "noSupplier": "Sin proveedor",
+      "lines": "{count, plural, one {# producto} other {# productos}}",
+      "reversed": "Anulada",
+      "form": {
+        "title": "Nueva compra",
+        "subtitle": "Escribe lo que compraste y cuánto pagaste por cada producto.",
+        "back": "Volver a las compras",
+        "supplier": "Proveedor",
+        "supplierNone": "Sin proveedor",
+        "supplierNew": "Proveedor nuevo…",
+        "newSupplierName": "Nombre del proveedor nuevo",
+        "date": "Fecha de la compra",
+        "reference": "Nota o factura (opcional)",
+        "referenceHint": "Por ejemplo: nota 118 del mercado.",
+        "product": "Producto",
+        "choose": "Elige un producto",
+        "quantity": "Cantidad",
+        "quantityHint": "Puedes escribir 4x25 si compraste 4 paquetes de 25.",
+        "total": "Total pagado",
+        "unitCost": "{amount} por {unit}",
+        "addLine": "Agregar producto",
+        "removeLine": "Quitar producto",
+        "purchaseTotal": "Total de la compra: {amount}",
+        "submit": "Registrar compra",
+        "noProducts": "Primero elige en Existencias los productos que quieres controlar."
+      },
+      "detail": {
+        "title": "Compra del {date}",
+        "back": "Volver a las compras",
+        "supplier": "Proveedor",
+        "reference": "Nota o factura",
+        "recordedBy": "Registró: {name}",
+        "product": "Producto",
+        "quantity": "Cantidad",
+        "unitCost": "Costo por unidad",
+        "total": "Total",
+        "purchaseTotal": "Total de la compra",
+        "created": "Compra registrada: la mercancía ya está en las existencias.",
+        "reverse": "Anular compra",
+        "reverseTitle": "¿Anular esta compra?",
+        "reverseBody": "La mercancía sale de las existencias y el costo real vuelve a como estaba. No se borra nada.",
+        "reverseConfirm": "Anular compra",
+        "reversedNotice": "Esta compra se anuló: su mercancía ya salió de las existencias."
+      }
+    },
+    "suppliers": {
+      "title": "Proveedores",
+      "subtitle": "Los mayoristas y mercados donde compras.",
+      "back": "Volver a las compras",
+      "add": "Agregar proveedor",
+      "name": "Nombre",
+      "phone": "Teléfono (opcional)",
+      "notes": "Nota (opcional)",
+      "save": "Guardar",
+      "edit": "Editar",
+      "archive": "Archivar",
+      "restore": "Recuperar",
+      "archived": "Archivado",
+      "purchases": "{count, plural, =0 {Sin compras} one {# compra} other {# compras}}",
+      "emptyTitle": "Todavía no tienes proveedores",
+      "emptyBody": "Agrégalos aquí o al registrar una compra.",
+      "created": "Proveedor agregado.",
+      "saved": "Cambios guardados.",
+      "archivedDone": "Proveedor archivado.",
+      "restoredDone": "Proveedor recuperado.",
+      "showArchived": "Ver también los archivados",
+      "hideArchived": "Ocultar los archivados"
     }
   }
 }

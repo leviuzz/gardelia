@@ -16,11 +16,17 @@
  */
 import { z } from 'zod';
 import { INGREDIENT_TYPES, type Availability, type CatalogItemType } from './catalog';
+import { optionalPhoneField } from './customer';
+import type { MarketCountry } from './markets';
+import type { CurrencyCode } from './money';
+import { parseDateInput } from './quote';
 import {
   checkboxField,
+  moneyField,
   optionalInteger,
   optionalText,
   requiredInteger,
+  requiredText,
   toTrimmedString,
 } from './validation';
 
@@ -143,6 +149,39 @@ export function averageCostAfterReceipt(
     (current.onHand * current.avgUnitCostMinor + receipt.totalCostMinor) /
       (current.onHand + receipt.quantity),
   );
+}
+
+/**
+ * Costo medio dopo aver tolto un ingresso con costo (anulación di una compra): la media senza
+ * quella merce. Se non resta merce, o il costo non era noto, il costo medio non cambia.
+ */
+export function averageCostAfterRemoval(
+  current: { readonly onHand: number; readonly avgUnitCostMinor: number | null },
+  removal: { readonly quantity: number; readonly totalCostMinor: number },
+): number | null {
+  const remaining = current.onHand - removal.quantity;
+  if (current.avgUnitCostMinor === null || remaining <= 0) return current.avgUnitCostMinor;
+  const value = current.onHand * current.avgUnitCostMinor - removal.totalCostMinor;
+  return Math.max(0, Math.round(value / remaining));
+}
+
+/** Costo per unità di una riga di compra (totale pagato / quantità), arrotondato. */
+export function unitCostOf(totalCostMinor: number, quantity: number): number {
+  return Math.round(totalCostMinor / quantity);
+}
+
+/**
+ * Differenza fra costo reale e costo del catalogo, in punti base (+1200 = il 12% in più del
+ * catalogo); null se manca uno dei due o il catalogo dice 0.
+ */
+export function costDifferenceBps(
+  realUnitCostMinor: number | null,
+  catalogUnitCostMinor: number | null,
+): number | null {
+  if (realUnitCostMinor === null || catalogUnitCostMinor === null || catalogUnitCostMinor === 0) {
+    return null;
+  }
+  return Math.round(((realUnitCostMinor - catalogUnitCostMinor) / catalogUnitCostMinor) * 10_000);
 }
 
 /** Valore al costo di una quantità (in valore assoluto); null se il costo non è noto. */
@@ -275,3 +314,108 @@ export type InventoryItemSettingsInput = z.infer<typeof inventoryItemSettingsSch
 export const reverseEntrySchema = z.object({
   confirmShortage: checkboxField(),
 });
+
+// -----------------------------------------------------------------------------
+// Compras al mayorista e proveedores (ADR-061)
+// -----------------------------------------------------------------------------
+
+export const PURCHASE_LIMITS = {
+  /** Prodotti in una compra. */
+  lines: 60,
+  /** Nota o numero della factura del mayorista. */
+  reference: 80,
+  supplierName: 80,
+  supplierNotes: 300,
+} as const;
+
+/**
+ * Quantità di una riga di compra: un intero ("100") o paquetes per unità ("4x25", "4 × 25",
+ * "4*25"), come si compra al mercato. Null se non è una quantità valida.
+ */
+export function parsePackQuantity(value: string): number | null {
+  const text = value.trim().replace(/\s+/g, '');
+  const single = /^\d+$/.exec(text);
+  if (single) return Number(text);
+  const pack = /^(\d+)[x×*](\d+)$/i.exec(text);
+  if (!pack) return null;
+  return Number(pack[1]) * Number(pack[2]);
+}
+
+const packQuantityField = z.preprocess(
+  toTrimmedString,
+  z.string().transform((value, ctx) => {
+    if (value === '') {
+      ctx.addIssue({ code: 'custom', message: 'required' });
+      return z.NEVER;
+    }
+    const quantity = parsePackQuantity(value);
+    if (quantity === null || !Number.isSafeInteger(quantity)) {
+      ctx.addIssue({ code: 'custom', message: 'invalid_number' });
+      return z.NEVER;
+    }
+    if (quantity < 1 || quantity > INVENTORY_LIMITS.quantity) {
+      ctx.addIssue({ code: 'custom', message: 'out_of_range' });
+      return z.NEVER;
+    }
+    return quantity;
+  }),
+);
+
+/** Data della compra ("AAAA-MM-GG"); vuota = oggi (la decide il server nel fuso della fioreria). */
+const purchaseDateField = z.preprocess(
+  toTrimmedString,
+  z.string().transform((value, ctx) => {
+    if (value === '') return null;
+    const parsed = parseDateInput(value);
+    if (!parsed) {
+      ctx.addIssue({ code: 'custom', message: 'invalid_date' });
+      return z.NEVER;
+    }
+    return parsed;
+  }),
+);
+
+/**
+ * "Nueva compra": proveedor (esistente o nuovo, facoltativo), data, factura e una riga per prodotto
+ * con quantità e totale pagato. Lo stesso prodotto in più righe si somma.
+ */
+export function purchaseInputSchema(currency: CurrencyCode) {
+  const lineSchema = z.object({
+    inventoryItemId: z.preprocess(toTrimmedString, z.uuid({ error: 'required' })),
+    quantity: packQuantityField,
+    total: moneyField(currency),
+  });
+  return z.object({
+    supplierId: z.preprocess(
+      toTrimmedString,
+      z.union([z.literal('').transform(() => null), z.uuid({ error: 'invalid_option' })]),
+    ),
+    newSupplierName: optionalText(PURCHASE_LIMITS.supplierName),
+    purchasedOn: purchaseDateField,
+    reference: optionalText(PURCHASE_LIMITS.reference),
+    lines: z.preprocess(
+      rowsToArray,
+      z
+        .array(lineSchema)
+        .min(1, { error: 'inventory_no_lines' })
+        .max(PURCHASE_LIMITS.lines, { error: 'too_many_items' }),
+    ),
+  });
+}
+export type PurchaseInput = z.infer<ReturnType<typeof purchaseInputSchema>>;
+
+/** Filtri dell'elenco delle compras (`?q=…&page=…`): proveedor o factura. */
+export const purchaseListFiltersSchema = z.object({
+  q: z.preprocess(toTrimmedString, z.string().max(80).catch('')),
+  page: pageField,
+});
+
+/** Proveedor (mayorista, mercado): solo un nome, un telefono e una nota. */
+export function supplierInputSchema(country: MarketCountry) {
+  return z.object({
+    name: requiredText(PURCHASE_LIMITS.supplierName),
+    phone: optionalPhoneField(country),
+    notes: optionalText(PURCHASE_LIMITS.supplierNotes),
+  });
+}
+export type SupplierInput = z.infer<ReturnType<typeof supplierInputSchema>>;

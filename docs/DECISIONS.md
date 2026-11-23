@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 23 novembre 2026 (Google Places, ADR-059; inventario, ADR-060; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 23 novembre 2026 (Google Places, ADR-059; inventario, ADR-060 e ADR-061; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -1439,6 +1439,29 @@ Numerazione: ADR-055–059 sono riservati agli ordini e al marketplace (altra se
     `inventory.validation.*`) e attività (`inventory.activity.*`), letti dal prefisso del modulo.
 - **Prossimi blocchi:** compras y proveedores (ADR-061), apartados con vencimiento (ADR-062), avvisi
   nel pannello e costo dei ramos (ADR-063).
+
+### ADR-061 — Inventario: compras al mayorista, proveedores e costo reale (blocco 2) — ADOTTATO (23/11/2026)
+
+- **Cosa:** scheda "Compras" dell'inventario, solo per proprietario e manager (`inventory:write`):
+  le compras hanno i prezzi, che lo staff non vede.
+  - "Nueva compra": proveedor (esistente, nuovo creato con la compra, o nessuno), giorno (mai nel
+    futuro, nel calendario della fioreria), nota o factura, e una riga per prodotto controllato con
+    quantità e **totale pagato**. La quantità si scrive come al mercato: "100" o "4x25"
+    (`parsePackQuantity`). Lo stesso prodotto in più righe si somma.
+  - Ogni riga aggiorna il **costo reale** del prodotto, media ponderata con la merce che c'era
+    (`averageCostAfterReceipt`). La riga conserva il totale esatto (`totalCostMinor`) e il costo
+    per unità arrotondato.
+  - "Anular compra" usa l'anulación del blocco 1: la merce esce e il costo medio torna com'era
+    (`averageCostAfterRemoval`); se la merce comprata è già stata usata serve la conferma.
+  - Proveedores: nome, telefono e nota; si archiviano, non si cancellano.
+- **Costo previsto e reale:** la scheda del prodotto mostra il costo reale accanto a quello del
+  catalogo, con la differenza in percentuale. "Usar este costo en el catálogo" porta il costo reale
+  nel catalogo con un clic: il valore lo legge il server, serve anche `catalog:write`, e va
+  nell'audit. Il catalogo non cambia mai da solo.
+- **Il database garantisce:** `Supplier` con RLS e FK composite. Proveedor, factura e giorno
+  esistono solo sulle compras, e una compra ha sempre il giorno. Il totale pagato esiste solo sulle
+  righe di una compra e non è negativo.
+- **Fuori:** resi al fornitore e lotti, per decisione del founder (ADR-060).
 
 ---
 

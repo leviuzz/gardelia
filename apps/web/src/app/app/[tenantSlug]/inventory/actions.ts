@@ -7,13 +7,18 @@
  * cerca solo nella fioreria del contesto e rifiuta i valori sconosciuti).
  */
 import {
+  createSupplier,
+  recordPurchase,
   recordStockCount,
   recordStockOut,
   reverseInventoryEntry,
   setCatalogItemAvailability,
+  setSupplierArchived,
   startInventoryTracking,
   stopInventoryTracking,
   updateInventoryItemSettings,
+  updateSupplier,
+  applyRealCostToCatalog,
 } from '@floral/core';
 import type { ActionState } from '@/lib/action-state';
 import { formDataToObject } from '@/lib/form-data';
@@ -128,6 +133,76 @@ export async function setCatalogAvailabilityAction(
     return {
       revalidate: [...stockPages(routes), section(routes.builder.list())],
       success: 'inventory.item.availabilityChanged',
+    };
+  });
+}
+
+/** "Nueva compra" (ADR-061): registra e apre la scheda della compra. */
+export async function recordPurchaseAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const { entryId } = await recordPurchase(ctx, formDataToObject(formData));
+    return {
+      revalidate: stockPages(routes),
+      redirectTo: routes.inventory.purchase(entryId, { created: true }),
+    };
+  });
+}
+
+/** "Usar este costo": il server legge il costo reale e lo porta nel catalogo. */
+export async function applyRealCostAction(
+  slug: string,
+  inventoryItemId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await applyRealCostToCatalog(ctx, inventoryItemId);
+    return { revalidate: stockPages(routes), success: 'inventory.item.realCostApplied' };
+  });
+}
+
+export async function createSupplierAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await createSupplier(ctx, formDataToObject(formData));
+    return {
+      revalidate: section(routes.inventory.list()),
+      success: 'inventory.suppliers.created',
+    };
+  });
+}
+
+export async function updateSupplierAction(
+  slug: string,
+  supplierId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await updateSupplier(ctx, supplierId, formDataToObject(formData));
+    return { revalidate: section(routes.inventory.list()), success: 'inventory.suppliers.saved' };
+  });
+}
+
+export async function setSupplierArchivedAction(
+  slug: string,
+  supplierId: string,
+  archived: boolean,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await setSupplierArchived(ctx, supplierId, archived === true);
+    return {
+      revalidate: section(routes.inventory.list()),
+      success: archived ? 'inventory.suppliers.archivedDone' : 'inventory.suppliers.restoredDone',
     };
   });
 }

@@ -10,10 +10,14 @@ import {
   getInventoryItem,
   hasPermission,
   listInventoryMovements,
-  type InventoryItemDto,
+  type InventoryItemDetailDto,
   type TenantContext,
 } from '@floral/core';
-import { inventoryMovementFiltersSchema, suggestedAvailability } from '@floral/domain';
+import {
+  costDifferenceBps,
+  inventoryMovementFiltersSchema,
+  suggestedAvailability,
+} from '@floral/domain';
 import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import { ListPagination } from '@/components/common/list/list-pagination';
 import { ActionButton } from '@/components/form/action-button';
@@ -42,9 +46,19 @@ import {
   setCatalogAvailabilityAction,
   stopInventoryTrackingAction,
   updateInventorySettingsAction,
+  applyRealCostAction,
 } from '../actions';
 
-async function loadItem(ctx: TenantContext, id: string): Promise<InventoryItemDto | null> {
+/** "+12 %" / "−8 %": differenza fra costo reale e costo del catalogo. */
+function signedPercent(bps: number, locale: string): string {
+  return new Intl.NumberFormat(locale, {
+    style: 'percent',
+    maximumFractionDigits: 0,
+    signDisplay: 'exceptZero',
+  }).format(bps / 10_000);
+}
+
+async function loadItem(ctx: TenantContext, id: string): Promise<InventoryItemDetailDto | null> {
   try {
     return await getInventoryItem(ctx, id);
   } catch (error) {
@@ -126,7 +140,16 @@ export default async function InventoryItemPage({
     active && hasPermission(ctx, 'catalog:write') && item.catalogStatus === 'ACTIVE'
       ? suggestedAvailability(item.status, item.catalogAvailability)
       : null;
-  const costsVisible = item.catalogCostMinor !== null || item.valueMinor !== null;
+  const costsVisible = hasPermission(ctx, 'catalog:costs:read');
+  const difference = costDifferenceBps(item.avgUnitCostMinor, item.catalogCostMinor);
+  // "Usar este costo": il costo reale delle compras diventa il costo del catalogo, con un clic.
+  const canUseRealCost =
+    item.hasPurchases &&
+    item.avgUnitCostMinor !== null &&
+    item.avgUnitCostMinor !== item.catalogCostMinor &&
+    item.catalogStatus === 'ACTIVE' &&
+    canWrite &&
+    hasPermission(ctx, 'catalog:write');
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -196,7 +219,7 @@ export default async function InventoryItemPage({
         </Alert>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
           label={t('item.onHand')}
           value={quantity(item.onHand)}
@@ -211,19 +234,47 @@ export default async function InventoryItemPage({
           }
         />
         {costsVisible ? (
-          <Stat
-            label={t('item.value')}
-            value={
-              item.valueMinor === null ? t('item.noCost') : money(item.valueMinor, item.currency)
-            }
-            detail={
-              item.catalogCostMinor === null
-                ? undefined
-                : `${t('item.catalogCost')}: ${money(item.catalogCostMinor, item.currency)}`
-            }
-          />
+          <>
+            <Stat
+              label={t('item.realCost')}
+              value={
+                item.hasPurchases && item.avgUnitCostMinor !== null
+                  ? money(item.avgUnitCostMinor, item.currency)
+                  : t('item.noRealCost')
+              }
+              detail={
+                [
+                  item.catalogCostMinor === null
+                    ? null
+                    : `${t('item.catalogCost')}: ${money(item.catalogCostMinor, item.currency)}`,
+                  item.hasPurchases && difference !== null
+                    ? t('item.costDiff', { diff: signedPercent(difference, ctx.locale) })
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || undefined
+              }
+            />
+            <Stat
+              label={t('item.value')}
+              value={
+                item.valueMinor === null ? t('item.noCost') : money(item.valueMinor, item.currency)
+              }
+            />
+          </>
         ) : null}
       </div>
+
+      {canUseRealCost ? (
+        <ActionButton
+          action={applyRealCostAction.bind(null, slug, item.id)}
+          variant="outline"
+          size="sm"
+          className="w-full sm:w-auto"
+        >
+          {t('item.useRealCost')}
+        </ActionButton>
+      ) : null}
 
       {active && canWrite ? (
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">

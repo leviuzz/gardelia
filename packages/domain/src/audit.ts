@@ -107,6 +107,14 @@ export const AUDIT_ACTIONS = {
   inventoryStockWasted: 'inventory.stock_wasted',
   inventoryStockCounted: 'inventory.stock_counted',
   inventoryEntryReversed: 'inventory.entry_reversed',
+  /** Compras e proveedores (ADR-061). */
+  inventoryPurchaseRecorded: 'inventory.purchase_recorded',
+  inventorySupplierCreated: 'inventory.supplier_created',
+  inventorySupplierUpdated: 'inventory.supplier_updated',
+  inventorySupplierArchived: 'inventory.supplier_archived',
+  inventorySupplierRestored: 'inventory.supplier_restored',
+  /** Il costo reale (medio) usato come costo del catalogo, con un clic. */
+  inventoryRealCostApplied: 'inventory.real_cost_applied',
   builderConfigurationCreated: 'builder.configuration_created',
   builderConfigurationUpdated: 'builder.configuration_updated',
   builderConfigurationArchived: 'builder.configuration_archived',
