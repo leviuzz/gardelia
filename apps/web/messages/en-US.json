@@ -1183,6 +1183,52 @@
       "open": "Print card",
       "hint": "It measures 10 × 7 cm: print at 100% and cut along the dotted line.",
       "empty": "This order has no card message."
+    },
+    "tabs": {
+      "label": "Order views",
+      "list": "List",
+      "day": "Day",
+      "calendar": "Calendar"
+    },
+    "day": {
+      "title": "Orders for the day",
+      "today": "Going out today",
+      "previous": "Previous day",
+      "next": "Next day",
+      "goToday": "Today",
+      "pickDate": "Pick a day",
+      "show": "Show",
+      "emptyTitle": "No orders for this day",
+      "emptyBody": "When you record orders for this date, they show up here by time window.",
+      "summary": "{total, plural, one {# order} other {# orders}} · {deliveries} to deliver · {pickups} in store · {pending, plural, =0 {all done} one {# still to hand over} other {# still to hand over}}",
+      "toCollect": "To collect {amount}",
+      "withCard": "with card",
+      "allDone": "Everything for this day is out or handed over.",
+      "done": "{count, plural, one {# order already out} other {# orders already out}}"
+    },
+    "production": {
+      "title": "Production for the day",
+      "summary": "{bouquets, plural, =0 {No bouquets to make} one {# bouquet to make} other {# bouquets to make}} · {orders, plural, one {# order to prepare} other {# orders to prepare}}",
+      "print": "Print",
+      "printNow": "Print list",
+      "empty": "Nothing to prepare on this day.",
+      "itemsCaption": "Flowers and materials needed",
+      "item": "Flower or material",
+      "quantity": "Quantity",
+      "custom": "Other items",
+      "units": {
+        "STEM": "{count, plural, one {# stem} other {# stems}}",
+        "BUNCH": "{count, plural, one {# bunch} other {# bunches}}",
+        "PIECE": "{count, plural, one {# piece} other {# pieces}}",
+        "SERVICE": "{count, plural, one {# service} other {# services}}"
+      }
+    },
+    "calendar": {
+      "title": "Order calendar",
+      "subtitle": "Deliveries and pickups by day. Tap a day to see its orders.",
+      "previous": "Previous month",
+      "next": "Next month",
+      "dayLabel": "{date}: {deliveries} to deliver, {pickups} in store"
     }
   },
   "plans": {

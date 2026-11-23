@@ -1288,6 +1288,25 @@ già approvato dal founder il 21/11.
 - **Non fatto:** email al cliente con il link (V1 riga 13, quando c'è il dominio verificato), rifiuto
   del preventivo dal link (il cliente scrive alla fioreria).
 
+### ADR-057 — Agenda dei pedidos: giorno, Producción del día e mese — ADOTTATO (23/11/2026)
+
+Blocco B1 di `docs/ORDERS_MARKETPLACE_PLAN.md`.
+
+- **Tre viste sotto Pedidos** (schede "Lista", "Día", "Calendario") invece di una voce di menu in più:
+  il calendario delle date speciali resta quello dei clienti; quello degli ordini è un altro
+  strumento con un altro scopo.
+- **Día ("Hoy salen"):** ordini del giorno raggruppati per fascia ("Durante el día" prima), con
+  cliente, destinatario, indirizzo o ritiro, cosa contiene, tarjeta, saldo da incassare e **un solo
+  pulsante: il prossimo passo** (salti e correzioni dalla scheda). Gli ordini già consegnati o
+  ritirati vanno in fondo, chiusi. Data per URL (`?date=`), frecce e scelta del giorno.
+- **Producción del día:** fiori, verde e materiali sommati dalle **distinte congelate** nelle righe
+  (ramos del catalogo e del Diseñador per il numero di ramos, articoli sciolti, colori separati),
+  le righe libere a parte; solo ordini confermati, in preparazione o pronti. Pagina da stampare per
+  il mercato e per il banco. Regola pura `aggregateProduction` nel dominio.
+- **Calendario:** mese con quante consegne e quanti ritiri per giorno; un clic apre il giorno.
+- **Chi vede:** tutta la squadra (`orders:read`); i passi seguono i permessi (`orders:fulfill`); niente
+  costi. Borradores e ordini annullati non compaiono.
+
 ---
 
 ## 3. Proposte da approvare

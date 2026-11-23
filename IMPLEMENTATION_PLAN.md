@@ -506,6 +506,14 @@ accetta con un clic, oppure segue l'ordine passo per passo con consegna, tarjeta
 build ✅ · E2E 67/67 ✅ (4 nuovi); controllo visivo delle pagine pubbliche a 390 px. Prossimi: B1
 calendario delle consegne, "Hoy salen", Producción del día.
 
+**Agenda dei pedidos, blocco B1 (fatto il 23/11, ADR-057):** schede "Lista", "Día" e "Calendario" sotto
+Pedidos. "Hoy salen" raggruppa gli ordini del giorno per fascia con il prossimo passo a un tocco (gli
+usciti in fondo, chiusi); "Producción del día" somma fiori e materiali dalle distinte, anche da
+stampare; il calendario mostra consegne e ritiri per giorno. Verifiche locali: lint ✅ · format ✅ ·
+typecheck ✅ · test unit 291/291 ✅ · integrazione 306/306 ✅ (4 nuovi, con isolamento A↔B) · build ✅ ·
+E2E 69/69 ✅ (2 nuovi); controllo visivo a 1280 e 390 px. Prossimi: B2 ruta del día, repartidor e prova
+di consegna.
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci
