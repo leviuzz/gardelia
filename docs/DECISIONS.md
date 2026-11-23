@@ -192,6 +192,12 @@ React 19 azzera i campi dei `<form action={fn}>` anche quando l'action restituis
   componente: il messaggio arriva anche se il re-render smonta il componente (riga rimossa, form
   chiuso, pulsante di uno stato non più disponibile). `useActionToast` resta per i componenti che
   restano montati e per le action con redirect.
+- Errori per campo (aggiornato il 23/11): restano accanto ai campi e diventano un toast solo se la
+  pagina non li mostra. Il controllo "è visibile?" gira **dopo il commit** dello stato che li porta
+  (effetto di `useActionToast`; in `useToastActionState` un effetto sullo stato, con il risultato in
+  attesa in un ref), non dopo un numero fisso di frame: con due frame, su un telefono lento o in CI
+  lo stesso messaggio compariva anche come toast. Se il componente si smonta prima del commit, gli
+  errori diventano un toast: una validazione non resta mai silenziosa.
 
 ### ADR-023 — Bouquet Builder deterministico — ADOTTATO (Sprint 1)
 
