@@ -112,7 +112,8 @@
       "order_line_limit": "El pedido llegó al máximo de conceptos.",
       "order_total_below_paid": "El total quedaría por debajo de lo que el cliente ya pagó: primero anula el pago.",
       "delivery_window_exists": "Ya tienes esa franja.",
-      "delivery_window_limit": "Llegaste al máximo de franjas."
+      "delivery_window_limit": "Llegaste al máximo de franjas.",
+      "public_link_unavailable": "En su estado actual este documento no se puede compartir."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -377,7 +378,10 @@
     "order.discarded": "{actor} descartó el borrador {number}",
     "delivery_settings.updated": "{actor} cambió los ajustes de entrega",
     "delivery_window.added": "{actor} agregó una franja de entrega",
-    "delivery_window.removed": "{actor} quitó una franja de entrega"
+    "delivery_window.removed": "{actor} quitó una franja de entrega",
+    "quote.accepted_online": "El cliente aceptó la cotización {number} desde el enlace",
+    "public_link.created": "{actor} compartió el enlace de {number}",
+    "public_link.revoked": "{actor} desactivó el enlace de {number}"
   },
   "catalog": {
     "title": "Catálogo",
@@ -955,7 +959,8 @@
       "line": "• {quantity} × {description}: {total}",
       "discount": "Descuento: -{amount}",
       "total": "Total: {total}",
-      "validUntil": "Válida hasta el {date}."
+      "validUntil": "Válida hasta el {date}.",
+      "link": "Puedes verla y aceptarla aquí: {url}"
     },
     "customerCard": {
       "title": "Cotizaciones",
@@ -1131,7 +1136,8 @@
       "window": "de {start} a {end}",
       "total": "Total: {total}",
       "paid": "Pagado: {paid}",
-      "balance": "Por pagar: {balance}"
+      "balance": "Por pagar: {balance}",
+      "link": "Sigue tu pedido aquí: {url}"
     },
     "newOrder": "Nuevo pedido",
     "noDate": "Sin fecha",
@@ -1169,6 +1175,14 @@
       "title": "Pedidos",
       "empty": "Aún no tiene pedidos.",
       "viewAll": "Ver todos sus pedidos"
+    },
+    "cardPrint": {
+      "title": "Imprimir tarjeta",
+      "subtitle": "Tarjeta del pedido {number}, lista para recortar.",
+      "print": "Imprimir",
+      "open": "Imprimir tarjeta",
+      "hint": "Mide 10 × 7 cm: imprime al 100 % y recorta por la línea punteada.",
+      "empty": "Este pedido no tiene mensaje para la tarjeta."
     }
   },
   "plans": {
@@ -1659,5 +1673,72 @@
     "invalidTitle": "Enlace no válido",
     "invalid": "Este enlace no es válido. Si quieres dejar de recibir promociones, responde al correo o contacta a la florería.",
     "poweredBy": "Correo enviado con {brand}"
+  },
+  "publicLink": {
+    "poweredBy": "Enviado con {brand}",
+    "invalidTitle": "Enlace no válido",
+    "invalid": "Este enlace ya no está disponible: puede haber vencido o la florería lo desactivó. Pide uno nuevo a la florería.",
+    "contact": "Escribir a la florería",
+    "imageAlt": "Foto de {name}",
+    "subtotal": "Subtotal",
+    "discount": "Descuento",
+    "tax": "IVA",
+    "total": "Total",
+    "quote": {
+      "title": "Cotización {number}",
+      "for": "Para {name} · {date}",
+      "validUntil": "Válida hasta el {date}.",
+      "acceptHint": "Si todo está bien, acéptala y la florería se pondrá en contacto contigo para confirmar la entrega.",
+      "accept": "Aceptar cotización",
+      "accepted": "Aceptaste esta cotización el {date}. La florería te contactará para confirmar la entrega.",
+      "acceptedNoDate": "Esta cotización ya está aceptada.",
+      "expired": "Esta cotización venció el {date}. Escribe a la florería para actualizarla.",
+      "updating": "La florería está actualizando esta cotización. Vuelve a abrir el enlace más tarde.",
+      "unavailable": "Esta cotización ya no está disponible. Escribe a la florería si tienes dudas.",
+      "contactText": "Hola, tengo una pregunta sobre la cotización {number}."
+    },
+    "order": {
+      "title": "Pedido {number}",
+      "deliveryOn": "Entrega a domicilio: {when}",
+      "pickupOn": "Recoges en la tienda: {when}",
+      "cancelled": "Este pedido fue cancelado. Escribe a la florería si tienes dudas.",
+      "progress": "Avance del pedido",
+      "current": "paso actual",
+      "deliverTo": "Dirección de entrega",
+      "recipient": "Recibe: {name}",
+      "card": "Tarjeta",
+      "anonymous": "Sin firma (anónimo)",
+      "signedBy": "Firma: {name}",
+      "contents": "Qué lleva",
+      "deliveryFee": "Envío",
+      "paid": "Pagado",
+      "balance": "Por pagar",
+      "contactText": "Hola, tengo una pregunta sobre el pedido {number}."
+    }
+  },
+  "shareLink": {
+    "quoteTitle": "Enlace para el cliente",
+    "quoteHint": "Tu cliente ve la cotización y la acepta desde su teléfono, sin crear cuenta.",
+    "quoteDraftHint": "Marca la cotización como enviada para compartir el enlace.",
+    "orderTitle": "Seguimiento para el cliente",
+    "orderHint": "Tu cliente ve en qué paso va su pedido, cuándo llega y cuánto falta por pagar.",
+    "create": "Crear enlace",
+    "created": "Enlace listo para compartir.",
+    "linkLabel": "Enlace",
+    "copy": "Copiar",
+    "copied": "Enlace copiado.",
+    "copyFailed": "No se pudo copiar: selecciona el enlace y cópialo.",
+    "whatsapp": "Enviar por WhatsApp",
+    "expires": "Vence el {date}.",
+    "renew": "Crear uno nuevo",
+    "renewTitle": "¿Crear un enlace nuevo?",
+    "renewBody": "El enlace anterior dejará de funcionar.",
+    "renewConfirm": "Crear nuevo",
+    "renewed": "Enlace nuevo listo: el anterior ya no funciona.",
+    "revoke": "Desactivar",
+    "revokeTitle": "¿Desactivar el enlace?",
+    "revokeBody": "Quien lo tenga verá «Enlace no válido». Puedes crear uno nuevo cuando quieras.",
+    "revokeConfirm": "Desactivar",
+    "revoked": "Enlace desactivado."
   }
 }

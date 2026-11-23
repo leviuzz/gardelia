@@ -8,22 +8,28 @@ import {
   NotFoundError,
   getCustomer,
   getOrder,
+  getPublicLink,
+  hasPermission,
+  publicLinkUrl,
   type OrderDetailDto,
   type TenantContext,
 } from '@floral/core';
 import {
   MX_REGIONS,
+  canShareOrder,
   getMarket,
   minorToDecimalString,
   todayInTimeZone,
   whatsappLink,
 } from '@floral/domain';
 import { PrivateImage } from '@/components/common/private-image';
+import { ShareLinkPanel } from '@/components/common/share-link-card';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status-badges';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { serverEnv } from '@/lib/env';
 import { money, phoneForInput } from '@/lib/format';
 import { calendarDate } from '@/lib/quote-ui';
 import { deliveryFormOptions } from '@/lib/delivery-options';
@@ -34,6 +40,8 @@ import {
   changeOrderStatusAction,
   recordPaymentAction,
   reversePaymentAction,
+  revokeOrderLinkAction,
+  shareOrderLinkAction,
   updateFulfillmentAction,
 } from '../actions';
 import {
@@ -113,6 +121,14 @@ export default async function OrderPage({
     order.windowStart && order.windowEnd
       ? ` ${tShop('orders.whatsapp.window', { start: order.windowStart, end: order.windowEnd })}`
       : '';
+  // Seguimento per il cliente (ADR-056): lo gestisce chi scrive gli ordini.
+  const canShare = hasPermission(ctx, 'orders:write');
+  const publicLink = canShare
+    ? await getPublicLink(ctx, serverEnv().BETTER_AUTH_SECRET, { kind: 'ORDER', id: order.id })
+    : null;
+  const publicUrl = publicLink
+    ? publicLinkUrl(serverEnv().APP_URL, 'ORDER', publicLink.token)
+    : null;
   const whatsappText = order.customer.phone
     ? [
         tShop('orders.whatsapp.greeting', {
@@ -144,6 +160,7 @@ export default async function OrderPage({
         ...(order.balanceMinor > 0
           ? [tShop('orders.whatsapp.balance', { balance: fmt(order.balanceMinor) })]
           : []),
+        ...(publicUrl ? ['', tShop('orders.whatsapp.link', { url: publicUrl })] : []),
       ].join('\n')
     : null;
 
@@ -361,6 +378,15 @@ export default async function OrderPage({
                             : null}
                       </span>
                     ) : null}
+                    {order.cardMessage ? (
+                      <Link
+                        href={routes.orders.card(order.id)}
+                        className="mt-2 inline-flex items-center gap-1.5 font-medium text-primary hover:underline print:hidden"
+                      >
+                        <Printer className="size-4" aria-hidden="true" />
+                        {t('orders.cardPrint.open')}
+                      </Link>
+                    ) : null}
                   </dd>
                 </div>
                 {order.notes ? (
@@ -557,6 +583,39 @@ export default async function OrderPage({
               ) : null}
             </CardContent>
           </Card>
+
+          {canShare && (publicLink || canShareOrder(order.status)) ? (
+            <Card className="print:hidden">
+              <CardHeader>
+                <CardTitle>{t('shareLink.orderTitle')}</CardTitle>
+                <CardDescription>{t('shareLink.orderHint')}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ShareLinkPanel
+                  shareAction={shareOrderLinkAction.bind(null, slug, order.id)}
+                  revokeAction={revokeOrderLinkAction.bind(null, slug, order.id)}
+                  unavailableHint={null}
+                  link={
+                    publicLink && publicUrl
+                      ? {
+                          url: publicUrl,
+                          expiresLabel: t('shareLink.expires', {
+                            date: format.dateTime(publicLink.expiresAt, {
+                              dateStyle: 'long',
+                              timeZone: ctx.timezone,
+                            }),
+                          }),
+                          whatsappHref:
+                            whatsappText && order.customer.phone
+                              ? whatsappLink(order.customer.phone, whatsappText)
+                              : null,
+                        }
+                      : null
+                  }
+                />
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card className="print:hidden">
             <CardHeader>

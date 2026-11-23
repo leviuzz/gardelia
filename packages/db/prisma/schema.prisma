@@ -199,6 +199,7 @@ model Tenant {
   catalogPhotos     CatalogItemPhoto[]
   styleReferences   StyleReferencePhoto[]
   promoEmails       OccasionPromoEmail[]
+  publicLinks       PublicLink[]
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -705,10 +706,11 @@ model Quote {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
-  tenant   Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customer Customer    @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
-  lines    QuoteLine[]
-  order    Order?
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer    Customer     @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
+  lines       QuoteLine[]
+  order       Order?
+  publicLinks PublicLink[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, number])
@@ -1204,6 +1206,7 @@ model Order {
   lines           OrderLine[]
   payments        OrderPayment[]
   events          OrderStatusEvent[]
+  publicLinks     PublicLink[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, number])
@@ -1307,4 +1310,33 @@ model DeliveryWindow {
   @@unique([tenantId, id])
   @@unique([tenantId, startMinutes, endMinutes])
   @@index([tenantId])
+}
+
+/// Che cosa mostra un link pubblico (ADR-056).
+enum PublicLinkKind {
+  QUOTE
+  ORDER
+}
+
+/// Link pubblico di un preventivo (con accettazione) o di un ordine (stato), da mandare al cliente
+/// (ADR-056). Il token non si salva: è firmato dal server (fioreria + ID del link), quindi il
+/// fiorista può ricopiarlo quando vuole. Scade e si può disattivare; uno solo attivo per documento.
+model PublicLink {
+  id          String         @id @default(uuid(7)) @db.Uuid
+  tenantId    String         @db.Uuid
+  kind        PublicLinkKind
+  quoteId     String?        @db.Uuid
+  orderId     String?        @db.Uuid
+  createdById String?        @db.Uuid
+  createdAt   DateTime       @default(now())
+  expiresAt   DateTime
+  revokedAt   DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quote  Quote? @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Restrict)
+  order  Order? @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, quoteId])
+  @@index([tenantId, orderId])
 }

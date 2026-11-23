@@ -1258,6 +1258,36 @@ Blocco A2 di `docs/ORDERS_MARKETPLACE_PLAN.md`, senza la parte che richiede le c
   `delivery_window.added`, `delivery_window.removed`; una fascia di un'altra fioreria dà 404 e un
   evento di sicurezza.
 
+### ADR-056 — Link pubblici di preventivi e ordini, tarjeta da stampare — ADOTTATO (23/11/2026)
+
+Blocco A3 di `docs/ORDERS_MARKETPLACE_PLAN.md`; il link pubblico del preventivo con accettazione era
+già approvato dal founder il 21/11.
+
+- **Cosa vede il cliente, senza account:** `/cotizacion/<token>` (righe con foto del ramo, distinta,
+  totali, validità, note per il cliente, "Aceptar cotización") e `/pedido/<token>` (a che punto è,
+  quando e dove si consegna o si ritira, tarjeta, cosa contiene, pagato e da pagare). Mai costi,
+  margini, note interne o dati di altri clienti; pagine `noindex` e `no-referrer`, nella lingua del
+  mercato della fioreria; "Escribir a la florería" apre WhatsApp con il numero della fioreria.
+- **Token:** fioreria + ID del link firmati con HMAC (chiave derivata dal segreto dell'app e dallo
+  scopo, come la disiscrizione di ADR-047, ora in `core/src/signed-ids.ts`). Il token non si salva:
+  il fiorista lo ricopia quando vuole. La riga `PublicLink` (RLS, FK composite, uno solo attivo per
+  documento, CHECK sul tipo) dà **scadenza** (60 giorni) e **disattivazione**; "Crear uno nuevo"
+  disattiva il vecchio. Il cliente si legge nel contesto della fioreria del token (RLS attiva), mai
+  con un contesto di sistema.
+- **Accettazione:** solo con un clic (POST): l'anteprima automatica di un link in WhatsApp non
+  accetta nulla. Solo un preventivo inviato e ancora valido; l'esito si registra nell'attività senza
+  utente (`quote.accepted_online`, con requestId e IP). La fioreria poi lo converte in ordine (i dati
+  di consegna li decide lei).
+- **Chi condivide:** chi scrive preventivi (`quotes:write`) o ordini (`orders:write`): il link mostra
+  dati del cliente. Si condivide un preventivo inviato o accettato e un ordine confermato e non
+  annullato; un link già dato a un ordine poi annullato resta e dice "cancelado". Il messaggio
+  WhatsApp della fioreria include il link quando c'è. Audit: `public_link.created` (anche rinnovo),
+  `public_link.revoked`.
+- **Tarjeta da stampare:** pagina con il solo messaggio e la firma in un biglietto da 10 × 7 cm con
+  la linea di taglio; la comanda resta la stampa della scheda dell'ordine.
+- **Non fatto:** email al cliente con il link (V1 riga 13, quando c'è il dominio verificato), rifiuto
+  del preventivo dal link (il cliente scrive alla fioreria).
+
 ---
 
 ## 3. Proposte da approvare

@@ -112,7 +112,8 @@
       "order_line_limit": "The order has reached the maximum number of lines.",
       "order_total_below_paid": "The total would drop below what the customer already paid: void the payment first.",
       "delivery_window_exists": "You already have that time window.",
-      "delivery_window_limit": "You’ve reached the maximum number of time windows."
+      "delivery_window_limit": "You’ve reached the maximum number of time windows.",
+      "public_link_unavailable": "This document can’t be shared in its current status."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -377,7 +378,10 @@
     "order.discarded": "{actor} discarded draft {number}",
     "delivery_settings.updated": "{actor} changed the delivery settings",
     "delivery_window.added": "{actor} added a delivery time window",
-    "delivery_window.removed": "{actor} removed a delivery time window"
+    "delivery_window.removed": "{actor} removed a delivery time window",
+    "quote.accepted_online": "The customer accepted quote {number} from the link",
+    "public_link.created": "{actor} shared the link for {number}",
+    "public_link.revoked": "{actor} turned off the link for {number}"
   },
   "catalog": {
     "title": "Catalog",
@@ -955,7 +959,8 @@
       "line": "• {quantity} × {description}: {total}",
       "discount": "Discount: -{amount}",
       "total": "Total: {total}",
-      "validUntil": "Valid until {date}."
+      "validUntil": "Valid until {date}.",
+      "link": "You can see and accept it here: {url}"
     },
     "customerCard": {
       "title": "Quotes",
@@ -1131,7 +1136,8 @@
       "window": "from {start} to {end}",
       "total": "Total: {total}",
       "paid": "Paid: {paid}",
-      "balance": "To pay: {balance}"
+      "balance": "To pay: {balance}",
+      "link": "Track your order here: {url}"
     },
     "newOrder": "New order",
     "noDate": "No date",
@@ -1169,6 +1175,14 @@
       "title": "Orders",
       "empty": "No orders yet.",
       "viewAll": "See all their orders"
+    },
+    "cardPrint": {
+      "title": "Print card",
+      "subtitle": "Card for order {number}, ready to cut out.",
+      "print": "Print",
+      "open": "Print card",
+      "hint": "It measures 10 × 7 cm: print at 100% and cut along the dotted line.",
+      "empty": "This order has no card message."
     }
   },
   "plans": {
@@ -1659,5 +1673,72 @@
     "invalidTitle": "Invalid link",
     "invalid": "This link isn't valid. To stop receiving promotions, reply to the email or contact the flower shop.",
     "poweredBy": "Email sent with {brand}"
+  },
+  "publicLink": {
+    "poweredBy": "Sent with {brand}",
+    "invalidTitle": "Link not valid",
+    "invalid": "This link is no longer available: it may have expired or the shop turned it off. Ask the shop for a new one.",
+    "contact": "Message the shop",
+    "imageAlt": "Photo of {name}",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "tax": "Tax",
+    "total": "Total",
+    "quote": {
+      "title": "Quote {number}",
+      "for": "For {name} · {date}",
+      "validUntil": "Valid until {date}.",
+      "acceptHint": "If everything looks right, accept it and the shop will contact you to confirm the delivery.",
+      "accept": "Accept quote",
+      "accepted": "You accepted this quote on {date}. The shop will contact you to confirm the delivery.",
+      "acceptedNoDate": "This quote is already accepted.",
+      "expired": "This quote expired on {date}. Message the shop to update it.",
+      "updating": "The shop is updating this quote. Open the link again later.",
+      "unavailable": "This quote is no longer available. Message the shop if you have questions.",
+      "contactText": "Hi, I have a question about quote {number}."
+    },
+    "order": {
+      "title": "Order {number}",
+      "deliveryOn": "Home delivery: {when}",
+      "pickupOn": "You pick it up at the shop: {when}",
+      "cancelled": "This order was cancelled. Message the shop if you have questions.",
+      "progress": "Order progress",
+      "current": "current step",
+      "deliverTo": "Delivery address",
+      "recipient": "Received by: {name}",
+      "card": "Card",
+      "anonymous": "Unsigned (anonymous)",
+      "signedBy": "Signed: {name}",
+      "contents": "What it includes",
+      "deliveryFee": "Delivery",
+      "paid": "Paid",
+      "balance": "Left to pay",
+      "contactText": "Hi, I have a question about order {number}."
+    }
+  },
+  "shareLink": {
+    "quoteTitle": "Link for the customer",
+    "quoteHint": "Your customer sees the quote and accepts it from their phone, without an account.",
+    "quoteDraftHint": "Mark the quote as sent to share the link.",
+    "orderTitle": "Tracking for the customer",
+    "orderHint": "Your customer sees where their order is, when it arrives and what’s left to pay.",
+    "create": "Create link",
+    "created": "Link ready to share.",
+    "linkLabel": "Link",
+    "copy": "Copy",
+    "copied": "Link copied.",
+    "copyFailed": "Couldn’t copy: select the link and copy it.",
+    "whatsapp": "Send on WhatsApp",
+    "expires": "Expires on {date}.",
+    "renew": "Create a new one",
+    "renewTitle": "Create a new link?",
+    "renewBody": "The previous link will stop working.",
+    "renewConfirm": "Create new",
+    "renewed": "New link ready: the previous one no longer works.",
+    "revoke": "Turn off",
+    "revokeTitle": "Turn off the link?",
+    "revokeBody": "Anyone who has it will see “Link not valid”. You can create a new one anytime.",
+    "revokeConfirm": "Turn off",
+    "revoked": "Link turned off."
   }
 }
