@@ -152,6 +152,7 @@ export default async function QuotePage({
         ? {
             url: routes.quotes.lineImage(quote.id, line.id),
             downloadUrl: routes.quotes.lineImage(quote.id, line.id, { download: true }),
+            source: line.image.source,
             verified: line.image.verified,
             simulated: line.image.simulated,
           }

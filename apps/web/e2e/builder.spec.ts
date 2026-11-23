@@ -45,7 +45,7 @@ test.describe('Bouquet Builder (fioreria demo, Plus in pilota)', () => {
     await expect(page.getByTestId('builder-total')).toHaveText('$600.00');
 
     // Passo 4: l'anteprima si può saltare; passo 5: la cotización.
-    await expect(page.getByRole('heading', { name: 'Vista previa (opcional)' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Foto del ramo (opcional)' })).toBeVisible();
     await page.getByRole('button', { name: 'Saltar este paso' }).click();
     await expect(page.getByRole('heading', { name: 'Tu diseño está listo' })).toBeVisible();
     await page.getByRole('link', { name: 'Crear cotización' }).click();
@@ -159,6 +159,37 @@ test.describe('anteprima AI (provider simulato)', () => {
     const otherSrc = src!.replace('/app/las-camelias/', '/app/flores-del-valle/');
     expect((await other.request.get(otherSrc)).status()).toBe(404);
     await other.close();
+  });
+});
+
+test.describe('foto vera del ramo (ADR-052)', () => {
+  test.use({ storageState: 'e2e/.auth/owner.json' });
+
+  test('si carica invece di generarla e va nella cotización', async ({ page }) => {
+    const name = `Ramo con mi foto ${Date.now()}`;
+    await saveSimpleDesign(page, { name, flower: 'Girasol', quantity: 4 });
+    await expect(page.getByRole('heading', { name: 'Foto del ramo (opcional)' })).toBeVisible();
+    // Due strade: la foto con IA (predefinita senza foto) o la foto vera del ramo.
+    await page.getByRole('tab', { name: 'Tu foto' }).click();
+    // Un campo file ha ruolo "button" con il nome della sua etichetta.
+    await page
+      .getByRole('button', { name: 'Foto del ramo', exact: true })
+      .setInputFiles('e2e/fixtures/ramo.jpg');
+    await page.getByRole('button', { name: 'Subir foto' }).click();
+    await expect(page.getByText('Se subió 1 foto')).toBeVisible();
+    const photo = page.getByRole('img', { name: `Foto del ramo «${name}»` });
+    await expect(photo).toBeVisible();
+    const src = await photo.getAttribute('src');
+    expect(src).toMatch(/\/builder\/photos\/[0-9a-f-]{36}$/);
+    expect((await page.request.get(src!)).status()).toBe(200);
+
+    // Con la foto si va avanti ("Continuar", non "Saltar") e la cotización la mostra.
+    await page.getByRole('button', { name: 'Continuar' }).click();
+    await page.getByRole('link', { name: 'Crear cotización' }).click();
+    await page.getByRole('button', { name: 'Cotización para Hotel Casa Fuentes' }).click();
+    await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
+    await expect(page.getByText('Foto de un ramo hecho por la florería.')).toBeVisible();
+    await expect(page.getByText('Número de flores verificado')).toHaveCount(0);
   });
 });
 

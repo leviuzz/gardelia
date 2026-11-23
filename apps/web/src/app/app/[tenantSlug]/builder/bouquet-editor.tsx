@@ -38,6 +38,7 @@ import { fieldError, idleState, type ActionState } from '@/lib/action-state';
 import { money } from '@/lib/format';
 import { useActionToast } from '@/lib/use-action-toast';
 import { cn } from '@/lib/utils';
+import { DesignPhotoStep, type DesignPhotoData } from './design-photo-step';
 import { PreviewPanel, type PreviewPanelData } from './preview-panel';
 import { PrivateImage } from '@/components/common/private-image';
 
@@ -264,6 +265,7 @@ export function BouquetEditor({
   previewStep,
   initialStep = 0,
   preview,
+  photo,
 }: {
   currency: string;
   laborFeeMinor: number;
@@ -280,12 +282,14 @@ export function BouquetEditor({
   catalogHref: string;
   /** Elenco dei disegni ("Volver a los diseños" nel passo finale). */
   listHref: string;
-  /** C'è il passo dell'anteprima (AI disponibile per questo disegno). */
+  /** C'è il passo "Foto del ramo" (disegno salvato e non archiviato). */
   previewStep: boolean;
   /** Passo da cui partire (0 = flores); oltre l'ultimo si ferma all'ultimo. */
   initialStep?: number;
   /** Anteprima AI del disegno salvato; null se non disponibile (nessun provider). */
   preview?: PreviewPanelData | null;
+  /** Foto vera del ramo (ADR-052); null se il passo non c'è. */
+  photo?: DesignPhotoData | null;
 }) {
   const t = useTranslations('builder.editor');
   const tv = useTranslations('validation');
@@ -542,7 +546,7 @@ export function BouquetEditor({
   const reachable = isNew ? Math.min(reached, 2) : lastStep;
   const hasFlower = composition !== 'builder_needs_flower';
   const saveDisabled = pending || blocked || !hasFlower || !pricing.ok || draft.name.trim() === '';
-  const previewReady = preview?.preview?.status === 'SUCCEEDED';
+  const previewReady = preview?.preview?.status === 'SUCCEEDED' || Boolean(photo?.current);
 
   function goTo(index: number) {
     flushSync(() => {
@@ -926,7 +930,9 @@ export function BouquetEditor({
             </Card>
           ) : null}
 
-          {currentKey === 'preview' && preview ? (
+          {currentKey === 'preview' && photo ? (
+            <DesignPhotoStep preview={preview ?? null} photo={photo} dirty={dirty} />
+          ) : currentKey === 'preview' && preview ? (
             <PreviewPanel data={preview} dirty={dirty} />
           ) : null}
 

@@ -10,25 +10,29 @@ import type { ActionState } from '@/lib/action-state';
 
 import type { PhotoUploadState } from './use-photo-upload';
 
-/** Selettore dei file (più foto insieme) con suggerimento ed errore. */
+/** Selettore dei file (più foto insieme, salvo `multiple={false}`) con suggerimento ed errore. */
 export function PhotoFilesField({
   id,
   hint,
   error,
+  label,
+  multiple = true,
 }: {
   id: string;
   hint: string;
   error?: string | undefined;
+  label?: string;
+  multiple?: boolean;
 }) {
   const t = useTranslations('photos');
   return (
-    <Field id={id} label={t('files')} hint={hint} error={error} required>
+    <Field id={id} label={label ?? t('files')} hint={hint} error={error} required>
       <Input
         {...controlProps(id, error, true)}
         name="files"
         type="file"
         accept="image/jpeg,image/png,image/webp"
-        multiple
+        multiple={multiple}
         className="h-auto cursor-pointer py-2 file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1 file:text-sm file:font-medium"
       />
     </Field>

@@ -89,6 +89,16 @@ export const styleReferenceInputSchema = z.object({
 });
 export type StyleReferenceInput = z.infer<typeof styleReferenceInputSchema>;
 
+/**
+ * Foto vera del ramo di un disegno (ADR-052). `addToReferences`: la stessa foto entra anche in
+ * "Mis ramos". La casella riporta per intero il consenso di "Mis ramos" (ramo della fioreria,
+ * uso come riferimento di stile): spuntarla è il consenso esplicito.
+ */
+export const bouquetPhotoInputSchema = z.object({
+  addToReferences: checkboxField(),
+});
+export type BouquetPhotoInput = z.infer<typeof bouquetPhotoInputSchema>;
+
 // -----------------------------------------------------------------------------
 // Scontorno automatico (ADR-033)
 // -----------------------------------------------------------------------------

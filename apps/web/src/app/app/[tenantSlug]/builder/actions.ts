@@ -6,13 +6,16 @@
  * da ricaricare e messaggi: `runTenantAction`.
  */
 import {
+  addBouquetPhoto,
   deleteBouquetConfiguration,
+  removeBouquetPhoto,
   requestBouquetPreview,
   saveBouquetConfiguration,
   setBouquetConfigurationArchived,
 } from '@floral/core';
 import type { ActionState } from '@/lib/action-state';
 import { runTenantAction, section } from '@/lib/tenant-action';
+import { uploadedBytes } from '@/lib/uploads';
 
 export async function saveDesignAction(
   slug: string,
@@ -60,6 +63,43 @@ export async function deleteDesignAction(
       revalidate: section(routes.builder.list()),
       redirectTo: routes.builder.list({ deleted: true }),
     };
+  });
+}
+
+/**
+ * Foto vera del ramo (ADR-052), una per richiesta: il servizio ricontrolla permessi, piano,
+ * disegno e immagine. Con la casella di "Mis ramos" la foto entra anche lì (con il consenso).
+ */
+export async function uploadDesignPhotoAction(
+  slug: string,
+  configurationId: string,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const { addedToReferences } = await addBouquetPhoto(
+      ctx,
+      configurationId,
+      await uploadedBytes(formData),
+      { addToReferences: formData.get('addToReferences') },
+    );
+    return {
+      revalidate: addedToReferences
+        ? [routes.builder.design(configurationId), routes.builder.references]
+        : routes.builder.design(configurationId),
+    };
+  });
+}
+
+/** Toglie la foto vera dal disegno: i preventivi che la mostrano la conservano. */
+export async function removeDesignPhotoAction(
+  slug: string,
+  configurationId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await removeBouquetPhoto(ctx, configurationId);
+    return { revalidate: routes.builder.design(configurationId), success: 'builder.photo.removed' };
   });
 }
 

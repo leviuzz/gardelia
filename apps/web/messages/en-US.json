@@ -338,6 +338,8 @@
     "builder.configuration_archived": "{actor} archived the design “{name}”",
     "builder.configuration_restored": "{actor} restored the design “{name}”",
     "builder.configuration_deleted": "{actor} deleted the design “{name}”",
+    "builder.photo_added": "{actor} uploaded the photo of the bouquet “{name}”",
+    "builder.photo_removed": "{actor} removed the photo of the bouquet “{name}”",
     "ai.preview_requested": "{actor} requested an AI preview",
     "ai_credits.granted": "{units} extra previews were added",
     "builder.style_reference_added": "{actor} added a photo to “My bouquets”",
@@ -891,6 +893,7 @@
       "imageSimulated": "Simulation",
       "imageNote": "Illustrative image: the actual bouquet may vary.",
       "imageNoteVerified": "Illustrative image with the recipe’s exact number of flowers; the shape and shades may vary.",
+      "imageNotePhoto": "Photo of a bouquet made by the shop.",
       "downloadImage": "Download image for WhatsApp"
     },
     "whatsapp": {
@@ -1077,7 +1080,7 @@
         "stepFlowers": "Flowers",
         "stepGreens": "Foliage and wrapping",
         "stepDetails": "Details",
-        "stepPreview": "Preview",
+        "stepPreview": "Photo",
         "stepDone": "Done",
         "flowersTitle": "Which flowers go in?",
         "flowersBody": "Choose the flowers and how many. The price updates as you go.",
@@ -1085,8 +1088,8 @@
         "greensBody": "Add foliage and add-ons, and choose the paper or base and its color. It can also go unwrapped.",
         "detailsTitle": "Name it",
         "detailsBody": "The name helps you find it later. Style and size also guide the preview.",
-        "previewTitle": "Preview (optional)",
-        "previewBody": "The sketch with the exact number of flowers is free. The realistic photo uses one credit: you can skip this step.",
+        "previewTitle": "Bouquet photo (optional)",
+        "previewBody": "Show your customer what the bouquet will look like: with a photo from your shop or one made with AI. You can skip this step.",
         "doneTitle": "Your design is ready",
         "doneBody": "Create the quote for your customer, or go back to any step to change something.",
         "continue": "Continue",
@@ -1153,6 +1156,24 @@
       "anotherConfirm": "Generate, uses 1 credit",
       "anotherRequested": "Generating another version…",
       "anotherFailed": "Another version couldn’t be generated: the previous one stays and no credit was used."
+    },
+    "photo": {
+      "choose": "How do you want the bouquet photo?",
+      "tabAi": "AI photo",
+      "tabOwn": "Your photo",
+      "ownIntro": "Upload a photo of this bouquet made by your shop: it appears in quotes instead of the AI photo.",
+      "file": "Bouquet photo",
+      "fileHint": "JPG, PNG or WEBP. It’s reduced before sending.",
+      "addToReferences": "Also add it to “My bouquets”. I confirm it’s a bouquet made by my shop and I allow it to be used as a style reference for AI previews.",
+      "upload": "Upload photo",
+      "cancel": "Cancel",
+      "alt": "Photo of the bouquet “{name}”",
+      "inQuotes": "This photo appears in new quotes for this design, instead of the AI photo.",
+      "change": "Change photo",
+      "remove": "Remove photo",
+      "removeTitle": "Remove the photo from this design?",
+      "removeBody": "Quotes that already have it keep it.",
+      "removed": "Photo removed"
     }
   },
   "photos": {

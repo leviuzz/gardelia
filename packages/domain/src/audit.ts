@@ -82,6 +82,9 @@ export const AUDIT_ACTIONS = {
   builderConfigurationArchived: 'builder.configuration_archived',
   builderConfigurationRestored: 'builder.configuration_restored',
   builderConfigurationDeleted: 'builder.configuration_deleted',
+  /** Foto vera del ramo caricata o tolta da un disegno (ADR-052). */
+  builderPhotoAdded: 'builder.photo_added',
+  builderPhotoRemoved: 'builder.photo_removed',
   aiPreviewRequested: 'ai.preview_requested',
   styleReferenceAdded: 'builder.style_reference_added',
   styleReferenceArchived: 'builder.style_reference_archived',

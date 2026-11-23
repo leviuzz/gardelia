@@ -95,6 +95,9 @@ export function tenantRoutes(slug: string) {
       references: `${builder}/references`,
       referencePhoto: (referenceId: string, size: ReferencePhotoSize = 'full') =>
         sized(`${builder}/references/${segment(referenceId)}`, size),
+      /** Foto vera del ramo di un disegno (ADR-052), stesse varianti di "Mis ramos". */
+      photo: (photoId: string, size: ReferencePhotoSize = 'full') =>
+        sized(`${builder}/photos/${segment(photoId)}`, size),
     },
     settings: {
       general: settings,

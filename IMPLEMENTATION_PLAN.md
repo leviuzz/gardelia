@@ -407,6 +407,14 @@ Primo test del founder con la v9: scartata per una rosa in più. Il modello aggi
 fiore e la correzione lo toglie; ora una correzione che ha tolto fiori ma non tutti si ripete sulla
 stessa foto invece di rifarla da capo (sempre al massimo 3 immagini, ADR-034).
 
+**Foto vera del ramo (fatto il 23/11, richiesta del founder, ADR-052):** il passo 4 del Diseñador
+ora è "Foto del ramo", con le schede "Foto con IA" e "Tu foto". La foto caricata diventa la foto del
+disegno e va nei preventivi al posto di quella AI (pagina, stampa/PDF, WhatsApp). Cambiandola, i
+preventivi già fatti tengono la loro. Proprietario e manager possono aggiungerla anche a "Mis ramos",
+con il consenso. Le foto di "Mis ramos" danno lo stile alle foto AI e non addestrano modelli:
+segnalato al founder (spec §6.4). Test: 4 d'integrazione (compresa l'altra fioreria che riceve 404)
+e un E2E.
+
 **Eliminare un disegno del Diseñador (fatto il 23/11, richiesta del founder, ADR-051):** accanto ad
 "Archivar" c'è "Eliminar" (solo proprietario e manager, con conferma). Cancella il disegno e le foto
 generate per lui dall'archivio. Se un preventivo lo usa, la finestra spiega che si può solo
