@@ -16,7 +16,7 @@ import {
   type BouquetConfigurationDto,
   type TenantContext,
 } from '@floral/core';
-import { BRAND, minorToDecimalString, isCurrencyCode } from '@floral/domain';
+import { BRAND, PHOTO_LIMITS, minorToDecimalString, isCurrencyCode } from '@floral/domain';
 import { ArchiveControl } from '@/components/archive-control';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -25,13 +25,16 @@ import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
   deleteDesignAction,
+  removeDesignPhotoAction,
   requestAnotherPreviewAction,
   requestPreviewAction,
   saveDesignAction,
   setDesignArchivedAction,
+  uploadDesignPhotoAction,
 } from '../actions';
 import { BouquetEditor } from '../bouquet-editor';
 import { DeleteDesignControl } from '../delete-design-control';
+import type { DesignPhotoData } from '../design-photo-step';
 import { BuilderUpsell, builderOptions } from '../builder-ui';
 import type { PreviewPanelData } from '../preview-panel';
 
@@ -153,7 +156,19 @@ export default async function DesignPage({
         }
       : null;
 
-  const previewStep = preview !== null && !archived;
+  // Il passo "Foto del ramo" c'è sempre per un disegno attivo: la foto vera (ADR-052) non
+  // dipende dall'AI; la scheda "Foto con IA" solo se l'AI è disponibile.
+  const previewStep = !archived;
+  const photo: DesignPhotoData | null = archived
+    ? null
+    : {
+        current: design.photo ? { url: routes.builder.photo(design.photo.id) } : null,
+        upload: uploadDesignPhotoAction.bind(null, ctx.tenantSlug, design.id),
+        remove: removeDesignPhotoAction.bind(null, ctx.tenantSlug, design.id),
+        canAddToReferences: hasPermission(ctx, 'builder:references:write'),
+        maxSide: PHOTO_LIMITS.clientMaxSide,
+        designName: design.name,
+      };
 
   return (
     <div className="space-y-6">
@@ -247,6 +262,7 @@ export default async function DesignPage({
         // Appena salvato: l'anteprima (facoltativa). Riaperto: il riepilogo, con tutti i passi.
         initialStep={saved && previewStep ? 3 : 4}
         preview={preview}
+        photo={photo}
       />
     </div>
   );

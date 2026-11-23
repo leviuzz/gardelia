@@ -338,6 +338,8 @@
     "builder.configuration_archived": "{actor} ha archiviato la composizione «{name}»",
     "builder.configuration_restored": "{actor} ha ripristinato la composizione «{name}»",
     "builder.configuration_deleted": "{actor} ha eliminato la composizione «{name}»",
+    "builder.photo_added": "{actor} ha caricato la foto del bouquet «{name}»",
+    "builder.photo_removed": "{actor} ha tolto la foto del bouquet «{name}»",
     "ai.preview_requested": "{actor} ha richiesto un’anteprima con IA",
     "ai_credits.granted": "Sono state aggiunte {units} anteprime extra",
     "builder.style_reference_added": "{actor} ha aggiunto una foto a «I miei bouquet»",
@@ -891,6 +893,7 @@
       "imageSimulated": "Simulazione",
       "imageNote": "Immagine illustrativa: il bouquet reale può variare.",
       "imageNoteVerified": "Immagine illustrativa con il numero esatto di fiori della ricetta; forma e tonalità possono variare.",
+      "imageNotePhoto": "Foto di un bouquet fatto dal negozio.",
       "downloadImage": "Scarica immagine per WhatsApp"
     },
     "whatsapp": {
@@ -1077,7 +1080,7 @@
         "stepFlowers": "Fiori",
         "stepGreens": "Fogliame e incarto",
         "stepDetails": "Dettagli",
-        "stepPreview": "Anteprima",
+        "stepPreview": "Foto",
         "stepDone": "Fatto",
         "flowersTitle": "Quali fiori ci sono?",
         "flowersBody": "Scegli i fiori e quanti. Il prezzo si calcola subito.",
@@ -1085,8 +1088,8 @@
         "greensBody": "Aggiungi fogliame e complementi, e scegli la carta o la base con il suo colore. Può anche essere senza incarto.",
         "detailsTitle": "Dagli un nome",
         "detailsBody": "Il nome ti aiuta a ritrovarla. Stile e misura guidano anche l’anteprima.",
-        "previewTitle": "Anteprima (facoltativa)",
-        "previewBody": "Il bozzetto con il numero esatto di fiori è gratis. La foto realistica usa un credito: puoi saltare questo passo.",
+        "previewTitle": "Foto del bouquet (facoltativa)",
+        "previewBody": "Mostra al cliente come sarà il bouquet: con una foto del tuo negozio o creata con l’IA. Puoi saltare questo passo.",
         "doneTitle": "La tua composizione è pronta",
         "doneBody": "Crea il preventivo per il tuo cliente o torna a un passo per cambiare qualcosa.",
         "continue": "Continua",
@@ -1153,6 +1156,24 @@
       "anotherConfirm": "Genera, usa 1 credito",
       "anotherRequested": "Sto generando un’altra versione…",
       "anotherFailed": "Non è stato possibile generare un’altra versione: resta quella precedente e non è stato scalato nessun credito."
+    },
+    "photo": {
+      "choose": "Come vuoi la foto del bouquet?",
+      "tabAi": "Foto con l’IA",
+      "tabOwn": "La tua foto",
+      "ownIntro": "Carica una foto di questo bouquet fatto dal tuo negozio: compare nei preventivi al posto della foto con l’IA.",
+      "file": "Foto del bouquet",
+      "fileHint": "JPG, PNG o WEBP. Viene ridotta prima dell’invio.",
+      "addToReferences": "Aggiungila anche a «I miei bouquet». Confermo che è un bouquet fatto dal mio negozio e autorizzo a usarla come riferimento di stile per le anteprime con l’IA.",
+      "upload": "Carica foto",
+      "cancel": "Annulla",
+      "alt": "Foto del bouquet «{name}»",
+      "inQuotes": "Questa foto compare nei nuovi preventivi di questa composizione, al posto della foto con l’IA.",
+      "change": "Cambia foto",
+      "remove": "Togli foto",
+      "removeTitle": "Togliere la foto da questa composizione?",
+      "removeBody": "I preventivi che ce l’hanno già la conservano.",
+      "removed": "Foto tolta"
     }
   },
   "photos": {

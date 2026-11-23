@@ -8,7 +8,7 @@
  *    riferimento al momento della generazione: mai per addestrare modelli (spec §6.4).
  *  - Mai condivise fra fiorerie; file privati sotto `tenants/{tenantId}/style-references/`.
  */
-import { getDb, withTenantContext } from '@floral/db';
+import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
   PHOTO_LIMITS,
@@ -22,7 +22,7 @@ import { notFound, recordAudit } from '../audit';
 import { requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { NotFoundError, ValidationError } from '../errors';
-import { normalizeUploadedPhoto } from '../media/images';
+import { normalizeUploadedPhoto, type ProcessedImage } from '../media/images';
 import { requireEntitlement } from './billing';
 import type { PhotoVariant } from './catalog-photos';
 import { readStoredImage, storeFilesThenCommit } from '../media/stored-files';
@@ -73,6 +73,57 @@ export async function listStyleReferences(ctx: TenantContext): Promise<StyleRefe
   });
 }
 
+/**
+ * Registra una foto in "Mis ramos" in una transazione già aperta, con i file già salvati: limite
+ * di foto attive, consenso di chi carica, audit. La usano il caricamento in "Mis ramos" e la foto
+ * vera di un disegno aggiunta anche lì (ADR-052). Il consenso lo ha già controllato chi chiama.
+ */
+export async function insertStyleReference(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  data: {
+    readonly id: string;
+    readonly style: BuilderStyle | null;
+    readonly caption: string | null;
+    readonly storageKey: string;
+    readonly thumbKey: string;
+    readonly image: ProcessedImage;
+  },
+): Promise<StyleReferenceDto> {
+  // Serializza i caricamenti della stessa fioreria: il limite non si supera.
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`floral:style-ref:${ctx.tenantId}`}))`;
+  const active = await tx.styleReferencePhoto.count({
+    where: { tenantId: ctx.tenantId, status: 'ACTIVE' },
+  });
+  if (active >= PHOTO_LIMITS.references) throw new ValidationError({ file: 'too_many_photos' });
+
+  const now = new Date();
+  const created = await tx.styleReferencePhoto.create({
+    data: {
+      id: data.id,
+      tenantId: ctx.tenantId,
+      style: data.style,
+      caption: data.caption,
+      storageKey: data.storageKey,
+      thumbKey: data.thumbKey,
+      contentType: data.image.contentType,
+      width: data.image.width,
+      height: data.image.height,
+      sizeBytes: data.image.bytes.byteLength,
+      consentAt: now,
+      consentById: ctx.userId,
+      createdById: ctx.userId,
+    },
+  });
+  await recordAudit(tx, ctx, {
+    action: AUDIT_ACTIONS.styleReferenceAdded,
+    entityType: 'StyleReferencePhoto',
+    entityId: data.id,
+    metadata: { style: data.style, consent: true },
+  });
+  return toDto(created);
+}
+
 /** Aggiunge una foto a "Mis ramos": senza consenso esplicito non si salva nulla. */
 export async function addStyleReference(
   ctx: TenantContext,
@@ -97,38 +148,14 @@ export async function addStyleReference(
   const reference = await storeFilesThenCommit(files, () =>
     withTenantContext(getDb(), ctx, async (tx) => {
       await requireEntitlement(ctx, 'bouquetBuilder', tx);
-      // Serializza i caricamenti della stessa fioreria: il limite non si supera.
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`floral:style-ref:${ctx.tenantId}`}))`;
-      const active = await tx.styleReferencePhoto.count({
-        where: { tenantId: ctx.tenantId, status: 'ACTIVE' },
+      return insertStyleReference(tx, ctx, {
+        id,
+        style: input.style,
+        caption: input.caption,
+        storageKey,
+        thumbKey,
+        image: image.full,
       });
-      if (active >= PHOTO_LIMITS.references) throw new ValidationError({ file: 'too_many_photos' });
-
-      const now = new Date();
-      const created = await tx.styleReferencePhoto.create({
-        data: {
-          id,
-          tenantId: ctx.tenantId,
-          style: input.style,
-          caption: input.caption,
-          storageKey,
-          thumbKey,
-          contentType: image.full.contentType,
-          width: image.full.width,
-          height: image.full.height,
-          sizeBytes: image.full.bytes.byteLength,
-          consentAt: now,
-          consentById: ctx.userId,
-          createdById: ctx.userId,
-        },
-      });
-      await recordAudit(tx, ctx, {
-        action: AUDIT_ACTIONS.styleReferenceAdded,
-        entityType: 'StyleReferencePhoto',
-        entityId: id,
-        metadata: { style: input.style, consent: true },
-      });
-      return toDto(created);
     }),
   );
   // La transazione restituisce il record oppure lancia un errore: null non è possibile.

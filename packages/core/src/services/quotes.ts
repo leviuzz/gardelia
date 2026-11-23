@@ -98,10 +98,15 @@ export interface QuoteLineDto {
   readonly availability: Availability | null;
   readonly recipe: readonly QuoteRecipeLineSnapshot[] | null;
   /**
-   * Righe BUILDER: immagine del ramo agganciata quando la riga è nata (ADR-035). `verified` =
-   * numero di fiori ricontrollato (anteprima esatta); `simulated` = immagine di sviluppo.
+   * Righe BUILDER: immagine del ramo agganciata quando la riga è nata (ADR-035). `source`:
+   * `photo` = foto vera caricata dalla fioreria (ADR-052), `ai` = anteprima generata;
+   * `verified` = numero di fiori ricontrollato (anteprima esatta); `simulated` = di sviluppo.
    */
-  readonly image: { readonly verified: boolean; readonly simulated: boolean } | null;
+  readonly image: {
+    readonly source: 'photo' | 'ai';
+    readonly verified: boolean;
+    readonly simulated: boolean;
+  } | null;
 }
 
 export interface QuoteDetailDto extends QuoteSummaryDto {
@@ -289,6 +294,7 @@ export async function getQuote(ctx: TenantContext, quoteId: string): Promise<Quo
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       include: {
         previewJob: { select: { status: true, provider: true, output: true, outputKey: true } },
+        bouquetPhoto: { select: { id: true } },
       },
     });
     return { quote, lines };
@@ -314,9 +320,12 @@ export async function getQuote(ctx: TenantContext, quoteId: string): Promise<Quo
         snapshot?.item?.availability ??
         worstAvailability((snapshot?.components ?? []).map((component) => component.availability)),
       recipe: snapshot?.recipe ?? null,
-      image:
-        line.previewJob?.status === 'SUCCEEDED' && line.previewJob.outputKey
+      // La foto vera del ramo (ADR-052) ha la precedenza sull'anteprima AI.
+      image: line.bouquetPhoto
+        ? { source: 'photo', verified: false, simulated: false }
+        : line.previewJob?.status === 'SUCCEEDED' && line.previewJob.outputKey
           ? {
+              source: 'ai',
               verified:
                 (line.previewJob.output as { verified?: unknown } | null)?.verified === true,
               simulated: line.previewJob.provider === 'simulated',
@@ -738,10 +747,19 @@ export async function getQuoteLineImage(
       where: { id: lineId, quoteId, tenantId: ctx.tenantId },
       select: {
         previewJob: { select: { status: true, outputKey: true, outputContentType: true } },
+        bouquetPhoto: { select: { storageKey: true, contentType: true } },
       },
     }),
   );
   if (!line) return notFound(ctx, 'QuoteLine', lineId);
+  // Anche archiviata nel disegno, la foto resta al preventivo che la mostra.
+  if (line.bouquetPhoto) {
+    return readStoredImage(
+      line.bouquetPhoto.storageKey,
+      line.bouquetPhoto.contentType,
+      'QuoteLine',
+    );
+  }
   const job = line.previewJob;
   if (job?.status !== 'SUCCEEDED' || !job.outputKey) throw new NotFoundError('QuoteLine');
   return readStoredImage(job.outputKey, job.outputContentType ?? 'image/png', 'QuoteLine');

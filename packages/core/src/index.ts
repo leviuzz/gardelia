@@ -109,6 +109,7 @@ export { onAiJobQueued } from './ai/signal';
 export * from './services/ai-previews';
 export * from './services/catalog-photos';
 export * from './services/style-references';
+export * from './services/bouquet-photos';
 export { normalizeUploadedPhoto, sniffImageType } from './media/images';
 export * from './services/billing';
 export * from './services/builder';

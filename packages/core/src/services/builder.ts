@@ -35,6 +35,7 @@ import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { deleteUnusedFiles } from '../media/stored-files';
 import { currentPreviewJobId, releaseConfigurationPreviews } from './ai-previews';
+import type { BouquetPhotoDto } from './bouquet-photos';
 import { requireEntitlement } from './billing';
 import {
   componentSelect,
@@ -118,6 +119,8 @@ export interface BouquetConfigurationDto extends BouquetConfigurationSummaryDto 
   readonly lines: readonly BouquetConfigurationLineDto[];
   /** In almeno un preventivo: non si può eliminare, solo archiviare (ADR-051). */
   readonly usedInQuotes: boolean;
+  /** Foto vera del ramo caricata dalla fioreria (ADR-052); null se non c'è. */
+  readonly photo: BouquetPhotoDto | null;
 }
 
 export interface BouquetConfigurationListResult {
@@ -269,10 +272,14 @@ export async function getBouquetConfiguration(
     const quoteLines = await tx.quoteLine.count({
       where: { tenantId: ctx.tenantId, bouquetConfigurationId: config.id },
     });
-    return { config, usedInQuotes: quoteLines > 0 };
+    const photo = await tx.bouquetPhoto.findFirst({
+      where: { tenantId: ctx.tenantId, configurationId: config.id, status: 'ACTIVE' },
+      select: { id: true, width: true, height: true, createdAt: true },
+    });
+    return { config, usedInQuotes: quoteLines > 0, photo };
   });
   if (!found) return notFound(ctx, 'BouquetConfiguration', configurationId);
-  const { config, usedInQuotes } = found;
+  const { config, usedInQuotes, photo } = found;
   return {
     ...toSummary(config),
     budgetMinor: config.budgetMinor,
@@ -295,6 +302,7 @@ export async function getBouquetConfiguration(
       usable: isUsable(line.catalogItem),
     })),
     usedInQuotes,
+    photo,
   };
 }
 
@@ -461,7 +469,13 @@ export async function deleteBouquetConfiguration(
     });
     if (quoteLines > 0) throw new ConflictError('builder_configuration_in_quote');
     const previews = await releaseConfigurationPreviews(tx, ctx, existing.id);
-    // Le righe del disegno se ne vanno con lui (FK in cascata).
+    // Le foto vere del ramo (ADR-052) se ne vanno con il disegno: nessun preventivo le mostra,
+    // perché nessun preventivo usa il disegno. Le copie in "Mis ramos" restano.
+    const photos = await tx.bouquetPhoto.findMany({
+      where: { tenantId: ctx.tenantId, configurationId: existing.id },
+      select: { storageKey: true, thumbKey: true },
+    });
+    // Righe e foto del disegno se ne vanno con lui (FK in cascata).
     await tx.bouquetConfiguration.deleteMany({
       where: { id: existing.id, tenantId: ctx.tenantId },
     });
@@ -473,13 +487,17 @@ export async function deleteBouquetConfiguration(
         name: existing.name,
         deletedImages: previews.deletedKeys.length,
         keptImages: previews.kept,
+        deletedPhotos: photos.length,
       },
     });
-    return previews;
+    return {
+      ...previews,
+      photoKeys: photos.flatMap((photo) => [photo.storageKey, photo.thumbKey]),
+    };
   });
   if (!released) return notFound(ctx, 'BouquetConfiguration', configurationId);
   // Dopo il commit: nel peggiore dei casi resta un file orfano, mai un record senza file.
-  await deleteUnusedFiles(released.deletedKeys);
+  await deleteUnusedFiles([...released.deletedKeys, ...released.photoKeys]);
   return { deletedImages: released.deletedKeys.length, keptImages: released.kept };
 }
 
@@ -562,6 +580,11 @@ export async function createQuoteFromConfiguration(
     // L'immagine del ramo (se già generata per questo disegno) resta con la riga anche se poi
     // il disegno cambia: il preventivo mostra ciò che è stato quotato (ADR-035).
     const previewJobId = await currentPreviewJobId(tx, ctx, config.id);
+    // La foto vera del ramo, se il fiorista l'ha caricata, si mostra al posto dell'anteprima AI.
+    const ownPhoto = await tx.bouquetPhoto.findFirst({
+      where: { tenantId: ctx.tenantId, configurationId: config.id, status: 'ACTIVE' },
+      select: { id: true },
+    });
     await tx.quoteLine.create({
       data: {
         tenantId: ctx.tenantId,
@@ -569,6 +592,7 @@ export async function createQuoteFromConfiguration(
         kind: 'BUILDER',
         bouquetConfigurationId: config.id,
         previewJobId,
+        bouquetPhotoId: ownPhoto?.id ?? null,
         description: config.name,
         quantity: 1,
         unitPriceMinor: pricing.totalMinor,
