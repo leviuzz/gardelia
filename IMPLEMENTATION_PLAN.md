@@ -189,6 +189,19 @@ Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 349/349 ✅ · 
 Prossimo blocco della fase 0: immagini private (un solo helper per route, lettura e `<img>`; file
 salvati fuori dalla transazione del database).
 
+**Errori accanto ai campi senza doppione (fatto il 23/11, ADR-022 aggiornato):** il controllo che
+decide se un errore per campo è già visibile (e quindi niente toast) aspettava due frame; quando
+React impiegava di più (telefono lento, CI) lo stesso messaggio compariva accanto al campo e nel
+toast (visto nell'E2E delle fasce di consegna). Ora si controlla dopo il commit del nuovo stato: in
+`useActionToast` nell'effetto, in `useToastActionState` con un effetto sullo stato (se il form si
+smonta prima, toast). Gli errori di campi che la pagina non mostra restano un toast. Test: hook con
+React vero in happy-dom (prima dipendenza di test per il DOM, `apps/web/test/*.test.tsx`) e un
+rendering lento, 3 casi su 6 fallivano col codice di prima; E2E con la CPU di Chromium rallentata
+20× (`errors.spec.ts`): col codice di prima il toast doppio usciva 5 volte su 5, ora mai. Nel merge
+con staging (C1) corretto il commento dell'E2E delle fasce, che dava il doppione per normale. Verifiche locali:
+lint ✅ · format ✅ · typecheck ✅ · test 704/704 ✅ (+6) · build ✅ · E2E 76/76 ✅ (+1); dopo il merge
+con staging (C1, inventario blocco 4): test 725/725 ✅ · build ✅ · E2E 78/78 ✅.
+
 **Fase 0, immagini private (fatto il 22/11):** un solo helper per livello. Core: `readStoredImage`
 (file mancante → "non trovata" e avviso nel log, invece di un 500) e `storeFilesThenCommit` (i
 file si salvano prima della transazione, che resta breve, e si cancellano se la registrazione

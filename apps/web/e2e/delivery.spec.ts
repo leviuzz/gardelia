@@ -20,7 +20,7 @@ test.describe('ajustes de entrega (propietario)', () => {
     await page.getByLabel('Desde').fill('12:00');
     await page.getByLabel('Hasta').fill('11:00');
     await page.getByRole('button', { name: 'Agregar franja' }).click();
-    // L'errore sotto il campo (lo stesso testo può comparire anche in un toast).
+    // L'errore sotto il campo (niente toast doppio: lo controlla errors.spec.ts con la CPU lenta).
     await expect(page.locator('#window-end-error')).toHaveText(
       'Indica la hora de inicio y la de fin, en orden.',
     );

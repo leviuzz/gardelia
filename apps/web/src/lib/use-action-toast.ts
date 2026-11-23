@@ -20,37 +20,32 @@ export function unshownFieldErrors(
   );
 }
 
-/**
- * Dopo il disegno della pagina controlla che ogni errore per campo sia visibile; quelli che non
- * lo sono diventano un toast. Così un errore di validazione non resta mai silenzioso.
- */
-function notifyUnshownFieldErrors(
-  message: string,
-  fieldErrors: Readonly<Record<string, string>>,
-): void {
-  if (typeof window === 'undefined') return;
-  // Due frame: il primo arriva prima che React mostri il nuovo stato, il secondo dopo.
-  requestAnimationFrame(() =>
-    requestAnimationFrame(() => {
-      const unshown = unshownFieldErrors(fieldErrors, document.body.innerText);
-      if (unshown.length === 0) return;
-      const shownSome = unshown.length < new Set(Object.values(fieldErrors)).size;
-      toast.error(shownSome ? `${message} ${unshown.join(' ')}` : unshown.join(' '));
-    }),
-  );
+function hasFieldErrors(state: ActionState): boolean {
+  return state.status === 'error' && state.fieldErrors !== undefined;
 }
 
 /**
- * Gli errori di validazione per campo restano accanto ai campi (quelli senza un campo visibile
- * diventano un toast); successi con messaggio e altri errori diventano toast.
+ * Gli errori per campo che la pagina non mostra diventano un toast: un errore di validazione non
+ * resta mai silenzioso. Va chiamata DOPO il commit dello stato che porta gli errori (in un
+ * effetto): solo allora gli errori accanto ai campi sono nel DOM, qualunque sia la velocità del
+ * rendering. Prima si aspettavano due frame, e su un telefono lento o in CI l'errore già scritto
+ * accanto al campo arrivava anche come toast.
  */
-function notify(state: ActionState | undefined): void {
-  if (!state) return;
+function notifyUnshownFieldErrors(state: ActionState): void {
+  if (state.status !== 'error' || !state.fieldErrors) return;
+  const unshown = unshownFieldErrors(state.fieldErrors, document.body.innerText);
+  if (unshown.length === 0) return;
+  const shownSome = unshown.length < new Set(Object.values(state.fieldErrors)).size;
+  toast.error(shownSome ? `${state.message} ${unshown.join(' ')}` : unshown.join(' '));
+}
+
+/**
+ * Successi con messaggio e errori senza campi diventano toast. Gli errori per campo restano
+ * accanto ai campi: li controlla `notifyUnshownFieldErrors` dopo il commit.
+ */
+function notifyResult(state: ActionState): void {
   if (state.status === 'success' && state.message) toast.success(state.message);
   if (state.status === 'error' && !state.fieldErrors) toast.error(state.message);
-  if (state.status === 'error' && state.fieldErrors) {
-    notifyUnshownFieldErrors(state.message, state.fieldErrors);
-  }
 }
 
 /**
@@ -63,7 +58,9 @@ export function useActionToast(state: ActionState): void {
   useEffect(() => {
     if (state === previous.current) return;
     previous.current = state;
-    notify(state);
+    notifyResult(state);
+    // L'effetto gira dopo il commit di `state`: gli errori accanto ai campi sono già nel DOM.
+    notifyUnshownFieldErrors(state);
   }, [state]);
 }
 
@@ -72,12 +69,38 @@ export function useActionToast(state: ActionState): void {
  * messaggio arriva anche quando il re-render smonta il componente (riga rimossa, form
  * chiuso, pulsante di uno stato non più disponibile). `onSuccess` gira nella stessa
  * transizione. Non usarlo con action che fanno redirect (gestite da useActionState).
+ *
+ * Gli errori per campo invece si controllano dopo il commit del nuovo stato (effetto qui
+ * sotto): prima React non li ha ancora scritti accanto ai campi. Se il componente si smonta
+ * prima del commit, i suoi campi non ci sono più e gli errori diventano un toast.
  */
 export function useToastActionState(action: Action, onSuccess?: () => void) {
-  return useActionState(async (prev: ActionState, formData: FormData) => {
+  // Risultato con errori per campo arrivato dal server e non ancora disegnato da React.
+  const awaitingCommit = useRef<ActionState | null>(null);
+  const actionState = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await action(prev, formData);
-    notify(result);
+    // Un risultato più recente sostituisce quello in attesa (i suoi errori non valgono più).
+    awaitingCommit.current = hasFieldErrors(result) ? result : null;
+    notifyResult(result);
     if (result.status === 'success') onSuccess?.();
     return result;
   }, idleState);
+  const [state] = actionState;
+
+  useEffect(() => {
+    if (awaitingCommit.current !== state) return;
+    awaitingCommit.current = null;
+    notifyUnshownFieldErrors(state);
+  }, [state]);
+
+  useEffect(
+    () => () => {
+      const result = awaitingCommit.current;
+      awaitingCommit.current = null;
+      if (result) notifyUnshownFieldErrors(result);
+    },
+    [],
+  );
+
+  return actionState;
 }
