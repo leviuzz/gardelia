@@ -1,0 +1,201 @@
+import { Ban, Check } from 'lucide-react';
+import type { Metadata } from 'next';
+import { getFormatter, getTranslations } from 'next-intl/server';
+import { getPublicOrder } from '@floral/core';
+import { BRAND, DEFAULT_LOCALE, MX_REGIONS, type OrderStatus } from '@floral/domain';
+import { PublicLines, PublicTotals } from '@/components/public/public-lines';
+import { PublicInvalidLink, PublicShell } from '@/components/public/public-shell';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { serverEnv } from '@/lib/env';
+import { money } from '@/lib/format';
+import { calendarDate } from '@/lib/quote-ui';
+import { cn } from '@/lib/utils';
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+  referrer: 'no-referrer',
+};
+
+/** Il cammino di un ordine fino al cliente, per modo di consegna. */
+const JOURNEY: Record<'DELIVERY' | 'PICKUP', readonly OrderStatus[]> = {
+  DELIVERY: ['CONFIRMED', 'IN_PREPARATION', 'READY', 'OUT_FOR_DELIVERY', 'DELIVERED'],
+  PICKUP: ['CONFIRMED', 'IN_PREPARATION', 'READY', 'PICKED_UP'],
+};
+
+/**
+ * Pedido aperto dal cliente con il link della fioreria (ADR-056): a che punto è, quando e dove si
+ * consegna, cosa contiene, cosa resta da pagare. Mai note interne né costi.
+ */
+export default async function PublicOrderPage({ params }: PageProps<'/pedido/[token]'>) {
+  const { token } = await params;
+  const order = await getPublicOrder(serverEnv().BETTER_AUTH_SECRET, token);
+  const locale = order?.shop.locale ?? DEFAULT_LOCALE;
+  const t = await getTranslations({ locale, namespace: 'publicLink' });
+  const footer = t('poweredBy', { brand: BRAND.productName });
+  if (!order) {
+    return <PublicInvalidLink title={t('invalidTitle')} body={t('invalid')} footer={footer} />;
+  }
+
+  const tAll = await getTranslations({ locale });
+  const format = await getFormatter({ locale });
+  const fmt = (minor: number) => money(minor, order.currency, locale);
+  const day = format.dateTime(calendarDate(order.scheduledDate), {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  });
+  const when =
+    order.windowStart && order.windowEnd
+      ? `${day}, ${tAll('orders.window', { start: order.windowStart, end: order.windowEnd })}`
+      : `${day}, ${tAll('orders.allDay').toLocaleLowerCase(locale)}`;
+  const cancelled = order.status === 'CANCELLED';
+  const journey = JOURNEY[order.fulfillmentMode];
+  const reached = new Map(order.history.map((step) => [step.status, step.at]));
+  // Indice del passo attuale nel cammino (un passo indietro di correzione conta lo stato attuale).
+  const currentIndex = journey.indexOf(order.status);
+  const address = order.deliveryAddress;
+  const region = (code: string) => MX_REGIONS.find((item) => item.code === code)?.name ?? code;
+
+  return (
+    <PublicShell
+      shopName={order.shop.name}
+      footer={footer}
+      contact={
+        order.shop.phone
+          ? {
+              phone: order.shop.phone,
+              label: t('contact'),
+              text: t('order.contactText', { number: order.numberLabel }),
+            }
+          : null
+      }
+    >
+      <header className="space-y-1">
+        <h1 className="font-display text-2xl font-semibold tracking-tight">
+          {t('order.title', { number: order.numberLabel })}
+        </h1>
+        <p className="text-sm first-letter:uppercase">
+          {order.fulfillmentMode === 'DELIVERY'
+            ? t('order.deliveryOn', { when })
+            : t('order.pickupOn', { when })}
+        </p>
+      </header>
+
+      {cancelled ? (
+        <Alert variant="info">
+          <Ban aria-hidden="true" />
+          <AlertDescription>{t('order.cancelled')}</AlertDescription>
+        </Alert>
+      ) : (
+        <ol className="grid gap-3" aria-label={t('order.progress')}>
+          {journey.map((status, index) => {
+            const done = currentIndex >= index;
+            const at = reached.get(status);
+            return (
+              <li key={status} className="flex items-center gap-3">
+                <span
+                  className={cn(
+                    'flex size-7 shrink-0 items-center justify-center rounded-full border text-xs',
+                    done
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'bg-card text-muted-foreground',
+                  )}
+                  aria-hidden="true"
+                >
+                  {done ? <Check className="size-4" /> : index + 1}
+                </span>
+                <span
+                  className={cn('min-w-0 flex-1', done ? 'font-medium' : 'text-muted-foreground')}
+                >
+                  {tAll(`orders.statuses.${status}`)}
+                  {index === currentIndex ? (
+                    <span className="sr-only"> · {t('order.current')}</span>
+                  ) : null}
+                </span>
+                {done && at ? (
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {format.dateTime(at, {
+                      day: 'numeric',
+                      month: 'short',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      timeZone: order.shop.timezone,
+                    })}
+                  </span>
+                ) : null}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+
+      {address ? (
+        <section className="space-y-1 text-sm">
+          <h2 className="font-medium">{t('order.deliverTo')}</h2>
+          <p>
+            {address.addressLine1}
+            {address.addressLine2 ? `, ${address.addressLine2}` : ''}
+          </p>
+          <p className="text-muted-foreground">
+            {[address.neighborhood, address.postalCode, address.city, region(address.region)]
+              .filter(Boolean)
+              .join(', ')}
+          </p>
+          {order.recipientName ? (
+            <p>{t('order.recipient', { name: order.recipientName })}</p>
+          ) : null}
+        </section>
+      ) : null}
+
+      {order.cardMessage ? (
+        <section className="space-y-2 text-sm">
+          <h2 className="font-medium">{t('order.card')}</h2>
+          <p className="rounded-xl bg-muted/50 p-4 whitespace-pre-line italic">
+            {order.cardMessage}
+          </p>
+          <p className="text-muted-foreground">
+            {order.cardAnonymous
+              ? t('order.anonymous')
+              : order.cardSignature
+                ? t('order.signedBy', { name: order.cardSignature })
+                : null}
+          </p>
+        </section>
+      ) : null}
+
+      <section className="space-y-4">
+        <h2 className="font-medium">{t('order.contents')}</h2>
+        <PublicLines
+          lines={order.lines.map((line) => ({
+            id: line.id,
+            description: line.description,
+            quantityLabel: `${line.quantity} × ${fmt(line.unitPriceMinor)}`,
+            totalLabel: fmt(line.lineTotalMinor),
+            recipe: null,
+            imageUrl: line.hasImage
+              ? `/pedido/${encodeURIComponent(token)}/imagen/${line.id}`
+              : null,
+            imageAlt: t('imageAlt', { name: line.description }),
+          }))}
+        />
+        <PublicTotals
+          rows={[
+            { label: t('subtotal'), value: fmt(order.subtotalMinor) },
+            ...(order.discountMinor > 0
+              ? [{ label: t('discount'), value: `−${fmt(order.discountMinor)}` }]
+              : []),
+            ...(order.deliveryFeeMinor > 0
+              ? [{ label: t('order.deliveryFee'), value: fmt(order.deliveryFeeMinor) }]
+              : []),
+            { label: t('total'), value: fmt(order.totalMinor), strong: true },
+            ...(order.paidMinor > 0
+              ? [{ label: t('order.paid'), value: fmt(order.paidMinor) }]
+              : []),
+            ...(cancelled ? [] : [{ label: t('order.balance'), value: fmt(order.balanceMinor) }]),
+          ]}
+        />
+      </section>
+    </PublicShell>
+  );
+}

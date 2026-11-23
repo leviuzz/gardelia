@@ -7,38 +7,20 @@
  * Il cliente non ha una sessione: fioreria e cliente vengono SOLO dal link verificato, e i dati si
  * leggono e scrivono nel contesto di quella fioreria (RLS attiva), mai con un contesto di sistema.
  */
-import { createHmac, timingSafeEqual } from 'node:crypto';
 import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
 import { AUDIT_ACTIONS, getMarket, resolveLocale, type SupportedLocale } from '@floral/domain';
 import type { RequestMeta } from './context';
 import { logger } from './logger';
+import { readIdPair, signIdPair } from './signed-ids';
 
 const TOKEN_CONTEXT = 'gardelia:promo-unsubscribe:v1';
-const SIGNATURE_BYTES = 16;
-const TOKEN_PATTERN = /^[A-Za-z0-9_-]{64}$/;
-
-function uuidBytes(id: string): Buffer {
-  return Buffer.from(id.replaceAll('-', ''), 'hex');
-}
-
-function uuidFrom(bytes: Buffer): string {
-  const hex = bytes.toString('hex');
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
-
-function signature(secret: string, payload: Buffer): Buffer {
-  // Chiave propria di questo uso: il segreto dell'app non firma mai direttamente i link.
-  const key = createHmac('sha256', secret).update(TOKEN_CONTEXT).digest();
-  return createHmac('sha256', key).update(payload).digest().subarray(0, SIGNATURE_BYTES);
-}
 
 /** Link personale (64 caratteri URL-safe): fioreria + cliente + firma. */
 export function createUnsubscribeToken(
   secret: string,
   ids: { readonly tenantId: string; readonly customerId: string },
 ): string {
-  const payload = Buffer.concat([uuidBytes(ids.tenantId), uuidBytes(ids.customerId)]);
-  return Buffer.concat([payload, signature(secret, payload)]).toString('base64url');
+  return signIdPair(secret, TOKEN_CONTEXT, ids.tenantId, ids.customerId);
 }
 
 /** Fioreria e cliente di un link valido, o null (formato sbagliato o firma che non torna). */
@@ -46,15 +28,8 @@ export function readUnsubscribeToken(
   secret: string,
   token: unknown,
 ): { readonly tenantId: string; readonly customerId: string } | null {
-  if (typeof token !== 'string' || !TOKEN_PATTERN.test(token)) return null;
-  const bytes = Buffer.from(token, 'base64url');
-  if (bytes.length !== 32 + SIGNATURE_BYTES) return null;
-  const payload = bytes.subarray(0, 32);
-  if (!timingSafeEqual(signature(secret, payload), bytes.subarray(32))) return null;
-  return {
-    tenantId: uuidFrom(payload.subarray(0, 16)),
-    customerId: uuidFrom(payload.subarray(16)),
-  };
+  const ids = readIdPair(secret, TOKEN_CONTEXT, token);
+  return ids ? { tenantId: ids[0], customerId: ids[1] } : null;
 }
 
 /** Indirizzi pubblici del link: pagina con conferma e disiscrizione con un clic (RFC 8058). */

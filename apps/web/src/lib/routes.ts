@@ -93,6 +93,8 @@ export function tenantRoutes(slug: string) {
       new: (query?: { readonly customerId?: string; readonly configurationId?: string | null }) =>
         withQuery(`${orders}/new`, query),
       detail: (orderId: string) => `${orders}/${segment(orderId)}`,
+      /** Tarjeta da stampare (formato biglietto). */
+      card: (orderId: string) => `${orders}/${segment(orderId)}/card`,
       /** Immagine del ramo di una riga (`download`: si scarica, per allegarla su WhatsApp). */
       lineImage: (orderId: string, lineId: string, options?: { readonly download?: boolean }) =>
         withQuery(`${orders}/${segment(orderId)}/lines/${segment(lineId)}/image`, {

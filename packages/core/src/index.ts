@@ -46,6 +46,19 @@ export {
   type UnsubscribeInfo,
 } from './promo-unsubscribe';
 export {
+  acceptPublicQuote,
+  getPublicLineImage,
+  getPublicOrder,
+  getPublicQuote,
+  publicLinkUrl,
+  type AcceptQuoteResult,
+  type PublicLineDto,
+  type PublicOrderDto,
+  type PublicQuoteDto,
+  type PublicRecipeItem,
+  type PublicShopDto,
+} from './public-links';
+export {
   AiProviderError,
   SimulatedImageProvider,
   createAiProviderFromEnv,
@@ -121,6 +134,7 @@ export * from './services/promo-discounts';
 export * from './services/promotions';
 export * from './services/orders';
 export * from './services/delivery-settings';
+export * from './services/public-links';
 export * from './services/quotes';
 export * from './services/recipes';
 export * from './services/team';

@@ -79,6 +79,10 @@ export const AUDIT_ACTIONS = {
   quoteLineUpdated: 'quote.line_updated',
   quoteLineRemoved: 'quote.line_removed',
   quoteStatusChanged: 'quote.status_changed',
+  /** Accettato dal cliente con il link pubblico (ADR-056), senza utente. */
+  quoteAcceptedOnline: 'quote.accepted_online',
+  publicLinkCreated: 'public_link.created',
+  publicLinkRevoked: 'public_link.revoked',
   orderCreated: 'order.created',
   orderUpdated: 'order.updated',
   orderLineAdded: 'order.line_added',

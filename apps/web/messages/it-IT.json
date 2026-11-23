@@ -112,7 +112,8 @@
       "order_line_limit": "L’ordine ha raggiunto il numero massimo di righe.",
       "order_total_below_paid": "Il totale scenderebbe sotto quanto il cliente ha già pagato: prima annulla il pagamento.",
       "delivery_window_exists": "Questa fascia c’è già.",
-      "delivery_window_limit": "Hai raggiunto il massimo di fasce."
+      "delivery_window_limit": "Hai raggiunto il massimo di fasce.",
+      "public_link_unavailable": "Nel suo stato attuale questo documento non si può condividere."
     },
     "pageNotFoundTitle": "Pagina non trovata",
     "pageNotFoundBody": "La pagina non esiste o non hai accesso.",
@@ -377,7 +378,10 @@
     "order.discarded": "{actor} ha scartato la bozza {number}",
     "delivery_settings.updated": "{actor} ha cambiato le impostazioni di consegna",
     "delivery_window.added": "{actor} ha aggiunto una fascia di consegna",
-    "delivery_window.removed": "{actor} ha tolto una fascia di consegna"
+    "delivery_window.removed": "{actor} ha tolto una fascia di consegna",
+    "quote.accepted_online": "Il cliente ha accettato il preventivo {number} dal link",
+    "public_link.created": "{actor} ha condiviso il link di {number}",
+    "public_link.revoked": "{actor} ha disattivato il link di {number}"
   },
   "catalog": {
     "title": "Catalogo",
@@ -955,7 +959,8 @@
       "line": "• {quantity} × {description}: {total}",
       "discount": "Sconto: -{amount}",
       "total": "Totale: {total}",
-      "validUntil": "Valido fino al {date}."
+      "validUntil": "Valido fino al {date}.",
+      "link": "Puoi vederlo e accettarlo qui: {url}"
     },
     "customerCard": {
       "title": "Preventivi",
@@ -1131,7 +1136,8 @@
       "window": "dalle {start} alle {end}",
       "total": "Totale: {total}",
       "paid": "Pagato: {paid}",
-      "balance": "Da pagare: {balance}"
+      "balance": "Da pagare: {balance}",
+      "link": "Segui il tuo ordine qui: {url}"
     },
     "newOrder": "Nuovo ordine",
     "noDate": "Senza data",
@@ -1169,6 +1175,14 @@
       "title": "Ordini",
       "empty": "Non ha ancora ordini.",
       "viewAll": "Vedi tutti i suoi ordini"
+    },
+    "cardPrint": {
+      "title": "Stampa biglietto",
+      "subtitle": "Biglietto dell’ordine {number}, pronto da ritagliare.",
+      "print": "Stampa",
+      "open": "Stampa biglietto",
+      "hint": "Misura 10 × 7 cm: stampa al 100 % e ritaglia lungo la linea tratteggiata.",
+      "empty": "Questo ordine non ha un messaggio per il biglietto."
     }
   },
   "plans": {
@@ -1659,5 +1673,72 @@
     "invalidTitle": "Link non valido",
     "invalid": "Questo link non è valido. Se non vuoi più ricevere promozioni, rispondi all'email o contatta la fioreria.",
     "poweredBy": "Email inviata con {brand}"
+  },
+  "publicLink": {
+    "poweredBy": "Inviato con {brand}",
+    "invalidTitle": "Link non valido",
+    "invalid": "Questo link non è più disponibile: può essere scaduto o il negozio l’ha disattivato. Chiedine uno nuovo al negozio.",
+    "contact": "Scrivi al negozio",
+    "imageAlt": "Foto di {name}",
+    "subtotal": "Subtotale",
+    "discount": "Sconto",
+    "tax": "IVA",
+    "total": "Totale",
+    "quote": {
+      "title": "Preventivo {number}",
+      "for": "Per {name} · {date}",
+      "validUntil": "Valido fino al {date}.",
+      "acceptHint": "Se va tutto bene, accettalo e il negozio ti contatterà per confermare la consegna.",
+      "accept": "Accetta il preventivo",
+      "accepted": "Hai accettato questo preventivo il {date}. Il negozio ti contatterà per confermare la consegna.",
+      "acceptedNoDate": "Questo preventivo è già accettato.",
+      "expired": "Questo preventivo è scaduto il {date}. Scrivi al negozio per aggiornarlo.",
+      "updating": "Il negozio sta aggiornando questo preventivo. Riapri il link più tardi.",
+      "unavailable": "Questo preventivo non è più disponibile. Scrivi al negozio se hai dubbi.",
+      "contactText": "Ciao, ho una domanda sul preventivo {number}."
+    },
+    "order": {
+      "title": "Ordine {number}",
+      "deliveryOn": "Consegna a domicilio: {when}",
+      "pickupOn": "Ritiri in negozio: {when}",
+      "cancelled": "Questo ordine è stato annullato. Scrivi al negozio se hai dubbi.",
+      "progress": "Avanzamento dell’ordine",
+      "current": "passo attuale",
+      "deliverTo": "Indirizzo di consegna",
+      "recipient": "Riceve: {name}",
+      "card": "Biglietto",
+      "anonymous": "Senza firma (anonimo)",
+      "signedBy": "Firma: {name}",
+      "contents": "Cosa contiene",
+      "deliveryFee": "Consegna",
+      "paid": "Pagato",
+      "balance": "Da pagare",
+      "contactText": "Ciao, ho una domanda sull’ordine {number}."
+    }
+  },
+  "shareLink": {
+    "quoteTitle": "Link per il cliente",
+    "quoteHint": "Il cliente vede il preventivo e lo accetta dal telefono, senza creare un account.",
+    "quoteDraftHint": "Segna il preventivo come inviato per condividere il link.",
+    "orderTitle": "Stato dell’ordine per il cliente",
+    "orderHint": "Il cliente vede a che punto è l’ordine, quando arriva e quanto resta da pagare.",
+    "create": "Crea link",
+    "created": "Link pronto da condividere.",
+    "linkLabel": "Link",
+    "copy": "Copia",
+    "copied": "Link copiato.",
+    "copyFailed": "Copia non riuscita: seleziona il link e copialo.",
+    "whatsapp": "Invia su WhatsApp",
+    "expires": "Scade il {date}.",
+    "renew": "Creane uno nuovo",
+    "renewTitle": "Creare un link nuovo?",
+    "renewBody": "Il link precedente smetterà di funzionare.",
+    "renewConfirm": "Crea nuovo",
+    "renewed": "Link nuovo pronto: il precedente non funziona più.",
+    "revoke": "Disattiva",
+    "revokeTitle": "Disattivare il link?",
+    "revokeBody": "Chi ce l’ha vedrà «Link non valido». Puoi crearne uno nuovo quando vuoi.",
+    "revokeConfirm": "Disattiva",
+    "revoked": "Link disattivato."
   }
 }

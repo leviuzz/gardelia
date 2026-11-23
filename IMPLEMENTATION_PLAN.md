@@ -496,6 +496,16 @@ unit 289/289 ✅ · integrazione 292/292 ✅ (6 nuovi con isolamento A↔B) · m
 · E2E 63/63 ✅ (1 nuovo, nella seconda fioreria demo per non cambiare i form degli altri test, ripetibile);
 controllo visivo a 1280, 390 e 320 px. Prossimi: A3 stampa della tarjeta e link pubblici.
 
+**Link per il cliente e tarjeta, blocco A3 (fatto il 23/11, ADR-056):** su preventivo e ordine la
+scheda "Enlace para el cliente" / "Seguimiento para el cliente" crea, copia, rinnova o disattiva un
+link pubblico, e il messaggio WhatsApp lo include. Il cliente, senza account, vede il preventivo e lo
+accetta con un clic, oppure segue l'ordine passo per passo con consegna, tarjeta e saldo. Token firmati
+(non salvati), scadenza 60 giorni, uno attivo per documento; nessun costo o nota interna esposti.
+"Imprimir tarjeta" stampa il biglietto da 10 × 7 cm. Verifiche locali: lint ✅ · format ✅ · typecheck ✅
+· test unit 289/289 ✅ · integrazione 302/302 ✅ (10 nuovi con isolamento A↔B) · migrazioni = schema ✅ ·
+build ✅ · E2E 67/67 ✅ (4 nuovi); controllo visivo delle pagine pubbliche a 390 px. Prossimi: B1
+calendario delle consegne, "Hoy salen", Producción del día.
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci
