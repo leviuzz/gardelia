@@ -71,13 +71,23 @@ export interface PublicStoreDto {
   };
   readonly paymentMethods: readonly StorePaymentMethod[];
   readonly paymentInstructions: string | null;
+  /** Chi compra può fare l'ordine dalla pagina (ADR-067). */
+  readonly ordersEnabled: boolean;
   readonly items: readonly PublicStoreItemDto[];
 }
 
 export interface PublicStoreItemDetailDto {
   readonly store: Pick<
     PublicStoreDto,
-    'slug' | 'name' | 'locale' | 'currency' | 'isDemo' | 'phone' | 'paymentMethods' | 'logoId'
+    | 'slug'
+    | 'name'
+    | 'locale'
+    | 'currency'
+    | 'isDemo'
+    | 'phone'
+    | 'paymentMethods'
+    | 'logoId'
+    | 'ordersEnabled'
   >;
   readonly item: PublicStoreItemDto & {
     /** Tutte le foto, nell'ordine del catalogo. */
@@ -87,8 +97,11 @@ export interface PublicStoreItemDetailDto {
   };
 }
 
-/** Fioreria con la tienda pubblicata, o null (slug sconosciuto, tienda non pubblicata, sospesa). */
-async function publishedTenantId(slug: unknown): Promise<string | null> {
+/**
+ * Fioreria con la tienda pubblicata, o null (slug sconosciuto, tienda non pubblicata, sospesa).
+ * Interna al core (la usa anche l'ordine del cliente, `marketplace-orders.ts`).
+ */
+export async function publishedTenantId(slug: unknown): Promise<string | null> {
   if (typeof slug !== 'string' || !SLUG_PATTERN.test(slug)) return null;
   const rows = await getDb().$queryRaw<{ id: string | null }[]>`
     SELECT app_public_store_tenant(${slug}) AS id`;
@@ -104,7 +117,8 @@ async function withPublishedStore<T>(
   return withTenantContext(getDb(), { tenantId, userId: null }, (tx) => fn(tx, tenantId));
 }
 
-const onlineItemWhere = (tenantId: string) => ({
+/** Prodotti che chi compra vede (e può ordinare): attivi, "visible en línea", di un tipo da vendere. */
+export const onlineItemWhere = (tenantId: string) => ({
   tenantId,
   isOnline: true,
   status: 'ACTIVE' as const,
@@ -153,6 +167,7 @@ async function readStoreHeader(tx: TransactionClient, tenantId: string) {
       phone: tenant.contactPhone,
       paymentMethods: store.paymentMethods as StorePaymentMethod[],
       logoId: store.logoId,
+      ordersEnabled: store.ordersEnabled,
     },
   };
 }

@@ -96,6 +96,10 @@ export const AUDIT_ACTIONS = {
   orderReceiverRecorded: 'order.receiver_recorded',
   orderStatusChanged: 'order.status_changed',
   orderCancelled: 'order.cancelled',
+  /** Ordine del cliente dalla tienda en línea (ADR-067): fatto, accettato, scaduto senza risposta. */
+  orderPlacedOnline: 'order.placed_online',
+  orderAccepted: 'order.accepted',
+  orderExpired: 'order.expired',
   orderPaymentRecorded: 'order.payment_recorded',
   orderPaymentReversed: 'order.payment_reversed',
   subscriptionAssigned: 'subscription.assigned',
@@ -105,6 +109,7 @@ export const AUDIT_ACTIONS = {
   storeUnpublished: 'store.unpublished',
   storeImageSet: 'store.image_set',
   storeImageRemoved: 'store.image_removed',
+  storeOrdersUpdated: 'store.orders_updated',
   /** Inventario (ADR-060): prodotti controllati e registri di magazzino. */
   inventoryTrackingStarted: 'inventory.tracking_started',
   inventoryTrackingStopped: 'inventory.tracking_stopped',
