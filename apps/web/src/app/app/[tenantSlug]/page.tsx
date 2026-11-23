@@ -23,6 +23,7 @@ import { InventoryAlertsCard } from '@/components/inventory/inventory-alerts-car
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { activityMessageKey } from '@/lib/activity-key';
 import { tenantRoutes, type TenantRoutes } from '@/lib/routes';
 import { requireUser } from '@/lib/session';
 import { getTenantContext } from '@/lib/tenant';
@@ -74,10 +75,7 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
 
   function describeActivity(entry: ActivityEntry): string {
     const actor = entry.actorName ?? t('activity.someone');
-    // Moduli con i testi nel proprio namespace (ADR-060): `inventory.x` → `inventory.activity.x`.
-    const [module, ...rest] = entry.action.split('.');
-    const moduleKey = `${module}.activity.${rest.join('.')}`;
-    const key = t.has(`activity.${entry.action}`) ? `activity.${entry.action}` : moduleKey;
+    const key = activityMessageKey(entry.action, (candidate) => t.has(candidate));
     const roleValue =
       metadataString(entry.metadata, 'to') ?? metadataString(entry.metadata, 'role');
     const statusValue = metadataString(entry.metadata, 'to');
@@ -101,8 +99,9 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
       plan: planValue && isPlanCode(planValue) ? t(`plans.names.${planValue}`) : '—',
       units: metadataNumber(entry.metadata, 'units') ?? 0,
       lines: metadataNumber(entry.metadata, 'lines') ?? 1,
+      count: metadataNumber(entry.metadata, 'count') ?? 0,
     };
-    return t.has(key) ? t(key, values) : t('activity.fallback', values);
+    return key ? t(key, values) : t('activity.fallback', values);
   }
 
   return (

@@ -173,6 +173,8 @@ export * from './services/inventory';
 export * from './services/inventory-purchases';
 export * from './services/inventory-reservations';
 export * from './services/inventory-insights';
+export * from './services/customer-timeline';
+export * from './services/customer-tags';
 export * from './services/promo-discounts';
 export * from './services/promotions';
 export * from './services/online-store';

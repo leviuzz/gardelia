@@ -151,17 +151,56 @@ export function customerFormSchema(country: MarketCountry) {
     .pipe(customerInputSchema);
 }
 
+/** Un'etichetta scritta come la salva la scheda del cliente: spazi ripuliti, minuscole. */
+export function normalizeTag(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase().replace(/\s+/g, ' ') : '';
+}
+
+/** Filtro sul consenso marketing: chi accetta le promozioni e chi no. */
+export const CUSTOMER_CONSENT_FILTERS = ['yes', 'no'] as const;
+export type CustomerConsentFilter = (typeof CUSTOMER_CONSENT_FILTERS)[number];
+
+/** "Fecha especial próxima": entro quanti giorni, come il pannello. */
+export const CUSTOMER_UPCOMING_DAYS = 30;
+
 /** Filtri dell'elenco clienti (query string). */
 export const customerListFiltersSchema = z.object({
   q: z.preprocess(toTrimmedString, z.string().max(80).catch('')),
   type: z.preprocess(toTrimmedString, z.enum(CUSTOMER_TYPES).nullable().catch(null)),
   status: z.preprocess(toTrimmedString, z.enum(['ACTIVE', 'ARCHIVED']).catch('ACTIVE')),
+  /** Etichetta esatta (CRM-01, ADR-070). */
+  tag: z.preprocess(normalizeTag, z.string().max(CUSTOMER_LIMITS.tagLength).catch('')),
+  consent: z.preprocess(toTrimmedString, z.enum(CUSTOMER_CONSENT_FILTERS).nullable().catch(null)),
+  /** Solo clienti con una data speciale nei prossimi 30 giorni. */
+  upcoming: z.preprocess((value) => value === '1' || value === true, z.boolean()),
   page: z.preprocess(
     (value) => (typeof value === 'string' ? Number(value) : value),
     z.int().min(1).max(10_000).catch(1),
   ),
 });
 export type CustomerListFilters = z.infer<typeof customerListFiltersSchema>;
+
+/** Clienti che si etichettano insieme ("Agregar etiqueta" / "Quitar etiqueta"). */
+export const CUSTOMER_BULK_LIMIT = 100;
+export const CUSTOMER_BULK_TAG_MODES = ['add', 'remove'] as const;
+export type CustomerBulkTagMode = (typeof CUSTOMER_BULK_TAG_MODES)[number];
+
+/** Un'etichetta a più clienti insieme: quali clienti, quale etichetta, aggiungere o togliere. */
+export const customerBulkTagSchema = z.object({
+  customerIds: z.preprocess(
+    (value) => (Array.isArray(value) ? value : typeof value === 'string' && value ? [value] : []),
+    z
+      .array(z.uuid({ error: 'invalid_option' }))
+      .min(1, { error: 'customers_none_selected' })
+      .max(CUSTOMER_BULK_LIMIT, { error: 'too_many_items' }),
+  ),
+  tag: z.preprocess(
+    normalizeTag,
+    z.string().min(1, { error: 'required' }).max(CUSTOMER_LIMITS.tagLength, { error: 'too_long' }),
+  ),
+  mode: z.preprocess(toTrimmedString, z.enum(CUSTOMER_BULK_TAG_MODES, { error: 'invalid_option' })),
+});
+export type CustomerBulkTagInput = z.infer<typeof customerBulkTagSchema>;
 
 // -----------------------------------------------------------------------------
 // Indirizzi
@@ -351,6 +390,30 @@ export function nextOccurrence(
   }
   /* c8 ignore next */
   throw new Error('Ricorrenza non calcolabile');
+}
+
+/**
+ * Giorni del calendario (mese → giorni) in cui cade una data speciale da oggi a `withinDays`
+ * giorni, contati come `nextOccurrence` (il 29 febbraio, negli anni non bisestili, vale il 28):
+ * il filtro "Fecha especial próxima" della lista clienti si fa così direttamente nel database.
+ */
+export function upcomingMonthDays(
+  timeZone: string,
+  withinDays: number,
+  now: Date = new Date(),
+): readonly { readonly month: number; readonly days: readonly number[] }[] {
+  const today = todayInTimeZone(timeZone, now);
+  const byMonth = new Map<number, Set<number>>();
+  for (let offset = 0; offset <= withinDays; offset += 1) {
+    const date = new Date(Date.UTC(today.year, today.month - 1, today.day + offset));
+    const month = date.getUTCMonth() + 1;
+    const day = date.getUTCDate();
+    const days = byMonth.get(month) ?? new Set<number>();
+    days.add(day);
+    if (month === 2 && day === 28 && !isLeapYear(date.getUTCFullYear())) days.add(29);
+    byMonth.set(month, days);
+  }
+  return [...byMonth].map(([month, days]) => ({ month, days: [...days].sort((a, b) => a - b) }));
 }
 
 /** Link "clic per chattare" di WhatsApp (nessun invio automatico: spec §5.2). */

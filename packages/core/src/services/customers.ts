@@ -12,6 +12,7 @@ import {
   AUDIT_ACTIONS,
   CUSTOMER_LIMITS,
   CUSTOMER_PAGE_SIZE,
+  CUSTOMER_UPCOMING_DAYS,
   customerAddressSchema,
   customerInputSchema,
   customerListFiltersSchema,
@@ -21,6 +22,7 @@ import {
   occasionInputListSchema,
   occasionSchema,
   toFieldErrors,
+  upcomingMonthDays,
   type AcquisitionChannel,
   type AcquisitionSource,
   type CustomerType,
@@ -157,6 +159,21 @@ export async function listCustomers(
     tenantId: ctx.tenantId,
     status: filters.status,
     ...(filters.type ? { type: filters.type } : {}),
+    ...(filters.tag ? { tags: { has: filters.tag } } : {}),
+    ...(filters.consent ? { marketingConsent: filters.consent === 'yes' } : {}),
+    // "Fecha especial próxima": una data speciale nei prossimi 30 giorni (come il pannello).
+    ...(filters.upcoming
+      ? {
+          occasions: {
+            some: {
+              tenantId: ctx.tenantId,
+              OR: upcomingMonthDays(ctx.timezone, CUSTOMER_UPCOMING_DAYS).map(
+                ({ month, days }) => ({ month, day: { in: [...days] } }),
+              ),
+            },
+          },
+        }
+      : {}),
     ...(filters.q
       ? {
           OR: [

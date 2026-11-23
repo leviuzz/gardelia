@@ -660,6 +660,26 @@ della pagina del piano aggiornati. Verifiche locali: lint ✅ · format ✅ · t
 E2E 76/76 ✅ (1 nuovo: ramo con ricetta, ramos hechos, pannello e riepilogo); controllo a 320 px.
 L'inventario della V1 è completo; restano consumo e apartados dagli ordini (sessione degli ordini).
 
+**Clienti completi, blocco 1 (fatto il 23/11, ADR-070):** sezione "Historial" nella scheda del
+cliente con preventivi, ordini (creato, confermato, consegnato o ritirato, annullato col motivo),
+pagamenti, promozioni inviate e codici usati, dalla più recente, ognuno col suo link; "Ver más" di
+20 in 20. Solo lettura sulle tabelle degli altri moduli. Decisioni del founder per l'import (blocco
+3): senza consenso marketing, tutti i piani, proprietario e manager. Verifiche locali: lint ✅ ·
+format ✅ · typecheck ✅ · test 728/728 ✅ (4 nuovi d'integrazione con isolamento A↔B) · build ✅ ·
+E2E 79/79 ✅ (1 nuovo: il preventivo creato dalla scheda compare nell'Historial); controllo a 320 px.
+Prossimi: blocco 2 etichette e filtri, blocco 3 import da CSV con anteprima.
+
+**Clienti completi, blocco 2 (fatto il 23/11, ADR-070):** lista clienti con i filtri per etichetta,
+consenso alle promozioni e "Fecha especial en 30 días" (nel database, dai giorni del calendario della
+finestra); etichetta aggiunta o tolta a più clienti insieme (caselle, "Seleccionar todos", fino a 100
+per volta, solo proprietario e manager), chi ha già 15 etichette viene saltato e contato; una voce di
+audit per gruppo senza il testo dell'etichetta. Correzione: i testi di "Actividad reciente" della
+dashboard non si trovavano (chiavi col punto) e mostravano sempre il testo generico; ora sono
+annidati, con un test che lo controlla. Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test
+770/770 ✅ (15 nuovi: 4 di dominio, 5 d'integrazione con isolamento A↔B, 6 sui testi dell'attività)
+· build ✅ · E2E 83/83 ✅ (1 nuovo: etichetta a più clienti e filtri); controllo a 320 px.
+Prossimo: blocco 3 import da CSV con anteprima.
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci
@@ -673,7 +693,7 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
    ruta del día gratuita (D-27). Blocchi A1–C5 in `docs/ORDERS_MARKETPLACE_PLAN.md`; si parte da A1.
 3. Inventario: fatto (blocchi 1–4, ADR-060…063); restano consumo e apartados dagli ordini, che
    collega la sessione degli ordini con le funzioni già pronte.
-4. Clienti completi: cronologia, etichette, import CSV.
+4. Clienti completi (ADR-070): cronologia ed etichette e filtri fatti; poi import CSV.
 5. Abbonamenti dei clienti e Floral Care.
 6. Report.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.

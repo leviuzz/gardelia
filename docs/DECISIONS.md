@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 23 novembre 2026 (home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 23 novembre 2026 (clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -1677,6 +1677,54 @@ Blocco C3 di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26). Avviato dal founder ("vai
 - **Non fatto:** "prima fascia disponibile" nell'ordine dei risultati; mappa; occasioni (cumpleaños,
   10 de mayo) come filtri, che richiedono di classificare i prodotti; attribuzione della fee (D-24)
   dalla ricerca, che si registra con l'ordine (C4).
+
+### ADR-070 — Clienti completi: cronologia, etichette e filtri, import da CSV — ADOTTATO (23/11/2026)
+
+Numerata 070: 066 è già la home per chi compra e 067–069 restano ai blocchi del marketplace
+(C4, C5), che lavora in parallelo.
+
+- **Decisioni del founder (23/11/2026)** per l'import da CSV (blocco 3):
+  - i clienti importati entrano **senza** consenso marketing, che si segna a mano, uno per uno,
+    con la fonte. Un "sí" in un file non dimostra il consenso (LFPDPPP), da confermare con
+    l'avvocato insieme all'aviso de privacidad (O-07);
+  - l'import è in tutti i piani;
+  - importano proprietario e manager (`customers:write`).
+- **Blocco 1, cronologia** (spec CRM-01: "Timeline cronologica di ordini, preventivi, consegne,
+  subscriptions, messaggi e interventi"):
+  - sezione "Historial" nella scheda del cliente, dalla più recente: cliente registrato, preventivo
+    creato e suo stato attuale, ordine creato (con lo stato in cui nasce), confermato, consegnato o
+    ritirato, annullato (col motivo), pagamenti e loro anulaciones, promozione inviata e codice usato;
+  - ogni evento ha il link al suo preventivo o ordine;
+  - preparazione, pronto e in viaggio restano nella scheda dell'ordine, per non riempire la storia;
+  - del preventivo si mostra l'ultimo cambio di stato: non c'è uno storico degli stati;
+  - solo lettura (`customer-timeline.ts`): legge le tabelle di preventivi, ordini, pagamenti e
+    promozioni senza toccarne il codice. Le fonti che il ruolo non vede non compaiono;
+  - "Ver más" allarga la pagina di 20 in 20 fino a 200 (`?historial=`). Ogni fonte dà al massimo
+    quel numero di eventi, poi si uniscono e si taglia: nessun cursore che salti eventi con lo
+    stesso istante;
+  - abbonamenti e interventi entreranno con SUB-01 e CARE-01.
+- **Blocco 2, etichette e filtri** (spec CRM-01: "Segmenti: … tags", "consenso marketing"):
+  - filtri della lista clienti: etichetta (l'elenco delle etichette già usate dalla fioreria),
+    consenso alle promozioni (sì/no) e "Fecha especial en 30 días" (una data speciale da oggi a 30
+    giorni, contata come il pannello: il 29 febbraio vale il 28 negli anni non bisestili). Si
+    sommano a ricerca, tipo e stato e restano nell'indirizzo, come gli altri filtri;
+  - la data vicina si filtra nel database: dal fuso della fioreria si ricavano i giorni del
+    calendario della finestra (`upcomingMonthDays`) e si cercano le date speciali con quel mese e
+    giorno, senza caricare tutte le date in memoria;
+  - **etichetta a più clienti**: caselle nelle righe, "Seleccionar todos" della pagina, etichetta con
+    i suggerimenti di quelle usate, "Agregar etiqueta" o "Quitar etiqueta" (al massimo 100 clienti
+    per volta). Solo proprietario e manager (`customers:write`), come la scheda;
+  - un cliente con già 15 etichette viene saltato e contato nel messaggio (come avviso), gli altri
+    la ricevono; chi l'aveva già, o non l'aveva, è contato a parte;
+  - un ID di un'altra fioreria nel gruppo: 404 per tutto il gruppo, nessuna modifica, evento di
+    sicurezza;
+  - nel registro **una voce per gruppo** (`customer.tags_added` / `customer.tags_removed`) con
+    quanti e quali clienti (ID), mai il testo dell'etichetta, come per le modifiche della scheda.
+  - **Correzione trovata strada facendo:** le voci di "Actividad reciente" della dashboard
+    (clienti, catalogo, preventivi, ordini…) avevano chiavi col punto (`"customer.created"`) che
+    next-intl legge come annidamento: non si trovavano mai e compariva sempre "realizó un cambio".
+    Ora sono annidate per modulo; un test controlla che nessuna chiave abbia un punto e che ogni
+    azione di una fioreria abbia il suo testo nelle tre lingue.
 
 ## 3. Proposte da approvare
 

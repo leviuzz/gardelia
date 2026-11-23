@@ -63,6 +63,9 @@ export const AUDIT_ACTIONS = {
   customerUpdated: 'customer.updated',
   customerArchived: 'customer.archived',
   customerRestored: 'customer.restored',
+  /** Un'etichetta aggiunta o tolta a più clienti insieme (ADR-070). */
+  customerTagsAdded: 'customer.tags_added',
+  customerTagsRemoved: 'customer.tags_removed',
   customerAddressAdded: 'customer.address_added',
   customerAddressUpdated: 'customer.address_updated',
   customerAddressArchived: 'customer.address_archived',

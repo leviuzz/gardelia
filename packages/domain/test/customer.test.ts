@@ -4,9 +4,13 @@ import {
   customerCreateFormSchema,
   customerFormSchema,
   isPlatformSource,
+  customerBulkTagSchema,
+  customerListFiltersSchema,
   isValidMonthDay,
   nextOccurrence,
+  normalizeTag,
   occasionSchema,
+  upcomingMonthDays,
   whatsappLink,
 } from '../src/customer';
 import { toFieldErrors } from '../src/validation';
@@ -186,5 +190,89 @@ describe('indirizzi e ricorrenze', () => {
     expect(whatsappLink('+524495550142', 'Hola, ¿cómo estás?')).toBe(
       'https://wa.me/524495550142?text=Hola%2C%20%C2%BFc%C3%B3mo%20est%C3%A1s%3F',
     );
+  });
+});
+
+describe('etichette e filtri dei clienti (ADR-070)', () => {
+  const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+
+  it("un'etichetta si scrive come nella scheda del cliente", () => {
+    expect(normalizeTag('  Cliente   VIP ')).toBe('cliente vip');
+    expect(normalizeTag(42)).toBe('');
+  });
+
+  it('filtri della lista: etichetta, consenso e fecha especial próxima', () => {
+    expect(
+      customerListFiltersSchema.parse({ tag: ' Bodas ', consent: 'no', upcoming: '1' }),
+    ).toMatchObject({ tag: 'bodas', consent: 'no', upcoming: true });
+    // Valori sconosciuti: nessun filtro, mai un errore.
+    expect(
+      customerListFiltersSchema.parse({ tag: 'x'.repeat(31), consent: 'forse', upcoming: 'si' }),
+    ).toMatchObject({ tag: '', consent: null, upcoming: false });
+    expect(customerListFiltersSchema.parse({})).toMatchObject({
+      tag: '',
+      consent: null,
+      upcoming: false,
+    });
+  });
+
+  it('etichetta a più clienti: clienti scelti, etichetta e azione', () => {
+    expect(
+      customerBulkTagSchema.parse({ customerIds: id(1), tag: ' Día de las Madres ', mode: 'add' }),
+    ).toEqual({ customerIds: [id(1)], tag: 'día de las madres', mode: 'add' });
+
+    const none = customerBulkTagSchema.safeParse({ customerIds: [], tag: '', mode: 'x' });
+    expect(none.success).toBe(false);
+    if (!none.success) {
+      expect(toFieldErrors(none.error)).toMatchObject({
+        customerIds: 'customers_none_selected',
+        tag: 'required',
+        mode: 'invalid_option',
+      });
+    }
+    const tooMany = customerBulkTagSchema.safeParse({
+      customerIds: Array.from({ length: 101 }, (_, index) => id(index)),
+      tag: 'vip',
+      mode: 'remove',
+    });
+    expect(tooMany.success).toBe(false);
+    const tooLong = customerBulkTagSchema.safeParse({
+      customerIds: [id(1)],
+      tag: 'x'.repeat(31),
+      mode: 'add',
+    });
+    expect(tooLong.success).toBe(false);
+  });
+
+  it('fecha especial próxima: gli stessi giorni di nextOccurrence', () => {
+    const zone = 'America/Mexico_City';
+    for (const iso of [
+      '2026-12-15T18:00:00Z', // a cavallo dell'anno
+      '2027-02-10T18:00:00Z', // febbraio non bisestile: il 29 vale il 28
+      '2028-02-10T18:00:00Z', // febbraio bisestile
+      '2027-01-31T18:00:00Z', // tre mesi nella finestra
+      '2026-11-24T05:00:00Z', // in Messico è ancora il 23
+    ]) {
+      const now = new Date(iso);
+      const window = upcomingMonthDays(zone, 30, now);
+      for (let month = 1; month <= 12; month += 1) {
+        for (let day = 1; day <= 31; day += 1) {
+          if (!isValidMonthDay(month, day)) continue;
+          const inWindow = window.some(
+            (entry) => entry.month === month && entry.days.includes(day),
+          );
+          expect([iso, month, day, inWindow]).toEqual([
+            iso,
+            month,
+            day,
+            nextOccurrence(month, day, zone, now).daysUntil <= 30,
+          ]);
+        }
+      }
+    }
+    expect(upcomingMonthDays(zone, 30, new Date('2026-12-15T18:00:00Z'))).toEqual([
+      { month: 12, days: Array.from({ length: 17 }, (_, index) => 15 + index) },
+      { month: 1, days: Array.from({ length: 14 }, (_, index) => 1 + index) },
+    ]);
   });
 });
