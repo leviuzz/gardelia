@@ -88,7 +88,10 @@ export type ConflictReason =
   /** Apartado già usato o liberato (ADR-062). */
   | 'inventory_reservation_closed'
   /** "Registrar ramos hechos" su un ramo senza ricetta (ADR-063). */
-  | 'inventory_bouquet_without_recipe';
+  | 'inventory_bouquet_without_recipe'
+  /** "Mi tienda en línea" (ADR-065): cosa manca per pubblicare. */
+  | 'store_needs_items'
+  | 'store_needs_contact';
 
 export class ConflictError extends AppError {
   readonly code = 'conflict' as const;

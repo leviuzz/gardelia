@@ -19,6 +19,7 @@ import {
   CATALOG_ITEM_TYPES,
   DEFAULT_UNIT_BY_TYPE,
   allowsPhotos,
+  canShowOnline,
   isBuilderComponentType,
   isCanonicalLinkable,
   suggestSpecies,
@@ -57,6 +58,8 @@ export interface ItemFormDefaults {
   readonly heightCm: string;
   readonly widthCm: string;
   readonly isBuilderEnabled: boolean;
+  /** "Mostrar en mi tienda en línea" (ADR-065). */
+  readonly isOnline: boolean;
 }
 
 /** Specie della tassonomia pronta per la ricerca (ADR-043). */
@@ -79,6 +82,7 @@ const EMPTY: ItemFormDefaults = {
   heightCm: '',
   widthCm: '',
   isBuilderEnabled: true,
+  isOnline: false,
 };
 
 /** Campi di ogni passo della creazione guidata: un errore del server riporta al suo passo. */
@@ -90,6 +94,7 @@ const STEP_FIELDS: readonly (readonly string[])[] = [
     'availability',
     'price',
     'cost',
+    'isOnline',
     'sku',
     'description',
     'tags',
@@ -409,6 +414,16 @@ export function ItemForm({
           placeholder="0.00"
         />
       </Field>
+      {/* Pagina pubblica della fioreria (ADR-065): solo ramos, piante, fiori e accessori. */}
+      {canShowOnline(type) ? (
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-3 sm:col-span-2">
+          <Checkbox name="isOnline" defaultChecked={defaults.isOnline} className="mt-0.5" />
+          <span className="text-sm">
+            <span className="block font-medium">{t('form.online')}</span>
+            <span className="block text-muted-foreground">{t('form.onlineHint')}</span>
+          </span>
+        </label>
+      ) : null}
     </>
   );
 

@@ -57,6 +57,9 @@ test.describe('ajustes de entrega (propietario)', () => {
       .getByRole('button', { name: 'Agregar', exact: true })
       .click();
     await expect(page.getByTestId('order-total')).toHaveText('$500.00');
+    // Nuevo pedido a passi: dai prodotti si continua alla consegna.
+    await page.getByRole('link', { name: 'Continuar' }).click();
+    await expect(page).toHaveURL(/\?step=delivery$/);
 
     await expect(page.getByRole('textbox', { name: 'Costo de envío (MXN)' })).toHaveValue('80.00');
     await expect(page.getByLabel('Desde')).toHaveCount(0);

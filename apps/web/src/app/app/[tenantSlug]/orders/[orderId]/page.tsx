@@ -86,13 +86,23 @@ function isoDate(parts: { year: number; month: number; day: number }): string {
 
 export default async function OrderPage({
   params,
+  searchParams,
 }: PageProps<'/app/[tenantSlug]/orders/[orderId]'>) {
   const { tenantSlug, orderId } = await params;
   const ctx = await getTenantContext(tenantSlug);
   const order = await loadOrder(ctx, orderId);
-  // Borrador (anche scartato): non ha ancora data né consegna.
+  // Borrador (anche scartato): non ha ancora data né consegna; si compone a passi.
   const scheduledDate = order.scheduledDate;
-  if (scheduledDate === null) return <DraftOrderView ctx={ctx} order={order} />;
+  if (scheduledDate === null) {
+    const { step } = await searchParams;
+    return (
+      <DraftOrderView
+        ctx={ctx}
+        order={order}
+        step={step === 'delivery' ? 'delivery' : 'products'}
+      />
+    );
+  }
   const t = await getTranslations();
   const format = await getFormatter();
   const slug = ctx.tenantSlug;

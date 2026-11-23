@@ -55,6 +55,14 @@ export {
   type PlacesProvider,
 } from './places';
 export {
+  getPublicStore,
+  getPublicStoreItem,
+  getPublicStoreItemPhoto,
+  type PublicStoreDto,
+  type PublicStoreItemDetailDto,
+  type PublicStoreItemDto,
+} from './public-store';
+export {
   acceptPublicQuote,
   getPublicLineImage,
   getPublicOrder,
@@ -148,6 +156,7 @@ export * from './services/inventory-insights';
 export * from './services/customer-timeline';
 export * from './services/promo-discounts';
 export * from './services/promotions';
+export * from './services/online-store';
 export * from './services/orders';
 export * from './services/order-schedule';
 export * from './services/delivery-route';

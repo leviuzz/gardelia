@@ -108,6 +108,8 @@ async function createShop(page: Page, shopName: string) {
   await expect(page).toHaveURL(/\/onboarding$/);
   await page.getByLabel('Nombre comercial').fill(shopName);
   await page.getByLabel('Teléfono de contacto').fill('449 555 0199');
+  // Creazione della fioreria a passi: prima la fioreria, poi l'indirizzo.
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByLabel('Calle y número').fill('Av. Madero 120');
   await page.getByLabel('Colonia').fill('Zona Centro');
   await page.getByLabel('Código postal').fill('20000');

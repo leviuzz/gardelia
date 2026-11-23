@@ -25,6 +25,8 @@ export async function signUpWithNewShop(
   await expect(page).toHaveURL(/\/onboarding$/);
   await page.getByLabel('Nombre comercial').fill(input.shopName);
   await page.getByLabel('Teléfono de contacto').fill('449 555 0123');
+  // Creazione della fioreria a passi: prima la fioreria, poi l'indirizzo.
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByLabel('Calle y número').fill('Av. Universidad 940');
   await page.getByLabel('Colonia').fill('Ciudad Universitaria');
   await page.getByLabel('Código postal').fill('20131');

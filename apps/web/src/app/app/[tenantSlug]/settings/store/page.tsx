@@ -1,0 +1,174 @@
+import { ArrowLeft, Check, CircleAlert, EyeOff, Globe } from 'lucide-react';
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
+import { getOnlineStoreSettings, hasPermission } from '@floral/core';
+import { whatsappShareLink } from '@floral/domain';
+import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
+import { ActionButton } from '@/components/form/action-button';
+import { Forbidden } from '@/components/forbidden';
+import { PageHeader } from '@/components/page-header';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { serverEnv } from '@/lib/env';
+import { publicStoreRoutes, tenantRoutes } from '@/lib/routes';
+import { getTenantContext } from '@/lib/tenant';
+import { setOnlineStorePublishedAction, updateOnlineStoreAction } from '../actions';
+import { StoreInfoForm, StoreLinkCard } from './store-forms';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('store');
+  return { title: t('title') };
+}
+
+/**
+ * "Mi tienda en línea" (marketplace, blocco C2, ADR-065): stato della pagina pubblica, cosa manca
+ * per pubblicarla, presentazione e forme di pagamento.
+ */
+export default async function StoreSettingsPage({
+  params,
+}: PageProps<'/app/[tenantSlug]/settings/store'>) {
+  const { tenantSlug } = await params;
+  const ctx = await getTenantContext(tenantSlug);
+  if (!hasPermission(ctx, 'tenant:settings:update')) return <Forbidden />;
+  const settings = await getOnlineStoreSettings(ctx);
+  const t = await getTranslations();
+  const slug = ctx.tenantSlug;
+  const routes = tenantRoutes(slug);
+  const url = `${serverEnv().APP_URL.replace(/\/+$/, '')}${publicStoreRoutes(slug).home}`;
+  const blockers = new Set(settings.blockers);
+
+  const requirements = [
+    {
+      key: 'items',
+      done: !blockers.has('store_needs_items'),
+      label: t('store.requirementItems', { count: settings.onlineItems }),
+      href: routes.catalog.list(),
+      action: t('store.goToCatalog'),
+    },
+    {
+      key: 'contact',
+      done: !blockers.has('store_needs_contact'),
+      label: t('store.requirementContact'),
+      href: routes.settings.general,
+      action: t('store.goToProfile'),
+    },
+  ];
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      <Link
+        href={routes.settings.general}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" />
+        {t('settings.title')}
+      </Link>
+      <PageHeader title={t('store.title')} description={t('store.subtitle')} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex flex-wrap items-center gap-2">
+            {t('store.statusTitle')}
+            {settings.isPublished ? (
+              <Badge variant="success">{t('store.published')}</Badge>
+            ) : (
+              <Badge variant="secondary">{t('store.notPublished')}</Badge>
+            )}
+          </CardTitle>
+          <CardDescription>
+            {settings.isPublished ? t('store.publishedBody') : t('store.notPublishedBody')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {settings.isPublished ? (
+            <>
+              <StoreLinkCard
+                url={url}
+                whatsappHref={whatsappShareLink(t('store.shareText', { url }))}
+              />
+              <ConfirmActionDialog
+                action={setOnlineStorePublishedAction.bind(null, slug, false)}
+                title={t('store.unpublishTitle')}
+                description={t('store.unpublishBody')}
+                confirmLabel={t('store.unpublish')}
+                trigger={
+                  <Button variant="ghost">
+                    <EyeOff />
+                    {t('store.unpublish')}
+                  </Button>
+                }
+              />
+            </>
+          ) : (
+            <>
+              <ul className="grid gap-2">
+                {requirements.map((item) => (
+                  <li
+                    key={item.key}
+                    className="flex flex-wrap items-center gap-3 rounded-xl border p-3 text-sm"
+                  >
+                    {item.done ? (
+                      <Check className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                    ) : (
+                      <CircleAlert className="size-4 shrink-0 text-warning" aria-hidden="true" />
+                    )}
+                    <span className="min-w-0 flex-1">
+                      {item.label}
+                      <span className="sr-only">
+                        {item.done ? ` · ${t('store.done')}` : ` · ${t('store.missing')}`}
+                      </span>
+                    </span>
+                    {item.done ? null : (
+                      <Link href={item.href} className="font-medium text-primary hover:underline">
+                        {item.action}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <ActionButton
+                action={setOnlineStorePublishedAction.bind(null, slug, true)}
+                icon={<Globe />}
+                disabled={settings.blockers.length > 0}
+              >
+                {t('store.publish')}
+              </ActionButton>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('store.infoTitle')}</CardTitle>
+          <CardDescription>{t('store.infoSubtitle')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <StoreInfoForm
+            action={updateOnlineStoreAction.bind(null, slug)}
+            defaults={{
+              description: settings.description ?? '',
+              paymentMethods: settings.paymentMethods,
+              paymentInstructions: settings.paymentInstructions ?? '',
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('store.productsTitle')}</CardTitle>
+          <CardDescription>{t('store.productsBody')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm">{t('store.productsCount', { count: settings.onlineItems })}</p>
+          <Button asChild variant="outline" className="mt-3">
+            <Link href={routes.catalog.list()}>{t('store.goToCatalog')}</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

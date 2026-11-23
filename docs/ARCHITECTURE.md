@@ -111,6 +111,9 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
 - **AuditLog:** solo SELECT/INSERT → append-only per l'applicazione.
 - **CanonicalFlower:** lettura pubblica, scrittura solo di sistema (dati di riferimento allineati
   a ogni rilascio; nomi e sinonimi per lingua, ADR-043).
+- **Pagina pubblica della fioreria** (ADR-065): senza sessione, `app_public_store_tenant(slug)`
+  (SECURITY DEFINER) dà l'ID solo per una tienda pubblicata di una fioreria attiva; poi
+  `core/src/public-store.ts` legge in `withTenantContext` (RLS attiva) solo i campi pubblici.
 - **Per persona** (`app_enable_user_rls`, ADR-064): le tabelle del conto cliente del marketplace
   (`BuyerProfile`, `BuyerAddress`) non hanno `tenantId`; righe visibili/modificabili solo se
   `userId = app_current_user_id()`. Le usano solo i servizi `buyer-account` dentro
