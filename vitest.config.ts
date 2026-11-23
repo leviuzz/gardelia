@@ -57,7 +57,7 @@ export default defineConfig({
         test: {
           name: 'web',
           root: './apps/web',
-          include: ['test/**/*.test.ts'],
+          include: ['test/**/*.test.{ts,tsx}'],
           environment: 'node',
         },
       },
