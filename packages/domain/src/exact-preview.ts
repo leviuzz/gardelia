@@ -477,6 +477,25 @@ function joinWithAnd(parts: readonly string[]): string {
  * ne sono di estranei: lì si rifà la foto dal boceto (aggiungere è meno affidabile che togliere).
  * Prova del 23/11 su foto naturali sbagliate del ramo del founder: 2 su 3 corrette.
  */
+/**
+ * Fiori in più della foto quando ha SOLO fiori in più dei tipi della distinta (nessuno mancante,
+ * nessuno estraneo), cioè il caso che la correzione sa sistemare; null negli altri casi.
+ */
+export function extraFlowerCount(
+  targets: readonly CountTarget[],
+  found: CountCheckResult,
+): number | null {
+  if (found.other > 0) return null;
+  let extras = 0;
+  for (const target of targets) {
+    if (target.expected === null) continue;
+    const seen = found.counts[target.index] ?? 0;
+    if (seen < target.expected) return null;
+    extras += seen - target.expected;
+  }
+  return extras > 0 ? extras : null;
+}
+
 export function buildCountFixPrompt(
   spec: BouquetPreviewSpec,
   targets: readonly CountTarget[],

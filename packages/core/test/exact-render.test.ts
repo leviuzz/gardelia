@@ -137,7 +137,7 @@ describe('foto verificata (v7)', () => {
     ]);
   });
 
-  it('al massimo 3 immagini; una correzione non si corregge, si rifà', async () => {
+  it('al massimo 3 immagini; una correzione che non ha tolto nulla non si ripete, si rifà', async () => {
     const { provider, result } = run([
       [4, 2],
       [4, 2],
@@ -149,6 +149,33 @@ describe('foto verificata (v7)', () => {
     expect(checks.map((check) => check.step)).toEqual(['render', 'fix', 'render']);
     expect(provider.calls).toHaveLength(3);
     expect(spentMicros).toBe(3 * 80_000 + 3 * 12_000);
+  });
+
+  it('una correzione che ha tolto fiori ma non tutti si corregge di nuovo (caso del 23/11)', async () => {
+    const { provider, result } = run([
+      [5, 3],
+      [4, 2],
+      [3, 2],
+    ]);
+    const { accepted, checks } = await result;
+    expect(accepted?.verified).toBe(true);
+    expect(checks.map((check) => check.step)).toEqual(['render', 'fix', 'fix']);
+    // La seconda correzione parte dalla prima correzione (byte 102), non da una foto nuova.
+    expect(provider.calls.map((call) => call.images)).toEqual([[1, 2], [101], [102]]);
+    expect(provider.calls[2]?.prompt).toContain('Remove 1 red rose completely');
+  });
+
+  it('una correzione che aggiunge un fiore di un altro tipo ma ne toglie di più vale come progresso', async () => {
+    const { provider, result } = run([
+      [3, 4],
+      [4, 2],
+      [3, 2],
+    ]);
+    const { accepted, checks } = await result;
+    expect(accepted?.verified).toBe(true);
+    expect(checks.map((check) => check.step)).toEqual(['render', 'fix', 'fix']);
+    expect(provider.calls[1]?.prompt).toContain('Remove 2 pink tulips');
+    expect(provider.calls[2]?.prompt).toContain('Remove 1 red rose');
   });
 
   it('senza controllo o se non risponde: la prima foto, non verificata', async () => {

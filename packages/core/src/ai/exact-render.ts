@@ -10,6 +10,7 @@ import {
   EXACT_PREVIEW_LIMITS,
   buildCountFixPrompt,
   countsMatch,
+  extraFlowerCount,
   type BouquetPreviewSpec,
   type CountTarget,
   type CountTargetOptions,
@@ -52,7 +53,12 @@ export async function renderVerifiedPhoto(
 ): Promise<VerifiedRenderResult> {
   const checks: VerifiedRenderCheck[] = [];
   let spent = 0;
-  let fix: { readonly prompt: string; readonly image: GeneratedImage } | null = null;
+  // La correzione in corso: da quale foto parte e quanti fiori in più aveva quella foto.
+  let fix: {
+    readonly prompt: string;
+    readonly image: GeneratedImage;
+    readonly extras: number;
+  } | null = null;
   for (let generation = 1; generation <= EXACT_PREVIEW_LIMITS.generationsPerJob; generation++) {
     const step: VerifiedRenderCheck['step'] = fix ? 'fix' : 'render';
     const image = await input.provider.generate({
@@ -81,12 +87,17 @@ export async function renderVerifiedPhoto(
     if (countsMatch(input.targets, result)) {
       return { accepted: { image, verified: true }, checks, spentMicros: spent };
     }
-    // Una sola correzione per foto: se non basta, si rifà dal boceto.
+    // Solo fiori in più: si corregge questa foto, anche se è già una correzione, purché l'ultima
+    // correzione ne abbia tolto qualcuno. Prova del 23/11 sul ramo del founder (4 rose + 3
+    // tulipani): la foto nuova ha quasi sempre di nuovo un fiore in più, mentre una seconda
+    // correzione chiude il lavoro. Se la correzione non è servita, o mancano fiori, si rifà da capo.
+    const extras = extraFlowerCount(input.targets, result);
+    const progressed: boolean = fix === null || (extras !== null && extras < fix.extras);
     const fixPrompt: string | null =
-      step === 'render'
+      extras !== null && progressed
         ? buildCountFixPrompt(input.spec, input.targets, result, input.targetOptions)
         : null;
-    fix = fixPrompt ? { prompt: fixPrompt, image } : null;
+    fix = fixPrompt && extras !== null ? { prompt: fixPrompt, image, extras } : null;
   }
   return { accepted: null, checks, spentMicros: spent };
 }

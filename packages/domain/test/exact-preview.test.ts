@@ -15,6 +15,7 @@ import {
   countTargets,
   countsMatch,
   exactPreviewPlan,
+  extraFlowerCount,
   isBouquetPreviewSpec,
   flowersWithoutSpecies,
   nameSaysWhichFlower,
@@ -414,6 +415,19 @@ describe('prompt della foto realistica (foto dei fiori come riferimento)', () =>
     );
     expect(prompt).not.toContain('{');
     expect(prompt).not.toContain('\n');
+  });
+});
+
+describe('fiori in più da correggere', () => {
+  const targets = countTargets(spec([rose, daisy, gypsophila]));
+  it('solo fiori in più dei tipi della distinta: quanti; altrimenti null', () => {
+    expect(extraFlowerCount(targets, { counts: { 1: 4, 2: 5 }, other: 0 })).toBe(3);
+    expect(extraFlowerCount(targets, { counts: { 1: 3, 2: 3 }, other: 0 })).toBeNull();
+    // Un fiore mancante o uno estraneo: la correzione non basta, si rifà la foto.
+    expect(extraFlowerCount(targets, { counts: { 1: 4, 2: 2 }, other: 0 })).toBeNull();
+    expect(extraFlowerCount(targets, { counts: { 1: 4, 2: 3 }, other: 1 })).toBeNull();
+    // Il riempitivo (nube) non si conta.
+    expect(extraFlowerCount(targets, { counts: { 1: 4, 2: 3, 3: 9 }, other: 0 })).toBe(1);
   });
 });
 

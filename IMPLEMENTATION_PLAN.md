@@ -403,6 +403,9 @@ massimo 1024 px), `buildReferenceRenderPrompt`; la versione del boceto non è pi
 cache delle foto. Approvata dal founder e pubblicata su staging il 23/11 (CI verde). Il credito
 fal, finito durante le prove del 23/11, lo ricarica il founder. Da osservare sulle foto vere dei
 tester: fiori diversi dalla rosa e lo spago che a volte compare dove gli steli sono legati.
+Primo test del founder con la v9: scartata per una rosa in più. Il modello aggiunge spesso un
+fiore e la correzione lo toglie; ora una correzione che ha tolto fiori ma non tutti si ripete sulla
+stessa foto invece di rifarla da capo (sempre al massimo 3 immagini, ADR-034).
 
 **Eliminare un disegno del Diseñador (fatto il 23/11, richiesta del founder, ADR-051):** accanto ad
 "Archivar" c'è "Eliminar" (solo proprietario e manager, con conferma). Cancella il disegno e le foto
