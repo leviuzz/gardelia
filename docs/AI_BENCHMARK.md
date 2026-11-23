@@ -251,3 +251,26 @@ Nota operativa: fal accetta al massimo 10 richieste contemporanee per account.
 5 margherite esatti grazie alla seconda opinione (Claude contava 4 margherite, una era mezza
 coperta dalla carta; Gemini Pro 5), 34 s in tutto. I girasoli risultano circa tre volte le
 margherite, come nella realtà.
+
+## Foto naturale con i numeri giusti: prompt v7 e correzione (23/11/2026, ~4,3 USD)
+
+Giudizio del founder sulla foto della v6, verificata: "la direzione dei fiori non è naturale,
+mantiene la posizione della bozza". Prove sul suo boceto (3 rose rosse + 2 tulipani rosa), stesso
+modello (Nano Banana 2 edit) e stesso controllo dei conteggi (Claude + seconda opinione Gemini).
+
+| Variante                                                     | Foto con i numeri giusti                     | Aspetto                          |
+| ------------------------------------------------------------ | -------------------------------------------- | -------------------------------- |
+| A — prompt v6 ("nelle stesse posizioni")                     | 2 su 2                                       | rigido, copia del boceto         |
+| B — stesse posizioni, teste girate in 3D                     | 1 su 3, poi 3 su 4 con il ricontrollo finale | poco più naturale                |
+| C — disposizione libera da fiorista                          | 1 su 3, poi 2 su 4                           | naturale; spesso un fiore in più |
+| C + correzione dei fiori in più sulla stessa foto            | 2 su 3 foto sbagliate sistemate              | resta naturale                   |
+| **v7 in produzione** (C + correzione, al massimo 3 immagini) | **4 richieste su 4**                         | naturale                         |
+
+- Lasciare libero il modello rende il ramo naturale ma aggiunge spesso un fiore (soprattutto
+  tulipani). Togliere un fiore da una foto è molto più affidabile che ottenerla giusta subito.
+- v7: foto naturale dal boceto → conteggio → se ci sono solo fiori in più, una passata che li toglie
+  lasciando il resto com'è → nuovo conteggio; altrimenti nuova foto. Nelle 4 richieste finali la
+  prima foto aveva sempre fiori in più e la correzione ha sempre centrato i numeri: 0,22–0,26 USD e
+  37–76 s a richiesta (prima: ~0,09 USD).
+- Da osservare: con la libertà le rose tendono a diventare "classiche" anche se la foto del
+  prodotto è una rosa da giardino aperta.

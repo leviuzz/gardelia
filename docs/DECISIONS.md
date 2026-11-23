@@ -575,6 +575,17 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   misura il colore medio dei petali sulla foto di ogni fiore, cioè quella del boceto, foglie verdi
   escluse. Se il catalogo non ha colore, il tipo diventa `"Fiore 1" (red)`; se ne ha un altro, si
   scrivono entrambi ("looks red in the photo"). La regola di accettazione non cambia.
+- **v7 (23/11/2026): foto naturale e correzione dei fiori in più.** Con i numeri finalmente giusti
+  il founder ha bocciato l'aspetto: "la direzione dei fiori non è naturale, mantiene la posizione
+  della bozza". Ora il boceto dice solo quali fiori e quanti, e il modello dispone il ramo come un
+  fiorista (altezze e direzioni diverse, tre quarti) e alla fine ricontrolla i numeri. Se il
+  controllo trova solo fiori in più dei tipi della distinta, una seconda passata sulla stessa foto
+  li toglie lasciando il resto com'è (`buildCountFixPrompt`); se mancano fiori o ce ne sono di
+  estranei, si rifà la foto. Al massimo 3 immagini per richiesta (`generationsPerJob`), ognuna
+  controllata, e ci si ferma alla prima giusta (`renderVerifiedPhoto`). Prova sul ramo del founder:
+  4 richieste su 4 verificate e naturali, 0,22–0,26 USD a richiesta (prima ~0,09), dettagli in
+  `docs/AI_BENCHMARK.md`. Il credito del fiorista resta uno solo e solo a successo; il costo in più
+  è della piattaforma. Prompt `bouquet-preview-v7`: cambia la chiave di cache.
 
 ### ADR-035 — Immagine del ramo nel preventivo — ADOTTATO (21/11/2026)
 
