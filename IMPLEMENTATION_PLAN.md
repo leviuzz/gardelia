@@ -514,6 +514,15 @@ typecheck ✅ · test unit 291/291 ✅ · integrazione 306/306 ✅ (4 nuovi, con
 E2E 69/69 ✅ (2 nuovi); controllo visivo a 1280 e 390 px. Prossimi: B2 ruta del día, repartidor e prova
 di consegna.
 
+**Ruta del día e repartidor, blocco B2 (fatto il 23/11, ADR-058):** nella scheda dell'ordine a domicilio
+si sceglie il repartidor fra i membri attivi; la scheda "Ruta" mostra le consegne del giorno in ordine
+di fascia con indirizzo, chi riceve, chiamata e WhatsApp, cosa incassare e il prossimo passo; "Mis
+entregas" per il repartidor; "Ir" e "Abrir ruta en Google Maps" a tratti da 4 fermate, gratis e senza
+chiave. Ordine per vicinanza in attesa di Google Places (O-14). Verifiche locali: lint ✅ · format ✅ ·
+typecheck ✅ · test unit 294/294 ✅ · integrazione 311/311 ✅ (5 nuovi con isolamento A↔B) · migrazioni =
+schema ✅ · build ✅ · E2E 70/70 ✅ (1 nuovo, proprietaria e repartidor); controllo visivo a 390 px.
+Prossimi: prova di consegna (foto e chi riceve), poi il marketplace (C1–C5).
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci

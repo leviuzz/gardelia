@@ -1307,6 +1307,26 @@ Blocco B1 di `docs/ORDERS_MARKETPLACE_PLAN.md`.
 - **Chi vede:** tutta la squadra (`orders:read`); i passi seguono i permessi (`orders:fulfill`); niente
   costi. Borradores e ordini annullati non compaiono.
 
+### ADR-058 — Ruta del día e repartidor — ADOTTATO (23/11/2026)
+
+Blocco B2 di `docs/ORDERS_MARKETPLACE_PLAN.md`, senza la prova di consegna (prossimo passo).
+
+- **Repartidor:** un ordine a domicilio aperto si assegna a un membro **attivo** della fioreria
+  (`Order.assignedMembershipId`, FK composita verso `Membership`; CHECK: solo a domicilio; passando a
+  ritiro si toglie). Lo sceglie chi gestisce gli ordini (`orders:write`) dalla scheda; audit
+  `order.assigned` con gli ID, mai nomi.
+- **Ruta del día:** scheda "Ruta" sotto Pedidos con le consegne del giorno in ordine di fascia
+  ("in giornata" in fondo), già consegnate in fondo e chiuse. Per ogni fermata: indirizzo, chi riceve
+  con telefono ("Llamar", "WhatsApp"), indicazioni, repartidor, **cosa incassare** e il prossimo
+  passo. "Mis entregas" mostra solo quelle di chi guarda: è la vista del repartidor sul telefono.
+- **Google Maps gratis (D-27):** "Ir" e "Abrir ruta" sono link pubblici (Maps URLs), senza chiave né
+  costi. Un link porta al massimo 3 tappe più l'arrivo (limite dell'app sul telefono): un giro lungo
+  si divide in tratti, ognuno parte dall'ultima fermata del precedente; il primo parte dalla
+  fioreria se ha l'indirizzo. Regole pure `mapsPlaceUrl` / `mapsRouteLinks`.
+- **Ordine per vicinanza:** non c'è ancora, di proposito: servono le coordinate degli indirizzi
+  (Google Places, O-14). Fino ad allora le fermate restano in ordine di fascia, come previsto dal
+  piano, e la pagina lo dice.
+
 ---
 
 ## 3. Proposte da approvare

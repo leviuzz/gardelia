@@ -20,6 +20,7 @@ export * from './promotions';
 export * from './public-link';
 export * from './quote';
 export * from './recipe';
+export * from './route';
 export * from './sketch';
 export * from './slug';
 export * from './species';

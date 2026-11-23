@@ -94,6 +94,9 @@ export function tenantRoutes(slug: string) {
         withQuery(`${orders}/new`, query),
       /** Il giorno: ordini per fascia e Producción del día (`date` = AAAA-MM-GG, senza = oggi). */
       day: (query?: { readonly date?: string }) => withQuery(`${orders}/day`, query),
+      /** Ruta del día: consegne in ordine di fascia (`mine`: solo le proprie). */
+      route: (query?: { readonly date?: string; readonly mine?: boolean }) =>
+        withQuery(`${orders}/route`, query),
       /** Producción del día da stampare. */
       production: (query?: { readonly date?: string }) => withQuery(`${orders}/production`, query),
       /** Il mese con gli ordini per giorno (`month` = AAAA-MM). */

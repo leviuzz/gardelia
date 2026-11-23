@@ -113,7 +113,8 @@
       "order_total_below_paid": "Il totale scenderebbe sotto quanto il cliente ha già pagato: prima annulla il pagamento.",
       "delivery_window_exists": "Questa fascia c’è già.",
       "delivery_window_limit": "Hai raggiunto il massimo di fasce.",
-      "public_link_unavailable": "Nel suo stato attuale questo documento non si può condividere."
+      "public_link_unavailable": "Nel suo stato attuale questo documento non si può condividere.",
+      "order_not_delivery": "Solo gli ordini a domicilio hanno un fattorino."
     },
     "pageNotFoundTitle": "Pagina non trovata",
     "pageNotFoundBody": "La pagina non esiste o non hai accesso.",
@@ -381,7 +382,8 @@
     "delivery_window.removed": "{actor} ha tolto una fascia di consegna",
     "quote.accepted_online": "Il cliente ha accettato il preventivo {number} dal link",
     "public_link.created": "{actor} ha condiviso il link di {number}",
-    "public_link.revoked": "{actor} ha disattivato il link di {number}"
+    "public_link.revoked": "{actor} ha disattivato il link di {number}",
+    "order.assigned": "{actor} ha cambiato il fattorino di {number}"
   },
   "catalog": {
     "title": "Catalogo",
@@ -1188,7 +1190,8 @@
       "label": "Viste degli ordini",
       "list": "Elenco",
       "day": "Giorno",
-      "calendar": "Calendario"
+      "calendar": "Calendario",
+      "route": "Percorso"
     },
     "day": {
       "title": "Ordini del giorno",
@@ -1229,6 +1232,35 @@
       "previous": "Mese precedente",
       "next": "Mese successivo",
       "dayLabel": "{date}: {deliveries} a domicilio, {pickups} in negozio"
+    },
+    "route": {
+      "title": "Percorso del giorno",
+      "filter": "Quali consegne vedere",
+      "all": "Tutte",
+      "mine": "Le mie consegne",
+      "stop": "Tappa {position}",
+      "collect": "Incassare {amount}",
+      "receives": "Riceve: {name}",
+      "unassignedOne": "Senza fattorino",
+      "go": "Vai",
+      "call": "Chiama",
+      "whatsapp": "WhatsApp",
+      "summary": "{count, plural, one {# tappa} other {# tappe}} in ordine di orario",
+      "unassigned": "{count, plural, one {# senza fattorino} other {# senza fattorino}}",
+      "openAll": "Apri il percorso in Google Maps",
+      "openLeg": "Tappe {from}–{to} in Google Maps",
+      "orderHint": "Google Maps apre fino a 4 tappe per link: i percorsi lunghi vanno a tratti.",
+      "noOrigin": "Aggiungi l’indirizzo del negozio nelle Impostazioni perché il percorso parta da lì.",
+      "emptyTitle": "Nessuna consegna a domicilio in questo giorno",
+      "emptyMine": "Non hai consegne assegnate in questo giorno",
+      "emptyBody": "Gli ordini a domicilio compaiono qui in ordine di orario.",
+      "delivered": "{count, plural, one {# già consegnato} other {# già consegnati}}"
+    },
+    "assign": {
+      "label": "Fattorino",
+      "nobody": "Non assegnato",
+      "save": "Salva",
+      "saved": "Fattorino aggiornato."
     }
   },
   "plans": {

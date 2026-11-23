@@ -701,3 +701,42 @@ export function DiscardDraftButton({ action }: { readonly action: Action }) {
     />
   );
 }
+
+/** Repartidor di un ordine a domicilio (ADR-058): un membro della squadra, o nessuno. */
+export function AssignForm({
+  action,
+  options,
+  current,
+}: {
+  readonly action: Action;
+  readonly options: readonly { readonly membershipId: string; readonly name: string }[];
+  readonly current: string | null;
+}) {
+  const t = useTranslations('orders.assign');
+  const [state, formAction] = useToastActionState(action);
+  const err = fieldError(state, 'assignee');
+  return (
+    <form
+      key={current ?? 'none'}
+      action={formAction}
+      onSubmit={preserveOnSubmit(formAction)}
+      className="flex flex-wrap items-end gap-2"
+    >
+      <Field id="order-assignee" label={t('label')} error={err} className="min-w-48 flex-1">
+        <NativeSelect
+          {...controlProps('order-assignee', err)}
+          name="assignee"
+          defaultValue={current ?? ''}
+        >
+          <option value="">{t('nobody')}</option>
+          {options.map((option) => (
+            <option key={option.membershipId} value={option.membershipId}>
+              {option.name}
+            </option>
+          ))}
+        </NativeSelect>
+      </Field>
+      <SubmitButton variant="secondary">{t('save')}</SubmitButton>
+    </form>
+  );
+}

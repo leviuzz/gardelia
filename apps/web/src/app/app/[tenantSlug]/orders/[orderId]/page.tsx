@@ -10,6 +10,7 @@ import {
   getOrder,
   getPublicLink,
   hasPermission,
+  listOrderAssignees,
   publicLinkUrl,
   type OrderDetailDto,
   type TenantContext,
@@ -17,6 +18,7 @@ import {
 import {
   MX_REGIONS,
   canShareOrder,
+  isOrderFinal,
   getMarket,
   minorToDecimalString,
   todayInTimeZone,
@@ -36,6 +38,7 @@ import { deliveryFormOptions } from '@/lib/delivery-options';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
+  assignOrderAction,
   cancelOrderAction,
   changeOrderStatusAction,
   recordPaymentAction,
@@ -45,6 +48,7 @@ import {
   updateFulfillmentAction,
 } from '../actions';
 import {
+  AssignForm,
   CancelOrderDialog,
   FulfillmentForm,
   OrderStepActions,
@@ -123,6 +127,9 @@ export default async function OrderPage({
       : '';
   // Seguimento per il cliente (ADR-056): lo gestisce chi scrive gli ordini.
   const canShare = hasPermission(ctx, 'orders:write');
+  // Repartidor: solo a domicilio; lo sceglie chi gestisce gli ordini finché l'ordine è aperto.
+  const canAssign = canShare && order.fulfillmentMode === 'DELIVERY' && !isOrderFinal(order.status);
+  const assignees = canAssign ? await listOrderAssignees(ctx) : [];
   const publicLink = canShare
     ? await getPublicLink(ctx, serverEnv().BETTER_AUTH_SECRET, { kind: 'ORDER', id: order.id })
     : null;
@@ -340,6 +347,12 @@ export default async function OrderPage({
                     )}
                   </dd>
                 </div>
+                {order.fulfillmentMode === 'DELIVERY' ? (
+                  <div>
+                    <dt className="text-muted-foreground">{t('orders.assign.label')}</dt>
+                    <dd>{order.assignee?.name ?? t('orders.assign.nobody')}</dd>
+                  </div>
+                ) : null}
                 {order.recipientName || order.recipientPhone ? (
                   <div>
                     <dt className="text-muted-foreground">{t('orders.detail.recipient')}</dt>
@@ -396,6 +409,16 @@ export default async function OrderPage({
                   </div>
                 ) : null}
               </dl>
+
+              {canAssign ? (
+                <div className="print:hidden">
+                  <AssignForm
+                    action={assignOrderAction.bind(null, slug, order.id)}
+                    options={assignees}
+                    current={order.assignee?.membershipId ?? null}
+                  />
+                </div>
+              ) : null}
 
               {order.editable && customer && deliveryOptions ? (
                 <details className="rounded-xl border p-4 print:hidden">

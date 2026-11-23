@@ -134,6 +134,7 @@ export * from './services/promo-discounts';
 export * from './services/promotions';
 export * from './services/orders';
 export * from './services/order-schedule';
+export * from './services/delivery-route';
 export * from './services/delivery-settings';
 export * from './services/public-links';
 export * from './services/quotes';
