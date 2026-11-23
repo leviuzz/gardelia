@@ -73,7 +73,7 @@ export {
   type CountOutcome,
   type FlowerCounter,
 } from './ai/flower-counter';
-export { renderBouquetSketch, renderSketch } from './ai/sketch-renderer';
+export { bloomVisibility, renderBouquetSketch, renderSketch } from './ai/sketch-renderer';
 export {
   ChromaKeyBackgroundRemover,
   createBackgroundRemoverFromEnv,

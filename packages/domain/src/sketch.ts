@@ -16,7 +16,7 @@ import type { BouquetPreviewSpec, PreviewComponent } from './ai';
 import type { CatalogColor } from './colors';
 
 /** Cambiarla cambia il boceto, quindi anche la chiave di cache delle anteprime. */
-export const SKETCH_LAYOUT_VERSION = 'sketch-v3';
+export const SKETCH_LAYOUT_VERSION = 'sketch-v4';
 
 /** Lato del boceto (px): quadrato come le immagini generate. */
 export const SKETCH_SIZE = 1024;
@@ -251,7 +251,29 @@ export interface SketchLayoutInput {
   readonly spec: BouquetPreviewSpec;
   /** Proporzioni (larghezza / altezza) dei ritagli, per id della foto. */
   readonly cutoutAspects: Readonly<Record<string, number>>;
+  /**
+   * Quanto si allargano le corolle (0 = fitte come in un ramo vero, fino a
+   * `SKETCH_CROWDING.levels - 1`). Il core prova i livelli finché ogni fiore resta visibile.
+   */
+  readonly crowding?: number;
 }
+
+/**
+ * Boceto v4 (23/11/2026): un fiore coperto dagli altri sparisce anche dalla foto realistica e il
+ * conteggio fallisce (caso del founder: 2 boccioli rosa dietro 3 rose rosse aperte). Il core misura
+ * sulle forme vere dei ritagli quanta parte dei petali di ogni corolla resta visibile e, se non
+ * basta, ridisegna con corolle un po' più piccole e più distanziate.
+ */
+export const SKETCH_CROWDING = {
+  /** Livelli provati, dal più fitto al più arioso. */
+  levels: 5,
+  /** Parte dei petali di ogni corolla che deve restare visibile perché la si possa contare. */
+  minVisible: 0.6,
+  /** Per livello: corolle più piccole del 7% e distanza minima più grande. */
+  shrinkPerLevel: 0.07,
+  baseSpacing: 0.64,
+  spacingPerLevel: 0.08,
+} as const;
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
@@ -396,8 +418,11 @@ export function layoutBouquetSketch(input: SketchLayoutInput): SketchLayout {
   }
 
   // Cupola: più steli, cupola più ampia e corolle più piccole, sempre fitte come in un ramo.
+  const crowding = clamp(Math.round(input.crowding ?? 0), 0, SKETCH_CROWDING.levels - 1);
   const radius = clamp(150 + 55 * Math.sqrt(stems), 200, 380);
-  const bloom = clamp(radius * 2 * Math.sqrt(0.9 / stems) * 1.12, 110, 300);
+  const bloom =
+    clamp(radius * 2 * Math.sqrt(0.9 / stems) * 1.12, 110, 300) *
+    (1 - SKETCH_CROWDING.shrinkPerLevel * crowding);
   const cx = size / 2;
   const points = domeSlots(stems, radius, bloom, classic ? -Math.PI / 2 : random() * 2 * Math.PI);
   const jitter = classic ? 0.1 : 0.22;
@@ -430,7 +455,13 @@ export function layoutBouquetSketch(input: SketchLayoutInput): SketchLayout {
   const slotSizes = order.map(
     (typeIndex) => (bloom * relative[typeIndex]!) / Math.sqrt(meanSquare),
   );
-  if (stems > 1) relax(points, slotSizes, 0.64);
+  if (stems > 1) {
+    relax(
+      points,
+      slotSizes,
+      SKETCH_CROWDING.baseSpacing + SKETCH_CROWDING.spacingPerLevel * crowding,
+    );
+  }
   const turns = flowers.map(() => Math.floor(random() * 3));
   const farthest = Math.max(1, ...points.map((point) => Math.hypot(point.x, point.y)));
   const heads = points.map((point, slot) => {
@@ -582,7 +613,9 @@ export function layoutBouquetSketch(input: SketchLayoutInput): SketchLayout {
       { x: tie.x - 0.02 * size, y: tie.y + 0.08 * size },
     ];
     const tilt = classic ? 0 : (random() < 0.5 ? -1 : 1) * 0.03 * size;
-    const frontTop = cy + frontTopRel;
+    // Il bordo inclinato non sale mai sopra `frontTopRel` (boceto v4): prima, con l'inclinazione,
+    // un angolo poteva coprire il centro delle corolle più basse.
+    const frontTop = cy + frontTopRel + Math.abs(tilt) + 0.02 * size;
     const front: SketchPoint[] = [
       { x: cx - halfWidth * 0.92, y: frontTop + tilt - 0.02 * size },
       { x: cx - halfWidth * 0.2, y: frontTop + 0.01 * size },
