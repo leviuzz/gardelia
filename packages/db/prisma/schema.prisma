@@ -240,6 +240,7 @@ model Tenant {
   customers         Customer[]
   customerAddresses CustomerAddress[]
   customerOccasions CustomerOccasion[]
+  customerImports   CustomerImport[]
   quotes            Quote[]
   quoteLines        QuoteLine[]
   orders            Order[]
@@ -875,6 +876,39 @@ model CustomerOccasion {
   @@unique([tenantId, id])
   @@index([tenantId, month, day])
   @@index([tenantId, customerId])
+}
+
+/// Stato di un import di clienti da CSV (ADR-070): bozza con anteprima, importato o annullato.
+enum CustomerImportStatus {
+  DRAFT
+  DONE
+  CANCELLED
+}
+
+/// Import di clienti da un file CSV (ADR-070): il file resta qui solo finché è una bozza
+/// (anteprima e scelta delle colonne); importato o annullato, il testo si svuota e restano i conti.
+model CustomerImport {
+  id            String               @id @default(uuid(7)) @db.Uuid
+  tenantId      String               @db.Uuid
+  fileName      String
+  /// Testo del file (vuoto dopo l'import o l'annullamento).
+  content       String
+  /// Colonna → dato del cliente (null: ignorata), nell'ordine delle colonne.
+  mapping       Json
+  status        CustomerImportStatus @default(DRAFT)
+  /// Righe di dati del file (intestazione esclusa).
+  rowCount      Int
+  importedCount Int                  @default(0)
+  skippedCount  Int                  @default(0)
+  createdById   String?              @db.Uuid
+  completedAt   DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, status, createdAt])
 }
 
 /// Sconto della promo: percentuale intera o importo fisso in unità minime.

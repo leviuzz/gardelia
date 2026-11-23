@@ -1,4 +1,4 @@
-import { Plus, Users } from 'lucide-react';
+import { FileUp, Plus, Users } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
@@ -103,10 +103,25 @@ export default async function CustomersPage({
       </Link>
     </Button>
   ) : null;
+  // Import da CSV (ADR-070): accanto a "Nuevo cliente", per chi può crearli.
+  const importButton = result.canWrite ? (
+    <Button asChild variant="outline">
+      <Link href={routes.customers.import.new}>
+        <FileUp />
+        {t('import.open')}
+      </Link>
+    </Button>
+  ) : null;
+  const headerActions = result.canWrite ? (
+    <div className="flex flex-wrap gap-2">
+      {importButton}
+      {newButton}
+    </div>
+  ) : null;
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t('title')} description={t('subtitle')} actions={newButton} />
+      <PageHeader title={t('title')} description={t('subtitle')} actions={headerActions} />
 
       <FilterBar
         action={routes.customers.list()}
@@ -166,7 +181,7 @@ export default async function CustomersPage({
             icon={<Users />}
             title={t('emptyTitle')}
             body={t('emptyBody')}
-            action={newButton}
+            action={headerActions}
           />
         }
         count={t('results', { count: result.total })}

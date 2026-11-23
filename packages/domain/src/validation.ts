@@ -53,6 +53,13 @@ export const VALIDATION_CODES = [
   'inventory_nothing_used',
   /** Clienti (ADR-070): "Agregar etiqueta" senza clienti scelti. */
   'customers_none_selected',
+  /** Import di clienti da CSV (ADR-070): file e colonne. */
+  'customers_import_empty',
+  'customers_import_too_big',
+  'customers_import_too_many_rows',
+  'customers_import_too_many_columns',
+  'customers_import_name_column',
+  'customers_import_repeated_column',
   'invalid',
 ] as const;
 

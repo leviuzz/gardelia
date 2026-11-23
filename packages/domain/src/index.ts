@@ -6,6 +6,7 @@ export * from './ai';
 export * from './audit';
 export * from './catalog';
 export * from './customer';
+export * from './customer-import';
 export * from './customer-timeline';
 export * from './delivery';
 export * from './exact-preview';

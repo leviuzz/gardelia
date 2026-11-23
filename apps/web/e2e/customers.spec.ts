@@ -5,6 +5,7 @@ import { expect, test } from '@playwright/test';
  * modulo "Nuevo cliente": si salvano insieme al cliente, con gli errori sulla riga giusta.
  * Cronologia (CRM-01): il preventivo creato dalla scheda compare nell'"Historial" col suo link.
  * Etichette e filtri (CRM-01, ADR-070): un'etichetta a più clienti insieme e i filtri della lista.
+ * Import da CSV (ADR-070): anteprima con errori e duplicati, colonna scelta a mano, import.
  */
 test.describe('nuovo cliente con date speciali', () => {
   test.use({ storageState: 'e2e/.auth/owner.json' });
@@ -163,5 +164,66 @@ test.describe('etichette e filtri dei clienti', () => {
     await expect(page.getByRole('link', { name: new RegExp(beto) })).toHaveCount(0);
     await page.goto(`${list}&consent=yes`);
     await expect(page.getByText('No hay clientes con estos filtros')).toBeVisible();
+  });
+});
+
+test.describe('import di clienti da CSV', () => {
+  test.use({ storageState: 'e2e/.auth/owner.json' });
+
+  test('anteprima con errori e duplicati, colonna scelta a mano, poi import', async ({ page }) => {
+    const stamp = Date.now();
+    const phone = `449${String(stamp).slice(-7)}`;
+    const csv = [
+      'Nombre;Cel;Cumpleaños;Etiquetas',
+      `Importada Ana ${stamp};${phone};14/02/1990;vip`,
+      `Importado Beto ${stamp};;31/04;`,
+      `Importada Carla ${stamp};;;`,
+      `Importada Ana repetida ${stamp};+52 ${phone};;`,
+    ].join('\n');
+    const fileInput = page.locator('input[type="file"]');
+
+    await page.goto('/app/las-camelias/customers');
+    await page.getByRole('link', { name: 'Importar' }).click();
+    await expect(page.getByRole('heading', { name: 'Importar clientes' })).toBeVisible();
+
+    // Solo l'intestazione: non è un file di clienti.
+    await fileInput.setInputFiles({
+      name: 'vacio.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from('Nombre\n', 'utf8'),
+    });
+    await page.getByRole('button', { name: 'Revisar archivo' }).click();
+    await expect(page.getByText('El archivo no tiene clientes')).toBeVisible();
+
+    await fileInput.setInputFiles({
+      name: 'clientes.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(csv, 'utf8'),
+    });
+    await page.getByRole('button', { name: 'Revisar archivo' }).click();
+    await expect(page.getByRole('heading', { name: 'Revisar importación' })).toBeVisible();
+
+    // "Cel" non si riconosce da solo: si sceglie Teléfono.
+    await page.getByRole('combobox', { name: 'Cel' }).selectOption({ label: 'Teléfono' });
+    await page.getByRole('button', { name: 'Usar estas columnas' }).click();
+    await expect(page.getByText('Columnas actualizadas.')).toBeVisible();
+
+    const problems = page.getByRole('region', { name: 'Filas que no se importarán' });
+    await expect(problems.getByText(`Fila 3 · Importado Beto ${stamp}`)).toBeVisible();
+    await expect(problems.getByText(/^Cumpleaños: /)).toBeVisible();
+    await expect(problems.getByText('Repite el teléfono o el email de la fila 2')).toBeVisible();
+    await expect(page.getByText('Los clientes importados no reciben promociones')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Importar 2 clientes' }).click();
+    await expect(page.getByRole('heading', { name: 'Clientes importados' })).toBeVisible();
+    await expect(
+      page.getByText('Se importaron 2 clientes. 2 filas no se importaron'),
+    ).toBeVisible();
+
+    await page.goto(`/app/las-camelias/customers?q=${stamp}`);
+    await expect(page.getByText('2 clientes', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: new RegExp(`Importada Ana ${stamp}`) }),
+    ).toBeVisible();
   });
 });

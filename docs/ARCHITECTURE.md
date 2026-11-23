@@ -154,7 +154,7 @@ principi a livello di servizi e ruoli (TEN-01).
 | Identità   | User, Session, Account, Verification, RateLimit                       | completo                                                    |
 | Tenancy    | Tenant, Location, Membership, Invitation, AuditLog                    | completo                                                    |
 | Catalogo   | CanonicalFlower, CatalogItem, BouquetRecipe, BouquetRecipeLine        | completo; foto con scontorno automatico (ADR-029, ADR-033)  |
-| CRM        | Customer, CustomerAddress, CustomerOccasion                           | completo                                                    |
+| CRM        | Customer, CustomerAddress, CustomerOccasion, CustomerImport           | completo; import da CSV con bozza e anteprima (ADR-070)     |
 | Preventivi | Quote, QuoteLine (`CATALOG_ITEM`, `CUSTOM`, `BUILDER`), TenantCounter | completo (ordini nello Sprint 3)                            |
 | Piani      | SaasPlan (globale), TenantSubscription                                | v0: assegnazione manuale da CLI, nessun pagamento (ADR-021) |
 | Builder    | BouquetConfiguration, BouquetConfigurationLine                        | deterministico (ADR-023); anteprime AI nello Sprint 2       |

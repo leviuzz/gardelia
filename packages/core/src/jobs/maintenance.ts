@@ -2,7 +2,9 @@
  * Manutenzione giornaliera della piattaforma (fase 0): porta a EXPIRED i preventivi inviati oltre
  * la validità e gli inviti scaduti, in tutte le fiorerie, con la funzione SQL `app_expire_overdue`
  * (migrazione `expire_overdue`); cancella le coordinate avute da Google da più di 30 giorni
- * (`app_purge_place_coordinates`, regole di Google Places, ADR-059). Le pagine mostrano già lo stato effettivo calcolato in lettura:
+ * (`app_purge_place_coordinates`, regole di Google Places, ADR-059); chiude le bozze di import di
+ * clienti dimenticate da più di un giorno e ne cancella il file (`app_close_stale_customer_imports`,
+ * ADR-070). Le pagine mostrano già lo stato effettivo calcolato in lettura:
  * questo lavoro rende il dato salvato coerente (filtri, report, esportazioni).
  *
  * La chiamano Vercel Cron (una volta al giorno alle 9 del Messico, `/api/internal/maintenance`,
@@ -12,6 +14,7 @@
 import { getDb } from '@floral/db';
 import { logger } from '../logger';
 import { refreshStoreCoordinates } from '../public-directory';
+import { closeStaleCustomerImports } from '../services/customer-import';
 
 export interface MaintenanceResult {
   readonly quotesExpired: number;
@@ -20,6 +23,8 @@ export interface MaintenanceResult {
   readonly coordinatesPurged: number;
   /** Tiendas pubblicate con le coordinate richieste di nuovo a Google (ADR-066). */
   readonly storePlacesRefreshed: number;
+  /** Bozze di import di clienti chiuse, con il file cancellato (ADR-070). */
+  readonly customerImportsClosed: number;
 }
 
 export async function runDailyMaintenance(): Promise<MaintenanceResult> {
@@ -38,6 +43,7 @@ export async function runDailyMaintenance(): Promise<MaintenanceResult> {
   >`SELECT addresses_purged, locations_purged, orders_purged, buyer_addresses_purged
     FROM app_purge_place_coordinates()`;
   const purge = purged[0];
+  const customerImportsClosed = await closeStaleCustomerImports();
   const result: MaintenanceResult = {
     quotesExpired: row?.quotes_expired ?? 0,
     invitationsExpired: row?.invitations_expired ?? 0,
@@ -47,6 +53,7 @@ export async function runDailyMaintenance(): Promise<MaintenanceResult> {
       (purge?.orders_purged ?? 0) +
       (purge?.buyer_addresses_purged ?? 0),
     storePlacesRefreshed,
+    customerImportsClosed,
   };
   logger.info(result, 'manutenzione giornaliera completata');
   return result;
