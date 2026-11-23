@@ -21,7 +21,7 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
   const routes = tenantRoutes(ctx.tenantSlug);
   const items: NavItem[] = [
     { href: routes.home, label: t('nav.dashboard'), icon: 'dashboard', exact: true },
-    // Il lavoro di ogni giorno (ADR-052): su mobile nella barra in basso.
+    // Il lavoro di ogni giorno (ADR-053): su mobile nella barra in basso.
     { href: routes.orders.list(), label: t('nav.orders'), icon: 'orders' },
     { href: routes.quotes.list(), label: t('nav.quotes'), icon: 'quotes' },
     // Funzione Plus: chi non ce l'ha trova l'invito all'upgrade (mai una finta funzione).

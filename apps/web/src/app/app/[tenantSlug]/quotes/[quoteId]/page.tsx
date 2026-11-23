@@ -154,6 +154,7 @@ export default async function QuotePage({
         ? {
             url: routes.quotes.lineImage(quote.id, line.id),
             downloadUrl: routes.quotes.lineImage(quote.id, line.id, { download: true }),
+            source: line.image.source,
             verified: line.image.verified,
             simulated: line.image.simulated,
           }
@@ -206,7 +207,7 @@ export default async function QuotePage({
       : null;
 
   const today = todayInTimeZone(ctx.timezone);
-  // Dal preventivo accettato si passa all'ordine (ADR-052).
+  // Dal preventivo accettato si passa all'ordine (ADR-053).
   const order = quote.status === 'ACCEPTED' ? await getQuoteOrder(ctx, quote.id) : null;
   const canOrder = quote.status === 'ACCEPTED' && !order && hasPermission(ctx, 'orders:write');
 

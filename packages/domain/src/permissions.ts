@@ -43,7 +43,7 @@ export const PERMISSIONS = {
   'orders:read': ALL,
   /**
    * Creare ordini (anche da un preventivo), cambiarne consegna e tarjeta, accettare quelli del
-   * marketplace e annullarli (ADR-052; coerente con O-08: lo staff non crea clienti né preventivi).
+   * marketplace e annullarli (ADR-053; coerente con O-08: lo staff non crea clienti né preventivi).
    */
   'orders:write': MANAGEMENT,
   /** Far avanzare un ordine al banco: in preparazione, pronto, in consegna, consegnato, ritirato. */

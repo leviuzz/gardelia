@@ -35,6 +35,8 @@ export interface QuoteLineView {
   readonly image: {
     readonly url: string;
     readonly downloadUrl: string;
+    /** `photo` = foto vera del ramo caricata dalla fioreria (ADR-052); `ai` = anteprima. */
+    readonly source: 'photo' | 'ai';
     readonly verified: boolean;
     readonly simulated: boolean;
   } | null;
@@ -128,7 +130,11 @@ export function QuoteLineList({
                       ) : null}
                     </span>
                     <span className="block">
-                      {line.image.verified ? t('imageNoteVerified') : t('imageNote')}
+                      {line.image.source === 'photo'
+                        ? t('imageNotePhoto')
+                        : line.image.verified
+                          ? t('imageNoteVerified')
+                          : t('imageNote')}
                     </span>
                     <a
                       href={line.image.downloadUrl}

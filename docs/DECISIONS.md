@@ -1128,7 +1128,40 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   - Audit `builder.configuration_deleted` con nome e numero di foto cancellate e tenute.
   - Un'altra fioreria riceve 404.
 
-### ADR-052 — Ordini: dal preventivo accettato, consegna, tarjeta, stati e pagamenti registrati — ADOTTATO (23/11/2026)
+### ADR-052 — Foto vera del ramo al posto della foto AI — ADOTTATO (23/11/2026)
+
+- **Richiesta del founder:** nel Diseñador il fiorista sceglie "genera la foto" oppure "carica la
+  foto del tuo ramo"; quel ramo va anche fra i ramos della fioreria ("Mis ramos"). È il passo 6 di
+  FLOW-B nella spec ("il merchant allega eventuale foto reale") e l'uso degli esempi del fiorista
+  (AI-BQ-07).
+- **Allenare l'AI: segnalato e non fatto.** Il founder ha detto che quelle foto "andranno ad
+  allenare". Oggi le foto di "Mis ramos" non addestrano nessun modello: vengono descritte a parole
+  e danno lo stile alle foto AI (ADR-032). La spec §6.4 vieta di addestrare sulle foto del fiorista
+  senza un accordo esplicito e separato, e il modello in uso non si può addestrare. Se un giorno
+  servisse, sarà una decisione a parte, con un suo consenso.
+- **Cosa fa:**
+  - Il passo 4 del Diseñador diventa "Foto del ramo", con le schede "Foto con IA" (l'anteprima di
+    prima) e "Tu foto". Il passo c'è per ogni disegno attivo, anche senza AI configurata: allora
+    resta solo "Tu foto".
+  - Chi usa il Builder (`builder:use`, anche lo staff) carica, cambia o toglie la foto, con il
+    piano Plus. La foto si riduce nel browser e il server la ricodifica come le altre foto.
+  - Una sola foto attiva per disegno (indice parziale). Cambiata o tolta, la precedente si archivia
+    e resta ai preventivi che la mostrano.
+  - I preventivi creati dal disegno la agganciano (`QuoteLine.bouquetPhotoId`, solo righe BUILDER)
+    e la mostrano al posto dell'anteprima AI: pagina, stampa/PDF e download per WhatsApp, con la
+    nota "Foto de un ramo hecho por la florería".
+  - Una casella la aggiunge anche a "Mis ramos". La casella riporta per intero il consenso di "Mis
+    ramos", quindi spuntarla è il consenso esplicito; è solo per chi può caricare lì
+    (`builder:references:write`, proprietario e manager). In "Mis ramos" va una copia
+    indipendente, con lo stile e il nome del disegno: archiviarla lì non tocca il disegno e
+    viceversa.
+  - Eliminando il disegno (ADR-051) se ne vanno anche le sue foto, file compresi. La copia in "Mis
+    ramos" resta.
+- **Sicurezza:** tabella `BouquetPhoto` con RLS e FK composite; file privati sotto
+  `tenants/{tenantId}/bouquet-photos/`, serviti solo ai membri della fioreria; un'altra fioreria
+  riceve 404. Audit `builder.photo_added` / `builder.photo_removed`.
+
+### ADR-053 — Ordini: dal preventivo accettato, consegna, tarjeta, stati e pagamenti registrati — ADOTTATO (23/11/2026)
 
 Blocco A1a di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26, D-27).
 

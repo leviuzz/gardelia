@@ -188,6 +188,7 @@ model Tenant {
   auditLogs         AuditLog[]
   subscription      TenantSubscription?
   builderConfigs    BouquetConfiguration[]
+  bouquetPhotos     BouquetPhoto[]
   builderLines      BouquetConfigurationLine[]
   aiCreditGrants    AiCreditGrant[]
   catalogPhotos     CatalogItemPhoto[]
@@ -728,6 +729,9 @@ model QuoteLine {
   snapshot               Json?
   /// Solo per righe BUILDER: anteprima AI riuscita del ramo quando la riga è nata (ADR-035).
   previewJobId           String?       @db.Uuid
+  /// Solo per righe BUILDER: foto vera del ramo caricata dalla fioreria (ADR-052); se c'è, si
+  /// mostra al posto dell'anteprima AI.
+  bouquetPhotoId         String?       @db.Uuid
   sortOrder              Int           @default(0)
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
@@ -737,10 +741,12 @@ model QuoteLine {
   catalogItem          CatalogItem?          @relation(fields: [tenantId, catalogItemId], references: [tenantId, id], onDelete: Restrict)
   bouquetConfiguration BouquetConfiguration? @relation(fields: [tenantId, bouquetConfigurationId], references: [tenantId, id], onDelete: Restrict)
   previewJob           AiJob?                @relation(fields: [tenantId, previewJobId], references: [tenantId, id], onDelete: Restrict)
+  bouquetPhoto         BouquetPhoto?         @relation(fields: [tenantId, bouquetPhotoId], references: [tenantId, id], onDelete: Restrict)
 
   @@index([tenantId, quoteId])
   @@index([tenantId, bouquetConfigurationId])
   @@index([tenantId, previewJobId])
+  @@index([tenantId, bouquetPhotoId])
 }
 
 // -----------------------------------------------------------------------------
@@ -944,9 +950,38 @@ model BouquetConfiguration {
   quoteLines QuoteLine[]
   orderLines OrderLine[]
   aiJobs     AiJob[]
+  photos     BouquetPhoto[]
 
   @@unique([tenantId, id])
   @@index([tenantId, status, updatedAt])
+}
+
+/// Foto vera di un ramo del Diseñador, caricata dalla fioreria invece di generarla (ADR-052).
+/// Una sola ATTIVA per disegno (indice parziale nel SQL); cambiandola, la precedente si archivia
+/// e resta ai preventivi che la mostrano.
+model BouquetPhoto {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  tenantId        String       @db.Uuid
+  configurationId String       @db.Uuid
+  storageKey      String
+  thumbKey        String
+  contentType     String
+  width           Int
+  height          Int
+  sizeBytes       Int
+  status          RecordStatus @default(ACTIVE)
+  archivedAt      DateTime?
+  createdById     String       @db.Uuid
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  tenant        Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  configuration BouquetConfiguration @relation(fields: [tenantId, configurationId], references: [tenantId, id], onDelete: Cascade)
+  quoteLines    QuoteLine[]
+  orderLines    OrderLine[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, configurationId, status])
 }
 
 model BouquetConfigurationLine {
@@ -1061,7 +1096,7 @@ model StyleReferencePhoto {
 }
 
 // =============================================================================
-// Ordini, pagamenti registrati e consegne [ORD-01] (ADR-052, docs/ORDERS_MARKETPLACE_PLAN.md)
+// Ordini, pagamenti registrati e consegne [ORD-01] (ADR-053, docs/ORDERS_MARKETPLACE_PLAN.md)
 // =============================================================================
 
 enum OrderStatus {
@@ -1186,6 +1221,8 @@ model OrderLine {
   lineTotalMinor         Int
   snapshot               Json?
   previewJobId           String?       @db.Uuid
+  /// Foto vera del ramo (ADR-052), copiata dalla riga del preventivo: ha la precedenza sull'AI.
+  bouquetPhotoId         String?       @db.Uuid
   sortOrder              Int           @default(0)
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
@@ -1195,10 +1232,12 @@ model OrderLine {
   catalogItem          CatalogItem?          @relation(fields: [tenantId, catalogItemId], references: [tenantId, id], onDelete: Restrict)
   bouquetConfiguration BouquetConfiguration? @relation(fields: [tenantId, bouquetConfigurationId], references: [tenantId, id], onDelete: Restrict)
   previewJob           AiJob?                @relation(fields: [tenantId, previewJobId], references: [tenantId, id], onDelete: Restrict)
+  bouquetPhoto         BouquetPhoto?         @relation(fields: [tenantId, bouquetPhotoId], references: [tenantId, id], onDelete: Restrict)
 
   @@index([tenantId, orderId])
   @@index([tenantId, bouquetConfigurationId])
   @@index([tenantId, previewJobId])
+  @@index([tenantId, bouquetPhotoId])
 }
 
 model OrderPayment {

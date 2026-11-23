@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Server action degli ordini (ADR-052). Totali, stati e pagamenti li decide SOLO il servizio
+ * Server action degli ordini (ADR-053). Totali, stati e pagamenti li decide SOLO il servizio
  * (@floral/core): il client invia i dati del form e lo stato richiesto.
  * Contesto, errori, pagine da ricaricare e messaggi: `runTenantAction`.
  */

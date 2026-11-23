@@ -1,5 +1,5 @@
 /**
- * Ordini [ORD-01] (ADR-052, docs/ORDERS_MARKETPLACE_PLAN.md §3).
+ * Ordini [ORD-01] (ADR-053, docs/ORDERS_MARKETPLACE_PLAN.md §3).
  *
  *  - un ordine nasce da un preventivo ACCETTATO (blocco A1a) copiandone righe e snapshot: prezzi,
  *    distinta e immagine del ramo restano quelli concordati col cliente;
@@ -104,8 +104,15 @@ export interface OrderLineDto {
   readonly saleUnit: SaleUnit | null;
   readonly recipe: readonly OrderRecipeLineSnapshot[] | null;
   readonly bouquetConfigurationId: string | null;
-  /** Immagine del ramo (dalla riga del preventivo, ADR-035). */
-  readonly image: { readonly verified: boolean; readonly simulated: boolean } | null;
+  /**
+   * Immagine del ramo dalla riga del preventivo: `photo` = foto vera caricata dalla fioreria
+   * (ADR-052, ha la precedenza), `ai` = anteprima generata (ADR-035).
+   */
+  readonly image: {
+    readonly source: 'photo' | 'ai';
+    readonly verified: boolean;
+    readonly simulated: boolean;
+  } | null;
 }
 
 export interface OrderPaymentDto {
@@ -327,6 +334,7 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
         include: {
           previewJob: { select: { status: true, provider: true, output: true, outputKey: true } },
+          bouquetPhoto: { select: { id: true } },
         },
       }),
       tx.orderPayment.findMany({
@@ -395,9 +403,12 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
         saleUnit: snapshot?.item?.saleUnit ?? null,
         recipe: snapshot?.recipe ?? null,
         bouquetConfigurationId: line.bouquetConfigurationId,
-        image:
-          line.previewJob?.status === 'SUCCEEDED' && line.previewJob.outputKey
+        // La foto vera del ramo (ADR-052) ha la precedenza sull'anteprima AI.
+        image: line.bouquetPhoto
+          ? { source: 'photo' as const, verified: false, simulated: false }
+          : line.previewJob?.status === 'SUCCEEDED' && line.previewJob.outputKey
             ? {
+                source: 'ai' as const,
                 verified:
                   (line.previewJob.output as { verified?: unknown } | null)?.verified === true,
                 simulated: line.previewJob.provider === 'simulated',
@@ -643,6 +654,7 @@ export async function createOrderFromQuote(
         lineTotalMinor: line.lineTotalMinor,
         snapshot: (line.snapshot ?? undefined) as Prisma.InputJsonValue | undefined,
         previewJobId: line.previewJobId,
+        bouquetPhotoId: line.bouquetPhotoId,
         sortOrder: line.sortOrder,
       })),
     });
@@ -938,10 +950,15 @@ export async function getOrderLineImage(
       where: { id: lineId, orderId, tenantId: ctx.tenantId },
       select: {
         previewJob: { select: { status: true, outputKey: true, outputContentType: true } },
+        bouquetPhoto: { select: { storageKey: true, contentType: true } },
       },
     }),
   );
   if (!line) return notFound(ctx, 'Order', orderId);
+  // La foto vera resta all'ordine anche se nel disegno viene sostituita o archiviata.
+  if (line.bouquetPhoto) {
+    return readStoredImage(line.bouquetPhoto.storageKey, line.bouquetPhoto.contentType, 'Order');
+  }
   const job = line.previewJob;
   if (job?.status !== 'SUCCEEDED' || !job.outputKey) throw new NotFoundError('Order');
   return readStoredImage(job.outputKey, job.outputContentType ?? 'image/png', 'Order');

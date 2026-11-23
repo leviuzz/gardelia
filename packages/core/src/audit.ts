@@ -81,6 +81,7 @@ type ProbeableEntity =
   | 'AiJob'
   | 'CatalogItemPhoto'
   | 'StyleReferencePhoto'
+  | 'BouquetPhoto'
   | 'OccasionPromoEmail'
   | 'Order'
   | 'OrderPayment';
@@ -128,6 +129,8 @@ async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<st
           return (
             (await tx.styleReferencePhoto.findUnique({ where: { id }, select }))?.tenantId ?? null
           );
+        case 'BouquetPhoto':
+          return (await tx.bouquetPhoto.findUnique({ where: { id }, select }))?.tenantId ?? null;
         case 'OccasionPromoEmail':
           return (
             (await tx.occasionPromoEmail.findUnique({ where: { id }, select }))?.tenantId ?? null
