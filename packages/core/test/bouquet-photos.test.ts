@@ -259,7 +259,7 @@ describe('foto vera del ramo', () => {
     ).rejects.toBeInstanceOf(PlanRequiredError);
   });
 
-  it('el pedido nacido de la cotización conserva la foto verdadera (ADR-053)', async () => {
+  it('el pedido nacido de la cotización conserva la foto verdadera (ADR-054)', async () => {
     const kit = await createKit();
     const design = await saveDesign(kit, 'Ramo para pedido');
     await addBouquetPhoto(kit.shop.owner, design.id, await photoBytes('#336699'), {});

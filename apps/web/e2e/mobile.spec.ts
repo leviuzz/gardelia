@@ -9,7 +9,7 @@ test.describe('staff', () => {
     await page.goto('/app/las-camelias');
     const bottomNav = page.getByRole('navigation', { name: 'Navegación principal' }).last();
     await expect(bottomNav).toBeVisible();
-    // I Pedidos sono nella barra in basso (ADR-053); il Catálogo nel menu "Más".
+    // I Pedidos sono nella barra in basso (ADR-054); il Catálogo nel menu "Más".
     await expect(bottomNav.getByRole('link', { name: 'Pedidos' })).toBeVisible();
     // Nel menu "Más" lo staff trova Diseñador e Catálogo, ma non Equipo né Ajustes.
     await bottomNav.getByRole('button', { name: 'Más' }).click();

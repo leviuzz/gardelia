@@ -415,6 +415,11 @@ con il consenso. Le foto di "Mis ramos" danno lo stile alle foto AI e non addest
 segnalato al founder (spec §6.4). Test: 4 d'integrazione (compresa l'altra fioreria che riceve 404)
 e un E2E.
 
+**Query sovrapposte sulla stessa connessione (fatto il 23/11, ADR-053):** l'avviso di pg "client is
+already executing a query" (errore in pg 9) veniva dalle letture di Prisma con tre o più relazioni
+incluse in una transazione. Ora ogni connessione del pool esegue una query alla volta
+(`SerialClient`). Un test fallisce se l'avviso torna; suite completa ed E2E senza avvisi.
+
 **Eliminare un disegno del Diseñador (fatto il 23/11, richiesta del founder, ADR-051):** accanto ad
 "Archivar" c'è "Eliminar" (solo proprietario e manager, con conferma). Cancella il disegno e le foto
 generate per lui dall'archivio. Se un preventivo lo usa, la finestra spiega che si può solo
@@ -457,7 +462,7 @@ intermediario e servizio gestito solo dopo (D-25); nuovi punti aperti O-12 (fase
 codice, nello sprint billing: piani ed entitlements (`packages/domain/src/plans.ts`) sui livelli,
 quote AI 15 / 30, utenti inclusi per livello. Nessun codice cambiato in questa sessione.
 
-**Ordini, blocco A1a (fatto il 23/11, ADR-053):** "Convertir en pedido" sul preventivo accettato
+**Ordini, blocco A1a (fatto il 23/11, ADR-054):** "Convertir en pedido" sul preventivo accettato
 (righe, snapshot e immagine del ramo copiati), consegna a domicilio o ritiro con data e fascia,
 indirizzo dalla rubrica o nuovo (copiato nell'ordine), destinatario, tarjeta (messaggio, firma o
 anonimo), note interne; stati con cronologia e un passo indietro, annullamento con motivo; pagamenti

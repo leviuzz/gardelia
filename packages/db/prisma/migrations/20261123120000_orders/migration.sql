@@ -194,7 +194,7 @@ ALTER TABLE "OrderStatusEvent" ADD CONSTRAINT "OrderStatusEvent_tenantId_orderId
 
 
 -- =============================================================================
--- Sicurezza e integrità (ADR-053)
+-- Sicurezza e integrità (ADR-054)
 -- =============================================================================
 
 SELECT app_enable_tenant_rls('"Order"');

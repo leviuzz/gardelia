@@ -1,5 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from './generated/prisma/client.ts';
+import { SerialClient } from './serial-client.ts';
 
 export type DbClient = PrismaClient;
 
@@ -10,7 +11,11 @@ export interface CreateDbClientOptions {
   readonly applicationName?: string;
 }
 
-/** Crea un client Prisma con driver adapter `pg` (Prisma 7). */
+/**
+ * Crea un client Prisma con driver adapter `pg` (Prisma 7). Ogni connessione del pool esegue
+ * una query alla volta (`SerialClient`): dentro una transazione Prisma le lancia anche in
+ * parallelo, e pg 9 non le accetterà più.
+ */
 export function createDbClient({
   connectionString,
   poolMax = 10,
@@ -22,6 +27,7 @@ export function createDbClient({
     application_name: applicationName,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
+    Client: SerialClient,
   });
   return new PrismaClient({ adapter });
 }

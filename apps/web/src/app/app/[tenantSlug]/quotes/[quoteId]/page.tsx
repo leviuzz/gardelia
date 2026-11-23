@@ -207,7 +207,7 @@ export default async function QuotePage({
       : null;
 
   const today = todayInTimeZone(ctx.timezone);
-  // Dal preventivo accettato si passa all'ordine (ADR-053).
+  // Dal preventivo accettato si passa all'ordine (ADR-054).
   const order = quote.status === 'ACCEPTED' ? await getQuoteOrder(ctx, quote.id) : null;
   const canOrder = quote.status === 'ACCEPTED' && !order && hasPermission(ctx, 'orders:write');
 

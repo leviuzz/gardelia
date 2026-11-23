@@ -1161,7 +1161,29 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   `tenants/{tenantId}/bouquet-photos/`, serviti solo ai membri della fioreria; un'altra fioreria
   riceve 404. Audit `builder.photo_added` / `builder.photo_removed`.
 
-### ADR-053 — Ordini: dal preventivo accettato, consegna, tarjeta, stati e pagamenti registrati — ADOTTATO (23/11/2026)
+### ADR-053 — Una query alla volta per connessione al database — ADOTTATO (23/11/2026)
+
+- **Problema:** nei test e nei log del server compariva l'avviso di pg "Calling client.query()
+  when the client is already executing a query", che in pg 9 diventa un errore. La causa sta
+  dentro Prisma 7: in una transazione interattiva usa una sola connessione, e una lettura che
+  include tre o più relazioni ne fa partire le query insieme. L'adattatore `@prisma/adapter-pg`
+  (7.10.1, l'ultima stabile) le passa tutte allo stesso client pg, che le accoda con l'avviso.
+  I `Promise.all` del nostro codice su una transazione non c'entravano: Prisma mette già in fila
+  le operazioni separate (misurato).
+- **Decisione:** il pool crea client `SerialClient` (opzione `Client` di `pg.Pool`), che mettono
+  in fila le query con promessa: una alla volta, nell'ordine in cui arrivano, e un errore non
+  blocca le successive. È ciò che pg faceva già internamente, quindi né i risultati né la velocità
+  cambiano. Le forme con callback o con cursori passano invariate: il pool le usa su un client
+  che ha in mano da solo.
+- **Scartato:** la modalità "pipeline" di pg 8.23, che manda davvero le query insieme. È nuova e
+  cambia il protocollo (una query lenta chiude la connessione, niente cursori): non serve per
+  togliere l'avviso.
+- **Garanzia:** `packages/db/test/serial-client.test.ts` legge un tenant con tre relazioni in una
+  transazione e fallisce se compare l'avviso; senza `SerialClient` fallisce davvero (verificato).
+  Nella suite completa e negli E2E l'avviso non compare più. Per chiarezza i due `Promise.all`
+  su una transazione (pannello, equipo) ora sono scritti in fila.
+
+### ADR-054 — Ordini: dal preventivo accettato, consegna, tarjeta, stati e pagamenti registrati — ADOTTATO (23/11/2026)
 
 Blocco A1a di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26, D-27).
 

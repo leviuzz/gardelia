@@ -1096,7 +1096,7 @@ model StyleReferencePhoto {
 }
 
 // =============================================================================
-// Ordini, pagamenti registrati e consegne [ORD-01] (ADR-053, docs/ORDERS_MARKETPLACE_PLAN.md)
+// Ordini, pagamenti registrati e consegne [ORD-01] (ADR-054, docs/ORDERS_MARKETPLACE_PLAN.md)
 // =============================================================================
 
 enum OrderStatus {

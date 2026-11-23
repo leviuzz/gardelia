@@ -29,7 +29,7 @@ function isoDate(parts: { year: number; month: number; day: number }): string {
   return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
 }
 
-/** "Convertir en pedido": dati di consegna e tarjeta per un preventivo accettato (ADR-053). */
+/** "Convertir en pedido": dati di consegna e tarjeta per un preventivo accettato (ADR-054). */
 export default async function QuoteToOrderPage({
   params,
 }: PageProps<'/app/[tenantSlug]/quotes/[quoteId]/order'>) {

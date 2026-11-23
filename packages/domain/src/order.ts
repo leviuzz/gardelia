@@ -1,5 +1,5 @@
 /**
- * Ordini [ORD-01] (ADR-053, docs/ORDERS_MARKETPLACE_PLAN.md §3): stati, totali, pagamenti
+ * Ordini [ORD-01] (ADR-054, docs/ORDERS_MARKETPLACE_PLAN.md §3): stati, totali, pagamenti
  * registrati a mano e validazione dei dati di consegna.
  *
  * Totali (stesso motore dei preventivi, PRICES_FINAL):

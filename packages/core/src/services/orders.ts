@@ -1,5 +1,5 @@
 /**
- * Ordini [ORD-01] (ADR-053, docs/ORDERS_MARKETPLACE_PLAN.md §3).
+ * Ordini [ORD-01] (ADR-054, docs/ORDERS_MARKETPLACE_PLAN.md §3).
  *
  *  - un ordine nasce da un preventivo ACCETTATO (blocco A1a) copiandone righe e snapshot: prezzi,
  *    distinta e immagine del ramo restano quelli concordati col cliente;
@@ -328,25 +328,24 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
       include: { ...orderInclude, quote: { select: { id: true, number: true } } },
     });
     if (!order) return null;
-    const [lines, payments, events] = await Promise.all([
-      tx.orderLine.findMany({
-        where: { tenantId: ctx.tenantId, orderId },
-        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-        include: {
-          previewJob: { select: { status: true, provider: true, output: true, outputKey: true } },
-          bouquetPhoto: { select: { id: true } },
-        },
-      }),
-      tx.orderPayment.findMany({
-        where: { tenantId: ctx.tenantId, orderId },
-        orderBy: [{ createdAt: 'asc' }],
-        include: { reversal: { select: { id: true } } },
-      }),
-      tx.orderStatusEvent.findMany({
-        where: { tenantId: ctx.tenantId, orderId },
-        orderBy: [{ createdAt: 'asc' }],
-      }),
-    ]);
+    // In fila: una transazione usa una sola connessione (ADR-053).
+    const lines = await tx.orderLine.findMany({
+      where: { tenantId: ctx.tenantId, orderId },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      include: {
+        previewJob: { select: { status: true, provider: true, output: true, outputKey: true } },
+        bouquetPhoto: { select: { id: true } },
+      },
+    });
+    const payments = await tx.orderPayment.findMany({
+      where: { tenantId: ctx.tenantId, orderId },
+      orderBy: [{ createdAt: 'asc' }],
+      include: { reversal: { select: { id: true } } },
+    });
+    const events = await tx.orderStatusEvent.findMany({
+      where: { tenantId: ctx.tenantId, orderId },
+      orderBy: [{ createdAt: 'asc' }],
+    });
     return { order, lines, payments, events };
   });
   if (!result) return notFound(ctx, 'Order', orderId);
