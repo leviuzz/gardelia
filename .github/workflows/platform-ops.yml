@@ -21,10 +21,22 @@ on:
         description: La tua email (amministratore della piattaforma)
         required: true
         type: string
-      tenant:
-        description: Indirizzo della fioreria, la parte dopo /app/ (assign-plan, grant-ai-credits, test-data, confirm-user)
+      person:
+        description: Email della persona da confermare (solo confirm-user)
         required: false
         type: string
+      tenant:
+        description: Indirizzo della fioreria, la parte dopo /app/, non un'email (assign-plan, grant-ai-credits, test-data; facoltativo in confirm-user)
+        required: false
+        type: string
+      role:
+        description: Ruolo nella fioreria, solo se l'hai indicata (confirm-user)
+        required: false
+        type: choice
+        default: MANAGER
+        options:
+          - MANAGER
+          - STAFF
       plan:
         description: Piano (assign-plan)
         required: false
@@ -56,18 +68,6 @@ on:
         required: false
         type: boolean
         default: true
-      person:
-        description: Email della persona da confermare (confirm-user)
-        required: false
-        type: string
-      role:
-        description: Ruolo nella fioreria, se indicata (confirm-user)
-        required: false
-        type: choice
-        default: MANAGER
-        options:
-          - MANAGER
-          - STAFF
 
 permissions:
   contents: read
@@ -112,6 +112,20 @@ jobs:
           if [ -z "${DATABASE_URL}" ]; then
             echo "Manca il segreto PLATFORM_DATABASE_URL (vedi docs/DEPLOY_VERCEL.md)." >&2
             exit 1
+          fi
+          # Un indirizzo di fioreria non contiene mai "@": un'email lì è finita nel campo sbagliato.
+          if [[ "${TENANT}" == *@* ]]; then
+            if [ "${OPERATION}" = "confirm-user" ] && [ -z "${PERSON}" ]; then
+              echo "::notice::L'email scritta in «Indirizzo della fioreria» è usata come email della persona."
+              PERSON="${TENANT}"; TENANT=""
+            else
+              echo "In «Indirizzo della fioreria» va la parte dopo /app/ (es. gardelias), non un'email." >&2
+              exit 2
+            fi
+          fi
+          if [ "${OPERATION}" = "confirm-user" ] && [ -z "${PERSON}" ]; then
+            echo "Scrivi l'email della persona nel campo «Email della persona da confermare»." >&2
+            exit 2
           fi
           note_args=()
           if [ -n "${NOTE}" ]; then note_args=(--note "${NOTE}"); fi
