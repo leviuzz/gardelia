@@ -855,6 +855,21 @@
       "title": "Promociones",
       "subtitle": "Descuentos que recibió por sus fechas especiales y si ya los usó.",
       "empty": "Aún no ha recibido ninguna promoción."
+    },
+    "timeline": {
+      "title": "Historial",
+      "subtitle": "Lo que ha pasado con este cliente, lo más reciente primero.",
+      "customerCreated": "Cliente registrado",
+      "quoteCreated": "Cotización {number} creada",
+      "quoteStatus": "Cotización {number}: {status}",
+      "orderCreated": "Pedido {number} creado ({status})",
+      "orderStatus": "Pedido {number}: {status}",
+      "reason": "Motivo: {note}",
+      "payment": "{kind} de {amount} ({method}) · Pedido {number}",
+      "paymentReversed": "Anulación de un pago de {amount} · Pedido {number}",
+      "promoSent": "Le enviamos la promoción de {occasion} con el código {code}",
+      "promoRedeemed": "Usó el código {code}",
+      "more": "Ver más"
     }
   },
   "quotes": {

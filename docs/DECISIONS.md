@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 23 novembre 2026 (conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 23 novembre 2026 (clienti completi, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -1587,6 +1587,29 @@ Blocco C1 di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26: il cliente si registra pri
   stessa, e il registro di audit è per fioreria. Nei log solo ID.
 - **Privacy (O-07, C5):** Gardelia è titolare dei dati del conto cliente; la fioreria lo sarà dei
   dati dell'ordine. Testo da validare con il legale insieme alle pagine per i consumatori.
+
+### ADR-065 — Clienti completi: cronologia, etichette e filtri, import da CSV — ADOTTATO (23/11/2026)
+
+- **Decisioni del founder (23/11/2026)** per l'import da CSV (blocco 3):
+  - i clienti importati entrano **senza** consenso marketing, che si segna a mano, uno per uno,
+    con la fonte. Un "sí" in un file non dimostra il consenso (LFPDPPP), da confermare con
+    l'avvocato insieme all'aviso de privacidad (O-07);
+  - l'import è in tutti i piani;
+  - importano proprietario e manager (`customers:write`).
+- **Blocco 1, cronologia** (spec CRM-01: "Timeline cronologica di ordini, preventivi, consegne,
+  subscriptions, messaggi e interventi"):
+  - sezione "Historial" nella scheda del cliente, dalla più recente: cliente registrato, preventivo
+    creato e suo stato attuale, ordine creato (con lo stato in cui nasce), confermato, consegnato o
+    ritirato, annullato (col motivo), pagamenti e loro anulaciones, promozione inviata e codice usato;
+  - ogni evento ha il link al suo preventivo o ordine;
+  - preparazione, pronto e in viaggio restano nella scheda dell'ordine, per non riempire la storia;
+  - del preventivo si mostra l'ultimo cambio di stato: non c'è uno storico degli stati;
+  - solo lettura (`customer-timeline.ts`): legge le tabelle di preventivi, ordini, pagamenti e
+    promozioni senza toccarne il codice. Le fonti che il ruolo non vede non compaiono;
+  - "Ver más" allarga la pagina di 20 in 20 fino a 200 (`?historial=`). Ogni fonte dà al massimo
+    quel numero di eventi, poi si uniscono e si taglia: nessun cursore che salti eventi con lo
+    stesso istante;
+  - abbonamenti e interventi entreranno con SUB-01 e CARE-01.
 
 ## 3. Proposte da approvare
 

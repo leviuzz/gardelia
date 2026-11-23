@@ -855,6 +855,21 @@
       "title": "Promozioni",
       "subtitle": "Sconti ricevuti per le sue date speciali e se li ha già usati.",
       "empty": "Non ha ancora ricevuto nessuna promozione."
+    },
+    "timeline": {
+      "title": "Cronologia",
+      "subtitle": "Quello che è successo con questo cliente, dal più recente.",
+      "customerCreated": "Cliente registrato",
+      "quoteCreated": "Preventivo {number} creato",
+      "quoteStatus": "Preventivo {number}: {status}",
+      "orderCreated": "Ordine {number} creato ({status})",
+      "orderStatus": "Ordine {number}: {status}",
+      "reason": "Motivo: {note}",
+      "payment": "{kind} di {amount} ({method}) · Ordine {number}",
+      "paymentReversed": "Annullamento di un pagamento di {amount} · Ordine {number}",
+      "promoSent": "Gli abbiamo inviato la promozione di {occasion} con il codice {code}",
+      "promoRedeemed": "Ha usato il codice {code}",
+      "more": "Mostra altro"
     }
   },
   "quotes": {

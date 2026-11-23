@@ -36,6 +36,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CustomerTimeline } from '@/components/customers/customer-timeline';
 import { money, phoneForInput } from '@/lib/format';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
@@ -88,7 +89,10 @@ export default async function CustomerPage({
   const discountText = await discountTextBuilder(ctx.timezone);
   const canQuote = hasPermission(ctx, 'quotes:write') && customer.status === 'ACTIVE';
   const canOrder = hasPermission(ctx, 'orders:write') && customer.status === 'ACTIVE';
-  const created = (await searchParams).created === '1';
+  const query = await searchParams;
+  const created = query.created === '1';
+  // "Ver más" della cronologia (CRM-01): quanti eventi mostrare.
+  const historial = typeof query.historial === 'string' ? query.historial : undefined;
   const t = await getTranslations();
   const format = await getFormatter();
   const slug = ctx.tenantSlug;
@@ -394,6 +398,7 @@ export default async function CustomerPage({
           </Card>
         </div>
       </div>
+      <CustomerTimeline ctx={ctx} customerId={customer.id} limit={historial} />
     </div>
   );
 }
