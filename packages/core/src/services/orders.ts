@@ -63,14 +63,18 @@ import { notFound, recordAudit } from '../audit';
 import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
+import { logger } from '../logger';
 import { readStoredImage } from '../media/stored-files';
 import { buyerOrderMail, sendOrderMails, type OrderMailDeps } from '../order-mail';
 import { requireEntitlement } from './billing';
+import { consumeStockTx } from './inventory';
+import { orderStockRequest } from './order-inventory';
 import {
   catalogLineDraft,
   configurationLineDraft,
   customLineDraft,
   lineRowData,
+  recipeForDisplay,
   type LineDraft,
 } from './line-internals';
 import {
@@ -512,7 +516,7 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
         unitPriceMinor: line.unitPriceMinor,
         lineTotalMinor: line.lineTotalMinor,
         saleUnit: snapshot?.item?.saleUnit ?? null,
-        recipe: snapshot?.recipe ?? null,
+        recipe: recipeForDisplay(snapshot?.recipe),
         bouquetConfigurationId: line.bouquetConfigurationId,
         // La foto vera del ramo (ADR-052) ha la precedenza sull'anteprima AI.
         image: line.bouquetPhoto
@@ -896,10 +900,16 @@ export async function updateOrderFulfillment(
   if (!found) await notFound(ctx, 'Order', orderId);
 }
 
+/**
+ * Un passo del banco. Quando l'ordine diventa "Listo" per la prima volta, i suoi materiali escono
+ * dall'inventario (ADR-071) nella stessa transazione: se la merce non basta serve
+ * `confirmShortage` (`order_inventory_shortage`), come per gli usi dell'inventario (ADR-060).
+ */
 export async function changeOrderStatus(
   ctx: TenantContext,
   orderId: string,
   rawStatus: unknown,
+  options: { readonly confirmShortage?: boolean } = {},
 ): Promise<OrderStatus> {
   requirePermission(ctx, 'orders:read');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
@@ -917,9 +927,23 @@ export async function changeOrderStatus(
     if (!canStepOrder(order.status, target, order.fulfillmentMode)) {
       throw new ConflictError('invalid_status_transition');
     }
+    // Il ramo è fatto: i materiali escono dall'inventario, una volta sola per ordine.
+    let inventoryEntryId: string | null = null;
+    if (target === 'READY' && order.inventoryEntryId === null) {
+      inventoryEntryId = await consumeOrderMaterials(
+        tx,
+        ctx,
+        order,
+        options.confirmShortage === true,
+      );
+    }
     await tx.order.update({
       where: { id: order.id },
-      data: { status: target, statusChangedAt: new Date() },
+      data: {
+        status: target,
+        statusChangedAt: new Date(),
+        ...(inventoryEntryId ? { inventoryEntryId } : {}),
+      },
     });
     await tx.orderStatusEvent.create({
       data: {
@@ -940,6 +964,39 @@ export async function changeOrderStatus(
   });
   if (!result) return notFound(ctx, 'Order', orderId);
   return result;
+}
+
+/**
+ * Scarica i materiali dell'ordine (prodotti, ricette dei ramos, componenti dei disegni) con un registro
+ * di uso che porta il numero dell'ordine. Restituisce il registro, o null se niente si controlla.
+ */
+async function consumeOrderMaterials(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  order: { readonly id: string; readonly number: number },
+  confirmShortage: boolean,
+): Promise<string | null> {
+  const lines = await orderStockRequest(tx, ctx.tenantId, order.id);
+  if (lines.length === 0) return null;
+  try {
+    const result = await consumeStockTx(tx, ctx, {
+      lines,
+      note: formatOrderNumber(order.number),
+      confirmShortage,
+    });
+    return result.entryId;
+  } catch (error) {
+    if (error instanceof ConflictError && error.reason === 'inventory_insufficient_stock') {
+      throw new ConflictError('order_inventory_shortage');
+    }
+    // Quantità fuori dai limiti dell'inventario (un ordine enorme): l'ordine va avanti lo stesso e
+    // il materiale si registra a mano. Non deve mai bloccare il lavoro del banco.
+    if (error instanceof ValidationError) {
+      logger.warn({ orderId: order.id }, "materiali dell'ordine non scaricati: fuori dai limiti");
+      return null;
+    }
+    throw error;
+  }
 }
 
 /**

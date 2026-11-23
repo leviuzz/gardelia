@@ -185,6 +185,7 @@ export * from './services/promo-discounts';
 export * from './services/promotions';
 export * from './services/online-store';
 export * from './services/orders';
+export * from './services/order-inventory';
 export * from './services/order-schedule';
 export * from './services/delivery-route';
 export * from './services/order-handover';

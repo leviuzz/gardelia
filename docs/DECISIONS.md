@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 23 novembre 2026 (clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 23 novembre 2026 (scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -1873,6 +1873,43 @@ Numerata 070: 066 è già la home per chi compra e 067–069 restano ai blocchi 
     o si annulla, poi si svuota (vincolo nel database). Una nuova bozza chiude quelle aperte della
     stessa persona; la manutenzione giornaliera chiude in tutte le fiorerie quelle dimenticate da
     più di un giorno e ne cancella il file (`app_close_stale_customer_imports`).
+
+### ADR-071 — Scarico dell'inventario dagli ordini — ADOTTATO (23/11/2026)
+
+Collega gli ordini (ADR-054) all'inventario (ADR-060…063) con le funzioni preparate dall'altra
+sessione, senza toccarne il codice. Avviato dal founder ("vai avanti con lo scarico dell'inventario
+dagli ordini").
+
+- **Quando:** i materiali escono quando l'ordine diventa **"Listo"** per la prima volta (il ramo è
+  fatto), nella stessa transazione del cambio di stato, con `consumeStockTx` e un registro di uso
+  che ha come nota il numero dell'ordine (`PED-0042`). L'ordine conserva il registro
+  (`Order.inventoryEntryId`, FK composita, unico): tornare indietro e di nuovo "Listo" non scarica una
+  seconda volta. Prima di "Listo" non esce nulla: l'ordine si può ancora cambiare.
+- **Cosa:** i prodotti del catalogo venduti come tali (tallos, vasi, piante…) per la quantità; i
+  ramos del catalogo con **la ricetta concordata** (da questa versione lo snapshot della riga porta
+  l'ID di ogni ingrediente; per le righe nate prima vale la ricetta attuale del ramo); i componenti
+  dei disegni del Diseñador. Le righe libere no. Senza il piano dell'inventario, o per i prodotti non
+  controllati, non succede nulla e "Listo" funziona come sempre.
+- **Se la merce non basta** (giacenza meno apartados): serve la conferma, come negli usi
+  dell'inventario (ADR-060). Nella scheda dell'ordine l'avviso nel riquadro "Avance" dice cosa manca
+  e il pulsante diventa "Marcar listo aunque falte" (campo nascosto `confirmShortage`): la giacenza
+  scende sotto zero finché non si registra la compra o un conteggio. Da "Hoy salen" e dalla Ruta,
+  che non mostrano l'inventario, il cambio si ferma con `order_inventory_shortage`: il messaggio dice
+  di aprire la scheda dell'ordine. Quantità fuori dai limiti dell'inventario (un ordine enorme): lo
+  stato cambia lo stesso, nulla si scarica e il server lo registra nel log; il banco non si blocca mai.
+- **Riquadro "Inventario"** nella scheda dell'ordine (solo con il piano e se l'ordine tocca prodotti
+  controllati; per tutti i ruoli, senza costi): prima di "Listo" i prodotti con la quantità e il
+  disponibile o quanto manca; dopo, quando sono stati scaricati e il link ai movimenti. Se una parte
+  è apartada lo dice: un apartado fatto a mano per l'ordine va **liberato**, non usato, perché
+  l'ordine scarica già (altrimenti la merce uscirebbe due volte).
+- **Annullare dopo lo scarico** non restituisce la merce da solo: se i materiali non sono stati
+  usati, il proprietario o il manager annullano il movimento in Inventario (la scheda lo spiega). Un
+  movimento annullato resta legato all'ordine, che non scarica di nuovo e lo dice.
+- **Permessi:** chi può far avanzare l'ordine (anche lo staff) fa uscire i materiali con quel passo:
+  i permessi dell'inventario non servono, come previsto da `consumeStockTx`.
+- **Non fatto:** apartados creati dagli ordini confermati (`reserveStockTx` /
+  `consumeReservationTx`), scarico parziale o diverso dalla ricetta, restituzione automatica
+  all'annullamento.
 
 ## 3. Proposte da approvare
 

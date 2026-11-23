@@ -644,6 +644,8 @@ model InventoryEntry {
   movements   InventoryMovement[]
   /// L'apartado usato con questo registro (ADR-062).
   reservation InventoryReservation?
+  /// L'ordine scaricato con questo registro (ADR-071).
+  order       Order?
 
   @@unique([tenantId, id])
   /// Bersaglio della FK dei movimenti: il tipo del movimento è sempre quello del registro.
@@ -1538,6 +1540,9 @@ model Order {
   buyerUserId           String?            @db.Uuid
   /// Commenti di chi compra per la fioreria ("colores pastel", "sin lirios").
   buyerNotes            String?
+  /// Registro d'inventario con cui si sono scaricati i materiali quando l'ordine è diventato
+  /// "Listo" (ADR-071); NULL finché non si scarica (o se niente si controlla).
+  inventoryEntryId      String?            @db.Uuid
   createdById           String?            @db.Uuid
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
@@ -1547,6 +1552,7 @@ model Order {
   quote           Quote?             @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Restrict)
   assignedTo      Membership?        @relation(fields: [tenantId, assignedMembershipId], references: [tenantId, id], onDelete: Restrict)
   customerAddress CustomerAddress?   @relation(fields: [tenantId, customerAddressId], references: [tenantId, id], onDelete: Restrict)
+  inventoryEntry  InventoryEntry?    @relation(fields: [tenantId, inventoryEntryId], references: [tenantId, id], onDelete: Restrict)
   lines           OrderLine[]
   payments        OrderPayment[]
   events          OrderStatusEvent[]
@@ -1563,6 +1569,7 @@ model Order {
   @@index([tenantId, scheduledDate])
   @@index([tenantId, customerId])
   @@index([tenantId, assignedMembershipId])
+  @@unique([tenantId, inventoryEntryId])
 }
 
 /// Righe dell'ordine: stesse regole e snapshot delle righe del preventivo (`QuoteLineKind`).

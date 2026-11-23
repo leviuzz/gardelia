@@ -61,7 +61,10 @@ export async function updateFulfillmentAction(
   });
 }
 
-/** Lo stato richiesto arriva dal pulsante premuto: il servizio verifica il passo e i permessi. */
+/**
+ * Lo stato richiesto arriva dal pulsante premuto: il servizio verifica il passo e i permessi.
+ * `confirmShortage` c'è solo se la scheda ha mostrato che la merce non basta per "Listo" (ADR-071).
+ */
 export async function changeOrderStatusAction(
   slug: string,
   orderId: string,
@@ -69,7 +72,9 @@ export async function changeOrderStatusAction(
   formData: FormData,
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
-    const status = await changeOrderStatus(ctx, orderId, formData.get('status'));
+    const status = await changeOrderStatus(ctx, orderId, formData.get('status'), {
+      confirmShortage: formData.get('confirmShortage') === 'on',
+    });
     return {
       revalidate: section(routes.orders.list()),
       success: (t) => t('orders.detail.stepDone', { status: t(`orders.statuses.${status}`) }),

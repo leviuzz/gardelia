@@ -24,12 +24,34 @@ import {
 
 /** Ingrediente nello snapshot di una riga (distinta al momento in cui la riga è nata). */
 export interface RecipeLineSnapshot {
+  /**
+   * Prodotto del catalogo dell'ingrediente, per scaricarlo dall'inventario quando l'ordine è pronto
+   * (ADR-071). Assente nelle righe nate prima: allora vale la ricetta attuale del ramo.
+   */
+  readonly catalogItemId?: string;
   readonly name: string;
   readonly variety: string | null;
   readonly quantity: number;
   readonly saleUnit: SaleUnit;
   /** Colore di carta, vaso o nastro scelto nel Builder. */
   readonly color?: string | null;
+}
+
+/**
+ * La distinta da mostrare (preventivo, ordine): nome, varietà, quantità e colore, senza gli ID dei
+ * prodotti, che nello snapshot servono solo allo scarico dell'inventario (ADR-071).
+ */
+export function recipeForDisplay(
+  recipe: readonly Omit<RecipeLineSnapshot, 'catalogItemId'>[] | undefined,
+): Omit<RecipeLineSnapshot, 'catalogItemId'>[] | null {
+  if (!recipe) return null;
+  return recipe.map((line) => ({
+    name: line.name,
+    variety: line.variety,
+    quantity: line.quantity,
+    saleUnit: line.saleUnit,
+    ...(line.color !== undefined ? { color: line.color } : {}),
+  }));
 }
 
 /** Riga pronta da inserire, con la quantità decisa da chi la aggiunge. */
@@ -83,6 +105,7 @@ export async function catalogLineDraft(
   let recipe: RecipeLineSnapshot[] | undefined;
   if (item.type === 'BOUQUET' && item.recipe) {
     recipe = item.recipe.lines.map((line) => ({
+      catalogItemId: line.ingredientItemId,
       name: line.ingredient.name,
       variety: line.ingredient.variety,
       quantity: line.quantity,

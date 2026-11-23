@@ -8,6 +8,7 @@ import {
   NotFoundError,
   getCustomer,
   getOrder,
+  getOrderInventory,
   getPublicLink,
   hasPermission,
   listOrderAssignees,
@@ -189,6 +190,8 @@ export default async function OrderPage({
       ].join('\n')
     : null;
 
+  // Materiali dell'inventario (ADR-071): null senza il piano o se l'ordine non tocca prodotti controllati.
+  const inventory = await getOrderInventory(ctx, order.id);
   const customer = order.editable ? await getCustomer(ctx, order.customer.id) : null;
   const deliveryOptions = order.editable ? await deliveryFormOptions(ctx) : null;
   const delivery = order.deliveryAddress;
@@ -649,6 +652,7 @@ export default async function OrderPage({
                   action={changeOrderStatusAction.bind(null, slug, order.id)}
                   current={order.status}
                   steps={order.nextSteps}
+                  shortages={inventory?.shortages ?? []}
                 />
               )}
               {/* L'ordine da accettare si rifiuta dal pannello in cima. */}
@@ -660,6 +664,95 @@ export default async function OrderPage({
               ) : null}
             </CardContent>
           </Card>
+
+          {inventory ? (
+            <Card className="print:hidden" data-testid="order-inventory">
+              <CardHeader>
+                <CardTitle>{t('orders.inventory.title')}</CardTitle>
+                <CardDescription>
+                  {inventory.consumed
+                    ? t(
+                        inventory.consumed.reversed
+                          ? 'orders.inventory.reversed'
+                          : 'orders.inventory.consumed',
+                        {
+                          date: format.dateTime(inventory.consumed.at, {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                            timeZone: ctx.timezone,
+                          }),
+                        },
+                      )
+                    : t('orders.inventory.pending')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {inventory.lines.length > 0 ? (
+                  <ul className="divide-y">
+                    {inventory.lines.map((line) => (
+                      <li
+                        key={line.catalogItemId}
+                        className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-2 first:pt-0 last:pb-0"
+                      >
+                        <span className="min-w-0 font-medium">
+                          {line.name}{' '}
+                          <span className="font-normal text-muted-foreground tabular-nums">
+                            {t('inventory.quantity', {
+                              unit: line.saleUnit,
+                              count: line.requested,
+                            })}
+                          </span>
+                        </span>
+                        {line.missing > 0 ? (
+                          <Badge variant="warning" className="tabular-nums">
+                            {t('orders.inventory.missing', {
+                              quantity: t('inventory.quantity', {
+                                unit: line.saleUnit,
+                                count: line.missing,
+                              }),
+                            })}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground tabular-nums">
+                            {t('orders.inventory.available', {
+                              quantity: t('inventory.quantity', {
+                                unit: line.saleUnit,
+                                count: line.available,
+                              }),
+                            })}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground">
+                    {inventory.consumed?.reversed
+                      ? t('orders.inventory.reversedHint')
+                      : t('orders.inventory.consumedHint')}
+                  </p>
+                )}
+                {inventory.lines.some((line) => line.reserved > 0) ? (
+                  // Un apartado fatto a mano per questo ordine va liberato: l'ordine scarica già.
+                  <p className="rounded-xl bg-muted p-3">
+                    {t('orders.inventory.reservedHint')}{' '}
+                    <Link
+                      href={routes.inventory.reservations()}
+                      className="font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      {t('orders.inventory.reservations')}
+                    </Link>
+                  </p>
+                ) : null}
+                <Link
+                  href={routes.inventory.movements({ kind: 'USE' })}
+                  className="inline-flex font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  {t('orders.inventory.movements')}
+                </Link>
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card className="print:hidden">
             <CardHeader>

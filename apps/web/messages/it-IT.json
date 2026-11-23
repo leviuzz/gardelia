@@ -121,7 +121,8 @@
       "order_date_passed": "La data di questo ordine è già passata: cambiala d’accordo con il cliente prima di accettarlo.",
       "order_needs_acceptance": "Questo ordine online si conferma con «Accetta l’ordine», che avvisa il cliente.",
       "delivery_fee_tier_exists": "Hai già una tariffa per quella distanza.",
-      "delivery_fee_tier_limit": "Hai raggiunto il massimo di tariffe."
+      "delivery_fee_tier_limit": "Hai raggiunto il massimo di tariffe.",
+      "order_inventory_shortage": "In inventario non basta per questo ordine. Apri o ricarica la scheda dell’ordine per vedere cosa manca e confermare che è pronto."
     },
     "pageNotFoundTitle": "Pagina non trovata",
     "pageNotFoundBody": "La pagina non esiste o non hai accesso.",
@@ -1577,7 +1578,11 @@
       "historyStep": "«{from}» → «{to}»",
       "print": "Stampa",
       "whatsapp": "Invia su WhatsApp",
-      "saved": "Consegna e biglietto salvati"
+      "saved": "Consegna e biglietto salvati",
+      "forwardShortage": "Segna pronto anche se manca",
+      "shortage": "In inventario non basta per questo ordine:",
+      "shortageItem": "{name}: mancano {missing}",
+      "shortageConfirm": "Se lo segni come pronto, si scarica lo stesso e la giacenza va sotto zero finché non registri l’acquisto o un conteggio."
     },
     "form": {
       "title": "Trasforma in ordine",
@@ -1783,6 +1788,19 @@
       "buyerNotes": "Commenti del cliente",
       "askManager": "Solo proprietari e manager possono accettare o rifiutare gli ordini online.",
       "stepsAfter": "Prima accettalo o rifiutalo qui sopra; poi qui segni come procede."
+    },
+    "inventory": {
+      "title": "Inventario",
+      "pending": "Quando lo segni come pronto, questi materiali escono dall’inventario.",
+      "consumed": "Il {date} i materiali sono stati scaricati dall’inventario.",
+      "reversed": "Il {date} i materiali sono stati scaricati; poi il movimento è stato annullato in Inventario.",
+      "consumedHint": "Se alla fine non sono stati usati (per esempio perché l’ordine è stato annullato), il proprietario o il manager possono annullare il movimento in Inventario: ha il numero dell’ordine nella nota.",
+      "reversedHint": "Questo ordine non li scarica di nuovo. Se invece sono stati usati, registralo in Inventario.",
+      "missing": "Mancano {quantity}",
+      "available": "Disponibili: {quantity}",
+      "movements": "Vedi i movimenti dell’inventario",
+      "reservedHint": "Una parte di questi prodotti è riservata. Se una riserva è per questo ordine, liberala quando lo segni come pronto: l’ordine scarica già i suoi materiali.",
+      "reservations": "Vedi le riserve"
     }
   },
   "plans": {

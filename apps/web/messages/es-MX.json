@@ -121,7 +121,8 @@
       "order_date_passed": "La fecha de este pedido ya pasó: cámbiala de acuerdo con el cliente antes de aceptarlo.",
       "order_needs_acceptance": "Este pedido en línea se confirma con «Aceptar pedido», que le avisa al cliente.",
       "delivery_fee_tier_exists": "Ya tienes una tarifa para esa distancia.",
-      "delivery_fee_tier_limit": "Llegaste al máximo de tarifas."
+      "delivery_fee_tier_limit": "Llegaste al máximo de tarifas.",
+      "order_inventory_shortage": "No alcanza el inventario para este pedido. Abre o recarga la ficha del pedido para ver qué falta y confirmar que está listo."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -1577,7 +1578,11 @@
       "historyStep": "«{from}» → «{to}»",
       "print": "Imprimir",
       "whatsapp": "Enviar por WhatsApp",
-      "saved": "Entrega y tarjeta guardadas"
+      "saved": "Entrega y tarjeta guardadas",
+      "forwardShortage": "Marcar listo aunque falte",
+      "shortage": "No alcanza el inventario para este pedido:",
+      "shortageItem": "{name}: faltan {missing}",
+      "shortageConfirm": "Si lo marcas como listo, se descuenta igual y la existencia queda en negativo hasta que registres la compra o un conteo."
     },
     "form": {
       "title": "Convertir en pedido",
@@ -1783,6 +1788,19 @@
       "buyerNotes": "Comentarios del cliente",
       "askManager": "Solo propietarios y gerentes pueden aceptar o rechazar los pedidos en línea.",
       "stepsAfter": "Primero acéptalo o recházalo arriba; luego aquí marcas cómo avanza."
+    },
+    "inventory": {
+      "title": "Inventario",
+      "pending": "Al marcarlo como listo, estos materiales se descuentan del inventario.",
+      "consumed": "El {date} se descontaron los materiales del inventario.",
+      "reversed": "El {date} se descontaron los materiales; después el movimiento se anuló en Inventario.",
+      "consumedHint": "Si al final no se usaron (por ejemplo, porque se canceló el pedido), el propietario o el gerente pueden anular el movimiento en Inventario: lleva el número del pedido en la nota.",
+      "reversedHint": "Este pedido ya no vuelve a descontarlos. Si sí se usaron, regístralo en Inventario.",
+      "missing": "Faltan {quantity}",
+      "available": "Disponibles: {quantity}",
+      "movements": "Ver movimientos del inventario",
+      "reservedHint": "Parte de estos productos está apartada. Si un apartado es para este pedido, libéralo cuando lo marques como listo: el pedido ya descuenta sus materiales.",
+      "reservations": "Ver apartados"
     }
   },
   "plans": {
