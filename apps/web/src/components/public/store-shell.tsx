@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
  */
 export function StoreShell({
   name,
+  logoSrc,
   homeHref,
   demoNotice,
   contact,
@@ -15,6 +16,8 @@ export function StoreShell({
   children,
 }: {
   readonly name: string;
+  /** Logo della fioreria (piccolo, accanto al nome), o null. */
+  readonly logoSrc: string | null;
   readonly homeHref: string;
   /** Avviso per una fioreria di prova (null per quelle vere). */
   readonly demoNotice: string | null;
@@ -40,7 +43,16 @@ export function StoreShell({
           href={homeHref}
           className="flex items-center gap-2 text-sm font-semibold tracking-wide text-primary uppercase"
         >
-          <Flower2 className="size-4" aria-hidden="true" />
+          {logoSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element -- logo servito dall'app.
+            <img
+              src={logoSrc}
+              alt=""
+              className="size-8 rounded-lg border bg-white object-contain"
+            />
+          ) : (
+            <Flower2 className="size-4" aria-hidden="true" />
+          )}
           {name}
         </Link>
         {contact ? (

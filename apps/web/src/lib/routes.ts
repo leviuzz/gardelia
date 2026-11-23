@@ -164,6 +164,9 @@ export function tenantRoutes(slug: string) {
       plan: `${settings}/plan`,
       /** "Mi tienda en línea" (ADR-065). */
       store: `${settings}/store`,
+      /** Anteprima di logo o copertina nelle impostazioni (`v` = ID attuale, contro la cache). */
+      storeImage: (kind: 'LOGO' | 'COVER', imageId: string) =>
+        withQuery(`${settings}/store/image/${kind === 'LOGO' ? 'logo' : 'cover'}`, { v: imageId }),
     },
   } as const;
 }
@@ -193,6 +196,9 @@ export function publicStoreRoutes(slug: string) {
   return {
     home,
     item,
+    /** Logo o copertina della tienda: l'ID attuale è nell'indirizzo. */
+    image: (kind: 'LOGO' | 'COVER', imageId: string) =>
+      `${home}/imagen/${kind === 'LOGO' ? 'logo' : 'portada'}/${segment(imageId)}`,
     /** Foto di un prodotto visibile (`thumb` = miniatura). */
     photo: (itemId: string, photoId: string, options?: { readonly thumb?: boolean }) =>
       withQuery(`${item(itemId)}/foto/${segment(photoId)}`, {

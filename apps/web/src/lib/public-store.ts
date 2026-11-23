@@ -6,12 +6,13 @@ import { publicStoreRoutes } from './routes';
 
 /** Testi della cornice comuni a pagina e prodotto, nella lingua del mercato della fioreria. */
 export async function storeShellProps(
-  store: Pick<PublicStoreDto, 'slug' | 'name' | 'locale' | 'isDemo' | 'phone'>,
+  store: Pick<PublicStoreDto, 'slug' | 'name' | 'locale' | 'isDemo' | 'phone' | 'logoId'>,
   whatsappText: string,
 ) {
   const t = await getTranslations({ locale: store.locale, namespace: 'publicStore' });
   return {
     name: store.name,
+    logoSrc: store.logoId ? publicStoreRoutes(store.slug).image('LOGO', store.logoId) : null,
     homeHref: publicStoreRoutes(store.slug).home,
     demoNotice: store.isDemo ? t('demoNotice') : null,
     contact: store.phone

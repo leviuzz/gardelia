@@ -558,6 +558,16 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Logo e copertina della tienda en línea, C2b (fatto il 23/11, ADR-065):** in Tienda en línea "Logo y
+portada" con anteprima, caricamento (riduzione nel browser e controllo sul server come le foto del catalogo),
+"Cambiar" e "Quitar"; nella pagina pubblica la copertina in alto e il logo accanto al nome (anche
+nell'intestazione), e la copertina come immagine dell'anteprima quando si condivide il link. L'ID
+dell'immagine è nell'indirizzo, così la cache non mostra mai quella vecchia; si serve solo l'immagine
+attuale di una tienda pubblicata. Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test 742/742 ✅ (3
+nuovi: caricamento, sostituzione, rimozione, permessi e isolamento A↔B) · migrazioni = schema ✅ · build ✅
+· E2E 79/79 ✅ (il flusso della tienda carica logo e copertina e controlla che si vedano davvero); controllo
+visivo a 390 e 1280 px. Prossimi: C3 home per chi compra e ricerca per indirizzo.
+
 **"Mi tienda en línea", blocco C2 del marketplace (fatto il 23/11, ADR-065):** Ajustes → Tienda en línea
 (presentazione, forme di pagamento con i dati per pagare, cosa manca per pubblicare, pubblica/ritira, link
 da copiare o mandare su WhatsApp); nel catalogo "Mostrar en mi tienda en línea" per ramos, piante, fiori e

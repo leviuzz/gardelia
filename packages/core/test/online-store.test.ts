@@ -1,16 +1,23 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import sharp from 'sharp';
 import { disconnectDb, getDb, withTenantContext } from '@floral/db';
 import {
   ConflictError,
   ForbiddenError,
+  MemoryStorage,
   ValidationError,
   createCatalogItem,
   getOnlineStoreSettings,
   getPublicStore,
+  getPublicStoreImage,
+  getStoreImage,
   getPublicStoreItem,
   getPublicStoreItemPhoto,
+  removeStoreImage,
   setCatalogItemArchived,
+  setObjectStorage,
   setOnlineStorePublished,
+  setStoreImage,
   updateCatalogItem,
   updateOnlineStore,
   updateTenantProfile,
@@ -37,7 +44,18 @@ async function setPhone(target: TestShop, phone: string) {
   });
 }
 
+const storage = new MemoryStorage();
+
+async function jpeg(width: number, height: number): Promise<Uint8Array> {
+  return new Uint8Array(
+    await sharp({ create: { width, height, channels: 3, background: { r: 30, g: 120, b: 80 } } })
+      .jpeg()
+      .toBuffer(),
+  );
+}
+
 beforeAll(async () => {
+  setObjectStorage(storage);
   shop = await createTestShop('Florería Tienda');
   other = await createTestShop('Florería Tienda Ajena');
   rose = await createCatalogItem(
@@ -83,6 +101,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  setObjectStorage(null);
   await disconnectDb();
 });
 
@@ -213,10 +232,57 @@ describe('pagina pubblica', () => {
     expect(await getPublicStore('../../etc')).toBeNull();
   });
 
+  it("logo piccolo e copertina grande; sostituirli cambia l'indirizzo; si possono togliere", async () => {
+    const logo = await setStoreImage(shop.owner, 'LOGO', await jpeg(1200, 1200));
+    const cover = await setStoreImage(shop.owner, 'COVER', await jpeg(2400, 900));
+    const store = await getPublicStore(shop.tenant.slug);
+    expect(store).toMatchObject({ logoId: logo.id, coverId: cover.id });
+
+    const logoImage = await getPublicStoreImage(shop.tenant.slug, 'LOGO', logo.id);
+    expect((await sharp(logoImage!.bytes).metadata()).width).toBe(480);
+    const coverImage = await getPublicStoreImage(shop.tenant.slug, 'COVER', cover.id);
+    expect((await sharp(coverImage!.bytes).metadata()).width).toBe(1600);
+    // L'ID di un'immagine non vale per l'altra, né un ID inventato.
+    expect(await getPublicStoreImage(shop.tenant.slug, 'COVER', logo.id)).toBeNull();
+    expect(await getPublicStoreImage(shop.tenant.slug, 'BANNER', logo.id)).toBeNull();
+
+    const newLogo = await setStoreImage(shop.owner, 'LOGO', await jpeg(800, 800));
+    expect(await getPublicStoreImage(shop.tenant.slug, 'LOGO', logo.id)).toBeNull();
+    expect(await getPublicStoreImage(shop.tenant.slug, 'LOGO', newLogo.id)).not.toBeNull();
+    // Anteprima nelle impostazioni (anche lo staff la vede).
+    expect((await getStoreImage(shop.staff, 'LOGO')).contentType).toBe('image/jpeg');
+
+    await removeStoreImage(shop.owner, 'COVER');
+    expect((await getPublicStore(shop.tenant.slug))?.coverId).toBeNull();
+    expect(await getPublicStoreImage(shop.tenant.slug, 'COVER', cover.id)).toBeNull();
+  });
+
+  it('immagini: file non validi rifiutati, lo staff non le cambia, B non le vede da A', async () => {
+    await expect(
+      setStoreImage(shop.owner, 'LOGO', new Uint8Array([1, 2, 3])),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(setStoreImage(shop.owner, 'LOGO', await jpeg(100, 100))).rejects.toMatchObject({
+      fieldErrors: { file: 'image_too_small' },
+    });
+    await expect(setStoreImage(shop.owner, 'BANNER', await jpeg(800, 800))).rejects.toMatchObject({
+      fieldErrors: { kind: 'invalid_option' },
+    });
+    await expect(setStoreImage(shop.staff, 'LOGO', await jpeg(800, 800))).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    await expect(removeStoreImage(shop.staff, 'LOGO')).rejects.toBeInstanceOf(ForbiddenError);
+    // L'altra fioreria (non pubblicata) con un logo suo: dal suo slug non si vede, né da quello di A.
+    const foreignLogo = await setStoreImage(other.owner, 'LOGO', await jpeg(800, 800));
+    expect(await getPublicStoreImage(other.tenant.slug, 'LOGO', foreignLogo.id)).toBeNull();
+    expect(await getPublicStoreImage(shop.tenant.slug, 'LOGO', foreignLogo.id)).toBeNull();
+  });
+
   it('ritirata la tienda, la pagina non esiste più', async () => {
     await setOnlineStorePublished(shop.owner, false);
     expect(await getPublicStore(shop.tenant.slug)).toBeNull();
     expect(await getPublicStoreItem(shop.tenant.slug, bouquet.id)).toBeNull();
     expect((await getOnlineStoreSettings(shop.owner)).isPublished).toBe(false);
+    const { logoId } = await getOnlineStoreSettings(shop.owner);
+    expect(await getPublicStoreImage(shop.tenant.slug, 'LOGO', logoId)).toBeNull();
   });
 });

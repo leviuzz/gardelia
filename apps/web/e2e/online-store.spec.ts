@@ -40,6 +40,15 @@ test.describe('tienda en línea (propietaria y cliente)', () => {
     await page.getByRole('button', { name: 'Guardar', exact: true }).click();
     await expect(page.getByText('Tienda actualizada.')).toBeVisible();
 
+    // Logo e copertina (stessa catena delle foto del catalogo).
+    await page.getByLabel('Archivo del logo').setInputFiles('e2e/fixtures/ramo.jpg');
+    await page.getByRole('button', { name: /^(Subir|Cambiar) logo$/ }).click();
+    await expect(page.getByText('Se subió 1 foto')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Quitar logo' })).toBeVisible();
+    await page.getByLabel('Archivo de la portada').setInputFiles('e2e/fixtures/rosa.jpg');
+    await page.getByRole('button', { name: /^(Subir|Cambiar) portada$/ }).click();
+    await expect(page.getByRole('button', { name: 'Quitar portada' })).toBeVisible();
+
     await page.getByRole('button', { name: 'Publicar mi tienda' }).click();
     await expect(page.getByText('Tu tienda está publicada.')).toBeVisible();
     await expect(page.getByText('Publicada', { exact: true })).toBeVisible();
@@ -56,6 +65,14 @@ test.describe('tienda en línea (propietaria y cliente)', () => {
     await expect(shopper.getByText('Flores frescas en el centro de Aguascalientes.')).toBeVisible();
     await expect(shopper.getByText('Florería de demostración')).toBeVisible();
     await expect(shopper.getByText('CLABE 012345678901234567 (BBVA)')).toBeVisible();
+    // Logo e copertina si vedono davvero (immagini caricate, non solo il tag).
+    for (const name of ['Logo de Florería Las Camelias', 'Foto de Florería Las Camelias']) {
+      const image = shopper.getByRole('img', { name });
+      await expect(image).toBeVisible();
+      expect(
+        await image.evaluate((element: HTMLImageElement) => element.naturalWidth),
+      ).toBeGreaterThan(0);
+    }
     // Solo i prodotti mostrati in linea (le rose sciolte del catalogo no).
     await expect(shopper.getByRole('link', { name: /^Rosa roja/ })).toHaveCount(0);
     await shopper.getByRole('link', { name: /Ramo Clásico 12 rosas/ }).click();
@@ -66,6 +83,14 @@ test.describe('tienda en línea (propietaria y cliente)', () => {
     await expect(shopper.getByRole('link', { name: 'Pedir por WhatsApp' })).toHaveAttribute(
       'href',
       /^https:\/\/wa\.me\/52\d{10}\?text=/,
+    );
+
+    // Senza copertina la pagina resta, solo senza l'immagine in alto.
+    await page.getByRole('button', { name: 'Quitar portada' }).click();
+    await expect(page.getByText('Imagen quitada.')).toBeVisible();
+    await shopper.goto('/f/las-camelias');
+    await expect(shopper.getByRole('img', { name: 'Foto de Florería Las Camelias' })).toHaveCount(
+      0,
     );
 
     // Ritirata, la pagina non esiste più.

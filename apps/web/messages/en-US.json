@@ -326,8 +326,26 @@
     "activity": {
       "updated": "{actor} updated the online shop",
       "published": "{actor} published the online shop",
-      "unpublished": "{actor} took the online shop offline"
-    }
+      "unpublished": "{actor} took the online shop offline",
+      "image_set": "{actor} changed the online shop logo or cover",
+      "image_removed": "{actor} removed the online shop logo or cover"
+    },
+    "imagesTitle": "Logo and cover",
+    "imagesSubtitle": "How people recognize your flower shop on the page and when you share the link.",
+    "logo": "Logo",
+    "logoHint": "Square works best; it shows small next to the name.",
+    "cover": "Cover photo",
+    "coverHint": "Landscape: your shop, your flowers or your best arrangement.",
+    "logoFile": "Logo file",
+    "coverFile": "Cover file",
+    "imageFileHint": "JPG, PNG or WebP. It's resized before uploading.",
+    "uploadLogo": "Upload logo",
+    "changeLogo": "Change logo",
+    "uploadCover": "Upload cover",
+    "changeCover": "Change cover",
+    "removeLogo": "Remove logo",
+    "removeCover": "Remove cover",
+    "imageRemoved": "Image removed."
   },
   "publicStore": {
     "demoNotice": "Demo flower shop: products and prices are examples.",
@@ -379,7 +397,9 @@
     "whatsappItem": "Hi, I'm interested in \"{name}\" ({price}) from your online shop: {url}",
     "paysWith": "Payment methods: {methods}.",
     "notFoundTitle": "This shop is not available",
-    "notFoundBody": "The link may be mistyped, or the flower shop has taken it offline."
+    "notFoundBody": "The link may be mistyped, or the flower shop has taken it offline.",
+    "logoAlt": "{name} logo",
+    "coverAlt": "Photo of {name}"
   },
   "timezones": {
     "America/Mexico_City": "Central Time (CDMX, Aguascalientes, Guadalajara, Monterrey)",

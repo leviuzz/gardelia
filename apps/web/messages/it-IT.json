@@ -326,8 +326,26 @@
     "activity": {
       "updated": "{actor} ha aggiornato il negozio online",
       "published": "{actor} ha pubblicato il negozio online",
-      "unpublished": "{actor} ha ritirato il negozio online"
-    }
+      "unpublished": "{actor} ha ritirato il negozio online",
+      "image_set": "{actor} ha cambiato il logo o la copertina del negozio online",
+      "image_removed": "{actor} ha tolto il logo o la copertina del negozio online"
+    },
+    "imagesTitle": "Logo e copertina",
+    "imagesSubtitle": "Così riconoscono la tua fioreria sulla pagina e quando condividi il link.",
+    "logo": "Logo",
+    "logoHint": "Meglio quadrato; si vede piccolo accanto al nome.",
+    "cover": "Foto di copertina",
+    "coverHint": "Orizzontale: il tuo negozio, i tuoi fiori o la tua composizione migliore.",
+    "logoFile": "File del logo",
+    "coverFile": "File della copertina",
+    "imageFileHint": "JPG, PNG o WebP. Viene ridimensionata prima di caricarla.",
+    "uploadLogo": "Carica il logo",
+    "changeLogo": "Cambia il logo",
+    "uploadCover": "Carica la copertina",
+    "changeCover": "Cambia la copertina",
+    "removeLogo": "Togli il logo",
+    "removeCover": "Togli la copertina",
+    "imageRemoved": "Immagine tolta."
   },
   "publicStore": {
     "demoNotice": "Fioreria di prova: prodotti e prezzi sono di esempio.",
@@ -379,7 +397,9 @@
     "whatsappItem": "Ciao, mi interessa «{name}» ({price}) del vostro negozio online: {url}",
     "paysWith": "Forme di pagamento: {methods}.",
     "notFoundTitle": "Questo negozio non è disponibile",
-    "notFoundBody": "Forse il link è scritto male o la fioreria lo ha ritirato."
+    "notFoundBody": "Forse il link è scritto male o la fioreria lo ha ritirato.",
+    "logoAlt": "Logo di {name}",
+    "coverAlt": "Foto di {name}"
   },
   "timezones": {
     "America/Mexico_City": "Ora del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",

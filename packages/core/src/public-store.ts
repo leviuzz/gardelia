@@ -12,6 +12,7 @@ import {
   ONLINE_ITEM_TYPES,
   STORE_LIMITS,
   formatTimeOfDay,
+  isStoreImageKind,
   isUuid,
   resolveLocale,
   type Availability,
@@ -51,6 +52,9 @@ export interface PublicStoreDto {
   readonly description: string | null;
   /** Telefono per WhatsApp e chiamate (E.164), o null. */
   readonly phone: string | null;
+  /** ID del logo e della copertina (nell'indirizzo dell'immagine), o null. */
+  readonly logoId: string | null;
+  readonly coverId: string | null;
   /** Dove si ritira (indirizzo della tienda principale), o null. */
   readonly address: {
     readonly line: string;
@@ -73,7 +77,7 @@ export interface PublicStoreDto {
 export interface PublicStoreItemDetailDto {
   readonly store: Pick<
     PublicStoreDto,
-    'slug' | 'name' | 'locale' | 'currency' | 'isDemo' | 'phone' | 'paymentMethods'
+    'slug' | 'name' | 'locale' | 'currency' | 'isDemo' | 'phone' | 'paymentMethods' | 'logoId'
   >;
   readonly item: PublicStoreItemDto & {
     /** Tutte le foto, nell'ordine del catalogo. */
@@ -148,6 +152,7 @@ async function readStoreHeader(tx: TransactionClient, tenantId: string) {
       isDemo: tenant.mode === 'DEMO',
       phone: tenant.contactPhone,
       paymentMethods: store.paymentMethods as StorePaymentMethod[],
+      logoId: store.logoId,
     },
   };
 }
@@ -190,6 +195,7 @@ export async function getPublicStore(slug: unknown): Promise<PublicStoreDto | nu
     const region = (code: string) => MX_REGIONS.find((item) => item.code === code)?.name ?? code;
     return {
       ...header,
+      coverId: store.coverId,
       description: store.description,
       address: location
         ? {
@@ -289,6 +295,28 @@ export async function getPublicStoreItemPhoto(
     // File mancante nell'archivio (già registrato): per il cliente la foto semplicemente non c'è.
     if (error instanceof NotFoundError) return null;
     logger.error({ err: error }, 'tienda pública: errore nella lettura di una foto');
+    return null;
+  }
+}
+
+/** Logo o copertina di una tienda pubblicata; l'ID deve essere quello attuale. */
+export async function getPublicStoreImage(
+  slug: unknown,
+  kind: unknown,
+  imageId: unknown,
+): Promise<StoredImage | null> {
+  if (!isStoreImageKind(kind) || !isUuid(imageId)) return null;
+  const key = await withPublishedStore(slug, async (tx, tenantId) => {
+    const store = await tx.onlineStore.findUniqueOrThrow({ where: { tenantId } });
+    if (kind === 'LOGO') return store.logoId === imageId ? store.logoKey : null;
+    return store.coverId === imageId ? store.coverKey : null;
+  });
+  if (!key) return null;
+  try {
+    return await readStoredImage(key, 'image/jpeg', 'OnlineStore');
+  } catch (error) {
+    if (error instanceof NotFoundError) return null;
+    logger.error({ err: error }, 'tienda pública: errore nella lettura del logo o della copertina');
     return null;
   }
 }
