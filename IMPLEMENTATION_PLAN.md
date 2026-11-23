@@ -567,8 +567,8 @@ pulsante diventa "Marcar listo aunque falte"; da Hoy salen e Ruta il passo si fe
 l'ordine. Riquadro "Inventario" nella scheda: cosa uscirà e cosa manca, poi quando è uscito, e l'avviso se una
 parte è apartada (da liberare se è per l'ordine). Senza il piano nulla cambia. Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test 839/839 ✅ (10 nuovi
 d'integrazione: scarico unico, conferma, ricette vecchie, disegni, apartados, anulación, due clic insieme,
-piano Basic, isolamento A↔B) · migrazioni = schema ✅ · build ✅ · E2E nuovo ✅ (dal fiore controllato
-all'ordine "Listo" con la conferma e al movimento); controllo visivo a 320 e 1280 px. Prossimi: apartados creati
+piano Basic, isolamento A↔B) · migrazioni = schema ✅ · build ✅ · E2E 88/88 ✅ su database nuovo (1 nuovo: dal fiore
+controllato all'ordine "Listo" con la conferma e al movimento); controllo visivo a 320 e 1280 px. Prossimi: apartados creati
 dagli ordini confermati; chi compra che annulla da solo un ordine in attesa; esportazione e cancellazione per le
 fiorerie.
 
