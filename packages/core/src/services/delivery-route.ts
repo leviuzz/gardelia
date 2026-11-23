@@ -9,12 +9,15 @@ import {
   AUDIT_ACTIONS,
   MX_REGIONS,
   formatOrderNumber,
+  freshCoordinates,
   formatTimeOfDay,
   isOrderFinal,
   isUuid,
+  nearestNeighborOrder,
   orderBalanceMinor,
   parseIsoDate,
   todayInTimeZone,
+  type Coordinates,
   type OrderStatus,
 } from '@floral/domain';
 import { notFound, recordAudit } from '../audit';
@@ -133,8 +136,13 @@ export interface DeliveryRouteDto {
   readonly isToday: boolean;
   /** Indirizzo della fioreria, partenza del giro (null se manca). */
   readonly origin: string | null;
-  /** Da consegnare, in ordine di fascia (quelle "in giornata" in fondo). */
+  /**
+   * Da consegnare, in ordine di fascia (quelle "in giornata" in fondo) e, dentro la fascia, per
+   * vicinanza quando ci sono le coordinate (Google Places, ADR-059).
+   */
   readonly stops: readonly RouteStopDto[];
+  /** Almeno una fascia è stata ordinata per vicinanza. */
+  readonly orderedByDistance: boolean;
   /** Già consegnati quel giorno. */
   readonly delivered: readonly RouteStopDto[];
   /** Ordini a domicilio di quel giorno senza repartidor. */
@@ -187,12 +195,31 @@ export async function getDeliveryRoute(
         city: true,
         region: true,
         postalCode: true,
+        latitude: true,
+        longitude: true,
+        coordinatesAt: true,
       },
     });
     return { orders, location };
   });
 
-  const stops = orders.map((order): RouteStopDto => ({
+  const now = new Date();
+  // Coordinate solo se ancora valide (cache di 30 giorni, regole di Google).
+  const coordinatesById = new Map<string, Coordinates>();
+  for (const order of orders) {
+    const coordinates = freshCoordinates(
+      {
+        latitude: order.deliveryLatitude,
+        longitude: order.deliveryLongitude,
+        coordinatesAt: order.deliveryCoordinatesAt,
+      },
+      now,
+    );
+    if (coordinates) coordinatesById.set(order.id, coordinates);
+  }
+  const shopCoordinates = location ? freshCoordinates(location, now) : null;
+
+  const all = orders.map((order): RouteStopDto => ({
     id: order.id,
     numberLabel: formatOrderNumber(order.number),
     status: order.status,
@@ -219,6 +246,29 @@ export async function getDeliveryRoute(
     nextSteps: allowedOrderSteps(ctx, order.status, order.fulfillmentMode),
   }));
 
+  // Dentro ogni fascia: la più vicina a dove si è (la fioreria, poi l'ultima fermata).
+  const pending = all.filter((stop) => stop.status !== 'DELIVERED');
+  const ordered: RouteStopDto[] = [];
+  let position = shopCoordinates;
+  let orderedByDistance = false;
+  const windowOf = (stop: RouteStopDto) => `${stop.windowStart}-${stop.windowEnd}`;
+  for (let start = 0; start < pending.length;) {
+    const window = windowOf(pending[start]!);
+    let end = start;
+    while (end < pending.length && windowOf(pending[end]!) === window) end += 1;
+    const group = pending.slice(start, end);
+    if (group.filter((stop) => coordinatesById.has(stop.id)).length > 1) orderedByDistance = true;
+    const sorted = nearestNeighborOrder(
+      position,
+      group,
+      (stop) => coordinatesById.get(stop.id) ?? null,
+    );
+    ordered.push(...sorted);
+    const last = [...sorted].reverse().find((stop) => coordinatesById.has(stop.id));
+    if (last) position = coordinatesById.get(last.id) ?? position;
+    start = end;
+  }
+
   return {
     date: formatDateParts(day) ?? '',
     isToday: formatDateParts(day) === formatDateParts(today),
@@ -231,8 +281,9 @@ export async function getDeliveryRoute(
           region(location.region),
         ])
       : null,
-    stops: stops.filter((stop) => stop.status !== 'DELIVERED'),
-    delivered: stops.filter((stop) => stop.status === 'DELIVERED'),
+    stops: ordered,
+    orderedByDistance,
+    delivered: all.filter((stop) => stop.status === 'DELIVERED'),
     unassigned: orders.filter(
       (order) => order.status !== 'DELIVERED' && order.assignedMembershipId === null,
     ).length,

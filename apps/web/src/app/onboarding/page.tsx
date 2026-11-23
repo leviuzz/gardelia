@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
+import { getPlacesProvider } from '@floral/core';
 import { MX_REGIONS, MX_TIMEZONES } from '@floral/domain';
 import { Logo } from '@/components/brand/logo';
+import { PlacesConfigProvider } from '@/components/form/address-search';
 import { LanguageSwitcher } from '@/components/i18n/language-switcher';
 import { requireUser } from '@/lib/session';
 import { createTenantAction } from './actions';
@@ -31,12 +33,15 @@ export default async function OnboardingPage() {
           {t('onboarding.title')}
         </h1>
         <p className="mt-2 text-muted-foreground">{t('onboarding.subtitle')}</p>
-        <OnboardingForm
-          action={createTenantAction}
-          timezones={timezones}
-          regions={MX_REGIONS.map((region) => ({ code: region.code, name: region.name }))}
-          defaultContactEmail={user.email}
-        />
+        {/* "Buscar dirección" se c'è la chiave di Google (ADR-059); la fioreria non ha ancora coordinate. */}
+        <PlacesConfigProvider enabled={getPlacesProvider() !== null} near={null}>
+          <OnboardingForm
+            action={createTenantAction}
+            timezones={timezones}
+            regions={MX_REGIONS.map((region) => ({ code: region.code, name: region.name }))}
+            defaultContactEmail={user.email}
+          />
+        </PlacesConfigProvider>
       </main>
     </div>
   );

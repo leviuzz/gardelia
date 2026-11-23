@@ -46,6 +46,15 @@ export {
   type UnsubscribeInfo,
 } from './promo-unsubscribe';
 export {
+  GooglePlacesProvider,
+  PlacesUnavailableError,
+  getPlacesProvider,
+  setPlacesProvider,
+  type PlaceDetails,
+  type PlaceSuggestion,
+  type PlacesProvider,
+} from './places';
+export {
   acceptPublicQuote,
   getPublicLineImage,
   getPublicOrder,

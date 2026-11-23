@@ -133,6 +133,7 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
               postalCode: location?.postalCode ?? '',
               phone: phoneForInput(location?.phone ?? null),
               deliveryRadiusKm: location?.deliveryRadiusKm?.toString() ?? '',
+              placeId: location?.placeId ?? '',
             }}
           />
         </CardContent>

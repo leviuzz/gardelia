@@ -530,6 +530,21 @@ link. Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test unit 294
 (5 nuovi con isolamento A↔B) · migrazioni = schema ✅ · build ✅ · E2E 70/70 ✅ (flusso del link esteso
 fino alla foto). Prossimi: Google Places (deciso dal founder il 23/11, O-14), poi il marketplace.
 
+**Google Places (fatto il 23/11, ADR-059, deciso dal founder):** nei form degli indirizzi (onboarding,
+tienda, clienti, consegna dell'ordine) "Buscar dirección": si scrive, si sceglie un suggerimento e i
+campi si compilano (via e numero, colonia, CP, municipio, estado); interno, colonia e CP si correggono
+senza perdere il luogo, cambiando via, municipio o stato il luogo si toglie. Si salvano place ID e
+coordinate (30 giorni, poi le cancella la manutenzione giornaliera); la Ruta del día ordina per
+vicinanza le fermate di ogni fascia e lo dice. Chiave solo sul server (`GOOGLE_MAPS_API_KEY`), rotte
+`/api/places/*` con sessione, stessa origine e tetto per persona; senza chiave il campo non c'è.
+Guida per la chiave in `docs/DEPLOY_VERCEL.md` §9, riga nella bozza dell'aviso de privacidad.
+Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test 670/670 ✅ (27 nuovi: dominio, configurazione,
+adattatore, manutenzione, 8 d'integrazione con isolamento A↔B) · migrazioni = schema ✅ · build ✅ ·
+E2E 73/73 ✅ (senza chiave, come in CI); controllo visivo a 390 e 1280 px con le risposte di Google
+simulate nel browser, e con la chiave finta (Google risponde errore → messaggio, form usabile).
+Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
+scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
+
 **Inventario, blocco 1 (fatto il 23/11, ADR-060, richiesta del founder):** voce "Inventario" nel menu
 (su telefono in "Más") con Existencias e Movimientos. "Elegir productos": si scrive quanti ce ne sono
 di ogni prodotto fisico del catalogo da controllare e, se si vuole, il minimo ("Avísame con"); la

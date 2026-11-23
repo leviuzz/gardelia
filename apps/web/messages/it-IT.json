@@ -245,6 +245,15 @@
     "chooseSubtitle": "Hai accesso a più fiorerie.",
     "createAnother": "Crea un’altra fioreria"
   },
+  "places": {
+    "label": "Cerca indirizzo",
+    "placeholder": "Scrivi via e numero, es. Av. Madero 120",
+    "hint": "Scegli un suggerimento per compilare i campi; puoi anche scriverli a mano.",
+    "suggestions": "Indirizzi suggeriti",
+    "unavailable": "La ricerca non è disponibile ora. Scrivi l'indirizzo a mano.",
+    "noResults": "Nessun risultato. Controlla cosa hai scritto o compila i campi a mano.",
+    "found": "Indirizzo compilato. Controlla interno, colonia e codice postale."
+  },
   "timezones": {
     "America/Mexico_City": "Ora del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
     "America/Cancun": "Ora del Sud-est (Quintana Roo)",
@@ -1258,7 +1267,8 @@
       "emptyTitle": "Nessuna consegna a domicilio in questo giorno",
       "emptyMine": "Non hai consegne assegnate in questo giorno",
       "emptyBody": "Gli ordini a domicilio compaiono qui in ordine di orario.",
-      "delivered": "{count, plural, one {# già consegnato} other {# già consegnati}}"
+      "delivered": "{count, plural, one {# già consegnato} other {# già consegnati}}",
+      "summaryByDistance": "{count, plural, one {# tappa} other {# tappe}} in ordine di orario e, dentro ogni fascia, di vicinanza"
     },
     "assign": {
       "label": "Fattorino",

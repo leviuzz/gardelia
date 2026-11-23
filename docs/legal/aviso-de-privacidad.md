@@ -75,15 +75,16 @@ registro.]
 **No vendemos tus datos.** Para prestar el servicio usamos proveedores que los tratan por nuestra
 cuenta, con las medidas de seguridad y confidencialidad necesarias:
 
-| Proveedor                        | Para qué                                                                                                                      | Dónde              |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| Vercel Inc.                      | Alojamiento de la aplicación                                                                                                  | Estados Unidos     |
-| Neon (Databricks, Inc.)          | Base de datos                                                                                                                 | Estados Unidos     |
-| Cloudflare, Inc. (R2)            | Almacenamiento de fotos e imágenes                                                                                            | [región — validar] |
-| Resend                           | Envío de correos del servicio                                                                                                 | Estados Unidos     |
-| fal.ai (Features & Labels, Inc.) | Procesamiento de imágenes con inteligencia artificial; puede usar modelos de terceros (por ejemplo, de Google y de Anthropic) | Estados Unidos     |
-| Google LLC                       | Inicio de sesión, solo si eliges "Continuar con Google"                                                                       | Estados Unidos     |
-| [Sentry — cuando se active]      | Diagnóstico de errores                                                                                                        | [validar]          |
+| Proveedor                         | Para qué                                                                                                                       | Dónde              |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
+| Vercel Inc.                       | Alojamiento de la aplicación                                                                                                   | Estados Unidos     |
+| Neon (Databricks, Inc.)           | Base de datos                                                                                                                  | Estados Unidos     |
+| Cloudflare, Inc. (R2)             | Almacenamiento de fotos e imágenes                                                                                             | [región — validar] |
+| Resend                            | Envío de correos del servicio                                                                                                  | Estados Unidos     |
+| fal.ai (Features & Labels, Inc.)  | Procesamiento de imágenes con inteligencia artificial; puede usar modelos de terceros (por ejemplo, de Google y de Anthropic)  | Estados Unidos     |
+| Google LLC                        | Inicio de sesión, solo si eliges "Continuar con Google"                                                                        | Estados Unidos     |
+| Google LLC (Google Maps Platform) | Sugerencias y coordenadas de direcciones al escribirlas ("Buscar dirección"): recibe solo el texto que se escribe en ese campo | Estados Unidos     |
+| [Sentry — cuando se active]       | Diagnóstico de errores                                                                                                         | [validar]          |
 
 Por eso **tus datos se alojan y procesan en Estados Unidos.** [Validar con el abogado cómo informar
 estas remisiones y transferencias internacionales conforme a la ley vigente.]

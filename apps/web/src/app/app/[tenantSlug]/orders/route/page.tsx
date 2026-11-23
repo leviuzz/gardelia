@@ -229,7 +229,10 @@ export default async function DeliveryRoutePage({
           {route.stops.length > 0 ? (
             <section className="grid gap-3 rounded-2xl border bg-secondary/40 p-4">
               <p className="text-sm">
-                {t('orders.route.summary', { count: route.stops.length })}
+                {/* Con le coordinate di Google Places le fermate di ogni fascia vanno per vicinanza. */}
+                {route.orderedByDistance
+                  ? t('orders.route.summaryByDistance', { count: route.stops.length })
+                  : t('orders.route.summary', { count: route.stops.length })}
                 {!mine && route.unassigned > 0
                   ? ` · ${t('orders.route.unassigned', { count: route.unassigned })}`
                   : ''}

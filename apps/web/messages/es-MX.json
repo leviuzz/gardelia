@@ -245,6 +245,15 @@
     "chooseSubtitle": "Tienes acceso a varias florerías.",
     "createAnother": "Crear otra florería"
   },
+  "places": {
+    "label": "Buscar dirección",
+    "placeholder": "Escribe calle y número, p. ej. Av. Madero 120",
+    "hint": "Elige una sugerencia para llenar los campos; también puedes escribirlos a mano.",
+    "suggestions": "Direcciones sugeridas",
+    "unavailable": "La búsqueda no está disponible ahora. Escribe la dirección a mano.",
+    "noResults": "Sin resultados. Revisa lo que escribiste o llena los campos a mano.",
+    "found": "Dirección completada. Revisa el número interior, la colonia y el código postal."
+  },
   "timezones": {
     "America/Mexico_City": "Tiempo del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
     "America/Cancun": "Tiempo del Sureste (Quintana Roo)",
@@ -1258,7 +1267,8 @@
       "emptyTitle": "No hay entregas a domicilio este día",
       "emptyMine": "No tienes entregas asignadas este día",
       "emptyBody": "Los pedidos a domicilio aparecen aquí en orden de horario.",
-      "delivered": "{count, plural, one {# ya entregado} other {# ya entregados}}"
+      "delivered": "{count, plural, one {# ya entregado} other {# ya entregados}}",
+      "summaryByDistance": "{count, plural, one {# parada} other {# paradas}} en orden de horario y, dentro de cada horario, de cercanía"
     },
     "assign": {
       "label": "Repartidor",

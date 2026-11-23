@@ -245,6 +245,15 @@
     "chooseSubtitle": "You have access to several shops.",
     "createAnother": "Create another shop"
   },
+  "places": {
+    "label": "Search address",
+    "placeholder": "Type street and number, e.g. Av. Madero 120",
+    "hint": "Pick a suggestion to fill in the fields, or type them yourself.",
+    "suggestions": "Suggested addresses",
+    "unavailable": "Address search isn't available right now. Type the address yourself.",
+    "noResults": "No results. Check what you typed or fill in the fields yourself.",
+    "found": "Address filled in. Check the unit number, colonia and postal code."
+  },
   "timezones": {
     "America/Mexico_City": "Central Time (CDMX, Aguascalientes, Guadalajara, Monterrey)",
     "America/Cancun": "Southeast Time (Quintana Roo)",
@@ -1258,7 +1267,8 @@
       "emptyTitle": "No home deliveries on this day",
       "emptyMine": "You have no deliveries assigned on this day",
       "emptyBody": "Home delivery orders show up here in time order.",
-      "delivered": "{count, plural, one {# already delivered} other {# already delivered}}"
+      "delivered": "{count, plural, one {# already delivered} other {# already delivered}}",
+      "summaryByDistance": "{count, plural, one {# stop} other {# stops}} in time order and, within each time slot, by distance"
     },
     "assign": {
       "label": "Driver",

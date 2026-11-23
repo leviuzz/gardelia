@@ -161,3 +161,73 @@ describe('scadenze degli inviti', () => {
     expect(await status(valid.invitationId)).toBe('PENDING');
   });
 });
+
+describe('coordinate di Google Places (ADR-059)', () => {
+  it('dopo 30 giorni si cancellano; il place ID resta; le recenti restano', async () => {
+    const { shop, customerId } = await prepareShop();
+    const day = 24 * 60 * 60 * 1000;
+    const ids = await withTenantContext(db, shop.owner, async (tx) => {
+      const base = {
+        tenantId: shop.owner.tenantId,
+        customerId,
+        addressLine1: 'Av. Madero 120',
+        city: 'Aguascalientes',
+        region: 'AGU',
+        postalCode: '20000',
+        countryCode: 'MX',
+        placeId: 'ChIJ_test_place_id',
+        latitude: 21.88,
+        longitude: -102.29,
+      };
+      const old = await tx.customerAddress.create({
+        data: { ...base, label: 'Vieja', coordinatesAt: new Date(Date.now() - 31 * day) },
+      });
+      const recent = await tx.customerAddress.create({
+        data: { ...base, label: 'Reciente', coordinatesAt: new Date(Date.now() - 2 * day) },
+      });
+      return { old: old.id, recent: recent.id };
+    });
+
+    const result = await runDailyMaintenance();
+    expect(result.coordinatesPurged).toBeGreaterThanOrEqual(1);
+    const rows = await withTenantContext(db, shop.owner, (tx) =>
+      tx.customerAddress.findMany({
+        where: { id: { in: [ids.old, ids.recent] } },
+        select: { id: true, placeId: true, latitude: true, coordinatesAt: true },
+      }),
+    );
+    const old = rows.find((row) => row.id === ids.old)!;
+    const recent = rows.find((row) => row.id === ids.recent)!;
+    expect(old).toMatchObject({
+      placeId: 'ChIJ_test_place_id',
+      latitude: null,
+      coordinatesAt: null,
+    });
+    expect(recent.latitude).toBe(21.88);
+  });
+
+  it('il database rifiuta coordinate senza data o fuori dal globo', async () => {
+    const { shop, customerId } = await prepareShop();
+    const base = {
+      tenantId: shop.owner.tenantId,
+      customerId,
+      addressLine1: 'Av. Madero 120',
+      city: 'Aguascalientes',
+      region: 'AGU',
+      postalCode: '20000',
+      countryCode: 'MX',
+    };
+    await expect(
+      withTenantContext(db, shop.owner, (tx) =>
+        tx.customerAddress.create({ data: { ...base, latitude: 21.88, longitude: -102.29 } }),
+      ),
+    ).rejects.toThrow();
+    await expect(
+      withTenantContext(db, shop.owner, (tx) =>
+        tx.customerAddress.create({
+          data: { ...base, latitude: 120, longitude: -102.29, coordinatesAt: new Date() },
+        }),
+      ),
+    ).rejects.toThrow();
+  });
+});

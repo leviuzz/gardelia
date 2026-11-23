@@ -52,7 +52,13 @@ export interface FulfillmentDefaults {
   readonly addressChoice: string;
   readonly address: Partial<
     Record<
-      'addressLine1' | 'addressLine2' | 'neighborhood' | 'postalCode' | 'city' | 'region',
+      | 'addressLine1'
+      | 'addressLine2'
+      | 'neighborhood'
+      | 'postalCode'
+      | 'city'
+      | 'region'
+      | 'placeId',
       string
     >
   >;

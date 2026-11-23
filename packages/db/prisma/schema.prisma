@@ -226,6 +226,11 @@ model Location {
   /// MX: estado (codice, es. "AGU").
   region           String
   postalCode       String
+  /// Google Places (ADR-059): ID del luogo (si conserva) e coordinate, cache di 30 giorni.
+  placeId          String?
+  latitude         Float?
+  longitude        Float?
+  coordinatesAt    DateTime?
   countryCode      String       @db.Char(2)
   phone            String?
   timezone         String
@@ -737,6 +742,11 @@ model CustomerAddress {
   city           String
   region         String
   postalCode     String
+  /// Google Places (ADR-059): ID del luogo (si conserva) e coordinate, cache di 30 giorni.
+  placeId        String?
+  latitude       Float?
+  longitude      Float?
+  coordinatesAt  DateTime?
   countryCode    String       @db.Char(2)
   /// Referencias / entre calles / istruzioni per il corriere.
   deliveryNotes  String?
@@ -1346,60 +1356,65 @@ enum OrderPaymentKind {
 }
 
 model Order {
-  id                   String             @id @default(uuid(7)) @db.Uuid
-  tenantId             String             @db.Uuid
+  id                    String             @id @default(uuid(7)) @db.Uuid
+  tenantId              String             @db.Uuid
   /// Numero progressivo per tenant (PED-0001), assegnato dal servizio.
-  number               Int
-  customerId           String             @db.Uuid
+  number                Int
+  customerId            String             @db.Uuid
   /// Preventivo da cui è nato l'ordine (al massimo un ordine per preventivo).
-  quoteId              String?            @db.Uuid
-  status               OrderStatus        @default(CONFIRMED)
-  statusChangedAt      DateTime           @default(now())
-  currency             String             @db.Char(3)
-  fulfillmentMode      FulfillmentMode
+  quoteId               String?            @db.Uuid
+  status                OrderStatus        @default(CONFIRMED)
+  statusChangedAt       DateTime           @default(now())
+  currency              String             @db.Char(3)
+  fulfillmentMode       FulfillmentMode
   /// Giorno di consegna o ritiro, nel calendario del tenant (NULL solo per i borradores).
-  scheduledDate        DateTime?          @db.Date
+  scheduledDate         DateTime?          @db.Date
   /// Fascia oraria in minuti dalla mezzanotte (fuso del tenant); entrambi NULL = in giornata.
-  windowStartMinutes   Int?
-  windowEndMinutes     Int?
+  windowStartMinutes    Int?
+  windowEndMinutes      Int?
   /// Indirizzo del cliente da cui è stato copiato quello di consegna (facoltativo).
-  customerAddressId    String?            @db.Uuid
+  customerAddressId     String?            @db.Uuid
   /// Indirizzo di consegna COPIATO nell'ordine: cambiare la rubrica non cambia gli ordini.
-  deliveryAddressLine1 String?
-  deliveryAddressLine2 String?
-  deliveryNeighborhood String?
-  deliveryCity         String?
-  deliveryRegion       String?
-  deliveryPostalCode   String?
-  deliveryCountryCode  String?            @db.Char(2)
+  deliveryAddressLine1  String?
+  deliveryAddressLine2  String?
+  deliveryNeighborhood  String?
+  deliveryCity          String?
+  deliveryRegion        String?
+  deliveryPostalCode    String?
+  deliveryCountryCode   String?            @db.Char(2)
+  /// Google Places (ADR-059): ID del luogo (si conserva) e coordinate, cache di 30 giorni.
+  deliveryPlaceId       String?
+  deliveryLatitude      Float?
+  deliveryLongitude     Float?
+  deliveryCoordinatesAt DateTime?
   /// Referencias / entre calles / istruzioni per chi consegna ("llamar antes", "es sorpresa").
-  deliveryNotes        String?
-  recipientName        String?
+  deliveryNotes         String?
+  recipientName         String?
   /// Formato E.164.
-  recipientPhone       String?
+  recipientPhone        String?
   /// Tarjeta: messaggio per chi riceve il ramo.
-  cardMessage          String?
-  cardSignature        String?
-  cardAnonymous        Boolean            @default(false)
+  cardMessage           String?
+  cardSignature         String?
+  cardAnonymous         Boolean            @default(false)
   /// Note interne della fioreria.
-  notes                String?
-  subtotalMinor        Int
-  discountMinor        Int                @default(0)
-  deliveryFeeMinor     Int                @default(0)
-  taxMinor             Int                @default(0)
-  totalMinor           Int
+  notes                 String?
+  subtotalMinor         Int
+  discountMinor         Int                @default(0)
+  deliveryFeeMinor      Int                @default(0)
+  taxMinor              Int                @default(0)
+  totalMinor            Int
   /// Somma dei pagamenti registrati (storni compresi), mantenuta dal servizio.
-  paidMinor            Int                @default(0)
-  paymentStatus        OrderPaymentStatus @default(UNPAID)
-  acquisitionSource    AcquisitionSource  @default(MERCHANT_DIRECT)
-  cancelReason         String?
+  paidMinor             Int                @default(0)
+  paymentStatus         OrderPaymentStatus @default(UNPAID)
+  acquisitionSource     AcquisitionSource  @default(MERCHANT_DIRECT)
+  cancelReason          String?
   /// Chi porta l'ordine (repartidor): un membro della fioreria, ADR-058.
-  assignedMembershipId String?            @db.Uuid
+  assignedMembershipId  String?            @db.Uuid
   /// Chi ha ricevuto il ramo alla consegna o al ritiro (prova di consegna, ADR-058).
-  handoverName         String?
-  createdById          String?            @db.Uuid
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
+  handoverName          String?
+  createdById           String?            @db.Uuid
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
 
   tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   customer        Customer           @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)

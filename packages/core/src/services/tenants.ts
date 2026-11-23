@@ -14,16 +14,21 @@ import {
   MARKETS,
   baseSlugFor,
   diffFields,
+  freshCoordinates,
+  isSamePlace,
   locationSchema,
   newId,
+  nextStoredPlace,
   onboardingSchema,
   slugWithSuffix,
   tenantLegalSchema,
   tenantProfileSchema,
   toFieldErrors,
+  type Coordinates,
   type MarketCountry,
 } from '@floral/domain';
 import { recordAudit } from '../audit';
+import { getPlacesProvider } from '../places';
 import { requirePermission } from '../authorization';
 import type { RequestMeta, TenantContext } from '../context';
 import { ConflictError, ValidationError } from '../errors';
@@ -90,6 +95,12 @@ export async function createTenant(
             name: 'Principal',
             isPrimary: true,
             ...data.location,
+            // Google Places (ADR-059): i campi nascosti arrivano accanto all'indirizzo (`location.*`).
+            ...nextStoredPlace(
+              placeFieldsOf((input.data as { location?: unknown } | null)?.location),
+              null,
+              new Date(),
+            ),
             countryCode: market.country,
             timezone: data.timezone,
           },
@@ -142,6 +153,7 @@ export interface TenantSettings {
     | 'postalCode'
     | 'phone'
     | 'deliveryRadiusKm'
+    | 'placeId'
   > | null;
 }
 
@@ -176,6 +188,7 @@ export async function getTenantSettings(ctx: TenantContext): Promise<TenantSetti
         postalCode: true,
         phone: true,
         deliveryRadiusKm: true,
+        placeId: true,
       },
     });
     return { tenant, location };
@@ -234,6 +247,11 @@ export async function updateTenantLegal(ctx: TenantContext, data: unknown): Prom
   });
 }
 
+/** Campi nascosti di Google Places del form (li compila la ricerca dell'indirizzo). */
+function placeFieldsOf(data: unknown): Record<string, unknown> {
+  return data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
+}
+
 export async function updatePrimaryLocation(ctx: TenantContext, data: unknown): Promise<void> {
   requirePermission(ctx, 'tenant:settings:update');
   const parsed = locationSchema(ctx.country).safeParse(data);
@@ -250,6 +268,7 @@ export async function updatePrimaryLocation(ctx: TenantContext, data: unknown): 
           name: 'Principal',
           isPrimary: true,
           ...parsed.data,
+          ...nextStoredPlace(placeFieldsOf(data), null, new Date()),
           countryCode: ctx.country,
           timezone: ctx.timezone,
         },
@@ -263,8 +282,10 @@ export async function updatePrimaryLocation(ctx: TenantContext, data: unknown): 
       return;
     }
     const changes = diffFields(existing, parsed.data, LOCATION_FIELDS);
-    if (Object.keys(changes).length === 0) return;
-    await tx.location.update({ where: { id: existing.id }, data: parsed.data });
+    // Google Places (ADR-059): place ID e coordinate solo da un indirizzo scelto fra i suggerimenti.
+    const place = nextStoredPlace(placeFieldsOf(data), existing, new Date());
+    if (Object.keys(changes).length === 0 && isSamePlace(place, existing)) return;
+    await tx.location.update({ where: { id: existing.id }, data: { ...parsed.data, ...place } });
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.locationUpdated,
       entityType: 'Location',
@@ -272,4 +293,24 @@ export async function updatePrimaryLocation(ctx: TenantContext, data: unknown): 
       metadata: { changes: JSON.parse(JSON.stringify(changes)) },
     });
   });
+}
+
+export interface AddressSearchSettings {
+  /** C'è la chiave di Google Places: i form mostrano "Buscar dirección". */
+  readonly enabled: boolean;
+  /** Coordinate (ancora valide) della fioreria, per preferire gli indirizzi vicini. */
+  readonly near: Coordinates | null;
+}
+
+/** Impostazioni della ricerca dell'indirizzo per i form della fioreria (ADR-059). */
+export async function getAddressSearchSettings(ctx: TenantContext): Promise<AddressSearchSettings> {
+  requirePermission(ctx, 'tenant:read');
+  if (getPlacesProvider() === null) return { enabled: false, near: null };
+  const location = await withTenantContext(getDb(), ctx, (tx) =>
+    tx.location.findFirst({
+      where: { tenantId: ctx.tenantId, isPrimary: true },
+      select: { latitude: true, longitude: true, coordinatesAt: true },
+    }),
+  );
+  return { enabled: true, near: location ? freshCoordinates(location, new Date()) : null };
 }

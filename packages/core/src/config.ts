@@ -3,7 +3,8 @@
  * regole che le legano fra loro, scritte UNA volta. È divisa in parti, una per adattatore:
  *  - AI (anteprime, scontorni, conteggio, stile);
  *  - archivio (foto e immagini);
- *  - email.
+ *  - email;
+ *  - indirizzi (Google Places, ADR-059).
  * Ogni adattatore legge solo la sua parte, già validata. All'avvio l'app le controlla TUTTE
  * insieme (`platformConfigSchema`, vedi `apps/web/src/lib/config-check.ts`) e, se qualcosa non
  * va, non parte ed elenca tutti i problemi.
@@ -236,14 +237,37 @@ function emailRules(
 export const emailConfigSchema = z.object(emailFields).superRefine(emailRules);
 export type EmailConfig = z.infer<typeof emailConfigSchema>;
 
+// --- Indirizzi (Google Places, ADR-059) ----------------------------------------------------------
+
+const placesFields = {
+  // Chiave di Google Maps Platform con la sola "Places API (New)" abilitata. Solo lato server: il
+  // browser chiede i suggerimenti alla nostra app, mai a Google. Assente: indirizzi scritti a mano.
+  GOOGLE_MAPS_API_KEY: optionalText,
+};
+
+function placesRules(config: { GOOGLE_MAPS_API_KEY?: string | undefined }, ctx: RefinementContext) {
+  const key = config.GOOGLE_MAPS_API_KEY;
+  // Le chiavi di Google sono di 39 caratteri: un valore molto diverso è quasi sempre un errore.
+  if (key && !/^[A-Za-z0-9_-]{30,60}$/.test(key)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['GOOGLE_MAPS_API_KEY'],
+      message: 'non sembra una chiave di Google Maps Platform (lettere, numeri, - e _)',
+    });
+  }
+}
+
+export const placesConfigSchema = z.object(placesFields).superRefine(placesRules);
+
 // --- Tutto insieme (controllo all'avvio) -------------------------------------------------------
 
 export const platformConfigSchema = z
-  .object({ ...aiFields, ...storageFields, ...emailFields })
+  .object({ ...aiFields, ...storageFields, ...emailFields, ...placesFields })
   .superRefine((config, ctx) => {
     aiRules(config, ctx);
     storageRules(config, ctx);
     emailRules(config, ctx);
+    placesRules(config, ctx);
   })
   .transform(withAiValues);
 export type PlatformConfig = z.infer<typeof platformConfigSchema>;
@@ -289,6 +313,8 @@ export const aiConfig = configReader(aiConfigSchema);
 export const storageConfig = configReader(storageConfigSchema);
 /** Parte email: SMTP e mittente. */
 export const emailConfig = configReader(emailConfigSchema);
+
+export const placesConfig = configReader(placesConfigSchema);
 
 /** Tutta la configurazione della piattaforma, validata insieme. */
 export function readPlatformConfig(env: EnvSource = process.env): PlatformConfig {

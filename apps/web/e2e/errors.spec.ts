@@ -77,6 +77,7 @@ test('i lavori giornalieri rispondono solo con il segreto e dicono cosa hanno fa
   expect(await response.json()).toEqual({
     quotesExpired: expect.any(Number),
     invitationsExpired: expect.any(Number),
+    coordinatesPurged: expect.any(Number),
     promos: { tenants: expect.any(Number), sent: expect.any(Number), failed: expect.any(Number) },
   });
 });
