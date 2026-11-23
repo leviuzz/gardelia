@@ -66,20 +66,20 @@ export interface TeamOverview {
 
 export async function getTeam(ctx: TenantContext): Promise<TeamOverview> {
   requirePermission(ctx, 'members:read');
+  // Una transazione è una sola connessione: le query vanno comunque una alla volta, quindi si
+  // scrivono in fila (un Promise.all farebbe pensare a un parallelismo che non c'è).
   return withTenantContext(getDb(), ctx, async (tx) => {
-    const [members, invitations] = await Promise.all([
-      tx.membership.findMany({
-        where: { tenantId: ctx.tenantId },
-        include: { user: { select: { id: true, name: true, email: true } } },
-        orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
-      }),
-      // Solo gli inviti ancora validi: quelli scaduti li chiude il lavoro giornaliero.
-      tx.invitation.findMany({
-        where: { tenantId: ctx.tenantId, status: 'PENDING', expiresAt: { gt: new Date() } },
-        include: { invitedBy: { select: { name: true } } },
-        orderBy: { createdAt: 'desc' },
-      }),
-    ]);
+    const members = await tx.membership.findMany({
+      where: { tenantId: ctx.tenantId },
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
+    });
+    // Solo gli inviti ancora validi: quelli scaduti li chiude il lavoro giornaliero.
+    const invitations = await tx.invitation.findMany({
+      where: { tenantId: ctx.tenantId, status: 'PENDING', expiresAt: { gt: new Date() } },
+      include: { invitedBy: { select: { name: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
     return {
       members: members.map((m) => ({
         membershipId: m.id,
