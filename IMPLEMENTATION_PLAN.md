@@ -545,6 +545,19 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Conto del cliente, blocco C1 del marketplace (fatto il 23/11, ADR-064):** "Mi cuenta" (`/cuenta`) per
+chi compra: nome ed email dell'accesso, telefono, indirizzi di consegna con "Buscar dirección" (la stessa
+rubrica della fioreria, spostata in `components/addresses/address-book.tsx`). Login e registrazione
+verso `/cuenta` parlano a chi compra e la destinazione resta fino alla verifica dell'email; da quando la
+persona ha aperto "Mi cuenta", un accesso senza fiorerie porta lì invece che all'onboarding (i
+fioristi non cambiano strada). Dati per persona (`BuyerProfile`, `BuyerAddress`) con RLS per utente,
+servizi in `withUserContext`, contesto solo dalla sessione (`getBuyerContext`, `runBuyerAction`);
+coordinate anche qui cancellate dopo 30 giorni. Gli ordini in "Mi cuenta" arrivano con C4. Verifiche
+locali: lint ✅ · format ✅ · typecheck ✅ · test 694/694 ✅ (nuovi: 9 d'integrazione con isolamento fra persone
+A↔B e salvataggi contemporanei, 1 di RLS per utente, 1 di manutenzione, 1 sui percorsi) · migrazioni = schema ✅ ·
+build ✅ · E2E 75/75 ✅ (1 nuovo: registrazione del cliente fino al rientro in "Mi cuenta"; quello delle fasce di consegna ora controlla l'errore sotto il campo, perché con una pagina lenta lo stesso testo compare anche in un toast: correzione proposta a parte); controllo
+visivo a 390 e 1280 px. Prossimi: C2 "Mi tienda en línea" e pagina pubblica della fioreria.
+
 **Inventario, blocco 1 (fatto il 23/11, ADR-060, richiesta del founder):** voce "Inventario" nel menu
 (su telefono in "Más") con Existencias e Movimientos. "Elegir productos": si scrive quanti ce ne sono
 di ogni prodotto fisico del catalogo da controllare e, se si vuole, il minimo ("Avísame con"); la

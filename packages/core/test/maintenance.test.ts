@@ -4,7 +4,7 @@
  * fiorerie, ciascuna nel proprio calendario.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { disconnectDb, getDb, withTenantContext } from '@floral/db';
+import { disconnectDb, getDb, withTenantContext, withUserContext } from '@floral/db';
 import { createTestUser } from '@floral/db/testing';
 import { todayInTimeZone } from '@floral/domain';
 import {
@@ -204,6 +204,42 @@ describe('coordinate di Google Places (ADR-059)', () => {
       coordinatesAt: null,
     });
     expect(recent.latitude).toBe(21.88);
+  });
+
+  it('vale anche per gli indirizzi di chi compra (conto cliente)', async () => {
+    const buyer = await createTestUser(db);
+    const day = 24 * 60 * 60 * 1000;
+    const id = await withUserContext(db, buyer.id, async (tx) => {
+      await tx.buyerProfile.create({ data: { userId: buyer.id } });
+      const address = await tx.buyerAddress.create({
+        data: {
+          userId: buyer.id,
+          addressLine1: 'Av. Madero 120',
+          city: 'Aguascalientes',
+          region: 'AGU',
+          postalCode: '20000',
+          countryCode: 'MX',
+          placeId: 'ChIJ_buyer_place',
+          latitude: 21.88,
+          longitude: -102.29,
+          coordinatesAt: new Date(Date.now() - 31 * day),
+        },
+      });
+      return address.id;
+    });
+    await runDailyMaintenance();
+    const row = await withUserContext(db, buyer.id, (tx) =>
+      tx.buyerAddress.findUniqueOrThrow({
+        where: { id },
+        select: { placeId: true, latitude: true, longitude: true, coordinatesAt: true },
+      }),
+    );
+    expect(row).toEqual({
+      placeId: 'ChIJ_buyer_place',
+      latitude: null,
+      longitude: null,
+      coordinatesAt: null,
+    });
   });
 
   it('il database rifiuta coordinate senza data o fuori dal globo', async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { tenantRoutes, withQuery } from '@/lib/routes';
+import { accountRoutes, isAccountPath, tenantRoutes, withQuery } from '@/lib/routes';
 
 describe('percorsi della fioreria (routes.ts)', () => {
   const routes = tenantRoutes('las-camelias');
@@ -110,5 +110,16 @@ describe('percorsi della fioreria (routes.ts)', () => {
     expect(withQuery('/x')).toBe('/x');
     expect(withQuery('/x', { a: '', b: null, c: undefined, d: false })).toBe('/x');
     expect(withQuery('/x', { n: 0 })).toBe('/x?n=0');
+  });
+});
+
+describe('conto del cliente (routes.ts)', () => {
+  it('riconosce le destinazioni di "Mi cuenta" e nient\'altro', () => {
+    expect(accountRoutes.home).toBe('/cuenta');
+    expect(isAccountPath('/cuenta')).toBe(true);
+    expect(isAccountPath('/cuenta/direcciones')).toBe(true);
+    expect(isAccountPath('/cuentas')).toBe(false);
+    expect(isAccountPath('/app')).toBe(false);
+    expect(isAccountPath('/onboarding')).toBe(false);
   });
 });

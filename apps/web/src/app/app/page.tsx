@@ -2,18 +2,23 @@ import { ArrowRight, Plus, Store } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { listUserTenants } from '@floral/core';
+import { hasBuyerAccount, listUserTenants } from '@floral/core';
 import { Logo } from '@/components/brand/logo';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { tenantRoutes } from '@/lib/routes';
+import { accountRoutes, tenantRoutes } from '@/lib/routes';
 import { requireUser } from '@/lib/session';
 
-/** Ingresso nell'app: nessuna fioreria → onboarding; una → diretta; più di una → scelta. */
+/**
+ * Ingresso nell'app: nessuna fioreria → "Mi cuenta" per chi compra (ha già aperto il conto
+ * cliente), altrimenti la creazione della fioreria; una → diretta; più di una → scelta.
+ */
 export default async function AppIndexPage() {
   const user = await requireUser('/app');
   const shops = await listUserTenants(user.id);
-  if (shops.length === 0) redirect('/onboarding');
+  if (shops.length === 0) {
+    redirect((await hasBuyerAccount({ userId: user.id })) ? accountRoutes.home : '/onboarding');
+  }
   if (shops.length === 1 && shops[0]) redirect(tenantRoutes(shops[0].slug).home);
 
   const t = await getTranslations();
