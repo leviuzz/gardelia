@@ -113,7 +113,8 @@
       "order_total_below_paid": "El total quedaría por debajo de lo que el cliente ya pagó: primero anula el pago.",
       "delivery_window_exists": "Ya tienes esa franja.",
       "delivery_window_limit": "Llegaste al máximo de franjas.",
-      "public_link_unavailable": "En su estado actual este documento no se puede compartir."
+      "public_link_unavailable": "En su estado actual este documento no se puede compartir.",
+      "order_not_delivery": "Solo los pedidos a domicilio tienen repartidor."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -381,7 +382,8 @@
     "delivery_window.removed": "{actor} quitó una franja de entrega",
     "quote.accepted_online": "El cliente aceptó la cotización {number} desde el enlace",
     "public_link.created": "{actor} compartió el enlace de {number}",
-    "public_link.revoked": "{actor} desactivó el enlace de {number}"
+    "public_link.revoked": "{actor} desactivó el enlace de {number}",
+    "order.assigned": "{actor} cambió el repartidor de {number}"
   },
   "catalog": {
     "title": "Catálogo",
@@ -1188,7 +1190,8 @@
       "label": "Vistas de pedidos",
       "list": "Lista",
       "day": "Día",
-      "calendar": "Calendario"
+      "calendar": "Calendario",
+      "route": "Ruta"
     },
     "day": {
       "title": "Pedidos del día",
@@ -1229,6 +1232,35 @@
       "previous": "Mes anterior",
       "next": "Mes siguiente",
       "dayLabel": "{date}: {deliveries} a domicilio, {pickups} en tienda"
+    },
+    "route": {
+      "title": "Ruta del día",
+      "filter": "Qué entregas ver",
+      "all": "Todas",
+      "mine": "Mis entregas",
+      "stop": "Parada {position}",
+      "collect": "Cobrar {amount}",
+      "receives": "Recibe: {name}",
+      "unassignedOne": "Sin repartidor",
+      "go": "Ir",
+      "call": "Llamar",
+      "whatsapp": "WhatsApp",
+      "summary": "{count, plural, one {# parada} other {# paradas}} en orden de horario",
+      "unassigned": "{count, plural, one {# sin repartidor} other {# sin repartidor}}",
+      "openAll": "Abrir ruta en Google Maps",
+      "openLeg": "Paradas {from}–{to} en Google Maps",
+      "orderHint": "Google Maps abre hasta 4 paradas por enlace: las rutas largas van por tramos.",
+      "noOrigin": "Agrega la dirección de la tienda en Ajustes para que la ruta salga desde ahí.",
+      "emptyTitle": "No hay entregas a domicilio este día",
+      "emptyMine": "No tienes entregas asignadas este día",
+      "emptyBody": "Los pedidos a domicilio aparecen aquí en orden de horario.",
+      "delivered": "{count, plural, one {# ya entregado} other {# ya entregados}}"
+    },
+    "assign": {
+      "label": "Repartidor",
+      "nobody": "Sin asignar",
+      "save": "Guardar",
+      "saved": "Repartidor actualizado."
     }
   },
   "plans": {

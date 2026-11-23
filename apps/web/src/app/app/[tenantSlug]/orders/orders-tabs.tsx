@@ -3,18 +3,19 @@ import { getTranslations } from 'next-intl/server';
 import type { TenantRoutes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 
-/** Le tre viste dei Pedidos (ADR-057): elenco, giorno ("Hoy salen") e mese. */
+/** Le viste dei Pedidos (ADR-057, ADR-058): elenco, giorno ("Hoy salen"), ruta e mese. */
 export async function OrdersTabs({
   routes,
   current,
 }: {
   readonly routes: TenantRoutes;
-  readonly current: 'list' | 'day' | 'calendar';
+  readonly current: 'list' | 'day' | 'route' | 'calendar';
 }) {
   const t = await getTranslations('orders.tabs');
   const tabs = [
     { key: 'list', href: routes.orders.list() },
     { key: 'day', href: routes.orders.day() },
+    { key: 'route', href: routes.orders.route() },
     { key: 'calendar', href: routes.orders.calendar() },
   ] as const;
   return (

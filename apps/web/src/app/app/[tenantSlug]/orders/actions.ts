@@ -7,6 +7,7 @@
  */
 import {
   addCatalogItemToOrder,
+  assignOrder,
   addCustomLineToOrder,
   cancelOrder,
   changeOrderStatus,
@@ -251,5 +252,18 @@ export async function revokeOrderLinkAction(
   return runTenantAction(slug, async ({ ctx, routes }) => {
     await revokePublicLink(ctx, { kind: 'ORDER', id: orderId });
     return { revalidate: section(routes.orders.list()), success: 'shareLink.revoked' };
+  });
+}
+
+/** Repartidor di un ordine a domicilio (ADR-058); vuoto = nessuno. */
+export async function assignOrderAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await assignOrder(ctx, orderId, formData.get('assignee'));
+    return { revalidate: section(routes.orders.list()), success: 'orders.assign.saved' };
   });
 }

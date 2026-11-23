@@ -256,9 +256,11 @@ model Membership {
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
-  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user      User   @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade)
-  invitedBy User?  @relation("MembershipInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+  tenant         Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user           User    @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy      User?   @relation("MembershipInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+  /// Ordini da consegnare assegnati a questo membro (repartidor, ADR-058).
+  assignedOrders Order[]
 
   @@unique([tenantId, userId])
   @@unique([tenantId, id])
@@ -1195,6 +1197,8 @@ model Order {
   paymentStatus        OrderPaymentStatus @default(UNPAID)
   acquisitionSource    AcquisitionSource  @default(MERCHANT_DIRECT)
   cancelReason         String?
+  /// Chi porta l'ordine (repartidor): un membro della fioreria, ADR-058.
+  assignedMembershipId String?            @db.Uuid
   createdById          String?            @db.Uuid
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
@@ -1202,6 +1206,7 @@ model Order {
   tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   customer        Customer           @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
   quote           Quote?             @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Restrict)
+  assignedTo      Membership?        @relation(fields: [tenantId, assignedMembershipId], references: [tenantId, id], onDelete: Restrict)
   customerAddress CustomerAddress?   @relation(fields: [tenantId, customerAddressId], references: [tenantId, id], onDelete: Restrict)
   lines           OrderLine[]
   payments        OrderPayment[]
@@ -1214,6 +1219,7 @@ model Order {
   @@index([tenantId, status])
   @@index([tenantId, scheduledDate])
   @@index([tenantId, customerId])
+  @@index([tenantId, assignedMembershipId])
 }
 
 /// Righe dell'ordine: stesse regole e snapshot delle righe del preventivo (`QuoteLineKind`).

@@ -113,7 +113,8 @@
       "order_total_below_paid": "The total would drop below what the customer already paid: void the payment first.",
       "delivery_window_exists": "You already have that time window.",
       "delivery_window_limit": "You’ve reached the maximum number of time windows.",
-      "public_link_unavailable": "This document can’t be shared in its current status."
+      "public_link_unavailable": "This document can’t be shared in its current status.",
+      "order_not_delivery": "Only home delivery orders have a driver."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -381,7 +382,8 @@
     "delivery_window.removed": "{actor} removed a delivery time window",
     "quote.accepted_online": "The customer accepted quote {number} from the link",
     "public_link.created": "{actor} shared the link for {number}",
-    "public_link.revoked": "{actor} turned off the link for {number}"
+    "public_link.revoked": "{actor} turned off the link for {number}",
+    "order.assigned": "{actor} changed the driver of {number}"
   },
   "catalog": {
     "title": "Catalog",
@@ -1188,7 +1190,8 @@
       "label": "Order views",
       "list": "List",
       "day": "Day",
-      "calendar": "Calendar"
+      "calendar": "Calendar",
+      "route": "Route"
     },
     "day": {
       "title": "Orders for the day",
@@ -1229,6 +1232,35 @@
       "previous": "Previous month",
       "next": "Next month",
       "dayLabel": "{date}: {deliveries} to deliver, {pickups} in store"
+    },
+    "route": {
+      "title": "Route for the day",
+      "filter": "Which deliveries to show",
+      "all": "All",
+      "mine": "My deliveries",
+      "stop": "Stop {position}",
+      "collect": "Collect {amount}",
+      "receives": "Received by: {name}",
+      "unassignedOne": "No driver",
+      "go": "Go",
+      "call": "Call",
+      "whatsapp": "WhatsApp",
+      "summary": "{count, plural, one {# stop} other {# stops}} in time order",
+      "unassigned": "{count, plural, one {# without a driver} other {# without a driver}}",
+      "openAll": "Open route in Google Maps",
+      "openLeg": "Stops {from}–{to} in Google Maps",
+      "orderHint": "Google Maps opens up to 4 stops per link: long routes go in legs.",
+      "noOrigin": "Add the shop’s address in Settings so the route starts there.",
+      "emptyTitle": "No home deliveries on this day",
+      "emptyMine": "You have no deliveries assigned on this day",
+      "emptyBody": "Home delivery orders show up here in time order.",
+      "delivered": "{count, plural, one {# already delivered} other {# already delivered}}"
+    },
+    "assign": {
+      "label": "Driver",
+      "nobody": "Not assigned",
+      "save": "Save",
+      "saved": "Driver updated."
     }
   },
   "plans": {

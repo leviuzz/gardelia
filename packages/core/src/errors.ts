@@ -75,7 +75,8 @@ export type ConflictReason =
   | 'order_total_below_paid'
   | 'delivery_window_exists'
   | 'delivery_window_limit'
-  | 'public_link_unavailable';
+  | 'public_link_unavailable'
+  | 'order_not_delivery';
 
 export class ConflictError extends AppError {
   readonly code = 'conflict' as const;
