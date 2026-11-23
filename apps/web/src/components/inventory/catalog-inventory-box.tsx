@@ -12,12 +12,13 @@ import { isInventoryItemType } from '@floral/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { tenantRoutes } from '@/lib/routes';
+import { BouquetInventoryBox } from './bouquet-inventory-box';
 import { StockStatusBadge } from './inventory-ui';
 
 /**
  * Riquadro "Inventario" nella scheda di un prodotto del catalogo (ADR-060): quanto ce n'è, o il
- * link per cominciare a controllarlo. Non compare senza il piano, per i tipi senza giacenza
- * (ramos, servizi) né per chi non vede l'inventario.
+ * link per cominciare a controllarlo. Per un ramo, quanti se ne possono fare (ADR-063). Non
+ * compare senza il piano, per i servizi né per chi non vede l'inventario.
  */
 export async function CatalogInventoryBox({
   ctx,
@@ -26,6 +27,8 @@ export async function CatalogInventoryBox({
   readonly ctx: TenantContext;
   readonly item: CatalogItemDto;
 }) {
+  // Un ramo non ha giacenza: si guarda la sua ricetta (ADR-063).
+  if (item.type === 'BOUQUET') return <BouquetInventoryBox ctx={ctx} item={item} />;
   if (!isInventoryItemType(item.type) || !hasPermission(ctx, 'inventory:read')) return null;
   const inventory = await getCatalogItemInventory(ctx, item.id);
   if (!inventory) return null;
@@ -65,6 +68,14 @@ export async function CatalogInventoryBox({
                   <span>{t('catalogBox.tracked', { quantity: quantity(stock.onHand) })}</span>
                   <StockStatusBadge status={stock.status} />
                 </p>
+                {stock.reserved > 0 ? (
+                  <p className="text-muted-foreground">
+                    {t('catalogBox.reserved', {
+                      quantity: quantity(stock.reserved),
+                      available: quantity(stock.available),
+                    })}
+                  </p>
+                ) : null}
                 {stock.minQuantity !== null ? (
                   <p className="text-muted-foreground">
                     {t('catalogBox.minimum', { quantity: quantity(stock.minQuantity) })}

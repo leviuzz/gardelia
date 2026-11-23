@@ -153,7 +153,7 @@ principi a livello di servizi e ruoli (TEN-01).
 | Piani      | SaasPlan (globale), TenantSubscription                                | v0: assegnazione manuale da CLI, nessun pagamento (ADR-021) |
 | Builder    | BouquetConfiguration, BouquetConfigurationLine                        | deterministico (ADR-023); anteprime AI nello Sprint 2       |
 | AI         | AiJob (coda di anteprime e scontorni), AiCreditGrant                  | pipeline completa; provider fal.ai/Nano Banana 2 (ADR-026)  |
-| Inventario | InventoryItem, InventoryEntry, InventoryMovement                      | giacenze, movimenti e avvisi (ADR-060)                      |
+| Inventario | InventoryItem, InventoryEntry, InventoryMovement, Reservation         | giacenze, movimenti, apartados (ADR-060…062)                |
 
 Flusso del valore (Sprint 1): **catalogo** (prezzi, costi, disponibilità, flag Builder) →
 **Builder** (`priceBouquet`, stessa funzione in browser e server) → **preventivo** (riga `BUILDER`
@@ -222,7 +222,16 @@ un registro `REVERSAL`. Per gli ordini il core espone `checkStockTx` e `consumeS
 nella transazione dell'ordine: senza il piano o per i prodotti non controllati non registrano nulla.
 La disponibilità del catalogo non dipende dalla giacenza: l'inventario propone il clic. Compras
 (ADR-061): un registro `PURCHASE` con proveedor (`Supplier`), giorno e factura, e righe con il
-totale pagato; ogni riga aggiorna il costo medio, l'anulación lo toglie.
+totale pagato; ogni riga aggiorna il costo medio, l'anulación lo toglie. Apartados (ADR-062):
+`InventoryReservation` con righe per prodotto; non cambiano la giacenza ma il disponibile
+(`reservedQuantities`: apartados ACTIVE con la scadenza da oggi in poi, nel calendario della
+fioreria), che usano stato, avvisi e controlli; vencido si calcola alla lettura, senza job. "Usar"
+scrive un registro `USE` con quanto si è usato davvero; per gli ordini `reserveStockTx`,
+`consumeReservationTx` e `releaseReservationTx`. Avvisi, ramos e riepilogo (ADR-063,
+`inventory-insights.ts`): quanti ramos alcanzan e il costo previsto e reale si calcolano nel dominio
+(`bouquetsPossible`, `bouquetMaterialCost`) dalla ricetta e dal disponibile; "Registrar ramos
+hechos" scrive un registro `USE` con la ricetta × N; il riepilogo del mese somma i movimenti non
+annullati nel calendario della fioreria.
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per

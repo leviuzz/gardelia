@@ -1,4 +1,4 @@
-import { ArrowLeft, Ban, TriangleExclamationPoint } from 'lucide-react';
+import { ArrowLeft, Ban, CalendarClock, TriangleExclamationPoint } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -16,13 +16,16 @@ import {
 import {
   costDifferenceBps,
   inventoryMovementFiltersSchema,
+  parseIsoDate,
+  reservationDaysLeft,
   suggestedAvailability,
+  todayInTimeZone,
 } from '@floral/domain';
 import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import { ListPagination } from '@/components/common/list/list-pagination';
 import { ActionButton } from '@/components/form/action-button';
 import { Forbidden } from '@/components/forbidden';
-import { StockStatusBadge } from '@/components/inventory/inventory-ui';
+import { ReservationStateBadge, StockStatusBadge } from '@/components/inventory/inventory-ui';
 import { InventoryUpsell } from '@/components/inventory/inventory-upsell';
 import { MovementList } from '@/components/inventory/movement-list';
 import {
@@ -128,6 +131,7 @@ export default async function InventoryItemPage({
   );
   const canWrite = hasPermission(ctx, 'inventory:write');
   const active = item.tracking === 'ACTIVE';
+  const today = todayInTimeZone(ctx.timezone);
   const quantity = (count: number) => t('quantity', { unit: item.saleUnit, count });
   const formItem: StockFormItem = {
     name: item.name,
@@ -224,6 +228,14 @@ export default async function InventoryItemPage({
           label={t('item.onHand')}
           value={quantity(item.onHand)}
           tone={item.onHand < 0 ? 'danger' : undefined}
+          detail={
+            item.reserved > 0
+              ? t('list.reserved', {
+                  quantity: quantity(item.reserved),
+                  available: quantity(item.available),
+                })
+              : undefined
+          }
         />
         <Stat
           label={t('item.minimum')}
@@ -309,6 +321,52 @@ export default async function InventoryItemPage({
             confirmLabel={t('actions.stopConfirm')}
           />
         </div>
+      ) : null}
+
+      {active ? (
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold">{t('reservations.itemBox.title')}</h2>
+            {canWrite ? (
+              <Button asChild variant="outline" size="sm">
+                <Link href={routes.inventory.newReservation({ item: item.id })}>
+                  <CalendarClock aria-hidden="true" />
+                  {t('reservations.itemBox.new')}
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+          {item.reservations.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t('reservations.itemBox.empty')}</p>
+          ) : (
+            <ul className="divide-y rounded-2xl border bg-card">
+              {item.reservations.map((reservation) => {
+                const expiresOn = parseIsoDate(reservation.expiresOn);
+                return (
+                  <li key={reservation.id}>
+                    <Link
+                      href={routes.inventory.reservation(reservation.id)}
+                      className="flex flex-wrap items-center justify-between gap-2 p-4 text-sm transition-colors hover:bg-muted/30"
+                    >
+                      <span className="min-w-0">
+                        {t('reservations.itemBox.entry', {
+                          quantity: quantity(reservation.quantity),
+                          label: reservation.label,
+                        })}
+                      </span>
+                      {expiresOn ? (
+                        <ReservationStateBadge
+                          state="ACTIVE"
+                          daysLeft={reservationDaysLeft(expiresOn, today)}
+                        />
+                      ) : null}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       ) : null}
 
       <section className="space-y-3">

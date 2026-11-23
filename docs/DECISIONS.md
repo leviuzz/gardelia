@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 23 novembre 2026 (conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060 e ADR-061; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 23 novembre 2026 (conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -1462,6 +1462,84 @@ Numerazione: ADR-055–059 sono riservati agli ordini e al marketplace (altra se
   esistono solo sulle compras, e una compra ha sempre il giorno. Il totale pagato esiste solo sulle
   righe di una compra e non è negativo.
 - **Fuori:** resi al fornitore e lotti, per decisione del founder (ADR-060).
+
+### ADR-062 — Inventario: apartados con vencimiento (blocco 3) — ADOTTATO (23/11/2026)
+
+- **Cosa:** merce messa da parte per un evento o un cliente ("Boda de Ana") fino a una data (spec
+  INV-01: "riserva temporanea configurabile, con timeout"). La durata si sceglie su ogni apartado:
+  proposta fra 3 giorni, da oggi a 90 giorni al massimo.
+- **Un apartado non cambia la giacenza:** toglie merce dal **disponibile** (`onHand − apartado`).
+  Il disponibile decide stato e avvisi ("Por agotarse", "Agotado"), l'avviso degli usi e il controllo
+  per gli ordini. Se la merce non basta: avviso e conferma, come per gli usi (ADR-060).
+- **Scadenza senza job:**
+  - un apartado vale fino alla fine del giorno di scadenza, nel calendario della fioreria;
+  - il giorno dopo è "vencido" e non tiene più merce: lo stato si calcola alla lettura;
+  - salvati sono solo ACTIVE, USED e RELEASED;
+  - così non serve un cron (il piano Hobby di Vercel ne ha solo di giornalieri) e il risultato non
+    dipende dall'ora in cui girerebbe.
+- **Azioni** (proprietario e manager, `inventory:write`; tutti vedono gli apartados, senza costi):
+  - "Usar": si scrive quanto si è usato davvero di ogni riga (proposta: quanto era apartado). La
+    merce esce con un registro di uso che porta il nome dell'apartado. Ciò che non si usa resta in
+    giacenza;
+  - "Extender": nuova data, anche per un apartado vencido;
+  - "Liberar": la merce torna disponibile.
+  - Niente si cancella. Un apartado si usa o si libera una volta sola: la riga è bloccata
+    (`FOR UPDATE`) e un test prova due "Usar" nello stesso istante.
+- **Il database garantisce:**
+  - `InventoryReservation` e `InventoryReservationLine` con RLS e FK composite su tenant, prodotto
+    e registro di uso;
+  - una riga per prodotto e quantità positive nei limiti;
+  - chiuso se e solo se ha la data di chiusura;
+  - il registro di uso solo su un apartado usato.
+- **Per gli ordini (li collega l'altra sessione, senza toccarne il codice):**
+  - `reserveStockTx(tx, ctx, { label, expiresOn, lines, confirmShortage })`, per prodotto del
+    catalogo: ignora i prodotti non controllati e le fiorerie senza il piano (restituisce `null`);
+  - `consumeReservationTx(tx, ctx, id, { lines?, confirmShortage })`: scarica quanto usato, anche
+    prodotti fuori dall'apartado, e lo chiude;
+  - `releaseReservationTx(tx, ctx, id)`: restituisce false se era già chiuso, così un annullamento
+    ripetuto non sbaglia;
+  - come `consumeStockTx`, non controllano i permessi dell'inventario: li controlla chi chiama;
+  - un ordine con apartado va scaricato con `consumeReservationTx`, non con `consumeStockTx`, che
+    conterebbe l'apartado dell'ordine stesso come merce non disponibile.
+- **UI:**
+  - scheda "Apartados" dell'inventario: vigentes, vencidos, cerrados, con la ricerca per "Para";
+  - "Nuevo apartado", con disponibile e mancante mentre si scrive;
+  - scheda dell'apartado con Usar, Extender e Liberar;
+  - nella scheda del prodotto, gli apartados che valgono e il link "Apartar";
+  - disponibile accanto alla giacenza nell'elenco e nel riquadro del catalogo;
+  - le schede dell'inventario sono quattro: su telefono stanno in una griglia di due colonne.
+- **Privacy:** "Para" e la nota possono contenere il nome del cliente, quindi restano fuori dai
+  metadati dell'audit (prodotti, quantità e date sì).
+
+### ADR-063 — Inventario: avvisi nel pannello, ramos e costo previsto e reale (blocco 4) — ADOTTATO (23/11/2026)
+
+- **Avvisi nel pannello:** riquadro "Inventario" con i prodotti agotados e por agotarse,
+  calcolati sul disponibile (ADR-062), i primi cinque da guardare, e gli apartados che scadono
+  oggi o domani o sono già vencidos. Ogni riga porta alla pagina giusta. Senza il piano il riquadro
+  non c'è.
+- **Ramos del catálogo (spec INV-01: "avviso quando un ingrediente della ricetta non è
+  sufficiente"):** nella scheda di un ramo con ricetta, il riquadro "Inventario" mostra:
+  - quanti ramos si possono fare con la merce disponibile: il minimo fra gli ingredienti
+    controllati (`bouquetsPossible`);
+  - gli ingredienti non controllati non limitano e non si scaricano: chi compra a richiesta non
+    vede numeri inventati; se non si controlla nessun ingrediente, lo dice;
+  - per ogni ingrediente: quanto per ramo e quanto è disponibile.
+- **Costo previsto e reale (spec INV-01):** per chi vede i costi, i materiali di un ramo ai costi
+  del catalogo (previsto) e al costo medio delle compras (reale), con la differenza in percentuale
+  (`bouquetMaterialCost`). Per un ingrediente senza costo medio il reale usa il costo del catalogo,
+  e lo dice. Se un costo manca del tutto, nessun totale che sembri completo (come ADR-015).
+- **"Registrar ramos hechos"** (proprietario e manager): la ricetta × N esce dall'inventario con un
+  registro di uso ("3 × Ramo Clásico"), al costo medio del momento. Mentre si scrive si vede cosa
+  manca; se non basta serve la conferma (ADR-060). Si annulla come ogni registro. È il consumo per
+  chi vende ramos del catalogo al banco senza ordine. Gli ordini li collega l'altra sessione con
+  `consumeStockTx` e `consumeReservationTx`.
+- **Riepilogo del mese** (chi vede i costi), in testa ai Movimientos, con il mese precedente:
+  - compras pagate (per giorno della compra);
+  - usato al costo reale e ai costi del catalogo, cioè costo previsto e reale dell'intera fioreria;
+  - mermas;
+  - i registri annullati e le anulaciones non contano;
+  - il mese è quello del calendario della fioreria (fuso orario in SQL).
+- **Testi della pagina del piano** aggiornati: compras, apartados e quanti ramos alcanzan.
 
 ---
 

@@ -76,12 +76,7 @@ export default async function PurchasesPage({
           </>
         }
       />
-      <InventoryTabs
-        current="purchases"
-        stockHref={routes.inventory.list()}
-        movementsHref={routes.inventory.movements()}
-        purchasesHref={routes.inventory.purchases()}
-      />
+      <InventoryTabs current="purchases" routes={routes} showPurchases={true} />
       <FilterBar
         action={routes.inventory.purchases()}
         search={{ defaultValue: filters.q, placeholder: t('purchases.searchPlaceholder') }}

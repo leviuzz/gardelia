@@ -84,7 +84,11 @@ export type ConflictReason =
   | 'inventory_already_tracked'
   | 'inventory_entry_not_reversible'
   | 'inventory_entry_already_reversed'
-  | 'inventory_no_real_cost';
+  | 'inventory_no_real_cost'
+  /** Apartado già usato o liberato (ADR-062). */
+  | 'inventory_reservation_closed'
+  /** "Registrar ramos hechos" su un ramo senza ricetta (ADR-063). */
+  | 'inventory_bouquet_without_recipe';
 
 export class ConflictError extends AppError {
   readonly code = 'conflict' as const;

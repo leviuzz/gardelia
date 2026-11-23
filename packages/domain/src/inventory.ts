@@ -15,6 +15,14 @@
  *    catalogo, poi le compras); costo previsto = costo del catalogo.
  */
 import { z } from 'zod';
+import {
+  addDays,
+  addMonths,
+  compareDates,
+  daysBetween,
+  parseIsoDate,
+  type CalendarDate,
+} from './calendar';
 import { INGREDIENT_TYPES, type Availability, type CatalogItemType } from './catalog';
 import { optionalPhoneField } from './customer';
 import type { MarketCountry } from './markets';
@@ -419,3 +427,255 @@ export function supplierInputSchema(country: MarketCountry) {
   });
 }
 export type SupplierInput = z.infer<ReturnType<typeof supplierInputSchema>>;
+
+// -----------------------------------------------------------------------------
+// Apartados con vencimiento (ADR-062)
+// -----------------------------------------------------------------------------
+
+export const RESERVATION_LIMITS = {
+  /** "Para": l'evento o il cliente ("Boda de Ana"). */
+  label: 120,
+  note: 300,
+  /** Prodotti in un apartado. */
+  lines: 60,
+  /** Un apartado dura al massimo 90 giorni da oggi: la merce fresca non aspetta di più. */
+  maxDays: 90,
+  /** Scadenza proposta nel form: fra 3 giorni. */
+  defaultDays: 3,
+} as const;
+
+/** Stato salvato: ACTIVE finché non si usa o si libera. */
+export const RESERVATION_STATUSES = ['ACTIVE', 'USED', 'RELEASED'] as const;
+export type ReservationStatus = (typeof RESERVATION_STATUSES)[number];
+
+/**
+ * Stato da mostrare: un apartado ACTIVE vale fino alla fine del giorno di scadenza, nel calendario
+ * della fioreria; il giorno dopo è EXPIRED e non tiene più merce, senza bisogno di job.
+ */
+export const RESERVATION_STATES = ['ACTIVE', 'EXPIRED', 'USED', 'RELEASED'] as const;
+export type ReservationState = (typeof RESERVATION_STATES)[number];
+
+export function reservationState(
+  status: ReservationStatus,
+  expiresOn: CalendarDate,
+  today: CalendarDate,
+): ReservationState {
+  if (status !== 'ACTIVE') return status;
+  return compareDates(expiresOn, today) < 0 ? 'EXPIRED' : 'ACTIVE';
+}
+
+/** Giorni che restano (0 = scade oggi, negativo = vencido da tanti giorni). */
+export function reservationDaysLeft(expiresOn: CalendarDate, today: CalendarDate): number {
+  return daysBetween(today, expiresOn);
+}
+
+/** Date ammesse per la scadenza: da oggi a 90 giorni, con la proposta del form. */
+export function reservationExpiryRange(today: CalendarDate): {
+  readonly min: CalendarDate;
+  readonly max: CalendarDate;
+  readonly suggested: CalendarDate;
+} {
+  return {
+    min: today,
+    max: addDays(today, RESERVATION_LIMITS.maxDays),
+    suggested: addDays(today, RESERVATION_LIMITS.defaultDays),
+  };
+}
+
+/** Scadenza "AAAA-MM-GG": obbligatoria, da oggi (incluso) a 90 giorni. */
+function reservationExpiryField(today: CalendarDate) {
+  const { max } = reservationExpiryRange(today);
+  return z.preprocess(
+    toTrimmedString,
+    z.string().transform((value, ctx) => {
+      if (value === '') {
+        ctx.addIssue({ code: 'custom', message: 'required' });
+        return z.NEVER;
+      }
+      const date = parseIsoDate(value);
+      if (!date) {
+        ctx.addIssue({ code: 'custom', message: 'invalid_date' });
+        return z.NEVER;
+      }
+      if (compareDates(date, today) < 0) {
+        ctx.addIssue({ code: 'custom', message: 'inventory_expiry_past' });
+        return z.NEVER;
+      }
+      if (compareDates(date, max) > 0) {
+        ctx.addIssue({ code: 'custom', message: 'inventory_expiry_too_far' });
+        return z.NEVER;
+      }
+      return date;
+    }),
+  );
+}
+
+/**
+ * "Nuevo apartado": per chi o cosa, fino a quando, nota e una riga per prodotto controllato. Le
+ * quantità si scrivono come nelle compras ("50" o "2x25"); lo stesso prodotto in più righe si
+ * somma. `confirmShortage`: apartar anche se la merce disponibile non basta.
+ */
+export function reservationInputSchema(today: CalendarDate) {
+  return z.object({
+    label: requiredText(RESERVATION_LIMITS.label),
+    expiresOn: reservationExpiryField(today),
+    note: optionalText(RESERVATION_LIMITS.note),
+    lines: z.preprocess(
+      rowsToArray,
+      z
+        .array(
+          z.object({
+            inventoryItemId: z.preprocess(toTrimmedString, z.uuid({ error: 'required' })),
+            quantity: packQuantityField,
+          }),
+        )
+        .min(1, { error: 'inventory_no_lines' })
+        .max(RESERVATION_LIMITS.lines, { error: 'too_many_items' }),
+    ),
+    confirmShortage: checkboxField(),
+  });
+}
+export type ReservationInput = z.infer<ReturnType<typeof reservationInputSchema>>;
+
+/** "Extender": nuova scadenza, con le stesse regole (anche per un apartado già vencido). */
+export function reservationExtendSchema(today: CalendarDate) {
+  return z.object({ expiresOn: reservationExpiryField(today) });
+}
+
+/**
+ * "Usar apartado": quanto si è usato davvero di ogni riga (proposta: quanto era apartado). 0 =
+ * non usato, resta in giacenza. Almeno una quantità, altrimenti si libera l'apartado.
+ */
+export const reservationUseSchema = z.object({
+  lines: z.preprocess(
+    rowsToArray,
+    z
+      .array(
+        z.object({
+          lineId: z.preprocess(toTrimmedString, z.uuid({ error: 'invalid_option' })),
+          quantity: requiredInteger({ min: 0, max: INVENTORY_LIMITS.quantity }),
+        }),
+      )
+      .max(RESERVATION_LIMITS.lines, { error: 'too_many_items' })
+      .refine((lines) => lines.some((line) => line.quantity > 0), {
+        error: 'inventory_nothing_used',
+      }),
+  ),
+  confirmShortage: checkboxField(),
+});
+export type ReservationUseInput = z.infer<typeof reservationUseSchema>;
+
+/** Viste dell'elenco: vigentes, vencidos, cerrados (usati o liberati). */
+export const RESERVATION_VIEWS = ['current', 'expired', 'closed'] as const;
+export type ReservationView = (typeof RESERVATION_VIEWS)[number];
+
+/** Filtri dell'elenco degli apartados (`?view=…&q=…&page=…`). */
+export const reservationListFiltersSchema = z.object({
+  view: z.preprocess(toTrimmedString, z.enum(RESERVATION_VIEWS).catch('current')),
+  q: z.preprocess(toTrimmedString, z.string().max(80).catch('')),
+  page: pageField,
+});
+export type ReservationListFilters = z.infer<typeof reservationListFiltersSchema>;
+
+// -----------------------------------------------------------------------------
+// Ramos del catálogo e costo previsto e reale (ADR-063)
+// -----------------------------------------------------------------------------
+
+/** Un ingrediente della ricetta visto dall'inventario: quanto ne serve per UN ramo e quanto c'è. */
+export interface BouquetStockLine {
+  /** Quantità per un ramo, nell'unità di vendita dell'ingrediente. */
+  readonly quantity: number;
+  /** Disponibile oggi; null = l'ingrediente non si controlla e non limita i ramos. */
+  readonly available: number | null;
+}
+
+/**
+ * Quanti ramos si possono fare con la merce disponibile: il minimo fra gli ingredienti controllati.
+ * null se nessun ingrediente si controlla (chi compra a richiesta: nessun numero inventato).
+ */
+export function bouquetsPossible(lines: readonly BouquetStockLine[]): number | null {
+  let possible: number | null = null;
+  for (const line of lines) {
+    if (line.available === null || line.quantity <= 0) continue;
+    const forLine = Math.max(0, Math.floor(line.available / line.quantity));
+    possible = possible === null ? forLine : Math.min(possible, forLine);
+  }
+  return possible;
+}
+
+/** Quanto manca di ogni ingrediente per fare `count` ramos: 0 se basta, null se non controllato. */
+export function bouquetShortages(
+  lines: readonly BouquetStockLine[],
+  count: number,
+): (number | null)[] {
+  return lines.map((line) =>
+    line.available === null ? null : missingQuantity(line.quantity * count, line.available),
+  );
+}
+
+/** Un ingrediente con i suoi costi per unità: reale (costo medio) e del catalogo. */
+export interface BouquetCostLine {
+  readonly quantity: number;
+  /** Costo medio dell'inventario; null se l'ingrediente non si controlla o non ha costo. */
+  readonly realUnitCostMinor: number | null;
+  readonly catalogUnitCostMinor: number | null;
+}
+
+export interface BouquetMaterialCost {
+  /** Costo dei materiali con i costi del catalogo (previsto); null se ne manca uno. */
+  readonly expectedMinor: number | null;
+  /** Costo con i costi reali dove ci sono, del catalogo per gli altri; null se ne manca uno. */
+  readonly realMinor: number | null;
+  /** Ingredienti per cui il costo "reale" è quello del catalogo (non controllati o senza costo). */
+  readonly catalogFallbackLines: number;
+}
+
+/** Costo previsto e reale dei materiali di UN ramo (la ricetta è la fonte di verità, spec §6). */
+export function bouquetMaterialCost(lines: readonly BouquetCostLine[]): BouquetMaterialCost {
+  let fallback = 0;
+  const real = lines.map((line) => {
+    if (line.realUnitCostMinor !== null) return stockValue(line.quantity, line.realUnitCostMinor);
+    fallback += 1;
+    return stockValue(line.quantity, line.catalogUnitCostMinor);
+  });
+  return {
+    expectedMinor: sumKnown(
+      lines.map((line) => stockValue(line.quantity, line.catalogUnitCostMinor)),
+    ),
+    realMinor: sumKnown(real),
+    catalogFallbackLines: fallback,
+  };
+}
+
+/** Ramos fatti in una volta ("Registrar ramos hechos"). */
+export const BOUQUETS_MADE_MAX = 500;
+
+/** "Registrar ramos hechos": quanti; `confirmShortage` se la merce non basta. */
+export const bouquetsMadeSchema = z.object({
+  count: requiredInteger({ min: 1, max: BOUQUETS_MADE_MAX }),
+  confirmShortage: checkboxField(),
+});
+export type BouquetsMadeInput = z.infer<typeof bouquetsMadeSchema>;
+
+/**
+ * Mese del riepilogo ("AAAA-MM", primo giorno): un mese passato o quello di oggi, nel calendario
+ * della fioreria; un valore vuoto, sbagliato o futuro vale il mese di oggi.
+ */
+export function summaryMonth(value: unknown, today: CalendarDate): CalendarDate {
+  const current = { year: today.year, month: today.month, day: 1 };
+  const match = typeof value === 'string' ? /^(\d{4})-(\d{2})$/.exec(value) : null;
+  if (!match) return current;
+  const month = parseIsoDate(`${match[1]}-${match[2]}-01`);
+  if (!month || compareDates(month, current) > 0) return current;
+  return month;
+}
+
+/** Il mese dopo (primo giorno): fine esclusa dell'intervallo del riepilogo. */
+export function nextMonth(month: CalendarDate): CalendarDate {
+  return addMonths({ year: month.year, month: month.month, day: 1 }, 1);
+}
+
+/** "AAAA-MM" di un mese, per i link del riepilogo. */
+export function monthParam(month: CalendarDate): string {
+  return `${month.year}-${String(month.month).padStart(2, '0')}`;
+}

@@ -1877,11 +1877,12 @@
       "label": "Inventory sections",
       "stock": "Stock",
       "movements": "Movements",
-      "purchases": "Purchases"
+      "purchases": "Purchases",
+      "reservations": "Reservations"
     },
     "upsell": {
       "title": "Inventory is included in {plan}",
-      "body": "Keep count of your flowers, foliage, packaging and accessories: how much you have, what is running out and everything that comes in and goes out.",
+      "body": "Keep count of your flowers, foliage, packaging and accessories: how much you have, what is reserved, what is running out, what each bouquet really costs and everything that comes in and goes out.",
       "ownerHint": "You can see your plan and what it includes in Plan and features.",
       "teamHint": "Ask the shop owner to change the plan.",
       "seePlan": "See my plan"
@@ -1923,7 +1924,8 @@
       "archivedSubtitle": "Their movements are kept. You can track them again from Choose products.",
       "archivedEmpty": "There are no products you stopped tracking.",
       "backToStock": "Back to stock",
-      "staffNote": "You can see the stock; movements are recorded by the owner and the manager."
+      "staffNote": "You can see the stock; movements are recorded by the owner and the manager.",
+      "reserved": "Reserved: {quantity} · available: {available}"
     },
     "start": {
       "title": "Choose products",
@@ -1977,7 +1979,10 @@
       "noRealCost": "No purchases yet",
       "costDiff": "{diff} vs. the catalog",
       "useRealCost": "Use this cost in the catalog",
-      "realCostApplied": "Done: the catalog now uses the real cost."
+      "realCostApplied": "Done: the catalog now uses the real cost.",
+      "reserved": "Reserved",
+      "reservedDetail": "Available: {quantity}",
+      "noReserved": "Nothing reserved"
     },
     "actions": {
       "use": "Record use",
@@ -2052,15 +2057,19 @@
       "untracked": "You do not track the stock of this product.",
       "archived": "You no longer track the stock of this product.",
       "start": "Track stock",
-      "open": "See in the inventory"
+      "open": "See in the inventory",
+      "reserved": "Reserved: {quantity}; available: {available}."
     },
     "planFeature": {
       "title": "Inventory",
-      "body": "Stock of every product, alerts when it runs out and everything that comes in and goes out."
+      "body": "Stock of every product, purchases at real cost, reservations, alerts when it runs out and how many bouquets you can make."
     },
     "validation": {
       "none_selected": "Enter how many you have of at least one product.",
-      "no_lines": "Add at least one product to the purchase."
+      "no_lines": "Add at least one product to the purchase.",
+      "expiry_past": "Choose today or a future date.",
+      "expiry_too_far": "Choose a date within the next 90 days.",
+      "nothing_used": "Type how much you used of at least one product. If you used nothing, release the reservation."
     },
     "conflict": {
       "insufficient_stock": "There is not enough stock: check the quantity or confirm to record it anyway.",
@@ -2068,7 +2077,9 @@
       "already_tracked": "Someone started tracking these products at the same time. Reload the page.",
       "entry_not_reversible": "This movement cannot be reversed: fix the stock with a count.",
       "entry_already_reversed": "This movement was already reversed.",
-      "no_real_cost": "This product has no real cost yet: record a purchase."
+      "no_real_cost": "This product has no real cost yet: record a purchase.",
+      "reservation_closed": "This reservation was already used or released. Reload the page.",
+      "bouquet_without_recipe": "This bouquet has no recipe: add its ingredients in the catalog."
     },
     "activity": {
       "tracking_started": "{units, plural, one {{actor} started tracking {name} in the inventory} other {{actor} started tracking # products in the inventory}}",
@@ -2083,7 +2094,12 @@
       "supplier_updated": "{actor} changed the supplier {name}",
       "supplier_archived": "{actor} archived the supplier {name}",
       "supplier_restored": "{actor} restored the supplier {name}",
-      "real_cost_applied": "{actor} used the real cost of {name} in the catalog"
+      "real_cost_applied": "{actor} used the real cost of {name} in the catalog",
+      "reservation_created": "{lines, plural, one {{actor} reserved {units} × {name}} other {{actor} reserved stock of # products}}",
+      "reservation_extended": "{actor} extended a reservation",
+      "reservation_released": "{actor} released a reservation",
+      "reservation_used": "{actor} used a reservation",
+      "bouquets_made": "{units, plural, one {{actor} recorded # bouquet made of {name}} other {{actor} recorded # bouquets made of {name}}}"
     },
     "purchases": {
       "title": "Purchases",
@@ -2163,6 +2179,154 @@
       "restoredDone": "Supplier restored.",
       "showArchived": "Show archived too",
       "hideArchived": "Hide archived"
+    },
+    "reservations": {
+      "title": "Reservations",
+      "subtitle": "Stock set aside for an event or a customer until a date: while it is reserved it doesn't show as available.",
+      "new": "New reservation",
+      "viewsLabel": "Show reservations",
+      "views": {
+        "current": "Active ({count})",
+        "expired": "Expired ({count})",
+        "closed": "Closed ({count})"
+      },
+      "searchPlaceholder": "Search by event or customer",
+      "results": "{count, plural, =0 {No reservations} one {# reservation} other {# reservations}}",
+      "emptyTitle": {
+        "current": "No active reservations",
+        "expired": "No expired reservations",
+        "closed": "No closed reservations yet"
+      },
+      "emptyBody": {
+        "current": "Set aside the flowers for a wedding or an event so you don't use them by mistake in another bouquet.",
+        "expired": "When a reservation passes its date it shows up here: you can extend it or release it.",
+        "closed": "Here you'll see the reservations that were used or released."
+      },
+      "emptyBodyStaff": "When the owner or the manager set stock aside, you'll see here what it's for.",
+      "noResultsTitle": "No reservations match this search",
+      "noResultsBody": "Try another word.",
+      "staffNote": "You can see the reservations; the owner and the manager create and use them.",
+      "states": {
+        "ACTIVE": "Active",
+        "EXPIRED": "Expired",
+        "USED": "Used",
+        "RELEASED": "Released"
+      },
+      "due": "{days, plural, =0 {Expires today} one {Expires tomorrow} other {Expires in # days}}",
+      "expiresOn": "Expires on {date}",
+      "expiredOn": "Expired on {date}",
+      "usedOn": "Used on {date}",
+      "releasedOn": "Released on {date}",
+      "line": "{quantity} of {name}",
+      "moreLines": "{count, plural, one {and # more product} other {and # more products}}",
+      "form": {
+        "title": "New reservation",
+        "subtitle": "Set stock aside for an event or a customer. Stock levels don't change until you use it.",
+        "back": "Back to reservations",
+        "label": "For",
+        "labelHint": "For example: Ana's wedding, Quinta Real hotel event.",
+        "expiresOn": "Expires on",
+        "expiresOnHint": "After that day the stock is no longer reserved.",
+        "note": "Note (optional)",
+        "product": "Product",
+        "choose": "Choose a product",
+        "quantity": "Quantity",
+        "quantityHint": "You can type 2x25.",
+        "available": "Available: {quantity}",
+        "missing": "{quantity} short",
+        "shortage": "There isn't enough available stock for everything you want to reserve. You can reserve it anyway and buy what's missing.",
+        "addLine": "Add product",
+        "removeLine": "Remove product",
+        "submit": "Reserve",
+        "submitShortage": "Reserve anyway",
+        "noProducts": "First choose in Stock the products you want to track."
+      },
+      "detail": {
+        "back": "Back to reservations",
+        "created": "Reservation ready: this stock no longer shows as available.",
+        "notTracked": "You no longer track this product",
+        "missing": "{quantity} short",
+        "createdBy": "Reserved by {name}",
+        "closedByUsed": "Used by {name}",
+        "closedByReleased": "Released by {name}",
+        "expiredNotice": "This reservation has expired: the stock is available again for other bouquets. Extend it if you still need it.",
+        "usedNotice": "This reservation was used: the stock left the inventory.",
+        "releasedNotice": "This reservation was released: the stock is available again.",
+        "movementsLink": "See movements",
+        "usedLine": "Used: {quantity}",
+        "forThisLine": "Available for it: {quantity}"
+      },
+      "actions": {
+        "use": "Use",
+        "useTitle": "Use “{label}”",
+        "useBody": "Type how much you used of each product. Whatever you don't use stays in stock.",
+        "useShortage": "There isn't enough stock for everything you typed. If you continue, stock will go below zero.",
+        "useSubmit": "Record use",
+        "useSubmitShortage": "Record anyway",
+        "used": "Use recorded: the reservation is closed.",
+        "extend": "Extend",
+        "extendTitle": "Extend “{label}”",
+        "extendBody": "Choose until which day the stock stays reserved.",
+        "extendSubmit": "Save date",
+        "extended": "Date saved.",
+        "release": "Release",
+        "releaseTitle": "Release “{label}”?",
+        "releaseBody": "The stock becomes available again for other bouquets. Stock levels don't change.",
+        "releaseConfirm": "Release",
+        "released": "Reservation released: the stock is available again."
+      },
+      "itemBox": {
+        "title": "Reservations",
+        "empty": "Nothing reserved of this product.",
+        "entry": "{quantity} for {label}",
+        "new": "Reserve"
+      }
+    },
+    "alerts": {
+      "title": "Inventory",
+      "allGood": "All good: nothing is running out.",
+      "low": "{count, plural, one {# running low} other {# running low}}",
+      "out": "{count, plural, one {# out of stock} other {# out of stock}}",
+      "left": "{quantity} left",
+      "gone": "Out of stock",
+      "dueSoon": "{count, plural, one {# reservation expires today or tomorrow} other {# reservations expire today or tomorrow}}",
+      "expired": "{count, plural, one {# expired reservation: use, extend or release it} other {# expired reservations: use, extend or release them}}",
+      "open": "See inventory"
+    },
+    "bouquet": {
+      "title": "Inventory",
+      "possible": "{count, plural, =0 {With what you have there's not enough for any bouquet.} one {With what you have there's enough for # bouquet.} other {With what you have there's enough for # bouquets.}}",
+      "noneTracked": "No ingredient of this bouquet is tracked in the inventory.",
+      "perBouquet": "{quantity} per bouquet",
+      "available": "available: {quantity}",
+      "notTracked": "not tracked",
+      "costTitle": "Materials for one bouquet",
+      "expected": "Expected (catalog): {amount}",
+      "real": "Real (what you paid): {amount}",
+      "diff": "{diff} vs. the catalog",
+      "fallback": "{count, plural, one {The catalog cost is used for # ingredient.} other {The catalog cost is used for # ingredients.}}",
+      "costUnknown": "An ingredient has no cost.",
+      "record": "Record bouquets made",
+      "recordTitle": "Record bouquets made: {name}",
+      "recordBody": "We take the recipe's ingredients out of the inventory for each bouquet. The ones you don't track don't change.",
+      "count": "How many bouquets",
+      "missing": "{quantity} of {name} short",
+      "shortage": "There isn't enough stock for all the bouquets. If you continue, those stock levels will go below zero.",
+      "submit": "Record",
+      "submitShortage": "Record anyway",
+      "recorded": "{count, plural, one {Done: # bouquet recorded.} other {Done: # bouquets recorded.}}"
+    },
+    "monthSummary": {
+      "title": "{month} summary",
+      "hint": "Reversed records don't count. Purchases go by their date; use and waste by the day they were recorded.",
+      "purchases": "Purchases",
+      "purchasesCount": "{count, plural, =0 {No purchases} one {# purchase} other {# purchases}}",
+      "used": "Used",
+      "usedExpected": "At catalog costs: {amount}",
+      "waste": "Waste",
+      "unknown": "A product has no cost",
+      "previous": "Previous month",
+      "next": "Next month"
     }
   }
 }

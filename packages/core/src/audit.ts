@@ -88,7 +88,8 @@ type ProbeableEntity =
   | 'DeliveryWindow'
   | 'InventoryItem'
   | 'InventoryEntry'
-  | 'Supplier';
+  | 'Supplier'
+  | 'InventoryReservation';
 
 async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<string | null> {
   return withSystemContext(
@@ -151,6 +152,10 @@ async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<st
           return (await tx.inventoryEntry.findUnique({ where: { id }, select }))?.tenantId ?? null;
         case 'Supplier':
           return (await tx.supplier.findUnique({ where: { id }, select }))?.tenantId ?? null;
+        case 'InventoryReservation':
+          return (
+            (await tx.inventoryReservation.findUnique({ where: { id }, select }))?.tenantId ?? null
+          );
       }
     },
   );

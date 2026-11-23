@@ -1877,11 +1877,12 @@
       "label": "Secciones del inventario",
       "stock": "Existencias",
       "movements": "Movimientos",
-      "purchases": "Compras"
+      "purchases": "Compras",
+      "reservations": "Apartados"
     },
     "upsell": {
       "title": "El inventario está incluido en {plan}",
-      "body": "Lleva la cuenta de tus flores, follajes, empaques y accesorios: cuánto tienes, qué se está acabando y todo lo que entra y sale.",
+      "body": "Lleva la cuenta de tus flores, follajes, empaques y accesorios: cuánto tienes, qué está apartado, qué se está acabando, cuánto te cuesta de verdad cada ramo y todo lo que entra y sale.",
       "ownerHint": "Puedes ver tu plan y lo que incluye en Plan y funciones.",
       "teamHint": "Pide al propietario de la florería que cambie el plan.",
       "seePlan": "Ver mi plan"
@@ -1923,7 +1924,8 @@
       "archivedSubtitle": "Sus movimientos se conservan. Puedes volver a controlarlos desde Elegir productos.",
       "archivedEmpty": "No hay productos que hayas dejado de controlar.",
       "backToStock": "Volver a las existencias",
-      "staffNote": "Ves las existencias; los movimientos los registran el propietario y el gerente."
+      "staffNote": "Ves las existencias; los movimientos los registran el propietario y el gerente.",
+      "reserved": "Apartados: {quantity} · disponibles: {available}"
     },
     "start": {
       "title": "Elegir productos",
@@ -1977,7 +1979,10 @@
       "noRealCost": "Sin compras todavía",
       "costDiff": "{diff} vs. el catálogo",
       "useRealCost": "Usar este costo en el catálogo",
-      "realCostApplied": "Listo: el catálogo ya usa el costo real."
+      "realCostApplied": "Listo: el catálogo ya usa el costo real.",
+      "reserved": "Apartado",
+      "reservedDetail": "Disponibles: {quantity}",
+      "noReserved": "Nada apartado"
     },
     "actions": {
       "use": "Registrar uso",
@@ -2052,15 +2057,19 @@
       "untracked": "No controlas las existencias de este producto.",
       "archived": "Ya no controlas las existencias de este producto.",
       "start": "Controlar existencias",
-      "open": "Ver en el inventario"
+      "open": "Ver en el inventario",
+      "reserved": "Apartados: {quantity}; disponibles: {available}."
     },
     "planFeature": {
       "title": "Inventario",
-      "body": "Existencias de cada producto, avisos cuando se acaban y todo lo que entra y sale."
+      "body": "Existencias de cada producto, compras con el costo real, apartados, avisos cuando se acaban y cuántos ramos alcanzan."
     },
     "validation": {
       "none_selected": "Escribe cuántos tienes de al menos un producto.",
-      "no_lines": "Agrega al menos un producto a la compra."
+      "no_lines": "Agrega al menos un producto a la compra.",
+      "expiry_past": "Elige hoy o una fecha futura.",
+      "expiry_too_far": "Elige una fecha dentro de los próximos 90 días.",
+      "nothing_used": "Escribe cuánto usaste de al menos un producto. Si no usaste nada, libera el apartado."
     },
     "conflict": {
       "insufficient_stock": "No alcanza la mercancía: revisa la cantidad o confirma para registrarlo de todos modos.",
@@ -2068,7 +2077,9 @@
       "already_tracked": "Alguien empezó a controlar estos productos al mismo tiempo. Recarga la página.",
       "entry_not_reversible": "Este movimiento no se puede anular: corrige las existencias con un conteo.",
       "entry_already_reversed": "Este movimiento ya se anuló.",
-      "no_real_cost": "Este producto todavía no tiene un costo real: registra una compra."
+      "no_real_cost": "Este producto todavía no tiene un costo real: registra una compra.",
+      "reservation_closed": "Este apartado ya se usó o se liberó. Recarga la página.",
+      "bouquet_without_recipe": "Este ramo no tiene receta: agrégale los ingredientes en el catálogo."
     },
     "activity": {
       "tracking_started": "{units, plural, one {{actor} empezó a controlar {name} en el inventario} other {{actor} empezó a controlar # productos en el inventario}}",
@@ -2083,7 +2094,12 @@
       "supplier_updated": "{actor} cambió el proveedor {name}",
       "supplier_archived": "{actor} archivó el proveedor {name}",
       "supplier_restored": "{actor} recuperó el proveedor {name}",
-      "real_cost_applied": "{actor} usó el costo real de {name} en el catálogo"
+      "real_cost_applied": "{actor} usó el costo real de {name} en el catálogo",
+      "reservation_created": "{lines, plural, one {{actor} apartó {units} × {name}} other {{actor} apartó mercancía de # productos}}",
+      "reservation_extended": "{actor} extendió un apartado",
+      "reservation_released": "{actor} liberó un apartado",
+      "reservation_used": "{actor} usó un apartado",
+      "bouquets_made": "{units, plural, one {{actor} registró # ramo hecho de {name}} other {{actor} registró # ramos hechos de {name}}}"
     },
     "purchases": {
       "title": "Compras",
@@ -2163,6 +2179,154 @@
       "restoredDone": "Proveedor recuperado.",
       "showArchived": "Ver también los archivados",
       "hideArchived": "Ocultar los archivados"
+    },
+    "reservations": {
+      "title": "Apartados",
+      "subtitle": "Mercancía separada para un evento o un cliente hasta una fecha: mientras está apartada no aparece como disponible.",
+      "new": "Nuevo apartado",
+      "viewsLabel": "Ver apartados",
+      "views": {
+        "current": "Vigentes ({count})",
+        "expired": "Vencidos ({count})",
+        "closed": "Cerrados ({count})"
+      },
+      "searchPlaceholder": "Buscar por evento o cliente",
+      "results": "{count, plural, =0 {Sin apartados} one {# apartado} other {# apartados}}",
+      "emptyTitle": {
+        "current": "No hay apartados vigentes",
+        "expired": "No hay apartados vencidos",
+        "closed": "Todavía no hay apartados cerrados"
+      },
+      "emptyBody": {
+        "current": "Aparta las flores de una boda o un evento y no las usarás por error en otro ramo.",
+        "expired": "Cuando un apartado pasa su fecha aparece aquí: puedes extenderlo o liberarlo.",
+        "closed": "Aquí verás los apartados que ya se usaron o se liberaron."
+      },
+      "emptyBodyStaff": "Cuando el propietario o el gerente aparten mercancía, aquí verás para qué es.",
+      "noResultsTitle": "Ningún apartado con esta búsqueda",
+      "noResultsBody": "Prueba con otra palabra.",
+      "staffNote": "Ves los apartados; los crean y los usan el propietario y el gerente.",
+      "states": {
+        "ACTIVE": "Vigente",
+        "EXPIRED": "Vencido",
+        "USED": "Usado",
+        "RELEASED": "Liberado"
+      },
+      "due": "{days, plural, =0 {Vence hoy} one {Vence mañana} other {Vence en # días}}",
+      "expiresOn": "Vence el {date}",
+      "expiredOn": "Venció el {date}",
+      "usedOn": "Usado el {date}",
+      "releasedOn": "Liberado el {date}",
+      "line": "{quantity} de {name}",
+      "moreLines": "{count, plural, one {y # producto más} other {y # productos más}}",
+      "form": {
+        "title": "Nuevo apartado",
+        "subtitle": "Separa mercancía para un evento o un cliente. Las existencias no cambian hasta que la uses.",
+        "back": "Volver a los apartados",
+        "label": "Para",
+        "labelHint": "Por ejemplo: Boda de Ana, Evento Hotel Quinta Real.",
+        "expiresOn": "Vence el",
+        "expiresOnHint": "Después de ese día la mercancía deja de estar apartada.",
+        "note": "Nota (opcional)",
+        "product": "Producto",
+        "choose": "Elige un producto",
+        "quantity": "Cantidad",
+        "quantityHint": "Puedes escribir 2x25.",
+        "available": "Disponibles: {quantity}",
+        "missing": "Faltan {quantity}",
+        "shortage": "No alcanza la mercancía disponible para todo lo que quieres apartar. Puedes apartarla de todos modos y comprar lo que falta.",
+        "addLine": "Agregar producto",
+        "removeLine": "Quitar producto",
+        "submit": "Apartar",
+        "submitShortage": "Apartar de todos modos",
+        "noProducts": "Primero elige en Existencias los productos que quieres controlar."
+      },
+      "detail": {
+        "back": "Volver a los apartados",
+        "created": "Apartado listo: esta mercancía ya no aparece como disponible.",
+        "notTracked": "Ya no controlas este producto",
+        "missing": "Faltan {quantity}",
+        "createdBy": "Lo apartó {name}",
+        "closedByUsed": "Lo usó {name}",
+        "closedByReleased": "Lo liberó {name}",
+        "expiredNotice": "Este apartado venció: la mercancía ya está disponible para otros ramos. Extiéndelo si todavía la necesitas.",
+        "usedNotice": "Este apartado ya se usó: la mercancía salió del inventario.",
+        "releasedNotice": "Este apartado se liberó: la mercancía volvió a estar disponible.",
+        "movementsLink": "Ver movimientos",
+        "usedLine": "Usado: {quantity}",
+        "forThisLine": "Hay para este apartado: {quantity}"
+      },
+      "actions": {
+        "use": "Usar",
+        "useTitle": "Usar «{label}»",
+        "useBody": "Escribe cuánto usaste de cada producto. Lo que no uses se queda en las existencias.",
+        "useShortage": "No alcanza la mercancía para todo lo que escribiste. Si continúas, las existencias quedarán en negativo.",
+        "useSubmit": "Registrar uso",
+        "useSubmitShortage": "Registrar de todos modos",
+        "used": "Uso registrado: el apartado se cerró.",
+        "extend": "Extender",
+        "extendTitle": "Extender «{label}»",
+        "extendBody": "Elige hasta qué día se queda apartada la mercancía.",
+        "extendSubmit": "Guardar fecha",
+        "extended": "Fecha guardada.",
+        "release": "Liberar",
+        "releaseTitle": "¿Liberar «{label}»?",
+        "releaseBody": "La mercancía vuelve a estar disponible para otros ramos. Las existencias no cambian.",
+        "releaseConfirm": "Liberar",
+        "released": "Apartado liberado: la mercancía vuelve a estar disponible."
+      },
+      "itemBox": {
+        "title": "Apartados",
+        "empty": "Nada apartado de este producto.",
+        "entry": "{quantity} para {label}",
+        "new": "Apartar"
+      }
+    },
+    "alerts": {
+      "title": "Inventario",
+      "allGood": "Todo en orden: nada se está acabando.",
+      "low": "{count, plural, one {# por agotarse} other {# por agotarse}}",
+      "out": "{count, plural, one {# agotado} other {# agotados}}",
+      "left": "Quedan {quantity}",
+      "gone": "Agotado",
+      "dueSoon": "{count, plural, one {# apartado vence hoy o mañana} other {# apartados vencen hoy o mañana}}",
+      "expired": "{count, plural, one {# apartado vencido: úsalo, extiéndelo o libéralo} other {# apartados vencidos: úsalos, extiéndelos o libéralos}}",
+      "open": "Ver inventario"
+    },
+    "bouquet": {
+      "title": "Inventario",
+      "possible": "{count, plural, =0 {Con lo que tienes no alcanza para ningún ramo.} one {Con lo que tienes alcanza para # ramo.} other {Con lo que tienes alcanzan para # ramos.}}",
+      "noneTracked": "Ningún ingrediente de este ramo se controla en el inventario.",
+      "perBouquet": "{quantity} por ramo",
+      "available": "disponibles: {quantity}",
+      "notTracked": "no se controla",
+      "costTitle": "Materiales de un ramo",
+      "expected": "Previsto (catálogo): {amount}",
+      "real": "Real (lo que pagaste): {amount}",
+      "diff": "{diff} vs. el catálogo",
+      "fallback": "{count, plural, one {Para # ingrediente se usa el costo del catálogo.} other {Para # ingredientes se usa el costo del catálogo.}}",
+      "costUnknown": "Falta el costo de algún ingrediente.",
+      "record": "Registrar ramos hechos",
+      "recordTitle": "Registrar ramos hechos: {name}",
+      "recordBody": "Descontamos del inventario los ingredientes de la receta por cada ramo. Los que no controlas no cambian.",
+      "count": "Cuántos ramos",
+      "missing": "Faltan {quantity} de {name}",
+      "shortage": "No alcanza la mercancía para todos los ramos. Si continúas, esas existencias quedarán en negativo.",
+      "submit": "Registrar",
+      "submitShortage": "Registrar de todos modos",
+      "recorded": "{count, plural, one {Listo: registramos # ramo hecho.} other {Listo: registramos # ramos hechos.}}"
+    },
+    "monthSummary": {
+      "title": "Resumen de {month}",
+      "hint": "Lo anulado no cuenta. Las compras van por su fecha; el uso y las mermas, por el día en que se registraron.",
+      "purchases": "Compras",
+      "purchasesCount": "{count, plural, =0 {Sin compras} one {# compra} other {# compras}}",
+      "used": "Usado",
+      "usedExpected": "Con los costos del catálogo: {amount}",
+      "waste": "Mermas",
+      "unknown": "Falta el costo de algún producto",
+      "previous": "Mes anterior",
+      "next": "Mes siguiente"
     }
   }
 }

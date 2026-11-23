@@ -46,6 +46,11 @@ export const VALIDATION_CODES = [
   'inventory_none_selected',
   /** Inventario (ADR-061): una compra senza righe. */
   'inventory_no_lines',
+  /** Inventario (ADR-062): scadenza di un apartado già passata o oltre i 90 giorni. */
+  'inventory_expiry_past',
+  'inventory_expiry_too_far',
+  /** Inventario (ADR-062): "Usar apartado" con tutte le quantità a 0. */
+  'inventory_nothing_used',
   'invalid',
 ] as const;
 
