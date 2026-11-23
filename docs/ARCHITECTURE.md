@@ -254,6 +254,7 @@ l'attribuzione delle fee future.
 | Livello      | Strumento                 | Dove                                     | Cosa                                                                                                                    |
 | ------------ | ------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | Unit         | Vitest                    | `packages/domain/test`                   | denaro, permessi, slug/ID, mercati, catalogo, ricette, clienti e ricorrenze, preventivi, piani, Builder (BQ-01)         |
+| Unit del web | Vitest (+ happy-dom)      | `apps/web/test`                          | configurazione, percorsi, convenzioni, testi; hook client con React vero in happy-dom (`*.test.tsx`, es. i toast)       |
 | Integrazione | Vitest + PostgreSQL reale | `packages/db/test`, `packages/core/test` | RLS (anche piani/abbonamenti), seed, isolamento A↔B per ogni entità, ruoli, CRM, preventivi, piani, Builder             |
 | End-to-end   | Playwright + pozzo SMTP   | `apps/web/e2e`                           | registrazione e inviti con email reali, catalogo, preventivi, piano, Builder → preventivo, permessi, isolamento, mobile |
 
