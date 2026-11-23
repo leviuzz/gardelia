@@ -51,6 +51,8 @@ export const VALIDATION_CODES = [
   'inventory_expiry_too_far',
   /** Inventario (ADR-062): "Usar apartado" con tutte le quantità a 0. */
   'inventory_nothing_used',
+  /** Clienti (ADR-070): "Agregar etiqueta" senza clienti scelti. */
+  'customers_none_selected',
   'invalid',
 ] as const;
 
