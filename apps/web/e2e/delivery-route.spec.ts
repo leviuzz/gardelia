@@ -24,6 +24,9 @@ test.describe('ruta del día (propietaria)', () => {
       .selectOption({ label: 'Ramo Clásico 12 rosas — $690.00 por pieza' });
     await addForm.getByRole('button', { name: 'Agregar', exact: true }).click();
     await expect(page.getByTestId('order-total')).toHaveText('$690.00');
+    // Nuevo pedido a passi: dai prodotti si continua alla consegna.
+    await page.getByRole('link', { name: 'Continuar' }).click();
+    await expect(page).toHaveURL(/\?step=delivery$/);
     await page.getByLabel('Fecha').fill(iso);
     const newAddress = page.getByRole('radio', { name: 'Otra dirección' });
     if ((await newAddress.count()) > 0) await newAddress.check();

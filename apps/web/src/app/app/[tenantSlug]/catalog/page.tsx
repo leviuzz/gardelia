@@ -153,6 +153,7 @@ export default async function CatalogPage({
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Badge variant="secondary">{t(`types.${item.type}`)}</Badge>
                   <AvailabilityBadge availability={item.availability} />
+                  {item.isOnline ? <Badge variant="info">{t('onlineBadge')}</Badge> : null}
                   {item.status === 'ARCHIVED' ? (
                     <Badge variant="muted">{t('archivedBadge')}</Badge>
                   ) : null}
@@ -225,6 +226,7 @@ export default async function CatalogPage({
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1.5">
                       <AvailabilityBadge availability={item.availability} />
+                      {item.isOnline ? <Badge variant="info">{t('onlineBadge')}</Badge> : null}
                       {item.status === 'ARCHIVED' ? (
                         <Badge variant="muted">{t('archivedBadge')}</Badge>
                       ) : null}

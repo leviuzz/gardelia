@@ -102,7 +102,9 @@ export function tenantRoutes(slug: string) {
       production: (query?: { readonly date?: string }) => withQuery(`${orders}/production`, query),
       /** Il mese con gli ordini per giorno (`month` = AAAA-MM). */
       calendar: (query?: { readonly month?: string }) => withQuery(`${orders}/calendar`, query),
-      detail: (orderId: string) => `${orders}/${segment(orderId)}`,
+      /** Scheda dell'ordine; per un borrador `{ step: 'delivery' }` apre il passo della consegna. */
+      detail: (orderId: string, query?: QueryValues) =>
+        withQuery(`${orders}/${segment(orderId)}`, query),
       /** Foto del ramo finito (prova di consegna; `thumb` = miniatura). */
       photo: (orderId: string, options?: { readonly thumb?: boolean; readonly v?: string }) =>
         withQuery(`${orders}/${segment(orderId)}/photo`, {
@@ -160,6 +162,8 @@ export function tenantRoutes(slug: string) {
       general: settings,
       team: `${settings}/team`,
       plan: `${settings}/plan`,
+      /** "Mi tienda en línea" (ADR-065). */
+      store: `${settings}/store`,
     },
   } as const;
 }
@@ -177,4 +181,22 @@ export const accountRoutes = {
  */
 export function isAccountPath(path: string): boolean {
   return path === accountRoutes.home || path.startsWith(`${accountRoutes.home}/`);
+}
+
+/**
+ * Pagina pubblica della fioreria (marketplace, ADR-065): per chi compra, senza sessione. Vive fuori
+ * da `/app`, quindi non sta in `tenantRoutes`.
+ */
+export function publicStoreRoutes(slug: string) {
+  const home = `/f/${segment(slug)}`;
+  const item = (itemId: string) => `${home}/p/${segment(itemId)}`;
+  return {
+    home,
+    item,
+    /** Foto di un prodotto visibile (`thumb` = miniatura). */
+    photo: (itemId: string, photoId: string, options?: { readonly thumb?: boolean }) =>
+      withQuery(`${item(itemId)}/foto/${segment(photoId)}`, {
+        size: options?.thumb ? 'thumb' : undefined,
+      }),
+  };
 }

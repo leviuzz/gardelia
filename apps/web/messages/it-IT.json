@@ -272,6 +272,115 @@
     "floristBody": "Registrala su Gardelia per gestire ordini, clienti e consegne dal telefono.",
     "floristCta": "Registra la mia fioreria"
   },
+  "store": {
+    "title": "Negozio online",
+    "subtitle": "Una pagina con i tuoi prodotti da condividere con i clienti.",
+    "settingsLink": "Negozio online",
+    "settingsLinkBody": "La tua pagina pubblica con prodotti, consegne e forme di pagamento.",
+    "statusTitle": "La tua pagina",
+    "published": "Pubblicata",
+    "notPublished": "Non pubblicata",
+    "publishedBody": "Chiunque abbia il link vede i tuoi prodotti visibili online e ti scrive su WhatsApp.",
+    "notPublishedBody": "Per ora non la vede nessuno. Per pubblicarla serve:",
+    "requirementItems": "{count, plural, =0 {Almeno un prodotto visibile online} one {# prodotto visibile online} other {# prodotti visibili online}}",
+    "requirementContact": "Il telefono di contatto della fioreria",
+    "goToCatalog": "Vai al catalogo",
+    "goToProfile": "Aggiungi il telefono",
+    "done": "fatto",
+    "missing": "manca",
+    "publish": "Pubblica il mio negozio",
+    "unpublish": "Ritira il mio negozio",
+    "unpublishTitle": "Ritirare il negozio online?",
+    "unpublishBody": "Il link smetterà di funzionare finché non lo pubblichi di nuovo. I tuoi prodotti non vengono cancellati.",
+    "shareText": "Guarda le nostre composizioni e i nostri fiori: {url}",
+    "infoTitle": "Informazioni del negozio",
+    "infoSubtitle": "Cosa vedono i clienti oltre ai prodotti.",
+    "description": "Presentazione",
+    "descriptionHint": "Qualche riga sulla tua fioreria: stile, zona, da quando.",
+    "paymentMethods": "Forme di pagamento",
+    "paymentMethodsHint": "I clienti pagano direttamente a te; Gardelia non incassa per loro.",
+    "payment": {
+      "TRANSFER": "Bonifico",
+      "CASH": "Contanti",
+      "CARD_IN_STORE": "Carta in negozio",
+      "PAYMENT_LINK": "Link di pagamento"
+    },
+    "paymentInstructions": "Dati per pagare",
+    "paymentInstructionsHint": "Si mostrano a tutti sulla tua pagina. Per esempio la CLABE e la banca.",
+    "productsTitle": "Prodotti nel tuo negozio",
+    "productsBody": "Spunta «Mostra nel mio negozio online» su ogni mazzo, pianta, fiore o accessorio del catalogo.",
+    "productsCount": "{count, plural, =0 {Ancora nessun prodotto visibile.} one {# prodotto visibile.} other {# prodotti visibili.}}",
+    "saved": "Negozio aggiornato.",
+    "publishedToast": "Il tuo negozio è pubblicato.",
+    "unpublishedToast": "Il tuo negozio non è più visibile.",
+    "linkLabel": "Link del tuo negozio",
+    "copy": "Copia",
+    "copied": "Link copiato.",
+    "copyFailed": "Non è stato possibile copiare il link.",
+    "open": "Vedi il mio negozio",
+    "shareWhatsapp": "Condividi su WhatsApp",
+    "conflict": {
+      "needs_items": "Segna almeno un prodotto come visibile online per pubblicare il negozio.",
+      "needs_contact": "Aggiungi il telefono della fioreria nelle Impostazioni per pubblicare il negozio."
+    },
+    "activity": {
+      "updated": "{actor} ha aggiornato il negozio online",
+      "published": "{actor} ha pubblicato il negozio online",
+      "unpublished": "{actor} ha ritirato il negozio online"
+    }
+  },
+  "publicStore": {
+    "demoNotice": "Fioreria di prova: prodotti e prezzi sono di esempio.",
+    "whatsapp": "WhatsApp",
+    "call": "Chiama",
+    "footer": "Pagina creata con {brand}",
+    "whatsappHello": "Ciao, ho visto il vostro negozio online e vorrei più informazioni.",
+    "productsTitle": "I nostri prodotti",
+    "noProducts": "Presto vedrai qui i nostri prodotti.",
+    "pricePerUnit": "{price} per {unit}",
+    "units": {
+      "STEM": "stelo",
+      "BUNCH": "mazzo",
+      "PIECE": "pezzo",
+      "SERVICE": "servizio"
+    },
+    "availability": {
+      "AVAILABLE": "Disponibile",
+      "LIMITED": "Pochi pezzi",
+      "OUT_OF_STOCK": "Esaurito",
+      "ON_REQUEST": "Su ordinazione"
+    },
+    "deliveryTitle": "Consegne",
+    "windows": "Orari di consegna: {windows}",
+    "window": "{start}–{end}",
+    "closedDays": "Non consegniamo: {days}",
+    "deliveryFee": "Consegna di solito: {fee}",
+    "radius": "Consegniamo fino a {km} km",
+    "pickup": "Ritiro in negozio: {address}",
+    "deliveryAsk": "Chiedi per la tua zona e il costo esatto scrivendoci.",
+    "paymentTitle": "Forme di pagamento",
+    "payment": {
+      "TRANSFER": "Bonifico",
+      "CASH": "Contanti",
+      "CARD_IN_STORE": "Carta in negozio",
+      "PAYMENT_LINK": "Link di pagamento"
+    },
+    "paymentDirect": "Paghi direttamente alla fioreria.",
+    "backToStore": "Vedi tutti i prodotti",
+    "photoAlt": "Foto di {name}",
+    "includes": "Contiene",
+    "includesLine": "{quantity} × {name}",
+    "colors": "Colori:",
+    "sizeLabel": "Misure:",
+    "size": "{height} × {width} cm",
+    "height": "{height} cm di altezza",
+    "orderWhatsapp": "Ordina su WhatsApp",
+    "orderWhatsappHint": "Si apre WhatsApp con il prodotto già scritto; la fioreria ti conferma disponibilità, consegna e pagamento.",
+    "whatsappItem": "Ciao, mi interessa «{name}» ({price}) del vostro negozio online: {url}",
+    "paysWith": "Forme di pagamento: {methods}.",
+    "notFoundTitle": "Questo negozio non è disponibile",
+    "notFoundBody": "Forse il link è scritto male o la fioreria lo ha ritirato."
+  },
   "timezones": {
     "America/Mexico_City": "Ora del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
     "America/Cancun": "Ora del Sud-est (Quintana Roo)",
@@ -546,7 +655,9 @@
       "readOnly": "Il tuo ruolo ti permette di consultare il catalogo, non di modificarlo.",
       "archivedNotice": "Questo prodotto è archiviato.",
       "builderEnabled": "Disponibile nel designer di bouquet",
-      "builderEnabledHint": "Si potrà scegliere quando si compongono bouquet su misura nel designer (piano Plus)."
+      "builderEnabledHint": "Si potrà scegliere quando si compongono bouquet su misura nel designer (piano Plus).",
+      "online": "Mostra nel mio negozio online",
+      "onlineHint": "Compare nella tua pagina pubblica con foto e prezzo."
     },
     "wizard": {
       "stepWhat": "Che cos’è",
@@ -572,7 +683,8 @@
       "goToCatalog": "Vai al catalogo",
       "useInDesigner": "Usalo nel Designer",
       "buildRecipe": "Componi la ricetta"
-    }
+    },
+    "onlineBadge": "Online"
   },
   "recipe": {
     "title": "Ricetta del bouquet",
@@ -1187,8 +1299,8 @@
     },
     "draft": {
       "intro": "Componi l’ordine: aggiungi i prodotti, indica la consegna e confermalo. Fino ad allora non compare tra le consegne.",
-      "stepProducts": "1. Prodotti",
-      "stepDelivery": "2. Consegna e biglietto",
+      "stepProducts": "Prodotti",
+      "stepDelivery": "Consegna e biglietto",
       "deliveryHint": "Quando e come si consegna. Alla conferma l’ordine diventa «Confermato», pronto da preparare.",
       "needsLines": "Aggiungi almeno un prodotto per poter confermare l’ordine.",
       "confirm": "Conferma ordine",
@@ -1202,7 +1314,11 @@
       "discardConfirm": "Scarta",
       "editLines": "Cambia prodotti o sconto",
       "editLinesBody": "I prezzi vengono dal tuo catalogo attuale. Se il cliente ha già pagato, il totale non può scendere sotto quanto pagato.",
-      "discarded": "Questa bozza è stata scartata: non è un ordine."
+      "discarded": "Questa bozza è stata scartata: non è un ordine.",
+      "stepCustomer": "Cliente",
+      "changeLines": "Cambia prodotti",
+      "linesCount": "{count, plural, one {# prodotto} other {# prodotti}}",
+      "continueHint": "Quando hai i prodotti, continua con la consegna."
     },
     "customerCard": {
       "title": "Ordini",

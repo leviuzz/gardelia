@@ -99,6 +99,10 @@ export const AUDIT_ACTIONS = {
   orderPaymentRecorded: 'order.payment_recorded',
   orderPaymentReversed: 'order.payment_reversed',
   subscriptionAssigned: 'subscription.assigned',
+  /** "Mi tienda en línea" (ADR-065). */
+  storeUpdated: 'store.updated',
+  storePublished: 'store.published',
+  storeUnpublished: 'store.unpublished',
   /** Inventario (ADR-060): prodotti controllati e registri di magazzino. */
   inventoryTrackingStarted: 'inventory.tracking_started',
   inventoryTrackingStopped: 'inventory.tracking_stopped',

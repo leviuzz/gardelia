@@ -272,6 +272,115 @@
     "floristBody": "Regístrala en Gardelia para llevar pedidos, clientes y entregas desde el celular.",
     "floristCta": "Registrar mi florería"
   },
+  "store": {
+    "title": "Tienda en línea",
+    "subtitle": "Una página con tus productos para compartir con tus clientes.",
+    "settingsLink": "Tienda en línea",
+    "settingsLinkBody": "Tu página pública con productos, entregas y formas de pago.",
+    "statusTitle": "Tu página",
+    "published": "Publicada",
+    "notPublished": "Sin publicar",
+    "publishedBody": "Cualquiera con el enlace ve tus productos visibles en línea y te escribe por WhatsApp.",
+    "notPublishedBody": "Nadie la ve todavía. Para publicarla necesitas:",
+    "requirementItems": "{count, plural, =0 {Al menos un producto visible en línea} one {# producto visible en línea} other {# productos visibles en línea}}",
+    "requirementContact": "El teléfono de contacto de la florería",
+    "goToCatalog": "Ir al catálogo",
+    "goToProfile": "Agregar teléfono",
+    "done": "listo",
+    "missing": "falta",
+    "publish": "Publicar mi tienda",
+    "unpublish": "Retirar mi tienda",
+    "unpublishTitle": "¿Retirar tu tienda en línea?",
+    "unpublishBody": "El enlace dejará de funcionar hasta que la publiques de nuevo. Tus productos no se borran.",
+    "shareText": "Mira nuestros arreglos y flores: {url}",
+    "infoTitle": "Información de la tienda",
+    "infoSubtitle": "Lo que ven tus clientes además de los productos.",
+    "description": "Presentación",
+    "descriptionHint": "Unas líneas sobre tu florería: estilo, zona, desde cuándo.",
+    "paymentMethods": "Formas de pago",
+    "paymentMethodsHint": "Tus clientes te pagan directamente a ti; Gardelia no cobra por ellos.",
+    "payment": {
+      "TRANSFER": "Transferencia",
+      "CASH": "Efectivo",
+      "CARD_IN_STORE": "Tarjeta en tienda",
+      "PAYMENT_LINK": "Link de pago"
+    },
+    "paymentInstructions": "Datos para pagar",
+    "paymentInstructionsHint": "Se muestran a todos en tu página. Por ejemplo, tu CLABE y el banco.",
+    "productsTitle": "Productos en tu tienda",
+    "productsBody": "Marca «Mostrar en mi tienda en línea» en cada ramo, planta, flor o accesorio del catálogo.",
+    "productsCount": "{count, plural, =0 {Aún no hay productos visibles.} one {# producto visible.} other {# productos visibles.}}",
+    "saved": "Tienda actualizada.",
+    "publishedToast": "Tu tienda está publicada.",
+    "unpublishedToast": "Tu tienda ya no es visible.",
+    "linkLabel": "Enlace de tu tienda",
+    "copy": "Copiar",
+    "copied": "Enlace copiado.",
+    "copyFailed": "No se pudo copiar el enlace.",
+    "open": "Ver mi tienda",
+    "shareWhatsapp": "Compartir por WhatsApp",
+    "conflict": {
+      "needs_items": "Marca al menos un producto como visible en línea para publicar tu tienda.",
+      "needs_contact": "Agrega el teléfono de la florería en Ajustes para publicar tu tienda."
+    },
+    "activity": {
+      "updated": "{actor} actualizó la tienda en línea",
+      "published": "{actor} publicó la tienda en línea",
+      "unpublished": "{actor} retiró la tienda en línea"
+    }
+  },
+  "publicStore": {
+    "demoNotice": "Florería de demostración: los productos y precios son de prueba.",
+    "whatsapp": "WhatsApp",
+    "call": "Llamar",
+    "footer": "Página creada con {brand}",
+    "whatsappHello": "Hola, vi su tienda en línea y quisiera más información.",
+    "productsTitle": "Nuestros productos",
+    "noProducts": "Pronto verás aquí nuestros productos.",
+    "pricePerUnit": "{price} por {unit}",
+    "units": {
+      "STEM": "tallo",
+      "BUNCH": "manojo",
+      "PIECE": "pieza",
+      "SERVICE": "servicio"
+    },
+    "availability": {
+      "AVAILABLE": "Disponible",
+      "LIMITED": "Pocas piezas",
+      "OUT_OF_STOCK": "Agotado",
+      "ON_REQUEST": "Bajo pedido"
+    },
+    "deliveryTitle": "Entregas",
+    "windows": "Horarios de entrega: {windows}",
+    "window": "{start} a {end}",
+    "closedDays": "No entregamos: {days}",
+    "deliveryFee": "Envío habitual: {fee}",
+    "radius": "Entregamos hasta {km} km",
+    "pickup": "Recoge en tienda: {address}",
+    "deliveryAsk": "Pregunta por tu zona y el costo exacto al escribirnos.",
+    "paymentTitle": "Formas de pago",
+    "payment": {
+      "TRANSFER": "Transferencia",
+      "CASH": "Efectivo",
+      "CARD_IN_STORE": "Tarjeta en tienda",
+      "PAYMENT_LINK": "Link de pago"
+    },
+    "paymentDirect": "Pagas directamente a la florería.",
+    "backToStore": "Ver todos los productos",
+    "photoAlt": "Foto de {name}",
+    "includes": "Incluye",
+    "includesLine": "{quantity} × {name}",
+    "colors": "Colores:",
+    "sizeLabel": "Tamaño:",
+    "size": "{height} × {width} cm",
+    "height": "{height} cm de alto",
+    "orderWhatsapp": "Pedir por WhatsApp",
+    "orderWhatsappHint": "Se abre WhatsApp con el producto ya escrito; la florería te confirma disponibilidad, entrega y pago.",
+    "whatsappItem": "Hola, me interesa «{name}» ({price}) de su tienda en línea: {url}",
+    "paysWith": "Formas de pago: {methods}.",
+    "notFoundTitle": "Esta tienda no está disponible",
+    "notFoundBody": "Puede que el enlace esté mal escrito o que la florería la haya retirado."
+  },
   "timezones": {
     "America/Mexico_City": "Tiempo del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
     "America/Cancun": "Tiempo del Sureste (Quintana Roo)",
@@ -546,7 +655,9 @@
       "readOnly": "Tu rol permite consultar el catálogo, no modificarlo.",
       "archivedNotice": "Este producto está archivado.",
       "builderEnabled": "Disponible en el diseñador de ramos",
-      "builderEnabledHint": "Se podrá elegir al armar ramos a la medida en el diseñador (plan Plus)."
+      "builderEnabledHint": "Se podrá elegir al armar ramos a la medida en el diseñador (plan Plus).",
+      "online": "Mostrar en mi tienda en línea",
+      "onlineHint": "Aparece en tu página pública con su foto y su precio."
     },
     "wizard": {
       "stepWhat": "Qué es",
@@ -572,7 +683,8 @@
       "goToCatalog": "Ir al catálogo",
       "useInDesigner": "Usarlo en el diseñador",
       "buildRecipe": "Armar la receta"
-    }
+    },
+    "onlineBadge": "En línea"
   },
   "recipe": {
     "title": "Receta del ramo",
@@ -1187,8 +1299,8 @@
     },
     "draft": {
       "intro": "Arma el pedido: agrega los productos, indica la entrega y confírmalo. Hasta entonces no aparece en las entregas.",
-      "stepProducts": "1. Productos",
-      "stepDelivery": "2. Entrega y tarjeta",
+      "stepProducts": "Productos",
+      "stepDelivery": "Entrega y tarjeta",
       "deliveryHint": "Cuándo y cómo se entrega. Al confirmar, el pedido queda «Confirmado» y listo para preparar.",
       "needsLines": "Agrega al menos un producto para poder confirmar el pedido.",
       "confirm": "Confirmar pedido",
@@ -1202,7 +1314,11 @@
       "discardConfirm": "Descartar",
       "editLines": "Cambiar productos o descuento",
       "editLinesBody": "Los precios salen de tu catálogo actual. Si el cliente ya pagó, el total no puede quedar por debajo de lo pagado.",
-      "discarded": "Este borrador se descartó: no es un pedido."
+      "discarded": "Este borrador se descartó: no es un pedido.",
+      "stepCustomer": "Cliente",
+      "changeLines": "Cambiar productos",
+      "linesCount": "{count, plural, one {# producto} other {# productos}}",
+      "continueHint": "Cuando tengas los productos, continúa con la entrega."
     },
     "customerCard": {
       "title": "Pedidos",

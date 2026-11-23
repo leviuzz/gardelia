@@ -272,6 +272,115 @@
     "floristBody": "Register it on Gardelia to manage orders, customers and deliveries from your phone.",
     "floristCta": "Register my shop"
   },
+  "store": {
+    "title": "Online shop",
+    "subtitle": "A page with your products to share with your customers.",
+    "settingsLink": "Online shop",
+    "settingsLinkBody": "Your public page with products, delivery and payment methods.",
+    "statusTitle": "Your page",
+    "published": "Published",
+    "notPublished": "Not published",
+    "publishedBody": "Anyone with the link sees your online products and can message you on WhatsApp.",
+    "notPublishedBody": "Nobody sees it yet. To publish it you need:",
+    "requirementItems": "{count, plural, =0 {At least one product shown online} one {# product shown online} other {# products shown online}}",
+    "requirementContact": "The flower shop's contact phone",
+    "goToCatalog": "Go to the catalog",
+    "goToProfile": "Add a phone",
+    "done": "done",
+    "missing": "missing",
+    "publish": "Publish my shop",
+    "unpublish": "Take my shop offline",
+    "unpublishTitle": "Take your online shop offline?",
+    "unpublishBody": "The link stops working until you publish it again. Your products aren't deleted.",
+    "shareText": "Take a look at our arrangements and flowers: {url}",
+    "infoTitle": "Shop information",
+    "infoSubtitle": "What your customers see besides the products.",
+    "description": "About",
+    "descriptionHint": "A few lines about your flower shop: style, area, how long you have been around.",
+    "paymentMethods": "Payment methods",
+    "paymentMethodsHint": "Customers pay you directly; Gardelia doesn't collect payments for them.",
+    "payment": {
+      "TRANSFER": "Bank transfer",
+      "CASH": "Cash",
+      "CARD_IN_STORE": "Card in store",
+      "PAYMENT_LINK": "Payment link"
+    },
+    "paymentInstructions": "How to pay",
+    "paymentInstructionsHint": "Everyone sees this on your page. For example, your CLABE and bank.",
+    "productsTitle": "Products in your shop",
+    "productsBody": "Tick \"Show in my online shop\" on each bouquet, plant, flower or accessory in the catalog.",
+    "productsCount": "{count, plural, =0 {No products shown yet.} one {# product shown.} other {# products shown.}}",
+    "saved": "Shop updated.",
+    "publishedToast": "Your shop is published.",
+    "unpublishedToast": "Your shop is no longer visible.",
+    "linkLabel": "Your shop link",
+    "copy": "Copy",
+    "copied": "Link copied.",
+    "copyFailed": "Couldn't copy the link.",
+    "open": "View my shop",
+    "shareWhatsapp": "Share on WhatsApp",
+    "conflict": {
+      "needs_items": "Mark at least one product as shown online to publish your shop.",
+      "needs_contact": "Add the flower shop's phone in Settings to publish your shop."
+    },
+    "activity": {
+      "updated": "{actor} updated the online shop",
+      "published": "{actor} published the online shop",
+      "unpublished": "{actor} took the online shop offline"
+    }
+  },
+  "publicStore": {
+    "demoNotice": "Demo flower shop: products and prices are examples.",
+    "whatsapp": "WhatsApp",
+    "call": "Call",
+    "footer": "Page made with {brand}",
+    "whatsappHello": "Hi, I saw your online shop and I'd like more information.",
+    "productsTitle": "Our products",
+    "noProducts": "Our products will be here soon.",
+    "pricePerUnit": "{price} per {unit}",
+    "units": {
+      "STEM": "stem",
+      "BUNCH": "bunch",
+      "PIECE": "piece",
+      "SERVICE": "service"
+    },
+    "availability": {
+      "AVAILABLE": "Available",
+      "LIMITED": "Few left",
+      "OUT_OF_STOCK": "Sold out",
+      "ON_REQUEST": "Made to order"
+    },
+    "deliveryTitle": "Delivery",
+    "windows": "Delivery times: {windows}",
+    "window": "{start}–{end}",
+    "closedDays": "No deliveries on: {days}",
+    "deliveryFee": "Usual delivery fee: {fee}",
+    "radius": "We deliver up to {km} km",
+    "pickup": "Pick up in store: {address}",
+    "deliveryAsk": "Ask about your area and the exact fee when you message us.",
+    "paymentTitle": "Payment methods",
+    "payment": {
+      "TRANSFER": "Bank transfer",
+      "CASH": "Cash",
+      "CARD_IN_STORE": "Card in store",
+      "PAYMENT_LINK": "Payment link"
+    },
+    "paymentDirect": "You pay the flower shop directly.",
+    "backToStore": "See all products",
+    "photoAlt": "Photo of {name}",
+    "includes": "Includes",
+    "includesLine": "{quantity} × {name}",
+    "colors": "Colors:",
+    "sizeLabel": "Size:",
+    "size": "{height} × {width} cm",
+    "height": "{height} cm tall",
+    "orderWhatsapp": "Order on WhatsApp",
+    "orderWhatsappHint": "WhatsApp opens with the product already written; the flower shop confirms availability, delivery and payment.",
+    "whatsappItem": "Hi, I'm interested in \"{name}\" ({price}) from your online shop: {url}",
+    "paysWith": "Payment methods: {methods}.",
+    "notFoundTitle": "This shop is not available",
+    "notFoundBody": "The link may be mistyped, or the flower shop has taken it offline."
+  },
   "timezones": {
     "America/Mexico_City": "Central Time (CDMX, Aguascalientes, Guadalajara, Monterrey)",
     "America/Cancun": "Southeast Time (Quintana Roo)",
@@ -546,7 +655,9 @@
       "readOnly": "Your role lets you view the catalog, not change it.",
       "archivedNotice": "This product is archived.",
       "builderEnabled": "Available in the bouquet designer",
-      "builderEnabledHint": "It can be chosen when building custom bouquets in the designer (Plus plan)."
+      "builderEnabledHint": "It can be chosen when building custom bouquets in the designer (Plus plan).",
+      "online": "Show in my online shop",
+      "onlineHint": "It appears on your public page with its photo and price."
     },
     "wizard": {
       "stepWhat": "What it is",
@@ -572,7 +683,8 @@
       "goToCatalog": "Go to the catalog",
       "useInDesigner": "Use it in the Designer",
       "buildRecipe": "Build the recipe"
-    }
+    },
+    "onlineBadge": "Online"
   },
   "recipe": {
     "title": "Bouquet recipe",
@@ -1187,8 +1299,8 @@
     },
     "draft": {
       "intro": "Build the order: add the products, set the delivery and confirm it. Until then it doesn’t show up in deliveries.",
-      "stepProducts": "1. Products",
-      "stepDelivery": "2. Delivery and card",
+      "stepProducts": "Products",
+      "stepDelivery": "Delivery and card",
       "deliveryHint": "When and how it’s delivered. Once confirmed, the order is “Confirmed” and ready to prepare.",
       "needsLines": "Add at least one product to confirm the order.",
       "confirm": "Confirm order",
@@ -1202,7 +1314,11 @@
       "discardConfirm": "Discard",
       "editLines": "Change products or discount",
       "editLinesBody": "Prices come from your current catalog. If the customer already paid, the total can’t drop below what they paid.",
-      "discarded": "This draft was discarded: it isn’t an order."
+      "discarded": "This draft was discarded: it isn’t an order.",
+      "stepCustomer": "Customer",
+      "changeLines": "Change products",
+      "linesCount": "{count, plural, one {# product} other {# products}}",
+      "continueHint": "Once the products are in, continue to the delivery."
     },
     "customerCard": {
       "title": "Orders",

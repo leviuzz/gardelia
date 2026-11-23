@@ -93,6 +93,7 @@ export default async function ItemPage({
     heightCm: item.heightCm?.toString() ?? '',
     widthCm: item.widthCm?.toString() ?? '',
     isBuilderEnabled: item.isBuilderEnabled,
+    isOnline: item.isOnline,
   };
 
   return (

@@ -186,7 +186,7 @@ sull'indirizzo dell'ordine: si riempiono con Google Places (ADR-059), le coordin
 | **B1** | ✅ Calendario delle consegne, Hoy salen, Producción del día (ADR-057)                                                                             |
 | **B2** | ✅ Ruta del día, repartidor e prova di consegna (foto del ramo e chi riceve) (ADR-058)                                                            |
 | **C1** | ✅ Conto del cliente: registrazione per chi compra, accesso che porta a `/cuenta`, telefono e indirizzi (ADR-064)                                 |
-| **C2** | Mi tienda en línea e pagina pubblica della fioreria (ADR catalogo pubblico)                                                                       |
+| **C2** | ✅ Mi tienda en línea e pagina pubblica della fioreria con i prodotti, contatto WhatsApp (ADR-065); logo e foto della fioreria da fare            |
 | **C3** | Home per chi compra e ricerca per indirizzo                                                                                                       |
 | **C4** | Ordine del cliente, accettazione del fiorista, pagamento diretto, stato, email al cliente (ADR ordine da fuori)                                   |
 | **C5** | Pagine legali per i consumatori e privacy di chi compra nell'app                                                                                  |

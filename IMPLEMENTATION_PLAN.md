@@ -558,6 +558,23 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**"Mi tienda en línea", blocco C2 del marketplace (fatto il 23/11, ADR-065):** Ajustes → Tienda en línea
+(presentazione, forme di pagamento con i dati per pagare, cosa manca per pubblicare, pubblica/ritira, link
+da copiare o mandare su WhatsApp); nel catalogo "Mostrar en mi tienda en línea" per ramos, piante, fiori e
+accessori, con il badge "En línea". Pagina pubblica `/f/<slug>` nella lingua del mercato: prodotti con foto
+e prezzo, consegne, forme di pagamento; pagina del prodotto con di cosa è fatto e "Pedir por WhatsApp"
+(niente ordini finti fino a C4). Accesso senza sessione con `app_public_store_tenant(slug)` e RLS attiva,
+solo campi pubblici. Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test 739/739 ✅ (12 nuovi: 4 di
+dominio, 8 d'integrazione con isolamento A↔B e nessun costo nei dati pubblici) · migrazioni = schema ✅ ·
+build ✅ · E2E (1 nuovo: dalla scheda del prodotto alla pagina pubblica e ritorno) ✅; controllo visivo a
+390 e 1280 px. Prossimi: logo e foto della fioreria; C3 home per chi compra e ricerca per indirizzo.
+
+**Flussi a passi (fatto il 23/11, ADR-044 esteso, richiesta del founder):** "Nuevo pedido" in tre passi
+(Cliente → Productos → Entrega y tarjeta, con "Continuar" solo quando c'è almeno un prodotto e il riepilogo
+sempre visibile) e creazione della fioreria in due (Tu florería → Dirección de la tienda), con l'aiuto
+`lib/form-steps.ts`. Corretto anche l'allineamento di "Desde"/"Hasta" nel modulo di consegna. Restano
+senza passi i moduli brevi e "Convertir en pedido". Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test 721/721 ✅ (2 nuovi sull'aiuto dei passi) · build ✅ · E2E 77/77 ✅ (i flussi di ordini e onboarding con i passi; l'onboarding controlla anche che senza nome non si va avanti e che "Atrás" non perde i dati); controllo visivo a 390 e 1280 px.
+
 **Conto del cliente, blocco C1 del marketplace (fatto il 23/11, ADR-064):** "Mi cuenta" (`/cuenta`) per
 chi compra: nome ed email dell'accesso, telefono, indirizzi di consegna con "Buscar dirección" (la stessa
 rubrica della fioreria, spostata in `components/addresses/address-book.tsx`). Login e registrazione

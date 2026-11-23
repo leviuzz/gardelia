@@ -22,6 +22,7 @@ import {
 } from '@floral/core';
 import { customerListFiltersSchema } from '@floral/domain';
 import { SearchInput } from '@/components/common/list/search-input';
+import { StepIndicator } from '@/components/common/step-indicator';
 import { CreateForCustomer, CustomerPicker } from '@/components/customers/customer-picker';
 import { Forbidden } from '@/components/forbidden';
 import { EmptyState, PageHeader } from '@/components/page-header';
@@ -101,6 +102,15 @@ export default async function NewOrderPage({
         {t('common.back')}
       </Link>
       <PageHeader title={t('orders.new.title')} description={t('orders.new.subtitle')} />
+      {/* Primo dei tre passi del pedido diretto: poi prodotti e consegna nel borrador. */}
+      <StepIndicator
+        steps={[
+          { key: 'customer', label: t('orders.draft.stepCustomer') },
+          { key: 'products', label: t('orders.draft.stepProducts') },
+          { key: 'delivery', label: t('orders.draft.stepDelivery') },
+        ]}
+        current={0}
+      />
       {design ? (
         <Alert variant="info">
           <Sparkles aria-hidden="true" />
