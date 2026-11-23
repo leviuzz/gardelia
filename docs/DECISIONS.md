@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 23 novembre 2026 (tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 23 novembre 2026 (home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -1646,6 +1646,37 @@ Blocco C2 di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26). Avviato dal founder ("vai
   `store.image_set` / `store.image_removed` con il solo tipo.
 - **Non fatto (prossimi passi):** ordine dal cliente con accettazione (C4); ricerca per indirizzo e home per chi compra (C3); opzioni del ramo (misura,
   colori di carta e nastro) che servono all'ordine; sitemap e anteprime per i social.
+
+### ADR-066 — Home per chi compra e ricerca delle fiorerie — ADOTTATO (23/11/2026)
+
+Blocco C3 di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26). Avviato dal founder ("vai avanti con C3").
+
+- **`/` è la home di chi compra fiori:** "¿A dónde enviamos tus flores?", come funziona (scegli dove,
+  scegli una florería, pidi per WhatsApp: niente ordini online finti fino a C4) e il rimando per i
+  fioristi. La presentazione del gestionale si sposta, uguale, su **`/floristas`** (registrazione e
+  accesso dei fioristi invariati; dall'app si esce sempre verso il login).
+- **Come si cerca:**
+  - **per città, per tutti:** l'elenco delle città con almeno una tienda pubblicata. Non chiama Google,
+    quindi non costa nulla anche con visitatori anonimi o bot;
+  - **per indirizzo, solo con l'accesso:** "Buscar dirección" con Google Places (le rotte di Places
+    restano solo per chi ha una sessione, ADR-059: la ricerca anonima esporrebbe la spesa) e gli
+    indirizzi salvati in "Mi cuenta" (`/buscar?direccion=<id>`, letti solo per la persona).
+- **Risultati (`/buscar`):** prima le tiendas che arrivano all'indirizzo (coordinate valide della sede
+  e dell'indirizzo, dentro il raggio di consegna della fioreria), dalla più vicina con la distanza;
+  poi quelle della stessa città di cui non si conosce la posizione, con l'invito a chiedere per
+  WhatsApp. Solo tiendas pubblicate con almeno un prodotto visibile. **Raggio predefinito 10 km**
+  quando la fioreria non l'ha indicato (PROPOSTO, si cambia in `DEFAULT_DELIVERY_RADIUS_KM`).
+- **Dati:** la funzione SQL `app_public_store_directory()` (SECURITY DEFINER come
+  `app_public_store_tenant`) elenca le tiendas pubblicate di fiorerie attive con i soli dati
+  pubblici (nome, zona, città, coordinate, raggio, logo, numero di prodotti). Le regole su distanza,
+  raggio e città sono pure nel dominio (`store-search.ts`).
+- **Coordinate delle tiendas:** Google permette di tenerle 30 giorni (ADR-059). La manutenzione
+  giornaliera le richiede di nuovo dal place ID salvato per le tiendas pubblicate quando hanno più
+  di 25 giorni (al massimo 50 al giorno, una "Place Details" ciascuna, circa una al mese per tienda),
+  così la ricerca per distanza non si spegne dopo un mese. Senza chiave non fa nulla.
+- **Non fatto:** "prima fascia disponibile" nell'ordine dei risultati; mappa; occasioni (cumpleaños,
+  10 de mayo) come filtri, che richiedono di classificare i prodotti; attribuzione della fee (D-24)
+  dalla ricerca, che si registra con l'ordine (C4).
 
 ## 3. Proposte da approvare
 

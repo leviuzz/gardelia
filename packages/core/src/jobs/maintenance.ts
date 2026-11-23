@@ -11,18 +11,23 @@
  */
 import { getDb } from '@floral/db';
 import { logger } from '../logger';
+import { refreshStoreCoordinates } from '../public-directory';
 
 export interface MaintenanceResult {
   readonly quotesExpired: number;
   readonly invitationsExpired: number;
   /** Indirizzi, sedi e ordini di cui si sono cancellate le coordinate scadute. */
   readonly coordinatesPurged: number;
+  /** Tiendas pubblicate con le coordinate richieste di nuovo a Google (ADR-066). */
+  readonly storePlacesRefreshed: number;
 }
 
 export async function runDailyMaintenance(): Promise<MaintenanceResult> {
   const rows = await getDb().$queryRaw<{ quotes_expired: number; invitations_expired: number }[]>`
     SELECT quotes_expired, invitations_expired FROM app_expire_overdue()`;
   const row = rows[0];
+  // Prima si rinnovano le coordinate delle tiendas (a 25 giorni), poi si cancellano le scadute.
+  const storePlacesRefreshed = await refreshStoreCoordinates();
   const purged = await getDb().$queryRaw<
     {
       addresses_purged: number;
@@ -41,6 +46,7 @@ export async function runDailyMaintenance(): Promise<MaintenanceResult> {
       (purge?.locations_purged ?? 0) +
       (purge?.orders_purged ?? 0) +
       (purge?.buyer_addresses_purged ?? 0),
+    storePlacesRefreshed,
   };
   logger.info(result, 'manutenzione giornaliera completata');
   return result;

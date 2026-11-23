@@ -58,7 +58,19 @@ test.describe('tienda en línea (propietaria y cliente)', () => {
     // Chi compra, senza account.
     const visitor = await browser.newContext({ storageState: { cookies: [], origins: [] } });
     const shopper = await visitor.newPage();
-    await shopper.goto('/f/las-camelias');
+    // Dalla home per chi compra: città → ricerca → tienda.
+    await shopper.goto('/');
+    await expect(
+      shopper.getByRole('heading', { level: 1, name: 'Flores de florerías locales, a domicilio' }),
+    ).toBeVisible();
+    await shopper.getByLabel('Ciudad').selectOption('Aguascalientes');
+    await shopper.getByRole('button', { name: 'Buscar florerías' }).click();
+    await expect(shopper).toHaveURL(/\/buscar\?ciudad=Aguascalientes$/);
+    await expect(
+      shopper.getByRole('heading', { level: 1, name: 'Florerías en Aguascalientes' }),
+    ).toBeVisible();
+    await shopper.getByRole('link', { name: /Florería Las Camelias/ }).click();
+    await expect(shopper).toHaveURL(/\/f\/las-camelias$/);
     await expect(
       shopper.getByRole('heading', { level: 1, name: 'Florería Las Camelias' }),
     ).toBeVisible();

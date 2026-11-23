@@ -558,6 +558,17 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Home per chi compra e ricerca delle fiorerie, blocco C3 (fatto il 23/11, ADR-066):** `/` è ora la home di
+chi compra fiori ("¿A dónde enviamos tus flores?", come funziona, rimando per i fioristi); la presentazione
+del gestionale è su `/floristas`. Ricerca per città per tutti (nessuna chiamata a Google), per indirizzo con
+Google e con gli indirizzi salvati solo con l'accesso. `/buscar` mostra prima le tiendas che arrivano
+all'indirizzo (raggio della fioreria, 10 km se non indicato), dalla più vicina, poi quelle della stessa città
+senza posizione nota. La manutenzione rinnova le coordinate delle tiendas pubblicate prima dei 30 giorni.
+Aggiornate anche due righe vecchie di `docs/V1_SCOPE.md` (logo, Google Places). Verifiche locali: lint ✅ ·
+format ✅ · typecheck ✅ · test 752/752 ✅ (10 nuovi: 5 di dominio, 5 d'integrazione, ripetibili sul database
+condiviso) · migrazioni = schema ✅ · build ✅ · E2E 81/81 ✅ (2 nuovi; il flusso della tienda parte dalla home);
+controllo visivo a 390 e 1280 px. Prossimi: C4, l'ordine del cliente online.
+
 **Logo e copertina della tienda en línea, C2b (fatto il 23/11, ADR-065):** in Tienda en línea "Logo y
 portada" con anteprima, caricamento (riduzione nel browser e controllo sul server come le foto del catalogo),
 "Cambiar" e "Quitar"; nella pagina pubblica la copertina in alto e il logo accanto al nome (anche
