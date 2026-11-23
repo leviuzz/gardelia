@@ -301,3 +301,28 @@ Con 12 rose rosse (stile clásico, boceto da una foto vera scontornata):
   (`maxFacingCamera`: 1 fino a 7 fiori, 3 con 12, 6 con 24).
 - Il costo non cambia: 0,09 USD quando la prima foto è giusta, fino a ~0,40 USD con 3 immagini.
 - Descrivere il lato dei petali e la base verde (d) peggiora i conteggi: scartata.
+
+## Foto dei fiori come riferimento, senza collage: prompt v9 (23/11/2026, ~2,9 USD)
+
+Giudizio del founder sulla v8: "i fiori sono orizzontali, non sono naturali, non convincono per
+nulla". Guardate a piena risoluzione (la v8 era stata giudicata sulle miniature: errore), le rose
+centrali erano teste girate di lato e ammucchiate, staccate dai loro steli. Causa comune da v6 a
+v8: il modello parte dal collage, dove ogni corolla è vista di fronte, e le frasi sulle angolazioni
+la spostano senza attaccarla a uno stelo. Due strade, stessa correzione dei fiori in più e stesso
+controllo dei conteggi, giudicate guardando ogni corolla rispetto al suo stelo:
+
+| Strada                                                                                                                                          | 3 rose + 2 tulipani                        | 12 rose                                                 | Numeri giusti |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------- | ------------- |
+| **R — al modello le foto dei fiori (una per tipo), niente collage; "ogni corolla sta sul suo stelo e ne segue la direzione", un po' dall'alto** | **3 naturali su 3**                        | **3 naturali su 3**                                     | 6 su 6        |
+| S — il collage descritto come vista dall'alto, stessa frase sugli steli                                                                         | 2 su 3 (una con teste giganti ammucchiate) | 1 su 3 (due con teste girate e ammucchiate, come la v8) | 6 su 6        |
+
+- Costo uguale alle versioni precedenti: 0,09–0,36 USD a richiesta (0,09 quando la prima foto è
+  giusta).
+- Le foto dei fiori erano una rosa rossa con lo stelo (scontornata) e un tulipano rosa generato
+  come foto da catalogo: le rose della foto finale somigliano a quella di riferimento.
+- Adottata R (v9). Prova con il codice finale su rami con carta, nastro e verde: 12 rose in carta
+  coreana nera con listón rosso (verificata, 13 → correzione → 12) e 6 rose con eucalipto, carta
+  rosa e listón bianco (6 a occhio; il secondo conteggio non è partito perché il credito fal era
+  finito). Carta con pieghe vere, nastro annodato, eucalipto riconoscibile.
+- Il modello aggiunge a volte uno spago dove gli steli sono legati, anche se il prompt lo esclude:
+  dettaglio da osservare, non conta nei fiori.

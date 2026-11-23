@@ -40,21 +40,29 @@ const db = getDb();
 const storage = new MemoryStorage();
 const remover = new ChromaKeyBackgroundRemover();
 
-/** Provider che sa partire dal boceto: registra cosa riceve e restituisce un JPEG. */
+/** Provider che sa partire da immagini: registra cosa riceve e restituisce un JPEG. */
 class SketchProvider implements AiImageProvider {
   readonly id = 'stub';
   readonly model = 'stub-edit-v1';
   readonly simulated = false;
-  readonly supportsSketch = true;
+  readonly acceptsImages = true;
   readonly estimatedCostMicros = 80_000;
-  requests: { prompt: string; image: boolean; spec: BouquetPreviewSpec }[] = [];
+  requests: {
+    prompt: string;
+    images: readonly { readonly bytes: Uint8Array; readonly contentType: string }[];
+    spec: BouquetPreviewSpec;
+  }[] = [];
 
   async generate(request: {
     readonly prompt: string;
     readonly spec: BouquetPreviewSpec;
-    readonly image?: { readonly bytes: Uint8Array; readonly contentType: string };
+    readonly images?: readonly { readonly bytes: Uint8Array; readonly contentType: string }[];
   }): Promise<GeneratedImage> {
-    this.requests.push({ prompt: request.prompt, image: !!request.image, spec: request.spec });
+    this.requests.push({
+      prompt: request.prompt,
+      images: request.images ?? [],
+      spec: request.spec,
+    });
     const bytes = await sharp({
       create: { width: 64, height: 64, channels: 3, background: '#aa3344' },
     })
@@ -280,7 +288,7 @@ describe('boceto esatto', () => {
 });
 
 describe('anteprima esatta', () => {
-  it('parte dal boceto, ricontrolla i numeri e consuma il credito solo a successo', async () => {
+  it('parte dalle foto dei fiori, ricontrolla i numeri e consuma il credito solo a successo', async () => {
     const kit = await createKit('Florería Exacta');
     const design = await rosesWithWrap(kit);
     expect((await getBouquetPreview(kit.shop.owner, design.id)).mode).toBe('EXACT');
@@ -293,9 +301,16 @@ describe('anteprima esatta', () => {
     expect(await runOnce(kit)).toBe('succeeded');
 
     expect(provider.requests).toHaveLength(1);
-    expect(provider.requests[0]).toMatchObject({ image: true });
+    // v9: il modello riceve la foto della rosa (scontornata, su fondo bianco), non il boceto.
+    const [reference] = provider.requests[0]?.images ?? [];
+    expect(provider.requests[0]?.images).toHaveLength(1);
+    expect(reference?.contentType).toBe('image/jpeg');
+    expect((await sharp(reference!.bytes).metadata()).hasAlpha).toBe(false);
     expect(provider.requests[0]?.prompt).toContain('Create a realistic photograph');
-    expect(provider.requests[0]?.prompt).toContain('The collage is only a rough reference');
+    expect(provider.requests[0]?.prompt).toContain(
+      'The reference images show the flowers to use, one image per kind: image 1 is "Rosa roja',
+    );
+    expect(provider.requests[0]?.prompt).not.toContain('collage');
     expect(provider.requests[0]?.prompt).toContain('exactly 3');
     // Il contatore riceve i tipi; le quantità attese restano nel server.
     expect(counter.seenTargets[0]?.map((target) => target.expected)).toEqual([3]);
@@ -343,7 +358,7 @@ describe('anteprima esatta', () => {
     expect(await runOnce(kit)).toBe('succeeded');
     expect(provider.requests).toHaveLength(2);
     // La seconda immagine è la correzione della prima (una rosa in più da togliere).
-    expect(provider.requests[1]).toMatchObject({ image: true });
+    expect(provider.requests[1]?.images).toHaveLength(1);
     expect(provider.requests[1]?.prompt).toContain('This photo of a bouquet shows 4 stems');
     expect(provider.requests[1]?.prompt).toContain('Remove 1 stem of "Rosa roja Freedom" (red)');
     expect((await getBouquetPreview(kit.shop.owner, design.id)).preview).toMatchObject({
@@ -434,7 +449,7 @@ describe('anteprima esatta', () => {
     provider.requests = [];
     await requestBouquetPreview(kit.shop.owner, design.id);
     expect(await runOnce(kit)).toBe('succeeded');
-    expect(provider.requests[0]).toMatchObject({ image: false });
+    expect(provider.requests[0]?.images).toEqual([]);
     expect(provider.requests[0]?.spec.mode).toBe('PROMPT');
     expect(provider.requests[0]?.spec.components.every((c) => c.cutoutPhotoId === null)).toBe(true);
     expect((await getBouquetPreview(kit.shop.owner, design.id)).preview).toMatchObject({

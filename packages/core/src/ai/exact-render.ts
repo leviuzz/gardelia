@@ -1,9 +1,10 @@
 /**
- * Foto realistica verificata dell'anteprima esatta (ADR-034 v7): dal boceto una foto naturale
- * del ramo, poi il conteggio dei fiori. Se la foto ha solo fiori in più dei tipi della distinta, una
- * seconda passata sulla stessa foto li toglie; altrimenti si rifà dal boceto. Ci si ferma alla
- * prima foto con i numeri giusti, al massimo `EXACT_PREVIEW_LIMITS.generationsPerJob` immagini.
- * Usata dal worker; senza stato, così la stessa sequenza si prova anche fuori dalla coda.
+ * Foto realistica verificata dell'anteprima esatta (ADR-034): dalle foto dei fiori del catalogo
+ * una foto naturale del ramo (v9; fino alla v8 dal boceto), poi il conteggio dei fiori. Se la foto
+ * ha solo fiori in più dei tipi della distinta, una seconda passata sulla stessa foto li toglie;
+ * altrimenti si rifà da capo. Ci si ferma alla prima foto con i numeri giusti, al massimo
+ * `EXACT_PREVIEW_LIMITS.generationsPerJob` immagini. Usata dal worker; senza stato, così la
+ * stessa sequenza si prova anche fuori dalla coda.
  */
 import {
   EXACT_PREVIEW_LIMITS,
@@ -14,7 +15,7 @@ import {
   type CountTargetOptions,
 } from '@floral/domain';
 import type { FlowerCounter, CountOutcome } from './flower-counter-types';
-import type { AiImageProvider, GeneratedImage } from './provider-types';
+import type { AiImageProvider, GeneratedImage, ImageInput } from './provider-types';
 
 export const GENERATION_TIMEOUT_MS = 120_000;
 // Primo conteggio (~5 s) e, se serve, la seconda opinione (fino a ~40 s).
@@ -25,7 +26,8 @@ export interface VerifiedRenderInput {
   /** null = nessun controllo configurato: la prima foto si accetta, non verificata. */
   readonly counter: FlowerCounter | null;
   readonly spec: BouquetPreviewSpec;
-  readonly sketch: { readonly bytes: Uint8Array; readonly contentType: string };
+  /** Foto dei fiori da cui nasce ogni nuova foto, nell'ordine citato dal prompt. */
+  readonly references: readonly ImageInput[];
   readonly prompt: string;
   readonly targets: readonly CountTarget[];
   readonly targetOptions?: CountTargetOptions;
@@ -34,7 +36,7 @@ export interface VerifiedRenderInput {
 }
 
 export interface VerifiedRenderCheck extends CountOutcome {
-  /** `render` = foto dal boceto; `fix` = correzione dei fiori in più sulla foto precedente. */
+  /** `render` = foto nuova; `fix` = correzione dei fiori in più sulla foto precedente. */
   readonly step: 'render' | 'fix';
 }
 
@@ -56,7 +58,9 @@ export async function renderVerifiedPhoto(
     const image = await input.provider.generate({
       prompt: fix ? fix.prompt : input.prompt,
       spec: input.spec,
-      image: fix ? { bytes: fix.image.bytes, contentType: fix.image.contentType } : input.sketch,
+      images: fix
+        ? [{ bytes: fix.image.bytes, contentType: fix.image.contentType }]
+        : input.references,
       signal: AbortSignal.timeout(GENERATION_TIMEOUT_MS),
     });
     spent += image.costMicros ?? input.provider.estimatedCostMicros;

@@ -40,7 +40,7 @@ class StubProvider implements AiImageProvider {
   readonly id = 'stub';
   readonly model = 'stub-delete-v1';
   readonly simulated = false;
-  readonly supportsSketch = false;
+  readonly acceptsImages = false;
   readonly estimatedCostMicros = 40_000;
 
   async generate(_request: { readonly spec: BouquetPreviewSpec }): Promise<GeneratedImage> {
