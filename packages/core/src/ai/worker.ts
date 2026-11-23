@@ -16,11 +16,10 @@
  *    si mostra mai come fedele (il boceto, esatto, resta visibile nel Diseñador).
  */
 import { setTimeout as delay } from 'node:timers/promises';
-import sharp from 'sharp';
 import { getDb, withTenantContext, type Prisma } from '@floral/db';
 import {
   buildPreviewPrompt,
-  buildSketchRenderPrompt,
+  buildReferenceRenderPrompt,
   cleanStyleDescription,
   countTargets,
   isBouquetPreviewSpec,
@@ -39,7 +38,8 @@ import {
 } from './providers';
 import { GENERATION_TIMEOUT_MS, renderVerifiedPhoto } from './exact-render';
 import { getFlowerCounter } from './flower-counter';
-import { SketchUnavailableError, renderSketchForTenant } from './sketch-source';
+import { loadFlowerReferences } from './reference-source';
+import { SketchUnavailableError } from './sketch-source';
 import { finishCutout, getBackgroundRemover, type BackgroundRemover } from './background-remover';
 import { onAiJobQueued } from './signal';
 import { getObjectStorage } from './storage';
@@ -331,20 +331,17 @@ async function processExactPreview(
       ? await styleDescriptionFor(scope, referenceId)
       : { text: null, costMicros: 0 };
     spent += style.costMicros;
-    const sketch = await renderSketchForTenant(scope, spec);
-    const source = {
-      bytes: new Uint8Array(await sharp(sketch.png).jpeg({ quality: 90 }).toBuffer()),
-      contentType: 'image/jpeg',
-    };
-    const prompt = buildSketchRenderPrompt(spec, { styleDescription: style.text });
-    // Il colore vero di ogni fiore, misurato sulla foto del boceto, quando il catalogo non lo dice.
-    const targetOptions = { photoColors: sketch.photoColors };
+    // v9: il modello riceve le foto dei fiori del catalogo, non il boceto (che copiava).
+    const references = await loadFlowerReferences(scope, spec);
+    const prompt = buildReferenceRenderPrompt(spec, { styleDescription: style.text });
+    // Il colore vero di ogni fiore, misurato sulla sua foto, quando il catalogo non lo dice.
+    const targetOptions = { photoColors: references.photoColors };
     const targets = countTargets(spec, targetOptions);
     const render = await renderVerifiedPhoto({
       provider,
       counter: getFlowerCounter(),
       spec,
-      sketch: source,
+      references: references.images,
       prompt,
       targets,
       targetOptions,

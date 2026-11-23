@@ -394,6 +394,14 @@ verificate, a ~0,24 USD l'una (ADR-034, `docs/AI_BENCHMARK.md`). v8: con la v7 l
 quasi tutte verso la fotocamera ("non ci siamo ancora con la direzione delle rose"); ora il prompt
 chiede fiori visti da angolazioni diverse e al massimo circa uno su quattro di fronte. Provato su 3
 rose + 2 tulipani (3 su 3 verificate al primo colpo) e su 12 rose (6 su 6 verificate).
+Il founder ha bocciato anche la v8: rose "orizzontali", girate di lato e ammucchiate. v9: il
+modello non riceve più il collage ma le foto scontornate dei fiori del catalogo, una per tipo, e
+compone un ramo in cui ogni corolla segue il suo stelo; il boceto resta l'anteprima esatta gratuita.
+Prova: 6 rami naturali su 6 con i numeri verificati, contro 3 su 6 partendo dal collage. Codice: il
+generatore accetta più immagini (`images`), `loadFlowerReferences` carica i ritagli (fondo bianco,
+massimo 1024 px), `buildReferenceRenderPrompt`; la versione del boceto non è più nella chiave della
+cache delle foto. **Da fare:** pubblicare su staging quando il founder approva la direzione, e
+ricaricare il credito fal, finito durante le prove del 23/11 (la stessa chiave serve staging).
 
 **Eliminare un disegno del Diseñador (fatto il 23/11, richiesta del founder, ADR-051):** accanto ad
 "Archivar" c'è "Eliminar" (solo proprietario e manager, con conferma). Cancella il disegno e le foto

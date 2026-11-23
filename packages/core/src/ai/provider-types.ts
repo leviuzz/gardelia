@@ -11,6 +11,12 @@ export interface GeneratedImage {
   readonly costMicros: number | null;
 }
 
+/** Immagine data al generatore: una foto di un fiore del catalogo o la foto da correggere. */
+export interface ImageInput {
+  readonly bytes: Uint8Array;
+  readonly contentType: string;
+}
+
 export interface AiImageProvider {
   readonly id: string;
   readonly model: string;
@@ -18,14 +24,17 @@ export interface AiImageProvider {
   readonly simulated: boolean;
   /** Costo stimato per immagine (micro-USD) usato per il tetto di spesa. */
   readonly estimatedCostMicros: number;
-  /** Sa rendere fotografico un boceto (immagine di partenza): anteprima esatta, ADR-034. */
-  readonly supportsSketch: boolean;
+  /**
+   * Sa partire da immagini: le foto dei fiori del catalogo (anteprima esatta, ADR-034 v9) o la
+   * foto da correggere. Senza, l'anteprima resta descritta a parole.
+   */
+  readonly acceptsImages: boolean;
   generate(request: {
     readonly prompt: string;
     readonly spec: BouquetPreviewSpec;
     readonly signal: AbortSignal;
-    /** Boceto da rendere fotografico (solo se `supportsSketch`). */
-    readonly image?: { readonly bytes: Uint8Array; readonly contentType: string };
+    /** Immagini di partenza (solo se `acceptsImages`), nell'ordine in cui il prompt le cita. */
+    readonly images?: readonly ImageInput[];
   }): Promise<GeneratedImage>;
 }
 

@@ -3,7 +3,8 @@
  *
  *  - Si fa quando ogni fiore contato del ramo ha una foto scontornata e gli steli non superano
  *    il limite del boceto; altrimenti resta l'anteprima descritta a parole (con l'avvertenza).
- *  - Il modello delle immagini riceve il boceto (esatto per costruzione) e lo rende fotografico.
+ *  - Il boceto (esatto per costruzione) è l'anteprima gratuita. La foto realistica nasce dalle foto
+ *    dei fiori del catalogo, una per tipo (v9): il modello compone un ramo vero.
  *  - Prima di mostrare l'immagine un modello di visione conta i fiori per tipo: riceve i TIPI ma
  *    non le quantità attese (così non è suggestionato); si accetta solo se tutto coincide.
  */
@@ -157,42 +158,64 @@ export function flowersWithoutSpecies(spec: BouquetPreviewSpec): string[] {
 }
 
 // -----------------------------------------------------------------------------
-// Prompt: dal boceto alla foto
+// Prompt: dalle foto dei fiori alla foto del ramo
 // -----------------------------------------------------------------------------
 
+export const REFERENCE_LIMITS = {
+  /** Foto di riferimento per richiesta: prima i fiori contati, poi riempitivi e verde. */
+  maxImages: 8,
+} as const;
+
 /**
- * Il boceto dice quali fiori e quanti; il modello ne fa la foto di un ramo vero. Prove del
- * 21/11/2026: chiedere di "reinventare" il ramo lo rende più vario ma rompe i conteggi, quindi la
- * v6 chiedeva di tenere le posizioni del boceto, e il founder (23/11) l'ha bocciata: "la direzione
- * dei fiori non è naturale, mantiene la posizione della bozza". v7: disposizione libera da fiorista
- * (altezze e direzioni diverse, tre quarti) con il ricontrollo dei numeri alla fine; quando la foto
- * ha fiori in più, una seconda passata li toglie (`buildCountFixPrompt`). Prova sul ramo del
- * founder (3 rose + 2 tulipani): foto naturali e, con la correzione, numeri giusti nella maggior
- * parte dei casi.
+ * Componenti di cui il modello riceve la foto scontornata, nell'ordine delle immagini (v9): i
+ * fiori contati (nell'anteprima esatta l'hanno tutti), poi i fiori di riempimento e il verde che
+ * ne hanno una. Una foto per tipo, al massimo `REFERENCE_LIMITS.maxImages`.
  */
-/**
- * Quanti fiori al massimo guardano dritti verso la fotocamera (prompt v8). Il collage mostra ogni
- * corolla di fronte e il modello tende a copiarla: rose tutte "a faccia in su", poco naturali
- * (founder, 23/11). In un ramo vero quasi tutti si vedono di lato o di tre quarti: circa uno su
- * quattro di fronte, almeno uno (provato su 5 e su 12 fiori, docs/AI_BENCHMARK.md).
- */
-export function maxFacingCamera(totalFlowers: number): number {
-  return Math.max(1, Math.floor(totalFlowers / 4));
+export function referenceComponents(spec: BouquetPreviewSpec): PreviewComponent[] {
+  const withPhoto = (component: PreviewComponent) => Boolean(component.cutoutPhotoId);
+  const others = spec.components.filter(
+    (component) =>
+      withPhoto(component) &&
+      (component.role === 'FOLIAGE' ||
+        (component.role === 'FLOWER' && component.saleUnit !== 'STEM')),
+  );
+  return [...countedFlowers(spec).filter(withPhoto), ...others].slice(
+    0,
+    REFERENCE_LIMITS.maxImages,
+  );
 }
 
-const SMALL_NUMBERS = ['one', 'two', 'three', 'four', 'five', 'six'] as const;
-
-function facingCameraText(count: number): string {
-  const word = SMALL_NUMBERS[count - 1] ?? String(count);
-  return count === 1 ? `${word} faces` : `${word} face`;
+/** 'image 1 is "Rosa roja" (rose, red)': che cosa mostra ogni foto di riferimento. */
+function referenceLabel(component: PreviewComponent, index: number): string {
+  const details = [component.commonName?.toLowerCase(), colorWords(component)]
+    .filter((part): part is string => Boolean(part))
+    .join(', ');
+  const what =
+    component.role === 'FOLIAGE'
+      ? 'the greenery '
+      : component.saleUnit !== 'STEM'
+        ? 'the filler flower '
+        : '';
+  return `image ${index + 1} is ${what}"${labelOf(component)}"${details ? ` (${details})` : ''}`;
 }
 
-export function buildSketchRenderPrompt(
+/**
+ * Prompt della foto realistica (v9, 23/11/2026). Il modello riceve le foto dei fiori del catalogo,
+ * una per tipo (`referenceComponents`), e compone un ramo vero in cui ogni corolla segue il suo
+ * stelo; il boceto resta l'anteprima esatta gratuita e non va più al modello. Storia: partendo dal
+ * collage il modello ne copiava le corolle viste di fronte (v6: stesse posizioni; v7: rose rivolte
+ * alla fotocamera; v8: rose girate di lato, "orizzontali", founder 23/11). Con le foto dei singoli
+ * fiori la prova ha dato 6 rami naturali su 6 con i numeri giusti (docs/AI_BENCHMARK.md). Il
+ * numero esatto resta garantito dal controllo e dalla correzione dei fiori in più.
+ */
+export function buildReferenceRenderPrompt(
   spec: BouquetPreviewSpec,
   options: PreviewPromptOptions = {},
 ): string {
   const flowers = countedFlowers(spec);
   const total = flowers.reduce((sum, flower) => sum + flower.quantity, 0);
+  const references = referenceComponents(spec);
+  const hasReference = (component: PreviewComponent) => references.includes(component);
   const filler = spec.components.filter(
     (component) => component.role === 'FLOWER' && component.saleUnit !== 'STEM',
   );
@@ -212,23 +235,23 @@ export function buildSketchRenderPrompt(
   const list = flowers.map(countedFlower).join('; ');
   const lines = [
     `Create a realistic photograph of a real hand-tied bouquet made by a professional florist, as if taken with a phone in a flower shop: ${style ? `${style},` : 'soft daylight, simple neutral background,'} natural depth and soft shadows, the whole bouquet in frame.`,
-    `The collage is only a rough reference for which flowers and how many: ${list}; ${total} ${total === 1 ? 'flower' : 'flowers'} in total, one bloom per stem.`,
-    spec.style === 'CLASSIC'
-      ? 'Do not copy its flat layout: arrange the flowers as a florist would, in a round, balanced dome like a classic bouquet, the central ones facing up and the outer ones tilting outward, seen in three-quarter view.'
-      : 'Do not copy its flat layout: arrange the flowers as a florist would, in a natural spiral with varied heights and directions, the central ones facing up, the outer ones tilting outward, some seen in three-quarter or side view.',
-    `Make every flower the same kind, color and openness as in the collage, but seen from different angles like in a real bouquet: the collage shows each flower only from the front, while in the photo most flowers face sideways or are seen in three-quarter view, and at most ${facingCameraText(maxFacingCamera(total))} the camera.`,
+    `The reference images show the flowers to use, one image per kind: ${references.map(referenceLabel).join('; ')}.`,
+    `The bouquet has ${list}; ${total} ${total === 1 ? 'flower' : 'flowers'} in total, one bloom per stem.`,
+    `Arrange them as a florist would, ${spec.style === 'CLASSIC' ? 'in a round, balanced dome like a classic bouquet' : 'in a natural spiral with varied heights'}: every bloom sits on top of its own straight stem and points the same way as its stem; the stems fan out from where they are tied, so the blooms in the middle point up and the outer ones lean outward, at slightly different heights.`,
+    'Make each flower the same kind, color and openness as its reference image, never a copy of the photo.',
+    'Photographed from the front and a little above, like a florist showing the bouquet on the counter: you look at most blooms from above and from the side; no bloom lies on its side and none faces straight into the camera.',
     filler.length > 0
-      ? `Small filler flowers between them: ${filler.map(describeComponent).join('; ')}.`
+      ? `Small filler flowers between them: ${filler.map(describeComponent).join('; ')}${filler.some(hasReference) ? ', as in their reference images' : ''}.`
       : null,
     foliage.length > 0
-      ? `Greenery: ${foliage.map(describeComponent).join('; ')} around the flowers, as in the collage.`
+      ? `Greenery: ${foliage.map(describeComponent).join('; ')} around the flowers${foliage.some(hasReference) ? ', as in their reference images' : ''}.`
       : 'Greenery: only a few natural leaves of these flowers.',
     container
-      ? `The flat colored shape below the flowers is a real ${withColor(container)}.`
+      ? `The flowers are arranged in a real ${withColor(container)}.`
       : papers.length > 0
-        ? `The flat colored shapes are real wrapping paper with soft, natural, irregular folds: ${papers.map(withColor).join(' and ')}.`
+        ? `The stems are wrapped in real wrapping paper with soft, natural, irregular folds: ${papers.map(withColor).join(' and ')}.`
         : 'No wrapping: hand-tied stems.',
-    ribbon ? `The flat bow is a real ${withColor(ribbon)} tied around the stems.` : null,
+    ribbon ? `A real ${withColor(ribbon)} is tied around the stems.` : null,
     others.length > 0
       ? `Also add: ${others.map((component) => `exactly ${component.quantity} × ${withColor(component)}`).join('; ')}.`
       : null,

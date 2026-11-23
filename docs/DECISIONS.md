@@ -595,6 +595,18 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   tulipani, 3 su 3 verificate al primo colpo con una sola rosa di fronte; 12 rose, 6 su 6
   verificate (dettagli in `docs/AI_BENCHMARK.md`). Prompt `bouquet-preview-v8`: cambia la chiave
   di cache.
+- **v9 (23/11/2026): niente collage al modello, solo le foto dei fiori.** Il founder sulla v8: "i
+  fiori sono orizzontali, non sono naturali". Guardate a piena risoluzione, le rose centrali erano
+  teste girate di lato e ammucchiate, staccate dai loro steli: da v6 a v8 il modello partiva dal
+  collage, dove ogni corolla è vista di fronte, e le frasi sulle angolazioni le spostavano senza
+  attaccarle a uno stelo. Ora il modello riceve le foto scontornate dei fiori del catalogo, una per
+  tipo (al massimo 8: prima i fiori contati, poi riempitivi e verde con foto), e compone un ramo
+  vero in cui ogni corolla sta sul suo stelo e ne segue la direzione, fotografato di fronte e un
+  po' dall'alto. Carta, nastro e contenitore sono descritti a parole. Il boceto resta l'anteprima
+  esatta gratuita, ma non va più al modello. Il numero esatto resta garantito dal controllo e dalla
+  correzione dei fiori in più. Prova: 6 rami naturali su 6 con i numeri verificati, contro 3 su 6
+  partendo dal collage descritto come vista dall'alto (`docs/AI_BENCHMARK.md`). Costo uguale.
+  Prompt `bouquet-preview-v9`: cambia la chiave di cache.
 
 ### ADR-035 — Immagine del ramo nel preventivo — ADOTTATO (21/11/2026)
 

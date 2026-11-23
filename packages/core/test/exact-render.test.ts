@@ -49,21 +49,28 @@ const spec: BouquetPreviewSpec = {
   mode: 'EXACT',
 };
 const targets = countTargets(spec);
-const sketch = { bytes: new Uint8Array([1, 2, 3]), contentType: 'image/jpeg' };
+// Le foto dei fiori (rosa e tulipano): primo byte 1 e 2.
+const references = [
+  { bytes: new Uint8Array([1, 2, 3]), contentType: 'image/jpeg' },
+  { bytes: new Uint8Array([2, 2, 3]), contentType: 'image/jpeg' },
+];
 
 /** Ogni immagine generata ha un byte diverso: si vede da quale foto parte la correzione. */
 class StubProvider implements AiImageProvider {
   readonly id = 'stub';
   readonly model = 'stub-edit';
   readonly simulated = false;
-  readonly supportsSketch = true;
+  readonly acceptsImages = true;
   readonly estimatedCostMicros = 80_000;
-  calls: { prompt: string; image: number | undefined }[] = [];
+  calls: { prompt: string; images: (number | undefined)[] }[] = [];
   async generate(request: {
     readonly prompt: string;
-    readonly image?: { readonly bytes: Uint8Array };
+    readonly images?: readonly { readonly bytes: Uint8Array }[];
   }): Promise<GeneratedImage> {
-    this.calls.push({ prompt: request.prompt, image: request.image?.bytes[0] });
+    this.calls.push({
+      prompt: request.prompt,
+      images: (request.images ?? []).map((image) => image.bytes[0]),
+    });
     return {
       bytes: new Uint8Array([100 + this.calls.length]),
       contentType: 'image/jpeg',
@@ -93,7 +100,7 @@ function run(answers: ([number, number] | 'error')[], counter = true) {
     provider,
     counter: counter ? new StubCounter(answers) : null,
     spec,
-    sketch,
+    references,
     prompt: 'natural bouquet',
     targets,
     onCountUnavailable,
@@ -110,13 +117,13 @@ describe('foto verificata (v7)', () => {
     const { accepted, checks, spentMicros } = await result;
     expect(accepted?.verified).toBe(true);
     expect(checks.map((check) => check.step)).toEqual(['render', 'fix']);
-    // La correzione parte dalla prima foto generata (byte 101), non dal boceto (byte 1).
-    expect(provider.calls.map((call) => call.image)).toEqual([1, 101]);
+    // La correzione parte dalla prima foto generata (byte 101), non dalle foto dei fiori.
+    expect(provider.calls.map((call) => call.images)).toEqual([[1, 2], [101]]);
     expect(provider.calls[1]?.prompt).toContain('Remove 1 red rose and 1 pink tulip');
     expect(spentMicros).toBe(2 * 80_000 + 2 * 12_000);
   });
 
-  it('fiori mancanti: niente correzione, nuova foto dal boceto', async () => {
+  it('fiori mancanti: niente correzione, nuova foto dalle foto dei fiori', async () => {
     const { provider, result } = run([
       [2, 2],
       [3, 2],
@@ -124,7 +131,10 @@ describe('foto verificata (v7)', () => {
     const { accepted, checks } = await result;
     expect(accepted?.verified).toBe(true);
     expect(checks.map((check) => check.step)).toEqual(['render', 'render']);
-    expect(provider.calls.map((call) => call.image)).toEqual([1, 1]);
+    expect(provider.calls.map((call) => call.images)).toEqual([
+      [1, 2],
+      [1, 2],
+    ]);
   });
 
   it('al massimo 3 immagini; una correzione non si corregge, si rifà', async () => {

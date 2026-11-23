@@ -386,33 +386,36 @@ describe('FalBackgroundRemover (scontorno, ADR-033)', () => {
 });
 
 describe('anteprima esatta con fal (ADR-034)', () => {
-  it('dal boceto chiama la variante "edit" con l’immagine; GPT Image 2 non la supporta', async () => {
+  it('con le foto dei fiori chiama la variante "edit", tutte nell’ordine; GPT Image 2 no', async () => {
     const { calls, fetchImpl } = fakeFal(json({ images: [{ url: dataUri(JPEG) }] }));
     const nano = provider(fetchImpl);
-    expect(nano.supportsSketch).toBe(true);
+    expect(nano.acceptsImages).toBe(true);
     const image = await nano.generate({
-      prompt: 'Turn this rough collage into a realistic photo',
+      prompt: 'The reference images show the flowers to use',
       signal: AbortSignal.timeout(5_000),
-      image: { bytes: PNG, contentType: 'image/png' },
+      images: [
+        { bytes: PNG, contentType: 'image/png' },
+        { bytes: JPEG, contentType: 'image/jpeg' },
+      ],
     });
     expect(image.contentType).toBe('image/jpeg');
     expect(calls[0]?.url).toBe('https://fal.run/fal-ai/nano-banana-2/edit');
     const body = JSON.parse(String(calls[0]?.init?.body)) as Record<string, unknown>;
     expect(body).toMatchObject({
-      prompt: 'Turn this rough collage into a realistic photo',
-      image_urls: [dataUri(PNG, 'image/png')],
+      prompt: 'The reference images show the flowers to use',
+      image_urls: [dataUri(PNG, 'image/png'), dataUri(JPEG, 'image/jpeg')],
       num_images: 1,
       aspect_ratio: '1:1',
       sync_mode: true,
     });
 
     const gpt = provider(fakeFal().fetchImpl, 'gpt-image-2');
-    expect(gpt.supportsSketch).toBe(false);
+    expect(gpt.acceptsImages).toBe(false);
     const error = await gpt
       .generate({
         prompt: 'x',
         signal: AbortSignal.timeout(5_000),
-        image: { bytes: PNG, contentType: 'image/png' },
+        images: [{ bytes: PNG, contentType: 'image/png' }],
       })
       .catch((e: unknown) => e);
     expect(error).toMatchObject({ code: 'invalid_request' });

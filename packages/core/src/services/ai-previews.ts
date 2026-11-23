@@ -320,11 +320,12 @@ async function styledSpec(
 }
 
 /**
- * Modalità della richiesta: esatta se il provider sa partire da un boceto e ogni fiore contato
- * ha il suo ritaglio. In modalità PROMPT i ritagli non cambiano l'immagine: fuori dalla chiave.
+ * Modalità della richiesta: esatta se il provider sa partire da immagini (le foto dei fiori) e
+ * ogni fiore contato ha il suo ritaglio. In modalità PROMPT i ritagli non cambiano l'immagine:
+ * fuori dalla chiave.
  */
 function withMode(spec: BouquetPreviewSpec, provider: AiImageProvider): BouquetPreviewSpec {
-  if (provider.supportsSketch && exactPreviewPlan(spec).eligible) return { ...spec, mode: 'EXACT' };
+  if (provider.acceptsImages && exactPreviewPlan(spec).eligible) return { ...spec, mode: 'EXACT' };
   return {
     ...spec,
     mode: 'PROMPT',

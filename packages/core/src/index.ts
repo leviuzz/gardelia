@@ -54,6 +54,7 @@ export {
   type AiImageProvider,
   type AiProviderErrorCode,
   type GeneratedImage,
+  type ImageInput,
 } from './ai/providers';
 export {
   FAL_MODEL_IDS,
