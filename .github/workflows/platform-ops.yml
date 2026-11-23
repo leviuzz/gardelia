@@ -15,12 +15,13 @@ on:
           - bootstrap-admin
           - assign-plan
           - grant-ai-credits
+          - test-data
       email:
         description: La tua email (amministratore della piattaforma)
         required: true
         type: string
       tenant:
-        description: Indirizzo della fioreria, la parte dopo /app/ (assign-plan, grant-ai-credits)
+        description: Indirizzo della fioreria, la parte dopo /app/ (assign-plan, grant-ai-credits, test-data)
         required: false
         type: string
       plan:
@@ -49,6 +50,11 @@ on:
         description: Nota per il registro (senza dati personali)
         required: false
         type: string
+      photos:
+        description: Genera le foto dei fiori con l'AI (test-data, ~0,08 USD a foto)
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -70,6 +76,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Esegui l'operazione
+        if: inputs.operation != 'test-data'
         # Gli input passano dalle variabili d'ambiente, mai interpolati nello script.
         env:
           DATABASE_URL: ${{ secrets.PLATFORM_DATABASE_URL }}
@@ -98,3 +105,34 @@ jobs:
               pnpm -s platform:grant-ai-credits --operator "${EMAIL}" --tenant "${TENANT}" \
                 --units "${UNITS}" "${note_args[@]}" ;;
           esac
+      - name: Dati di prova
+        if: inputs.operation == 'test-data'
+        # Clienti con date speciali, prodotti e (se ci sono i segreti di fal e dell'archivio R2,
+        # gli stessi di Vercel) le foto dei fiori. Le chiavi arrivano solo a questo passo.
+        env:
+          DATABASE_URL: ${{ secrets.PLATFORM_DATABASE_URL }}
+          EMAIL: ${{ inputs.email }}
+          TENANT: ${{ inputs.tenant }}
+          PHOTOS: ${{ inputs.photos }}
+          FAL_KEY: ${{ secrets.FAL_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL}" ]; then
+            echo "Manca il segreto PLATFORM_DATABASE_URL (vedi docs/DEPLOY_VERCEL.md)." >&2
+            exit 1
+          fi
+          photo_args=()
+          if [ "${PHOTOS}" = "true" ]; then
+            if [ -n "${FAL_KEY}" ] && [ -n "${R2_ACCOUNT_ID}" ] && [ -n "${R2_BUCKET}" ] \
+              && [ -n "${R2_ACCESS_KEY_ID}" ] && [ -n "${R2_SECRET_ACCESS_KEY}" ]; then
+              export STORAGE_DRIVER=r2 AI_PROVIDER=fal
+              photo_args=(--photos fal)
+            else
+              echo "::warning::Foto saltate: mancano i segreti FAL_KEY e R2_* (vedi docs/DEPLOY_VERCEL.md)."
+            fi
+          fi
+          pnpm -s platform:test-data --operator "${EMAIL}" --tenant "${TENANT}" "${photo_args[@]}"

@@ -14,7 +14,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "assign-plan": "tsx scripts/assign-plan.ts",
     "grant-ai-credits": "tsx scripts/grant-ai-credits.ts",
-    "bootstrap-admin": "tsx scripts/bootstrap-admin.ts"
+    "bootstrap-admin": "tsx scripts/bootstrap-admin.ts",
+    "fill-test-shop": "tsx scripts/fill-test-shop.ts"
   },
   "dependencies": {
     "@floral/db": "workspace:*",

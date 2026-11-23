@@ -966,6 +966,37 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   già uno sconto); promo aggiuntive inviate a mano dalla fioreria (il founder: "magari la
   facciamo dopo"); il marketplace dei clienti, dove tutto sarà automatico.
 
+### ADR-049 — Dati di prova di una fioreria (operazione di piattaforma) — ADOTTATO (23/11/2026)
+
+- **Richiesta del founder:** "uno script per il db che mi aggiunga clienti e fiori per testare il
+  negozio… le foto dei fiori puoi generarle te… aggiungi anche eventi nel calendario".
+- **Dove:** operazione di piattaforma `test-data` (CLI `pnpm platform:test-data`, workflow
+  "Operazioni di piattaforma", ADR-021), non un pulsante nell'app: non è una funzione per i
+  fioristi e nessun dato inventato va presentato come reale nell'interfaccia.
+- **Come:** passa dai servizi veri (validazione, audit con l'operatore come autore, RLS) con il
+  contesto dell'operatore. Servono due cose: amministratore della piattaforma **e** proprietario o
+  manager della fioreria (`catalog:write`, `customers:write`). Su una fioreria altrui risponde 404 e
+  non scrive nulla.
+- **Cosa aggiunge:** 18 prodotti con codice `PRB-…` (13 fiori e 2 verdi con la specie, 2 carte, 1
+  nastro), prezzi INDICATIVI in MXN, non un listino; 23 clienti inventati con etichetta `prueba`,
+  email `@example.com` (dominio riservato agli esempi, RFC 2606), telefoni 555 e 26 date speciali.
+  Le date sono contate da oggi, nel fuso della fioreria, così calendario e "Próximos envíos" si
+  riempiono subito; la festa della mamma è fissa al 10 maggio.
+- **Promo:** i clienti inventati non hanno il consenso, quindi la promo automatica non scrive a
+  indirizzi falsi. In più c'è "Cliente de prueba (tú)": email dell'operatore, consenso, compleanno
+  fra 3 giorni. Con la promo attiva gli arriva l'email vera con il codice.
+- **Rilanciabile:** aggiunge solo ciò che manca (prodotti per codice, clienti per nome). Le foto si
+  aggiungono solo ai prodotti attivi che non ne hanno, quindi non si generano (né pagano) due volte.
+  Una foto che fallisce non ferma le altre.
+- **Foto:** una per ogni fiore e verde, generata da fal con lo stesso modello delle anteprime
+  (~0,08 USD l'una, 15 foto ≈ 1,20 USD): un fiore solo, fondo liso, niente testo. Non passa dalla
+  coda AI, quindi resta fuori dal tetto mensile (`AI_MONTHLY_BUDGET_USD`). La lancia a mano un
+  amministratore e la stima si stampa prima di partire. Gli scontorni passano invece dalla coda
+  (tetto incluso) e la CLI li lavora subito, solo per quella fioreria. Nel workflow i segreti
+  `FAL_KEY` e `R2_*` arrivano solo al passo `test-data`; senza, si aggiunge tutto tranne le foto.
+  I segnaposto (cerchi colorati) funzionano solo con l'archivio su disco, cioè solo in locale: mai
+  online.
+
 ---
 
 ## 3. Proposte da approvare

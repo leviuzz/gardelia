@@ -364,6 +364,18 @@ l'intercettazione e segue il link, quindi il ritorno è una navigazione normale,
 parte da Google. Verificato in locale con 15 ripetizioni sotto carico (prima e dopo la modifica:
 93 su 93), da confermare con le prossime CI. La diagnostica resta nel server di test.
 
+**Dati di prova di una fioreria (fatto il 23/11, richiesta del founder, ADR-049):** l'operazione
+di piattaforma `test-data` (`pnpm platform:test-data`, o il workflow "Operazioni di piattaforma")
+riempie una fioreria del founder con 23 clienti inventati e le loro 26 date speciali nei prossimi
+giorni e mesi, più "Cliente de prueba (tú)" con la sua email per ricevere la promo vera. Aggiunge 18
+prodotti `PRB-…` (fiori e verdi con la specie, carte, nastro) e la foto di ogni fiore generata da
+fal (~1,20 USD in tutto), con gli scontorni. Passa dai servizi veri, si può rilanciare e scrive solo
+in una fioreria di cui l'operatore è proprietario o manager. Provata in locale su una fioreria vera
+(con foto segnaposto): calendario, agenda, catalogo e promo pieni. Per le foto su staging servono i
+segreti GitHub `FAL_KEY` e `R2_*` (`docs/DEPLOY_VERCEL.md` §8.6). Verifiche: lint ✅ · format ✅ · typecheck ✅ ·
+test 485/485 ✅ (+7: conteggi e rilancio, calendario e consenso, codici e specie, foto fallita,
+rifiuti per non amministratore, fioreria altrui e staff, prompt della foto).
+
 **Font Roboto (fatto il 22/11, richiesta del founder):** tutta l'app usa Roboto (testi e titoli) al
 posto di Inter e Fraunces, sempre servito dall'app stessa (pacchetto `@fontsource-variable/roboto`,
 nessuna richiesta a servizi esterni). I titoli senza peso esplicito ora sono in semibold. Le email

@@ -202,6 +202,22 @@ variabili da sistemare.
    l'indirizzo della fioreria, piano `PLUS`, stato `PILOT`.
 5. **Prova il Diseñador:** aggiungi le foto dei fiori (scontorno automatico), crea un ramo e genera
    la foto realistica.
+6. **Dati di prova (facoltativo):** per provare con un negozio pieno: 23 clienti con le loro date
+   nel calendario, 13 fiori, 2 verdi, 2 carte e 1 nastro, con la foto di ogni fiore (ADR-049).
+   - Per le foto salva su GitHub (come al punto 2) altri cinque segreti: `FAL_KEY`,
+     `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`. I valori sono gli
+     stessi di Vercel (nella tua nota privata). Se non li hai più, crea chiavi nuove solo per
+     GitHub: su fal una chiave `gardelia-github` (scope API); su R2 un token "Object Read & Write"
+     solo per `gardelia-staging` (account e bucket restano gli stessi). Così si revocano senza toccare Vercel. Senza questi segreti
+     l'operazione aggiunge tutto tranne le foto.
+   - Lo stesso workflow, operazione `test-data`, la tua email, l'indirizzo della fioreria, con
+     "Genera le foto" spuntato. Sono 15 foto, circa 1,20 USD di fal; lo scontorno parte subito.
+   - Si può rilanciare: aggiunge solo quello che manca e non rifà le foto. Clienti e prodotti di
+     prova hanno l'etichetta `prueba` e i codici `PRB-…`, e si archiviano come gli altri.
+   - Fra i clienti c'è "Cliente de prueba (tú)", con la tua email e il compleanno fra 3 giorni: se
+     attivi la promo, la mattina dopo ti arriva l'email vera con il codice. Gli altri clienti hanno
+     email inventate (`@example.com`) e nessun consenso, quindi la promo non scrive a loro.
+   - Funziona solo su una fioreria di cui sei proprietario o manager.
 
 ## 9. Se qualcosa non va
 
