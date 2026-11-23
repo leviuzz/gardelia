@@ -22,10 +22,11 @@ import { SKETCH_LAYOUT_VERSION } from './sketch';
  * ritagli reso fotografico (ADR-034); la chiave include i ritagli scelti, il tipo di articolo e la
  * versione del boceto. v6: boceto a cupola fitta e prompt "foto vera di un ramo" (la v5 dava
  * foto da collage). v7: disposizione libera da fiorista con il ricontrollo dei numeri e la
- * correzione dei fiori in più (la v6 copiava la disposizione piatta del boceto). Cambiarla
- * invalida la cache (nuova chiave).
+ * correzione dei fiori in più (la v6 copiava la disposizione piatta del boceto). v8: fiori visti
+ * di lato e di tre quarti, al massimo circa uno su quattro di fronte (con la v7 le rose
+ * guardavano quasi tutte la fotocamera). Cambiarla invalida la cache (nuova chiave).
  */
-export const AI_PREVIEW_PROMPT_VERSION = 'bouquet-preview-v7';
+export const AI_PREVIEW_PROMPT_VERSION = 'bouquet-preview-v8';
 
 /**
  * EXACT: boceto dai ritagli del fiorista reso fotografico, con i conteggi verificati (ADR-034).

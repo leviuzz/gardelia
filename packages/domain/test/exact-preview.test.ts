@@ -19,6 +19,7 @@ import {
   nameSaysWhichFlower,
   isRibbonLabel,
   layoutBouquetSketch,
+  maxFacingCamera,
   parseBoxCount,
   parseCountCheck,
   relativeBloomSizes,
@@ -336,7 +337,7 @@ describe('boceto', () => {
 });
 
 describe('prompt dal boceto', () => {
-  it('v7: chiede un ramo naturale da fiorista, con i numeri del boceto ricontrollati', () => {
+  it('v8: chiede un ramo naturale da fiorista, con i numeri del boceto ricontrollati', () => {
     const prompt = buildSketchRenderPrompt(spec([rose, daisy, eucalyptus, paper, ribbon]));
     expect(prompt).toContain('Create a realistic photograph of a real hand-tied bouquet');
     expect(prompt).toContain(
@@ -344,7 +345,11 @@ describe('prompt dal boceto', () => {
     );
     expect(prompt).toContain('Do not copy its flat layout');
     expect(prompt).toContain('varied heights and directions');
-    expect(prompt).toContain('same kind, color and openness');
+    expect(prompt).toContain('same kind, color and openness as in the collage');
+    // v8: il collage mostra le corolle di fronte, la foto no (rose "a faccia in su", 23/11).
+    expect(prompt).toContain(
+      'the collage shows each flower only from the front, while in the photo most flowers face sideways or are seen in three-quarter view, and at most one faces the camera.',
+    );
     expect(prompt).toContain(
       'Before finishing, count the blooms: exactly 3 red roses ("Rosa roja Freedom"); exactly 3 white daisies ("Margarita"); 6 in total, no more and no fewer',
     );
@@ -359,6 +364,12 @@ describe('prompt dal boceto', () => {
     const classic = buildSketchRenderPrompt(spec([rose, daisy], 'CLASSIC'));
     expect(classic).toContain('in a round, balanced dome like a classic bouquet');
     expect(classic).not.toContain('natural spiral');
+  });
+
+  it('quanti fiori guardano la fotocamera: circa uno su quattro, almeno uno', () => {
+    expect([1, 3, 5, 7, 8, 12, 24].map(maxFacingCamera)).toEqual([1, 1, 1, 1, 2, 3, 6]);
+    const dozen = buildSketchRenderPrompt(spec([{ ...rose, quantity: 12 }], 'CLASSIC'));
+    expect(dozen).toContain('and at most three face the camera.');
   });
 
   it('contenitore, complementi non nastro e niente nastro', () => {

@@ -274,3 +274,30 @@ modello (Nano Banana 2 edit) e stesso controllo dei conteggi (Claude + seconda o
   37–76 s a richiesta (prima: ~0,09 USD).
 - Da osservare: con la libertà le rose tendono a diventare "classiche" anche se la foto del
   prodotto è una rosa da giardino aperta.
+
+## Fiori visti da angolazioni diverse: prompt v8 (23/11/2026, ~3,3 USD)
+
+Giudizio del founder sulla v7: "non ci siamo ancora con la direzione delle rose", cioè quasi tutte
+rivolte verso la fotocamera. Il collage mostra ogni corolla di fronte e la frase "fai ogni fiore
+come nel collage" ne faceva copiare anche l'angolazione. Stessa pipeline v7 (correzione compresa),
+cambia solo quella frase. Sul boceto del founder (3 rose rosse + 2 tulipani rosa):
+
+| Variante                                                                  | Foto verificate                      | Rose rivolte alla fotocamera |
+| ------------------------------------------------------------------------- | ------------------------------------ | ---------------------------- |
+| a — stesso aspetto del collage, "rose viste da angolazioni diverse"       | 3 su 3 (2 con la correzione)         | 2 su 3 di solito             |
+| b — "il collage le mostra di fronte, nella foto al massimo una di fronte" | 3 su 3 al primo colpo                | 1–2 su 3                     |
+| **c — come b, per qualsiasi fiore, con tipo, colore e apertura (v8)**     | **3 su 3 al primo colpo**            | **1, a volte 2, su 3**       |
+| d — c + "si vedono il lato dei petali e la base verde"                    | 1 su 3, con 0,40 USD per le scartate | 1 su 3                       |
+
+Con 12 rose rosse (stile clásico, boceto da una foto vera scontornata):
+
+| Variante                                    | Foto verificate                  | Aspetto                                             |
+| ------------------------------------------- | -------------------------------- | --------------------------------------------------- |
+| "al massimo una rivolta alla fotocamera"    | 3 su 3 (una dopo 3 immagini)     | una naturale, due a cupola con molte rose di fronte |
+| **"al massimo tre" (circa una su quattro)** | **3 su 3 (una dopo 3 immagini)** | **angolazioni varie in tutte e tre**                |
+
+- v8: stesso tipo, colore e apertura del collage, "ma visti da angolazioni diverse come in un ramo
+  vero", e al massimo circa un fiore su quattro rivolto verso la fotocamera, almeno uno
+  (`maxFacingCamera`: 1 fino a 7 fiori, 3 con 12, 6 con 24).
+- Il costo non cambia: 0,09 USD quando la prima foto è giusta, fino a ~0,40 USD con 3 immagini.
+- Descrivere il lato dei petali e la base verde (d) peggiora i conteggi: scartata.

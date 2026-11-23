@@ -170,6 +170,23 @@ export function flowersWithoutSpecies(spec: BouquetPreviewSpec): string[] {
  * founder (3 rose + 2 tulipani): foto naturali e, con la correzione, numeri giusti nella maggior
  * parte dei casi.
  */
+/**
+ * Quanti fiori al massimo guardano dritti verso la fotocamera (prompt v8). Il collage mostra ogni
+ * corolla di fronte e il modello tende a copiarla: rose tutte "a faccia in su", poco naturali
+ * (founder, 23/11). In un ramo vero quasi tutti si vedono di lato o di tre quarti: circa uno su
+ * quattro di fronte, almeno uno (provato su 5 e su 12 fiori, docs/AI_BENCHMARK.md).
+ */
+export function maxFacingCamera(totalFlowers: number): number {
+  return Math.max(1, Math.floor(totalFlowers / 4));
+}
+
+const SMALL_NUMBERS = ['one', 'two', 'three', 'four', 'five', 'six'] as const;
+
+function facingCameraText(count: number): string {
+  const word = SMALL_NUMBERS[count - 1] ?? String(count);
+  return count === 1 ? `${word} faces` : `${word} face`;
+}
+
 export function buildSketchRenderPrompt(
   spec: BouquetPreviewSpec,
   options: PreviewPromptOptions = {},
@@ -199,7 +216,7 @@ export function buildSketchRenderPrompt(
     spec.style === 'CLASSIC'
       ? 'Do not copy its flat layout: arrange the flowers as a florist would, in a round, balanced dome like a classic bouquet, the central ones facing up and the outer ones tilting outward, seen in three-quarter view.'
       : 'Do not copy its flat layout: arrange the flowers as a florist would, in a natural spiral with varied heights and directions, the central ones facing up, the outer ones tilting outward, some seen in three-quarter or side view.',
-    'Make every flower look like the ones in the collage: same kind, color and openness.',
+    `Make every flower the same kind, color and openness as in the collage, but seen from different angles like in a real bouquet: the collage shows each flower only from the front, while in the photo most flowers face sideways or are seen in three-quarter view, and at most ${facingCameraText(maxFacingCamera(total))} the camera.`,
     filler.length > 0
       ? `Small filler flowers between them: ${filler.map(describeComponent).join('; ')}.`
       : null,

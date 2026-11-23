@@ -586,6 +586,15 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   4 richieste su 4 verificate e naturali, 0,22–0,26 USD a richiesta (prima ~0,09), dettagli in
   `docs/AI_BENCHMARK.md`. Il credito del fiorista resta uno solo e solo a successo; il costo in più
   è della piattaforma. Prompt `bouquet-preview-v7`: cambia la chiave di cache.
+- **v8 (23/11/2026): fiori visti da angolazioni diverse.** Con la v7 il founder: "non ci siamo
+  ancora con la direzione delle rose", cioè quasi tutte rivolte verso la fotocamera. Causa: il
+  collage mostra ogni corolla di fronte e la frase "fai ogni fiore come nel collage" spingeva il
+  modello a copiarne anche l'angolazione. Ora il prompt chiede stesso tipo, colore e apertura del
+  collage, ma visti come in un ramo vero: quasi tutti di lato o di tre quarti e al massimo circa uno
+  su quattro rivolto verso la fotocamera, almeno uno (`maxFacingCamera`). Prove: 3 rose + 2
+  tulipani, 3 su 3 verificate al primo colpo con una sola rosa di fronte; 12 rose, 6 su 6
+  verificate (dettagli in `docs/AI_BENCHMARK.md`). Prompt `bouquet-preview-v8`: cambia la chiave
+  di cache.
 
 ### ADR-035 — Immagine del ramo nel preventivo — ADOTTATO (21/11/2026)
 
