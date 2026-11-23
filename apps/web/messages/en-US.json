@@ -90,7 +90,7 @@
       "invalid_status_transition": "This status change isn’t allowed.",
       "builder_configuration_archived": "This design is archived: restore it to edit it.",
       "builder_configuration_outdated": "One or more products in the design are no longer available: review the design before quoting.",
-      "builder_configuration_in_quote": "This design is in a quote: it can’t be deleted, only archived.",
+      "builder_configuration_in_use": "This design is in a quote or an order: it can’t be deleted, only archived.",
       "ai_preview_in_progress": "A photo of this design is being generated: wait for it to finish and try again.",
       "ai_unavailable": "AI previews aren’t available right now.",
       "ai_quota_exhausted": "You don’t have any previews left this month.",
@@ -105,7 +105,12 @@
       "quote_already_ordered": "This quote already has its order.",
       "order_not_editable": "The order is already out: delivery and card can no longer change.",
       "order_closed": "The order is cancelled.",
-      "payment_already_reversed": "This payment was already voided."
+      "payment_already_reversed": "This payment was already voided.",
+      "order_not_confirmed": "Confirm the order first.",
+      "order_empty": "An order needs at least one product.",
+      "order_lines_locked": "This order’s products can no longer be changed.",
+      "order_line_limit": "The order has reached the maximum number of lines.",
+      "order_total_below_paid": "The total would drop below what the customer already paid: void the payment first."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -361,7 +366,13 @@
     "order.status_changed": "{actor} marked {number} as “{status}”",
     "order.cancelled": "{actor} cancelled order {number}",
     "order.payment_recorded": "{actor} recorded a payment on {number}",
-    "order.payment_reversed": "{actor} voided a payment on {number}"
+    "order.payment_reversed": "{actor} voided a payment on {number}",
+    "order.line_added": "{actor} added a line to {number}",
+    "order.line_updated": "{actor} changed a quantity in {number}",
+    "order.line_removed": "{actor} removed a line from {number}",
+    "order.discount_changed": "{actor} changed the discount on {number}",
+    "order.confirmed": "{actor} confirmed order {number}",
+    "order.discarded": "{actor} discarded draft {number}"
   },
   "catalog": {
     "title": "Catalog",
@@ -942,9 +953,11 @@
       "tomorrow": "Tomorrow",
       "week": "This week",
       "past": "Earlier",
-      "all": "All"
+      "all": "All",
+      "drafts": "Drafts"
     },
     "statuses": {
+      "DRAFT": "Draft",
       "PENDING_ACCEPTANCE": "To accept",
       "CONFIRMED": "Confirmed",
       "IN_PREPARATION": "Being prepared",
@@ -977,7 +990,7 @@
     },
     "results": "{count, plural, =0 {No results} one {# order} other {# orders}}",
     "emptyTitle": "No orders yet",
-    "emptyBody": "An order starts from an accepted quote: open it and choose “Turn into order”.",
+    "emptyBody": "Create one with “New order” or turn an accepted quote into an order.",
     "noResultsTitle": "No orders with these filters",
     "noResultsBody": "Try another day, another search or clear the filters.",
     "goToQuotes": "View quotes",
@@ -1092,6 +1105,43 @@
       "total": "Total: {total}",
       "paid": "Paid: {paid}",
       "balance": "To pay: {balance}"
+    },
+    "newOrder": "New order",
+    "noDate": "No date",
+    "new": {
+      "title": "New order",
+      "subtitle": "Choose the customer; then add the products and the delivery.",
+      "orderFor": "Order for {name}",
+      "create": "Create order",
+      "creating": "Creating…",
+      "pickHint": "Choose the customer to create the order.",
+      "customerArchived": "This customer is archived: restore them from their profile to create an order.",
+      "fromDesign": "Order with the design “{name}”",
+      "fromDesignBody": "Choose the customer: the order will include the bouquet with its exact recipe and your catalog’s current prices."
+    },
+    "draft": {
+      "intro": "Build the order: add the products, set the delivery and confirm it. Until then it doesn’t show up in deliveries.",
+      "stepProducts": "1. Products",
+      "stepDelivery": "2. Delivery and card",
+      "deliveryHint": "When and how it’s delivered. Once confirmed, the order is “Confirmed” and ready to prepare.",
+      "needsLines": "Add at least one product to confirm the order.",
+      "confirm": "Confirm order",
+      "confirmed": "Order confirmed.",
+      "discountField": "Discount ({currency})",
+      "saveDiscount": "Apply discount",
+      "discountSaved": "Discount updated.",
+      "discard": "Discard draft",
+      "discardTitle": "Discard this draft?",
+      "discardBody": "It won’t become an order and will no longer appear in the list.",
+      "discardConfirm": "Discard",
+      "editLines": "Change products or discount",
+      "editLinesBody": "Prices come from your current catalog. If the customer already paid, the total can’t drop below what they paid.",
+      "discarded": "This draft was discarded: it isn’t an order."
+    },
+    "customerCard": {
+      "title": "Orders",
+      "empty": "No orders yet.",
+      "viewAll": "See all their orders"
     }
   },
   "plans": {
@@ -1242,7 +1292,7 @@
       "savedNotice": "Design saved. You can now create the quote.",
       "unsaved": "You have unsaved changes.",
       "createQuote": "Create quote",
-      "quoteHint": "Save your changes to create the quote.",
+      "quoteHint": "Save your changes to create the quote or the order.",
       "pricesChanged": "Prices have changed since you saved this design (before: {total}). Save to update it.",
       "remove": "Remove {name}",
       "archive": "Archive",
@@ -1253,8 +1303,8 @@
       "delete": "Delete",
       "deleteTitle": "Delete this design?",
       "deleteBody": "The design and its AI-generated photos are deleted for good. This can’t be undone, and credits already used aren’t refunded.",
-      "deleteInQuoteTitle": "This design is in a quote",
-      "deleteInQuoteBody": "It can’t be deleted because the quote keeps its composition and photo. If you no longer need it, you can archive it.",
+      "deleteInUseTitle": "This design is in a quote or an order",
+      "deleteInUseBody": "It can’t be deleted because the quote or order keeps its composition and photo. If you no longer need it, you can archive it.",
       "lineTotalColor": "{quantity} × {name} · {color}",
       "colorOf": "Color of {name}",
       "colorFixed": "Color: {color}",
@@ -1280,7 +1330,8 @@
         "skip": "Skip this step",
         "backToDesigns": "Back to designs",
         "chooseColors": "Choose the missing colors to continue."
-      }
+      },
+      "createOrder": "Create order"
     },
     "settings": {
       "title": "Bouquet designer",

@@ -1,6 +1,6 @@
 'use client';
 
-import { Ban, LoaderCircle, Undo2 } from 'lucide-react';
+import { Ban, LoaderCircle, Trash, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
@@ -564,6 +564,61 @@ export function ReversePaymentButton({
       title={t('reverseTitle')}
       description={t('reverseBody')}
       confirmLabel={t('reverseConfirm')}
+    />
+  );
+}
+
+/** Sconto sull'ordine: il servizio lo limita al subtotale e non lo lascia sotto il già pagato. */
+export function OrderDiscountForm({
+  action,
+  currency,
+  defaultValue,
+}: {
+  readonly action: Action;
+  readonly currency: string;
+  /** Importo salvato, già in formato decimale ("20.00"); vuoto se non c'è sconto. */
+  readonly defaultValue: string;
+}) {
+  const t = useTranslations('orders.draft');
+  const [state, formAction] = useToastActionState(action);
+  const err = fieldError(state, 'discount');
+  return (
+    <form
+      key={defaultValue}
+      action={formAction}
+      onSubmit={preserveOnSubmit(formAction)}
+      className="flex flex-wrap items-end gap-2"
+    >
+      <Field id="order-discount" label={t('discountField', { currency })} error={err}>
+        <Input
+          {...controlProps('order-discount', err)}
+          name="discount"
+          inputMode="decimal"
+          autoComplete="off"
+          defaultValue={defaultValue}
+          className="w-36"
+        />
+      </Field>
+      <SubmitButton variant="secondary">{t('saveDiscount')}</SubmitButton>
+    </form>
+  );
+}
+
+/** "Descartar borrador": con conferma, senza motivo (il borrador non è mai stato un ordine). */
+export function DiscardDraftButton({ action }: { readonly action: Action }) {
+  const t = useTranslations('orders.draft');
+  return (
+    <ConfirmActionDialog
+      action={action}
+      trigger={
+        <Button variant="ghost" className="text-destructive hover:text-destructive">
+          <Trash aria-hidden="true" />
+          {t('discard')}
+        </Button>
+      }
+      title={t('discardTitle')}
+      description={t('discardBody')}
+      confirmLabel={t('discardConfirm')}
     />
   );
 }

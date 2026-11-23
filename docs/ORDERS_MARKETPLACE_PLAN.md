@@ -180,7 +180,7 @@ sull'indirizzo dell'ordine: si riempiono con Google Places quando c'è la chiave
 
 | Blocco | Contenuto                                                                                                                              |
 | ------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **A1** | Ordini nel gestionale: modello dati, regole, servizi, Pedidos, Nuevo pedido, scheda, pagamenti, preventivo → ordine                    |
+| **A1** | ✅ Ordini nel gestionale: modello dati, regole, servizi, Pedidos, Nuevo pedido, scheda, pagamenti, preventivo → ordine (ADR-054)       |
 | **A2** | Impostazioni di consegna (orari, fasce, costi per distanza, chiusure); coordinate negli indirizzi                                      |
 | **A3** | Stampa di comanda e tarjeta; link pubblici di ordine e preventivo; messaggi WhatsApp precompilati                                      |
 | **B1** | Calendario delle consegne, Hoy salen, Producción del día                                                                               |

@@ -2,6 +2,7 @@ import type { OrderPaymentStatus, OrderStatus } from '@floral/domain';
 import type { BadgeVariant } from '@/components/ui/badge';
 
 export const ORDER_STATUS_BADGE: Record<OrderStatus, BadgeVariant> = {
+  DRAFT: 'muted',
   PENDING_ACCEPTANCE: 'warning',
   CONFIRMED: 'info',
   IN_PREPARATION: 'accent',

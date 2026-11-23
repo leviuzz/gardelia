@@ -6,12 +6,20 @@
  * Contesto, errori, pagine da ricaricare e messaggi: `runTenantAction`.
  */
 import {
+  addCatalogItemToOrder,
+  addCustomLineToOrder,
   cancelOrder,
   changeOrderStatus,
+  confirmDraftOrder,
+  createDraftOrder,
   createOrderFromQuote,
+  discardDraftOrder,
   recordOrderPayment,
+  removeOrderLine,
   reverseOrderPayment,
+  updateOrderDiscount,
   updateOrderFulfillment,
+  updateOrderLineQuantity,
 } from '@floral/core';
 import type { ActionState } from '@/lib/action-state';
 import { formDataToObject } from '@/lib/form-data';
@@ -94,5 +102,111 @@ export async function reversePaymentAction(
   return runTenantAction(slug, async ({ ctx, routes }) => {
     await reverseOrderPayment(ctx, orderId, paymentId);
     return { revalidate: section(routes.orders.list()), success: 'orders.detail.paymentReversed' };
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Pedido diretto: borrador, righe, sconto e conferma (A1b)
+// -----------------------------------------------------------------------------
+
+/** "Nuevo pedido": il cliente scelto ed eventualmente il ramo di un disegno del Diseñador. */
+export async function createDraftOrderAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const { id } = await createDraftOrder(ctx, {
+      customerId: formData.get('customerId'),
+      configurationId: formData.get('configurationId') ?? undefined,
+    });
+    return { revalidate: section(routes.orders.list()), redirectTo: routes.orders.detail(id) };
+  });
+}
+
+export async function addCatalogLineToOrderAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await addCatalogItemToOrder(ctx, orderId, formDataToObject(formData));
+    return { revalidate: section(routes.orders.list()), success: 'quotes.editor.lineAdded' };
+  });
+}
+
+export async function addCustomLineToOrderAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await addCustomLineToOrder(ctx, orderId, formDataToObject(formData));
+    return { revalidate: section(routes.orders.list()), success: 'quotes.editor.lineAdded' };
+  });
+}
+
+export async function updateOrderLineQuantityAction(
+  slug: string,
+  orderId: string,
+  lineId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await updateOrderLineQuantity(ctx, orderId, lineId, formData.get('quantity'));
+    return { revalidate: section(routes.orders.list()), success: 'quotes.editor.lineUpdated' };
+  });
+}
+
+export async function removeOrderLineAction(
+  slug: string,
+  orderId: string,
+  lineId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await removeOrderLine(ctx, orderId, lineId);
+    return { revalidate: section(routes.orders.list()), success: 'quotes.editor.lineRemoved' };
+  });
+}
+
+export async function updateOrderDiscountAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await updateOrderDiscount(ctx, orderId, formDataToObject(formData));
+    return { revalidate: section(routes.orders.list()), success: 'orders.draft.discountSaved' };
+  });
+}
+
+export async function confirmDraftOrderAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await confirmDraftOrder(ctx, orderId, formDataToObject(formData));
+    return { revalidate: section(routes.orders.list()), success: 'orders.draft.confirmed' };
+  });
+}
+
+/** Il borrador scartato non compare più negli elenchi: si torna ai pedidos (niente toast). */
+export async function discardDraftOrderAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await discardDraftOrder(ctx, orderId);
+    return { revalidate: section(routes.orders.list()), redirectTo: routes.orders.list() };
   });
 }

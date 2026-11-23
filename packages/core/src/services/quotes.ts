@@ -12,13 +12,11 @@
 import { getDb, withTenantContext, type Prisma, type TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
-  PRICING_ENGINE_VERSION,
   QUOTE_LIMITS,
   QUOTE_PAGE_SIZE,
   QUOTE_STATUSES,
   canTransitionQuote,
   catalogQuoteLineSchema,
-  computeRecipeCosting,
   customQuoteLineSchema,
   effectiveQuoteStatus,
   formatQuoteNumber,
@@ -51,6 +49,7 @@ import {
   recalculateTotals,
 } from './quote-internals';
 import { readStoredImage } from '../media/stored-files';
+import { catalogLineDraft, customLineDraft, lineRowData } from './line-internals';
 
 // -----------------------------------------------------------------------------
 // DTO
@@ -404,26 +403,15 @@ export async function addCatalogItemToQuote(
     if (!quote) return false;
 
     // Prezzo, costo e distinta SEMPRE dal catalogo del tenant (mai dal client).
-    const item = await tx.catalogItem.findFirst({
-      where: { id: input.catalogItemId, tenantId: ctx.tenantId, status: 'ACTIVE' },
-      include: {
-        recipe: {
-          include: {
-            lines: {
-              where: { tenantId: ctx.tenantId },
-              include: { ingredient: true },
-              orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-            },
-          },
-        },
-      },
-    });
-    if (!item) throw new ValidationError({ catalogItemId: 'invalid_option' });
-    if (item.availability === 'OUT_OF_STOCK')
-      throw new ValidationError({ catalogItemId: 'item_unavailable' });
+    const draft = await catalogLineDraft(tx, ctx, input.catalogItemId);
 
     const existing = await tx.quoteLine.findFirst({
-      where: { tenantId: ctx.tenantId, quoteId, kind: 'CATALOG_ITEM', catalogItemId: item.id },
+      where: {
+        tenantId: ctx.tenantId,
+        quoteId,
+        kind: 'CATALOG_ITEM',
+        catalogItemId: draft.catalogItemId,
+      },
     });
     if (existing) {
       // Stesso articolo: si somma la quantità mantenendo lo snapshot originale del prezzo.
@@ -437,54 +425,8 @@ export async function addCatalogItemToQuote(
     } else {
       const count = await tx.quoteLine.count({ where: { tenantId: ctx.tenantId, quoteId } });
       if (count >= QUOTE_LIMITS.lines) throw new ConflictError('quote_line_limit');
-
-      let unitCostMinor = item.costMinor;
-      let recipe: QuoteRecipeLineSnapshot[] | undefined;
-      if (item.type === 'BOUQUET' && item.recipe) {
-        recipe = item.recipe.lines.map((line) => ({
-          name: line.ingredient.name,
-          variety: line.ingredient.variety,
-          quantity: line.quantity,
-          saleUnit: line.ingredient.saleUnit,
-        }));
-        const costing = computeRecipeCosting({
-          salePriceMinor: item.priceMinor,
-          laborCostMinor: item.recipe.laborCostMinor,
-          lines: item.recipe.lines.map((line) => ({
-            quantity: line.quantity,
-            unitPriceMinor: line.ingredient.priceMinor,
-            unitCostMinor: line.ingredient.costMinor,
-          })),
-        });
-        unitCostMinor = costing.totalCostMinor;
-      }
-      const snapshot: LineSnapshot = {
-        version: 1,
-        engine: PRICING_ENGINE_VERSION,
-        item: {
-          name: item.name,
-          variety: item.variety,
-          sku: item.sku,
-          type: item.type,
-          saleUnit: item.saleUnit,
-          availability: item.availability,
-        },
-        ...(recipe ? { recipe } : {}),
-      };
       await tx.quoteLine.create({
-        data: {
-          tenantId: ctx.tenantId,
-          quoteId,
-          kind: 'CATALOG_ITEM',
-          catalogItemId: item.id,
-          description: item.variety ? `${item.name} · ${item.variety}` : item.name,
-          quantity: input.quantity,
-          unitPriceMinor: item.priceMinor,
-          unitCostMinor,
-          lineTotalMinor: input.quantity * item.priceMinor,
-          snapshot: snapshot as unknown as Prisma.InputJsonValue,
-          sortOrder: count,
-        },
+        data: { tenantId: ctx.tenantId, quoteId, ...lineRowData(draft, input.quantity, count) },
       });
     }
     await recalculateTotals(tx, ctx, quoteId);
@@ -494,7 +436,7 @@ export async function addCatalogItemToQuote(
       entityId: quoteId,
       metadata: {
         number: formatQuoteNumber(quote.number),
-        itemName: item.name,
+        itemName: draft.itemName,
         quantity: input.quantity,
       },
     });
@@ -523,14 +465,7 @@ export async function addCustomLineToQuote(
       data: {
         tenantId: ctx.tenantId,
         quoteId,
-        kind: 'CUSTOM',
-        description: input.description,
-        quantity: input.quantity,
-        unitPriceMinor: input.unitPrice,
-        unitCostMinor: null,
-        lineTotalMinor: input.quantity * input.unitPrice,
-        snapshot: { version: 1, engine: PRICING_ENGINE_VERSION } as Prisma.InputJsonValue,
-        sortOrder: count,
+        ...lineRowData(customLineDraft(input), input.quantity, count),
       },
     });
     await recalculateTotals(tx, ctx, quoteId);

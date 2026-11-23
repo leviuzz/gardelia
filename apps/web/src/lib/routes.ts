@@ -87,12 +87,17 @@ export function tenantRoutes(slug: string) {
         }),
     },
     orders: {
-      /** Elenco (`when`: upcoming, today, tomorrow, week, past, all; `status`; `unpaid`). */
+      /** Elenco (`when`: upcoming, today, tomorrow, week, past, all, drafts; `status`; `unpaid`). */
       list: (query?: QueryValues) => withQuery(orders, query),
+      /** "Nuevo pedido", eventualmente per un cliente o con il ramo di un disegno del Diseñador. */
+      new: (query?: { readonly customerId?: string; readonly configurationId?: string | null }) =>
+        withQuery(`${orders}/new`, query),
       detail: (orderId: string) => `${orders}/${segment(orderId)}`,
-      /** Immagine del ramo di una riga (la stessa del preventivo). */
-      lineImage: (orderId: string, lineId: string) =>
-        `${orders}/${segment(orderId)}/lines/${segment(lineId)}/image`,
+      /** Immagine del ramo di una riga (`download`: si scarica, per allegarla su WhatsApp). */
+      lineImage: (orderId: string, lineId: string, options?: { readonly download?: boolean }) =>
+        withQuery(`${orders}/${segment(orderId)}/lines/${segment(lineId)}/image`, {
+          download: options?.download,
+        }),
     },
     builder: {
       list: (query?: QueryValues) => withQuery(builder, query),

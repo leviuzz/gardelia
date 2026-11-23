@@ -9,6 +9,7 @@ import {
   NotFoundError,
   createCatalogItem,
   createCustomer,
+  createDraftOrder,
   createQuoteFromConfiguration,
   deleteBouquetConfiguration,
   getAiPreviewImage,
@@ -30,8 +31,8 @@ import { createTestShop, itemInput, type TestShop } from '../src/testing';
 
 /**
  * "Eliminar" di un disegno del Diseñador (ADR-051): via il disegno e le foto generate per lui,
- * solo se nessun preventivo lo usa; i crediti già usati restano usati; le foto che un preventivo o
- * un altro disegno identico mostrano restano.
+ * solo se nessun preventivo né ordine lo usa; i crediti già usati restano usati; le foto che un
+ * preventivo, un ordine o un altro disegno identico mostrano restano.
  */
 
 const db = getDb();
@@ -127,8 +128,8 @@ async function jobRow(jobId: string) {
   );
 }
 
-async function quoteFor(kit: Kit, configurationId: string) {
-  const customer = await createCustomer(kit.shop.owner, {
+async function customerFor(kit: Kit) {
+  return createCustomer(kit.shop.owner, {
     type: 'PERSON',
     displayName: 'Cliente Eliminar',
     legalName: null,
@@ -142,10 +143,20 @@ async function quoteFor(kit: Kit, configurationId: string) {
     acquisitionChannel: null,
     marketingConsent: false,
   });
+}
+
+async function quoteFor(kit: Kit, configurationId: string) {
+  const customer = await customerFor(kit);
   return createQuoteFromConfiguration(kit.shop.owner, {
     configurationId,
     customerId: customer.id,
   });
+}
+
+/** "Crear pedido" dal Diseñador: borrador con il ramo del disegno (ADR-054). */
+async function orderFor(kit: Kit, configurationId: string) {
+  const customer = await customerFor(kit);
+  return createDraftOrder(kit.shop.owner, { configurationId, customerId: customer.id });
 }
 
 async function linesOf(configurationId: string) {
@@ -179,7 +190,7 @@ describe('eliminare un disegno', () => {
     const keys = [(await jobRow(first)).outputKey!, (await jobRow(second)).outputKey!];
     expect(keys.every((key) => storage.objects.has(key))).toBe(true);
     expect((await getAiQuota(kit.shop.owner)).includedUsed).toBe(2);
-    expect((await getBouquetConfiguration(kit.shop.owner, design.id)).usedInQuotes).toBe(false);
+    expect((await getBouquetConfiguration(kit.shop.owner, design.id)).inUse).toBe(false);
 
     expect(await deleteBouquetConfiguration(kit.shop.manager, design.id)).toEqual({
       deletedImages: 2,
@@ -230,10 +241,10 @@ describe('eliminare un disegno', () => {
     const design = await save(kit, 6);
     const jobId = await previewReady(kit, design.id);
     await quoteFor(kit, design.id);
-    expect((await getBouquetConfiguration(kit.shop.owner, design.id)).usedInQuotes).toBe(true);
+    expect((await getBouquetConfiguration(kit.shop.owner, design.id)).inUse).toBe(true);
 
     await expect(deleteBouquetConfiguration(kit.shop.owner, design.id)).rejects.toMatchObject({
-      reason: 'builder_configuration_in_quote',
+      reason: 'builder_configuration_in_use',
     });
     expect(await linesOf(design.id)).toBe(2);
     expect(await jobRow(jobId)).toMatchObject({ bouquetConfigurationId: design.id });
@@ -241,6 +252,30 @@ describe('eliminare un disegno', () => {
 
     await setBouquetConfigurationArchived(kit.shop.owner, design.id, true);
     expect((await getBouquetConfiguration(kit.shop.owner, design.id)).status).toBe('ARCHIVED');
+  });
+
+  it('in un pedido diretto: non si elimina, e la sua foto resta anche se il disegno cambia', async () => {
+    const kit = await createKit();
+    const design = await save(kit, 5, 'Ramo para Gina');
+    const jobId = await previewReady(kit, design.id);
+    await orderFor(kit, design.id);
+    expect((await getBouquetConfiguration(kit.shop.owner, design.id)).inUse).toBe(true);
+    await expect(deleteBouquetConfiguration(kit.shop.owner, design.id)).rejects.toMatchObject({
+      reason: 'builder_configuration_in_use',
+    });
+    expect(await jobRow(jobId)).toMatchObject({ bouquetConfigurationId: design.id });
+
+    // Foto di un altro disegno finita nel pedido di un gemello, che poi cambia: resta al pedido.
+    const source = await save(kit, 8, 'Ramo para Hilda');
+    const ordered = await previewReady(kit, source.id);
+    const copy = await save(kit, 8, 'Ramo para Inés');
+    await orderFor(kit, copy.id);
+    await save(kit, 9, 'Ramo para Inés', copy.id);
+    expect(await deleteBouquetConfiguration(kit.shop.owner, source.id)).toEqual({
+      deletedImages: 0,
+      keptImages: 1,
+    });
+    expect((await getAiPreviewImage(kit.shop.owner, ordered)).bytes.length).toBeGreaterThan(0);
   });
 
   it('una foto in preparazione blocca l’eliminazione finché non finisce', async () => {

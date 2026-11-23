@@ -9,7 +9,7 @@
  *  - Il preventivo creato da un disegno contiene la distinta ESATTA con i prezzi del
  *    momento (snapshot), come le righe da catalogo (ORD-01).
  */
-import { getDb, withTenantContext, type Prisma } from '@floral/db';
+import { getDb, withTenantContext, type Prisma, type TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
   BUILDER_COMPONENT_TYPES,
@@ -34,7 +34,7 @@ import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { deleteUnusedFiles } from '../media/stored-files';
-import { currentPreviewJobId, releaseConfigurationPreviews } from './ai-previews';
+import { releaseConfigurationPreviews } from './ai-previews';
 import type { BouquetPhotoDto } from './bouquet-photos';
 import { requireEntitlement } from './billing';
 import {
@@ -45,6 +45,7 @@ import {
   priceComponents,
   type PricedComponent,
 } from './builder-internals';
+import { configurationLineDraft, lineRowData } from './line-internals';
 import { insertDraftQuote, recalculateTotals } from './quote-internals';
 
 // -----------------------------------------------------------------------------
@@ -117,8 +118,8 @@ export interface BouquetConfigurationDto extends BouquetConfigurationSummaryDto 
   readonly estimatedCostMinor: number | null;
   readonly createdAt: Date;
   readonly lines: readonly BouquetConfigurationLineDto[];
-  /** In almeno un preventivo: non si può eliminare, solo archiviare (ADR-051). */
-  readonly usedInQuotes: boolean;
+  /** In almeno un preventivo o un ordine: non si può eliminare, solo archiviare (ADR-051). */
+  readonly inUse: boolean;
   /** Foto vera del ramo caricata dalla fioreria (ADR-052); null se non c'è. */
   readonly photo: BouquetPhotoDto | null;
 }
@@ -269,17 +270,15 @@ export async function getBouquetConfiguration(
       },
     });
     if (!config) return null;
-    const quoteLines = await tx.quoteLine.count({
-      where: { tenantId: ctx.tenantId, bouquetConfigurationId: config.id },
-    });
+    const inUse = await isConfigurationInUse(tx, ctx, config.id);
     const photo = await tx.bouquetPhoto.findFirst({
       where: { tenantId: ctx.tenantId, configurationId: config.id, status: 'ACTIVE' },
       select: { id: true, width: true, height: true, createdAt: true },
     });
-    return { config, usedInQuotes: quoteLines > 0, photo };
+    return { config, inUse, photo };
   });
   if (!found) return notFound(ctx, 'BouquetConfiguration', configurationId);
-  const { config, usedInQuotes, photo } = found;
+  const { config, inUse, photo } = found;
   return {
     ...toSummary(config),
     budgetMinor: config.budgetMinor,
@@ -301,7 +300,7 @@ export async function getBouquetConfiguration(
       availability: line.catalogItem.availability,
       usable: isUsable(line.catalogItem),
     })),
-    usedInQuotes,
+    inUse,
     photo,
   };
 }
@@ -444,9 +443,23 @@ export async function setBouquetConfigurationArchived(
 }
 
 /**
+ * Un preventivo o un ordine usa il disegno: ne conservano composizione e foto (FK RESTRICT),
+ * quindi il disegno si può solo archiviare (ADR-051, ADR-054).
+ */
+async function isConfigurationInUse(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  configurationId: string,
+): Promise<boolean> {
+  const where = { tenantId: ctx.tenantId, bouquetConfigurationId: configurationId };
+  if ((await tx.quoteLine.count({ where })) > 0) return true;
+  return (await tx.orderLine.count({ where })) > 0;
+}
+
+/**
  * Elimina per sempre un disegno con le foto generate per lui (ADR-051: eccezione voluta dal
- * founder alla regola "nessuna cancellazione fisica"). Solo se nessun preventivo lo usa: la
- * cotización conserva composizione e foto, quindi lì si archivia. I crediti AI già usati non si
+ * founder alla regola "nessuna cancellazione fisica"). Solo se nessun preventivo né ordine lo
+ * usa: conservano composizione e foto, quindi lì si archivia. I crediti AI già usati non si
  * restituiscono: i job restano, staccati dal disegno (`releaseConfigurationPreviews`).
  */
 export async function deleteBouquetConfiguration(
@@ -464,10 +477,9 @@ export async function deleteBouquetConfiguration(
       WHERE "id" = ${configurationId}::uuid AND "tenantId" = ${ctx.tenantId}::uuid
       FOR UPDATE`;
     if (!existing) return null;
-    const quoteLines = await tx.quoteLine.count({
-      where: { tenantId: ctx.tenantId, bouquetConfigurationId: existing.id },
-    });
-    if (quoteLines > 0) throw new ConflictError('builder_configuration_in_quote');
+    if (await isConfigurationInUse(tx, ctx, existing.id)) {
+      throw new ConflictError('builder_configuration_in_use');
+    }
     const previews = await releaseConfigurationPreviews(tx, ctx, existing.id);
     // Le foto vere del ramo (ADR-052) se ne vanno con il disegno: nessun preventivo le mostra,
     // perché nessun preventivo usa il disegno. Le copie in "Mis ramos" restano.
@@ -519,89 +531,14 @@ export async function createQuoteFromConfiguration(
 
   const result = await withTenantContext(getDb(), ctx, async (tx) => {
     await requireEntitlement(ctx, 'bouquetBuilder', tx);
-    const config = await tx.bouquetConfiguration.findFirst({
-      where: { id: configurationId, tenantId: ctx.tenantId, status: 'ACTIVE' },
-      include: { lines: { where: { tenantId: ctx.tenantId } } },
-    });
-    if (!config) return { missing: 'BouquetConfiguration' as const };
-
-    let components: PricedComponent[];
-    try {
-      components = await loadComponents(
-        tx,
-        ctx,
-        config.lines.map((line) => ({
-          catalogItemId: line.catalogItemId,
-          quantity: line.quantity,
-          color: line.color,
-        })),
-      );
-    } catch (error) {
-      // Il disegno è stato salvato valido: se ora non lo è, il catalogo è cambiato.
-      if (error instanceof ValidationError)
-        throw new ConflictError('builder_configuration_outdated');
-      throw error;
-    }
-    const pricing = priceComponents(components, await laborFee(tx, ctx));
+    const draft = await configurationLineDraft(tx, ctx, configurationId);
+    if (!draft) return { missing: 'BouquetConfiguration' as const };
 
     const quote = await insertDraftQuote(tx, ctx, customerId);
     if (!quote) return { missing: 'Customer' as const };
 
-    const snapshot = {
-      version: 1,
-      engine: BUILDER_PRICING_VERSION,
-      builder: {
-        configurationId: config.id,
-        name: config.name,
-        style: config.style,
-        size: config.size,
-        componentsMinor: pricing.componentsMinor,
-        laborMinor: pricing.laborMinor,
-      },
-      recipe: components.map((component) => ({
-        name: component.item.name,
-        variety: component.item.variety,
-        quantity: component.quantity,
-        saleUnit: component.item.saleUnit,
-        color: component.color,
-      })),
-      components: components.map((component) => ({
-        catalogItemId: component.item.id,
-        name: component.item.name,
-        variety: component.item.variety,
-        role: component.role,
-        quantity: component.quantity,
-        color: component.color,
-        saleUnit: component.item.saleUnit,
-        unitPriceMinor: component.item.priceMinor,
-        availability: component.item.availability,
-      })),
-    };
-    // L'immagine del ramo (se già generata per questo disegno) resta con la riga anche se poi
-    // il disegno cambia: il preventivo mostra ciò che è stato quotato (ADR-035).
-    const previewJobId = await currentPreviewJobId(tx, ctx, config.id);
-    // La foto vera del ramo, se il fiorista l'ha caricata, si mostra al posto dell'anteprima AI.
-    const ownPhoto = await tx.bouquetPhoto.findFirst({
-      where: { tenantId: ctx.tenantId, configurationId: config.id, status: 'ACTIVE' },
-      select: { id: true },
-    });
     await tx.quoteLine.create({
-      data: {
-        tenantId: ctx.tenantId,
-        quoteId: quote.id,
-        kind: 'BUILDER',
-        bouquetConfigurationId: config.id,
-        previewJobId,
-        bouquetPhotoId: ownPhoto?.id ?? null,
-        description: config.name,
-        quantity: 1,
-        unitPriceMinor: pricing.totalMinor,
-        // Costo dei materiali: l'armado è un ricavo del fiorista, non un costo stimato.
-        unitCostMinor: pricing.estimatedCostMinor,
-        lineTotalMinor: pricing.totalMinor,
-        snapshot: snapshot as unknown as Prisma.InputJsonValue,
-        sortOrder: 0,
-      },
+      data: { tenantId: ctx.tenantId, quoteId: quote.id, ...lineRowData(draft, 1, 0) },
     });
     await recalculateTotals(tx, ctx, quote.id);
     await recordAudit(tx, ctx, {
@@ -610,9 +547,9 @@ export async function createQuoteFromConfiguration(
       entityId: quote.id,
       metadata: {
         number: formatQuoteNumber(quote.number),
-        itemName: config.name,
+        itemName: draft.itemName,
         quantity: 1,
-        configurationId: config.id,
+        configurationId: draft.bouquetConfigurationId,
       },
     });
     return { quote };

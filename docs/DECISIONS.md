@@ -1191,8 +1191,8 @@ Blocco A1a di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26, D-27).
   snapshot di `QuoteLine`, enum `QuoteLineKind` riusato), `OrderPayment`, `OrderStatusEvent`. Tutte
   con `tenantId`, RLS e FK composite. Un ordine per preventivo (`@@unique([tenantId, quoteId])`).
 - **Nascita:** "Convertir en pedido" su un preventivo ACCETTATO copia righe, snapshot e immagine del
-  ramo; prezzi e sconto restano quelli concordati. L'ordine diretto, senza preventivo, arriva con
-  A1b. L'origine del preventivo passa all'ordine (`acquisitionSource`, base delle fee D-24).
+  ramo; prezzi e sconto restano quelli concordati. L'ordine diretto, senza preventivo, è descritto
+  più sotto (A1b). L'origine del preventivo passa all'ordine (`acquisitionSource`, base delle fee D-24).
 - **Consegna:** domicilio o ritiro, data e fascia oraria (minuti dalla mezzanotte nel fuso della
   fioreria, entrambi o nessuno). L'indirizzo si **copia** nell'ordine, dalla rubrica del cliente
   (che deve essere lo stesso cliente) o nuovo con le regole della rubrica; destinatario e
@@ -1215,8 +1215,25 @@ Blocco A1a di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26, D-27).
 - **Audit:** `order.created`, `order.updated` (solo campi non personali), `order.status_changed`,
   `order.cancelled`, `order.payment_recorded`, `order.payment_reversed`; un ID di un'altra fioreria
   dà 404 e un evento di sicurezza.
-- **Prossimi:** A1b (ordine diretto con le righe), A2 (fasce e costi di consegna nelle impostazioni,
-  coordinate), A3 (stampa della tarjeta, link pubblici).
+- **Ordine diretto (A1b, 23/11/2026):** "Nuevo pedido" dall'elenco, dalla scheda del cliente o dal
+  Diseñador ("Crear pedido" con il ramo del disegno) crea un **borrador** (`DRAFT`, senza data):
+  prodotti del catalogo, righe libere e sconto con lo stesso editor dei preventivi (prezzi, costi e
+  distinta SEMPRE dal catalogo del tenant), poi consegna e tarjeta con "Confirmar pedido". Nel
+  borrador niente pagamenti, niente modifica della consegna (si compila alla conferma), niente
+  annullamento: un borrador che non serve si **scarta** senza motivo (`CANCELLED` senza data, fuori da
+  tutti gli elenchi; resta nella cronologia e nell'audit). Il database lo garantisce: senza data solo
+  un borrador o un borrador scartato; il motivo è obbligatorio per annullare un ordine confermato.
+- **Righe dopo la conferma:** prodotti e sconto si cambiano fino a "En preparación" (non per gli ordini
+  del marketplace, che si accettano o rifiutano come li ha composti il cliente); un ordine confermato
+  non resta mai vuoto. **Il totale non scende mai sotto quanto il cliente ha già pagato** (righe,
+  sconto o costo di consegna): prima si storna il pagamento, così nessuna differenza da restituire
+  resta nascosta (`order_total_below_paid`).
+- **Diseñador:** un disegno usato da un ordine non si elimina (come per i preventivi, ADR-051) e
+  l'immagine che un ordine mostra non si cancella con il disegno da cui è stata ereditata.
+- **Audit in più:** `order.line_added`, `order.line_updated`, `order.line_removed`,
+  `order.discount_changed`, `order.confirmed`, `order.discarded`.
+- **Prossimi:** A2 (fasce e costi di consegna nelle impostazioni, coordinate), A3 (stampa della
+  tarjeta, link pubblici).
 
 ---
 

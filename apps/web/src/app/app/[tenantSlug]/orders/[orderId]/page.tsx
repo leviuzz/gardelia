@@ -42,6 +42,8 @@ import {
   PaymentForm,
   ReversePaymentButton,
 } from '../order-forms';
+import { DraftOrderView } from './draft-order';
+import { OrderLinesEditor } from './order-lines';
 import { PrintOrderButton } from './print-button';
 
 const loadOrder = cache(async (ctx: TenantContext, orderId: string): Promise<OrderDetailDto> => {
@@ -71,6 +73,9 @@ export default async function OrderPage({
   const { tenantSlug, orderId } = await params;
   const ctx = await getTenantContext(tenantSlug);
   const order = await loadOrder(ctx, orderId);
+  // Borrador (anche scartato): non ha ancora data né consegna.
+  const scheduledDate = order.scheduledDate;
+  if (scheduledDate === null) return <DraftOrderView ctx={ctx} order={order} />;
   const t = await getTranslations();
   const format = await getFormatter();
   const slug = ctx.tenantSlug;
@@ -97,7 +102,7 @@ export default async function OrderPage({
     getTranslations({ locale: shopLocale }),
     getFormatter({ locale: shopLocale }),
   ]);
-  const shopDate = formatShop.dateTime(calendarDate(order.scheduledDate), {
+  const shopDate = formatShop.dateTime(calendarDate(scheduledDate), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -175,7 +180,7 @@ export default async function OrderPage({
               {order.customer.displayName}
             </Link>
             <span className="inline-block first-letter:uppercase">
-              {longDate(order.scheduledDate)} · {window}
+              {longDate(scheduledDate)} · {window}
             </span>
             {order.quote ? (
               <Link href={routes.quotes.detail(order.quote.id)} className="hover:underline">
@@ -210,7 +215,7 @@ export default async function OrderPage({
           {order.numberLabel} · {t(`orders.modes.${order.fulfillmentMode}`)}
         </p>
         <p className="text-sm first-letter:uppercase">
-          {longDate(order.scheduledDate)} · {window}
+          {longDate(scheduledDate)} · {window}
         </p>
         <p className="text-sm">
           {order.customer.displayName}
@@ -268,6 +273,17 @@ export default async function OrderPage({
                   </li>
                 ))}
               </ul>
+              {order.linesEditable ? (
+                <details className="mt-5 rounded-xl border p-4 print:hidden">
+                  <summary className="cursor-pointer font-medium">
+                    {t('orders.draft.editLines')}
+                  </summary>
+                  <p className="mt-2 mb-4 text-sm text-muted-foreground">
+                    {t('orders.draft.editLinesBody')}
+                  </p>
+                  <OrderLinesEditor ctx={ctx} order={order} />
+                </details>
+              ) : null}
             </CardContent>
           </Card>
 
@@ -280,7 +296,7 @@ export default async function OrderPage({
                 <div>
                   <dt className="text-muted-foreground">{t('orders.detail.when')}</dt>
                   <dd className="first-letter:uppercase">
-                    {longDate(order.scheduledDate)} · {window}
+                    {longDate(scheduledDate)} · {window}
                   </dd>
                 </div>
                 <div>
@@ -363,10 +379,10 @@ export default async function OrderPage({
                   </p>
                   <FulfillmentForm
                     action={updateFulfillmentAction.bind(null, slug, order.id)}
-                    formKey={`${order.fulfillmentMode}-${order.scheduledDate}-${order.deliveryFeeMinor}`}
+                    formKey={`${order.fulfillmentMode}-${scheduledDate}-${order.deliveryFeeMinor}`}
                     currency={order.currency}
                     regions={MX_REGIONS.map(({ code, name }) => ({ code, name }))}
-                    dateMin={order.scheduledDate < today ? order.scheduledDate : today}
+                    dateMin={scheduledDate < today ? scheduledDate : today}
                     submitLabel={t('orders.form.save')}
                     addresses={customer.addresses.map((address) => ({
                       id: address.id,
@@ -376,7 +392,7 @@ export default async function OrderPage({
                     }))}
                     defaults={{
                       fulfillmentMode: order.fulfillmentMode,
-                      scheduledDate: order.scheduledDate,
+                      scheduledDate,
                       windowStart: order.windowStart ?? '',
                       windowEnd: order.windowEnd ?? '',
                       addressChoice: order.customerAddressId ?? 'new',

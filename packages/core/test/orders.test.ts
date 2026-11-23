@@ -6,21 +6,29 @@ import {
   ForbiddenError,
   NotFoundError,
   ValidationError,
+  addCatalogItemToOrder,
   addCatalogItemToQuote,
+  addCustomLineToOrder,
   addCustomerAddress,
   cancelOrder,
   changeOrderStatus,
   changeQuoteStatus,
+  confirmDraftOrder,
   createCatalogItem,
   createCustomer,
+  createDraftOrder,
   createOrderFromQuote,
   createQuote,
+  discardDraftOrder,
   getOrder,
   getQuoteOrder,
   listOrders,
   recordOrderPayment,
+  removeOrderLine,
   reverseOrderPayment,
+  updateOrderDiscount,
   updateOrderFulfillment,
+  updateOrderLineQuantity,
   updateQuoteDetails,
   type CatalogItemDto,
   type TenantContext,
@@ -58,6 +66,10 @@ let customerId: string;
 let addressId: string;
 let today: string;
 let tomorrow: string;
+
+function todayParts() {
+  return todayInTimeZone(shop.owner.timezone);
+}
 
 /** Preventivo accettato: 12 rose (12 × 35,00) con 20,00 di sconto = 400,00. */
 async function acceptedQuote(ctx: TenantContext = shop.owner, forCustomer = customerId) {
@@ -343,7 +355,7 @@ describe('pagos registrados', () => {
 
   it('cambiar el envío recalcula total y estado del pago', async () => {
     const { id } = await createOrderFromQuote(shop.owner, await acceptedQuote(), delivery());
-    await recordOrderPayment(shop.owner, id, { amount: '480', method: 'CASH', kind: 'BALANCE' });
+    await recordOrderPayment(shop.owner, id, { amount: '400', method: 'CASH', kind: 'DEPOSIT' });
     await updateOrderFulfillment(shop.owner, id, delivery({ deliveryFee: '120' }));
     let order = await getOrder(shop.owner, id);
     expect(order.totalMinor).toBe(52000);
@@ -419,6 +431,246 @@ describe('lista de pedidos', () => {
 
     const byNumber = await listOrders(shop.owner, { when: 'all', q: order.numberLabel });
     expect(byNumber.items.map((item) => item.id)).toEqual([id]);
+  });
+});
+
+describe('pedido directo (borrador)', () => {
+  /** Borrador con 6 rosas (6 × 35,00 = 210,00). */
+  async function draftWithRoses(ctx: TenantContext = shop.owner) {
+    const { id } = await createDraftOrder(ctx, { customerId });
+    await addCatalogItemToOrder(ctx, id, { catalogItemId: rose.id, quantity: '6' });
+    return id;
+  }
+
+  it('se arma con productos y conceptos, y al confirmar queda listo para preparar', async () => {
+    const { id, number } = await createDraftOrder(shop.owner, { customerId });
+    let order = await getOrder(shop.owner, id);
+    expect(order).toMatchObject({
+      number,
+      status: 'DRAFT',
+      scheduledDate: null,
+      totalMinor: 0,
+      linesEditable: true,
+      editable: false,
+      canCancel: false,
+      canDiscard: true,
+      canRecordPayments: false,
+      nextSteps: [],
+    });
+
+    // El precio lo pone el catálogo, nunca el cliente; el mismo producto suma cantidades.
+    await addCatalogItemToOrder(shop.owner, id, {
+      catalogItemId: rose.id,
+      quantity: '5',
+      unitPrice: '1',
+    });
+    await addCatalogItemToOrder(shop.owner, id, { catalogItemId: rose.id, quantity: '1' });
+    await addCustomLineToOrder(shop.owner, id, {
+      description: 'Globo metálico',
+      quantity: '2',
+      unitPrice: '45.50',
+    });
+    order = await getOrder(shop.owner, id);
+    expect(order.lines.map((line) => [line.description, line.quantity])).toEqual([
+      ['Rosa roja · Freedom', 6],
+      ['Globo metálico', 2],
+    ]);
+    expect(order.subtotalMinor).toBe(6 * 3500 + 2 * 4550);
+
+    const globe = order.lines[1]!;
+    await updateOrderLineQuantity(shop.owner, id, globe.id, '1');
+    await updateOrderDiscount(shop.owner, id, { discount: '10' });
+    order = await getOrder(shop.owner, id);
+    expect(order.subtotalMinor).toBe(21000 + 4550);
+    expect(order.discountMinor).toBe(1000);
+    expect(order.totalMinor).toBe(24550);
+
+    await confirmDraftOrder(shop.owner, id, delivery({ deliveryFee: '60' }));
+    order = await getOrder(shop.owner, id);
+    expect(order).toMatchObject({
+      status: 'CONFIRMED',
+      scheduledDate: tomorrow,
+      fulfillmentMode: 'DELIVERY',
+      deliveryFeeMinor: 6000,
+      totalMinor: 30550,
+      paymentStatus: 'UNPAID',
+      cardMessage: '¡Feliz cumpleaños, mamá!',
+      canDiscard: false,
+      canCancel: true,
+      canRecordPayments: true,
+    });
+    expect(order.quote).toBeNull();
+    expect(order.events.map((event) => [event.fromStatus, event.toStatus])).toEqual([
+      [null, 'DRAFT'],
+      ['DRAFT', 'CONFIRMED'],
+    ]);
+    await changeOrderStatus(shop.staff, id, 'IN_PREPARATION');
+
+    const audit = await withSystemContext(db, { reason: 'test: audit' }, (tx) =>
+      tx.auditLog.findMany({ where: { entityId: id }, select: { action: true } }),
+    );
+    expect(audit.map((row) => row.action)).toEqual(
+      expect.arrayContaining(['order.created', 'order.line_added', 'order.confirmed']),
+    );
+  });
+
+  it('no se confirma vacío, no cobra ni se edita la entrega antes de confirmar', async () => {
+    const { id } = await createDraftOrder(shop.owner, { customerId });
+    await expect(confirmDraftOrder(shop.owner, id, delivery())).rejects.toMatchObject({
+      reason: 'order_empty',
+    });
+    await expect(
+      recordOrderPayment(shop.owner, id, { amount: '10', method: 'CASH', kind: 'DEPOSIT' }),
+    ).rejects.toMatchObject({ reason: 'order_not_confirmed' });
+    await expect(updateOrderFulfillment(shop.owner, id, delivery())).rejects.toMatchObject({
+      reason: 'order_not_editable',
+    });
+    await expect(cancelOrder(shop.owner, id, { reason: 'x' })).rejects.toMatchObject({
+      reason: 'invalid_status_transition',
+    });
+    // La confirmación valida la entrega como "Convertir en pedido".
+    await addCatalogItemToOrder(shop.owner, id, { catalogItemId: rose.id, quantity: '1' });
+    await expect(
+      confirmDraftOrder(shop.owner, id, delivery({ scheduledDate: isoDate(todayParts(), -1) })),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect((await getOrder(shop.owner, id)).status).toBe('DRAFT');
+  });
+
+  it('un borrador descartado no pide motivo y desaparece de las listas', async () => {
+    const id = await draftWithRoses();
+    expect((await listOrders(shop.owner, { when: 'drafts' })).items.map((i) => i.id)).toContain(id);
+    expect((await listOrders(shop.owner, { when: 'all' })).items.map((i) => i.id)).not.toContain(
+      id,
+    );
+
+    await discardDraftOrder(shop.owner, id);
+    const order = await getOrder(shop.owner, id);
+    expect(order).toMatchObject({
+      status: 'CANCELLED',
+      cancelReason: null,
+      canDiscard: false,
+      linesEditable: false,
+    });
+    for (const when of ['drafts', 'all', 'upcoming']) {
+      expect((await listOrders(shop.owner, { when })).items.map((i) => i.id)).not.toContain(id);
+    }
+    await expect(discardDraftOrder(shop.owner, id)).rejects.toMatchObject({
+      reason: 'invalid_status_transition',
+    });
+    await expect(
+      addCatalogItemToOrder(shop.owner, id, { catalogItemId: rose.id, quantity: '1' }),
+    ).rejects.toMatchObject({ reason: 'order_lines_locked' });
+  });
+
+  it('después de confirmar: nunca vacío, nunca por debajo de lo pagado, cerrado al estar listo', async () => {
+    const id = await draftWithRoses();
+    await addCustomLineToOrder(shop.owner, id, {
+      description: 'Tarjeta grande',
+      quantity: '1',
+      unitPrice: '30',
+    });
+    await confirmDraftOrder(
+      shop.owner,
+      id,
+      delivery({ fulfillmentMode: 'PICKUP', deliveryFee: '' }),
+    );
+    let order = await getOrder(shop.owner, id);
+    expect(order.totalMinor).toBe(24000);
+
+    await recordOrderPayment(shop.owner, id, { amount: '230', method: 'CASH', kind: 'DEPOSIT' });
+    const card = order.lines.find((line) => line.description === 'Tarjeta grande')!;
+    const roses = order.lines.find((line) => line.kind === 'CATALOG_ITEM')!;
+    // Quitar la tarjeta dejaría 210,00 con 230,00 ya pagados: primero se anula el pago.
+    await expect(removeOrderLine(shop.owner, id, card.id)).rejects.toMatchObject({
+      reason: 'order_total_below_paid',
+    });
+    await expect(updateOrderDiscount(shop.owner, id, { discount: '20' })).rejects.toMatchObject({
+      reason: 'order_total_below_paid',
+    });
+    await updateOrderLineQuantity(shop.owner, id, roses.id, '8');
+    await removeOrderLine(shop.owner, id, card.id);
+    order = await getOrder(shop.owner, id);
+    expect(order).toMatchObject({ totalMinor: 28000, paidMinor: 23000, paymentStatus: 'PARTIAL' });
+    await expect(removeOrderLine(shop.owner, id, roses.id)).rejects.toMatchObject({
+      reason: 'order_empty',
+    });
+
+    await changeOrderStatus(shop.staff, id, 'READY');
+    await expect(
+      addCatalogItemToOrder(shop.owner, id, { catalogItemId: rose.id, quantity: '1' }),
+    ).rejects.toMatchObject({ reason: 'order_lines_locked' });
+    expect((await getOrder(shop.owner, id)).linesEditable).toBe(false);
+  });
+
+  it('el envío tampoco deja el total por debajo de lo pagado', async () => {
+    const { id } = await createOrderFromQuote(shop.owner, await acceptedQuote(), delivery());
+    await recordOrderPayment(shop.owner, id, {
+      amount: '480',
+      method: 'TRANSFER',
+      kind: 'DEPOSIT',
+    });
+    await expect(
+      updateOrderFulfillment(shop.owner, id, delivery({ deliveryFee: '0' })),
+    ).rejects.toMatchObject({ reason: 'order_total_below_paid' });
+    expect((await getOrder(shop.owner, id)).deliveryFeeMinor).toBe(8000);
+  });
+
+  it('el banco no arma pedidos; el cliente debe existir y estar activo', async () => {
+    await expect(createDraftOrder(shop.staff, { customerId })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    const id = await draftWithRoses();
+    await expect(
+      addCatalogItemToOrder(shop.staff, id, { catalogItemId: rose.id, quantity: '1' }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(discardDraftOrder(shop.staff, id)).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(createDraftOrder(shop.owner, { customerId: '' })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    await expect(
+      createDraftOrder(shop.owner, { customerId: '00000000-0000-4000-8000-000000000000' }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it('la base de datos exige el motivo para cancelar un pedido confirmado', async () => {
+    const { id } = await createOrderFromQuote(shop.owner, await acceptedQuote(), delivery());
+    await expect(
+      withTenantContext(db, shop.owner, (tx) =>
+        tx.order.update({ where: { id }, data: { status: 'CANCELLED' } }),
+      ),
+    ).rejects.toThrow();
+    const draft = await createDraftOrder(shop.owner, { customerId });
+    await expect(
+      withTenantContext(db, shop.owner, (tx) =>
+        tx.order.update({ where: { id: draft.id }, data: { status: 'CONFIRMED' } }),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it('otra florería no arma, confirma ni descarta borradores ajenos', async () => {
+    const id = await draftWithRoses();
+    await expect(createDraftOrder(other.owner, { customerId })).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    await expect(
+      addCustomLineToOrder(other.owner, id, { description: 'x', quantity: '1', unitPrice: '1' }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    await expect(confirmDraftOrder(other.owner, id, delivery())).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    await expect(discardDraftOrder(other.owner, id)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(updateOrderDiscount(other.owner, id, { discount: '1' })).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    // L'articolo di un'altra fioreria non entra nel borrador.
+    const foreign = await createCatalogItem(other.owner, itemInput({ name: 'Rosa ajena' }));
+    await expect(
+      addCatalogItemToOrder(shop.owner, id, { catalogItemId: foreign.id, quantity: '1' }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    const order = await getOrder(shop.owner, id);
+    expect(order.status).toBe('DRAFT');
+    expect(order.lines).toHaveLength(1);
+    expect((await listOrders(other.owner, { when: 'drafts' })).items).toEqual([]);
   });
 });
 

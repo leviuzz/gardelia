@@ -224,7 +224,7 @@ test.describe('eliminare un disegno (ADR-051)', () => {
     await page.goto(quotedUrl);
     await page.getByRole('button', { name: 'Eliminar' }).click();
     await expect(
-      dialog.getByRole('heading', { name: 'Este diseño está en una cotización' }),
+      dialog.getByRole('heading', { name: 'Este diseño está en una cotización o un pedido' }),
     ).toBeVisible();
     await expect(dialog.getByText(/puedes archivarlo/)).toBeVisible();
     await dialog.getByRole('button', { name: 'Cerrar' }).first().click();

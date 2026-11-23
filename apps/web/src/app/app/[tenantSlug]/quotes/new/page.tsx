@@ -23,6 +23,7 @@ import {
 import { customerListFiltersSchema } from '@floral/domain';
 import { Forbidden } from '@/components/forbidden';
 import { SearchInput } from '@/components/common/list/search-input';
+import { CreateForCustomer, CustomerPicker } from '@/components/customers/customer-picker';
 import { EmptyState, PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -31,7 +32,6 @@ import { phoneForInput } from '@/lib/format';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { createQuoteAction } from '../actions';
-import { CreateForCustomer, CustomerPicker } from './new-quote-form';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('quotes.new');
@@ -133,6 +133,7 @@ export default async function NewQuotePage({
                 action={action}
                 customerId={preselected.id}
                 configurationId={designId}
+                labels={{ create: t('quotes.new.create'), creating: t('quotes.new.creating') }}
               />
             )}
             <Link
@@ -210,6 +211,7 @@ export default async function NewQuotePage({
               displayName: customer.displayName,
               detail:
                 [phoneForInput(customer.phone), customer.email].filter(Boolean).join(' · ') || null,
+              pickLabel: t('quotes.new.quoteFor', { name: customer.displayName }),
             }))}
           />
           <Link
