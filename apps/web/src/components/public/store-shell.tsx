@@ -1,5 +1,6 @@
 import { Flower2, MessageCircle, Phone, TriangleExclamationPoint } from 'lucide-react';
 import Link from 'next/link';
+import { LegalLinks } from '@/components/legal/legal-links';
 import { Button } from '@/components/ui/button';
 
 /**
@@ -13,6 +14,7 @@ export function StoreShell({
   demoNotice,
   contact,
   footer,
+  locale,
   children,
 }: {
   readonly name: string;
@@ -28,6 +30,8 @@ export function StoreShell({
     readonly callLabel: string;
   } | null;
   readonly footer: string;
+  /** Lingua del mercato della fioreria (anche per i link ai documenti legali). */
+  readonly locale: string;
   readonly children: React.ReactNode;
 }) {
   return (
@@ -73,7 +77,10 @@ export function StoreShell({
         ) : null}
       </header>
       <main className="mx-auto w-full max-w-5xl px-4 pt-4 pb-16">{children}</main>
-      <footer className="pb-8 text-center text-xs text-muted-foreground">{footer}</footer>
+      <footer className="space-y-2 pb-8 text-center text-xs text-muted-foreground">
+        <p>{footer}</p>
+        <LegalLinks audience="buyer" locale={locale} />
+      </footer>
     </div>
   );
 }

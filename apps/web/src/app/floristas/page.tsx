@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { Logo } from '@/components/brand/logo';
 import { LanguageSwitcher } from '@/components/i18n/language-switcher';
+import { LegalLinks } from '@/components/legal/legal-links';
 import { Button } from '@/components/ui/button';
 import { getSession } from '@/lib/session';
 
@@ -100,6 +101,9 @@ export default async function LandingPage() {
         </section>
         <p className="mt-8 text-sm text-muted-foreground">{t('roadmapNote')}</p>
       </main>
+      <footer className="pb-8">
+        <LegalLinks audience="florist" />
+      </footer>
     </div>
   );
 }

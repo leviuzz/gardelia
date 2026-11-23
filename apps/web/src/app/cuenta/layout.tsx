@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Logo } from '@/components/brand/logo';
 import { LanguageSwitcher } from '@/components/i18n/language-switcher';
+import { LegalLinks } from '@/components/legal/legal-links';
 
 /** Cornice del conto cliente (blocco C1): come l'onboarding, senza il menu della fioreria. */
 export default function AccountLayout({ children }: LayoutProps<'/cuenta'>) {
@@ -12,7 +13,10 @@ export default function AccountLayout({ children }: LayoutProps<'/cuenta'>) {
         </Link>
         <LanguageSwitcher />
       </header>
-      <main className="mx-auto max-w-2xl px-4 pt-6 pb-16">{children}</main>
+      <main className="mx-auto max-w-2xl px-4 pt-6 pb-10">{children}</main>
+      <footer className="pb-8">
+        <LegalLinks audience="buyer" />
+      </footer>
     </div>
   );
 }

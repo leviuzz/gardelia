@@ -155,6 +155,8 @@ export const AUDIT_ACTIONS = {
   platformAdminBootstrapped: 'platform.admin_bootstrapped',
   /** Email confermata a mano dall'amministratore (senza email di conferma, ADR-050). */
   platformUserEmailConfirmed: 'platform.user_email_confirmed',
+  /** Chi compra ha eliminato il suo conto cliente (diritto di cancellazione, ADR-068). */
+  platformBuyerAccountDeleted: 'platform.buyer_account_deleted',
   /** Persona aggiunta al team dall'amministratore della piattaforma (ADR-050). */
   memberAddedByPlatform: 'member.added_by_platform',
 } as const;

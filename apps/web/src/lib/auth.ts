@@ -1,11 +1,21 @@
 import 'server-only';
 import { betterAuth } from 'better-auth';
+import { APIError } from 'better-auth/api';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { nextCookies } from 'better-auth/next-js';
-import { getMailer, logger, passwordResetEmail, verificationEmail } from '@floral/core';
+import {
+  deleteAccountEmail,
+  getBuyerAccountDeletionBlockers,
+  getMailer,
+  logger,
+  passwordResetEmail,
+  recordBuyerAccountDeleted,
+  verificationEmail,
+} from '@floral/core';
 import { getDb } from '@floral/db';
 import { BRAND, newId } from '@floral/domain';
 import { googleCredentials, serverEnv } from './env';
+import { accountRoutes } from './routes';
 
 /**
  * Autenticazione (identità) con Better Auth: email/password, verifica email obbligatoria,
@@ -47,6 +57,40 @@ function createAuth() {
       expiresIn: 60 * 60,
       sendVerificationEmail: async ({ user, url }) => {
         await getMailer().send(verificationEmail({ to: user.email, name: user.name, url }));
+      },
+    },
+    // "Eliminar mi cuenta" di chi compra (diritto di cancellazione, ADR-068): si conferma con il link
+    // dell'email (vale anche per chi entra con Google, senza password); subito prima di cancellare si
+    // ricontrolla che la persona non faccia parte di una fioreria e non abbia ordini in corso.
+    user: {
+      deleteUser: {
+        enabled: true,
+        deleteTokenExpiresIn: 24 * 60 * 60,
+        sendDeleteAccountVerification: async ({ user, token }) => {
+          const blockers = await getBuyerAccountDeletionBlockers({ userId: user.id });
+          if (blockers.length > 0) {
+            // La pagina non offre il pulsante in questi casi: qui si arriva solo forzando.
+            throw new APIError('BAD_REQUEST', {
+              message: 'Account deletion not allowed',
+              code: 'ACCOUNT_DELETION_BLOCKED',
+            });
+          }
+          const url = `${env.APP_URL.replace(/\/+$/, '')}${accountRoutes.deleteConfirm(token)}`;
+          await getMailer().send(deleteAccountEmail({ to: user.email, name: user.name, url }));
+        },
+        beforeDelete: async (user) => {
+          const blockers = await getBuyerAccountDeletionBlockers({ userId: user.id });
+          if (blockers.length > 0) {
+            throw new APIError('BAD_REQUEST', {
+              message: 'Account deletion not allowed',
+              code: 'ACCOUNT_DELETION_BLOCKED',
+            });
+          }
+        },
+        afterDelete: async (user) => {
+          logger.info({ userId: user.id }, 'conto cliente eliminato');
+          await recordBuyerAccountDeleted(user.id);
+        },
       },
     },
     // Login con Google solo se configurato (senza chiavi il pulsante non compare).
@@ -93,6 +137,7 @@ function createAuth() {
         '/sign-in/social': { window: 60, max: 10 },
         '/request-password-reset': { window: 300, max: 5 },
         '/send-verification-email': { window: 300, max: 5 },
+        '/delete-user': { window: 300, max: 3 },
       },
     },
     advanced: {

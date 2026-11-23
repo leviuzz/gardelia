@@ -181,6 +181,19 @@ export type TenantRoutes = ReturnType<typeof tenantRoutes>;
 /** Conto del cliente del marketplace (blocco C1): di piattaforma, senza fioreria nel percorso. */
 export const accountRoutes = {
   home: '/cuenta',
+  /** "Descargar mis datos" (diritto di accesso, ADR-068). */
+  data: '/cuenta/datos',
+  /** Conferma della cancellazione dal link dell'email (`token`). */
+  deleteConfirm: (token?: string) => withQuery('/cuenta/eliminar', { token }),
+  /** Dopo la cancellazione: pagina pubblica (non c'è più una sessione). */
+  deleted: '/cuenta-eliminada',
+} as const;
+
+/** Documenti legali (bozze finché non li rivede un avvocato, ADR-068). */
+export const legalRoutes = {
+  privacy: '/privacidad',
+  terms: '/terminos',
+  buyerTerms: '/terminos/compradores',
 } as const;
 
 /**

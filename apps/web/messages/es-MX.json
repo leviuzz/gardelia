@@ -213,7 +213,6 @@
     "haveAccount": "¿Ya tienes cuenta?",
     "goToSignup": "Regístrate",
     "goToLogin": "Inicia sesión",
-    "termsNote": "Al crear una cuenta aceptas que tratemos tus datos para prestarte el servicio. Los términos y el aviso de privacidad definitivos se publicarán antes del lanzamiento comercial.",
     "checkEmailTitle": "Revisa tu correo",
     "checkEmailBody": "Si la dirección es correcta, te enviamos un enlace para confirmar tu correo. Ábrelo para activar tu cuenta.",
     "checkEmailHint": "¿No llegó? Revisa la carpeta de spam o vuelve a intentarlo en unos minutos.",
@@ -332,6 +331,39 @@
         "PICKED_UP": "Recogido",
         "CANCELLED": "Cancelado",
         "DRAFT": "Borrador"
+      }
+    },
+    "privacy": {
+      "title": "Tus datos y tu privacidad",
+      "subtitle": "Cómo usamos tus datos está en el <privacy>Aviso de privacidad</privacy>. Aquí puedes descargarlos o eliminar tu cuenta.",
+      "download": "Descargar mis datos",
+      "downloadHint": "Un archivo con tu cuenta, tus direcciones y tus pedidos.",
+      "delete": "Eliminar mi cuenta",
+      "deleteTitle": "¿Eliminar tu cuenta?",
+      "deleteIntro": "Antes de hacerlo, ten en cuenta:",
+      "deleteWhat": "Se borran tu nombre, tu correo, tu teléfono y tus direcciones guardadas, y ya no podrás entrar.",
+      "deleteOrders": "Los pedidos que hiciste siguen en las florerías que los atendieron: para esos datos, contacta a la florería.",
+      "deleteEmail": "Te enviamos un correo para confirmarlo: nada se borra hasta que abras el enlace.",
+      "deleteSend": "Enviar el correo de confirmación",
+      "emailSent": "Te enviamos un correo. Abre el enlace (vence en 24 horas) para eliminar tu cuenta.",
+      "cannotDelete": "Por ahora no puedes eliminar tu cuenta desde aquí:",
+      "blockers": {
+        "shop_member": "Tu cuenta también es parte de una florería. Eliminar estas cuentas todavía no está disponible en la app.",
+        "platform_role": "Las cuentas de administración de la plataforma no se eliminan desde aquí.",
+        "orders_in_progress": "Tienes pedidos en curso: podrás eliminar tu cuenta cuando se entreguen o se cancelen."
+      },
+      "confirmTitle": "Eliminar tu cuenta",
+      "confirmBody": "Es el último paso: al confirmar, borramos tu cuenta, tu teléfono y tus direcciones guardadas. No se puede deshacer.",
+      "confirmDelete": "Sí, eliminar mi cuenta",
+      "keepAccount": "No, conservar mi cuenta",
+      "deletedTitle": "Tu cuenta fue eliminada",
+      "deletedBody": "Borramos tu cuenta, tu teléfono y tus direcciones. Los pedidos que hiciste siguen en las florerías que los atendieron.",
+      "backHome": "Ir al inicio",
+      "errors": {
+        "blocked": "Ahora no se puede eliminar tu cuenta: revisa los motivos en Mi cuenta.",
+        "tooMany": "Ya pediste eliminar tu cuenta hace poco. Revisa tu correo o inténtalo en unos minutos.",
+        "invalidLink": "Este enlace ya no es válido. Pide uno nuevo desde Mi cuenta.",
+        "generic": "No pudimos completar la solicitud. Inténtalo de nuevo."
       }
     }
   },
@@ -2820,6 +2852,15 @@
       "closed": "Esta florería no está recibiendo pedidos en línea por ahora.",
       "pending_limit": "Ya tienes 3 pedidos esperando respuesta de esta florería. Espera a que te respondan o escríbeles."
     },
-    "totalWithoutDelivery": "Total sin envío"
+    "totalWithoutDelivery": "Total sin envío",
+    "acceptTerms": "Al enviar el pedido aceptas los <terms>Términos para compradores</terms> y el <privacy>Aviso de privacidad</privacy>."
+  },
+  "legal": {
+    "linksLabel": "Documentos legales",
+    "privacy": "Aviso de privacidad",
+    "terms": "Términos para florerías",
+    "buyerTerms": "Términos para compradores",
+    "spanishOnly": "Este documento está disponible solo en español.",
+    "signupNotice": "Al crear tu cuenta aceptas los <terms>Términos</terms> y el <privacy>Aviso de privacidad</privacy>."
   }
 }

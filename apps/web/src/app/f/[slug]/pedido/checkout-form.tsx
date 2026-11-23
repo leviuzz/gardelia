@@ -9,6 +9,7 @@ import {
   Send,
   TriangleExclamationPoint,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useActionState, useRef, useState, type FormEvent } from 'react';
 import { flushSync } from 'react-dom';
@@ -36,6 +37,7 @@ import { money } from '@/lib/format';
 import { firstInvalidControl, firstStepWithError, focusFirstControl } from '@/lib/form-steps';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 import { calendarDate } from '@/lib/quote-ui';
+import { legalRoutes } from '@/lib/routes';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -718,6 +720,28 @@ export function CheckoutForm({
               </p>
               <p className="text-muted-foreground">
                 {t('dataShared', { shop: store.name, email: buyer.email })}
+              </p>
+              <p className="text-muted-foreground">
+                {t.rich('acceptTerms', {
+                  terms: (chunks) => (
+                    <Link
+                      href={legalRoutes.buyerTerms}
+                      target="_blank"
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {chunks}
+                    </Link>
+                  ),
+                  privacy: (chunks) => (
+                    <Link
+                      href={legalRoutes.privacy}
+                      target="_blank"
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {chunks}
+                    </Link>
+                  ),
+                })}
               </p>
             </div>
           </CardContent>

@@ -213,7 +213,6 @@
     "haveAccount": "Already have an account?",
     "goToSignup": "Sign up",
     "goToLogin": "Sign in",
-    "termsNote": "By creating an account, you agree to let us process your data to provide you with the service. The final terms and privacy notice will be published before the commercial launch.",
     "checkEmailTitle": "Check your email",
     "checkEmailBody": "If the address is correct, we’ve sent you a link to confirm your email. Open it to activate your account.",
     "checkEmailHint": "Didn’t get it? Check your spam folder or try again in a few minutes.",
@@ -332,6 +331,39 @@
         "PICKED_UP": "Picked up",
         "CANCELLED": "Cancelled",
         "DRAFT": "Draft"
+      }
+    },
+    "privacy": {
+      "title": "Your data and privacy",
+      "subtitle": "How we use your data is in the <privacy>Privacy notice</privacy>. Here you can download it or delete your account.",
+      "download": "Download my data",
+      "downloadHint": "A file with your account, your addresses and your orders.",
+      "delete": "Delete my account",
+      "deleteTitle": "Delete your account?",
+      "deleteIntro": "Before you do, keep in mind:",
+      "deleteWhat": "Your name, email, phone and saved addresses are deleted, and you won’t be able to sign in again.",
+      "deleteOrders": "The orders you placed stay with the shops that handled them: for that data, contact the shop.",
+      "deleteEmail": "We email you to confirm it: nothing is deleted until you open the link.",
+      "deleteSend": "Send the confirmation email",
+      "emailSent": "We sent you an email. Open the link (it expires in 24 hours) to delete your account.",
+      "cannotDelete": "You can’t delete your account from here right now:",
+      "blockers": {
+        "shop_member": "Your account is also part of a flower shop. Deleting these accounts isn’t available in the app yet.",
+        "platform_role": "Platform administration accounts aren’t deleted from here.",
+        "orders_in_progress": "You have orders in progress: you can delete your account once they are delivered or cancelled."
+      },
+      "confirmTitle": "Delete your account",
+      "confirmBody": "This is the last step: when you confirm, we delete your account, your phone and your saved addresses. It can’t be undone.",
+      "confirmDelete": "Yes, delete my account",
+      "keepAccount": "No, keep my account",
+      "deletedTitle": "Your account was deleted",
+      "deletedBody": "We deleted your account, your phone and your addresses. The orders you placed stay with the shops that handled them.",
+      "backHome": "Go to the home page",
+      "errors": {
+        "blocked": "Your account can’t be deleted right now: check the reasons in My account.",
+        "tooMany": "You recently asked to delete your account. Check your email or try again in a few minutes.",
+        "invalidLink": "This link is no longer valid. Ask for a new one from My account.",
+        "generic": "We couldn’t complete the request. Try again."
       }
     }
   },
@@ -2820,6 +2852,15 @@
       "closed": "This shop is not taking online orders right now.",
       "pending_limit": "You already have 3 orders waiting for this shop to answer. Wait for their reply or message them."
     },
-    "totalWithoutDelivery": "Total without delivery"
+    "totalWithoutDelivery": "Total without delivery",
+    "acceptTerms": "By sending the order you accept the <terms>Terms for buyers</terms> and the <privacy>Privacy notice</privacy>."
+  },
+  "legal": {
+    "linksLabel": "Legal documents",
+    "privacy": "Privacy notice",
+    "terms": "Terms for flower shops",
+    "buyerTerms": "Terms for buyers",
+    "spanishOnly": "This document is only available in Spanish, the language of the market.",
+    "signupNotice": "By creating your account you accept the <terms>Terms</terms> and the <privacy>Privacy notice</privacy>."
   }
 }

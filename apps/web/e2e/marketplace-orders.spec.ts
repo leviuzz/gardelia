@@ -113,6 +113,10 @@ test.describe('pedido en línea (cliente y florería)', () => {
     // 4. Riepilogo: due ramos al prezzo del catalogo; il telefono è obbligatorio.
     await expect(shopper.getByText('2 × Ramo Clásico 12 rosas')).toBeVisible();
     await expect(shopper.getByText('Av. Madero 120, Centro, Aguascalientes')).toBeVisible();
+    // Prima di inviare: i termini per chi compra (ADR-068).
+    await expect(
+      shopper.getByRole('link', { name: 'Términos para compradores' }).first(),
+    ).toHaveAttribute('href', '/terminos/compradores');
     await shopper.getByLabel('Tu teléfono').fill('449 555 0177');
     await shopper.getByRole('button', { name: 'Enviar pedido' }).click();
 

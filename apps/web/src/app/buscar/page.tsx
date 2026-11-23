@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { listBuyerSearchAddresses, searchPublicStores, type DirectoryStoreDto } from '@floral/core';
+import { LegalLinks } from '@/components/legal/legal-links';
 import { BuyerHeader } from '@/components/public/buyer-header';
 import { Button } from '@/components/ui/button';
 import { buyerRoutes, publicStoreRoutes } from '@/lib/routes';
@@ -101,6 +102,9 @@ export default async function SearchPage({ searchParams }: PageProps<'/buscar'>)
           </section>
         ) : null}
       </main>
+      <footer className="pb-8">
+        <LegalLinks audience="buyer" />
+      </footer>
     </div>
   );
 }

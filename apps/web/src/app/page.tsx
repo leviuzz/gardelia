@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { getPlacesProvider, listBuyerSearchAddresses, listPublicStoreCities } from '@floral/core';
 import { PlacesConfigProvider } from '@/components/form/address-search';
+import { LegalLinks } from '@/components/legal/legal-links';
 import { BuyerHeader } from '@/components/public/buyer-header';
 import { HomeAddressSearch } from '@/components/public/home-address-search';
 import { Button } from '@/components/ui/button';
@@ -147,6 +148,9 @@ export default async function BuyerHomePage() {
           </Button>
         </section>
       </main>
+      <footer className="pb-8">
+        <LegalLinks audience="buyer" />
+      </footer>
     </div>
   );
 }

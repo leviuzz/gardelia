@@ -10,6 +10,7 @@ export function PublicShell({
   shopName,
   contact,
   footer,
+  legal,
   children,
 }: {
   readonly shopName: string;
@@ -20,6 +21,8 @@ export function PublicShell({
     readonly label: string;
   } | null;
   readonly footer: string;
+  /** Link ai documenti legali (es. per gli ordini fatti online). */
+  readonly legal?: React.ReactNode;
   readonly children: React.ReactNode;
 }) {
   return (
@@ -45,6 +48,7 @@ export function PublicShell({
           </div>
         ) : null}
         <p className="mt-6 text-center text-xs text-muted-foreground">{footer}</p>
+        {legal ? <div className="mt-2">{legal}</div> : null}
       </main>
     </div>
   );

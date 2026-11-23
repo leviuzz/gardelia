@@ -1734,6 +1734,49 @@ Blocco C4 di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26). Avviato dal founder ("ok 
   costo di consegna per distanza; consumo dell'inventario dagli ordini; email a ogni cambio di stato
   dopo l'accettazione (lo stato si vede nel link).
 
+### ADR-068 — Documenti legali nell'app e diritti di chi compra (scaricare i dati, eliminare il conto) — ADOTTATO (23/11/2026)
+
+Blocco C5 di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26). Avviato dal founder ("ok vai avanti con C5").
+
+- **Nessun testo legale definitivo inventato** (CLAUDE.md §2): le bozze di `docs/legal/` restano
+  bozze. Aggiornati l'aviso de privacidad (chi compra: dati del conto, degli ordini e di chi riceve,
+  condivisione con la fioreria, cookie dell'attribuzione, scarico e cancellazione dalla app) e scritti
+  i **termini per chi compra** (Gardelia mette in contatto, la vendita e il pagamento sono con la
+  fioreria; ordine come richiesta che la fioreria accetta; 3 giorni; foto illustrative). Ogni regola
+  di legge che non conosciamo è un segnaposto `[validar]`; le domande per l'avvocato sono in
+  `docs/legal/README.md` (12–17).
+- **Pagine `/privacidad`, `/terminos` (fiorerie) e `/terminos/compradores`** mostrano i testi così
+  come sono, con il riquadro "BORRADOR" ben visibile: servono a founder e avvocato per rivederli nel
+  contesto su staging. **Non vanno in produzione come definitivi senza la revisione** (rilascio su
+  `prod` solo col via libera del founder, ADR-041). I testi sono in spagnolo (lingua del mercato); chi
+  usa l'app in un'altra lingua lo legge in cima.
+- **Un solo testo, nessun file letto a runtime:** `pnpm --filter @floral/web legal:sync` copia i
+  `.md` in `apps/web/src/content/legal.generated.ts`; un test fallisce se divergono. Il markdown
+  diventa elementi React dai token di `marked` (nuova dipendenza, versione fissa): nessun HTML
+  iniettato, i collegamenti fra documenti portano alle pagine dell'app.
+- **Accettazione:** "Al crear tu cuenta aceptas los Términos y el Aviso de privacidad" in
+  registrazione (vale anche per Google; per chi arriva da "Mi cuenta" o dal pedido, i termini per chi
+  compra) e "Al enviar el pedido aceptas…" nell'ultimo passo del pedido; con ogni ordine online si
+  registra `LEGAL_VERSION`. Tolto il vecchio avviso "i testi definitivi arriveranno". Caselle da
+  spuntare solo se l'avvocato le chiede. Link ai documenti in fondo a home, ricerca, `/floristas`,
+  tienda, "Mi cuenta" e pagina degli ordini online.
+- **Diritti di chi compra in "Mi cuenta":**
+  - **"Descargar mis datos":** un JSON con conto, telefono, indirizzi (anche quelli tolti) e ordini
+    (fioreria, numero, stato, data, totale). Solo dalla sessione (`/cuenta/datos`), RLS per utente;
+    niente ID interni.
+  - **"Eliminar mi cuenta"** con Better Auth (`deleteUser`): il pulsante manda un'**email di
+    conferma** (vale anche per chi entra con Google, senza password); il link porta a
+    `/cuenta/eliminar` (con l'accesso) e un ultimo clic cancella. **Non si può** se la persona fa
+    parte di una fioreria (il conto regge dati della fioreria: per ora non dall'app), se è
+    amministratrice della piattaforma o se ha **ordini in corso** (la fioreria deve poterla
+    avvisare): la pagina lo spiega e il controllo si ripete subito prima di cancellare.
+  - **Cosa si cancella:** l'utente con sessioni, accessi, profilo e indirizzi (cascata; i dati di chi
+    compra sono personali, non commerciali: eccezione motivata alla regola "nessuna cancellazione
+    fisica"). Gli **ordini restano** alle fiorerie (responsabili dei dati dell'ordine e del loro
+    CRM) con `buyerUserId` a NULL; nel registro di piattaforma resta l'evento con il solo ID.
+- **Non fatto:** esportazione e cancellazione per le fiorerie (servono regole sui dati del negozio e
+  sugli obblighi fiscali); caselle di consenso; testi definitivi.
+
 ### ADR-070 — Clienti completi: cronologia, etichette e filtri, import da CSV — ADOTTATO (23/11/2026)
 
 Numerata 070: 066 è già la home per chi compra e 067–069 restano ai blocchi del marketplace

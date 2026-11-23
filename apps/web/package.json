@@ -12,7 +12,8 @@
     "start": "next start",
     "typecheck": "next typegen && tsc -p tsconfig.json",
     "test:e2e": "playwright test",
-    "mail-sink": "tsx e2e/support/run-mail-sink.ts"
+    "mail-sink": "tsx e2e/support/run-mail-sink.ts",
+    "legal:sync": "node scripts/sync-legal.mjs"
   },
   "dependencies": {
     "@floral/core": "workspace:*",
@@ -23,6 +24,7 @@
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "1.77.0",
+    "marked": "15.0.12",
     "next": "16.4.6",
     "next-intl": "4.15.3",
     "radix-ui": "1.8.1",

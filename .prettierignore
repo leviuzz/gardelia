@@ -8,3 +8,4 @@ packages/db/src/generated
 packages/db/prisma/migrations/**/*.sql
 docs/FLORAL_OS_MASTER_SPEC.md
 docs/CLAUDE_CODE_START.md
+apps/web/src/content/legal.generated.ts

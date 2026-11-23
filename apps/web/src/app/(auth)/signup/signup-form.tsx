@@ -93,7 +93,6 @@ export function SignupForm({ next, defaultEmail }: { next: string; defaultEmail:
           required
         />
       </Field>
-      <p className="text-xs leading-relaxed text-muted-foreground">{t('termsNote')}</p>
       <Button
         type="submit"
         className="w-full"
