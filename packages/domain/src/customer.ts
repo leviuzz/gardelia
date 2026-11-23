@@ -359,3 +359,8 @@ export function whatsappLink(phoneE164: string, text?: string): string {
   const base = `https://wa.me/${digits}`;
   return text ? `${base}?text=${encodeURIComponent(text)}` : base;
 }
+
+/** WhatsApp con un testo da mandare a chi si sceglie (es. il link della propria tienda). */
+export function whatsappShareLink(text: string): string {
+  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+}

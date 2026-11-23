@@ -28,6 +28,11 @@ export const CATALOG_COLORS = [
 ] as const;
 export type CatalogColor = (typeof CATALOG_COLORS)[number];
 
+/** Una chiave colore conosciuta (es. letta dal database), per tradurla senza sorprese. */
+export function isCatalogColor(value: string): value is CatalogColor {
+  return (CATALOG_COLORS as readonly string[]).includes(value);
+}
+
 /**
  * Nome del colore (del vocabolario) per il colore medio dei petali di una foto (0–255 per canale).
  * Serve al controllo dei conteggi quando il catalogo non dice il colore del fiore (ADR-034, 23/11):

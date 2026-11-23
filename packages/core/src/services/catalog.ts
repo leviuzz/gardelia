@@ -59,6 +59,8 @@ export interface CatalogItemDto {
   readonly tags: readonly string[];
   /** Utilizzabile nel Bouquet Builder. */
   readonly isBuilderEnabled: boolean;
+  /** Mostrato nella pagina pubblica della fioreria (ADR-065). */
+  readonly isOnline: boolean;
   readonly status: RecordStatus;
   readonly archivedAt: Date | null;
   readonly updatedAt: Date;
@@ -110,6 +112,7 @@ function toDto(item: ItemWithRelations, ctx: TenantContext): CatalogItemDto {
     widthCm: item.widthCm,
     tags: item.tags,
     isBuilderEnabled: item.isBuilderEnabled,
+    isOnline: item.isOnline,
     status: item.status,
     archivedAt: item.archivedAt,
     updatedAt: item.updatedAt,
@@ -227,6 +230,7 @@ function itemData(input: CatalogItemInput) {
     widthCm: input.widthCm,
     tags: [...input.tags],
     isBuilderEnabled: input.isBuilderEnabled,
+    isOnline: input.isOnline,
   };
 }
 
@@ -281,6 +285,7 @@ const AUDITED_FIELDS = [
   'widthCm',
   'tags',
   'isBuilderEnabled',
+  'isOnline',
 ] as const;
 
 export async function updateCatalogItem(

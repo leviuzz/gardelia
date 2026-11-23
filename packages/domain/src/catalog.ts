@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { isBuilderComponentType } from './builder';
 import { CATALOG_COLORS } from './colors';
 import { MAX_AMOUNT_MINOR, type CurrencyCode } from './money';
+import { canShowOnline } from './online-store';
 import {
   checkboxField,
   moneyField,
@@ -41,7 +42,7 @@ export const RECORD_STATUSES = ['ACTIVE', 'ARCHIVED'] as const;
 export type RecordStatus = (typeof RECORD_STATUSES)[number];
 
 /** Vocabolario controllato dei colori (filtri, Builder, matching futuro). */
-export { CATALOG_COLORS, colorNameOf, type CatalogColor } from './colors';
+export { CATALOG_COLORS, colorNameOf, isCatalogColor, type CatalogColor } from './colors';
 
 /** Unità di vendita ammesse per ciascuna tipologia. */
 export const ALLOWED_UNITS_BY_TYPE: Readonly<Record<CatalogItemType, readonly SaleUnit[]>> = {
@@ -161,12 +162,16 @@ export const catalogItemInputSchema = z
       .max(CATALOG_LIMITS.tags),
     /** Utilizzabile nel Bouquet Builder [AI-BQ-01]; se omesso, attivo per i componenti. */
     isBuilderEnabled: z.boolean().optional(),
+    /** Mostrato nella pagina pubblica della fioreria (blocco C2); se omesso, no. */
+    isOnline: z.boolean().optional(),
   })
   .superRefine(refineCatalogItem)
   .transform((value) => ({
     ...value,
     // Solo le tipologie componenti possono stare nel Builder (mai bouquet, piante, servizi).
     isBuilderEnabled: isBuilderComponentType(value.type) ? (value.isBuilderEnabled ?? true) : false,
+    // Solo ramos, piante, fiori e accessori si mostrano in linea (mai materiali o servizi).
+    isOnline: canShowOnline(value.type) ? (value.isOnline ?? false) : false,
   }));
 
 export type CatalogItemInput = z.infer<typeof catalogItemInputSchema>;
@@ -200,6 +205,7 @@ export function catalogItemFormSchema(currency: CurrencyCode) {
       widthCm: optionalInteger({ min: 1, max: CATALOG_LIMITS.dimensionCmMax }),
       tags: tagsField(CATALOG_LIMITS.tags, CATALOG_LIMITS.tagLength),
       isBuilderEnabled: checkboxField(),
+      isOnline: checkboxField(),
     })
     .transform(({ price, cost, ...rest }): z.input<typeof catalogItemInputSchema> => ({
       ...rest,

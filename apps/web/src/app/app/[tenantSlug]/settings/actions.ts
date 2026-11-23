@@ -13,8 +13,10 @@ import {
   removeDeliveryWindow,
   revokeInvitation,
   setMemberActive,
+  setOnlineStorePublished,
   updateBuilderSettings,
   updateDeliverySettings,
+  updateOnlineStore,
   updatePrimaryLocation,
   updateTenantLegal,
   updateTenantProfile,
@@ -171,6 +173,34 @@ export async function removeDeliveryWindowAction(
     return {
       revalidate: [routes.settings.general, section(routes.orders.list())],
       success: 'settings.delivery.windowRemoved',
+    };
+  });
+}
+
+/** "Mi tienda en línea" (ADR-065): descrizione e forme di pagamento. */
+export async function updateOnlineStoreAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await updateOnlineStore(ctx, formDataToObject(formData, ['paymentMethods']));
+    return { revalidate: routes.settings.store, success: 'store.saved' };
+  });
+}
+
+/** Pubblica (`true`) o ritira la tienda; il servizio ricontrolla permessi e requisiti. */
+export async function setOnlineStorePublishedAction(
+  slug: string,
+  publish: boolean,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await setOnlineStorePublished(ctx, publish === true);
+    return {
+      revalidate: routes.settings.store,
+      success: publish ? 'store.publishedToast' : 'store.unpublishedToast',
     };
   });
 }

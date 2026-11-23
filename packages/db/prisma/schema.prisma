@@ -260,6 +260,7 @@ model Tenant {
   promoEmails       OccasionPromoEmail[]
   publicLinks       PublicLink[]
   orderPhotos       OrderPhoto[]
+  onlineStore       OnlineStore?
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -440,6 +441,24 @@ enum Availability {
 }
 
 /// SKU di un singolo fiorista (prezzo, varietà e disponibilità propri).
+/// "Mi tienda en línea" (blocco C2, ADR-065): la pagina pubblica della fioreria. Una riga per
+/// fioreria, creata la prima volta che si salvano le impostazioni.
+model OnlineStore {
+  tenantId            String    @id @db.Uuid
+  /// Visibile a tutti in /f/<slug>.
+  isPublished         Boolean   @default(false)
+  publishedAt         DateTime?
+  description         String?
+  /// Chiavi di STORE_PAYMENT_METHODS (@floral/domain): solo informazione per il cliente.
+  paymentMethods      String[]  @default([])
+  /// Testo pubblico (es. CLABE e banca per il trasferimento).
+  paymentInstructions String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
 model CatalogItem {
   id                String          @id @default(uuid(7)) @db.Uuid
   tenantId          String          @db.Uuid
@@ -465,6 +484,8 @@ model CatalogItem {
   tags              String[]
   /// Utilizzabile come componente nel Bouquet Builder [AI-BQ-01].
   isBuilderEnabled  Boolean         @default(false)
+  /// Mostrato nella pagina pubblica della fioreria ("Mi tienda en línea", blocco C2).
+  isOnline          Boolean         @default(false)
   status            RecordStatus    @default(ACTIVE)
   archivedAt        DateTime?
   createdAt         DateTime        @default(now())

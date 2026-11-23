@@ -1,4 +1,4 @@
-import { ChevronRight, Gem } from 'lucide-react';
+import { ChevronRight, Gem, Store } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -85,6 +85,21 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
           <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
         </Link>
       ) : null}
+
+      {/* "Mi tienda en línea" (ADR-065): la pagina pubblica con i prodotti. */}
+      <Link
+        href={tenantRoutes(slug).settings.store}
+        className="flex items-center gap-4 rounded-2xl border bg-card p-4 transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
+          <Store className="size-5" aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">{t('store.settingsLink')}</span>
+          <span className="block text-sm text-muted-foreground">{t('store.settingsLinkBody')}</span>
+        </span>
+        <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
+      </Link>
 
       <Card>
         <CardHeader>
