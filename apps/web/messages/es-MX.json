@@ -213,7 +213,9 @@
     },
     "verifyInvalidTitle": "No pudimos confirmar tu correo",
     "verifiedTitle": "Correo confirmado",
-    "verifiedBody": "Inicia sesión para continuar."
+    "verifiedBody": "Inicia sesión para continuar.",
+    "signupSubtitleBuyer": "Guarda tus datos y tus direcciones de entrega.",
+    "loginSubtitleBuyer": "Entra a tu cuenta."
   },
   "onboarding": {
     "title": "Configura tu florería",
@@ -247,12 +249,28 @@
   },
   "places": {
     "label": "Buscar dirección",
-    "placeholder": "Escribe calle y número, p. ej. Av. Madero 120",
+    "placeholder": "Ej. Av. Madero 120",
     "hint": "Elige una sugerencia para llenar los campos; también puedes escribirlos a mano.",
     "suggestions": "Direcciones sugeridas",
     "unavailable": "La búsqueda no está disponible ahora. Escribe la dirección a mano.",
     "noResults": "Sin resultados. Revisa lo que escribiste o llena los campos a mano.",
     "found": "Dirección completada. Revisa el número interior, la colonia y el código postal."
+  },
+  "account": {
+    "title": "Mi cuenta",
+    "greeting": "Hola, {name}. Aquí están tus datos y tus direcciones de entrega.",
+    "shopsBody": "También tienes acceso a una florería en Gardelia.",
+    "shopsCta": "Ir a mi florería",
+    "dataTitle": "Tus datos",
+    "dataSubtitle": "El nombre y el correo son los de tu acceso.",
+    "name": "Nombre",
+    "email": "Correo",
+    "phone": "Teléfono",
+    "phoneHint": "Solo lo verá la florería a la que le hagas un pedido, para avisarte de la entrega.",
+    "addressesSubtitle": "Guárdalas una vez y no tendrás que escribirlas de nuevo.",
+    "floristTitle": "¿Tienes una florería?",
+    "floristBody": "Regístrala en Gardelia para llevar pedidos, clientes y entregas desde el celular.",
+    "floristCta": "Registrar mi florería"
   },
   "timezones": {
     "America/Mexico_City": "Tiempo del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",

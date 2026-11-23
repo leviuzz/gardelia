@@ -8,6 +8,7 @@ import { OAuthErrorAlert } from '@/components/auth/oauth-error-alert';
 import { authPath } from '@/lib/auth-paths';
 import { isGoogleLoginEnabled } from '@/lib/env';
 import { oauthErrorKey } from '@/lib/oauth-errors';
+import { isAccountPath } from '@/lib/routes';
 import { getSession, safeNextPath } from '@/lib/session';
 import { SignupForm } from './signup-form';
 
@@ -27,7 +28,8 @@ export default async function SignupPage({ searchParams }: PageProps<'/signup'>)
   return (
     <AuthCard
       title={t('signupTitle')}
-      subtitle={t('signupSubtitle')}
+      // Chi arriva per "Mi cuenta" compra fiori; altrimenti apre una fioreria.
+      subtitle={isAccountPath(next) ? t('signupSubtitleBuyer') : t('signupSubtitle')}
       footer={
         <>
           {t('haveAccount')}{' '}

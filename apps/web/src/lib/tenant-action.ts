@@ -80,17 +80,20 @@ function render(spec: MessageSpec, t: Translate): string {
   return typeof spec === 'string' ? t(spec) : spec(t);
 }
 
-/** Il runner con le dipendenze esplicite (testabile senza Next.js né database). */
-export async function executeTenantAction(
-  deps: TenantActionDeps,
-  slug: string,
-  work: TenantActionWork,
+/** Dipendenze comuni a ogni server action dopo il contesto (anche quelle del conto cliente). */
+export type OutcomeDeps = Omit<TenantActionDeps, 'resolveContext'>;
+
+/**
+ * Esegue il lavoro e applica l'esito: errori → stato del form, poi pagine da ricaricare, redirect e
+ * messaggio. Il contesto si risolve PRIMA, fuori da qui.
+ */
+export async function settleAction(
+  deps: OutcomeDeps,
+  work: () => Promise<ActionOutcome>,
 ): Promise<ActionState> {
-  // Fuori dal try: il redirect al login e il 404 di Next devono propagarsi così come sono.
-  const ctx = await deps.resolveContext(slug);
   let outcome: ActionOutcome;
   try {
-    outcome = await work({ ctx, routes: tenantRoutes(ctx.tenantSlug) });
+    outcome = await work();
   } catch (error) {
     return deps.toErrorState(error);
   }
@@ -106,6 +109,17 @@ export async function executeTenantAction(
     return { status: 'success', message: render(outcome.success, await deps.translator()) };
   }
   return { status: 'success' };
+}
+
+/** Il runner con le dipendenze esplicite (testabile senza Next.js né database). */
+export async function executeTenantAction(
+  deps: TenantActionDeps,
+  slug: string,
+  work: TenantActionWork,
+): Promise<ActionState> {
+  // Fuori dal try: il redirect al login e il 404 di Next devono propagarsi così come sono.
+  const ctx = await deps.resolveContext(slug);
+  return settleAction(deps, () => work({ ctx, routes: tenantRoutes(ctx.tenantSlug) }));
 }
 
 const nextDeps: TenantActionDeps = {
@@ -133,3 +147,6 @@ const nextDeps: TenantActionDeps = {
 export function runTenantAction(slug: string, work: TenantActionWork): Promise<ActionState> {
   return executeTenantAction(nextDeps, slug, work);
 }
+
+/** Le dipendenze vere, per gli altri runner (es. il conto cliente, `buyer-action.ts`). */
+export const nextOutcomeDeps: OutcomeDeps = nextDeps;

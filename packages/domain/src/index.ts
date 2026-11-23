@@ -1,5 +1,6 @@
 export * from './brand';
 export * from './builder';
+export * from './buyer';
 export * from './calendar';
 export * from './ai';
 export * from './audit';

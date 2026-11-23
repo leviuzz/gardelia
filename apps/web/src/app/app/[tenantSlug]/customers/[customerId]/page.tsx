@@ -24,6 +24,7 @@ import {
   type TenantContext,
 } from '@floral/core';
 import { MX_REGIONS, whatsappLink } from '@floral/domain';
+import { AddressBook } from '@/components/addresses/address-book';
 import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import { OrderStatusBadge, QuoteStatusBadge } from '@/components/common/status-badges';
 import { ArchiveControl } from '@/components/archive-control';
@@ -48,7 +49,6 @@ import {
   updateCustomerAction,
 } from '../actions';
 import { CustomerForm } from '../customer-form';
-import { AddressSection } from './address-section';
 import { OccasionSection } from './occasion-section';
 import { redeemPromoDiscountAction, undoPromoRedemptionAction } from '../../promotions/actions';
 
@@ -316,7 +316,7 @@ export default async function CustomerPage({
               <CardTitle>{t('customers.addresses.title')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <AddressSection
+              <AddressBook
                 canWrite={customer.canWrite}
                 addAction={addAddressAction.bind(null, slug, customer.id)}
                 regions={MX_REGIONS.map(({ code, name }) => ({ code, name }))}

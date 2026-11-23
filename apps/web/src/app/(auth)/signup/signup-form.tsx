@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { authClient, authErrorKey } from '@/lib/auth-client';
+import { withQuery } from '@/lib/routes';
 import { useHydrated } from '@/lib/use-hydrated';
 
 const MIN_PASSWORD = 10;
@@ -47,7 +48,8 @@ export function SignupForm({ next, defaultEmail }: { next: string; defaultEmail:
         setError(t(`errors.${authErrorKey(result.error)}`));
         return;
       }
-      router.push(`/check-email?email=${encodeURIComponent(email)}`);
+      // La destinazione resta anche per "Reenviar": un cliente torna a "Mi cuenta", non all'onboarding.
+      router.push(withQuery('/check-email', { email, next: next === '/app' ? undefined : next }));
     });
   }
 
