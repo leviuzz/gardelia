@@ -92,7 +92,7 @@ Esempio: un gerente modifica il prezzo di un articolo.
 | Helper                                          | Imposta                        | Uso                                                                                                           |
 | ----------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | `withTenantContext(db, {tenantId, userId}, fn)` | `app.tenant_id`, `app.user_id` | Tutte le operazioni di un utente dentro una fioreria; creazione di una nuova fioreria (con l'ID pre-generato) |
-| `withUserContext(db, userId, fn)`               | `app.user_id`                  | Elenco delle proprie fiorerie, risoluzione dello slug; conto del cliente del marketplace (ADR-062)            |
+| `withUserContext(db, userId, fn)`               | `app.user_id`                  | Elenco delle proprie fiorerie, risoluzione dello slug; conto del cliente del marketplace (ADR-064)            |
 | `withSystemContext(db, {reason}, fn)`           | `app.bypass_rls = on`          | Seed, inviti via token, verifiche di sicurezza (whitelist ESLint)                                             |
 
 I valori sono impostati con `set_config(…, true)`: valgono solo per la transazione corrente,
@@ -111,7 +111,7 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
 - **AuditLog:** solo SELECT/INSERT → append-only per l'applicazione.
 - **CanonicalFlower:** lettura pubblica, scrittura solo di sistema (dati di riferimento allineati
   a ogni rilascio; nomi e sinonimi per lingua, ADR-043).
-- **Per persona** (`app_enable_user_rls`, ADR-062): le tabelle del conto cliente del marketplace
+- **Per persona** (`app_enable_user_rls`, ADR-064): le tabelle del conto cliente del marketplace
   (`BuyerProfile`, `BuyerAddress`) non hanno `tenantId`; righe visibili/modificabili solo se
   `userId = app_current_user_id()`. Le usano solo i servizi `buyer-account` dentro
   `withUserContext`, con il contesto preso dalla sessione (`getBuyerContext`, `runBuyerAction`).

@@ -545,7 +545,7 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
-**Conto del cliente, blocco C1 del marketplace (fatto il 23/11, ADR-062):** "Mi cuenta" (`/cuenta`) per
+**Conto del cliente, blocco C1 del marketplace (fatto il 23/11, ADR-064):** "Mi cuenta" (`/cuenta`) per
 chi compra: nome ed email dell'accesso, telefono, indirizzi di consegna con "Buscar dirección" (la stessa
 rubrica della fioreria, spostata in `components/addresses/address-book.tsx`). Login e registrazione
 verso `/cuenta` parlano a chi compra e la destinazione resta fino alla verifica dell'email; da quando la

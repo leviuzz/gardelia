@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 23 novembre 2026 (conto del cliente, ADR-062; Google Places, ADR-059; inventario, ADR-060 e ADR-061; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 23 novembre 2026 (conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060 e ADR-061; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -35,7 +35,7 @@ Ultimo aggiornamento: 23 novembre 2026 (conto del cliente, ADR-062; Google Place
 | D-23       | Listino a **tre livelli** (Esencial, Profesional, Premium) più add-on (Studio, crediti AI, utenti e sedi extra, WhatsApp a consumo), al posto di Basic/Plus. Prezzi 699 / 1.199 / 1.899 MXN + IVA; immagini AI incluse 15 nel Profesional e 30 nel Premium; crediti 169 / 299 / 549 MXN; al lancio solo Esencial e Profesional    | Struttura DECISA (founder, 23/11/2026); prezzi, quote e lancio a due livelli PROPOSTI                    | `SaasPlan`/entitlements (`packages/domain/src/plans.ts`) da rifare sui livelli nello sprint billing; dettagli e conti in `docs/BUSINESS_MODEL.md` §1–3                                             |
 | D-24       | Fee sugli ordini: **nessuna** sui clienti propri del fiorista (spec §3.2); **10–15%** sugli ordini portati da Gardelia, privati compresi, a carico del fiorista; **1–2%** sui pagamenti online tramite Gardelia, dopo la V1                                                                                                       | Regole DECISE (founder, 23/11/2026); percentuali PROPOSTE                                                | `AcquisitionSource` distingue gli ordini portati da Gardelia; all'inizio la fee va sulla fattura mensile del fiorista, senza soldi che passano dalla piattaforma (`docs/BUSINESS_MODEL.md` §4)     |
 | D-25       | Aziende: per ora solo il marketplace per i clienti e gli ordini; poi **intermediario** (fee del 10% sulle fatture pagate, fiorista titolare più riserve, ricetta standard del cliente, pagamento per consegna confermata); il **servizio gestito** (fattura unica, margine) parte solo dopo che l'intermediario ha portato ricavi | Ordine e condizione DECISI (founder, 23/11/2026); fee e modalità PROPOSTE (il founder aveva indicato 7%) | Nessun codice ora (Network dopo la V1); `NetworkContract` (una sola offerta accettata, spec §12.2) andrà esteso con assegnazioni per consegna e riserve (`docs/BUSINESS_MODEL.md` §5)              |
-| D-26       | **Marketplace per i clienti nella V1**: pagine pubbliche, ricerca per indirizzo, pagina di ogni fioreria con i suoi ramos, ordine del cliente. Il cliente **si registra prima di ordinare**; **pagamento diretto alla fioreria** (nessun pagamento online e nessun pagamento simulato nella V1)                                   | DECISO (founder, 23/11/2026)                                                                             | Un solo `Order` per ordini del fiorista e del marketplace; piano in `docs/ORDERS_MARKETPLACE_PLAN.md`; dati del cliente in ADR-062; ADR da scrivere per ordine creato da fuori e catalogo pubblico |
+| D-26       | **Marketplace per i clienti nella V1**: pagine pubbliche, ricerca per indirizzo, pagina di ogni fioreria con i suoi ramos, ordine del cliente. Il cliente **si registra prima di ordinare**; **pagamento diretto alla fioreria** (nessun pagamento online e nessun pagamento simulato nella V1)                                   | DECISO (founder, 23/11/2026)                                                                             | Un solo `Order` per ordini del fiorista e del marketplace; piano in `docs/ORDERS_MARKETPLACE_PLAN.md`; dati del cliente in ADR-064; ADR da scrivere per ordine creato da fuori e catalogo pubblico |
 | D-27       | **Ruta del día gratuita**: fermate ordinate per fascia oraria e vicinanza con un calcolo nostro, navigazione con i link di Google Maps; niente tracciamento in tempo reale né ottimizzazione a pagamento                                                                                                                          | DECISO (founder, 23/11/2026)                                                                             | Coordinate facoltative negli indirizzi; senza coordinate solo ordine per fascia (`docs/ORDERS_MARKETPLACE_PLAN.md` §4)                                                                             |
 | D-28       | **Organizzazioni per le catene**: un account crea organizzazioni e sotto ognuna più fiorerie, gestite dall'organizzazione                                                                                                                                                                                                         | DECISO come direzione (founder, 23/11/2026), da progettare dopo la V1                                    | Oggi più fiorerie indipendenti per account; inventario per fioreria (ADR-060). Da progettare: ruoli, catalogo condiviso, trasferimenti, report (spec §8.6)                                         |
 
@@ -1437,7 +1437,7 @@ Numerazione: ADR-055–059 sono riservati agli ordini e al marketplace (altra se
   - riquadro nella scheda del catalogo e riga nella pagina del piano;
   - testi nel namespace `inventory` delle tre lingue, compresi errori (`inventory.conflict.*`,
     `inventory.validation.*`) e attività (`inventory.activity.*`), letti dal prefisso del modulo.
-- **Prossimi blocchi:** compras y proveedores (ADR-061), apartados con vencimiento (ADR-062), avvisi
+- **Prossimi blocchi:** compras y proveedores (ADR-061), apartados con vencimiento (ADR-064), avvisi
   nel pannello e costo dei ramos (ADR-063).
 
 ### ADR-061 — Inventario: compras al mayorista, proveedores e costo reale (blocco 2) — ADOTTATO (23/11/2026)
@@ -1465,7 +1465,7 @@ Numerazione: ADR-055–059 sono riservati agli ordini e al marketplace (altra se
 
 ---
 
-### ADR-062 — Conto del cliente del marketplace: dati per persona e accesso — ADOTTATO (23/11/2026)
+### ADR-064 — Conto del cliente del marketplace: dati per persona e accesso — ADOTTATO (23/11/2026)
 
 Blocco C1 di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26: il cliente si registra prima di ordinare).
 

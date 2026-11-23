@@ -116,7 +116,7 @@ model RateLimit {
 }
 
 // -----------------------------------------------------------------------------
-// Conto del cliente del marketplace (blocco C1, ADR-062)
+// Conto del cliente del marketplace (blocco C1, ADR-064)
 // -----------------------------------------------------------------------------
 // Dati di chi compra: appartengono alla persona, non a una fioreria. Tabelle di piattaforma con
 // RLS per utente (`"userId" = app_current_user_id()`): ognuno vede e modifica solo le sue righe.

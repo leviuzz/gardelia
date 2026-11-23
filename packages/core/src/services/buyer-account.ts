@@ -1,5 +1,5 @@
 /**
- * Conto del cliente del marketplace (blocco C1, ADR-062): i dati di chi compra
+ * Conto del cliente del marketplace (blocco C1, ADR-064): i dati di chi compra
  * appartengono alla persona, non a una fioreria. Ogni funzione lavora dentro `withUserContext`,
  * con la RLS per utente (`"userId" = app_current_user_id()`), e filtra comunque per `userId`
  * (difesa in profondità, come per i tenant).

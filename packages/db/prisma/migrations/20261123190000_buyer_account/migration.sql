@@ -1,7 +1,7 @@
 -- Conto del cliente del marketplace (blocco C1): dati della persona che compra, che non
 -- appartengono a nessuna fioreria. Tabelle di piattaforma con RLS per utente: ognuno vede e
 -- modifica solo le sue righe (eccezione motivata alla regola "tenantId + RLS per tenant", vedi
--- docs/DECISIONS.md, ADR-062).
+-- docs/DECISIONS.md, ADR-064).
 
 -- CreateTable
 CREATE TABLE "BuyerProfile" (
