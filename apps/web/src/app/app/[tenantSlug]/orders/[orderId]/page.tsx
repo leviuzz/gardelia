@@ -8,34 +8,47 @@ import {
   NotFoundError,
   getCustomer,
   getOrder,
+  getPublicLink,
+  hasPermission,
+  listOrderAssignees,
+  publicLinkUrl,
   type OrderDetailDto,
   type TenantContext,
 } from '@floral/core';
 import {
   MX_REGIONS,
+  canShareOrder,
+  isOrderFinal,
   getMarket,
   minorToDecimalString,
   todayInTimeZone,
   whatsappLink,
 } from '@floral/domain';
 import { PrivateImage } from '@/components/common/private-image';
+import { ShareLinkPanel } from '@/components/common/share-link-card';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status-badges';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { serverEnv } from '@/lib/env';
 import { money, phoneForInput } from '@/lib/format';
 import { calendarDate } from '@/lib/quote-ui';
+import { deliveryFormOptions } from '@/lib/delivery-options';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
+  assignOrderAction,
   cancelOrderAction,
   changeOrderStatusAction,
   recordPaymentAction,
   reversePaymentAction,
+  revokeOrderLinkAction,
+  shareOrderLinkAction,
   updateFulfillmentAction,
 } from '../actions';
 import {
+  AssignForm,
   CancelOrderDialog,
   FulfillmentForm,
   OrderStepActions,
@@ -112,6 +125,17 @@ export default async function OrderPage({
     order.windowStart && order.windowEnd
       ? ` ${tShop('orders.whatsapp.window', { start: order.windowStart, end: order.windowEnd })}`
       : '';
+  // Seguimento per il cliente (ADR-056): lo gestisce chi scrive gli ordini.
+  const canShare = hasPermission(ctx, 'orders:write');
+  // Repartidor: solo a domicilio; lo sceglie chi gestisce gli ordini finché l'ordine è aperto.
+  const canAssign = canShare && order.fulfillmentMode === 'DELIVERY' && !isOrderFinal(order.status);
+  const assignees = canAssign ? await listOrderAssignees(ctx) : [];
+  const publicLink = canShare
+    ? await getPublicLink(ctx, serverEnv().BETTER_AUTH_SECRET, { kind: 'ORDER', id: order.id })
+    : null;
+  const publicUrl = publicLink
+    ? publicLinkUrl(serverEnv().APP_URL, 'ORDER', publicLink.token)
+    : null;
   const whatsappText = order.customer.phone
     ? [
         tShop('orders.whatsapp.greeting', {
@@ -143,10 +167,12 @@ export default async function OrderPage({
         ...(order.balanceMinor > 0
           ? [tShop('orders.whatsapp.balance', { balance: fmt(order.balanceMinor) })]
           : []),
+        ...(publicUrl ? ['', tShop('orders.whatsapp.link', { url: publicUrl })] : []),
       ].join('\n')
     : null;
 
   const customer = order.editable ? await getCustomer(ctx, order.customer.id) : null;
+  const deliveryOptions = order.editable ? await deliveryFormOptions(ctx) : null;
   const delivery = order.deliveryAddress;
 
   return (
@@ -321,6 +347,12 @@ export default async function OrderPage({
                     )}
                   </dd>
                 </div>
+                {order.fulfillmentMode === 'DELIVERY' ? (
+                  <div>
+                    <dt className="text-muted-foreground">{t('orders.assign.label')}</dt>
+                    <dd>{order.assignee?.name ?? t('orders.assign.nobody')}</dd>
+                  </div>
+                ) : null}
                 {order.recipientName || order.recipientPhone ? (
                   <div>
                     <dt className="text-muted-foreground">{t('orders.detail.recipient')}</dt>
@@ -359,6 +391,15 @@ export default async function OrderPage({
                             : null}
                       </span>
                     ) : null}
+                    {order.cardMessage ? (
+                      <Link
+                        href={routes.orders.card(order.id)}
+                        className="mt-2 inline-flex items-center gap-1.5 font-medium text-primary hover:underline print:hidden"
+                      >
+                        <Printer className="size-4" aria-hidden="true" />
+                        {t('orders.cardPrint.open')}
+                      </Link>
+                    ) : null}
                   </dd>
                 </div>
                 {order.notes ? (
@@ -369,7 +410,17 @@ export default async function OrderPage({
                 ) : null}
               </dl>
 
-              {order.editable && customer ? (
+              {canAssign ? (
+                <div className="print:hidden">
+                  <AssignForm
+                    action={assignOrderAction.bind(null, slug, order.id)}
+                    options={assignees}
+                    current={order.assignee?.membershipId ?? null}
+                  />
+                </div>
+              ) : null}
+
+              {order.editable && customer && deliveryOptions ? (
                 <details className="rounded-xl border p-4 print:hidden">
                   <summary className="cursor-pointer font-medium">
                     {t('orders.detail.editDelivery')}
@@ -384,6 +435,8 @@ export default async function OrderPage({
                     regions={MX_REGIONS.map(({ code, name }) => ({ code, name }))}
                     dateMin={scheduledDate < today ? scheduledDate : today}
                     submitLabel={t('orders.form.save')}
+                    windows={deliveryOptions.windows}
+                    closedWeekdays={deliveryOptions.closedWeekdays}
                     addresses={customer.addresses.map((address) => ({
                       id: address.id,
                       label: [address.label, address.addressLine1, address.neighborhood]
@@ -553,6 +606,39 @@ export default async function OrderPage({
               ) : null}
             </CardContent>
           </Card>
+
+          {canShare && (publicLink || canShareOrder(order.status)) ? (
+            <Card className="print:hidden">
+              <CardHeader>
+                <CardTitle>{t('shareLink.orderTitle')}</CardTitle>
+                <CardDescription>{t('shareLink.orderHint')}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ShareLinkPanel
+                  shareAction={shareOrderLinkAction.bind(null, slug, order.id)}
+                  revokeAction={revokeOrderLinkAction.bind(null, slug, order.id)}
+                  unavailableHint={null}
+                  link={
+                    publicLink && publicUrl
+                      ? {
+                          url: publicUrl,
+                          expiresLabel: t('shareLink.expires', {
+                            date: format.dateTime(publicLink.expiresAt, {
+                              dateStyle: 'long',
+                              timeZone: ctx.timezone,
+                            }),
+                          }),
+                          whatsappHref:
+                            whatsappText && order.customer.phone
+                              ? whatsappLink(order.customer.phone, whatsappText)
+                              : null,
+                        }
+                      : null
+                  }
+                />
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card className="print:hidden">
             <CardHeader>

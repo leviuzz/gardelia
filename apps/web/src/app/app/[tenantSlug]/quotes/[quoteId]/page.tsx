@@ -7,14 +7,17 @@ import { cache } from 'react';
 import {
   NotFoundError,
   getQuote,
+  getPublicLink,
   getQuoteOrder,
   hasPermission,
+  publicLinkUrl,
   listQuotableItems,
   type QuoteDetailDto,
   type TenantContext,
 } from '@floral/core';
 import {
   QUOTE_LIMITS,
+  canShareQuote,
   getMarket,
   minorToDecimalString,
   todayInTimeZone,
@@ -24,7 +27,9 @@ import { QuoteStatusBadge } from '@/components/common/status-badges';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { ShareLinkPanel } from '@/components/common/share-link-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { serverEnv } from '@/lib/env';
 import { money, phoneForInput } from '@/lib/format';
 import { lineFormatters, lineWarning } from '@/lib/line-ui';
 import { calendarDate } from '@/lib/quote-ui';
@@ -35,6 +40,8 @@ import {
   addCustomLineAction,
   changeStatusAction,
   removeLineAction,
+  revokeQuoteLinkAction,
+  shareQuoteLinkAction,
   updateDetailsAction,
   updateLineQuantityAction,
 } from '../actions';
@@ -127,6 +134,13 @@ export default async function QuotePage({
   ]);
   const shopCalendar = (value: string) =>
     formatShop.dateTime(calendarDate(value), { dateStyle: 'long', timeZone: 'UTC' });
+  // Link pubblico per il cliente (ADR-056): lo vede e lo gestisce chi scrive i preventivi.
+  const publicLink = quote.canWrite
+    ? await getPublicLink(ctx, serverEnv().BETTER_AUTH_SECRET, { kind: 'QUOTE', id: quote.id })
+    : null;
+  const publicUrl = publicLink
+    ? publicLinkUrl(serverEnv().APP_URL, 'QUOTE', publicLink.token)
+    : null;
   const whatsappText =
     quote.customer.phone && quote.lines.length > 0
       ? [
@@ -152,6 +166,7 @@ export default async function QuotePage({
             ? [tShop('quotes.whatsapp.validUntil', { date: shopCalendar(quote.validUntil) })]
             : []),
           ...(quote.notes ? ['', quote.notes] : []),
+          ...(publicUrl ? ['', tShop('quotes.whatsapp.link', { url: publicUrl })] : []),
         ].join('\n')
       : null;
 
@@ -374,6 +389,42 @@ export default async function QuotePage({
                 <QuoteStatusActions
                   action={changeStatusAction.bind(null, slug, quote.id)}
                   transitions={quote.allowedTransitions}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {quote.canWrite &&
+          (publicLink || canShareQuote(quote.status) || quote.status === 'DRAFT') ? (
+            <Card className="print:hidden">
+              <CardHeader>
+                <CardTitle>{t('shareLink.quoteTitle')}</CardTitle>
+                <CardDescription>{t('shareLink.quoteHint')}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ShareLinkPanel
+                  shareAction={shareQuoteLinkAction.bind(null, slug, quote.id)}
+                  revokeAction={revokeQuoteLinkAction.bind(null, slug, quote.id)}
+                  unavailableHint={
+                    canShareQuote(quote.status) ? null : t('shareLink.quoteDraftHint')
+                  }
+                  link={
+                    publicLink && publicUrl
+                      ? {
+                          url: publicUrl,
+                          expiresLabel: t('shareLink.expires', {
+                            date: format.dateTime(publicLink.expiresAt, {
+                              dateStyle: 'long',
+                              timeZone: ctx.timezone,
+                            }),
+                          }),
+                          whatsappHref:
+                            whatsappText && quote.customer.phone
+                              ? whatsappLink(quote.customer.phone, whatsappText)
+                              : null,
+                        }
+                      : null
+                  }
                 />
               </CardContent>
             </Card>

@@ -110,7 +110,11 @@
       "order_empty": "Un pedido necesita al menos un producto.",
       "order_lines_locked": "Los productos de este pedido ya no se pueden cambiar.",
       "order_line_limit": "El pedido llegó al máximo de conceptos.",
-      "order_total_below_paid": "El total quedaría por debajo de lo que el cliente ya pagó: primero anula el pago."
+      "order_total_below_paid": "El total quedaría por debajo de lo que el cliente ya pagó: primero anula el pago.",
+      "delivery_window_exists": "Ya tienes esa franja.",
+      "delivery_window_limit": "Llegaste al máximo de franjas.",
+      "public_link_unavailable": "En su estado actual este documento no se puede compartir.",
+      "order_not_delivery": "Solo los pedidos a domicilio tienen repartidor."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -372,7 +376,14 @@
     "order.line_removed": "{actor} quitó un concepto de {number}",
     "order.discount_changed": "{actor} cambió el descuento de {number}",
     "order.confirmed": "{actor} confirmó el pedido {number}",
-    "order.discarded": "{actor} descartó el borrador {number}"
+    "order.discarded": "{actor} descartó el borrador {number}",
+    "delivery_settings.updated": "{actor} cambió los ajustes de entrega",
+    "delivery_window.added": "{actor} agregó una franja de entrega",
+    "delivery_window.removed": "{actor} quitó una franja de entrega",
+    "quote.accepted_online": "El cliente aceptó la cotización {number} desde el enlace",
+    "public_link.created": "{actor} compartió el enlace de {number}",
+    "public_link.revoked": "{actor} desactivó el enlace de {number}",
+    "order.assigned": "{actor} cambió el repartidor de {number}"
   },
   "catalog": {
     "title": "Catálogo",
@@ -588,7 +599,26 @@
     "locationSubtitle": "Dirección desde la que preparas y entregas.",
     "shopUrl": "Dirección en Gardelia",
     "currency": "Moneda",
-    "saved": "Cambios guardados"
+    "saved": "Cambios guardados",
+    "delivery": {
+      "title": "Entregas",
+      "subtitle": "Lo que se propone al registrar un pedido. Cada pedido guarda su propio horario y costo.",
+      "closedDays": "Días en que la florería no abre",
+      "closedDaysHint": "Si un pedido cae en uno de estos días, te lo avisamos al registrarlo.",
+      "defaultFee": "Costo de envío habitual ({currency})",
+      "defaultFeeHint": "Se propone en los pedidos nuevos a domicilio; puedes cambiarlo en cada uno.",
+      "saved": "Ajustes de entrega guardados.",
+      "windowsTitle": "Franjas horarias",
+      "windowsHint": "Aparecen como opciones rápidas al elegir el horario de un pedido. Siempre puedes poner otro.",
+      "noWindows": "Aún no tienes franjas: al registrar un pedido escribes la hora a mano.",
+      "windowStart": "Desde",
+      "windowEnd": "Hasta",
+      "addWindow": "Agregar franja",
+      "windowAdded": "Franja agregada.",
+      "windowRemoved": "Franja quitada.",
+      "removeWindow": "Quitar la franja {window}",
+      "windowLimit": "Llegaste al máximo de {max} franjas."
+    }
   },
   "team": {
     "title": "Equipo",
@@ -931,7 +961,8 @@
       "line": "• {quantity} × {description}: {total}",
       "discount": "Descuento: -{amount}",
       "total": "Total: {total}",
-      "validUntil": "Válida hasta el {date}."
+      "validUntil": "Válida hasta el {date}.",
+      "link": "Puedes verla y aceptarla aquí: {url}"
     },
     "customerCard": {
       "title": "Cotizaciones",
@@ -1094,7 +1125,10 @@
       "notesHint": "Solo las ve tu equipo.",
       "create": "Crear pedido",
       "save": "Guardar cambios",
-      "created": "Pedido creado"
+      "created": "Pedido creado",
+      "closedDay": "Según tus ajustes, la florería no abre ese día. Puedes registrarlo igual.",
+      "window": "Horario",
+      "customWindow": "Otro horario"
     },
     "whatsapp": {
       "greeting": "Hola {name}, te confirmamos tu pedido {number} de {shop}.",
@@ -1104,7 +1138,8 @@
       "window": "de {start} a {end}",
       "total": "Total: {total}",
       "paid": "Pagado: {paid}",
-      "balance": "Por pagar: {balance}"
+      "balance": "Por pagar: {balance}",
+      "link": "Sigue tu pedido aquí: {url}"
     },
     "newOrder": "Nuevo pedido",
     "noDate": "Sin fecha",
@@ -1142,6 +1177,90 @@
       "title": "Pedidos",
       "empty": "Aún no tiene pedidos.",
       "viewAll": "Ver todos sus pedidos"
+    },
+    "cardPrint": {
+      "title": "Imprimir tarjeta",
+      "subtitle": "Tarjeta del pedido {number}, lista para recortar.",
+      "print": "Imprimir",
+      "open": "Imprimir tarjeta",
+      "hint": "Mide 10 × 7 cm: imprime al 100 % y recorta por la línea punteada.",
+      "empty": "Este pedido no tiene mensaje para la tarjeta."
+    },
+    "tabs": {
+      "label": "Vistas de pedidos",
+      "list": "Lista",
+      "day": "Día",
+      "calendar": "Calendario",
+      "route": "Ruta"
+    },
+    "day": {
+      "title": "Pedidos del día",
+      "today": "Hoy salen",
+      "previous": "Día anterior",
+      "next": "Día siguiente",
+      "goToday": "Hoy",
+      "pickDate": "Elegir día",
+      "show": "Ver",
+      "emptyTitle": "No hay pedidos para este día",
+      "emptyBody": "Cuando registres pedidos para esta fecha, aparecerán aquí por horario.",
+      "summary": "{total, plural, one {# pedido} other {# pedidos}} · {deliveries} a domicilio · {pickups} en tienda · {pending, plural, =0 {todo entregado} one {# por entregar} other {# por entregar}}",
+      "toCollect": "Por cobrar {amount}",
+      "withCard": "con tarjeta",
+      "allDone": "Todo lo de este día ya salió o se entregó.",
+      "done": "{count, plural, one {Ya salió # pedido} other {Ya salieron # pedidos}}"
+    },
+    "production": {
+      "title": "Producción del día",
+      "summary": "{bouquets, plural, =0 {Ningún ramo por armar} one {# ramo por armar} other {# ramos por armar}} · {orders, plural, one {# pedido por preparar} other {# pedidos por preparar}}",
+      "print": "Imprimir",
+      "printNow": "Imprimir lista",
+      "empty": "No hay nada por preparar este día.",
+      "itemsCaption": "Flores y materiales necesarios",
+      "item": "Flor o material",
+      "quantity": "Cantidad",
+      "custom": "Otros conceptos",
+      "units": {
+        "STEM": "{count, plural, one {# tallo} other {# tallos}}",
+        "BUNCH": "{count, plural, one {# manojo} other {# manojos}}",
+        "PIECE": "{count, plural, one {# pieza} other {# piezas}}",
+        "SERVICE": "{count, plural, one {# servicio} other {# servicios}}"
+      }
+    },
+    "calendar": {
+      "title": "Calendario de pedidos",
+      "subtitle": "Entregas y recolecciones por día. Toca un día para ver sus pedidos.",
+      "previous": "Mes anterior",
+      "next": "Mes siguiente",
+      "dayLabel": "{date}: {deliveries} a domicilio, {pickups} en tienda"
+    },
+    "route": {
+      "title": "Ruta del día",
+      "filter": "Qué entregas ver",
+      "all": "Todas",
+      "mine": "Mis entregas",
+      "stop": "Parada {position}",
+      "collect": "Cobrar {amount}",
+      "receives": "Recibe: {name}",
+      "unassignedOne": "Sin repartidor",
+      "go": "Ir",
+      "call": "Llamar",
+      "whatsapp": "WhatsApp",
+      "summary": "{count, plural, one {# parada} other {# paradas}} en orden de horario",
+      "unassigned": "{count, plural, one {# sin repartidor} other {# sin repartidor}}",
+      "openAll": "Abrir ruta en Google Maps",
+      "openLeg": "Paradas {from}–{to} en Google Maps",
+      "orderHint": "Google Maps abre hasta 4 paradas por enlace: las rutas largas van por tramos.",
+      "noOrigin": "Agrega la dirección de la tienda en Ajustes para que la ruta salga desde ahí.",
+      "emptyTitle": "No hay entregas a domicilio este día",
+      "emptyMine": "No tienes entregas asignadas este día",
+      "emptyBody": "Los pedidos a domicilio aparecen aquí en orden de horario.",
+      "delivered": "{count, plural, one {# ya entregado} other {# ya entregados}}"
+    },
+    "assign": {
+      "label": "Repartidor",
+      "nobody": "Sin asignar",
+      "save": "Guardar",
+      "saved": "Repartidor actualizado."
     }
   },
   "plans": {
@@ -1633,6 +1752,73 @@
     "invalid": "Este enlace no es válido. Si quieres dejar de recibir promociones, responde al correo o contacta a la florería.",
     "poweredBy": "Correo enviado con {brand}"
   },
+  "publicLink": {
+    "poweredBy": "Enviado con {brand}",
+    "invalidTitle": "Enlace no válido",
+    "invalid": "Este enlace ya no está disponible: puede haber vencido o la florería lo desactivó. Pide uno nuevo a la florería.",
+    "contact": "Escribir a la florería",
+    "imageAlt": "Foto de {name}",
+    "subtotal": "Subtotal",
+    "discount": "Descuento",
+    "tax": "IVA",
+    "total": "Total",
+    "quote": {
+      "title": "Cotización {number}",
+      "for": "Para {name} · {date}",
+      "validUntil": "Válida hasta el {date}.",
+      "acceptHint": "Si todo está bien, acéptala y la florería se pondrá en contacto contigo para confirmar la entrega.",
+      "accept": "Aceptar cotización",
+      "accepted": "Aceptaste esta cotización el {date}. La florería te contactará para confirmar la entrega.",
+      "acceptedNoDate": "Esta cotización ya está aceptada.",
+      "expired": "Esta cotización venció el {date}. Escribe a la florería para actualizarla.",
+      "updating": "La florería está actualizando esta cotización. Vuelve a abrir el enlace más tarde.",
+      "unavailable": "Esta cotización ya no está disponible. Escribe a la florería si tienes dudas.",
+      "contactText": "Hola, tengo una pregunta sobre la cotización {number}."
+    },
+    "order": {
+      "title": "Pedido {number}",
+      "deliveryOn": "Entrega a domicilio: {when}",
+      "pickupOn": "Recoges en la tienda: {when}",
+      "cancelled": "Este pedido fue cancelado. Escribe a la florería si tienes dudas.",
+      "progress": "Avance del pedido",
+      "current": "paso actual",
+      "deliverTo": "Dirección de entrega",
+      "recipient": "Recibe: {name}",
+      "card": "Tarjeta",
+      "anonymous": "Sin firma (anónimo)",
+      "signedBy": "Firma: {name}",
+      "contents": "Qué lleva",
+      "deliveryFee": "Envío",
+      "paid": "Pagado",
+      "balance": "Por pagar",
+      "contactText": "Hola, tengo una pregunta sobre el pedido {number}."
+    }
+  },
+  "shareLink": {
+    "quoteTitle": "Enlace para el cliente",
+    "quoteHint": "Tu cliente ve la cotización y la acepta desde su teléfono, sin crear cuenta.",
+    "quoteDraftHint": "Marca la cotización como enviada para compartir el enlace.",
+    "orderTitle": "Seguimiento para el cliente",
+    "orderHint": "Tu cliente ve en qué paso va su pedido, cuándo llega y cuánto falta por pagar.",
+    "create": "Crear enlace",
+    "created": "Enlace listo para compartir.",
+    "linkLabel": "Enlace",
+    "copy": "Copiar",
+    "copied": "Enlace copiado.",
+    "copyFailed": "No se pudo copiar: selecciona el enlace y cópialo.",
+    "whatsapp": "Enviar por WhatsApp",
+    "expires": "Vence el {date}.",
+    "renew": "Crear uno nuevo",
+    "renewTitle": "¿Crear un enlace nuevo?",
+    "renewBody": "El enlace anterior dejará de funcionar.",
+    "renewConfirm": "Crear nuevo",
+    "renewed": "Enlace nuevo listo: el anterior ya no funciona.",
+    "revoke": "Desactivar",
+    "revokeTitle": "¿Desactivar el enlace?",
+    "revokeBody": "Quien lo tenga verá «Enlace no válido». Puedes crear uno nuevo cuando quieras.",
+    "revokeConfirm": "Desactivar",
+    "revoked": "Enlace desactivado."
+  },
   "inventory": {
     "nav": "Inventario",
     "title": "Inventario",
@@ -1817,6 +2003,9 @@
       "title": "Inventario",
       "body": "Existencias de cada producto, avisos cuando se acaban y todo lo que entra y sale."
     },
+    "validation": {
+      "none_selected": "Escribe cuántos tienes de al menos un producto."
+    },
     "conflict": {
       "insufficient_stock": "No alcanza la mercancía: revisa la cantidad o confirma para registrarlo de todos modos.",
       "item_archived": "Ya no controlas este producto: vuelve a controlarlo para registrar movimientos.",
@@ -1832,9 +2021,6 @@
       "stock_wasted": "{actor} registró una merma de {units} × {name}",
       "stock_counted": "{actor} contó {name}: ahora hay {units}",
       "entry_reversed": "{lines, plural, one {{actor} anuló un movimiento de {name}} other {{actor} anuló un movimiento de # productos}}"
-    },
-    "validation": {
-      "none_selected": "Escribe cuántos tienes de al menos un producto."
     }
   }
 }

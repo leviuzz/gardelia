@@ -487,6 +487,42 @@ Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test unit 283/283 �
 62/62 ✅ (2 nuovi); controllo visivo a 1280 e 320 px. Prossimi: A2 impostazioni di consegna e
 coordinate, A3 stampa della tarjeta e link pubblici.
 
+**Consegne, blocco A2 (fatto il 23/11, ADR-055):** in Ajustes la scheda "Entregas" con i giorni in cui
+la fioreria non apre, il costo di consegna abituale e le fasce orarie (fino a 8). Nei form degli ordini
+le fasce sono scelte rapide ("Durante el día", le fasce, "Otro horario"), il costo abituale si propone
+nei nuovi ordini a domicilio e un giorno di chiusura dà un avviso senza bloccare. Costo per distanza e
+coordinate aspettano Google Places (O-14). Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test
+unit 289/289 ✅ · integrazione 292/292 ✅ (6 nuovi con isolamento A↔B) · migrazioni = schema ✅ · build ✅
+· E2E 63/63 ✅ (1 nuovo, nella seconda fioreria demo per non cambiare i form degli altri test, ripetibile);
+controllo visivo a 1280, 390 e 320 px. Prossimi: A3 stampa della tarjeta e link pubblici.
+
+**Link per il cliente e tarjeta, blocco A3 (fatto il 23/11, ADR-056):** su preventivo e ordine la
+scheda "Enlace para el cliente" / "Seguimiento para el cliente" crea, copia, rinnova o disattiva un
+link pubblico, e il messaggio WhatsApp lo include. Il cliente, senza account, vede il preventivo e lo
+accetta con un clic, oppure segue l'ordine passo per passo con consegna, tarjeta e saldo. Token firmati
+(non salvati), scadenza 60 giorni, uno attivo per documento; nessun costo o nota interna esposti.
+"Imprimir tarjeta" stampa il biglietto da 10 × 7 cm. Verifiche locali: lint ✅ · format ✅ · typecheck ✅
+· test unit 289/289 ✅ · integrazione 302/302 ✅ (10 nuovi con isolamento A↔B) · migrazioni = schema ✅ ·
+build ✅ · E2E 67/67 ✅ (4 nuovi); controllo visivo delle pagine pubbliche a 390 px. Prossimi: B1
+calendario delle consegne, "Hoy salen", Producción del día.
+
+**Agenda dei pedidos, blocco B1 (fatto il 23/11, ADR-057):** schede "Lista", "Día" e "Calendario" sotto
+Pedidos. "Hoy salen" raggruppa gli ordini del giorno per fascia con il prossimo passo a un tocco (gli
+usciti in fondo, chiusi); "Producción del día" somma fiori e materiali dalle distinte, anche da
+stampare; il calendario mostra consegne e ritiri per giorno. Verifiche locali: lint ✅ · format ✅ ·
+typecheck ✅ · test unit 291/291 ✅ · integrazione 306/306 ✅ (4 nuovi, con isolamento A↔B) · build ✅ ·
+E2E 69/69 ✅ (2 nuovi); controllo visivo a 1280 e 390 px. Prossimi: B2 ruta del día, repartidor e prova
+di consegna.
+
+**Ruta del día e repartidor, blocco B2 (fatto il 23/11, ADR-058):** nella scheda dell'ordine a domicilio
+si sceglie il repartidor fra i membri attivi; la scheda "Ruta" mostra le consegne del giorno in ordine
+di fascia con indirizzo, chi riceve, chiamata e WhatsApp, cosa incassare e il prossimo passo; "Mis
+entregas" per il repartidor; "Ir" e "Abrir ruta en Google Maps" a tratti da 4 fermate, gratis e senza
+chiave. Ordine per vicinanza in attesa di Google Places (O-14). Verifiche locali: lint ✅ · format ✅ ·
+typecheck ✅ · test unit 294/294 ✅ · integrazione 311/311 ✅ (5 nuovi con isolamento A↔B) · migrazioni =
+schema ✅ · build ✅ · E2E 70/70 ✅ (1 nuovo, proprietaria e repartidor); controllo visivo a 390 px.
+Prossimi: prova di consegna (foto e chi riceve), poi il marketplace (C1–C5).
+
 **Inventario, blocco 1 (fatto il 23/11, ADR-060, richiesta del founder):** voce "Inventario" nel menu
 (su telefono in "Más") con Existencias e Movimientos. "Elegir productos": si scrive quanti ce ne sono
 di ogni prodotto fisico del catalogo da controllare e, se si vuole, il minimo ("Avísame con"); la
@@ -500,10 +536,7 @@ vede le quantità senza costi), piano Plus, niente resi né lotti; le organizzaz
 registrate per dopo (D-28). Per gli ordini (altra sessione) sono pronti `checkStock`/`checkStockTx` e
 `consumeStockTx`, da usare nella transazione dell'ordine, senza effetti per chi non usa l'inventario.
 Registri e movimenti non si modificano né si cancellano (RLS), la giacenza è sempre la somma dei
-movimenti. Testi nel namespace `inventory` delle tre lingue. Verifiche locali: lint ✅ · format ✅ ·
-typecheck ✅ · test 602/602 ✅ (33 nuovi: 15 di dominio, 14 d'integrazione con isolamento A↔B,
-concorrenza e invarianti, 1 sui permessi, 3 del web) · build ✅ · E2E 65/65 ✅ (3 nuovi: proprietario,
-staff, fioreria Basic); controllo visivo a 1280 e 320 px. Prossimi: blocco 2 compras y proveedores (costo reale),
+movimenti. Testi nel namespace `inventory` delle tre lingue. Verifiche locali, dopo l'integrazione di staging (consegne, link pubblici, ruta): lint ✅ · format ✅ · typecheck ✅ · test 638/638 ✅ (33 nuovi: 15 di dominio, 14 d'integrazione con isolamento A↔B, concorrenza e invarianti, 1 sui permessi, 3 del web) · build ✅ · E2E 73/73 ✅ (3 nuovi: proprietario, staff, fioreria Basic); controllo visivo a 1280 e 320 px. Prossimi: blocco 2 compras y proveedores (costo reale),
 blocco 3 apartados con vencimiento, blocco 4 avvisi nel pannello e costo dei ramos.
 
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):

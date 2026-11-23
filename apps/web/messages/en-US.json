@@ -110,7 +110,11 @@
       "order_empty": "An order needs at least one product.",
       "order_lines_locked": "This order’s products can no longer be changed.",
       "order_line_limit": "The order has reached the maximum number of lines.",
-      "order_total_below_paid": "The total would drop below what the customer already paid: void the payment first."
+      "order_total_below_paid": "The total would drop below what the customer already paid: void the payment first.",
+      "delivery_window_exists": "You already have that time window.",
+      "delivery_window_limit": "You’ve reached the maximum number of time windows.",
+      "public_link_unavailable": "This document can’t be shared in its current status.",
+      "order_not_delivery": "Only home delivery orders have a driver."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -372,7 +376,14 @@
     "order.line_removed": "{actor} removed a line from {number}",
     "order.discount_changed": "{actor} changed the discount on {number}",
     "order.confirmed": "{actor} confirmed order {number}",
-    "order.discarded": "{actor} discarded draft {number}"
+    "order.discarded": "{actor} discarded draft {number}",
+    "delivery_settings.updated": "{actor} changed the delivery settings",
+    "delivery_window.added": "{actor} added a delivery time window",
+    "delivery_window.removed": "{actor} removed a delivery time window",
+    "quote.accepted_online": "The customer accepted quote {number} from the link",
+    "public_link.created": "{actor} shared the link for {number}",
+    "public_link.revoked": "{actor} turned off the link for {number}",
+    "order.assigned": "{actor} changed the driver of {number}"
   },
   "catalog": {
     "title": "Catalog",
@@ -588,7 +599,26 @@
     "locationSubtitle": "The address you prepare and deliver from.",
     "shopUrl": "Web address on Gardelia",
     "currency": "Currency",
-    "saved": "Changes saved"
+    "saved": "Changes saved",
+    "delivery": {
+      "title": "Deliveries",
+      "subtitle": "What’s suggested when you record an order. Each order keeps its own time and fee.",
+      "closedDays": "Days the shop is closed",
+      "closedDaysHint": "If an order falls on one of these days, we’ll point it out when you record it.",
+      "defaultFee": "Usual delivery fee ({currency})",
+      "defaultFeeHint": "Suggested on new delivery orders; you can change it on each one.",
+      "saved": "Delivery settings saved.",
+      "windowsTitle": "Time windows",
+      "windowsHint": "They show up as quick choices when you pick an order’s time. You can always enter another.",
+      "noWindows": "No time windows yet: when you record an order you type the time.",
+      "windowStart": "From",
+      "windowEnd": "To",
+      "addWindow": "Add time window",
+      "windowAdded": "Time window added.",
+      "windowRemoved": "Time window removed.",
+      "removeWindow": "Remove the time window {window}",
+      "windowLimit": "You’ve reached the maximum of {max} time windows."
+    }
   },
   "team": {
     "title": "Team",
@@ -931,7 +961,8 @@
       "line": "• {quantity} × {description}: {total}",
       "discount": "Discount: -{amount}",
       "total": "Total: {total}",
-      "validUntil": "Valid until {date}."
+      "validUntil": "Valid until {date}.",
+      "link": "You can see and accept it here: {url}"
     },
     "customerCard": {
       "title": "Quotes",
@@ -1094,7 +1125,10 @@
       "notesHint": "Only your team sees them.",
       "create": "Create order",
       "save": "Save changes",
-      "created": "Order created"
+      "created": "Order created",
+      "closedDay": "According to your settings, the shop is closed that day. You can still record it.",
+      "window": "Time",
+      "customWindow": "Another time"
     },
     "whatsapp": {
       "greeting": "Hi {name}, we confirm your order {number} from {shop}.",
@@ -1104,7 +1138,8 @@
       "window": "from {start} to {end}",
       "total": "Total: {total}",
       "paid": "Paid: {paid}",
-      "balance": "To pay: {balance}"
+      "balance": "To pay: {balance}",
+      "link": "Track your order here: {url}"
     },
     "newOrder": "New order",
     "noDate": "No date",
@@ -1142,6 +1177,90 @@
       "title": "Orders",
       "empty": "No orders yet.",
       "viewAll": "See all their orders"
+    },
+    "cardPrint": {
+      "title": "Print card",
+      "subtitle": "Card for order {number}, ready to cut out.",
+      "print": "Print",
+      "open": "Print card",
+      "hint": "It measures 10 × 7 cm: print at 100% and cut along the dotted line.",
+      "empty": "This order has no card message."
+    },
+    "tabs": {
+      "label": "Order views",
+      "list": "List",
+      "day": "Day",
+      "calendar": "Calendar",
+      "route": "Route"
+    },
+    "day": {
+      "title": "Orders for the day",
+      "today": "Going out today",
+      "previous": "Previous day",
+      "next": "Next day",
+      "goToday": "Today",
+      "pickDate": "Pick a day",
+      "show": "Show",
+      "emptyTitle": "No orders for this day",
+      "emptyBody": "When you record orders for this date, they show up here by time window.",
+      "summary": "{total, plural, one {# order} other {# orders}} · {deliveries} to deliver · {pickups} in store · {pending, plural, =0 {all done} one {# still to hand over} other {# still to hand over}}",
+      "toCollect": "To collect {amount}",
+      "withCard": "with card",
+      "allDone": "Everything for this day is out or handed over.",
+      "done": "{count, plural, one {# order already out} other {# orders already out}}"
+    },
+    "production": {
+      "title": "Production for the day",
+      "summary": "{bouquets, plural, =0 {No bouquets to make} one {# bouquet to make} other {# bouquets to make}} · {orders, plural, one {# order to prepare} other {# orders to prepare}}",
+      "print": "Print",
+      "printNow": "Print list",
+      "empty": "Nothing to prepare on this day.",
+      "itemsCaption": "Flowers and materials needed",
+      "item": "Flower or material",
+      "quantity": "Quantity",
+      "custom": "Other items",
+      "units": {
+        "STEM": "{count, plural, one {# stem} other {# stems}}",
+        "BUNCH": "{count, plural, one {# bunch} other {# bunches}}",
+        "PIECE": "{count, plural, one {# piece} other {# pieces}}",
+        "SERVICE": "{count, plural, one {# service} other {# services}}"
+      }
+    },
+    "calendar": {
+      "title": "Order calendar",
+      "subtitle": "Deliveries and pickups by day. Tap a day to see its orders.",
+      "previous": "Previous month",
+      "next": "Next month",
+      "dayLabel": "{date}: {deliveries} to deliver, {pickups} in store"
+    },
+    "route": {
+      "title": "Route for the day",
+      "filter": "Which deliveries to show",
+      "all": "All",
+      "mine": "My deliveries",
+      "stop": "Stop {position}",
+      "collect": "Collect {amount}",
+      "receives": "Received by: {name}",
+      "unassignedOne": "No driver",
+      "go": "Go",
+      "call": "Call",
+      "whatsapp": "WhatsApp",
+      "summary": "{count, plural, one {# stop} other {# stops}} in time order",
+      "unassigned": "{count, plural, one {# without a driver} other {# without a driver}}",
+      "openAll": "Open route in Google Maps",
+      "openLeg": "Stops {from}–{to} in Google Maps",
+      "orderHint": "Google Maps opens up to 4 stops per link: long routes go in legs.",
+      "noOrigin": "Add the shop’s address in Settings so the route starts there.",
+      "emptyTitle": "No home deliveries on this day",
+      "emptyMine": "You have no deliveries assigned on this day",
+      "emptyBody": "Home delivery orders show up here in time order.",
+      "delivered": "{count, plural, one {# already delivered} other {# already delivered}}"
+    },
+    "assign": {
+      "label": "Driver",
+      "nobody": "Not assigned",
+      "save": "Save",
+      "saved": "Driver updated."
     }
   },
   "plans": {
@@ -1633,6 +1752,73 @@
     "invalid": "This link isn't valid. To stop receiving promotions, reply to the email or contact the flower shop.",
     "poweredBy": "Email sent with {brand}"
   },
+  "publicLink": {
+    "poweredBy": "Sent with {brand}",
+    "invalidTitle": "Link not valid",
+    "invalid": "This link is no longer available: it may have expired or the shop turned it off. Ask the shop for a new one.",
+    "contact": "Message the shop",
+    "imageAlt": "Photo of {name}",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "tax": "Tax",
+    "total": "Total",
+    "quote": {
+      "title": "Quote {number}",
+      "for": "For {name} · {date}",
+      "validUntil": "Valid until {date}.",
+      "acceptHint": "If everything looks right, accept it and the shop will contact you to confirm the delivery.",
+      "accept": "Accept quote",
+      "accepted": "You accepted this quote on {date}. The shop will contact you to confirm the delivery.",
+      "acceptedNoDate": "This quote is already accepted.",
+      "expired": "This quote expired on {date}. Message the shop to update it.",
+      "updating": "The shop is updating this quote. Open the link again later.",
+      "unavailable": "This quote is no longer available. Message the shop if you have questions.",
+      "contactText": "Hi, I have a question about quote {number}."
+    },
+    "order": {
+      "title": "Order {number}",
+      "deliveryOn": "Home delivery: {when}",
+      "pickupOn": "You pick it up at the shop: {when}",
+      "cancelled": "This order was cancelled. Message the shop if you have questions.",
+      "progress": "Order progress",
+      "current": "current step",
+      "deliverTo": "Delivery address",
+      "recipient": "Received by: {name}",
+      "card": "Card",
+      "anonymous": "Unsigned (anonymous)",
+      "signedBy": "Signed: {name}",
+      "contents": "What it includes",
+      "deliveryFee": "Delivery",
+      "paid": "Paid",
+      "balance": "Left to pay",
+      "contactText": "Hi, I have a question about order {number}."
+    }
+  },
+  "shareLink": {
+    "quoteTitle": "Link for the customer",
+    "quoteHint": "Your customer sees the quote and accepts it from their phone, without an account.",
+    "quoteDraftHint": "Mark the quote as sent to share the link.",
+    "orderTitle": "Tracking for the customer",
+    "orderHint": "Your customer sees where their order is, when it arrives and what’s left to pay.",
+    "create": "Create link",
+    "created": "Link ready to share.",
+    "linkLabel": "Link",
+    "copy": "Copy",
+    "copied": "Link copied.",
+    "copyFailed": "Couldn’t copy: select the link and copy it.",
+    "whatsapp": "Send on WhatsApp",
+    "expires": "Expires on {date}.",
+    "renew": "Create a new one",
+    "renewTitle": "Create a new link?",
+    "renewBody": "The previous link will stop working.",
+    "renewConfirm": "Create new",
+    "renewed": "New link ready: the previous one no longer works.",
+    "revoke": "Turn off",
+    "revokeTitle": "Turn off the link?",
+    "revokeBody": "Anyone who has it will see “Link not valid”. You can create a new one anytime.",
+    "revokeConfirm": "Turn off",
+    "revoked": "Link turned off."
+  },
   "inventory": {
     "nav": "Inventory",
     "title": "Inventory",
@@ -1817,6 +2003,9 @@
       "title": "Inventory",
       "body": "Stock of every product, alerts when it runs out and everything that comes in and goes out."
     },
+    "validation": {
+      "none_selected": "Enter how many you have of at least one product."
+    },
     "conflict": {
       "insufficient_stock": "There is not enough stock: check the quantity or confirm to record it anyway.",
       "item_archived": "You no longer track this product: track it again to record movements.",
@@ -1832,9 +2021,6 @@
       "stock_wasted": "{actor} recorded waste of {units} × {name}",
       "stock_counted": "{actor} counted {name}: there are now {units}",
       "entry_reversed": "{lines, plural, one {{actor} reversed a movement of {name}} other {{actor} reversed a movement of # products}}"
-    },
-    "validation": {
-      "none_selected": "Enter how many you have of at least one product."
     }
   }
 }

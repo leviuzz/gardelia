@@ -197,6 +197,8 @@ export interface OrderDetailDto extends OrderSummaryDto {
   readonly editable: boolean;
   /** Righe e sconto modificabili da chi guarda (fino a "en preparación"). */
   readonly linesEditable: boolean;
+  /** Repartidor (solo a domicilio). */
+  readonly assignee: { readonly membershipId: string; readonly name: string } | null;
   readonly canCancel: boolean;
   /** Borrador che chi guarda può scartare. */
   readonly canDiscard: boolean;
@@ -370,7 +372,11 @@ export async function listCustomerOrders(
 }
 
 /** Passi che il ruolo di chi guarda può fare (accettare vuole `orders:write`, il resto `orders:fulfill`). */
-function stepsFor(ctx: TenantContext, status: OrderStatus, mode: FulfillmentMode): OrderStatus[] {
+export function allowedOrderSteps(
+  ctx: TenantContext,
+  status: OrderStatus,
+  mode: FulfillmentMode,
+): OrderStatus[] {
   return orderStepsFrom(status, mode).filter((to) =>
     hasPermission(ctx, isOrderAcceptance(status, to) ? 'orders:write' : 'orders:fulfill'),
   );
@@ -382,7 +388,11 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
   const result = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await tx.order.findFirst({
       where: { id: orderId, tenantId: ctx.tenantId },
-      include: { ...orderInclude, quote: { select: { id: true, number: true } } },
+      include: {
+        ...orderInclude,
+        quote: { select: { id: true, number: true } },
+        assignedTo: { select: { id: true, user: { select: { name: true } } } },
+      },
     });
     if (!order) return null;
     // In fila: una transazione usa una sola connessione (ADR-053).
@@ -493,9 +503,12 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
       note: event.note,
       createdAt: event.createdAt,
     })),
-    nextSteps: stepsFor(ctx, order.status, order.fulfillmentMode),
+    nextSteps: allowedOrderSteps(ctx, order.status, order.fulfillmentMode),
     editable: canWrite && isOrderEditable(order.status),
     linesEditable: canWrite && areOrderLinesEditable(order.status),
+    assignee: order.assignedTo
+      ? { membershipId: order.assignedTo.id, name: order.assignedTo.user.name }
+      : null,
     canCancel: canWrite && canCancelOrder(order.status),
     canDiscard: canWrite && order.status === 'DRAFT',
     canRecordPayments: hasPermission(ctx, 'orders:payments') && acceptsOrderPayments(order.status),
@@ -777,6 +790,8 @@ export async function updateOrderFulfillment(
     assertTotalCoversPaid(order.paidMinor, totals.totalMinor);
     const changes = {
       ...fulfillment.data,
+      // Un ritiro non ha repartidor (CHECK nel database).
+      ...(input.fulfillmentMode === 'PICKUP' ? { assignedMembershipId: null } : {}),
       deliveryFeeMinor: totals.deliveryFeeMinor,
       totalMinor: totals.totalMinor,
       paymentStatus: orderPaymentStatus(order.paidMinor, totals.totalMinor),

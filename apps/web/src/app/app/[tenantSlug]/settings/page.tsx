@@ -1,14 +1,22 @@
 import { ChevronRight, Gem } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getFormatter, getTranslations } from 'next-intl/server';
 import {
   getBuilderSettings,
+  getDeliverySettings,
   getEntitlements,
   getTenantSettings,
   hasPermission,
 } from '@floral/core';
-import { MX_REGIONS, MX_TIMEZONES, isCurrencyCode, minorToDecimalString } from '@floral/domain';
+import {
+  DELIVERY_LIMITS,
+  MX_REGIONS,
+  MX_TIMEZONES,
+  WEEKDAYS_FROM_MONDAY,
+  isCurrencyCode,
+  minorToDecimalString,
+} from '@floral/domain';
 import { Forbidden } from '@/components/forbidden';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,11 +24,15 @@ import { phoneForInput } from '@/lib/format';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
+  addDeliveryWindowAction,
+  removeDeliveryWindowAction,
   updateBuilderSettingsAction,
+  updateDeliverySettingsAction,
   updateLegalAction,
   updateLocationAction,
   updateProfileAction,
 } from './actions';
+import { DeliveryDefaultsForm, DeliveryWindowsEditor } from './delivery-forms';
 import { BuilderSettingsForm, LegalForm, LocationForm, ProfileForm } from './settings-forms';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -41,6 +53,16 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
   const builder = (await getEntitlements(ctx)).bouquetBuilder
     ? await getBuilderSettings(ctx)
     : null;
+  const delivery = await getDeliverySettings(ctx);
+  const format = await getFormatter();
+  // 22/11/2026 è una domenica (0): da lì si ricavano i nomi dei giorni nella lingua di chi guarda.
+  const weekdays = WEEKDAYS_FROM_MONDAY.map((value) => {
+    const name = format.dateTime(new Date(Date.UTC(2026, 10, 22 + value, 12)), {
+      weekday: 'long',
+      timeZone: 'UTC',
+    });
+    return { value, label: name.charAt(0).toLocaleUpperCase() + name.slice(1) };
+  });
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -113,6 +135,44 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
               deliveryRadiusKm: location?.deliveryRadiusKm?.toString() ?? '',
             }}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('settings.delivery.title')}</CardTitle>
+          <CardDescription>{t('settings.delivery.subtitle')}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-8">
+          <DeliveryDefaultsForm
+            action={updateDeliverySettingsAction.bind(null, slug)}
+            currency={tenant.currency}
+            weekdays={weekdays}
+            defaults={{
+              closedWeekdays: delivery.closedWeekdays,
+              defaultFee:
+                delivery.defaultFeeMinor > 0 && isCurrencyCode(tenant.currency)
+                  ? minorToDecimalString(delivery.defaultFeeMinor, tenant.currency)
+                  : '',
+            }}
+          />
+          <section className="grid gap-3 border-t pt-6">
+            <div>
+              <h3 className="text-sm font-medium">{t('settings.delivery.windowsTitle')}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t('settings.delivery.windowsHint')}
+              </p>
+            </div>
+            <DeliveryWindowsEditor
+              addAction={addDeliveryWindowAction.bind(null, slug)}
+              max={DELIVERY_LIMITS.windows}
+              windows={delivery.windows.map((window) => ({
+                id: window.id,
+                label: t('orders.window', { start: window.start, end: window.end }),
+                removeAction: removeDeliveryWindowAction.bind(null, slug, window.id),
+              }))}
+            />
+          </section>
         </CardContent>
       </Card>
 

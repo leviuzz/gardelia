@@ -1236,6 +1236,98 @@ Blocco A1a di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26, D-27).
 - **Prossimi:** A2 (fasce e costi di consegna nelle impostazioni, coordinate), A3 (stampa della
   tarjeta, link pubblici).
 
+### ADR-055 — Impostazioni di consegna: fasce, giorni di chiusura e costo proposto — ADOTTATO (23/11/2026)
+
+Blocco A2 di `docs/ORDERS_MARKETPLACE_PLAN.md`, senza la parte che richiede le coordinate.
+
+- **Fasce orarie** (`DeliveryWindow`, con `tenantId`, RLS e CHECK: dentro la giornata e in ordine;
+  massimo 8, niente doppioni): nei form degli ordini diventano scelte rapide insieme a "Durante el
+  día" e "Otro horario" (che riapre Desde/Hasta). Senza fasce il form resta quello di prima. Ogni
+  ordine **copia i propri minuti**: togliere una fascia non cambia gli ordini già fatti, per questo
+  la fascia (configurazione, non dato commerciale) si cancella davvero.
+- **Giorni di chiusura** (`Tenant.deliveryClosedWeekdays`, CHECK 0–6): se la data di un ordine cade
+  in un giorno chiuso il form lo **avvisa** ma non blocca: chi registra l'ordine sa se fa
+  un'eccezione (es. 10 de mayo). Il blocco vero servirà agli ordini del marketplace (C4).
+- **Costo di consegna proposto** (`Tenant.defaultDeliveryFeeMinor`, ≥ 0): precompila il costo nei nuovi
+  ordini a domicilio (conversione dal preventivo e borrador); si cambia in ogni ordine e resta
+  congelato nell'ordine.
+- **Non fatto, di proposito:** costo per distanza (fasce in km) e raggio massimo hanno bisogno delle
+  coordinate degli indirizzi, cioè di Google Places (O-14): finché non c'è non mostriamo nulla che
+  finga di calcolarli. Il preavviso minimo serve solo agli ordini del marketplace e arriva con C4.
+- **Permessi:** le leggono tutti (servono a chi compila un ordine); le cambiano proprietario e
+  manager (`tenant:settings:update`). Audit: `delivery_settings.updated` (con le differenze),
+  `delivery_window.added`, `delivery_window.removed`; una fascia di un'altra fioreria dà 404 e un
+  evento di sicurezza.
+
+### ADR-056 — Link pubblici di preventivi e ordini, tarjeta da stampare — ADOTTATO (23/11/2026)
+
+Blocco A3 di `docs/ORDERS_MARKETPLACE_PLAN.md`; il link pubblico del preventivo con accettazione era
+già approvato dal founder il 21/11.
+
+- **Cosa vede il cliente, senza account:** `/cotizacion/<token>` (righe con foto del ramo, distinta,
+  totali, validità, note per il cliente, "Aceptar cotización") e `/pedido/<token>` (a che punto è,
+  quando e dove si consegna o si ritira, tarjeta, cosa contiene, pagato e da pagare). Mai costi,
+  margini, note interne o dati di altri clienti; pagine `noindex` e `no-referrer`, nella lingua del
+  mercato della fioreria; "Escribir a la florería" apre WhatsApp con il numero della fioreria.
+- **Token:** fioreria + ID del link firmati con HMAC (chiave derivata dal segreto dell'app e dallo
+  scopo, come la disiscrizione di ADR-047, ora in `core/src/signed-ids.ts`). Il token non si salva:
+  il fiorista lo ricopia quando vuole. La riga `PublicLink` (RLS, FK composite, uno solo attivo per
+  documento, CHECK sul tipo) dà **scadenza** (60 giorni) e **disattivazione**; "Crear uno nuevo"
+  disattiva il vecchio. Il cliente si legge nel contesto della fioreria del token (RLS attiva), mai
+  con un contesto di sistema.
+- **Accettazione:** solo con un clic (POST): l'anteprima automatica di un link in WhatsApp non
+  accetta nulla. Solo un preventivo inviato e ancora valido; l'esito si registra nell'attività senza
+  utente (`quote.accepted_online`, con requestId e IP). La fioreria poi lo converte in ordine (i dati
+  di consegna li decide lei).
+- **Chi condivide:** chi scrive preventivi (`quotes:write`) o ordini (`orders:write`): il link mostra
+  dati del cliente. Si condivide un preventivo inviato o accettato e un ordine confermato e non
+  annullato; un link già dato a un ordine poi annullato resta e dice "cancelado". Il messaggio
+  WhatsApp della fioreria include il link quando c'è. Audit: `public_link.created` (anche rinnovo),
+  `public_link.revoked`.
+- **Tarjeta da stampare:** pagina con il solo messaggio e la firma in un biglietto da 10 × 7 cm con
+  la linea di taglio; la comanda resta la stampa della scheda dell'ordine.
+- **Non fatto:** email al cliente con il link (V1 riga 13, quando c'è il dominio verificato), rifiuto
+  del preventivo dal link (il cliente scrive alla fioreria).
+
+### ADR-057 — Agenda dei pedidos: giorno, Producción del día e mese — ADOTTATO (23/11/2026)
+
+Blocco B1 di `docs/ORDERS_MARKETPLACE_PLAN.md`.
+
+- **Tre viste sotto Pedidos** (schede "Lista", "Día", "Calendario") invece di una voce di menu in più:
+  il calendario delle date speciali resta quello dei clienti; quello degli ordini è un altro
+  strumento con un altro scopo.
+- **Día ("Hoy salen"):** ordini del giorno raggruppati per fascia ("Durante el día" prima), con
+  cliente, destinatario, indirizzo o ritiro, cosa contiene, tarjeta, saldo da incassare e **un solo
+  pulsante: il prossimo passo** (salti e correzioni dalla scheda). Gli ordini già consegnati o
+  ritirati vanno in fondo, chiusi. Data per URL (`?date=`), frecce e scelta del giorno.
+- **Producción del día:** fiori, verde e materiali sommati dalle **distinte congelate** nelle righe
+  (ramos del catalogo e del Diseñador per il numero di ramos, articoli sciolti, colori separati),
+  le righe libere a parte; solo ordini confermati, in preparazione o pronti. Pagina da stampare per
+  il mercato e per il banco. Regola pura `aggregateProduction` nel dominio.
+- **Calendario:** mese con quante consegne e quanti ritiri per giorno; un clic apre il giorno.
+- **Chi vede:** tutta la squadra (`orders:read`); i passi seguono i permessi (`orders:fulfill`); niente
+  costi. Borradores e ordini annullati non compaiono.
+
+### ADR-058 — Ruta del día e repartidor — ADOTTATO (23/11/2026)
+
+Blocco B2 di `docs/ORDERS_MARKETPLACE_PLAN.md`, senza la prova di consegna (prossimo passo).
+
+- **Repartidor:** un ordine a domicilio aperto si assegna a un membro **attivo** della fioreria
+  (`Order.assignedMembershipId`, FK composita verso `Membership`; CHECK: solo a domicilio; passando a
+  ritiro si toglie). Lo sceglie chi gestisce gli ordini (`orders:write`) dalla scheda; audit
+  `order.assigned` con gli ID, mai nomi.
+- **Ruta del día:** scheda "Ruta" sotto Pedidos con le consegne del giorno in ordine di fascia
+  ("in giornata" in fondo), già consegnate in fondo e chiuse. Per ogni fermata: indirizzo, chi riceve
+  con telefono ("Llamar", "WhatsApp"), indicazioni, repartidor, **cosa incassare** e il prossimo
+  passo. "Mis entregas" mostra solo quelle di chi guarda: è la vista del repartidor sul telefono.
+- **Google Maps gratis (D-27):** "Ir" e "Abrir ruta" sono link pubblici (Maps URLs), senza chiave né
+  costi. Un link porta al massimo 3 tappe più l'arrivo (limite dell'app sul telefono): un giro lungo
+  si divide in tratti, ognuno parte dall'ultima fermata del precedente; il primo parte dalla
+  fioreria se ha l'indirizzo. Regole pure `mapsPlaceUrl` / `mapsRouteLinks`.
+- **Ordine per vicinanza:** non c'è ancora, di proposito: servono le coordinate degli indirizzi
+  (Google Places, O-14). Fino ad allora le fermate restano in ordine di fascia, come previsto dal
+  piano, e la pagina lo dice.
+
 ### ADR-060 — Inventario: giacenze, movimenti e avvisi (blocco 1) — ADOTTATO (23/11/2026)
 
 Numerazione: ADR-055–059 sono riservati agli ordini e al marketplace (altra sessione).

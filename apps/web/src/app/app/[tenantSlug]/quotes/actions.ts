@@ -12,10 +12,13 @@ import {
   createQuote,
   createQuoteFromConfiguration,
   removeQuoteLine,
+  revokePublicLink,
+  sharePublicLink,
   updateQuoteDetails,
   updateQuoteLineQuantity,
 } from '@floral/core';
 import type { ActionState } from '@/lib/action-state';
+import { serverEnv } from '@/lib/env';
 import { formDataToObject } from '@/lib/form-data';
 import { runTenantAction, section } from '@/lib/tenant-action';
 
@@ -111,5 +114,45 @@ export async function changeStatusAction(
       revalidate: section(routes.quotes.list()),
       success: (t) => t('quotes.editor.statusChanged', { status: t(`quotes.statuses.${status}`) }),
     };
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Link pubblico per il cliente (ADR-056)
+// -----------------------------------------------------------------------------
+
+/** Crea il link (o lo rinnova con `renew=1`): il servizio ricontrolla permessi e stato. */
+export async function shareQuoteLinkAction(
+  slug: string,
+  quoteId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const renew = formData.get('renew') === '1';
+    await sharePublicLink(
+      ctx,
+      serverEnv().BETTER_AUTH_SECRET,
+      { kind: 'QUOTE', id: quoteId },
+      {
+        renew,
+      },
+    );
+    return {
+      revalidate: routes.quotes.detail(quoteId),
+      success: renew ? 'shareLink.renewed' : 'shareLink.created',
+    };
+  });
+}
+
+export async function revokeQuoteLinkAction(
+  slug: string,
+  quoteId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await revokePublicLink(ctx, { kind: 'QUOTE', id: quoteId });
+    return { revalidate: routes.quotes.detail(quoteId), success: 'shareLink.revoked' };
   });
 }

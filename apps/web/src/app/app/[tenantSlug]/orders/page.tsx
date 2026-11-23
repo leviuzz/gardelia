@@ -16,6 +16,7 @@ import { calendarDate } from '@/lib/quote-ui';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { cn } from '@/lib/utils';
+import { OrdersTabs } from './orders-tabs';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('orders');
@@ -91,6 +92,7 @@ export default async function OrdersPage({
 
   return (
     <div className="space-y-6">
+      <OrdersTabs routes={routes} current="list" />
       <PageHeader title={t('title')} description={t('subtitle')} actions={actions} />
 
       <nav aria-label={tc('filter')} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">

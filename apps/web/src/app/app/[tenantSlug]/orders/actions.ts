@@ -7,6 +7,7 @@
  */
 import {
   addCatalogItemToOrder,
+  assignOrder,
   addCustomLineToOrder,
   cancelOrder,
   changeOrderStatus,
@@ -17,11 +18,14 @@ import {
   recordOrderPayment,
   removeOrderLine,
   reverseOrderPayment,
+  revokePublicLink,
+  sharePublicLink,
   updateOrderDiscount,
   updateOrderFulfillment,
   updateOrderLineQuantity,
 } from '@floral/core';
 import type { ActionState } from '@/lib/action-state';
+import { serverEnv } from '@/lib/env';
 import { formDataToObject } from '@/lib/form-data';
 import { runTenantAction, section } from '@/lib/tenant-action';
 
@@ -208,5 +212,58 @@ export async function discardDraftOrderAction(
   return runTenantAction(slug, async ({ ctx, routes }) => {
     await discardDraftOrder(ctx, orderId);
     return { revalidate: section(routes.orders.list()), redirectTo: routes.orders.list() };
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Link pubblico per il cliente (ADR-056)
+// -----------------------------------------------------------------------------
+
+/** Crea il link (o lo rinnova con `renew=1`): il servizio ricontrolla permessi e stato. */
+export async function shareOrderLinkAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const renew = formData.get('renew') === '1';
+    await sharePublicLink(
+      ctx,
+      serverEnv().BETTER_AUTH_SECRET,
+      { kind: 'ORDER', id: orderId },
+      {
+        renew,
+      },
+    );
+    return {
+      revalidate: section(routes.orders.list()),
+      success: renew ? 'shareLink.renewed' : 'shareLink.created',
+    };
+  });
+}
+
+export async function revokeOrderLinkAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await revokePublicLink(ctx, { kind: 'ORDER', id: orderId });
+    return { revalidate: section(routes.orders.list()), success: 'shareLink.revoked' };
+  });
+}
+
+/** Repartidor di un ordine a domicilio (ADR-058); vuoto = nessuno. */
+export async function assignOrderAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await assignOrder(ctx, orderId, formData.get('assignee'));
+    return { revalidate: section(routes.orders.list()), success: 'orders.assign.saved' };
   });
 }

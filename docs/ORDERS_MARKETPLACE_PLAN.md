@@ -181,10 +181,10 @@ sull'indirizzo dell'ordine: si riempiono con Google Places quando c'è la chiave
 | Blocco | Contenuto                                                                                                                              |
 | ------ | -------------------------------------------------------------------------------------------------------------------------------------- |
 | **A1** | ✅ Ordini nel gestionale: modello dati, regole, servizi, Pedidos, Nuevo pedido, scheda, pagamenti, preventivo → ordine (ADR-054)       |
-| **A2** | Impostazioni di consegna (orari, fasce, costi per distanza, chiusure); coordinate negli indirizzi                                      |
-| **A3** | Stampa di comanda e tarjeta; link pubblici di ordine e preventivo; messaggi WhatsApp precompilati                                      |
-| **B1** | Calendario delle consegne, Hoy salen, Producción del día                                                                               |
-| **B2** | Ruta del día, repartidor, prova di consegna                                                                                            |
+| **A2** | 🟡 Impostazioni di consegna: fasce, chiusure e costo proposto fatti (ADR-055); costi per distanza e coordinate aspettano O-14          |
+| **A3** | ✅ Stampa di comanda e tarjeta; link pubblici di ordine e preventivo (con accettazione); WhatsApp con il link (ADR-056)                |
+| **B1** | ✅ Calendario delle consegne, Hoy salen, Producción del día (ADR-057)                                                                  |
+| **B2** | 🟡 Ruta del día e repartidor fatti (ADR-058); prova di consegna (foto e chi riceve) da fare                                            |
 | **C1** | Conto del cliente: registrazione divisa (cliente / fioreria), instradamento dopo il login, `/cuenta`, indirizzi (ADR dati del cliente) |
 | **C2** | Mi tienda en línea e pagina pubblica della fioreria (ADR catalogo pubblico)                                                            |
 | **C3** | Home per chi compra e ricerca per indirizzo                                                                                            |

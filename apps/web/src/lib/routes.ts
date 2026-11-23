@@ -93,7 +93,18 @@ export function tenantRoutes(slug: string) {
       /** "Nuevo pedido", eventualmente per un cliente o con il ramo di un disegno del Diseñador. */
       new: (query?: { readonly customerId?: string; readonly configurationId?: string | null }) =>
         withQuery(`${orders}/new`, query),
+      /** Il giorno: ordini per fascia e Producción del día (`date` = AAAA-MM-GG, senza = oggi). */
+      day: (query?: { readonly date?: string }) => withQuery(`${orders}/day`, query),
+      /** Ruta del día: consegne in ordine di fascia (`mine`: solo le proprie). */
+      route: (query?: { readonly date?: string; readonly mine?: boolean }) =>
+        withQuery(`${orders}/route`, query),
+      /** Producción del día da stampare. */
+      production: (query?: { readonly date?: string }) => withQuery(`${orders}/production`, query),
+      /** Il mese con gli ordini per giorno (`month` = AAAA-MM). */
+      calendar: (query?: { readonly month?: string }) => withQuery(`${orders}/calendar`, query),
       detail: (orderId: string) => `${orders}/${segment(orderId)}`,
+      /** Tarjeta da stampare (formato biglietto). */
+      card: (orderId: string) => `${orders}/${segment(orderId)}/card`,
       /** Immagine del ramo di una riga (`download`: si scarica, per allegarla su WhatsApp). */
       lineImage: (orderId: string, lineId: string, options?: { readonly download?: boolean }) =>
         withQuery(`${orders}/${segment(orderId)}/lines/${segment(lineId)}/image`, {

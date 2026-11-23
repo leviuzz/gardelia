@@ -137,36 +137,40 @@ enum RecordStatus {
 
 /// Una fioreria (merchant). Radice dell'isolamento dei dati.
 model Tenant {
-  id                    String       @id @default(uuid(7)) @db.Uuid
+  id                      String       @id @default(uuid(7)) @db.Uuid
   /// Identificativo URL (/app/{slug}); unico a livello di piattaforma.
-  slug                  String       @unique
-  displayName           String
-  legalName             String?
+  slug                    String       @unique
+  displayName             String
+  legalName               String?
   /// Identificativo fiscale locale (RFC in Messico). Facoltativo; uso fiscale DA VALIDARE.
-  taxId                 String?
+  taxId                   String?
   /// ISO 3166-1 alpha-2, es. "MX".
-  marketCountry         String       @db.Char(2)
+  marketCountry           String       @db.Char(2)
   /// ISO 4217, es. "MXN".
-  currency              String       @db.Char(3)
+  currency                String       @db.Char(3)
   /// IANA, es. "America/Mexico_City".
-  timezone              String
-  defaultLocale         String       @default("es-MX")
-  contactEmail          String?
-  contactPhone          String?
-  status                TenantStatus @default(ACTIVE)
-  mode                  TenantMode   @default(LIVE)
-  onboardingCompletedAt DateTime?
+  timezone                String
+  defaultLocale           String       @default("es-MX")
+  contactEmail            String?
+  contactPhone            String?
+  status                  TenantStatus @default(ACTIVE)
+  mode                    TenantMode   @default(LIVE)
+  onboardingCompletedAt   DateTime?
   /// Giorni di validità predefiniti di un nuovo preventivo.
-  quoteValidityDays     Int          @default(7)
+  quoteValidityDays       Int          @default(7)
   /// Cargo fisso per l'armado di un bouquet del Builder (unità minime); 0 = nessuno.
-  builderLaborFeeMinor  Int          @default(0)
+  builderLaborFeeMinor    Int          @default(0)
+  /// Giorni della settimana in cui la fioreria è chiusa (0 = domenica … 6 = sabato), ADR-055.
+  deliveryClosedWeekdays  Int[]        @default([])
+  /// Costo di consegna proposto nei nuovi ordini a domicilio (unità minime), ADR-055.
+  defaultDeliveryFeeMinor Int          @default(0)
   /// Promo delle date speciali (ADR-047): email automatica con sconto, spenta all'inizio.
-  occasionPromoEnabled  Boolean      @default(false)
-  occasionPromoKind     DiscountKind @default(PERCENT)
+  occasionPromoEnabled    Boolean      @default(false)
+  occasionPromoKind       DiscountKind @default(PERCENT)
   /// Percentuale intera (1–90) o importo in unità minime; null finché non si sceglie.
-  occasionPromoValue    Int?
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
+  occasionPromoValue      Int?
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
 
   locations         Location[]
   memberships       Membership[]
@@ -183,6 +187,7 @@ model Tenant {
   quotes            Quote[]
   quoteLines        QuoteLine[]
   orders            Order[]
+  deliveryWindows   DeliveryWindow[]
   orderLines        OrderLine[]
   orderPayments     OrderPayment[]
   orderEvents       OrderStatusEvent[]
@@ -197,6 +202,7 @@ model Tenant {
   catalogPhotos     CatalogItemPhoto[]
   styleReferences   StyleReferencePhoto[]
   promoEmails       OccasionPromoEmail[]
+  publicLinks       PublicLink[]
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -253,9 +259,11 @@ model Membership {
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
-  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user      User   @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade)
-  invitedBy User?  @relation("MembershipInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+  tenant         Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user           User    @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy      User?   @relation("MembershipInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+  /// Ordini da consegnare assegnati a questo membro (repartidor, ADR-058).
+  assignedOrders Order[]
 
   @@unique([tenantId, userId])
   @@unique([tenantId, id])
@@ -806,10 +814,11 @@ model Quote {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
-  tenant   Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customer Customer    @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
-  lines    QuoteLine[]
-  order    Order?
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer    Customer     @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
+  lines       QuoteLine[]
+  order       Order?
+  publicLinks PublicLink[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, number])
@@ -1294,6 +1303,8 @@ model Order {
   paymentStatus        OrderPaymentStatus @default(UNPAID)
   acquisitionSource    AcquisitionSource  @default(MERCHANT_DIRECT)
   cancelReason         String?
+  /// Chi porta l'ordine (repartidor): un membro della fioreria, ADR-058.
+  assignedMembershipId String?            @db.Uuid
   createdById          String?            @db.Uuid
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
@@ -1301,10 +1312,12 @@ model Order {
   tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   customer        Customer           @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
   quote           Quote?             @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Restrict)
+  assignedTo      Membership?        @relation(fields: [tenantId, assignedMembershipId], references: [tenantId, id], onDelete: Restrict)
   customerAddress CustomerAddress?   @relation(fields: [tenantId, customerAddressId], references: [tenantId, id], onDelete: Restrict)
   lines           OrderLine[]
   payments        OrderPayment[]
   events          OrderStatusEvent[]
+  publicLinks     PublicLink[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, number])
@@ -1312,6 +1325,7 @@ model Order {
   @@index([tenantId, status])
   @@index([tenantId, scheduledDate])
   @@index([tenantId, customerId])
+  @@index([tenantId, assignedMembershipId])
 }
 
 /// Righe dell'ordine: stesse regole e snapshot delle righe del preventivo (`QuoteLineKind`).
@@ -1390,4 +1404,51 @@ model OrderStatusEvent {
   order  Order  @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Cascade)
 
   @@index([tenantId, orderId, createdAt])
+}
+
+/// Fascia oraria di consegna o ritiro proposta nei form degli ordini (ADR-055). Configurazione,
+/// non dato commerciale: ogni ordine copia i propri minuti, quindi togliere una fascia non cambia
+/// gli ordini già fatti.
+model DeliveryWindow {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  tenantId     String   @db.Uuid
+  /// Minuti dalla mezzanotte nel fuso della fioreria.
+  startMinutes Int
+  endMinutes   Int
+  createdAt    DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, startMinutes, endMinutes])
+  @@index([tenantId])
+}
+
+/// Che cosa mostra un link pubblico (ADR-056).
+enum PublicLinkKind {
+  QUOTE
+  ORDER
+}
+
+/// Link pubblico di un preventivo (con accettazione) o di un ordine (stato), da mandare al cliente
+/// (ADR-056). Il token non si salva: è firmato dal server (fioreria + ID del link), quindi il
+/// fiorista può ricopiarlo quando vuole. Scade e si può disattivare; uno solo attivo per documento.
+model PublicLink {
+  id          String         @id @default(uuid(7)) @db.Uuid
+  tenantId    String         @db.Uuid
+  kind        PublicLinkKind
+  quoteId     String?        @db.Uuid
+  orderId     String?        @db.Uuid
+  createdById String?        @db.Uuid
+  createdAt   DateTime       @default(now())
+  expiresAt   DateTime
+  revokedAt   DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quote  Quote? @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Restrict)
+  order  Order? @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, quoteId])
+  @@index([tenantId, orderId])
 }
