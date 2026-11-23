@@ -4,6 +4,10 @@ import {
   availableQuantity,
   averageCostAfterReceipt,
   averageCostAfterRemoval,
+  bouquetMaterialCost,
+  bouquetShortages,
+  bouquetsMadeSchema,
+  bouquetsPossible,
   costDifferenceBps,
   parsePackQuantity,
   purchaseInputSchema,
@@ -412,5 +416,42 @@ describe('apartados con vencimiento (ADR-062)', () => {
       page: 1,
     });
     expect(reservationListFiltersSchema.parse({ view: 'closed', q: ' ana ' }).view).toBe('closed');
+  });
+});
+
+describe('ramos del catálogo (ADR-063)', () => {
+  it('quanti ramos: il minimo fra gli ingredienti controllati, mai un numero inventato', () => {
+    const lines = [
+      { quantity: 12, available: 50 }, // rose: 4 ramos
+      { quantity: 3, available: 20 }, // eucalipto: 6 ramos
+      { quantity: 1, available: null }, // carta comprata a richiesta: non limita
+    ];
+    expect(bouquetsPossible(lines)).toBe(4);
+    expect(bouquetShortages(lines, 5)).toEqual([10, 0, null]);
+    expect(bouquetsPossible([{ quantity: 12, available: -3 }])).toBe(0);
+    expect(bouquetsPossible([{ quantity: 1, available: null }])).toBeNull();
+    expect(bouquetsPossible([])).toBeNull();
+  });
+
+  it('costo dei materiali: previsto col catalogo, reale col costo medio dove c’è', () => {
+    expect(
+      bouquetMaterialCost([
+        { quantity: 12, realUnitCostMinor: 1200, catalogUnitCostMinor: 1000 },
+        { quantity: 1, realUnitCostMinor: null, catalogUnitCostMinor: 450 },
+      ]),
+    ).toEqual({ expectedMinor: 12_450, realMinor: 14_850, catalogFallbackLines: 1 });
+    // Un costo che manca dappertutto: nessun totale che sembri completo.
+    expect(
+      bouquetMaterialCost([
+        { quantity: 12, realUnitCostMinor: 1200, catalogUnitCostMinor: null },
+        { quantity: 1, realUnitCostMinor: null, catalogUnitCostMinor: null },
+      ]),
+    ).toEqual({ expectedMinor: null, realMinor: null, catalogFallbackLines: 1 });
+  });
+
+  it('ramos hechos: da 1 a 500, conferma solo se spuntata', () => {
+    expect(bouquetsMadeSchema.parse({ count: '3' })).toEqual({ count: 3, confirmShortage: false });
+    expect(bouquetsMadeSchema.safeParse({ count: '0' }).success).toBe(false);
+    expect(bouquetsMadeSchema.safeParse({ count: '501' }).success).toBe(false);
   });
 });

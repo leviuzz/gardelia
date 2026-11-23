@@ -8,6 +8,7 @@ import { ListResults } from '@/components/common/list/list-results';
 import { Forbidden } from '@/components/forbidden';
 import { InventoryTabs } from '@/components/inventory/inventory-ui';
 import { InventoryUpsell } from '@/components/inventory/inventory-upsell';
+import { InventoryMonthSummary } from '@/components/inventory/month-summary';
 import { MovementList } from '@/components/inventory/movement-list';
 import { EmptyState, PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,7 @@ export default async function InventoryMovementsPage({
         routes={routes}
         showPurchases={hasPermission(ctx, 'inventory:write')}
       />
+      <InventoryMonthSummary ctx={ctx} month={single(raw.month)} />
       <form
         method="get"
         action={routes.inventory.movements()}
