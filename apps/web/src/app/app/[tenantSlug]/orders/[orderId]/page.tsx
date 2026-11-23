@@ -17,6 +17,7 @@ import {
 } from '@floral/core';
 import {
   MX_REGIONS,
+  PHOTO_LIMITS,
   canShareOrder,
   isOrderFinal,
   getMarket,
@@ -44,8 +45,10 @@ import {
   recordPaymentAction,
   reversePaymentAction,
   revokeOrderLinkAction,
+  setOrderReceiverAction,
   shareOrderLinkAction,
   updateFulfillmentAction,
+  uploadOrderPhotoAction,
 } from '../actions';
 import {
   AssignForm,
@@ -56,6 +59,7 @@ import {
   ReversePaymentButton,
 } from '../order-forms';
 import { DraftOrderView } from './draft-order';
+import { HandoverPanel } from './handover-panel';
 import { OrderLinesEditor } from './order-lines';
 import { PrintOrderButton } from './print-button';
 
@@ -476,6 +480,45 @@ export default async function OrderPage({
               ) : null}
             </CardContent>
           </Card>
+          {order.handover.photo ||
+          order.handover.receivedBy ||
+          order.handover.canAddPhoto ||
+          order.handover.canSetReceiver ? (
+            <Card className="print:hidden">
+              <CardHeader>
+                <CardTitle>{t('orders.handover.title')}</CardTitle>
+                <CardDescription>{t('orders.handover.hint')}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <HandoverPanel
+                  photo={
+                    order.handover.photo
+                      ? {
+                          thumbUrl: routes.orders.photo(order.id, {
+                            thumb: true,
+                            v: order.handover.photo.id,
+                          }),
+                          fullUrl: routes.orders.photo(order.id, { v: order.handover.photo.id }),
+                          alt: t('orders.handover.photoAlt', { number: order.numberLabel }),
+                        }
+                      : null
+                  }
+                  upload={
+                    order.handover.canAddPhoto
+                      ? uploadOrderPhotoAction.bind(null, slug, order.id)
+                      : null
+                  }
+                  maxSide={PHOTO_LIMITS.clientMaxSide}
+                  receiver={{
+                    current: order.handover.receivedBy,
+                    action: order.handover.canSetReceiver
+                      ? setOrderReceiverAction.bind(null, slug, order.id)
+                      : null,
+                  }}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
 
         <div className="min-w-0 space-y-6">

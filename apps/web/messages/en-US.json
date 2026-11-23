@@ -114,7 +114,9 @@
       "delivery_window_exists": "You already have that time window.",
       "delivery_window_limit": "You’ve reached the maximum number of time windows.",
       "public_link_unavailable": "This document can’t be shared in its current status.",
-      "order_not_delivery": "Only home delivery orders have a driver."
+      "order_not_delivery": "Only home delivery orders have a driver.",
+      "order_not_ready": "The bouquet photo is uploaded once the order is ready.",
+      "order_not_handed_over": "Who received it is recorded after delivery or pickup."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -383,7 +385,9 @@
     "quote.accepted_online": "The customer accepted quote {number} from the link",
     "public_link.created": "{actor} shared the link for {number}",
     "public_link.revoked": "{actor} turned off the link for {number}",
-    "order.assigned": "{actor} changed the driver of {number}"
+    "order.assigned": "{actor} changed the driver of {number}",
+    "order.photo_added": "{actor} uploaded the bouquet photo for {number}",
+    "order.receiver_recorded": "{actor} recorded who received {number}"
   },
   "catalog": {
     "title": "Catalog",
@@ -1261,6 +1265,21 @@
       "nobody": "Not assigned",
       "save": "Save",
       "saved": "Driver updated."
+    },
+    "handover": {
+      "title": "Proof of delivery",
+      "hint": "A photo of the finished bouquet and who received it. The customer sees them in their tracking link.",
+      "photo": "Photo of the finished bouquet",
+      "photoHint": "Take it with your phone before it goes out or on delivery.",
+      "uploadPhoto": "Upload photo",
+      "changePhoto": "Change photo",
+      "cancel": "Cancel",
+      "noPhotoYet": "You can upload the photo once the order is ready.",
+      "receivedByLabel": "Who received it?",
+      "receivedBy": "Received by {name}.",
+      "save": "Save",
+      "saved": "Delivery recorded.",
+      "photoAlt": "Finished bouquet for order {number}"
     }
   },
   "plans": {
@@ -1791,7 +1810,10 @@
       "deliveryFee": "Delivery",
       "paid": "Paid",
       "balance": "Left to pay",
-      "contactText": "Hi, I have a question about order {number}."
+      "contactText": "Hi, I have a question about order {number}.",
+      "photoAlt": "Photo of your finished bouquet",
+      "photoCaption": "Here’s your bouquet",
+      "receivedBy": "Received by {name}."
     }
   },
   "shareLink": {

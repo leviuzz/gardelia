@@ -203,6 +203,7 @@ model Tenant {
   styleReferences   StyleReferencePhoto[]
   promoEmails       OccasionPromoEmail[]
   publicLinks       PublicLink[]
+  orderPhotos       OrderPhoto[]
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -1305,6 +1306,8 @@ model Order {
   cancelReason         String?
   /// Chi porta l'ordine (repartidor): un membro della fioreria, ADR-058.
   assignedMembershipId String?            @db.Uuid
+  /// Chi ha ricevuto il ramo alla consegna o al ritiro (prova di consegna, ADR-058).
+  handoverName         String?
   createdById          String?            @db.Uuid
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
@@ -1318,6 +1321,7 @@ model Order {
   payments        OrderPayment[]
   events          OrderStatusEvent[]
   publicLinks     PublicLink[]
+  photos          OrderPhoto[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, number])
@@ -1451,4 +1455,29 @@ model PublicLink {
   @@unique([tenantId, id])
   @@index([tenantId, quoteId])
   @@index([tenantId, orderId])
+}
+
+/// Foto del ramo finito di un ordine (prova di consegna, ADR-058): la scatta chi lo prepara o lo
+/// consegna, la vede la fioreria e il cliente dal suo link. Una sola attiva per ordine; cambiandola,
+/// la precedente si archivia. File privati sotto `tenants/{tenantId}/order-photos/`.
+model OrderPhoto {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  tenantId    String       @db.Uuid
+  orderId     String       @db.Uuid
+  storageKey  String
+  thumbKey    String
+  contentType String
+  width       Int
+  height      Int
+  sizeBytes   Int
+  status      RecordStatus @default(ACTIVE)
+  archivedAt  DateTime?
+  createdById String       @db.Uuid
+  createdAt   DateTime     @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order  Order  @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, orderId, status])
 }

@@ -114,7 +114,9 @@
       "delivery_window_exists": "Ya tienes esa franja.",
       "delivery_window_limit": "Llegaste al máximo de franjas.",
       "public_link_unavailable": "En su estado actual este documento no se puede compartir.",
-      "order_not_delivery": "Solo los pedidos a domicilio tienen repartidor."
+      "order_not_delivery": "Solo los pedidos a domicilio tienen repartidor.",
+      "order_not_ready": "La foto del ramo se sube cuando el pedido está listo.",
+      "order_not_handed_over": "Quién lo recibió se anota después de entregarlo o de que lo recojan."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -383,7 +385,9 @@
     "quote.accepted_online": "El cliente aceptó la cotización {number} desde el enlace",
     "public_link.created": "{actor} compartió el enlace de {number}",
     "public_link.revoked": "{actor} desactivó el enlace de {number}",
-    "order.assigned": "{actor} cambió el repartidor de {number}"
+    "order.assigned": "{actor} cambió el repartidor de {number}",
+    "order.photo_added": "{actor} subió la foto del ramo de {number}",
+    "order.receiver_recorded": "{actor} anotó quién recibió {number}"
   },
   "catalog": {
     "title": "Catálogo",
@@ -1261,6 +1265,21 @@
       "nobody": "Sin asignar",
       "save": "Guardar",
       "saved": "Repartidor actualizado."
+    },
+    "handover": {
+      "title": "Prueba de entrega",
+      "hint": "Una foto del ramo terminado y quién lo recibió. El cliente las ve en su enlace de seguimiento.",
+      "photo": "Foto del ramo terminado",
+      "photoHint": "Tómala con el teléfono antes de que salga o al entregarlo.",
+      "uploadPhoto": "Subir foto",
+      "changePhoto": "Cambiar foto",
+      "cancel": "Cancelar",
+      "noPhotoYet": "La foto se puede subir cuando el pedido esté listo.",
+      "receivedByLabel": "¿Quién lo recibió?",
+      "receivedBy": "Lo recibió {name}.",
+      "save": "Guardar",
+      "saved": "Entrega registrada.",
+      "photoAlt": "Ramo terminado del pedido {number}"
     }
   },
   "plans": {
@@ -1791,7 +1810,10 @@
       "deliveryFee": "Envío",
       "paid": "Pagado",
       "balance": "Por pagar",
-      "contactText": "Hola, tengo una pregunta sobre el pedido {number}."
+      "contactText": "Hola, tengo una pregunta sobre el pedido {number}.",
+      "photoAlt": "Foto de tu ramo terminado",
+      "photoCaption": "Así quedó tu ramo",
+      "receivedBy": "Lo recibió {name}."
     }
   },
   "shareLink": {

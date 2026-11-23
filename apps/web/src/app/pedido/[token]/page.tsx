@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { getPublicOrder } from '@floral/core';
 import { BRAND, DEFAULT_LOCALE, MX_REGIONS, type OrderStatus } from '@floral/domain';
+import { PrivateImage } from '@/components/common/private-image';
 import { PublicLines, PublicTotals } from '@/components/public/public-lines';
 import { PublicInvalidLink, PublicShell } from '@/components/public/public-shell';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -129,6 +130,30 @@ export default async function PublicOrderPage({ params }: PageProps<'/pedido/[to
           })}
         </ol>
       )}
+
+      {order.photoId || order.receivedBy ? (
+        <section className="space-y-3">
+          {order.photoId ? (
+            <figure className="space-y-2">
+              <a
+                href={`/pedido/${encodeURIComponent(token)}/foto?v=${order.photoId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <PrivateImage
+                  src={`/pedido/${encodeURIComponent(token)}/foto?size=thumb&v=${order.photoId}`}
+                  alt={t('order.photoAlt')}
+                  className="aspect-square w-full max-w-xs rounded-2xl border bg-muted object-cover"
+                />
+              </a>
+              <figcaption className="text-sm font-medium">{t('order.photoCaption')}</figcaption>
+            </figure>
+          ) : null}
+          {order.receivedBy ? (
+            <p className="text-sm">{t('order.receivedBy', { name: order.receivedBy })}</p>
+          ) : null}
+        </section>
+      ) : null}
 
       {address ? (
         <section className="space-y-1 text-sm">

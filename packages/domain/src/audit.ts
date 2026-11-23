@@ -92,6 +92,8 @@ export const AUDIT_ACTIONS = {
   orderDiscarded: 'order.discarded',
   orderDiscountChanged: 'order.discount_changed',
   orderAssigned: 'order.assigned',
+  orderPhotoAdded: 'order.photo_added',
+  orderReceiverRecorded: 'order.receiver_recorded',
   orderStatusChanged: 'order.status_changed',
   orderCancelled: 'order.cancelled',
   orderPaymentRecorded: 'order.payment_recorded',
