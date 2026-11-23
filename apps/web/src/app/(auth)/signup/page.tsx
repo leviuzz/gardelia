@@ -8,7 +8,7 @@ import { OAuthErrorAlert } from '@/components/auth/oauth-error-alert';
 import { authPath } from '@/lib/auth-paths';
 import { isGoogleLoginEnabled } from '@/lib/env';
 import { oauthErrorKey } from '@/lib/oauth-errors';
-import { isAccountPath } from '@/lib/routes';
+import { isAccountPath, legalRoutes } from '@/lib/routes';
 import { getSession, safeNextPath } from '@/lib/session';
 import { SignupForm } from './signup-form';
 
@@ -23,13 +23,16 @@ export default async function SignupPage({ searchParams }: PageProps<'/signup'>)
   if (await getSession()) redirect(next);
 
   const t = await getTranslations('auth');
+  const tLegal = await getTranslations('legal');
+  const buyer = isAccountPath(next);
+  const linkClass = 'font-medium text-primary hover:underline';
   const email = typeof params.email === 'string' ? params.email : '';
   const oauthError = oauthErrorKey(params.error);
   return (
     <AuthCard
       title={t('signupTitle')}
       // Chi arriva per "Mi cuenta" compra fiori; altrimenti apre una fioreria.
-      subtitle={isAccountPath(next) ? t('signupSubtitleBuyer') : t('signupSubtitle')}
+      subtitle={buyer ? t('signupSubtitleBuyer') : t('signupSubtitle')}
       footer={
         <>
           {t('haveAccount')}{' '}
@@ -55,6 +58,21 @@ export default async function SignupPage({ searchParams }: PageProps<'/signup'>)
           </>
         ) : null}
         <SignupForm next={next} defaultEmail={email} />
+        {/* Vale anche per "Continuar con Google": crea un account allo stesso modo (ADR-068). */}
+        <p className="text-center text-xs text-muted-foreground">
+          {tLegal.rich('signupNotice', {
+            terms: (chunks) => (
+              <Link href={buyer ? legalRoutes.buyerTerms : legalRoutes.terms} className={linkClass}>
+                {chunks}
+              </Link>
+            ),
+            privacy: (chunks) => (
+              <Link href={legalRoutes.privacy} className={linkClass}>
+                {chunks}
+              </Link>
+            ),
+          })}
+        </p>
       </div>
     </AuthCard>
   );

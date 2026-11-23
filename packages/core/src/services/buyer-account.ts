@@ -9,16 +9,21 @@
  */
 import { getDb, withUserContext, type TransactionClient } from '@floral/db';
 import {
+  AUDIT_ACTIONS,
   BUYER_LIMITS,
+  buyerAccountDeletionBlockers,
   buyerAddressSchema,
   buyerProfileSchema,
+  formatOrderNumber,
   freshCoordinates,
   isUuid,
   nextStoredPlace,
   toFieldErrors,
+  type BuyerAccountDeletionBlocker,
   type Coordinates,
   type MarketCountry,
 } from '@floral/domain';
+import { recordPlatformSecurityEvent } from '../audit';
 import { NotFoundError, ValidationError } from '../errors';
 
 export interface BuyerContext {
@@ -288,4 +293,149 @@ export async function listBuyerSearchAddresses(
     city: row.city,
     coordinates: freshCoordinates(row, now),
   }));
+}
+
+// -----------------------------------------------------------------------------
+// Diritti di chi compra (ADR-068): i suoi dati e la cancellazione del conto
+// -----------------------------------------------------------------------------
+
+interface BuyerOrderStatusRow {
+  readonly shop_name: string;
+  readonly number: number;
+  readonly status: string;
+  readonly fulfillment_mode: string;
+  readonly scheduled_date: Date | null;
+  readonly total_minor: number;
+  readonly currency: string;
+  readonly created_at: Date;
+}
+
+async function buyerOrderRows(tx: TransactionClient): Promise<BuyerOrderStatusRow[]> {
+  // L'utente viene solo dal contesto (`app_buyer_orders`, ADR-067).
+  return tx.$queryRaw<BuyerOrderStatusRow[]>`
+    SELECT shop_name, number, status, fulfillment_mode, scheduled_date, total_minor, currency,
+           created_at
+    FROM app_buyer_orders()`;
+}
+
+/** I dati della persona, in un documento da scaricare ("Descargar mis datos", diritto di accesso). */
+export interface BuyerDataExport {
+  readonly exportedAt: string;
+  readonly account: {
+    readonly name: string;
+    readonly email: string;
+    readonly language: string;
+    readonly createdAt: string;
+    readonly phone: string | null;
+  };
+  readonly addresses: readonly (Omit<BuyerAddressDto, 'id' | 'placeId'> & {
+    readonly status: string;
+    readonly createdAt: string;
+  })[];
+  readonly orders: readonly {
+    readonly shop: string;
+    readonly number: string;
+    readonly status: string;
+    readonly mode: string;
+    readonly scheduledDate: string | null;
+    readonly totalMinor: number;
+    readonly currency: string;
+    readonly createdAt: string;
+  }[];
+}
+
+export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExport> {
+  assertBuyer(ctx);
+  return withUserContext(getDb(), ctx.userId, async (tx) => {
+    const [user, profile, addresses, orders] = await Promise.all([
+      tx.user.findUniqueOrThrow({
+        where: { id: ctx.userId },
+        select: { name: true, email: true, locale: true, createdAt: true },
+      }),
+      tx.buyerProfile.findUnique({ where: { userId: ctx.userId }, select: { phone: true } }),
+      // Tutti, anche quelli tolti dalla rubrica: sono dati che conserviamo.
+      tx.buyerAddress.findMany({
+        where: { userId: ctx.userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          label: true,
+          recipientName: true,
+          recipientPhone: true,
+          addressLine1: true,
+          addressLine2: true,
+          neighborhood: true,
+          city: true,
+          region: true,
+          postalCode: true,
+          deliveryNotes: true,
+          isDefault: true,
+          status: true,
+          createdAt: true,
+        },
+      }),
+      buyerOrderRows(tx),
+    ]);
+    return {
+      exportedAt: new Date().toISOString(),
+      account: {
+        name: user.name,
+        email: user.email,
+        language: user.locale,
+        createdAt: user.createdAt.toISOString(),
+        phone: profile?.phone ?? null,
+      },
+      addresses: addresses.map((address) => ({
+        ...address,
+        createdAt: address.createdAt.toISOString(),
+      })),
+      orders: orders.map((order) => ({
+        shop: order.shop_name,
+        number: formatOrderNumber(order.number),
+        status: order.status,
+        mode: order.fulfillment_mode,
+        scheduledDate: order.scheduled_date
+          ? order.scheduled_date.toISOString().slice(0, 10)
+          : null,
+        totalMinor: order.total_minor,
+        currency: order.currency.trim(),
+        createdAt: order.created_at.toISOString(),
+      })),
+    };
+  });
+}
+
+/**
+ * Cosa impedisce di eliminare da soli il conto (vuoto = si può). Lo usano la pagina, per spiegarlo,
+ * e la cancellazione stessa, che lo ricontrolla subito prima di cancellare.
+ */
+export async function getBuyerAccountDeletionBlockers(
+  ctx: Pick<BuyerContext, 'userId'>,
+): Promise<BuyerAccountDeletionBlocker[]> {
+  if (!isUuid(ctx.userId)) throw new TypeError('BuyerContext senza un utente valido');
+  return withUserContext(getDb(), ctx.userId, async (tx) => {
+    const [memberships, user, orders] = await Promise.all([
+      // Anche quelle disattivate: il conto regge la storia della fioreria.
+      tx.membership.count({ where: { userId: ctx.userId } }),
+      tx.user.findUniqueOrThrow({ where: { id: ctx.userId }, select: { platformRole: true } }),
+      buyerOrderRows(tx),
+    ]);
+    return buyerAccountDeletionBlockers({
+      memberships,
+      platformRole: user.platformRole,
+      orderStatuses: orders.map((order) => order.status),
+    });
+  });
+}
+
+/**
+ * Registro (di piattaforma, senza dati personali) della cancellazione di un conto cliente: lo
+ * chiama l'autenticazione dopo aver cancellato la persona.
+ */
+export async function recordBuyerAccountDeleted(userId: string): Promise<void> {
+  await recordPlatformSecurityEvent({
+    action: AUDIT_ACTIONS.platformBuyerAccountDeleted,
+    actorUserId: userId,
+    entityType: 'User',
+    entityId: userId,
+  });
 }

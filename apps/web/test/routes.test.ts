@@ -3,6 +3,7 @@ import {
   accountRoutes,
   buyerRoutes,
   isAccountPath,
+  legalRoutes,
   publicStoreRoutes,
   tenantRoutes,
   withQuery,
@@ -139,5 +140,18 @@ describe('conto del cliente (routes.ts)', () => {
     expect(isAccountPath(store.home)).toBe(false);
     expect(isAccountPath('/f/las-camelias/pedidos')).toBe(false);
     expect(buyerRoutes.fromSearch('las-camelias')).toBe('/buscar/ir/las-camelias');
+  });
+
+  it('privacy di chi compra e documenti legali (ADR-068)', () => {
+    expect(accountRoutes.deleteConfirm('abc123')).toBe('/cuenta/eliminar?token=abc123');
+    expect(isAccountPath(accountRoutes.deleteConfirm('abc123'))).toBe(true);
+    expect(isAccountPath(accountRoutes.data)).toBe(true);
+    // Dopo la cancellazione non c'è più sessione: pagina pubblica, fuori da "Mi cuenta".
+    expect(isAccountPath(accountRoutes.deleted)).toBe(false);
+    expect(Object.values(legalRoutes)).toEqual([
+      '/privacidad',
+      '/terminos',
+      '/terminos/compradores',
+    ]);
   });
 });

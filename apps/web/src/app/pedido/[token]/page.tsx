@@ -11,6 +11,7 @@ import {
 } from '@floral/domain';
 import { PrivateImage } from '@/components/common/private-image';
 import { PublicLines, PublicTotals } from '@/components/public/public-lines';
+import { LegalLinks } from '@/components/legal/legal-links';
 import { PublicInvalidLink, PublicShell } from '@/components/public/public-shell';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { serverEnv } from '@/lib/env';
@@ -73,6 +74,7 @@ export default async function PublicOrderPage({
     <PublicShell
       shopName={order.shop.name}
       footer={footer}
+      legal={order.online ? <LegalLinks audience="buyer" locale={locale} /> : null}
       contact={
         order.shop.phone
           ? {

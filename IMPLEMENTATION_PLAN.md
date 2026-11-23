@@ -558,6 +558,22 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Documenti legali e diritti di chi compra, blocco C5 (fatto il 23/11, ADR-068):** bozza aggiornata
+dell'aviso de privacidad (chi compra, dati degli ordini e di chi riceve, condivisione con la fioreria,
+cookie dell'attribuzione) e nuova bozza dei **termini per chi compra**, senza regole di legge inventate
+(`[validar]` e domande 12–17 per l'avvocato in `docs/legal/README.md`). Pagine `/privacidad`, `/terminos`,
+`/terminos/compradores` con il riquadro "BORRADOR" (testi copiati da `docs/legal` con `legal:sync`, un
+test li tiene allineati; markdown reso senza HTML iniettato); link in fondo alle pagine pubbliche, avviso
+con i link in registrazione e nel pedido, versione dei testi registrata con ogni ordine online. In "Mi
+cuenta": "Descargar mis datos" (JSON) ed "Eliminar mi cuenta" con conferma per email (Better Auth),
+bloccata per chi ha una fioreria o ordini in corso; gli ordini restano alle fiorerie senza il
+collegamento. Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test 820/820 ✅ (10 nuovi: 2 di
+dominio, 4 d'integrazione su scarico, blocchi e cancellazione reale col ruolo dell'app, 4 del web) · build
+✅ · E2E 86/86 ✅ (1 nuovo: pagine legali, scarico dei dati e cancellazione confermata per email);
+controllo visivo a 320 e 1280 px. **Prima della produzione:** revisione dell'avvocato dei testi. Prossimi:
+costo di consegna per distanza; scarico dell'inventario dagli ordini; esportazione e cancellazione per le
+fiorerie.
+
 **Ordine del cliente dalla tienda en línea, blocco C4 (fatto il 23/11, ADR-067):** in Tienda en línea
 "Pedidos en línea" (interruttore, anticipo minimo 0–14 giorni; servono una forma di pagamento e il telefono).
 Con gli ordini accesi la pagina della fioreria e quella del prodotto mostrano "Hacer un pedido" / "Pedir en

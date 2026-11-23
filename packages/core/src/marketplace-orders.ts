@@ -15,6 +15,7 @@ import { getDb, withTenantContext, withUserContext, type TransactionClient } fro
 import {
   AUDIT_ACTIONS,
   EMPTY_PLACE,
+  LEGAL_VERSION,
   MARKETPLACE_DATE_ERRORS,
   MARKETPLACE_EXPIRED_REASON,
   MARKETPLACE_ORDER_LIMITS,
@@ -523,6 +524,8 @@ export async function placeMarketplaceOrder(
             mode: input.fulfillmentMode,
             source: acquisitionSource,
             newCustomer: existing === null,
+            // Versione dei termini e dell'aviso accettati inviando l'ordine (ADR-068).
+            termsVersion: LEGAL_VERSION,
           },
           requestId: options.request?.requestId ?? null,
           ipAddress: options.request?.ipAddress ?? null,

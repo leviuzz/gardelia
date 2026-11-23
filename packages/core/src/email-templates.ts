@@ -127,6 +127,37 @@ export function invitationEmail(input: {
   };
 }
 
+/** Conferma della cancellazione del conto cliente (ADR-068): niente si cancella senza il clic. */
+export function deleteAccountEmail(input: { to: string; name: string; url: string }): EmailMessage {
+  const footer =
+    'El enlace vence en 24 horas. Si no pediste eliminar tu cuenta, ignora este mensaje: tu cuenta sigue igual.';
+  return {
+    to: input.to,
+    category: 'account_deletion',
+    subject: `Confirma que quieres eliminar tu cuenta de ${BRAND.productName}`,
+    text: [
+      `Hola ${input.name}:`,
+      '',
+      `Recibimos tu solicitud para eliminar tu cuenta de ${BRAND.productName}. Para confirmarla, abre este enlace:`,
+      input.url,
+      '',
+      'Se borrarán tu nombre, tu correo, tu teléfono y tus direcciones guardadas. Los pedidos que hiciste siguen en las florerías que los atendieron.',
+      '',
+      footer,
+    ].join('\n'),
+    html: layout(
+      'Confirma que quieres eliminar tu cuenta',
+      [
+        `Hola ${escapeHtml(input.name)}:`,
+        `Recibimos tu solicitud para eliminar tu cuenta de ${escapeHtml(BRAND.productName)}.`,
+        'Se borrarán tu nombre, tu correo, tu teléfono y tus direcciones guardadas. Los pedidos que hiciste siguen en las florerías que los atendieron.',
+      ],
+      { label: 'Eliminar mi cuenta', url: input.url },
+      footer,
+    ),
+  };
+}
+
 // -----------------------------------------------------------------------------
 // Ordini dalla tienda en línea (ADR-067). Nella lingua del mercato della fioreria (es-MX).
 // -----------------------------------------------------------------------------

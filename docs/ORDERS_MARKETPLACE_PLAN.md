@@ -189,7 +189,7 @@ sull'indirizzo dell'ordine: si riempiono con Google Places (ADR-059), le coordin
 | **C2** | ✅ Mi tienda en línea e pagina pubblica della fioreria con i prodotti, logo e copertina, contatto WhatsApp (ADR-065)                              |
 | **C3** | ✅ Home per chi compra, `/floristas` e ricerca delle fiorerie per città o indirizzo (ADR-066)                                                     |
 | **C4** | ✅ Ordine del cliente, accettazione del fiorista, pagamento diretto, stato, email, scadenza e attribuzione (ADR-067)                              |
-| **C5** | Pagine legali per i consumatori e privacy di chi compra nell'app                                                                                  |
+| **C5** | ✅ Pagine legali (bozze da rivedere) per chi compra e privacy nell'app: scaricare i dati ed eliminare il conto (ADR-068)                          |
 
 Ogni blocco segue la definizione di finito di CLAUDE.md §7 (test con isolamento A↔B, testi in tre
 lingue, 320 px, CI verde) e va su staging quando è finito. Dopo la V1: "Diseña tu ramo" pubblico,

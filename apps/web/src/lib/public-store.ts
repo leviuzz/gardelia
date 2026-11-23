@@ -24,5 +24,6 @@ export async function storeShellProps(
         }
       : null,
     footer: t('footer', { brand: BRAND.productName }),
+    locale: store.locale,
   };
 }

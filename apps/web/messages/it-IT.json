@@ -213,7 +213,6 @@
     "haveAccount": "Hai già un account?",
     "goToSignup": "Registrati",
     "goToLogin": "Accedi",
-    "termsNote": "Creando un account accetti che trattiamo i tuoi dati per fornirti il servizio. I termini e l’informativa sulla privacy definitivi saranno pubblicati prima del lancio commerciale.",
     "checkEmailTitle": "Controlla la tua email",
     "checkEmailBody": "Se l’indirizzo è corretto, ti abbiamo inviato un link per confermare la tua email. Aprilo per attivare il tuo account.",
     "checkEmailHint": "Non è arrivata? Controlla la cartella spam o riprova tra qualche minuto.",
@@ -332,6 +331,39 @@
         "PICKED_UP": "Ritirato",
         "CANCELLED": "Annullato",
         "DRAFT": "Bozza"
+      }
+    },
+    "privacy": {
+      "title": "I tuoi dati e la tua privacy",
+      "subtitle": "Come usiamo i tuoi dati è nell’<privacy>Informativa sulla privacy</privacy>. Qui puoi scaricarli o eliminare il tuo account.",
+      "download": "Scarica i miei dati",
+      "downloadHint": "Un file con il tuo account, i tuoi indirizzi e i tuoi ordini.",
+      "delete": "Elimina il mio account",
+      "deleteTitle": "Eliminare il tuo account?",
+      "deleteIntro": "Prima di farlo, tieni presente:",
+      "deleteWhat": "Si cancellano il tuo nome, la tua email, il tuo telefono e i tuoi indirizzi salvati, e non potrai più entrare.",
+      "deleteOrders": "Gli ordini che hai fatto restano alle fiorerie che li hanno gestiti: per quei dati, contatta la fioreria.",
+      "deleteEmail": "Ti mandiamo un’email per confermarlo: non si cancella nulla finché non apri il link.",
+      "deleteSend": "Invia l’email di conferma",
+      "emailSent": "Ti abbiamo mandato un’email. Apri il link (scade tra 24 ore) per eliminare il tuo account.",
+      "cannotDelete": "Per ora non puoi eliminare il tuo account da qui:",
+      "blockers": {
+        "shop_member": "Il tuo account fa parte anche di una fioreria. Eliminare questi account non è ancora possibile nell’app.",
+        "platform_role": "Gli account di amministrazione della piattaforma non si eliminano da qui.",
+        "orders_in_progress": "Hai ordini in corso: potrai eliminare il tuo account quando saranno consegnati o annullati."
+      },
+      "confirmTitle": "Elimina il tuo account",
+      "confirmBody": "È l’ultimo passo: confermando, cancelliamo il tuo account, il tuo telefono e i tuoi indirizzi salvati. Non si può annullare.",
+      "confirmDelete": "Sì, elimina il mio account",
+      "keepAccount": "No, tieni il mio account",
+      "deletedTitle": "Il tuo account è stato eliminato",
+      "deletedBody": "Abbiamo cancellato il tuo account, il tuo telefono e i tuoi indirizzi. Gli ordini che hai fatto restano alle fiorerie che li hanno gestiti.",
+      "backHome": "Vai all’inizio",
+      "errors": {
+        "blocked": "Ora non si può eliminare il tuo account: guarda i motivi nel tuo account.",
+        "tooMany": "Hai già chiesto di eliminare il tuo account poco fa. Controlla la tua email o riprova tra qualche minuto.",
+        "invalidLink": "Questo link non è più valido. Chiedine uno nuovo dal tuo account.",
+        "generic": "Non siamo riusciti a completare la richiesta. Riprova."
       }
     }
   },
@@ -2820,6 +2852,15 @@
       "closed": "Questa fioreria per ora non riceve ordini online.",
       "pending_limit": "Hai già 3 ordini in attesa di risposta da questa fioreria. Aspetta che ti rispondano o scrivi loro."
     },
-    "totalWithoutDelivery": "Totale senza consegna"
+    "totalWithoutDelivery": "Totale senza consegna",
+    "acceptTerms": "Inviando l’ordine accetti i <terms>Termini per chi compra</terms> e l’<privacy>Informativa sulla privacy</privacy>."
+  },
+  "legal": {
+    "linksLabel": "Documenti legali",
+    "privacy": "Informativa sulla privacy",
+    "terms": "Termini per le fiorerie",
+    "buyerTerms": "Termini per chi compra",
+    "spanishOnly": "Questo documento è disponibile solo in spagnolo, la lingua del mercato.",
+    "signupNotice": "Creando l’account accetti i <terms>Termini</terms> e l’<privacy>Informativa sulla privacy</privacy>."
   }
 }

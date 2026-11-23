@@ -35,7 +35,12 @@ export {
   type EmailMessage,
   type Mailer,
 } from './mailer';
-export { invitationEmail, passwordResetEmail, verificationEmail } from './email-templates';
+export {
+  deleteAccountEmail,
+  invitationEmail,
+  passwordResetEmail,
+  verificationEmail,
+} from './email-templates';
 export { occasionPromoEmail, type PromoEmailInput } from './promo-email';
 export {
   createUnsubscribeToken,

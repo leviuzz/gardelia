@@ -13,6 +13,7 @@ export * from './exact-preview';
 export * from './i18n';
 export * from './ids';
 export * from './inventory';
+export * from './legal';
 export * from './markets';
 export * from './marketplace-order';
 export * from './online-store';
