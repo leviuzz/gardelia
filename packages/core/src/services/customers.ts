@@ -17,6 +17,7 @@ import {
   customerListFiltersSchema,
   isUuid,
   nextOccurrence,
+  nextStoredPlace,
   occasionInputListSchema,
   occasionSchema,
   toFieldErrors,
@@ -55,6 +56,8 @@ export interface CustomerAddressDto {
   readonly postalCode: string;
   readonly deliveryNotes: string | null;
   readonly isDefault: boolean;
+  /** Google Places (ADR-059): presente se l'indirizzo è stato scelto fra i suggerimenti. */
+  readonly placeId: string | null;
 }
 
 export interface CustomerOccasionDto {
@@ -113,6 +116,7 @@ function toAddressDto(address: Prisma.CustomerAddressGetPayload<object>): Custom
     postalCode: address.postalCode,
     deliveryNotes: address.deliveryNotes,
     isDefault: address.isDefault,
+    placeId: address.placeId,
   };
 }
 
@@ -399,6 +403,11 @@ async function loadCustomer(tx: TransactionClient, ctx: TenantContext, customerI
   });
 }
 
+/** Campi di Google Places del form (nascosti, li compila la ricerca dell'indirizzo). */
+function placeFields(rawInput: unknown): Record<string, unknown> {
+  return rawInput && typeof rawInput === 'object' ? (rawInput as Record<string, unknown>) : {};
+}
+
 function parseAddress(ctx: TenantContext, rawInput: unknown) {
   const parsed = customerAddressSchema(ctx.country).safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
@@ -430,7 +439,15 @@ export async function addCustomerAddress(
       });
     }
     const address = await tx.customerAddress.create({
-      data: { tenantId: ctx.tenantId, customerId, ...input, isDefault, countryCode: ctx.country },
+      data: {
+        tenantId: ctx.tenantId,
+        customerId,
+        ...input,
+        // Google Places (ADR-059): solo se l'indirizzo è stato scelto fra i suggerimenti.
+        ...nextStoredPlace(placeFields(rawInput), null, new Date()),
+        isDefault,
+        countryCode: ctx.country,
+      },
     });
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.customerAddressAdded,
@@ -467,7 +484,11 @@ export async function updateCustomerAddress(
     await tx.customerAddress.update({
       where: { id: address.id },
       // Non si può togliere il flag all'unico predefinito senza sceglierne un altro.
-      data: { ...input, isDefault: input.isDefault || address.isDefault },
+      data: {
+        ...input,
+        ...nextStoredPlace(placeFields(rawInput), address, new Date()),
+        isDefault: input.isDefault || address.isDefault,
+      },
     });
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.customerAddressUpdated,

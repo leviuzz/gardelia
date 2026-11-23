@@ -30,6 +30,8 @@ export interface AddressView {
   readonly postalCode: string;
   readonly deliveryNotes: string | null;
   readonly isDefault: boolean;
+  /** Google Places (ADR-059): resta se l'indirizzo non viene corretto a mano. */
+  readonly placeId: string | null;
   readonly updateAction: Action;
   readonly archiveAction: Action;
 }

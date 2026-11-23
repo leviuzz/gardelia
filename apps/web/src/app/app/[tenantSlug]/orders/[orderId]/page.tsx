@@ -461,6 +461,7 @@ export default async function OrderPage({
                             postalCode: delivery.postalCode,
                             city: delivery.city,
                             region: delivery.region,
+                            placeId: delivery.placeId ?? '',
                           }
                         : { region: 'AGU' },
                       recipientName: order.recipientName ?? '',

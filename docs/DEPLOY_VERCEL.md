@@ -17,13 +17,14 @@ avrà nomi propri (`gardelia-production`).
 
 ## 1. Account da creare (tutti gratuiti, a tuo nome)
 
-| Servizio   | A cosa serve                          | Piano                                            |
-| ---------- | ------------------------------------- | ------------------------------------------------ |
-| Vercel     | ospita l'app                          | Hobby, accesso con GitHub                        |
-| Neon       | database                              | Free                                             |
-| Cloudflare | archivio delle foto (R2)              | gratuito (serve una carta, ma 10 GB sono gratis) |
-| Resend     | email (conferma dell'account, inviti) | Free                                             |
-| fal.ai     | immagini AI                           | credito prepagato (es. 10 USD)                   |
+| Servizio     | A cosa serve                          | Piano                                             |
+| ------------ | ------------------------------------- | ------------------------------------------------- |
+| Vercel       | ospita l'app                          | Hobby, accesso con GitHub                         |
+| Neon         | database                              | Free                                              |
+| Cloudflare   | archivio delle foto (R2)              | gratuito (serve una carta, ma 10 GB sono gratis)  |
+| Resend       | email (conferma dell'account, inviti) | Free                                              |
+| fal.ai       | immagini AI                           | credito prepagato (es. 10 USD)                    |
+| Google Cloud | ricerca degli indirizzi (facoltativa) | a consumo, con quota gratuita mensile (sezione 9) |
 
 ## 2. Database (Neon)
 
@@ -158,6 +159,7 @@ ricomponi `DATABASE_URL`.
    | `AI_MONTHLY_BUDGET_USD`                                                  | per esempio `10`                                             |
    | `CRON_SECRET`                                                            | segreto generato (sezione 6), diverso dagli altri            |
    | `ENABLE_EXPERIMENTAL_COREPACK`                                           | `1` (la build usa la stessa versione di pnpm del repository) |
+   | `GOOGLE_MAPS_API_KEY`                                                    | facoltativa, sezione 9 (si può aggiungere anche dopo)        |
 
    Elenco completo e regole: `docs/CONFIGURATION.md`.
 
@@ -228,7 +230,44 @@ variabili da sistemare.
      staff).
    - Poi entra con la sua password. Conferma solo persone che conosci.
 
-## 9. Se qualcosa non va
+## 9. Ricerca degli indirizzi (Google Places, facoltativa)
+
+Con la chiave, nei form degli indirizzi (clienti, pedidos, tienda) compare **"Buscar dirección"**:
+si scrive l'inizio dell'indirizzo, si sceglie un suggerimento e i campi si compilano da soli. Le
+coordinate servono a ordinare la **Ruta del día** per vicinanza (ADR-059). Senza chiave tutto
+funziona lo stesso, a mano.
+
+1. **Progetto su Google Cloud:** su [console.cloud.google.com](https://console.cloud.google.com),
+   in alto **Select a project → New project**, nome `gardelia-staging`. Serve un account di
+   fatturazione con una carta (**Billing**): Google lo chiede anche se si resta nella quota
+   gratuita.
+2. **Attiva solo l'API giusta:** **APIs & Services → Library**, cerca **Places API (New)** →
+   **Enable**. Non serve nient'altro (niente Maps JavaScript API: la mappa la apre Google Maps).
+3. **Crea la chiave:** **APIs & Services → Credentials → Create credentials → API key**. Poi
+   **Edit API key**:
+   - **API restrictions → Restrict key** → spunta solo **Places API (New)** → **Save**;
+   - **Application restrictions:** lascia **None**. La chiave la usa solo il server dell'app
+     (mai il browser) e i server di Vercel non hanno un indirizzo fisso da indicare.
+4. **Metti un tetto alle richieste:** **APIs & Services → Places API (New) → Quotas**, modifica
+   i limiti **al giorno** per l'autocompletamento e per i dettagli (es. 300 ciascuno per lo
+   staging). Oltre il limite la ricerca si ferma per quel giorno e gli indirizzi si scrivono a
+   mano: nessun costo a sorpresa.
+5. **Avviso di spesa:** **Billing → Budgets & alerts → Create budget**, 10 USD con l'email
+   d'avviso. È solo un avviso (il tetto vero è il punto 4).
+6. **Su Vercel:** **Settings → Environment Variables**, aggiungi `GOOGLE_MAPS_API_KEY` con la
+   chiave (ambiente "Production"), poi **Deployments → ⋯ → Redeploy**. In locale va nel tuo file
+   `.env`, mai nel repository.
+
+**Costi (listino di Google dal 1° marzo 2025, da ricontrollare sul loro sito):** ogni ricerca
+completata costa una "Place Details Essentials", con circa 10.000 gratuite al mese per tutta la
+piattaforma; i suggerimenti mostrati mentre si scrive non si pagano quando la ricerca finisce con
+un indirizzo scelto. Con i volumi di una fioreria si resta di solito nella quota gratuita.
+
+**Regole di Google già rispettate dal codice:** sotto i suggerimenti c'è la scritta "Google Maps";
+le coordinate si tengono al massimo 30 giorni e poi si cancellano ogni notte (il place ID si può
+tenere); la chiave non arriva mai al browser.
+
+## 10. Se qualcosa non va
 
 - **"Internal Server Error" su ogni pagina:** l'app non è partita. In **Logs** cerca
   "Configurazione non valida": elenca le variabili da sistemare (nome e regola, mai il valore).
@@ -247,7 +286,7 @@ variabili da sistemare.
 - **La prima apertura dopo una pausa è più lenta** (circa un secondo): il database gratuito si
   spegne quando nessuno lo usa e si riaccende da solo. È normale.
 
-## 10. Più avanti
+## 11. Più avanti
 
 - **Entrano i tester:** Vercel Pro (20 USD/mese, regole d'uso commerciale) e una whitelist delle
   email che possono registrarsi.

@@ -87,6 +87,7 @@ export function LocationForm({
     postalCode: string;
     phone: string;
     deliveryRadiusKm: string;
+    placeId: string;
   };
   regions: readonly { code: string; name: string }[];
 }) {

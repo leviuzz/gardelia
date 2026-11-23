@@ -16,8 +16,8 @@ Fonti: spec §5.5 (ORD-01), §9.1 (B2C-01), §6 (AI-BQ-10); `docs/V1_SCOPE.md`; 
   comunica al cliente come pagare (trasferimento, contanti alla consegna, link di pagamento).
 - **Ruta del día gratuita** (D-27): ordine delle fermate calcolato da noi, navigazione con i link di
   Google Maps; nessun tracciamento in tempo reale.
-- **Indirizzi a mano finché non c'è la chiave di Google Places** (O-14); il componente degli
-  indirizzi è predisposto per l'autocompletamento.
+- **Indirizzi con Google Places** (ADR-059, deciso dal founder il 23/11/2026): "Buscar dirección"
+  quando c'è la chiave, altrimenti a mano come prima.
 
 ## 2. Tre parti, un solo ordine
 
@@ -174,22 +174,22 @@ Tabelle di piattaforma (marketplace, ADR dedicato): profilo del cliente, indiriz
 collegamento cliente-utente ↔ cliente del CRM di ogni fioreria.
 
 Coordinate (`latitude`, `longitude`, `placeId`) facoltative su `Location`, `CustomerAddress` e
-sull'indirizzo dell'ordine: si riempiono con Google Places quando c'è la chiave (O-14).
+sull'indirizzo dell'ordine: si riempiono con Google Places (ADR-059), le coordinate per 30 giorni.
 
 ## 8. Ordine di lavoro
 
-| Blocco | Contenuto                                                                                                                              |
-| ------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **A1** | ✅ Ordini nel gestionale: modello dati, regole, servizi, Pedidos, Nuevo pedido, scheda, pagamenti, preventivo → ordine (ADR-054)       |
-| **A2** | 🟡 Impostazioni di consegna: fasce, chiusure e costo proposto fatti (ADR-055); costi per distanza e coordinate aspettano O-14          |
-| **A3** | ✅ Stampa di comanda e tarjeta; link pubblici di ordine e preventivo (con accettazione); WhatsApp con il link (ADR-056)                |
-| **B1** | ✅ Calendario delle consegne, Hoy salen, Producción del día (ADR-057)                                                                  |
-| **B2** | ✅ Ruta del día, repartidor e prova di consegna (foto del ramo e chi riceve) (ADR-058)                                                 |
-| **C1** | Conto del cliente: registrazione divisa (cliente / fioreria), instradamento dopo il login, `/cuenta`, indirizzi (ADR dati del cliente) |
-| **C2** | Mi tienda en línea e pagina pubblica della fioreria (ADR catalogo pubblico)                                                            |
-| **C3** | Home per chi compra e ricerca per indirizzo                                                                                            |
-| **C4** | Ordine del cliente, accettazione del fiorista, pagamento diretto, stato, email al cliente (ADR ordine da fuori)                        |
-| **C5** | Pagine legali per i consumatori e privacy di chi compra nell'app                                                                       |
+| Blocco | Contenuto                                                                                                                                         |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A1** | ✅ Ordini nel gestionale: modello dati, regole, servizi, Pedidos, Nuevo pedido, scheda, pagamenti, preventivo → ordine (ADR-054)                  |
+| **A2** | 🟡 Impostazioni di consegna: fasce, chiusure e costo proposto fatti (ADR-055); coordinate con Google Places (ADR-059); costi per distanza da fare |
+| **A3** | ✅ Stampa di comanda e tarjeta; link pubblici di ordine e preventivo (con accettazione); WhatsApp con il link (ADR-056)                           |
+| **B1** | ✅ Calendario delle consegne, Hoy salen, Producción del día (ADR-057)                                                                             |
+| **B2** | ✅ Ruta del día, repartidor e prova di consegna (foto del ramo e chi riceve) (ADR-058)                                                            |
+| **C1** | Conto del cliente: registrazione divisa (cliente / fioreria), instradamento dopo il login, `/cuenta`, indirizzi (ADR dati del cliente)            |
+| **C2** | Mi tienda en línea e pagina pubblica della fioreria (ADR catalogo pubblico)                                                                       |
+| **C3** | Home per chi compra e ricerca per indirizzo                                                                                                       |
+| **C4** | Ordine del cliente, accettazione del fiorista, pagamento diretto, stato, email al cliente (ADR ordine da fuori)                                   |
+| **C5** | Pagine legali per i consumatori e privacy di chi compra nell'app                                                                                  |
 
 Ogni blocco segue la definizione di finito di CLAUDE.md §7 (test con isolamento A↔B, testi in tre
 lingue, 320 px, CI verde) e va su staging quando è finito. Dopo la V1: "Diseña tu ramo" pubblico,

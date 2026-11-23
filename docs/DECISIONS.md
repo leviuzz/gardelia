@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 23 novembre 2026 (inventario, ADR-060 e ADR-061; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 23 novembre 2026 (Google Places, ADR-059; inventario, ADR-060 e ADR-061; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -1252,8 +1252,9 @@ Blocco A2 di `docs/ORDERS_MARKETPLACE_PLAN.md`, senza la parte che richiede le c
   ordini a domicilio (conversione dal preventivo e borrador); si cambia in ogni ordine e resta
   congelato nell'ordine.
 - **Non fatto, di proposito:** costo per distanza (fasce in km) e raggio massimo hanno bisogno delle
-  coordinate degli indirizzi, cioè di Google Places (O-14): finché non c'è non mostriamo nulla che
-  finga di calcolarli. Il preavviso minimo serve solo agli ordini del marketplace e arriva con C4.
+  coordinate degli indirizzi: ora arrivano da Google Places (ADR-059), ma solo per gli indirizzi
+  scelti fra i suggerimenti, quindi il calcolo resta da progettare (con un ripiego per gli indirizzi
+  scritti a mano). Finché non c'è non mostriamo nulla che finga di calcolarli. Il preavviso minimo serve solo agli ordini del marketplace e arriva con C4.
 - **Permessi:** le leggono tutti (servono a chi compila un ordine); le cambiano proprietario e
   manager (`tenant:settings:update`). Audit: `delivery_settings.updated` (con le differenze),
   `delivery_window.added`, `delivery_window.removed`; una fascia di un'altra fioreria dà 404 e un
@@ -1324,14 +1325,52 @@ Blocco B2 di `docs/ORDERS_MARKETPLACE_PLAN.md`.
   costi. Un link porta al massimo 3 tappe più l'arrivo (limite dell'app sul telefono): un giro lungo
   si divide in tratti, ognuno parte dall'ultima fermata del precedente; il primo parte dalla
   fioreria se ha l'indirizzo. Regole pure `mapsPlaceUrl` / `mapsRouteLinks`.
-- **Ordine per vicinanza:** non c'è ancora, di proposito: servono le coordinate degli indirizzi
-  (Google Places, O-14). Fino ad allora le fermate restano in ordine di fascia, come previsto dal
-  piano, e la pagina lo dice.
+- **Ordine per vicinanza:** arrivato con Google Places (ADR-059): dentro ogni fascia le fermate con
+  coordinate vanno per vicinanza; senza coordinate restano in ordine di fascia e numero.
 - **Prova di consegna:** da "pronto" in poi chi fa avanzare gli ordini (`orders:fulfill`, anche il
   repartidor) carica la **foto del ramo finito** (`OrderPhoto`, file privati, una attiva per ordine,
   la precedente archiviata); dopo consegna o ritiro indica **chi l'ha ricevuto**
   (`Order.handoverName`, CHECK 1–120 caratteri). Il cliente vede foto ("Así quedó tu ramo") e nome
   nel suo link; nel registro di audit solo che è stato fatto, mai il nome.
+
+### ADR-059 — Google Places: ricerca degli indirizzi e coordinate — ADOTTATO (23/11/2026)
+
+Risolve O-14: il founder sceglie Google Places ("implementa google places", 23/11/2026) invece
+delle zone per codice postale.
+
+- **Cosa fa:** nei form degli indirizzi (onboarding, sede della fioreria, indirizzi dei clienti,
+  consegna di un ordine) compare **"Buscar dirección"**: si scrive, si sceglie un suggerimento e i
+  campi messicani si compilano (calle y número, colonia, CP, municipio, estado), poi si controllano
+  a mano. Si salvano il **place ID** e le **coordinate**; la Ruta del día le usa per ordinare le
+  fermate di ogni fascia per vicinanza (dalla fioreria, poi dall'ultima fermata: regola pura
+  `nearestNeighborOrder`).
+- **Senza chiave non c'è nulla** (nessuna funzione finta): `GOOGLE_MAPS_API_KEY` assente → il campo
+  non compare, le rotte rispondono 404, gli indirizzi si scrivono a mano come prima. Google lento o
+  in errore (timeout 5 s, quota superata) → messaggio "no disponible" e il form resta usabile.
+- **Chiave solo sul server:** il browser chiede a `/api/places/autocomplete` e `/api/places/details`
+  (solo con sessione, solo dalla nostra origine con JSON, al massimo 60 richieste al minuto per
+  persona); il server chiede a Places API (New) con la chiave della piattaforma. Nei log mai il
+  testo cercato né il corpo delle risposte di Google.
+- **Regole di Google rispettate:** il place ID si può tenere senza limiti; le coordinate al massimo
+  **30 giorni** (`coordinatesAt`), poi le cancella la manutenzione giornaliera
+  (`app_purge_place_coordinates()`, SQL `SECURITY DEFINER` con i 30 giorni fissi) e la ruta ignora
+  già quelle più vecchie. Salvare di nuovo lo stesso indirizzo **non allunga** la cache: la data
+  cambia solo scegliendo di nuovo un suggerimento. Sotto i suggerimenti c'è "Google Maps"
+  (attribuzione richiesta senza una mappa di Google).
+- **Indirizzo corretto a mano:** cambiando via e numero, municipio o stato si perdono place ID e
+  coordinate (il punto non è più quello di Google); interno, colonia e CP no, perché completano
+  l'indirizzo senza spostarlo e Google spesso non li dà. Coordinate non valide si scartano senza
+  bloccare il salvataggio. Un ordine che usa un indirizzo della rubrica ne copia luogo e data.
+- **Costi:** sessioni di Places (New): i suggerimenti di una ricerca che finisce con un indirizzo
+  scelto non si pagano; si paga la "Place Details Essentials" (campi `id`, `addressComponents`,
+  `location`), con una quota gratuita mensile (circa 10.000 dal 1° marzo 2025, da ricontrollare sul
+  listino). Attesa sotto la quota con i volumi di una fioreria. Protezioni: attesa di 350 ms mentre
+  si scrive, minimo 3 caratteri, 5 suggerimenti, preferenza per i 30 km attorno alla fioreria;
+  quote giornaliere e avviso di spesa su Google Cloud (`docs/DEPLOY_VERCEL.md` §9).
+- **Privacy:** a Google arriva solo il testo scritto nel campo di ricerca; riga aggiunta nella bozza
+  dell'aviso de privacidad (O-07, da validare con il legale).
+- **Non fatto:** costo di consegna per distanza e raggio massimo (vedi ADR-057), mappa nella app,
+  geocodifica degli indirizzi scritti a mano (costerebbe e creerebbe coordinate "indovinate").
 
 ### ADR-060 — Inventario: giacenze, movimenti e avvisi (blocco 1) — ADOTTATO (23/11/2026)
 
@@ -1459,7 +1498,7 @@ Numerazione: ADR-055–059 sono riservati agli ordini e al marketplace (altra se
 | O-11 | ✅ **RISOLTA** (founder, 22/11/2026): la promo delle date speciali resta in tutti i piani per ora; le promo più articolate saranno a pagamento (ADR-047)                                                                                                                                                                                                                                                                                                                                                        | Founder            | —                                                  |
 | O-12 | Fase gratuita iniziale (detta dal founder il 22/11/2026): solo con la V1 completa (D-22) o prima? Durata, quota AI ridotta (proposta 10 immagini), termini che annunciano il passaggio a pagamento; "precio de fundador" per i primi 20 fioristi (proposta: −30% per 12 mesi). Senza incassi non serve ancora la partita IVA                                                                                                                                                                                    | Founder            | Lancio                                             |
 | O-13 | Ruolo e compenso della partner sul territorio (spec §19, punto 11): proposta a percentuale, il 30% della fee dei clienti che porta per il primo anno, con accordo scritto. Il contador deve dire se l'attività abituale in Messico per una partita IVA italiana crea una stabile organizzazione                                                                                                                                                                                                                 | Founder + contador | Aziende (D-25)                                     |
-| O-14 | Google Places negli indirizzi: progetto Google Cloud con fatturazione e chiave del founder; costo a consumo con soglia gratuita mensile (da verificare sul listino); riga nell'aviso de privacidad (O-07). Fino ad allora indirizzi a mano (D-26)                                                                                                                                                                                                                                                               | Founder            | Ricerca del marketplace, costi e ruta per distanza |
+| O-14 | ✅ **RISOLTA** (founder, 23/11/2026): **Google Places** adottato (ADR-059). Resta al founder creare la chiave su Google Cloud con quote e avviso di spesa (`docs/DEPLOY_VERCEL.md` §9); riga nell'aviso de privacidad aggiunta alla bozza (O-07)                                                                                                                                                                                                                                                                | Founder            | Ricerca del marketplace, costi e ruta per distanza |
 
 ---
 
