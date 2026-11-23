@@ -311,6 +311,28 @@ describe('anteprima esatta', () => {
     });
   });
 
+  it('un fiore senza colore in catalogo arriva al controllo con il colore della sua foto', async () => {
+    const kit = await createKit('Florería Exacta sin color');
+    const plain = await createCatalogItem(
+      kit.shop.owner,
+      itemInput({ name: 'Fiore 1', variety: null, colors: [] }),
+    );
+    setBackgroundRemover(remover);
+    await addCatalogItemPhoto(kit.shop.owner, plain.id, await flowerPhoto('#c0392b'), {});
+    expect(
+      await processNextAiJob({ onlyTenantId: kit.shop.tenant.tenantId, remover, provider }),
+    ).toBe('succeeded');
+    setBackgroundRemover(null);
+    const design = await saveDesign(kit, [{ catalogItemId: plain.id, quantity: 3 }]);
+    counter.script = ['exact'];
+    counter.seenTargets = [];
+    await requestBouquetPreview(kit.shop.owner, design.id);
+    expect(await runOnce(kit)).toBe('succeeded');
+    expect(counter.seenTargets[0]?.map((target) => target.description)).toEqual([
+      '"Fiore 1" (red)',
+    ]);
+  });
+
   it('se i numeri non coincidono riprova una volta', async () => {
     const kit = await createKit('Florería Exacta retry');
     const design = await rosesWithWrap(kit);

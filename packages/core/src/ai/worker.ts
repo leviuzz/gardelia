@@ -342,7 +342,8 @@ async function processExactPreview(
     };
     const prompt = buildSketchRenderPrompt(spec, { styleDescription: style.text });
     const counter = getFlowerCounter();
-    const targets = countTargets(spec);
+    // Il colore vero di ogni fiore, misurato sulla foto del boceto, quando il catalogo non lo dice.
+    const targets = countTargets(spec, { photoColors: sketch.photoColors });
     const checks: CountOutcome[] = [];
     let accepted: { image: GeneratedImage; verified: boolean | null } | null = null;
     for (let attempt = 1; attempt <= EXACT_PREVIEW_LIMITS.attemptsPerJob && !accepted; attempt++) {

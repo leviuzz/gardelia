@@ -227,24 +227,46 @@ export interface CountTarget {
   readonly expected: number | null;
 }
 
-function targetDescription(component: PreviewComponent): string {
-  const colors = colorWords(component);
+function targetDescription(component: PreviewComponent, photoColor: string | null): string {
+  const catalogColors = colorWords(component);
+  // Il colore misurato sulla foto del fiore (quella del boceto) quando il catalogo non lo dice o
+  // ne dice un altro: "Fiore 1" senza colore non dice nulla al modello di visione (caso del
+  // founder, 23/11: tre rose rosse contate come fiori estranei).
+  const fromPhoto = photoColor && !component.colors.includes(photoColor) ? photoColor : null;
+  const colors = catalogColors
+    ? fromPhoto
+      ? `${catalogColors}; looks ${fromPhoto} in the photo`
+      : catalogColors
+    : (fromPhoto ?? '');
   const label = labelOf(component);
   if (component.commonName) {
     // I fiori a mazzo (riempimento) restano al singolare: "baby's breath".
     const singular = component.commonName.toLowerCase();
     const noun = component.saleUnit === 'STEM' ? englishPlural(singular) : singular;
-    return `${colors ? `${colors} ` : ''}${noun} ("${label}")`;
+    return catalogColors && fromPhoto
+      ? `${catalogColors} ${noun} ("${label}"; looks ${fromPhoto} in the photo)`
+      : `${colors ? `${colors} ` : ''}${noun} ("${label}")`;
   }
   return `"${label}"${colors ? ` (${colors})` : ''}`;
 }
 
-export function countTargets(spec: BouquetPreviewSpec): CountTarget[] {
+export interface CountTargetOptions {
+  /** Colore misurato sulla foto principale di ogni fiore (id della foto → colore del vocabolario). */
+  readonly photoColors?: Readonly<Record<string, string | null>>;
+}
+
+export function countTargets(
+  spec: BouquetPreviewSpec,
+  options: CountTargetOptions = {},
+): CountTarget[] {
   const flowers = spec.components.filter((component) => component.role === 'FLOWER');
   return flowers.map((component, position) => ({
     index: position + 1,
     catalogItemId: component.catalogItemId,
-    description: targetDescription(component),
+    description: targetDescription(
+      component,
+      component.cutoutPhotoId ? (options.photoColors?.[component.cutoutPhotoId] ?? null) : null,
+    ),
     expected: component.saleUnit === 'STEM' ? component.quantity : null,
   }));
 }

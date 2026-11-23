@@ -568,6 +568,13 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   rigenerare. **Da osservare:** il controllo dei conteggi ignora i "boccioli chiusi", quindi un
   prodotto fotografato in bocciolo (rose) potrebbe non essere contato. Se succede, si cambia il
   prompt dopo una prova vera.
+- **Colore dalla foto nel controllo (23/11/2026).** Secondo tentativo del founder, con il boceto
+  v4: tutti i fiori erano visibili, ma il controllo ha contato "Fiore 1: 0 su 3" più "3 fiori che
+  non sono nel ramo". Il modello di visione riceve i tipi come nome e colore del catalogo, e "Fiore
+  1" (nome generico, senza specie e senza colore) non gli diceva che erano rose rosse. Ora il core
+  misura il colore medio dei petali sulla foto di ogni fiore, cioè quella del boceto, foglie verdi
+  escluse. Se il catalogo non ha colore, il tipo diventa `"Fiore 1" (red)`; se ne ha un altro, si
+  scrivono entrambi ("looks red in the photo"). La regola di accettazione non cambia.
 
 ### ADR-035 — Immagine del ramo nel preventivo — ADOTTATO (21/11/2026)
 

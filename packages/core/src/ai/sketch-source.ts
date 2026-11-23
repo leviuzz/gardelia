@@ -19,7 +19,11 @@ export class SketchUnavailableError extends Error {
 export async function renderSketchForTenant(
   scope: TenantScope,
   spec: BouquetPreviewSpec,
-): Promise<{ png: Uint8Array; layout: SketchLayout }> {
+): Promise<{
+  png: Uint8Array;
+  layout: SketchLayout;
+  photoColors: Record<string, string | null>;
+}> {
   const ids = sketchPhotoIds(spec);
   const photos = await withTenantContext(getDb(), scope, (tx) =>
     tx.catalogItemPhoto.findMany({
