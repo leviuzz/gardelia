@@ -1632,5 +1632,209 @@
     "invalidTitle": "Link non valido",
     "invalid": "Questo link non è valido. Se non vuoi più ricevere promozioni, rispondi all'email o contatta la fioreria.",
     "poweredBy": "Email inviata con {brand}"
+  },
+  "inventory": {
+    "nav": "Inventario",
+    "title": "Inventario",
+    "subtitle": "Quanto hai di ogni prodotto, cosa sta finendo e tutto ciò che entra ed esce.",
+    "tabs": {
+      "label": "Sezioni dell'inventario",
+      "stock": "Giacenze",
+      "movements": "Movimenti"
+    },
+    "upsell": {
+      "title": "L'inventario è incluso in {plan}",
+      "body": "Tieni il conto di fiori, verde, imballaggi e accessori: quanto hai, cosa sta finendo e tutto ciò che entra ed esce.",
+      "ownerHint": "Puoi vedere il tuo piano e cosa include in Piano e funzioni.",
+      "teamHint": "Chiedi al titolare della fioreria di cambiare piano.",
+      "seePlan": "Vedi il mio piano"
+    },
+    "quantity": "{unit, select, STEM {{count, plural, one {# stelo} other {# steli}}} BUNCH {{count, plural, one {# mazzo} other {# mazzi}}} PIECE {{count, plural, one {# pezzo} other {# pezzi}}} other {{count, number}}}",
+    "unitName": {
+      "STEM": "steli",
+      "BUNCH": "mazzi",
+      "PIECE": "pezzi",
+      "SERVICE": "servizi"
+    },
+    "statuses": {
+      "OK": "Disponibile",
+      "LOW": "Sta finendo",
+      "OUT": "Esaurito"
+    },
+    "summary": {
+      "tracked": "{count, plural, one {# prodotto controllato} other {# prodotti controllati}}",
+      "low": "{count, plural, one {# sta finendo} other {# stanno finendo}}",
+      "out": "{count, plural, one {# esaurito} other {# esauriti}}",
+      "value": "Valore della merce: {amount}",
+      "valueUnknown": "Valore della merce: manca il costo di qualche prodotto"
+    },
+    "list": {
+      "choose": "Scegli i prodotti",
+      "searchPlaceholder": "Cerca per nome o codice",
+      "allStatuses": "Tutti i prodotti",
+      "results": "{count, plural, =0 {Nessun risultato} one {# prodotto} other {# prodotti}}",
+      "emptyTitle": "Non controlli ancora nessun prodotto",
+      "emptyBody": "Scegli i prodotti del catalogo che vuoi contare e scrivi quanti ne hai oggi.",
+      "emptyBodyStaff": "Quando il titolare o il responsabile sceglieranno i prodotti, qui vedrai quanti ce ne sono.",
+      "noResultsTitle": "Nessun prodotto con questi filtri",
+      "noResultsBody": "Prova un'altra ricerca o togli i filtri.",
+      "minimum": "Avviso a {quantity}",
+      "value": "Valore: {amount}",
+      "catalogArchived": "Archiviato nel catalogo",
+      "archivedLink": "{count, plural, one {Vedi il prodotto che non controlli più} other {Vedi i # prodotti che non controlli più}}",
+      "archivedTitle": "Prodotti che non controlli più",
+      "archivedSubtitle": "I loro movimenti restano. Puoi tornare a controllarli da Scegli i prodotti.",
+      "archivedEmpty": "Non ci sono prodotti che hai smesso di controllare.",
+      "backToStock": "Torna alle giacenze",
+      "staffNote": "Vedi le giacenze; i movimenti li registrano il titolare e il responsabile."
+    },
+    "start": {
+      "title": "Scegli i prodotti",
+      "subtitle": "Scrivi quanti ne hai oggi dei prodotti che vuoi controllare. Lascia vuoti gli altri.",
+      "back": "Torna all'inventario",
+      "searchPlaceholder": "Cerca nel catalogo",
+      "quantity": "Ne hai oggi ({unit})",
+      "minimum": "Avvisami a",
+      "minimumHint": "Ti avvisiamo quando ne restano tanti o meno. Facoltativo.",
+      "previous": "L'ultima volta ne avevi {quantity}.",
+      "costNote": "Le giacenze di oggi sono valorizzate al costo del catalogo.",
+      "limitNote": "Sono mostrati i primi {max} prodotti; cerca per trovarne altri.",
+      "submit": "Inizia a controllare",
+      "started": "{count, plural, one {Fatto: ora controlli # prodotto.} other {Fatto: ora controlli # prodotti.}}",
+      "nothingStarted": "Quei prodotti erano già controllati.",
+      "emptyTitle": "Non ci sono prodotti da scegliere",
+      "emptyBody": "Controlli già tutti i prodotti del catalogo che si possono contare: fiori, verde, piante, vasi, imballaggi e accessori.",
+      "noResultsTitle": "Nessun prodotto con questa ricerca",
+      "noResultsBody": "Prova un altro nome o codice."
+    },
+    "item": {
+      "back": "Torna all'inventario",
+      "onHand": "Giacenza",
+      "available": "Disponibili",
+      "minimum": "Avviso",
+      "minimumValue": "Quando ne restano {quantity}",
+      "noMinimum": "Nessun avviso",
+      "realCost": "Costo reale",
+      "realCostHint": "Media di quanto hai pagato",
+      "catalogCost": "Costo del catalogo",
+      "noCost": "Senza costo",
+      "value": "Valore della merce",
+      "negative": "Mancano {quantity}. Quando avrai la merce, conta di nuovo per correggere.",
+      "catalogLink": "Vedi nel catalogo",
+      "catalogArchived": "Questo prodotto è archiviato nel catalogo.",
+      "notTracked": "Non controlli più questo prodotto. I suoi movimenti restano.",
+      "restart": "Torna a controllarlo",
+      "history": "Movimenti",
+      "suggestTitle": {
+        "OUT_OF_STOCK": "È finito: segnarlo come esaurito nel catalogo?",
+        "LIMITED": "Ne restano pochi: segnarlo come limitato nel catalogo?",
+        "AVAILABLE": "C'è di nuovo merce: segnarlo come disponibile nel catalogo?"
+      },
+      "suggestBody": "Nel catalogo risulta «{current}». Designer, preventivi e ordini usano quello che dice il catalogo: l'inventario non lo cambia da solo.",
+      "suggestAction": {
+        "OUT_OF_STOCK": "Segna come esaurito",
+        "LIMITED": "Segna come limitato",
+        "AVAILABLE": "Segna come disponibile"
+      },
+      "availabilityChanged": "Fatto: il catalogo mostra già la modifica."
+    },
+    "actions": {
+      "use": "Registra uso",
+      "waste": "Registra scarto",
+      "count": "Conta",
+      "minimum": "Cambia avviso",
+      "stop": "Smetti di controllare",
+      "stopTitle": "Smettere di controllare {name}?",
+      "stopBody": "Non comparirà più tra le giacenze né negli avvisi. I suoi movimenti restano e puoi tornare a controllarlo quando vuoi.",
+      "stopConfirm": "Smetti di controllare",
+      "stopped": "Non controlli più questo prodotto.",
+      "reverse": "Annulla",
+      "reverseTitle": "Annullare questo movimento?",
+      "reverseBody": "Si registra un movimento opposto di {quantity} di {name}. Non si cancella nulla.",
+      "reverseBodyMany": "{count, plural, one {Si registra un movimento opposto per il prodotto di questo registro. Non si cancella nulla.} other {Si registra un movimento opposto per i # prodotti di questo registro. Non si cancella nulla.}}",
+      "reverseConfirm": "Annulla movimento",
+      "reversed": "Movimento annullato."
+    },
+    "forms": {
+      "useTitle": "Registra l'uso di {name}",
+      "useBody": "Quello che hai usato per un bouquet o venduto sfuso.",
+      "wasteTitle": "Registra lo scarto di {name}",
+      "wasteBody": "Quello che hai buttato perché appassito o rovinato.",
+      "quantity": "Quantità ({unit})",
+      "note": "Nota (facoltativa)",
+      "useNoteHint": "Per esempio: bouquet da sposa, vendita al banco.",
+      "wasteNoteHint": "Per esempio: appassite, arrivate rovinate.",
+      "shortage": "Ne hai solo {available}. Se continui, la giacenza scenderà a {after}.",
+      "submit": "Registra",
+      "submitShortage": "Registra comunque",
+      "used": "Uso registrato: ne restano {quantity}.",
+      "wasted": "Scarto registrato: ne restano {quantity}.",
+      "countTitle": "Conta {name}",
+      "countBody": "Scrivi quanti ce ne sono davvero. Registriamo la differenza con quanto dice l'inventario ({current}).",
+      "counted": "Quanti ce ne sono ({unit})",
+      "countSubmit": "Salva il conteggio",
+      "countSaved": "Conteggio salvato: ora ne hai {quantity}.",
+      "countSame": "Nessuna modifica: il conteggio coincide ({quantity}).",
+      "minimumTitle": "Avviso per {name}",
+      "minimumBody": "Ti avvisiamo quando ne restano tanti o meno. Lascialo vuoto se non vuoi l'avviso.",
+      "minimumLabel": "Avvisami quando ne restano ({unit})",
+      "minimumSaved": "Avviso salvato."
+    },
+    "kinds": {
+      "OPENING": "Giacenza iniziale",
+      "PURCHASE": "Acquisto",
+      "USE": "Uso",
+      "WASTE": "Scarto",
+      "ADJUSTMENT": "Conteggio",
+      "REVERSAL": "Annullamento"
+    },
+    "movements": {
+      "title": "Movimenti",
+      "subtitle": "Tutto ciò che entra ed esce dall'inventario, dal più recente.",
+      "allKinds": "Tutti i movimenti",
+      "results": "{count, plural, =0 {Nessun movimento} one {# movimento} other {# movimenti}}",
+      "emptyTitle": "Non ci sono ancora movimenti",
+      "emptyBody": "Qui vedrai le giacenze iniziali, l'uso, gli scarti e i conteggi.",
+      "noResultsTitle": "Nessun movimento di questo tipo",
+      "noResultsBody": "Prova un altro tipo di movimento.",
+      "balance": "Ne restano {quantity}",
+      "reversalOf": "Annulla: {kind}",
+      "reversed": "Annullato",
+      "someone": "Qualcuno",
+      "value": "{amount} al costo",
+      "otherProducts": "{count, plural, one {e # altro prodotto} other {e altri # prodotti}}"
+    },
+    "catalogBox": {
+      "title": "Inventario",
+      "tracked": "Ne hai {quantity}.",
+      "minimum": "Avviso quando ne restano {quantity}.",
+      "untracked": "Non controlli la giacenza di questo prodotto.",
+      "archived": "Non controlli più la giacenza di questo prodotto.",
+      "start": "Controlla la giacenza",
+      "open": "Vedi nell'inventario"
+    },
+    "planFeature": {
+      "title": "Inventario",
+      "body": "Giacenza di ogni prodotto, avvisi quando finisce e tutto ciò che entra ed esce."
+    },
+    "conflict": {
+      "insufficient_stock": "La merce non basta: controlla la quantità o conferma per registrare comunque.",
+      "item_archived": "Non controlli più questo prodotto: torna a controllarlo per registrare movimenti.",
+      "already_tracked": "Qualcuno ha iniziato a controllare questi prodotti nello stesso momento. Ricarica la pagina.",
+      "entry_not_reversible": "Questo movimento non si può annullare: correggi la giacenza con un conteggio.",
+      "entry_already_reversed": "Questo movimento è già stato annullato."
+    },
+    "activity": {
+      "tracking_started": "{units, plural, one {{actor} ha iniziato a controllare {name} nell'inventario} other {{actor} ha iniziato a controllare # prodotti nell'inventario}}",
+      "tracking_stopped": "{actor} ha smesso di controllare {name} nell'inventario",
+      "item_updated": "{actor} ha cambiato l'avviso di {name}",
+      "stock_used": "{lines, plural, one {{actor} ha registrato l'uso di {units} × {name}} other {{actor} ha registrato l'uso di materiali di # prodotti}}",
+      "stock_wasted": "{actor} ha registrato uno scarto di {units} × {name}",
+      "stock_counted": "{actor} ha contato {name}: ora ce ne sono {units}",
+      "entry_reversed": "{lines, plural, one {{actor} ha annullato un movimento di {name}} other {{actor} ha annullato un movimento di # prodotti}}"
+    },
+    "validation": {
+      "none_selected": "Scrivi quanti ne hai di almeno un prodotto."
+    }
   }
 }

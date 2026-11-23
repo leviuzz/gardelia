@@ -487,6 +487,25 @@ Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test unit 283/283 �
 62/62 ✅ (2 nuovi); controllo visivo a 1280 e 320 px. Prossimi: A2 impostazioni di consegna e
 coordinate, A3 stampa della tarjeta e link pubblici.
 
+**Inventario, blocco 1 (fatto il 23/11, ADR-060, richiesta del founder):** voce "Inventario" nel menu
+(su telefono in "Más") con Existencias e Movimientos. "Elegir productos": si scrive quanti ce ne sono
+di ogni prodotto fisico del catalogo da controllare e, se si vuole, il minimo ("Avísame con"); la
+existencia inicial entra al costo del catalogo. Scheda del prodotto: uso e merma (se la merce non
+basta, avviso e "Registrar de todos modos", la giacenza può andare sotto zero), conteggio fisico
+(registra la differenza), aviso, "Dejar de controlar", storico con "Anular" (registro opposto, una
+volta sola). Avvisi "Por agotarse" e "Agotado" con i filtri; il clic proposto cambia la disponibilità
+nel catalogo (mai da sola). Riquadro nella scheda del catalogo, riga nella pagina del piano. Decisioni
+del founder: unità del catalogo, avviso con conferma, movimenti solo proprietario e manager (lo staff
+vede le quantità senza costi), piano Plus, niente resi né lotti; le organizzazioni per le catene sono
+registrate per dopo (D-28). Per gli ordini (altra sessione) sono pronti `checkStock`/`checkStockTx` e
+`consumeStockTx`, da usare nella transazione dell'ordine, senza effetti per chi non usa l'inventario.
+Registri e movimenti non si modificano né si cancellano (RLS), la giacenza è sempre la somma dei
+movimenti. Testi nel namespace `inventory` delle tre lingue. Verifiche locali: lint ✅ · format ✅ ·
+typecheck ✅ · test 602/602 ✅ (33 nuovi: 15 di dominio, 14 d'integrazione con isolamento A↔B,
+concorrenza e invarianti, 1 sui permessi, 3 del web) · build ✅ · E2E 65/65 ✅ (3 nuovi: proprietario,
+staff, fioreria Basic); controllo visivo a 1280 e 320 px. Prossimi: blocco 2 compras y proveedores (costo reale),
+blocco 3 apartados con vencimiento, blocco 4 avvisi nel pannello e costo dei ramos.
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci
@@ -498,7 +517,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
    e ordine; aggiungere un disegno del Diseñador a un preventivo in bozza. Poi il marketplace per i
    clienti (D-26, deciso il 23/11: registrazione obbligatoria, pagamento diretto alla fioreria) e la
    ruta del día gratuita (D-27). Blocchi A1–C5 in `docs/ORDERS_MARKETPLACE_PLAN.md`; si parte da A1.
-3. Inventario.
+3. Inventario: blocco 1 fatto (ADR-060); poi compras y proveedores, apartados, avvisi nel pannello e
+   costo dei ramos.
 4. Clienti completi: cronologia, etichette, import CSV.
 5. Abbonamenti dei clienti e Floral Care.
 6. Report.

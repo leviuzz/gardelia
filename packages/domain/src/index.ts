@@ -8,6 +8,7 @@ export * from './customer';
 export * from './exact-preview';
 export * from './i18n';
 export * from './ids';
+export * from './inventory';
 export * from './markets';
 export * from './money';
 export * from './order';

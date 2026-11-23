@@ -72,7 +72,12 @@ export type ConflictReason =
   | 'order_empty'
   | 'order_lines_locked'
   | 'order_line_limit'
-  | 'order_total_below_paid';
+  | 'order_total_below_paid'
+  | 'inventory_insufficient_stock'
+  | 'inventory_item_archived'
+  | 'inventory_already_tracked'
+  | 'inventory_entry_not_reversible'
+  | 'inventory_entry_already_reversed';
 
 export class ConflictError extends AppError {
   readonly code = 'conflict' as const;

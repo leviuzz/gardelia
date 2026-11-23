@@ -20,12 +20,28 @@ export async function translateFieldErrors(
   fieldErrors: FieldErrors,
 ): Promise<Record<string, string>> {
   const t = await getTranslations('validation');
+  const root = await getTranslations();
   const result: Record<string, string> = {};
   for (const [field, code] of Object.entries(fieldErrors)) {
     if (!code) continue;
-    result[field] = t.has(code) ? t(code) : t('invalid');
+    // Moduli con i testi nel proprio namespace (ADR-060): `inventory_x` → `inventory.validation.x`.
+    const moduleKey = namespacedKey(code, 'validation');
+    result[field] = t.has(code)
+      ? t(code)
+      : moduleKey && root.has(moduleKey)
+        ? root(moduleKey)
+        : t('invalid');
   }
   return result;
+}
+
+/**
+ * Chiave di un testo nel namespace del suo modulo: `inventory_insufficient_stock` →
+ * `inventory.conflict.insufficient_stock`; null se il codice non ha il prefisso del modulo.
+ */
+export function namespacedKey(code: string, group: 'conflict' | 'validation'): string | null {
+  const match = /^([a-z]+)_(.+)$/.exec(code);
+  return match ? `${match[1]}.${group}.${match[2]}` : null;
 }
 
 /**
@@ -45,7 +61,14 @@ export async function actionError(error: unknown): Promise<ActionState> {
   }
   if (error instanceof ConflictError) {
     const key = `conflict.${error.reason}`;
-    return { status: 'error', message: t.has(key) ? t(key) : t('generic') };
+    if (t.has(key)) return { status: 'error', message: t(key) };
+    // Moduli con i testi nel proprio namespace (ADR-060): `inventory_x` → `inventory.conflict.x`.
+    const moduleKey = namespacedKey(error.reason, 'conflict');
+    const root = await getTranslations();
+    return {
+      status: 'error',
+      message: moduleKey && root.has(moduleKey) ? root(moduleKey) : t('generic'),
+    };
   }
   if (error instanceof ForbiddenError) return { status: 'error', message: t('forbidden') };
   if (error instanceof PlanRequiredError) return { status: 'error', message: t('planRequired') };

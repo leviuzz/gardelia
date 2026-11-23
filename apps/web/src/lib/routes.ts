@@ -42,6 +42,7 @@ export function tenantRoutes(slug: string) {
   const quotes = `${home}/quotes`;
   const orders = `${home}/orders`;
   const builder = `${home}/builder`;
+  const inventory = `${home}/inventory`;
   const settings = `${home}/settings`;
 
   return {
@@ -98,6 +99,17 @@ export function tenantRoutes(slug: string) {
         withQuery(`${orders}/${segment(orderId)}/lines/${segment(lineId)}/image`, {
           download: options?.download,
         }),
+    },
+    /** Inventario (ADR-060): existencias, prodotti da controllare, scheda e movimenti. */
+    inventory: {
+      /** Existencias (`q`, `status`: LOW | OUT, `archived`, `page`). */
+      list: (query?: QueryValues) => withQuery(inventory, query),
+      /** "Elegir productos": prodotti del catalogo da cominciare a controllare. */
+      start: (query?: QueryValues) => withQuery(`${inventory}/start`, query),
+      item: (inventoryItemId: string, query?: QueryValues) =>
+        withQuery(`${inventory}/${segment(inventoryItemId)}`, query),
+      /** Tutti i movimenti (`kind`, `page`). */
+      movements: (query?: QueryValues) => withQuery(`${inventory}/movements`, query),
     },
     builder: {
       list: (query?: QueryValues) => withQuery(builder, query),

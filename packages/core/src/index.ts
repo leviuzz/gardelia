@@ -117,6 +117,7 @@ export * from './services/catalog';
 export * from './services/calendar';
 export * from './services/customers';
 export * from './services/dashboard';
+export * from './services/inventory';
 export * from './services/promo-discounts';
 export * from './services/promotions';
 export * from './services/orders';

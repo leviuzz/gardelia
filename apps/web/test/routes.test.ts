@@ -17,6 +17,20 @@ describe('percorsi della fioreria (routes.ts)', () => {
     expect(routes.settings.plan).toBe('/app/las-camelias/settings/plan');
   });
 
+  it('inventario: existencias, prodotti da controllare, scheda e movimenti (ADR-060)', () => {
+    expect(routes.inventory.list()).toBe('/app/las-camelias/inventory');
+    expect(routes.inventory.list({ status: 'LOW', archived: false })).toBe(
+      '/app/las-camelias/inventory?status=LOW',
+    );
+    expect(routes.inventory.start({ q: 'Rosa roja' })).toBe(
+      '/app/las-camelias/inventory/start?q=Rosa+roja',
+    );
+    expect(routes.inventory.item('i/1')).toBe('/app/las-camelias/inventory/i%2F1');
+    expect(routes.inventory.movements({ kind: 'WASTE', page: 2 })).toBe(
+      '/app/las-camelias/inventory/movements?kind=WASTE&page=2',
+    );
+  });
+
   it('la query contiene solo i valori presenti, nell’ordine dato', () => {
     expect(
       routes.catalog.list({ q: 'rosa roja', type: undefined, status: 'ARCHIVED', page: 2 }),

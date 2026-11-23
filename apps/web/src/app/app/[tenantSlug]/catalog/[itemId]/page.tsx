@@ -17,6 +17,7 @@ import {
 import { isCurrencyCode, minorToDecimalString } from '@floral/domain';
 import { AvailabilityBadge } from '@/components/common/status-badges';
 import { ArchiveControl } from '@/components/archive-control';
+import { CatalogInventoryBox } from '@/components/inventory/catalog-inventory-box';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -136,6 +137,8 @@ export default async function ItemPage({
           <AlertDescription>{t('catalog.form.archivedNotice')}</AlertDescription>
         </Alert>
       ) : null}
+
+      <CatalogInventoryBox ctx={ctx} item={item} />
 
       <PhotosSection ctx={ctx} item={item} />
 

@@ -1632,5 +1632,209 @@
     "invalidTitle": "Invalid link",
     "invalid": "This link isn't valid. To stop receiving promotions, reply to the email or contact the flower shop.",
     "poweredBy": "Email sent with {brand}"
+  },
+  "inventory": {
+    "nav": "Inventory",
+    "title": "Inventory",
+    "subtitle": "How much of each product you have, what is running out and everything that comes in and goes out.",
+    "tabs": {
+      "label": "Inventory sections",
+      "stock": "Stock",
+      "movements": "Movements"
+    },
+    "upsell": {
+      "title": "Inventory is included in {plan}",
+      "body": "Keep count of your flowers, foliage, packaging and accessories: how much you have, what is running out and everything that comes in and goes out.",
+      "ownerHint": "You can see your plan and what it includes in Plan and features.",
+      "teamHint": "Ask the shop owner to change the plan.",
+      "seePlan": "See my plan"
+    },
+    "quantity": "{unit, select, STEM {{count, plural, one {# stem} other {# stems}}} BUNCH {{count, plural, one {# bunch} other {# bunches}}} PIECE {{count, plural, one {# piece} other {# pieces}}} other {{count, number}}}",
+    "unitName": {
+      "STEM": "stems",
+      "BUNCH": "bunches",
+      "PIECE": "pieces",
+      "SERVICE": "services"
+    },
+    "statuses": {
+      "OK": "In stock",
+      "LOW": "Running low",
+      "OUT": "Out of stock"
+    },
+    "summary": {
+      "tracked": "{count, plural, one {# product tracked} other {# products tracked}}",
+      "low": "{count, plural, one {# running low} other {# running low}}",
+      "out": "{count, plural, one {# out of stock} other {# out of stock}}",
+      "value": "Stock value: {amount}",
+      "valueUnknown": "Stock value: some products have no cost"
+    },
+    "list": {
+      "choose": "Choose products",
+      "searchPlaceholder": "Search by name or code",
+      "allStatuses": "All products",
+      "results": "{count, plural, =0 {No results} one {# product} other {# products}}",
+      "emptyTitle": "You are not tracking any product yet",
+      "emptyBody": "Choose the catalog products you want to count and enter how many you have today.",
+      "emptyBodyStaff": "Once the owner or the manager choose the products, you will see here how many there are.",
+      "noResultsTitle": "No products match these filters",
+      "noResultsBody": "Try another search or clear the filters.",
+      "minimum": "Alert at {quantity}",
+      "value": "Value: {amount}",
+      "catalogArchived": "Archived in the catalog",
+      "archivedLink": "{count, plural, one {See the product you no longer track} other {See the # products you no longer track}}",
+      "archivedTitle": "Products you no longer track",
+      "archivedSubtitle": "Their movements are kept. You can track them again from Choose products.",
+      "archivedEmpty": "There are no products you stopped tracking.",
+      "backToStock": "Back to stock",
+      "staffNote": "You can see the stock; movements are recorded by the owner and the manager."
+    },
+    "start": {
+      "title": "Choose products",
+      "subtitle": "Enter how many you have today of the products you want to track. Leave the others empty.",
+      "back": "Back to inventory",
+      "searchPlaceholder": "Search the catalog",
+      "quantity": "You have today ({unit})",
+      "minimum": "Alert me at",
+      "minimumHint": "We let you know when that many or fewer are left. Optional.",
+      "previous": "Last time you had {quantity}.",
+      "costNote": "Today's stock is valued at your catalog cost.",
+      "limitNote": "Showing the first {max} products; search to find others.",
+      "submit": "Start tracking",
+      "started": "{count, plural, one {Done: you now track # product.} other {Done: you now track # products.}}",
+      "nothingStarted": "Those products were already tracked.",
+      "emptyTitle": "There are no products to choose",
+      "emptyBody": "You already track every catalog product that can be counted: flowers, foliage, plants, vases, packaging and accessories.",
+      "noResultsTitle": "No products match this search",
+      "noResultsBody": "Try another name or code."
+    },
+    "item": {
+      "back": "Back to inventory",
+      "onHand": "On hand",
+      "available": "Available",
+      "minimum": "Alert",
+      "minimumValue": "When {quantity} are left",
+      "noMinimum": "No alert",
+      "realCost": "Real cost",
+      "realCostHint": "Average of what you paid",
+      "catalogCost": "Catalog cost",
+      "noCost": "No cost",
+      "value": "Stock value",
+      "negative": "{quantity} missing. Once you have the goods, count again to fix it.",
+      "catalogLink": "See in the catalog",
+      "catalogArchived": "This product is archived in the catalog.",
+      "notTracked": "You no longer track this product. Its movements are kept.",
+      "restart": "Track it again",
+      "history": "Movements",
+      "suggestTitle": {
+        "OUT_OF_STOCK": "It ran out: mark it as out of stock in the catalog?",
+        "LIMITED": "Only a few left: mark it as limited in the catalog?",
+        "AVAILABLE": "Back in stock: mark it as available in the catalog?"
+      },
+      "suggestBody": "The catalog says “{current}”. The Designer, quotes and orders use what the catalog says: the inventory never changes it on its own.",
+      "suggestAction": {
+        "OUT_OF_STOCK": "Mark as out of stock",
+        "LIMITED": "Mark as limited",
+        "AVAILABLE": "Mark as available"
+      },
+      "availabilityChanged": "Done: the catalog already shows the change."
+    },
+    "actions": {
+      "use": "Record use",
+      "waste": "Record waste",
+      "count": "Count",
+      "minimum": "Change alert",
+      "stop": "Stop tracking",
+      "stopTitle": "Stop tracking {name}?",
+      "stopBody": "It will no longer appear in the stock or in the alerts. Its movements are kept and you can track it again whenever you want.",
+      "stopConfirm": "Stop tracking",
+      "stopped": "You no longer track this product.",
+      "reverse": "Reverse",
+      "reverseTitle": "Reverse this movement?",
+      "reverseBody": "An opposite movement of {quantity} of {name} is recorded. Nothing is deleted.",
+      "reverseBodyMany": "{count, plural, one {An opposite movement is recorded for the product of this entry. Nothing is deleted.} other {An opposite movement is recorded for the # products of this entry. Nothing is deleted.}}",
+      "reverseConfirm": "Reverse movement",
+      "reversed": "Movement reversed."
+    },
+    "forms": {
+      "useTitle": "Record use of {name}",
+      "useBody": "What you used for a bouquet or sold on its own.",
+      "wasteTitle": "Record waste of {name}",
+      "wasteBody": "What you threw away because it wilted or got damaged.",
+      "quantity": "Quantity ({unit})",
+      "note": "Note (optional)",
+      "useNoteHint": "For example: bridal bouquet, counter sale.",
+      "wasteNoteHint": "For example: wilted, arrived damaged.",
+      "shortage": "You only have {available}. If you continue, the stock will be {after}.",
+      "submit": "Record",
+      "submitShortage": "Record anyway",
+      "used": "Use recorded: {quantity} left.",
+      "wasted": "Waste recorded: {quantity} left.",
+      "countTitle": "Count {name}",
+      "countBody": "Enter how many there really are. We record the difference with what the inventory says ({current}).",
+      "counted": "How many there are ({unit})",
+      "countSubmit": "Save count",
+      "countSaved": "Count saved: you now have {quantity}.",
+      "countSame": "No changes: the count matches ({quantity}).",
+      "minimumTitle": "Alert for {name}",
+      "minimumBody": "We let you know when that many or fewer are left. Leave it empty if you want no alert.",
+      "minimumLabel": "Alert me when this many are left ({unit})",
+      "minimumSaved": "Alert saved."
+    },
+    "kinds": {
+      "OPENING": "Opening stock",
+      "PURCHASE": "Purchase",
+      "USE": "Use",
+      "WASTE": "Waste",
+      "ADJUSTMENT": "Count",
+      "REVERSAL": "Reversal"
+    },
+    "movements": {
+      "title": "Movements",
+      "subtitle": "Everything that comes in and goes out of the inventory, newest first.",
+      "allKinds": "All movements",
+      "results": "{count, plural, =0 {No movements} one {# movement} other {# movements}}",
+      "emptyTitle": "No movements yet",
+      "emptyBody": "Here you will see opening stock, use, waste and counts.",
+      "noResultsTitle": "No movements of this kind",
+      "noResultsBody": "Try another kind of movement.",
+      "balance": "{quantity} left",
+      "reversalOf": "Reverses: {kind}",
+      "reversed": "Reversed",
+      "someone": "Someone",
+      "value": "{amount} at cost",
+      "otherProducts": "{count, plural, one {and # more product} other {and # more products}}"
+    },
+    "catalogBox": {
+      "title": "Inventory",
+      "tracked": "You have {quantity}.",
+      "minimum": "Alert when {quantity} are left.",
+      "untracked": "You do not track the stock of this product.",
+      "archived": "You no longer track the stock of this product.",
+      "start": "Track stock",
+      "open": "See in the inventory"
+    },
+    "planFeature": {
+      "title": "Inventory",
+      "body": "Stock of every product, alerts when it runs out and everything that comes in and goes out."
+    },
+    "conflict": {
+      "insufficient_stock": "There is not enough stock: check the quantity or confirm to record it anyway.",
+      "item_archived": "You no longer track this product: track it again to record movements.",
+      "already_tracked": "Someone started tracking these products at the same time. Reload the page.",
+      "entry_not_reversible": "This movement cannot be reversed: fix the stock with a count.",
+      "entry_already_reversed": "This movement was already reversed."
+    },
+    "activity": {
+      "tracking_started": "{units, plural, one {{actor} started tracking {name} in the inventory} other {{actor} started tracking # products in the inventory}}",
+      "tracking_stopped": "{actor} stopped tracking {name} in the inventory",
+      "item_updated": "{actor} changed the alert of {name}",
+      "stock_used": "{lines, plural, one {{actor} recorded the use of {units} × {name}} other {{actor} recorded the use of materials for # products}}",
+      "stock_wasted": "{actor} recorded waste of {units} × {name}",
+      "stock_counted": "{actor} counted {name}: there are now {units}",
+      "entry_reversed": "{lines, plural, one {{actor} reversed a movement of {name}} other {{actor} reversed a movement of # products}}"
+    },
+    "validation": {
+      "none_selected": "Enter how many you have of at least one product."
+    }
   }
 }

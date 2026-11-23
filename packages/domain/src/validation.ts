@@ -42,6 +42,8 @@ export const VALIDATION_CODES = [
   'consent_required',
   'invalid_time_window',
   'payment_exceeds_balance',
+  /** Inventario (ADR-060): nessun prodotto con la quantità in "Elegir productos". */
+  'inventory_none_selected',
   'invalid',
 ] as const;
 
