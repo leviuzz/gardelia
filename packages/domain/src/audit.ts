@@ -66,6 +66,8 @@ export const AUDIT_ACTIONS = {
   /** Un'etichetta aggiunta o tolta a più clienti insieme (ADR-070). */
   customerTagsAdded: 'customer.tags_added',
   customerTagsRemoved: 'customer.tags_removed',
+  /** Clienti importati da un file CSV (ADR-070): una voce per import, con i soli conti. */
+  customersImported: 'customer.imported',
   customerAddressAdded: 'customer.address_added',
   customerAddressUpdated: 'customer.address_updated',
   customerAddressArchived: 'customer.address_archived',

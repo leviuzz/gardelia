@@ -89,6 +89,9 @@ export type ConflictReason =
   | 'inventory_reservation_closed'
   /** "Registrar ramos hechos" su un ramo senza ricetta (ADR-063). */
   | 'inventory_bouquet_without_recipe'
+  /** Import di clienti da CSV (ADR-070): bozza già importata o annullata; niente di nuovo da importare. */
+  | 'customers_import_closed'
+  | 'customers_import_nothing'
   /** "Mi tienda en línea" (ADR-065): cosa manca per pubblicare. */
   | 'store_needs_items'
   | 'store_needs_contact';
