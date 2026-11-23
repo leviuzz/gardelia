@@ -14,6 +14,7 @@ export * from './ids';
 export * from './inventory';
 export * from './markets';
 export * from './online-store';
+export * from './store-search';
 export * from './money';
 export * from './order';
 export * from './permissions';

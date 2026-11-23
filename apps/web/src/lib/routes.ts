@@ -206,3 +206,11 @@ export function publicStoreRoutes(slug: string) {
       }),
   };
 }
+
+/** Pagine per chi compra (marketplace, ADR-066): home, ricerca e la pagina per i fioristi. */
+export const buyerRoutes = {
+  home: '/',
+  florists: '/floristas',
+  /** Ricerca: `ciudad`, oppure `lat`/`lng` (+ `dir` da mostrare), oppure `direccion` salvata. */
+  search: (query?: QueryValues) => withQuery('/buscar', query),
+} as const;

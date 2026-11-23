@@ -558,6 +558,17 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Home per chi compra e ricerca delle fiorerie, blocco C3 (fatto il 23/11, ADR-066):** `/` è ora la home di
+chi compra fiori ("¿A dónde enviamos tus flores?", come funziona, rimando per i fioristi); la presentazione
+del gestionale è su `/floristas`. Ricerca per città per tutti (nessuna chiamata a Google), per indirizzo con
+Google e con gli indirizzi salvati solo con l'accesso. `/buscar` mostra prima le tiendas che arrivano
+all'indirizzo (raggio della fioreria, 10 km se non indicato), dalla più vicina, poi quelle della stessa città
+senza posizione nota. La manutenzione rinnova le coordinate delle tiendas pubblicate prima dei 30 giorni.
+Aggiornate anche due righe vecchie di `docs/V1_SCOPE.md` (logo, Google Places). Verifiche locali: lint ✅ ·
+format ✅ · typecheck ✅ · test 752/752 ✅ (10 nuovi: 5 di dominio, 5 d'integrazione, ripetibili sul database
+condiviso) · migrazioni = schema ✅ · build ✅ · E2E 81/81 ✅ (2 nuovi; il flusso della tienda parte dalla home);
+controllo visivo a 390 e 1280 px. Prossimi: C4, l'ordine del cliente online.
+
 **Logo e copertina della tienda en línea, C2b (fatto il 23/11, ADR-065):** in Tienda en línea "Logo y
 portada" con anteprima, caricamento (riduzione nel browser e controllo sul server come le foto del catalogo),
 "Cambiar" e "Quitar"; nella pagina pubblica la copertina in alto e il logo accanto al nome (anche
@@ -649,7 +660,7 @@ della pagina del piano aggiornati. Verifiche locali: lint ✅ · format ✅ · t
 E2E 76/76 ✅ (1 nuovo: ramo con ricetta, ramos hechos, pannello e riepilogo); controllo a 320 px.
 L'inventario della V1 è completo; restano consumo e apartados dagli ordini (sessione degli ordini).
 
-**Clienti completi, blocco 1 (fatto il 23/11, ADR-066):** sezione "Historial" nella scheda del
+**Clienti completi, blocco 1 (fatto il 23/11, ADR-070):** sezione "Historial" nella scheda del
 cliente con preventivi, ordini (creato, confermato, consegnato o ritirato, annullato col motivo),
 pagamenti, promozioni inviate e codici usati, dalla più recente, ognuno col suo link; "Ver más" di
 20 in 20. Solo lettura sulle tabelle degli altri moduli. Decisioni del founder per l'import (blocco
@@ -671,7 +682,7 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
    ruta del día gratuita (D-27). Blocchi A1–C5 in `docs/ORDERS_MARKETPLACE_PLAN.md`; si parte da A1.
 3. Inventario: fatto (blocchi 1–4, ADR-060…063); restano consumo e apartados dagli ordini, che
    collega la sessione degli ordini con le funzioni già pronte.
-4. Clienti completi (ADR-066): cronologia fatta; poi etichette e filtri, import CSV.
+4. Clienti completi (ADR-070): cronologia fatta; poi etichette e filtri, import CSV.
 5. Abbonamenti dei clienti e Floral Care.
 6. Report.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.
