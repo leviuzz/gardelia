@@ -60,7 +60,9 @@
     "too_many_photos": "Hai raggiunto il numero massimo di foto. Rimuovine qualcuna per caricarne un’altra.",
     "photos_not_allowed_for_type": "Questo tipo di prodotto non prevede foto.",
     "consent_required": "Per caricare le foto conferma l’autorizzazione.",
-    "builder_color_required": "Scegli il colore dell’incarto o del complemento."
+    "builder_color_required": "Scegli il colore dell’incarto o del complemento.",
+    "invalid_time_window": "Indica l’ora di inizio e quella di fine, in ordine.",
+    "payment_exceeds_balance": "L’importo supera quanto resta da incassare."
   },
   "errors": {
     "validation": "Controlla i campi evidenziati.",
@@ -98,7 +100,12 @@
       "preview_retry_limit": "Abbiamo già provato più volte con questa composizione: condividi il bozzetto esatto o modifica la composizione.",
       "platform_admin_exists": "Esiste già un amministratore della piattaforma.",
       "promo_not_sent": "Questa email non è arrivata al cliente: non c'è uno sconto da segnare.",
-      "promo_already_used": "Questo sconto è già segnato come usato."
+      "promo_already_used": "Questo sconto è già segnato come usato.",
+      "quote_not_accepted": "Solo un preventivo accettato diventa un ordine.",
+      "quote_already_ordered": "Questo preventivo ha già il suo ordine.",
+      "order_not_editable": "L’ordine è già uscito: consegna e biglietto non si cambiano più.",
+      "order_closed": "L’ordine è annullato.",
+      "payment_already_reversed": "Questo pagamento è già stato stornato."
     },
     "pageNotFoundTitle": "Pagina non trovata",
     "pageNotFoundBody": "La pagina non esiste o non hai accesso.",
@@ -250,7 +257,8 @@
     "quotes": "Preventivi",
     "builder": "Designer",
     "calendar": "Calendario",
-    "promotions": "Promozioni"
+    "promotions": "Promozioni",
+    "orders": "Ordini"
   },
   "roles": {
     "OWNER": "Titolare",
@@ -347,7 +355,13 @@
     "tenant.promo_updated": "{actor} ha cambiato la promozione delle date speciali",
     "customer.unsubscribed": "Un cliente ha smesso di ricevere le promozioni",
     "promo.redeemed": "{actor} ha segnato come usato uno sconto",
-    "promo.redemption_undone": "{actor} ha tolto l'uso di uno sconto"
+    "promo.redemption_undone": "{actor} ha tolto l'uso di uno sconto",
+    "order.created": "{actor} ha creato l’ordine {number}",
+    "order.updated": "{actor} ha cambiato la consegna di {number}",
+    "order.status_changed": "{actor} ha segnato {number} come «{status}»",
+    "order.cancelled": "{actor} ha annullato l’ordine {number}",
+    "order.payment_recorded": "{actor} ha registrato un pagamento su {number}",
+    "order.payment_reversed": "{actor} ha stornato un pagamento su {number}"
   },
   "catalog": {
     "title": "Catalogo",
@@ -894,7 +908,12 @@
       "imageNote": "Immagine illustrativa: il bouquet reale può variare.",
       "imageNoteVerified": "Immagine illustrativa con il numero esatto di fiori della ricetta; forma e tonalità possono variare.",
       "imageNotePhoto": "Foto di un bouquet fatto dal negozio.",
-      "downloadImage": "Scarica immagine per WhatsApp"
+      "downloadImage": "Scarica immagine per WhatsApp",
+      "convertToOrder": "Trasforma in ordine",
+      "viewOrder": "Vedi ordine {number}",
+      "orderTitle": "Ordine",
+      "orderHint": "Il cliente ha accettato: trasformalo in ordine per fissare consegna, biglietto e pagamenti.",
+      "orderDone": "Questo preventivo è già l’ordine {number}."
     },
     "whatsapp": {
       "greeting": "Ciao {name}, ti invio il preventivo {number} di {shop}:",
@@ -910,6 +929,170 @@
       "viewAll": "Vedi tutti i suoi preventivi"
     },
     "designRamo": "Componi bouquet"
+  },
+  "orders": {
+    "title": "Ordini",
+    "subtitle": "Cosa preparare e consegnare, con i pagamenti.",
+    "searchPlaceholder": "Cerca per cliente, destinatario o numero (PED-0001)",
+    "allStatuses": "Tutti gli stati",
+    "unpaidOnly": "Con saldo da incassare",
+    "when": {
+      "upcoming": "Prossimi",
+      "today": "Oggi",
+      "tomorrow": "Domani",
+      "week": "Questa settimana",
+      "past": "Precedenti",
+      "all": "Tutti"
+    },
+    "statuses": {
+      "PENDING_ACCEPTANCE": "Da accettare",
+      "CONFIRMED": "Confermato",
+      "IN_PREPARATION": "In preparazione",
+      "READY": "Pronto",
+      "OUT_FOR_DELIVERY": "In consegna",
+      "DELIVERED": "Consegnato",
+      "PICKED_UP": "Ritirato",
+      "CANCELLED": "Annullato"
+    },
+    "paymentStatuses": {
+      "UNPAID": "Da pagare",
+      "PARTIAL": "Con acconto",
+      "PAID": "Pagato"
+    },
+    "modes": {
+      "DELIVERY": "Consegna a domicilio",
+      "PICKUP": "Ritiro in negozio"
+    },
+    "methods": {
+      "CASH": "Contanti",
+      "TRANSFER": "Bonifico",
+      "CARD_TERMINAL": "POS (carta)",
+      "PAYMENT_LINK": "Link di pagamento",
+      "OTHER": "Altro"
+    },
+    "paymentKinds": {
+      "DEPOSIT": "Acconto",
+      "BALANCE": "Pagamento",
+      "REVERSAL": "Storno"
+    },
+    "results": "{count, plural, =0 {Nessun risultato} one {# ordine} other {# ordini}}",
+    "emptyTitle": "Non hai ancora ordini",
+    "emptyBody": "Un ordine nasce da un preventivo accettato: aprilo e scegli «Trasforma in ordine».",
+    "noResultsTitle": "Nessun ordine con questi filtri",
+    "noResultsBody": "Prova un altro giorno, un’altra ricerca o togli i filtri.",
+    "goToQuotes": "Vedi preventivi",
+    "allDay": "In giornata",
+    "window": "{start}–{end}",
+    "forRecipient": "Per {name}",
+    "detail": {
+      "createdOn": "Creato il {date}",
+      "fromQuote": "Dal preventivo {number}",
+      "lines": "Cosa contiene",
+      "summary": "Riepilogo",
+      "subtotal": "Subtotale",
+      "discount": "Sconto",
+      "deliveryFee": "Consegna",
+      "total": "Totale",
+      "paid": "Pagato",
+      "balance": "Da incassare",
+      "delivery": "Consegna",
+      "when": "Quando",
+      "deliverTo": "Dove",
+      "recipient": "Chi riceve",
+      "deliveryNotes": "Indicazioni",
+      "card": "Biglietto",
+      "anonymous": "Senza firma (anonimo)",
+      "signedBy": "Firma: {name}",
+      "noCard": "Senza biglietto",
+      "notes": "Note interne",
+      "editDelivery": "Cambia consegna e biglietto",
+      "editDeliveryBody": "Cambiando il costo di consegna si ricalcolano il totale e quanto resta da incassare.",
+      "statusTitle": "Avanzamento",
+      "statusHint": "Segna ogni passo quando succede.",
+      "forward": {
+        "CONFIRMED": "Accetta l’ordine",
+        "IN_PREPARATION": "Inizia a preparare",
+        "READY": "Segna pronto",
+        "OUT_FOR_DELIVERY": "Uscito per la consegna",
+        "DELIVERED": "Segna consegnato",
+        "PICKED_UP": "Segna ritirato"
+      },
+      "back": {
+        "CONFIRMED": "Torna a confermato",
+        "IN_PREPARATION": "Torna in preparazione",
+        "READY": "Torna a pronto"
+      },
+      "noSteps": "Questo ordine non ha più passi da fare.",
+      "stepDone": "Ordine segnato come «{status}»",
+      "cancel": "Annulla ordine",
+      "cancelTitle": "Annullare l’ordine?",
+      "cancelBody": "L’ordine resta annullato e non si riapre. Il motivo resta nello storico.",
+      "cancelReason": "Motivo",
+      "cancelConfirm": "Annulla ordine",
+      "cancelled": "Ordine annullato",
+      "cancelledBecause": "Annullato: {reason}",
+      "payments": "Pagamenti",
+      "paymentsHint": "Registra quello che ti pagano: contanti, bonifico, POS o link di pagamento.",
+      "noPayments": "Ancora nessun pagamento registrato.",
+      "amount": "Importo ({currency})",
+      "method": "Metodo di pagamento",
+      "kind": "Tipo",
+      "paidOn": "Data del pagamento",
+      "reference": "Riferimento",
+      "referencePlaceholder": "Es. numero del bonifico",
+      "addPayment": "Registra pagamento",
+      "paymentRecorded": "Pagamento registrato",
+      "reverse": "Storna",
+      "reverseLabel": "Storna il pagamento di {amount}",
+      "reverseTitle": "Stornare questo pagamento?",
+      "reverseBody": "Si aggiunge uno storno dello stesso importo; il pagamento resta nello storico.",
+      "reverseConfirm": "Storna pagamento",
+      "paymentReversed": "Pagamento stornato",
+      "history": "Storico",
+      "historyCreated": "Ordine creato come «{status}»",
+      "historyStep": "«{from}» → «{to}»",
+      "print": "Stampa",
+      "whatsapp": "Invia su WhatsApp",
+      "saved": "Consegna e biglietto salvati"
+    },
+    "form": {
+      "title": "Trasforma in ordine",
+      "subtitle": "Preventivo {number} di {name}. Indica quando e come si consegna.",
+      "mode": "Come si consegna?",
+      "date": "Data",
+      "windowStart": "Dalle",
+      "windowEnd": "Alle",
+      "windowHint": "Lascia vuoto se si consegna in qualsiasi momento della giornata.",
+      "address": "Indirizzo di consegna",
+      "newAddress": "Un altro indirizzo",
+      "noAddresses": "Questo cliente non ha indirizzi salvati: scrivi l’indirizzo.",
+      "recipientName": "Nome di chi riceve",
+      "recipientHint": "Se lo lasci vuoto usiamo quello dell’indirizzo salvato.",
+      "recipientPhone": "Telefono di chi riceve",
+      "deliveryNotes": "Indicazioni per la consegna",
+      "deliveryNotesPlaceholder": "Es. Chiamare prima, è una sorpresa",
+      "card": "Biglietto",
+      "cardMessage": "Messaggio",
+      "cardMessagePlaceholder": "Es. Buon compleanno!",
+      "cardSignature": "Firma",
+      "cardAnonymous": "Invia senza firma (anonimo)",
+      "deliveryFee": "Costo di consegna ({currency})",
+      "notes": "Note interne",
+      "notesHint": "Le vede solo il tuo team.",
+      "create": "Crea ordine",
+      "save": "Salva modifiche",
+      "created": "Ordine creato"
+    },
+    "whatsapp": {
+      "greeting": "Ciao {name}, ti confermiamo l’ordine {number} di {shop}.",
+      "line": "• {quantity} × {description}: {total}",
+      "delivery": "Consegna: {date}",
+      "pickup": "Ritiro in negozio: {date}",
+      "window": "dalle {start} alle {end}",
+      "total": "Totale: {total}",
+      "paid": "Pagato: {paid}",
+      "balance": "Da pagare: {balance}"
+    }
   },
   "plans": {
     "title": "Piano e funzioni",

@@ -11,7 +11,14 @@ import {
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { getDashboard, listUpcomingOccasions, type ActivityEntry } from '@floral/core';
-import { QUOTE_STATUSES, isMembershipRole, isPlanCode, type QuoteStatus } from '@floral/domain';
+import {
+  ORDER_STATUSES,
+  QUOTE_STATUSES,
+  isMembershipRole,
+  isPlanCode,
+  type OrderStatus,
+  type QuoteStatus,
+} from '@floral/domain';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +37,10 @@ const STEP_LINKS = {
 
 function isQuoteStatus(value: string): value is QuoteStatus {
   return (QUOTE_STATUSES as readonly string[]).includes(value);
+}
+
+function isOrderStatus(value: string): value is OrderStatus {
+  return (ORDER_STATUSES as readonly string[]).includes(value);
 }
 
 function metadataNumber(metadata: ActivityEntry['metadata'], key: string): number | undefined {
@@ -76,7 +87,13 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
       ingredient: metadataString(entry.metadata, 'ingredientName') ?? '—',
       role: roleValue && isMembershipRole(roleValue) ? t(`roles.${roleValue}`) : '—',
       number: metadataString(entry.metadata, 'number') ?? '—',
-      status: statusValue && isQuoteStatus(statusValue) ? t(`quotes.statuses.${statusValue}`) : '—',
+      status: !statusValue
+        ? '—'
+        : entry.action.startsWith('order.') && isOrderStatus(statusValue)
+          ? t(`orders.statuses.${statusValue}`)
+          : isQuoteStatus(statusValue)
+            ? t(`quotes.statuses.${statusValue}`)
+            : '—',
       plan: planValue && isPlanCode(planValue) ? t(`plans.names.${planValue}`) : '—',
       units: metadataNumber(entry.metadata, 'units') ?? 0,
     };

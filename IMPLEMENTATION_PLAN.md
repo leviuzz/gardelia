@@ -462,6 +462,18 @@ intermediario e servizio gestito solo dopo (D-25); nuovi punti aperti O-12 (fase
 codice, nello sprint billing: piani ed entitlements (`packages/domain/src/plans.ts`) sui livelli,
 quote AI 15 / 30, utenti inclusi per livello. Nessun codice cambiato in questa sessione.
 
+**Ordini, blocco A1a (fatto il 23/11, ADR-054):** "Convertir en pedido" sul preventivo accettato
+(righe, snapshot e immagine del ramo copiati), consegna a domicilio o ritiro con data e fascia,
+indirizzo dalla rubrica o nuovo (copiato nell'ordine), destinatario, tarjeta (messaggio, firma o
+anonimo), note interne; stati con cronologia e un passo indietro, annullamento con motivo; pagamenti
+registrati a mano (acconto, saldo, metodo, riferimento) con storno; pagine Pedidos (filtri Próximos,
+Hoy, Mañana, Esta semana, Anteriores, Todos, stato, saldo pendiente), scheda con stampa e messaggio
+WhatsApp, collegamento dal preventivo. "Pedidos" nella barra in basso, Catálogo nel menu "Más".
+Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test unit 279/279 ✅ · integrazione 269/269 ✅
+(14 nuovi sugli ordini, con isolamento A↔B) · build ✅ · E2E 59/59 ✅ (3 nuovi); controllo visivo a
+320 px. Prossimi: A1b ordine diretto con le righe, A2 impostazioni di consegna e coordinate, A3 stampa
+della tarjeta e link pubblici.
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci
@@ -470,7 +482,9 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
    divisione dei file grandi insieme alle funzionalità che li toccano; immagini con URL firmati e
    caricamento diretto su R2 quando serviranno (Studio, immagini 2K).
 2. Ordini, pagamenti registrati e consegne con calendario; link pubblici di preventivo (approvato)
-   e ordine; aggiungere un disegno del Diseñador a un preventivo in bozza.
+   e ordine; aggiungere un disegno del Diseñador a un preventivo in bozza. Poi il marketplace per i
+   clienti (D-26, deciso il 23/11: registrazione obbligatoria, pagamento diretto alla fioreria) e la
+   ruta del día gratuita (D-27). Blocchi A1–C5 in `docs/ORDERS_MARKETPLACE_PLAN.md`; si parte da A1.
 3. Inventario.
 4. Clienti completi: cronologia, etichette, import CSV.
 5. Abbonamenti dei clienti e Floral Care.

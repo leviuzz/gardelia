@@ -60,7 +60,9 @@
     "too_many_photos": "Llegaste al máximo de fotos. Quita alguna para subir otra.",
     "photos_not_allowed_for_type": "Este tipo de producto no lleva fotos.",
     "consent_required": "Para subir fotos confirma la autorización.",
-    "builder_color_required": "Elige el color del empaque o del complemento."
+    "builder_color_required": "Elige el color del empaque o del complemento.",
+    "invalid_time_window": "Indica la hora de inicio y la de fin, en orden.",
+    "payment_exceeds_balance": "El importe es mayor que lo que falta por cobrar."
   },
   "errors": {
     "validation": "Revisa los campos marcados.",
@@ -98,7 +100,12 @@
       "preview_retry_limit": "Ya lo intentamos varias veces con este diseño: comparte el boceto exacto o ajusta el diseño.",
       "platform_admin_exists": "Ya existe un administrador de la plataforma.",
       "promo_not_sent": "Este correo no llegó al cliente: no hay descuento que marcar.",
-      "promo_already_used": "Este descuento ya está marcado como usado."
+      "promo_already_used": "Este descuento ya está marcado como usado.",
+      "quote_not_accepted": "Solo una cotización aceptada se convierte en pedido.",
+      "quote_already_ordered": "Esta cotización ya tiene su pedido.",
+      "order_not_editable": "El pedido ya salió: la entrega y la tarjeta ya no se cambian.",
+      "order_closed": "El pedido está cancelado.",
+      "payment_already_reversed": "Este pago ya fue anulado."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -250,7 +257,8 @@
     "quotes": "Cotizaciones",
     "builder": "Diseñador",
     "calendar": "Calendario",
-    "promotions": "Promociones"
+    "promotions": "Promociones",
+    "orders": "Pedidos"
   },
   "roles": {
     "OWNER": "Propietario",
@@ -347,7 +355,13 @@
     "tenant.promo_updated": "{actor} cambió la promoción de fechas especiales",
     "customer.unsubscribed": "Un cliente se dio de baja de las promociones",
     "promo.redeemed": "{actor} marcó como usado un descuento",
-    "promo.redemption_undone": "{actor} quitó el uso de un descuento"
+    "promo.redemption_undone": "{actor} quitó el uso de un descuento",
+    "order.created": "{actor} creó el pedido {number}",
+    "order.updated": "{actor} cambió la entrega de {number}",
+    "order.status_changed": "{actor} marcó {number} como «{status}»",
+    "order.cancelled": "{actor} canceló el pedido {number}",
+    "order.payment_recorded": "{actor} registró un pago en {number}",
+    "order.payment_reversed": "{actor} anuló un pago en {number}"
   },
   "catalog": {
     "title": "Catálogo",
@@ -894,7 +908,12 @@
       "imageNote": "Imagen ilustrativa: el ramo real puede variar.",
       "imageNoteVerified": "Imagen ilustrativa con el número exacto de flores de la receta; la forma y los tonos pueden variar.",
       "imageNotePhoto": "Foto de un ramo hecho por la florería.",
-      "downloadImage": "Descargar imagen para WhatsApp"
+      "downloadImage": "Descargar imagen para WhatsApp",
+      "convertToOrder": "Convertir en pedido",
+      "viewOrder": "Ver pedido {number}",
+      "orderTitle": "Pedido",
+      "orderHint": "El cliente aceptó: conviértela en pedido para fijar entrega, tarjeta y pagos.",
+      "orderDone": "Esta cotización ya es el pedido {number}."
     },
     "whatsapp": {
       "greeting": "Hola {name}, te comparto la cotización {number} de {shop}:",
@@ -910,6 +929,170 @@
       "viewAll": "Ver todas sus cotizaciones"
     },
     "designRamo": "Diseñar ramo"
+  },
+  "orders": {
+    "title": "Pedidos",
+    "subtitle": "Lo que tienes que preparar y entregar, con sus pagos.",
+    "searchPlaceholder": "Buscar por cliente, quién recibe o número (PED-0001)",
+    "allStatuses": "Todos los estados",
+    "unpaidOnly": "Con saldo pendiente",
+    "when": {
+      "upcoming": "Próximos",
+      "today": "Hoy",
+      "tomorrow": "Mañana",
+      "week": "Esta semana",
+      "past": "Anteriores",
+      "all": "Todos"
+    },
+    "statuses": {
+      "PENDING_ACCEPTANCE": "Por aceptar",
+      "CONFIRMED": "Confirmado",
+      "IN_PREPARATION": "En preparación",
+      "READY": "Listo",
+      "OUT_FOR_DELIVERY": "En camino",
+      "DELIVERED": "Entregado",
+      "PICKED_UP": "Recogido",
+      "CANCELLED": "Cancelado"
+    },
+    "paymentStatuses": {
+      "UNPAID": "Sin pagar",
+      "PARTIAL": "Con anticipo",
+      "PAID": "Pagado"
+    },
+    "modes": {
+      "DELIVERY": "Envío a domicilio",
+      "PICKUP": "Recoge en tienda"
+    },
+    "methods": {
+      "CASH": "Efectivo",
+      "TRANSFER": "Transferencia",
+      "CARD_TERMINAL": "Terminal (tarjeta)",
+      "PAYMENT_LINK": "Link de pago",
+      "OTHER": "Otro"
+    },
+    "paymentKinds": {
+      "DEPOSIT": "Anticipo",
+      "BALANCE": "Pago",
+      "REVERSAL": "Anulación"
+    },
+    "results": "{count, plural, =0 {Sin resultados} one {# pedido} other {# pedidos}}",
+    "emptyTitle": "Aún no tienes pedidos",
+    "emptyBody": "Un pedido nace de una cotización aceptada: ábrela y elige «Convertir en pedido».",
+    "noResultsTitle": "No hay pedidos con estos filtros",
+    "noResultsBody": "Prueba con otro día, otra búsqueda o limpia los filtros.",
+    "goToQuotes": "Ver cotizaciones",
+    "allDay": "Durante el día",
+    "window": "{start} a {end}",
+    "forRecipient": "Para {name}",
+    "detail": {
+      "createdOn": "Creado el {date}",
+      "fromQuote": "De la cotización {number}",
+      "lines": "Qué lleva",
+      "summary": "Resumen",
+      "subtotal": "Subtotal",
+      "discount": "Descuento",
+      "deliveryFee": "Envío",
+      "total": "Total",
+      "paid": "Pagado",
+      "balance": "Por cobrar",
+      "delivery": "Entrega",
+      "when": "Cuándo",
+      "deliverTo": "Dónde",
+      "recipient": "Quién recibe",
+      "deliveryNotes": "Indicaciones",
+      "card": "Tarjeta",
+      "anonymous": "Sin firma (anónimo)",
+      "signedBy": "Firma: {name}",
+      "noCard": "Sin tarjeta",
+      "notes": "Notas internas",
+      "editDelivery": "Cambiar entrega y tarjeta",
+      "editDeliveryBody": "Los cambios del costo de envío recalculan el total y lo que falta por cobrar.",
+      "statusTitle": "Avance",
+      "statusHint": "Marca cada paso cuando suceda.",
+      "forward": {
+        "CONFIRMED": "Aceptar pedido",
+        "IN_PREPARATION": "Empezar a preparar",
+        "READY": "Marcar listo",
+        "OUT_FOR_DELIVERY": "Salió a entregar",
+        "DELIVERED": "Marcar entregado",
+        "PICKED_UP": "Marcar recogido"
+      },
+      "back": {
+        "CONFIRMED": "Volver a confirmado",
+        "IN_PREPARATION": "Volver a preparación",
+        "READY": "Volver a listo"
+      },
+      "noSteps": "Este pedido ya no tiene pasos pendientes.",
+      "stepDone": "Pedido marcado como «{status}»",
+      "cancel": "Cancelar pedido",
+      "cancelTitle": "¿Cancelar el pedido?",
+      "cancelBody": "El pedido queda cancelado y no se reabre. El motivo queda en la historia.",
+      "cancelReason": "Motivo",
+      "cancelConfirm": "Cancelar pedido",
+      "cancelled": "Pedido cancelado",
+      "cancelledBecause": "Cancelado: {reason}",
+      "payments": "Pagos",
+      "paymentsHint": "Registra lo que te pagan: efectivo, transferencia, terminal o link de pago.",
+      "noPayments": "Todavía no hay pagos registrados.",
+      "amount": "Importe ({currency})",
+      "method": "Forma de pago",
+      "kind": "Tipo",
+      "paidOn": "Fecha del pago",
+      "reference": "Referencia",
+      "referencePlaceholder": "Ej. folio de la transferencia",
+      "addPayment": "Registrar pago",
+      "paymentRecorded": "Pago registrado",
+      "reverse": "Anular",
+      "reverseLabel": "Anular el pago de {amount}",
+      "reverseTitle": "¿Anular este pago?",
+      "reverseBody": "Se agrega una anulación por el mismo importe; el pago queda en la historia.",
+      "reverseConfirm": "Anular pago",
+      "paymentReversed": "Pago anulado",
+      "history": "Historia",
+      "historyCreated": "Pedido creado como «{status}»",
+      "historyStep": "«{from}» → «{to}»",
+      "print": "Imprimir",
+      "whatsapp": "Enviar por WhatsApp",
+      "saved": "Entrega y tarjeta guardadas"
+    },
+    "form": {
+      "title": "Convertir en pedido",
+      "subtitle": "Cotización {number} de {name}. Indica cuándo y cómo se entrega.",
+      "mode": "¿Cómo se entrega?",
+      "date": "Fecha",
+      "windowStart": "Desde",
+      "windowEnd": "Hasta",
+      "windowHint": "Déjalo vacío si se entrega en cualquier momento del día.",
+      "address": "Dirección de entrega",
+      "newAddress": "Otra dirección",
+      "noAddresses": "Este cliente no tiene direcciones guardadas: escribe la dirección.",
+      "recipientName": "Nombre de quien recibe",
+      "recipientHint": "Si lo dejas vacío usamos el de la dirección guardada.",
+      "recipientPhone": "Teléfono de quien recibe",
+      "deliveryNotes": "Indicaciones para la entrega",
+      "deliveryNotesPlaceholder": "Ej. Llamar antes, es sorpresa",
+      "card": "Tarjeta",
+      "cardMessage": "Mensaje",
+      "cardMessagePlaceholder": "Ej. ¡Feliz cumpleaños!",
+      "cardSignature": "Firma",
+      "cardAnonymous": "Enviar sin firma (anónimo)",
+      "deliveryFee": "Costo de envío ({currency})",
+      "notes": "Notas internas",
+      "notesHint": "Solo las ve tu equipo.",
+      "create": "Crear pedido",
+      "save": "Guardar cambios",
+      "created": "Pedido creado"
+    },
+    "whatsapp": {
+      "greeting": "Hola {name}, te confirmamos tu pedido {number} de {shop}.",
+      "line": "• {quantity} × {description}: {total}",
+      "delivery": "Entrega: {date}",
+      "pickup": "Recoges en tienda: {date}",
+      "window": "de {start} a {end}",
+      "total": "Total: {total}",
+      "paid": "Pagado: {paid}",
+      "balance": "Por pagar: {balance}"
+    }
   },
   "plans": {
     "title": "Plan y funciones",

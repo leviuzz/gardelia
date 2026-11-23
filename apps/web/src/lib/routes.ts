@@ -40,6 +40,7 @@ export function tenantRoutes(slug: string) {
   const catalog = `${home}/catalog`;
   const customers = `${home}/customers`;
   const quotes = `${home}/quotes`;
+  const orders = `${home}/orders`;
   const builder = `${home}/builder`;
   const settings = `${home}/settings`;
 
@@ -77,11 +78,21 @@ export function tenantRoutes(slug: string) {
       new: (query?: { readonly customerId?: string; readonly configurationId?: string | null }) =>
         withQuery(`${quotes}/new`, query),
       detail: (quoteId: string) => `${quotes}/${segment(quoteId)}`,
+      /** "Convertir en pedido": dati di consegna e tarjeta per un preventivo accettato. */
+      toOrder: (quoteId: string) => `${quotes}/${segment(quoteId)}/order`,
       /** Immagine del ramo di una riga (`download`: si scarica, per allegarla su WhatsApp). */
       lineImage: (quoteId: string, lineId: string, options?: { readonly download?: boolean }) =>
         withQuery(`${quotes}/${segment(quoteId)}/lines/${segment(lineId)}/image`, {
           download: options?.download,
         }),
+    },
+    orders: {
+      /** Elenco (`when`: upcoming, today, tomorrow, week, past, all; `status`; `unpaid`). */
+      list: (query?: QueryValues) => withQuery(orders, query),
+      detail: (orderId: string) => `${orders}/${segment(orderId)}`,
+      /** Immagine del ramo di una riga (la stessa del preventivo). */
+      lineImage: (orderId: string, lineId: string) =>
+        `${orders}/${segment(orderId)}/lines/${segment(lineId)}/image`,
     },
     builder: {
       list: (query?: QueryValues) => withQuery(builder, query),

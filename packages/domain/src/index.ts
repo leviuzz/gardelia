@@ -10,6 +10,7 @@ export * from './i18n';
 export * from './ids';
 export * from './markets';
 export * from './money';
+export * from './order';
 export * from './permissions';
 export * from './photos';
 export * from './plans';

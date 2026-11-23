@@ -62,7 +62,12 @@ export type ConflictReason =
   | 'preview_retry_limit'
   | 'promo_not_sent'
   | 'promo_already_used'
-  | 'platform_admin_exists';
+  | 'platform_admin_exists'
+  | 'quote_not_accepted'
+  | 'quote_already_ordered'
+  | 'order_not_editable'
+  | 'order_closed'
+  | 'payment_already_reversed';
 
 export class ConflictError extends AppError {
   readonly code = 'conflict' as const;

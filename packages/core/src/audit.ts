@@ -82,7 +82,9 @@ type ProbeableEntity =
   | 'CatalogItemPhoto'
   | 'StyleReferencePhoto'
   | 'BouquetPhoto'
-  | 'OccasionPromoEmail';
+  | 'OccasionPromoEmail'
+  | 'Order'
+  | 'OrderPayment';
 
 async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<string | null> {
   return withSystemContext(
@@ -133,6 +135,10 @@ async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<st
           return (
             (await tx.occasionPromoEmail.findUnique({ where: { id }, select }))?.tenantId ?? null
           );
+        case 'Order':
+          return (await tx.order.findUnique({ where: { id }, select }))?.tenantId ?? null;
+        case 'OrderPayment':
+          return (await tx.orderPayment.findUnique({ where: { id }, select }))?.tenantId ?? null;
       }
     },
   );

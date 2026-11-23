@@ -39,6 +39,17 @@ export const PERMISSIONS = {
   'quotes:read': ALL,
   /** Creare e modificare preventivi, cambiarne lo stato. */
   'quotes:write': MANAGEMENT,
+  /** Vedere ordini, consegne e pagamenti registrati. */
+  'orders:read': ALL,
+  /**
+   * Creare ordini (anche da un preventivo), cambiarne consegna e tarjeta, accettare quelli del
+   * marketplace e annullarli (ADR-054; coerente con O-08: lo staff non crea clienti né preventivi).
+   */
+  'orders:write': MANAGEMENT,
+  /** Far avanzare un ordine al banco: in preparazione, pronto, in consegna, consegnato, ritirato. */
+  'orders:fulfill': ALL,
+  /** Registrare e stornare i pagamenti ricevuti (D-26: registrati a mano). */
+  'orders:payments': MANAGEMENT,
   /**
    * Comporre bouquet nel Builder e salvarne il disegno (anche lo staff al banco); per
    * trasformarlo in preventivo serve `quotes:write`. Richiede il piano con il Builder.

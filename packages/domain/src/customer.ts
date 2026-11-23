@@ -79,7 +79,7 @@ export const CUSTOMER_LIMITS = {
 
 export const CUSTOMER_PAGE_SIZE = 20;
 
-function optionalPhoneField(country: MarketCountry) {
+export function optionalPhoneField(country: MarketCountry) {
   return z.preprocess(
     toTrimmedString,
     z.string().transform((value, ctx) => {

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import sharp from 'sharp';
 import { disconnectDb, getDb, withSystemContext } from '@floral/db';
 import { createTestUser } from '@floral/db/testing';
-import { AUDIT_ACTIONS } from '@floral/domain';
+import { AUDIT_ACTIONS, todayInTimeZone } from '@floral/domain';
 import {
   ForbiddenError,
   MemoryStorage,
@@ -10,12 +10,16 @@ import {
   PlanRequiredError,
   ValidationError,
   addBouquetPhoto,
+  changeQuoteStatus,
   createCatalogItem,
+  createOrderFromQuote,
   createCustomer,
   createQuoteFromConfiguration,
   deleteBouquetConfiguration,
   getBouquetConfiguration,
   getBouquetPhotoImage,
+  getOrder,
+  getOrderLineImage,
   getQuote,
   getQuoteLineImage,
   listStyleReferences,
@@ -253,5 +257,32 @@ describe('foto vera del ramo', () => {
     await expect(
       addBouquetPhoto(basic.owner, design.id, await photoBytes('#999999'), {}),
     ).rejects.toBeInstanceOf(PlanRequiredError);
+  });
+
+  it('el pedido nacido de la cotización conserva la foto verdadera (ADR-054)', async () => {
+    const kit = await createKit();
+    const design = await saveDesign(kit, 'Ramo para pedido');
+    await addBouquetPhoto(kit.shop.owner, design.id, await photoBytes('#336699'), {});
+    const { quoteId, line } = await quoteFor(kit, design.id);
+    const quoteImage = await getQuoteLineImage(kit.shop.owner, quoteId, line.id);
+    await changeQuoteStatus(kit.shop.owner, quoteId, 'SENT');
+    await changeQuoteStatus(kit.shop.owner, quoteId, 'ACCEPTED');
+
+    const parts = todayInTimeZone(kit.shop.owner.timezone);
+    const today = `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
+    const { id } = await createOrderFromQuote(kit.shop.owner, quoteId, {
+      fulfillmentMode: 'PICKUP',
+      scheduledDate: today,
+    });
+    const order = await getOrder(kit.shop.owner, id);
+    const orderLine = order.lines[0]!;
+    expect(orderLine.image?.source).toBe('photo');
+    const orderImage = await getOrderLineImage(kit.shop.owner, id, orderLine.id);
+    expect(Buffer.from(orderImage.bytes).equals(Buffer.from(quoteImage.bytes))).toBe(true);
+
+    // Una foto nuova del disegno non cambia quella del pedido.
+    await addBouquetPhoto(kit.shop.owner, design.id, await photoBytes('#22aa44'), {});
+    const after = await getOrderLineImage(kit.shop.owner, id, orderLine.id);
+    expect(Buffer.from(after.bytes).equals(Buffer.from(orderImage.bytes))).toBe(true);
   });
 });

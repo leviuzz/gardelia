@@ -19,7 +19,10 @@ decisioni in `docs/DECISIONS.md`, lavoro tecnico in `IMPLEMENTATION_PLAN.md`.
 Prodotto, nell'ordine di `docs/V1_SCOPE.md` §5:
 
 1. Ambiente online di prova (fatto: i rilasci su staging sono attivi).
-2. Ordini, pagamenti registrati e consegne; link pubblici di preventivo e ordine.
+2. Ordini, pagamenti registrati e consegne; link pubblici di preventivo e ordine; **marketplace per
+   i clienti** (D-26, deciso dal founder il 23/11/2026): pagine pubbliche, ricerca per indirizzo,
+   pagina di ogni fioreria, ordine del cliente registrato, pagamento diretto alla fioreria. Blocchi
+   A1–C5 in `docs/ORDERS_MARKETPLACE_PLAN.md`.
 3. Inventario.
 4. Clienti completi: cronologia, etichette, import CSV.
 5. Abbonamenti dei clienti e Floral Care.
@@ -34,7 +37,9 @@ Fuori dal codice, prima del lancio:
 - interviste a 15–20 fioristi di Aguascalientes su prezzi e livelli (spec §15.4);
 - prova da ~100 immagini AI: costo vero → prezzi dei crediti;
 - commercialista e contador: chi fattura (O-02), IVA (O-06), domande di `docs/BUSINESS_MODEL.md` §6;
-- revisione legale di termini e aviso de privacidad (O-07); marchio all'IMPI (O-03);
+- revisione legale di termini e aviso de privacidad (O-07), compresi i termini per i consumatori del
+  marketplace (PROFECO) e la privacy di chi compra; marchio all'IMPI (O-03);
+- chiave di Google Places per gli indirizzi (O-14);
 - fase gratuita: se, quando e come (O-12).
 
 **Traguardo:** V1 completa secondo `docs/V1_SCOPE.md` §3.
@@ -56,13 +61,15 @@ Fuori dal codice, prima del lancio:
 
 **Traguardo:** il Premium ha funzioni vere e qualcuno lo compra.
 
-## Tappa 3 — Marketplace per i privati
+## Tappa 3 — Marketplace: crescita
 
-- Ordini dei privati inviati alle fiorerie in zona; fee del 10–15% sugli ordini portati da Gardelia
-  (D-24).
-- Priorità sugli ordini a pagamento solo quando c'è volume.
-- Serve pubblicità verso i privati, e prima il parere del contador sugli obblighi delle piattaforme
-  di intermediazione.
+La base del marketplace è nella V1 (D-26). Qui arriva quello che serve quando ci sono clienti:
+
+- pubblicità verso i privati e fee del 10–15% sugli ordini portati da Gardelia, incassata con il
+  billing (D-24);
+- ordini dei privati inviati a più fiorerie in zona, con la priorità a pagamento solo quando c'è
+  volume;
+- mappa nella ricerca, recensioni verificate.
 
 **Traguardo:** ordini regolari, soprattutto nei picchi (14 febbraio, 10 maggio, 2 novembre,
 12 dicembre).
