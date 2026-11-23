@@ -162,6 +162,53 @@ test.describe('anteprima AI (provider simulato)', () => {
   });
 });
 
+test.describe('eliminare un disegno (ADR-051)', () => {
+  test.use({ storageState: 'e2e/.auth/owner.json' });
+
+  test('con conferma sparisce con le sue foto; in un preventivo si può solo archiviare', async ({
+    page,
+    browser,
+  }) => {
+    const name = `Ramo para borrar ${Date.now()}`;
+    await saveSimpleDesign(page, { name, flower: 'Girasol', quantity: 2 });
+    const designUrl = page.url().replace(/\?saved=1$/, '');
+    await page.getByRole('button', { name: 'Eliminar' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('heading', { name: '¿Eliminar este diseño?' })).toBeVisible();
+    await expect(dialog.getByText(/los créditos ya usados no se devuelven/)).toBeVisible();
+    await dialog.getByRole('button', { name: 'Eliminar' }).click();
+    await expect(page).toHaveURL(/\/builder\?deleted=1$/);
+    await expect(page.getByText('Diseño eliminado.')).toBeVisible();
+    await expect(page.getByText(name)).toHaveCount(0);
+    expect((await page.request.get(designUrl)).status()).toBe(404);
+
+    // Un disegno usato in una cotización non si elimina: la finestra spiega perché.
+    const quoted = `Ramo cotizado ${Date.now()}`;
+    await saveSimpleDesign(page, { name: quoted, flower: 'Girasol', quantity: 2 });
+    const quotedUrl = page.url().replace(/\?saved=1$/, '');
+    await page.getByRole('button', { name: 'Saltar este paso' }).click();
+    await page.getByRole('link', { name: 'Crear cotización' }).click();
+    await page.getByRole('button', { name: 'Cotización para Hotel Casa Fuentes' }).click();
+    await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
+    await page.goto(quotedUrl);
+    await page.getByRole('button', { name: 'Eliminar' }).click();
+    await expect(
+      dialog.getByRole('heading', { name: 'Este diseño está en una cotización' }),
+    ).toBeVisible();
+    await expect(dialog.getByText(/puedes archivarlo/)).toBeVisible();
+    await dialog.getByRole('button', { name: 'Cerrar' }).first().click();
+    await expect(dialog).toHaveCount(0);
+
+    // Lo staff compone e archivia, ma non vede "Eliminar".
+    const staff = await browser.newContext({ storageState: 'e2e/.auth/staff.json' });
+    const staffPage = await staff.newPage();
+    await staffPage.goto(quotedUrl);
+    await expect(staffPage.getByRole('button', { name: 'Archivar' })).toBeVisible();
+    await expect(staffPage.getByRole('button', { name: 'Eliminar' })).toHaveCount(0);
+    await staff.close();
+  });
+});
+
 test.describe('Bouquet Builder (fioreria Basic)', () => {
   test.use({ storageState: 'e2e/.auth/other-owner.json' });
 

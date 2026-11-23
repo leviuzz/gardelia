@@ -6,6 +6,7 @@ import { getFormatter, getTranslations } from 'next-intl/server';
 import { cache } from 'react';
 import {
   NotFoundError,
+  hasPermission,
   getBouquetConfiguration,
   getBouquetPreview,
   getBouquetSketchPlan,
@@ -23,12 +24,14 @@ import { kickAiDrainWhileWaiting } from '@/lib/ai-kick';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
+  deleteDesignAction,
   requestAnotherPreviewAction,
   requestPreviewAction,
   saveDesignAction,
   setDesignArchivedAction,
 } from '../actions';
 import { BouquetEditor } from '../bouquet-editor';
+import { DeleteDesignControl } from '../delete-design-control';
 import { BuilderUpsell, builderOptions } from '../builder-ui';
 import type { PreviewPanelData } from '../preview-panel';
 
@@ -159,17 +162,32 @@ export default async function DesignPage({
         title={design.name}
         description={t('builder.subtitle')}
         actions={
-          <ArchiveControl
-            archived={archived}
-            archiveAction={setDesignArchivedAction.bind(null, ctx.tenantSlug, design.id, true)}
-            restoreAction={setDesignArchivedAction.bind(null, ctx.tenantSlug, design.id, false)}
-            labels={{
-              archive: t('builder.editor.archive'),
-              restore: t('builder.editor.restore'),
-              confirmTitle: t('builder.editor.archiveTitle'),
-              confirmBody: t('builder.editor.archiveBody'),
-            }}
-          />
+          <div className="flex flex-wrap gap-2">
+            <ArchiveControl
+              archived={archived}
+              archiveAction={setDesignArchivedAction.bind(null, ctx.tenantSlug, design.id, true)}
+              restoreAction={setDesignArchivedAction.bind(null, ctx.tenantSlug, design.id, false)}
+              labels={{
+                archive: t('builder.editor.archive'),
+                restore: t('builder.editor.restore'),
+                confirmTitle: t('builder.editor.archiveTitle'),
+                confirmBody: t('builder.editor.archiveBody'),
+              }}
+            />
+            {hasPermission(ctx, 'builder:delete') ? (
+              <DeleteDesignControl
+                action={deleteDesignAction.bind(null, ctx.tenantSlug, design.id)}
+                usedInQuotes={design.usedInQuotes}
+                labels={{
+                  delete: t('builder.editor.delete'),
+                  confirmTitle: t('builder.editor.deleteTitle'),
+                  confirmBody: t('builder.editor.deleteBody'),
+                  inQuoteTitle: t('builder.editor.deleteInQuoteTitle'),
+                  inQuoteBody: t('builder.editor.deleteInQuoteBody'),
+                }}
+              />
+            ) : null}
+          </div>
         }
       />
       {saved && !archived ? (

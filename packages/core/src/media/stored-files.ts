@@ -35,15 +35,27 @@ export async function readStoredImage(
 }
 
 /** Cancellazione di pulizia: se non riesce si registra e si va avanti (non è l'errore principale). */
-async function removeQuietly(keys: readonly string[]): Promise<void> {
+async function removeQuietly(
+  keys: readonly string[],
+  message = 'file non cancellato dopo un salvataggio non riuscito',
+): Promise<void> {
   const storage = getObjectStorage();
   for (const key of keys) {
     try {
       await storage.delete(key);
     } catch (error) {
-      logger.warn({ err: error, key }, 'file non cancellato dopo un salvataggio non riuscito');
+      logger.warn({ err: error, key }, message);
     }
   }
+}
+
+/**
+ * Cancella file che nessun record usa più (es. le foto di un disegno eliminato, ADR-051). Va
+ * chiamata DOPO il commit: se una cancellazione non riesce il file resta orfano nell'archivio
+ * (si registra), ma non c'è mai un record che punta a un file sparito.
+ */
+export async function deleteUnusedFiles(keys: readonly string[]): Promise<void> {
+  await removeQuietly(keys, 'file non più usato rimasto nell’archivio');
 }
 
 /**

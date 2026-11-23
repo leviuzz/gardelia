@@ -390,7 +390,21 @@ tutti i fiori visibili, il controllo non riconosceva "Fiore 1" (nome generico, n
 catalogo): ora ogni tipo arriva al controllo anche con il colore misurato sulla sua foto. Con i
 numeri giusti, la foto era però rigida, una copia del boceto. v7: ramo naturale disposto dal modello,
 poi la correzione dei fiori in più sulla stessa foto; sul ramo del founder 4 richieste su 4
-verificate, a ~0,24 USD l'una (ADR-034, `docs/AI_BENCHMARK.md`).
+verificate, a ~0,24 USD l'una (ADR-034, `docs/AI_BENCHMARK.md`). v8: con la v7 le rose guardavano
+quasi tutte verso la fotocamera ("non ci siamo ancora con la direzione delle rose"); ora il prompt
+chiede fiori visti da angolazioni diverse e al massimo circa uno su quattro di fronte. Provato su 3
+rose + 2 tulipani (3 su 3 verificate al primo colpo) e su 12 rose (6 su 6 verificate).
+
+**Eliminare un disegno del Diseñador (fatto il 23/11, richiesta del founder, ADR-051):** accanto ad
+"Archivar" c'è "Eliminar" (solo proprietario e manager, con conferma). Cancella il disegno e le foto
+generate per lui dall'archivio. Se un preventivo lo usa, la finestra spiega che si può solo
+archiviare. I crediti già usati non tornano. Le foto che mostra un preventivo o un altro disegno
+identico restano. Una foto in preparazione blocca l'eliminazione finché non finisce. Test:
+5 d'integrazione (compresa l'altra fioreria che riceve 404) e un E2E.
+Ultima verifica: lint ✅ · format ✅ · typecheck ✅ · test 513/513 ✅ · build ✅ · E2E del
+Diseñador 8/8 ✅. Nei test d'integrazione il tetto di spesa AI ora è altissimo: il database di
+test locale accumulava la spesa finta del mese, finché ogni anteprima rispondeva "tetto raggiunto".
+Il test del tetto resta.
 
 **Tester senza email di conferma (fatto il 23/11, richiesta del founder, ADR-050):** operazione di
 piattaforma `confirm-user`. L'amministratore conferma a mano l'email di una persona registrata e, se

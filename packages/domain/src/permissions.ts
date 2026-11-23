@@ -45,6 +45,11 @@ export const PERMISSIONS = {
    */
   'builder:use': ALL,
   /**
+   * Eliminare per sempre un disegno con le sue foto generate (ADR-051): solo se nessun preventivo
+   * lo usa; altrimenti si archivia. Irreversibile, quindi solo proprietario e manager.
+   */
+  'builder:delete': MANAGEMENT,
+  /**
    * Caricare e archiviare le foto di "Mis ramos" (riferimenti di stile per le anteprime AI):
    * richiede di dare il consenso a nome della fioreria.
    */
