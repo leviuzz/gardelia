@@ -274,7 +274,10 @@ export default async function OrderPage({
       </div>
 
       {order.status === 'PENDING_ACCEPTANCE' ? (
-        <Card className="border-warning/40 bg-warning-soft/40 print:hidden" data-testid="online-pending">
+        <Card
+          className="border-warning/40 bg-warning-soft/40 print:hidden"
+          data-testid="online-pending"
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Globe className="size-5 text-primary" aria-hidden="true" />
@@ -288,7 +291,9 @@ export default async function OrderPage({
             {order.buyerNotes ? (
               <div className="text-sm">
                 <p className="font-medium">{t('orders.online.buyerNotes')}</p>
-                <p className="mt-1 rounded-xl bg-card p-3 whitespace-pre-line">{order.buyerNotes}</p>
+                <p className="mt-1 rounded-xl bg-card p-3 whitespace-pre-line">
+                  {order.buyerNotes}
+                </p>
               </div>
             ) : null}
             {order.canAccept ? (
@@ -641,11 +646,15 @@ export default async function OrderPage({
               ) : null}
             </CardHeader>
             <CardContent className="grid gap-2">
-              <OrderStepActions
-                action={changeOrderStatusAction.bind(null, slug, order.id)}
-                current={order.status}
-                steps={order.nextSteps}
-              />
+              {order.status === 'PENDING_ACCEPTANCE' ? (
+                <p className="text-sm text-muted-foreground">{t('orders.online.stepsAfter')}</p>
+              ) : (
+                <OrderStepActions
+                  action={changeOrderStatusAction.bind(null, slug, order.id)}
+                  current={order.status}
+                  steps={order.nextSteps}
+                />
+              )}
               {/* L'ordine da accettare si rifiuta dal pannello in cima. */}
               {order.canCancel && order.status !== 'PENDING_ACCEPTANCE' ? (
                 <CancelOrderDialog

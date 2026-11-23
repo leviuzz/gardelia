@@ -431,7 +431,8 @@
         "store_needs_contact": "Agrega el teléfono de la florería, para que el cliente pueda llamarte."
       },
       "goToPayment": "Formas de pago",
-      "notPublished": "Tu tienda todavía no está publicada: los pedidos llegarán cuando la publiques."
+      "notPublished": "Tu tienda todavía no está publicada: los pedidos llegarán cuando la publiques.",
+      "save": "Guardar pedidos en línea"
     }
   },
   "publicStore": {
@@ -1554,7 +1555,8 @@
       "rejectConfirm": "Rechazar pedido",
       "cancelNotice": "El cliente hizo este pedido en línea: le enviaremos un correo con el motivo.",
       "buyerNotes": "Comentarios del cliente",
-      "askManager": "Solo propietarios y gerentes pueden aceptar o rechazar los pedidos en línea."
+      "askManager": "Solo propietarios y gerentes pueden aceptar o rechazar los pedidos en línea.",
+      "stepsAfter": "Primero acéptalo o recházalo arriba; luego aquí marcas cómo avanza."
     }
   },
   "plans": {
@@ -2648,6 +2650,7 @@
     "conflict": {
       "closed": "Esta florería no está recibiendo pedidos en línea por ahora.",
       "pending_limit": "Ya tienes 3 pedidos esperando respuesta de esta florería. Espera a que te respondan o escríbeles."
-    }
+    },
+    "totalWithoutDelivery": "Total sin envío"
   }
 }

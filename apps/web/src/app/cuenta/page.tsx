@@ -87,7 +87,7 @@ export default async function AccountPage() {
                     href={order.trackingPath ?? publicStoreRoutes(order.shopSlug).home}
                     className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
                   >
-                    <span className="min-w-0 flex-1">
+                    <span className="min-w-0 flex-1 space-y-1">
                       <span className="block truncate font-medium">{order.shopName}</span>
                       <span className="block text-sm text-muted-foreground first-letter:uppercase">
                         <span className="tabular-nums">{order.numberLabel}</span>
@@ -101,13 +101,13 @@ export default async function AccountPage() {
                           : ''}
                         {` · ${t(`orders.modes.${order.fulfillmentMode}`)}`}
                       </span>
-                    </span>
-                    <span className="flex shrink-0 flex-col items-end gap-1">
-                      <Badge variant={ORDER_STATUS_BADGE[order.status]}>
-                        {t(`account.orders.statuses.${order.status}`)}
-                      </Badge>
-                      <span className="text-sm font-medium tabular-nums">
-                        {money(order.totalMinor, order.currency)}
+                      <span className="flex flex-wrap items-center justify-between gap-2">
+                        <Badge variant={ORDER_STATUS_BADGE[order.status]}>
+                          {t(`account.orders.statuses.${order.status}`)}
+                        </Badge>
+                        <span className="text-sm font-medium tabular-nums">
+                          {money(order.totalMinor, order.currency)}
+                        </span>
                       </span>
                     </span>
                     <ChevronRight

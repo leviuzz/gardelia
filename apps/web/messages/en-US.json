@@ -431,7 +431,8 @@
         "store_needs_contact": "Add the shop’s phone number, so customers can call you."
       },
       "goToPayment": "Payment methods",
-      "notPublished": "Your shop is not published yet: orders will arrive once you publish it."
+      "notPublished": "Your shop is not published yet: orders will arrive once you publish it.",
+      "save": "Save online orders"
     }
   },
   "publicStore": {
@@ -1554,7 +1555,8 @@
       "rejectConfirm": "Decline order",
       "cancelNotice": "The customer placed this order online: we will email them the reason.",
       "buyerNotes": "Customer comments",
-      "askManager": "Only owners and managers can accept or decline online orders."
+      "askManager": "Only owners and managers can accept or decline online orders.",
+      "stepsAfter": "First accept or decline it above; then you track its progress here."
     }
   },
   "plans": {
@@ -2648,6 +2650,7 @@
     "conflict": {
       "closed": "This shop is not taking online orders right now.",
       "pending_limit": "You already have 3 orders waiting for this shop to answer. Wait for their reply or message them."
-    }
+    },
+    "totalWithoutDelivery": "Total without delivery"
   }
 }

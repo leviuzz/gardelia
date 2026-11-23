@@ -431,7 +431,8 @@
         "store_needs_contact": "Aggiungi il telefono della fioreria, così il cliente può chiamarti."
       },
       "goToPayment": "Forme di pagamento",
-      "notPublished": "Il tuo negozio non è ancora pubblicato: gli ordini arriveranno quando lo pubblichi."
+      "notPublished": "Il tuo negozio non è ancora pubblicato: gli ordini arriveranno quando lo pubblichi.",
+      "save": "Salva ordini online"
     }
   },
   "publicStore": {
@@ -1554,7 +1555,8 @@
       "rejectConfirm": "Rifiuta l’ordine",
       "cancelNotice": "Il cliente ha fatto questo ordine online: gli manderemo un’email con il motivo.",
       "buyerNotes": "Commenti del cliente",
-      "askManager": "Solo proprietari e manager possono accettare o rifiutare gli ordini online."
+      "askManager": "Solo proprietari e manager possono accettare o rifiutare gli ordini online.",
+      "stepsAfter": "Prima accettalo o rifiutalo qui sopra; poi qui segni come procede."
     }
   },
   "plans": {
@@ -2648,6 +2650,7 @@
     "conflict": {
       "closed": "Questa fioreria per ora non riceve ordini online.",
       "pending_limit": "Hai già 3 ordini in attesa di risposta da questa fioreria. Aspetta che ti rispondano o scrivi loro."
-    }
+    },
+    "totalWithoutDelivery": "Totale senza consegna"
   }
 }

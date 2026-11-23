@@ -116,7 +116,6 @@ export function OnlineOrdersForm({
   readonly canEnable: boolean;
 }) {
   const t = useTranslations('store.orders');
-  const tc = useTranslations('common');
   const [state, formAction] = useActionState(action, idleState);
   useActionToast(state);
   const err = (field: string) => fieldError(state, field);
@@ -139,12 +138,12 @@ export function OnlineOrdersForm({
         label={t('leadDays')}
         hint={t('leadDaysHint')}
         error={err('minLeadDays')}
+        className="sm:max-w-xs"
       >
         <NativeSelect
           {...controlProps('store-lead-days', err('minLeadDays'), true)}
           name="minLeadDays"
           defaultValue={String(defaults.minLeadDays)}
-          className="sm:max-w-xs"
         >
           {Array.from({ length: MARKETPLACE_ORDER_LIMITS.leadDaysMax + 1 }, (_, days) => (
             <option key={days} value={days}>
@@ -153,7 +152,8 @@ export function OnlineOrdersForm({
           ))}
         </NativeSelect>
       </Field>
-      <SubmitButton className="w-fit">{tc('save')}</SubmitButton>
+      {/* Nome proprio: nella pagina c'è anche il "Guardar" della presentazione. */}
+      <SubmitButton className="w-fit">{t('save')}</SubmitButton>
     </form>
   );
 }

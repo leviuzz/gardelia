@@ -281,7 +281,7 @@ export function CheckoutForm({
                 const quantity = quantities[item.id] ?? 0;
                 const inputId = `qty-${item.id}`;
                 return (
-                  <li key={item.id} className="flex items-center gap-3 py-3 first:pt-0">
+                  <li key={item.id} className="flex flex-wrap items-center gap-3 py-3 first:pt-0">
                     <span className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted">
                       {item.photoSrc ? (
                         // eslint-disable-next-line @next/next/no-img-element -- foto servite dall'app, già ridotte.
@@ -295,7 +295,7 @@ export function CheckoutForm({
                         <Flower2 className="size-6 text-muted-foreground" aria-hidden="true" />
                       )}
                     </span>
-                    <span className="min-w-0 flex-1">
+                    <span className="min-w-0 flex-1 basis-36">
                       <label htmlFor={inputId} className="block text-sm font-medium">
                         {item.name}
                       </label>
@@ -313,7 +313,8 @@ export function CheckoutForm({
                         </Badge>
                       ) : null}
                     </span>
-                    <span className="flex shrink-0 items-center gap-1">
+                    {/* Su un telefono stretto va sotto il nome, a destra. */}
+                    <span className="ml-auto flex shrink-0 items-center gap-1">
                       <Button
                         type="button"
                         variant="outline"
@@ -644,7 +645,7 @@ export function CheckoutForm({
                 </div>
               ) : null}
               <div className="flex justify-between gap-4 text-base font-semibold">
-                <dt>{t('total')}</dt>
+                <dt>{mode === 'DELIVERY' && fee === 0 ? t('totalWithoutDelivery') : t('total')}</dt>
                 <dd className="tabular-nums" data-testid="checkout-total">
                   {fmt(subtotal + fee)}
                 </dd>

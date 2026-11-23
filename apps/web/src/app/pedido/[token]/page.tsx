@@ -281,7 +281,10 @@ export default async function PublicOrderPage({
             ...(order.paidMinor > 0
               ? [{ label: t('order.paid'), value: fmt(order.paidMinor) }]
               : []),
-            ...(cancelled ? [] : [{ label: t('order.balance'), value: fmt(order.balanceMinor) }]),
+            // In attesa di accettazione non si paga ancora: niente "Por pagar".
+            ...(cancelled || order.status === 'PENDING_ACCEPTANCE'
+              ? []
+              : [{ label: t('order.balance'), value: fmt(order.balanceMinor) }]),
           ]}
         />
       </section>
