@@ -13,10 +13,14 @@ import { getDb, withTenantContext, type Prisma, type TransactionClient } from '@
 import {
   AUDIT_ACTIONS,
   ORDER_LIMITS,
+  acceptsOrderPayments,
+  areOrderLinesEditable,
   ORDER_PAGE_SIZE,
   ORDER_STATUSES,
   canCancelOrder,
   canStepOrder,
+  catalogQuoteLineSchema,
+  customQuoteLineSchema,
   deliveryAddressSchema,
   diffFields,
   effectiveQuoteStatus,
@@ -28,15 +32,19 @@ import {
   isUuid,
   orderBalanceMinor,
   orderCancelSchema,
+  orderDiscountSchema,
   orderFulfillmentSchema,
   orderListFiltersSchema,
   orderPaymentSchema,
   orderPaymentStatus,
   orderStepsFrom,
   priceOrder,
+  quoteLineQuantitySchema,
   toFieldErrors,
   todayInTimeZone,
+  worstAvailability,
   type AcquisitionSource,
+  type Availability,
   type FulfillmentMode,
   type OrderFulfillmentInput,
   type OrderPaymentKind,
@@ -51,6 +59,14 @@ import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { readStoredImage } from '../media/stored-files';
+import { requireEntitlement } from './billing';
+import {
+  catalogLineDraft,
+  configurationLineDraft,
+  customLineDraft,
+  lineRowData,
+  type LineDraft,
+} from './line-internals';
 import {
   addDays,
   dateToParts,
@@ -71,8 +87,8 @@ export interface OrderSummaryDto {
   readonly numberLabel: string;
   readonly status: OrderStatus;
   readonly fulfillmentMode: FulfillmentMode;
-  /** "AAAA-MM-GG" nel calendario del tenant. */
-  readonly scheduledDate: string;
+  /** "AAAA-MM-GG" nel calendario del tenant; null solo per i borradores. */
+  readonly scheduledDate: string | null;
   /** "HH:MM" nel fuso del tenant; null = in giornata. */
   readonly windowStart: string | null;
   readonly windowEnd: string | null;
@@ -97,6 +113,9 @@ export interface OrderRecipeLineSnapshot {
 export interface OrderLineDto {
   readonly id: string;
   readonly kind: 'CATALOG_ITEM' | 'CUSTOM' | 'BUILDER';
+  readonly catalogItemId: string | null;
+  /** Dallo snapshot: per le righe BUILDER la disponibilità più critica fra i componenti. */
+  readonly availability: Availability | null;
   readonly description: string;
   readonly quantity: number;
   readonly unitPriceMinor: number;
@@ -174,8 +193,13 @@ export interface OrderDetailDto extends OrderSummaryDto {
   readonly events: readonly OrderEventDto[];
   /** Passi che chi guarda può fare adesso (il servizio li riverifica). */
   readonly nextSteps: readonly OrderStatus[];
+  /** Consegna e tarjeta modificabili da chi guarda. */
   readonly editable: boolean;
+  /** Righe e sconto modificabili da chi guarda (fino a "en preparación"). */
+  readonly linesEditable: boolean;
   readonly canCancel: boolean;
+  /** Borrador che chi guarda può scartare. */
+  readonly canDiscard: boolean;
   readonly canRecordPayments: boolean;
 }
 
@@ -198,7 +222,7 @@ function toSummary(order: OrderWithCustomer): OrderSummaryDto {
     numberLabel: formatOrderNumber(order.number),
     status: order.status,
     fulfillmentMode: order.fulfillmentMode,
-    scheduledDate: dateString(order.scheduledDate),
+    scheduledDate: order.scheduledDate ? dateString(order.scheduledDate) : null,
     windowStart:
       order.windowStartMinutes === null ? null : formatTimeOfDay(order.windowStartMinutes),
     windowEnd: order.windowEndMinutes === null ? null : formatTimeOfDay(order.windowEndMinutes),
@@ -214,8 +238,9 @@ function toSummary(order: OrderWithCustomer): OrderSummaryDto {
 }
 
 interface LineSnapshot {
-  readonly item?: { readonly saleUnit: SaleUnit };
+  readonly item?: { readonly saleUnit: SaleUnit; readonly availability?: Availability };
   readonly recipe?: readonly OrderRecipeLineSnapshot[];
+  readonly components?: readonly { readonly availability: Availability }[];
 }
 
 function readSnapshot(value: Prisma.JsonValue | null): LineSnapshot | null {
@@ -250,7 +275,10 @@ function whenWhere(when: OrderWhenFilter, today: DateParts): Prisma.OrderWhereIn
     case 'past':
       return { scheduledDate: { lt: day(0) } };
     case 'all':
-      return {};
+      // Borradores (anche scartati) senza data: non sono ancora ordini.
+      return { scheduledDate: { not: null } };
+    case 'drafts':
+      return { status: 'DRAFT' };
   }
 }
 
@@ -281,15 +309,19 @@ export async function listOrders(
         : {},
     ],
   };
-  // Dal passato si guarda all'indietro; altrimenti i più vicini prima, per fascia.
+  // Borradores: i più recenti prima. Dal passato si guarda all'indietro; altrimenti i più vicini
+  // prima, per fascia.
   const backwards = filters.when === 'past' || filters.when === 'all';
-  const orderBy: Prisma.OrderOrderByWithRelationInput[] = backwards
-    ? [{ scheduledDate: 'desc' }, { number: 'desc' }]
-    : [
-        { scheduledDate: 'asc' },
-        { windowStartMinutes: { sort: 'asc', nulls: 'last' } },
-        { number: 'asc' },
-      ];
+  const orderBy: Prisma.OrderOrderByWithRelationInput[] =
+    filters.when === 'drafts'
+      ? [{ number: 'desc' }]
+      : backwards
+        ? [{ scheduledDate: 'desc' }, { number: 'desc' }]
+        : [
+            { scheduledDate: 'asc' },
+            { windowStartMinutes: { sort: 'asc', nulls: 'last' } },
+            { number: 'asc' },
+          ];
   return withTenantContext(getDb(), ctx, async (tx) => {
     const total = await tx.order.count({ where });
     const pageCount = Math.max(1, Math.ceil(total / ORDER_PAGE_SIZE));
@@ -309,6 +341,31 @@ export async function listOrders(
       when: filters.when,
       canWrite: hasPermission(ctx, 'orders:write'),
     };
+  });
+}
+
+/**
+ * Ultimi ordini di un cliente per la sua scheda (borradores compresi, scartati esclusi), i più
+ * recenti prima.
+ */
+export async function listCustomerOrders(
+  ctx: TenantContext,
+  customerId: string,
+): Promise<readonly OrderSummaryDto[]> {
+  requirePermission(ctx, 'orders:read');
+  if (!isUuid(customerId)) return [];
+  return withTenantContext(getDb(), ctx, async (tx) => {
+    const orders = await tx.order.findMany({
+      where: {
+        tenantId: ctx.tenantId,
+        customerId,
+        OR: [{ status: 'DRAFT' }, { scheduledDate: { not: null } }],
+      },
+      include: orderInclude,
+      orderBy: { number: 'desc' },
+      take: 50,
+    });
+    return orders.map(toSummary);
   });
 }
 
@@ -395,6 +452,10 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
       return {
         id: line.id,
         kind: line.kind,
+        catalogItemId: line.catalogItemId,
+        availability:
+          snapshot?.item?.availability ??
+          worstAvailability((snapshot?.components ?? []).map((part) => part.availability)),
         description: line.description,
         quantity: line.quantity,
         unitPriceMinor: line.unitPriceMinor,
@@ -434,8 +495,10 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
     })),
     nextSteps: stepsFor(ctx, order.status, order.fulfillmentMode),
     editable: canWrite && isOrderEditable(order.status),
+    linesEditable: canWrite && areOrderLinesEditable(order.status),
     canCancel: canWrite && canCancelOrder(order.status),
-    canRecordPayments: hasPermission(ctx, 'orders:payments') && order.status !== 'CANCELLED',
+    canDiscard: canWrite && order.status === 'DRAFT',
+    canRecordPayments: hasPermission(ctx, 'orders:payments') && acceptsOrderPayments(order.status),
   };
 }
 
@@ -704,12 +767,14 @@ export async function updateOrderFulfillment(
       rawInput,
       order.scheduledDate,
     );
+
     const totals = priceOrder({
       subtotalMinor: order.subtotalMinor,
       discountMinor: order.discountMinor,
       deliveryFeeMinor: fulfillment.deliveryFeeMinor,
     });
     if (!totals.ok) throw new ValidationError({ deliveryFee: totals.error });
+    assertTotalCoversPaid(order.paidMinor, totals.totalMinor);
     const changes = {
       ...fulfillment.data,
       deliveryFeeMinor: totals.deliveryFeeMinor,
@@ -747,7 +812,7 @@ export async function changeOrderStatus(
   requirePermission(ctx, 'orders:read');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
   const target = ORDER_STATUSES.find((status) => status === rawStatus);
-  if (!target || target === 'CANCELLED' || target === 'PENDING_ACCEPTANCE') {
+  if (!target || target === 'CANCELLED' || target === 'PENDING_ACCEPTANCE' || target === 'DRAFT') {
     throw new ValidationError({ status: 'invalid_option' });
   }
 
@@ -826,6 +891,14 @@ export async function cancelOrder(
   if (!found) await notFound(ctx, 'Order', orderId);
 }
 
+/**
+ * Il totale non scende sotto quanto il cliente ha già pagato: la differenza da restituire non
+ * resterebbe scritta da nessuna parte. Prima si storna il pagamento, poi si cambia l'ordine.
+ */
+function assertTotalCoversPaid(paidMinor: number, totalMinor: number): void {
+  if (totalMinor < paidMinor) throw new ConflictError('order_total_below_paid');
+}
+
 async function applyPaidAmount(
   tx: TransactionClient,
   order: { id: string; totalMinor: number },
@@ -856,7 +929,8 @@ export async function recordOrderPayment(
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await lockOrder(tx, ctx, orderId);
     if (!order) return false;
-    if (order.status === 'CANCELLED') throw new ConflictError('order_closed');
+    if (order.status === 'DRAFT') throw new ConflictError('order_not_confirmed');
+    if (!acceptsOrderPayments(order.status)) throw new ConflictError('order_closed');
     if (input.amount > orderBalanceMinor(order.paidMinor, order.totalMinor)) {
       throw new ValidationError({ amount: 'payment_exceeds_balance' });
     }
@@ -961,4 +1035,420 @@ export async function getOrderLineImage(
   const job = line.previewJob;
   if (job?.status !== 'SUCCEEDED' || !job.outputKey) throw new NotFoundError('Order');
   return readStoredImage(job.outputKey, job.outputContentType ?? 'image/png', 'Order');
+}
+
+// -----------------------------------------------------------------------------
+// Ordine diretto: borrador, righe e conferma (blocco A1b)
+// -----------------------------------------------------------------------------
+
+/**
+ * Totali dalle righe, con lo sconto richiesto (ridotto al subtotale se le righe calano) e il costo
+ * di consegna già fissato; lo stato del pagamento segue il nuovo totale.
+ */
+async function recalculateOrderTotals(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  order: { id: string; discountMinor: number; deliveryFeeMinor: number; paidMinor: number },
+  discountMinor?: number,
+): Promise<void> {
+  const lines = await tx.orderLine.findMany({
+    where: { tenantId: ctx.tenantId, orderId: order.id },
+    select: { lineTotalMinor: true },
+  });
+  const subtotalMinor = lines.reduce((sum, line) => sum + line.lineTotalMinor, 0);
+  const requested = discountMinor ?? order.discountMinor;
+  const totals = priceOrder({
+    subtotalMinor,
+    discountMinor: Math.min(requested, subtotalMinor),
+    deliveryFeeMinor: order.deliveryFeeMinor,
+  });
+  if (!totals.ok) throw new ValidationError({ discount: totals.error });
+  assertTotalCoversPaid(order.paidMinor, totals.totalMinor);
+  await tx.order.update({
+    where: { id: order.id },
+    data: {
+      subtotalMinor: totals.subtotalMinor,
+      discountMinor: totals.discountMinor,
+      taxMinor: totals.taxMinor,
+      totalMinor: totals.totalMinor,
+      paymentStatus: orderPaymentStatus(order.paidMinor, totals.totalMinor),
+    },
+  });
+}
+
+/** Blocca un ordine le cui righe si possono ancora cambiare. */
+async function lockOrderForLines(tx: TransactionClient, ctx: TenantContext, orderId: string) {
+  const order = await lockOrder(tx, ctx, orderId);
+  if (!order) return null;
+  if (!areOrderLinesEditable(order.status)) throw new ConflictError('order_lines_locked');
+  return order;
+}
+
+/**
+ * "Nuevo pedido": borrador per un cliente ATTIVO, eventualmente già con il ramo di un disegno del
+ * Diseñador. Righe, consegna e tarjeta si completano nella scheda, poi si conferma.
+ */
+export async function createDraftOrder(
+  ctx: TenantContext,
+  input: { readonly customerId: unknown; readonly configurationId?: unknown },
+): Promise<{ id: string; number: number }> {
+  requirePermission(ctx, 'orders:write');
+  const customerId = typeof input.customerId === 'string' ? input.customerId.trim() : '';
+  if (!isUuid(customerId)) throw new ValidationError({ customerId: 'required' });
+  const configurationId =
+    typeof input.configurationId === 'string' ? input.configurationId.trim() : '';
+  if (configurationId !== '') {
+    requirePermission(ctx, 'builder:use');
+    if (!isUuid(configurationId)) throw new NotFoundError('BouquetConfiguration');
+  }
+
+  const result = await withTenantContext(getDb(), ctx, async (tx) => {
+    let draft: LineDraft | null = null;
+    if (configurationId !== '') {
+      await requireEntitlement(ctx, 'bouquetBuilder', tx);
+      draft = await configurationLineDraft(tx, ctx, configurationId);
+      if (!draft) return { missing: 'BouquetConfiguration' as const };
+    }
+    const customer = await tx.customer.findFirst({
+      where: { id: customerId, tenantId: ctx.tenantId, status: 'ACTIVE' },
+      select: { id: true, acquisitionSource: true },
+    });
+    if (!customer) return { missing: 'Customer' as const };
+
+    const number = await nextTenantCounter(tx, ctx.tenantId, 'order');
+    const subtotalMinor = draft ? draft.unitPriceMinor : 0;
+    const order = await tx.order.create({
+      data: {
+        tenantId: ctx.tenantId,
+        number,
+        customerId: customer.id,
+        status: 'DRAFT',
+        currency: ctx.currency,
+        // Il modo e la data si scelgono alla conferma; finché è borrador non c'è consegna.
+        fulfillmentMode: 'PICKUP',
+        scheduledDate: null,
+        subtotalMinor,
+        totalMinor: subtotalMinor,
+        paymentStatus: orderPaymentStatus(0, subtotalMinor),
+        acquisitionSource: customer.acquisitionSource,
+        createdById: ctx.userId,
+      },
+    });
+    if (draft) {
+      await tx.orderLine.create({
+        data: { tenantId: ctx.tenantId, orderId: order.id, ...lineRowData(draft, 1, 0) },
+      });
+    }
+    await tx.orderStatusEvent.create({
+      data: {
+        tenantId: ctx.tenantId,
+        orderId: order.id,
+        fromStatus: null,
+        toStatus: 'DRAFT',
+        createdById: ctx.userId,
+      },
+    });
+    await recordAudit(tx, ctx, {
+      action: AUDIT_ACTIONS.orderCreated,
+      entityType: 'Order',
+      entityId: order.id,
+      metadata: {
+        number: formatOrderNumber(number),
+        customerId: customer.id,
+        ...(draft ? { configurationId: draft.bouquetConfigurationId } : {}),
+      },
+    });
+    return { order: { id: order.id, number } };
+  });
+  if ('missing' in result) {
+    return result.missing === 'Customer'
+      ? notFound(ctx, 'Customer', customerId)
+      : notFound(ctx, 'BouquetConfiguration', configurationId);
+  }
+  return result.order;
+}
+
+async function insertOrderLine(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  order: {
+    id: string;
+    number: number;
+    discountMinor: number;
+    deliveryFeeMinor: number;
+    paidMinor: number;
+  },
+  draft: LineDraft,
+  quantity: number,
+): Promise<void> {
+  const existing =
+    draft.kind === 'CATALOG_ITEM'
+      ? await tx.orderLine.findFirst({
+          where: {
+            tenantId: ctx.tenantId,
+            orderId: order.id,
+            kind: 'CATALOG_ITEM',
+            catalogItemId: draft.catalogItemId,
+          },
+        })
+      : null;
+  if (existing) {
+    // Stesso articolo: si somma la quantità mantenendo lo snapshot originale del prezzo.
+    const total = existing.quantity + quantity;
+    if (total > ORDER_LIMITS.quantityMax) throw new ValidationError({ quantity: 'out_of_range' });
+    await tx.orderLine.update({
+      where: { id: existing.id },
+      data: { quantity: total, lineTotalMinor: total * existing.unitPriceMinor },
+    });
+  } else {
+    const count = await tx.orderLine.count({
+      where: { tenantId: ctx.tenantId, orderId: order.id },
+    });
+    if (count >= ORDER_LIMITS.lines) throw new ConflictError('order_line_limit');
+    await tx.orderLine.create({
+      data: { tenantId: ctx.tenantId, orderId: order.id, ...lineRowData(draft, quantity, count) },
+    });
+  }
+  await recalculateOrderTotals(tx, ctx, order);
+  await recordAudit(tx, ctx, {
+    action: AUDIT_ACTIONS.orderLineAdded,
+    entityType: 'Order',
+    entityId: order.id,
+    metadata: { number: formatOrderNumber(order.number), itemName: draft.itemName, quantity },
+  });
+}
+
+/** Articolo del catalogo: prezzo, costo e distinta SEMPRE dal catalogo del tenant. */
+export async function addCatalogItemToOrder(
+  ctx: TenantContext,
+  orderId: string,
+  rawInput: unknown,
+): Promise<void> {
+  requirePermission(ctx, 'orders:write');
+  if (!isUuid(orderId)) throw new NotFoundError('Order');
+  const parsed = catalogQuoteLineSchema.safeParse(rawInput);
+  if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
+  const input = parsed.data;
+  const found = await withTenantContext(getDb(), ctx, async (tx) => {
+    const order = await lockOrderForLines(tx, ctx, orderId);
+    if (!order) return false;
+    await insertOrderLine(
+      tx,
+      ctx,
+      order,
+      await catalogLineDraft(tx, ctx, input.catalogItemId),
+      input.quantity,
+    );
+    return true;
+  });
+  if (!found) await notFound(ctx, 'Order', orderId);
+}
+
+/** Riga libera con il prezzo del fiorista. */
+export async function addCustomLineToOrder(
+  ctx: TenantContext,
+  orderId: string,
+  rawInput: unknown,
+): Promise<void> {
+  requirePermission(ctx, 'orders:write');
+  if (!isUuid(orderId)) throw new NotFoundError('Order');
+  const parsed = customQuoteLineSchema(ctx.currency).safeParse(rawInput);
+  if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
+  const input = parsed.data;
+  const found = await withTenantContext(getDb(), ctx, async (tx) => {
+    const order = await lockOrderForLines(tx, ctx, orderId);
+    if (!order) return false;
+    await insertOrderLine(tx, ctx, order, customLineDraft(input), input.quantity);
+    return true;
+  });
+  if (!found) await notFound(ctx, 'Order', orderId);
+}
+
+export async function updateOrderLineQuantity(
+  ctx: TenantContext,
+  orderId: string,
+  lineId: string,
+  rawQuantity: unknown,
+): Promise<void> {
+  requirePermission(ctx, 'orders:write');
+  if (!isUuid(orderId) || !isUuid(lineId)) throw new NotFoundError('Order');
+  const parsed = quoteLineQuantitySchema.safeParse(rawQuantity);
+  if (!parsed.success) {
+    throw new ValidationError({ quantity: parsed.error.issues[0]?.message ?? 'invalid' });
+  }
+  const quantity = parsed.data;
+  const found = await withTenantContext(getDb(), ctx, async (tx) => {
+    const order = await lockOrderForLines(tx, ctx, orderId);
+    if (!order) return false;
+    const line = await tx.orderLine.findFirst({
+      where: { id: lineId, tenantId: ctx.tenantId, orderId },
+    });
+    if (!line) return false;
+    if (line.quantity === quantity) return true;
+    await tx.orderLine.update({
+      where: { id: line.id },
+      data: { quantity, lineTotalMinor: quantity * line.unitPriceMinor },
+    });
+    await recalculateOrderTotals(tx, ctx, order);
+    await recordAudit(tx, ctx, {
+      action: AUDIT_ACTIONS.orderLineUpdated,
+      entityType: 'Order',
+      entityId: order.id,
+      metadata: { number: formatOrderNumber(order.number), from: line.quantity, to: quantity },
+    });
+    return true;
+  });
+  if (!found) await notFound(ctx, 'Order', orderId);
+}
+
+/** Toglie una riga; un ordine confermato non resta mai vuoto. */
+export async function removeOrderLine(
+  ctx: TenantContext,
+  orderId: string,
+  lineId: string,
+): Promise<void> {
+  requirePermission(ctx, 'orders:write');
+  if (!isUuid(orderId) || !isUuid(lineId)) throw new NotFoundError('Order');
+  const found = await withTenantContext(getDb(), ctx, async (tx) => {
+    const order = await lockOrderForLines(tx, ctx, orderId);
+    if (!order) return false;
+    const line = await tx.orderLine.findFirst({
+      where: { id: lineId, tenantId: ctx.tenantId, orderId },
+    });
+    if (!line) return false;
+    if (order.status !== 'DRAFT') {
+      const count = await tx.orderLine.count({ where: { tenantId: ctx.tenantId, orderId } });
+      if (count <= 1) throw new ConflictError('order_empty');
+    }
+    await tx.orderLine.delete({ where: { id: line.id } });
+    await recalculateOrderTotals(tx, ctx, order);
+    await recordAudit(tx, ctx, {
+      action: AUDIT_ACTIONS.orderLineRemoved,
+      entityType: 'Order',
+      entityId: order.id,
+      metadata: { number: formatOrderNumber(order.number), itemName: line.description },
+    });
+    return true;
+  });
+  if (!found) await notFound(ctx, 'Order', orderId);
+}
+
+export async function updateOrderDiscount(
+  ctx: TenantContext,
+  orderId: string,
+  rawInput: unknown,
+): Promise<void> {
+  requirePermission(ctx, 'orders:write');
+  if (!isUuid(orderId)) throw new NotFoundError('Order');
+  const parsed = orderDiscountSchema(ctx.currency).safeParse(rawInput);
+  if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
+  const { discount } = parsed.data;
+  const found = await withTenantContext(getDb(), ctx, async (tx) => {
+    const order = await lockOrderForLines(tx, ctx, orderId);
+    if (!order) return false;
+    if (discount > order.subtotalMinor) {
+      throw new ValidationError({ discount: 'discount_exceeds_subtotal' });
+    }
+    if (discount === order.discountMinor) return true;
+    await recalculateOrderTotals(tx, ctx, order, discount);
+    await recordAudit(tx, ctx, {
+      action: AUDIT_ACTIONS.orderDiscountChanged,
+      entityType: 'Order',
+      entityId: order.id,
+      metadata: {
+        number: formatOrderNumber(order.number),
+        changes: { discountMinor: { from: order.discountMinor, to: discount } },
+      },
+    });
+    return true;
+  });
+  if (!found) await notFound(ctx, 'Order', orderId);
+}
+
+/** Il borrador diventa un ordine confermato con i dati di consegna e la tarjeta. */
+export async function confirmDraftOrder(
+  ctx: TenantContext,
+  orderId: string,
+  rawInput: unknown,
+): Promise<void> {
+  requirePermission(ctx, 'orders:write');
+  if (!isUuid(orderId)) throw new NotFoundError('Order');
+  const input = parseFulfillment(ctx, rawInput);
+  const found = await withTenantContext(getDb(), ctx, async (tx) => {
+    const order = await lockOrder(tx, ctx, orderId);
+    if (!order) return false;
+    if (order.status !== 'DRAFT') throw new ConflictError('invalid_status_transition');
+    const lines = await tx.orderLine.count({ where: { tenantId: ctx.tenantId, orderId } });
+    if (lines === 0) throw new ConflictError('order_empty');
+    const fulfillment = await resolveFulfillment(tx, ctx, order.customerId, input, rawInput, null);
+    const totals = priceOrder({
+      subtotalMinor: order.subtotalMinor,
+      discountMinor: order.discountMinor,
+      deliveryFeeMinor: fulfillment.deliveryFeeMinor,
+    });
+    if (!totals.ok) throw new ValidationError({ deliveryFee: totals.error });
+    await tx.order.update({
+      where: { id: order.id },
+      data: {
+        ...fulfillment.data,
+        status: 'CONFIRMED',
+        statusChangedAt: new Date(),
+        deliveryFeeMinor: totals.deliveryFeeMinor,
+        totalMinor: totals.totalMinor,
+        paymentStatus: orderPaymentStatus(order.paidMinor, totals.totalMinor),
+      },
+    });
+    await tx.orderStatusEvent.create({
+      data: {
+        tenantId: ctx.tenantId,
+        orderId: order.id,
+        fromStatus: 'DRAFT',
+        toStatus: 'CONFIRMED',
+        createdById: ctx.userId,
+      },
+    });
+    await recordAudit(tx, ctx, {
+      action: AUDIT_ACTIONS.orderConfirmed,
+      entityType: 'Order',
+      entityId: order.id,
+      metadata: { number: formatOrderNumber(order.number), mode: input.fulfillmentMode },
+    });
+    return true;
+  });
+  if (!found) await notFound(ctx, 'Order', orderId);
+}
+
+/**
+ * Scarta un borrador che non serve più: non diventa mai un ordine (resta nella cronologia e
+ * nell'audit, nessuna cancellazione fisica) e sparisce dagli elenchi. Non chiede un motivo.
+ */
+export async function discardDraftOrder(ctx: TenantContext, orderId: string): Promise<void> {
+  requirePermission(ctx, 'orders:write');
+  if (!isUuid(orderId)) throw new NotFoundError('Order');
+  const found = await withTenantContext(getDb(), ctx, async (tx) => {
+    const order = await lockOrder(tx, ctx, orderId);
+    if (!order) return false;
+    if (order.status !== 'DRAFT') throw new ConflictError('invalid_status_transition');
+    await tx.order.update({
+      where: { id: order.id },
+      data: { status: 'CANCELLED', statusChangedAt: new Date() },
+    });
+    await tx.orderStatusEvent.create({
+      data: {
+        tenantId: ctx.tenantId,
+        orderId: order.id,
+        fromStatus: 'DRAFT',
+        toStatus: 'CANCELLED',
+        createdById: ctx.userId,
+      },
+    });
+    await recordAudit(tx, ctx, {
+      action: AUDIT_ACTIONS.orderDiscarded,
+      entityType: 'Order',
+      entityId: order.id,
+      metadata: { number: formatOrderNumber(order.number) },
+    });
+    return true;
+  });
+  if (!found) await notFound(ctx, 'Order', orderId);
 }

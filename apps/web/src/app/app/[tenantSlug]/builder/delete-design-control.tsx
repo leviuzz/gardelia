@@ -22,21 +22,21 @@ export interface DeleteDesignLabels {
   readonly delete: string;
   readonly confirmTitle: string;
   readonly confirmBody: string;
-  readonly inQuoteTitle: string;
-  readonly inQuoteBody: string;
+  readonly inUseTitle: string;
+  readonly inUseBody: string;
 }
 
 /**
  * "Eliminar" di un disegno (ADR-051): con conferma, via il disegno e le sue foto generate. Se un
- * preventivo lo usa la stessa finestra spiega perché non si può e che resta "Archivar".
+ * preventivo o un ordine lo usa la stessa finestra spiega perché non si può e che resta "Archivar".
  */
 export function DeleteDesignControl({
   action,
-  usedInQuotes,
+  inUse,
   labels,
 }: {
   readonly action: Action;
-  readonly usedInQuotes: boolean;
+  readonly inUse: boolean;
   readonly labels: DeleteDesignLabels;
 }) {
   const t = useTranslations('common');
@@ -46,7 +46,7 @@ export function DeleteDesignControl({
       {labels.delete}
     </Button>
   );
-  if (!usedInQuotes) {
+  if (!inUse) {
     return (
       <ConfirmActionDialog
         action={action}
@@ -62,8 +62,8 @@ export function DeleteDesignControl({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent closeLabel={t('close')}>
         <DialogHeader>
-          <DialogTitle>{labels.inQuoteTitle}</DialogTitle>
-          <DialogDescription>{labels.inQuoteBody}</DialogDescription>
+          <DialogTitle>{labels.inUseTitle}</DialogTitle>
+          <DialogDescription>{labels.inUseBody}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <DialogClose asChild>

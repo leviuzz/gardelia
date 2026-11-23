@@ -118,12 +118,94 @@ test.describe('pedidos (propietaria)', () => {
   });
 });
 
+test.describe('pedido directo (propietaria)', () => {
+  test.use({ storageState: 'e2e/.auth/owner.json' });
+
+  test('sin cotización: productos, concepto libre y descuento, luego se confirma', async ({
+    page,
+  }) => {
+    await page.goto('/app/las-camelias/orders');
+    await page.getByRole('link', { name: 'Nuevo pedido' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Nuevo pedido' })).toBeVisible();
+    await page.getByRole('button', { name: 'Pedido para Hotel Casa Fuentes' }).click();
+
+    // Borrador: prima i prodotti, la consegna si chiede solo quando c'è qualcosa da consegnare.
+    await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('PED-');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Borrador');
+    await expect(
+      page.getByText('Agrega al menos un producto para poder confirmar el pedido.'),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Confirmar pedido' })).toHaveCount(0);
+
+    const addForm = page
+      .locator('form')
+      .filter({ has: page.getByRole('combobox', { name: 'Producto' }) });
+    await addForm
+      .getByRole('combobox', { name: 'Producto' })
+      .selectOption({ label: 'Ramo Clásico 12 rosas — $690.00 por pieza' });
+    await addForm.getByRole('button', { name: 'Agregar', exact: true }).click();
+    await expect(page.getByTestId('order-total')).toHaveText('$690.00');
+
+    await page.getByRole('button', { name: 'Agregar concepto libre' }).click();
+    await page.getByRole('textbox', { name: 'Concepto' }).fill('Globo metálico');
+    await page.getByRole('textbox', { name: 'Precio unitario (MXN)' }).fill('45.50');
+    await page
+      .locator('form')
+      .filter({ has: page.getByRole('textbox', { name: 'Concepto' }) })
+      .getByRole('button', { name: 'Agregar', exact: true })
+      .click();
+    await expect(page.getByTestId('order-total')).toHaveText('$735.50');
+
+    await page.getByRole('textbox', { name: 'Descuento (MXN)' }).fill('35.50');
+    await page.getByRole('button', { name: 'Aplicar descuento' }).click();
+    await expect(page.getByText('Descuento actualizado.')).toBeVisible();
+    await expect(page.getByTestId('order-total')).toHaveText('$700.00');
+
+    // Conferma con ritiro in negozio: diventa un ordine come gli altri.
+    await page.getByRole('radio', { name: 'Recoge en tienda' }).check();
+    await page.getByRole('button', { name: 'Confirmar pedido' }).click();
+    await expect(page.getByText('Pedido confirmado.')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Confirmado');
+    await expect(page.getByTestId('order-total')).toHaveText('$700.00');
+    await expect(page.getByTestId('order-balance')).toHaveText('$700.00');
+    await expect(page.getByText('«Borrador» → «Confirmado»')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Empezar a preparar' })).toBeVisible();
+    // Fino a "listo" i prodotti si possono ancora cambiare.
+    await expect(page.getByText('Cambiar productos o descuento')).toBeVisible();
+  });
+
+  test('un borrador se descarta sin motivo y sale de la lista', async ({ page }) => {
+    await page.goto('/app/las-camelias/customers');
+    await page.getByRole('link', { name: /Hotel Casa Fuentes/ }).click();
+    await page.getByRole('link', { name: 'Nuevo pedido' }).click();
+    await expect(page.getByText('Pedido para Hotel Casa Fuentes')).toBeVisible();
+    await page.getByRole('button', { name: 'Crear pedido' }).click();
+    await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
+    const number = (await page.getByRole('heading', { level: 1 }).textContent())?.match(
+      /PED-\d+/,
+    )?.[0];
+    expect(number).toBeTruthy();
+
+    await page.goto('/app/las-camelias/orders?when=drafts');
+    await page.getByRole('link', { name: new RegExp(number ?? 'PED') }).click();
+    await page.getByRole('button', { name: 'Descartar borrador' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Descartar' }).click();
+    await expect(page).toHaveURL(/\/orders$/);
+    await page.goto('/app/las-camelias/orders?when=drafts');
+    await expect(page.getByRole('link', { name: new RegExp(number ?? 'PED') })).toHaveCount(0);
+  });
+});
+
 test.describe('pedidos (banco)', () => {
   test.use({ storageState: 'e2e/.auth/staff.json' });
 
-  test('el banco ve los pedidos pero no convierte cotizaciones', async ({ page }) => {
+  test('el banco ve los pedidos pero no los crea ni convierte cotizaciones', async ({ page }) => {
     await page.goto('/app/las-camelias/orders?when=all');
     await expect(page.getByRole('heading', { level: 1, name: 'Pedidos' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Nuevo pedido' })).toHaveCount(0);
+    await page.goto('/app/las-camelias/orders/new');
+    await expect(page.getByRole('button', { name: /Pedido para/ })).toHaveCount(0);
     await page.goto('/app/las-camelias/quotes?status=ACCEPTED');
     const accepted = page.getByRole('link', { name: /COT-/ }).first();
     if ((await accepted.count()) > 0) {

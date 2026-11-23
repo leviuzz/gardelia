@@ -15,10 +15,9 @@ import { fieldError, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 import { useToastActionState } from '@/lib/use-action-toast';
 import { PrivateImage } from '@/components/common/private-image';
+import type { LineWarning, QuotableGroup } from '@/lib/line-ui';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
-
-export type LineWarning = 'LIMITED' | 'ON_REQUEST' | 'UNAVAILABLE';
 
 export interface QuoteLineView {
   readonly id: string;
@@ -43,8 +42,6 @@ export interface QuoteLineView {
   readonly updateAction?: Action;
   readonly removeAction?: Action;
 }
-
-export type QuotableGroup = 'BOUQUET' | 'INGREDIENTS' | 'OTHER';
 
 export interface QuotableOptionView {
   readonly id: string;

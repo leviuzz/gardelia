@@ -1100,6 +1100,8 @@ model StyleReferencePhoto {
 // =============================================================================
 
 enum OrderStatus {
+  /// Ordine diretto in composizione: righe, consegna e tarjeta prima della conferma (A1b).
+  DRAFT
   /// Ordine del marketplace in attesa che la fioreria lo accetti (D-26; arriva con il blocco C4).
   PENDING_ACCEPTANCE
   CONFIRMED
@@ -1150,8 +1152,8 @@ model Order {
   statusChangedAt      DateTime           @default(now())
   currency             String             @db.Char(3)
   fulfillmentMode      FulfillmentMode
-  /// Giorno di consegna o ritiro, nel calendario del tenant.
-  scheduledDate        DateTime           @db.Date
+  /// Giorno di consegna o ritiro, nel calendario del tenant (NULL solo per i borradores).
+  scheduledDate        DateTime?          @db.Date
   /// Fascia oraria in minuti dalla mezzanotte (fuso del tenant); entrambi NULL = in giornata.
   windowStartMinutes   Int?
   windowEndMinutes     Int?

@@ -90,7 +90,7 @@
       "invalid_status_transition": "Este cambio de estado no está permitido.",
       "builder_configuration_archived": "Este diseño está archivado: restáuralo para modificarlo.",
       "builder_configuration_outdated": "Algún producto del diseño ya no está disponible: revisa el diseño antes de cotizar.",
-      "builder_configuration_in_quote": "Este diseño está en una cotización: no se puede eliminar, solo archivar.",
+      "builder_configuration_in_use": "Este diseño está en una cotización o un pedido: no se puede eliminar, solo archivar.",
       "ai_preview_in_progress": "Se está generando una foto de este diseño: espera a que termine y vuelve a intentarlo.",
       "ai_unavailable": "Las vistas previas con IA no están disponibles por ahora.",
       "ai_quota_exhausted": "Ya no tienes vistas previas disponibles este mes.",
@@ -105,7 +105,12 @@
       "quote_already_ordered": "Esta cotización ya tiene su pedido.",
       "order_not_editable": "El pedido ya salió: la entrega y la tarjeta ya no se cambian.",
       "order_closed": "El pedido está cancelado.",
-      "payment_already_reversed": "Este pago ya fue anulado."
+      "payment_already_reversed": "Este pago ya fue anulado.",
+      "order_not_confirmed": "Primero confirma el pedido.",
+      "order_empty": "Un pedido necesita al menos un producto.",
+      "order_lines_locked": "Los productos de este pedido ya no se pueden cambiar.",
+      "order_line_limit": "El pedido llegó al máximo de conceptos.",
+      "order_total_below_paid": "El total quedaría por debajo de lo que el cliente ya pagó: primero anula el pago."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -361,7 +366,13 @@
     "order.status_changed": "{actor} marcó {number} como «{status}»",
     "order.cancelled": "{actor} canceló el pedido {number}",
     "order.payment_recorded": "{actor} registró un pago en {number}",
-    "order.payment_reversed": "{actor} anuló un pago en {number}"
+    "order.payment_reversed": "{actor} anuló un pago en {number}",
+    "order.line_added": "{actor} agregó un concepto a {number}",
+    "order.line_updated": "{actor} cambió una cantidad en {number}",
+    "order.line_removed": "{actor} quitó un concepto de {number}",
+    "order.discount_changed": "{actor} cambió el descuento de {number}",
+    "order.confirmed": "{actor} confirmó el pedido {number}",
+    "order.discarded": "{actor} descartó el borrador {number}"
   },
   "catalog": {
     "title": "Catálogo",
@@ -942,9 +953,11 @@
       "tomorrow": "Mañana",
       "week": "Esta semana",
       "past": "Anteriores",
-      "all": "Todos"
+      "all": "Todos",
+      "drafts": "Borradores"
     },
     "statuses": {
+      "DRAFT": "Borrador",
       "PENDING_ACCEPTANCE": "Por aceptar",
       "CONFIRMED": "Confirmado",
       "IN_PREPARATION": "En preparación",
@@ -977,7 +990,7 @@
     },
     "results": "{count, plural, =0 {Sin resultados} one {# pedido} other {# pedidos}}",
     "emptyTitle": "Aún no tienes pedidos",
-    "emptyBody": "Un pedido nace de una cotización aceptada: ábrela y elige «Convertir en pedido».",
+    "emptyBody": "Crea uno con «Nuevo pedido» o conviértelo desde una cotización aceptada.",
     "noResultsTitle": "No hay pedidos con estos filtros",
     "noResultsBody": "Prueba con otro día, otra búsqueda o limpia los filtros.",
     "goToQuotes": "Ver cotizaciones",
@@ -1092,6 +1105,43 @@
       "total": "Total: {total}",
       "paid": "Pagado: {paid}",
       "balance": "Por pagar: {balance}"
+    },
+    "newOrder": "Nuevo pedido",
+    "noDate": "Sin fecha",
+    "new": {
+      "title": "Nuevo pedido",
+      "subtitle": "Elige el cliente; después agregas los productos y la entrega.",
+      "orderFor": "Pedido para {name}",
+      "create": "Crear pedido",
+      "creating": "Creando…",
+      "pickHint": "Elige el cliente para crear el pedido.",
+      "customerArchived": "Este cliente está archivado: restáuralo desde su ficha para hacerle un pedido.",
+      "fromDesign": "Pedido con el diseño «{name}»",
+      "fromDesignBody": "Elige el cliente: el pedido incluirá el ramo con su receta exacta y los precios actuales de tu catálogo."
+    },
+    "draft": {
+      "intro": "Arma el pedido: agrega los productos, indica la entrega y confírmalo. Hasta entonces no aparece en las entregas.",
+      "stepProducts": "1. Productos",
+      "stepDelivery": "2. Entrega y tarjeta",
+      "deliveryHint": "Cuándo y cómo se entrega. Al confirmar, el pedido queda «Confirmado» y listo para preparar.",
+      "needsLines": "Agrega al menos un producto para poder confirmar el pedido.",
+      "confirm": "Confirmar pedido",
+      "confirmed": "Pedido confirmado.",
+      "discountField": "Descuento ({currency})",
+      "saveDiscount": "Aplicar descuento",
+      "discountSaved": "Descuento actualizado.",
+      "discard": "Descartar borrador",
+      "discardTitle": "¿Descartar este borrador?",
+      "discardBody": "No se convertirá en pedido y dejará de aparecer en la lista.",
+      "discardConfirm": "Descartar",
+      "editLines": "Cambiar productos o descuento",
+      "editLinesBody": "Los precios salen de tu catálogo actual. Si el cliente ya pagó, el total no puede quedar por debajo de lo pagado.",
+      "discarded": "Este borrador se descartó: no es un pedido."
+    },
+    "customerCard": {
+      "title": "Pedidos",
+      "empty": "Aún no tiene pedidos.",
+      "viewAll": "Ver todos sus pedidos"
     }
   },
   "plans": {
@@ -1242,7 +1292,7 @@
       "savedNotice": "Diseño guardado. Ya puedes crear la cotización.",
       "unsaved": "Tienes cambios sin guardar.",
       "createQuote": "Crear cotización",
-      "quoteHint": "Guarda los cambios para crear la cotización.",
+      "quoteHint": "Guarda los cambios para crear la cotización o el pedido.",
       "pricesChanged": "Los precios cambiaron desde que guardaste este diseño (antes: {total}). Guarda para actualizarlo.",
       "remove": "Quitar {name}",
       "archive": "Archivar",
@@ -1253,8 +1303,8 @@
       "delete": "Eliminar",
       "deleteTitle": "¿Eliminar este diseño?",
       "deleteBody": "Se borran para siempre el diseño y sus fotos generadas con IA. No se puede deshacer y los créditos ya usados no se devuelven.",
-      "deleteInQuoteTitle": "Este diseño está en una cotización",
-      "deleteInQuoteBody": "No se puede eliminar porque la cotización guarda su composición y su foto. Si ya no lo necesitas, puedes archivarlo.",
+      "deleteInUseTitle": "Este diseño está en una cotización o un pedido",
+      "deleteInUseBody": "No se puede eliminar porque la cotización o el pedido guardan su composición y su foto. Si ya no lo necesitas, puedes archivarlo.",
       "lineTotalColor": "{quantity} × {name} · {color}",
       "colorOf": "Color de {name}",
       "colorFixed": "Color: {color}",
@@ -1280,7 +1330,8 @@
         "skip": "Saltar este paso",
         "backToDesigns": "Volver a los diseños",
         "chooseColors": "Elige los colores que faltan para continuar."
-      }
+      },
+      "createOrder": "Crear pedido"
     },
     "settings": {
       "title": "Diseñador de ramos",

@@ -1,4 +1,4 @@
-import { ClipboardList, FileText, Store, Truck } from 'lucide-react';
+import { ClipboardList, FileText, Plus, Store, Truck } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -74,10 +74,24 @@ export default async function OrdersPage({
       </Link>
     </Button>
   );
+  const newButton = result.canWrite ? (
+    <Button asChild>
+      <Link href={routes.orders.new()}>
+        <Plus />
+        {t('newOrder')}
+      </Link>
+    </Button>
+  ) : null;
+  const actions = (
+    <>
+      {quotesButton}
+      {newButton}
+    </>
+  );
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t('title')} description={t('subtitle')} actions={quotesButton} />
+      <PageHeader title={t('title')} description={t('subtitle')} actions={actions} />
 
       <nav aria-label={tc('filter')} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
         {ORDER_WHEN_FILTERS.map((when) => (
@@ -106,7 +120,8 @@ export default async function OrdersPage({
         <input type="hidden" name="when" value={filters.when} />
         <NativeSelect name="status" defaultValue={filters.status ?? ''} aria-label={tc('filter')}>
           <option value="">{t('allStatuses')}</option>
-          {ORDER_STATUSES.map((status) => (
+          {/* I borradores hanno il loro filtro rapido. */}
+          {ORDER_STATUSES.filter((status) => status !== 'DRAFT').map((status) => (
             <option key={status} value={status}>
               {t(`statuses.${status}`)}
             </option>
@@ -127,7 +142,7 @@ export default async function OrdersPage({
             icon={<ClipboardList />}
             title={t('emptyTitle')}
             body={t('emptyBody')}
-            action={quotesButton}
+            action={actions}
           />
         }
         count={t('results', { count: result.total })}
@@ -140,18 +155,25 @@ export default async function OrdersPage({
                 className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors hover:bg-muted/40"
               >
                 <span className="w-28 shrink-0">
-                  <span className="block text-sm font-medium first-letter:uppercase">
-                    {date(order.scheduledDate)}
-                  </span>
-                  <span className="block text-xs text-muted-foreground tabular-nums">
-                    {order.windowStart && order.windowEnd
-                      ? t('window', { start: order.windowStart, end: order.windowEnd })
-                      : t('allDay')}
-                  </span>
+                  {order.scheduledDate ? (
+                    <>
+                      <span className="block text-sm font-medium first-letter:uppercase">
+                        {date(order.scheduledDate)}
+                      </span>
+                      <span className="block text-xs text-muted-foreground tabular-nums">
+                        {order.windowStart && order.windowEnd
+                          ? t('window', { start: order.windowStart, end: order.windowEnd })
+                          : t('allDay')}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="block text-sm text-muted-foreground">{t('noDate')}</span>
+                  )}
                 </span>
                 <span className="min-w-0 flex-1 basis-48">
                   <span className="flex items-center gap-2">
-                    {order.fulfillmentMode === 'DELIVERY' ? (
+                    {/* Il borrador non ha ancora un modo di consegna. */}
+                    {order.status === 'DRAFT' ? null : order.fulfillmentMode === 'DELIVERY' ? (
                       <Truck
                         className="size-4 shrink-0 text-muted-foreground"
                         aria-label={t('modes.DELIVERY')}
@@ -173,7 +195,7 @@ export default async function OrdersPage({
                 </span>
                 <span className="flex flex-wrap gap-1.5">
                   <OrderStatusBadge status={order.status} />
-                  {order.status === 'CANCELLED' ? null : (
+                  {order.status === 'CANCELLED' || order.status === 'DRAFT' ? null : (
                     <PaymentStatusBadge status={order.paymentStatus} />
                   )}
                 </span>

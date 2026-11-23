@@ -64,6 +64,13 @@ describe('percorsi della fioreria (routes.ts)', () => {
     expect(routes.quotes.lineImage('q1', 'l1', { download: true })).toBe(
       '/app/las-camelias/quotes/q1/lines/l1/image?download=1',
     );
+    expect(routes.orders.lineImage('o1', 'l1', { download: true })).toBe(
+      '/app/las-camelias/orders/o1/lines/l1/image?download=1',
+    );
+    expect(routes.orders.new()).toBe('/app/las-camelias/orders/new');
+    expect(routes.orders.new({ customerId: 'c1', configurationId: null })).toBe(
+      '/app/las-camelias/orders/new?customerId=c1',
+    );
   });
 
   it('withQuery senza valori lascia il percorso com’è', () => {

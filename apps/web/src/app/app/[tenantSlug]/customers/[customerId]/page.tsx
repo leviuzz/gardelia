@@ -17,6 +17,7 @@ import {
   getCustomer,
   canRedeemPromoDiscounts,
   hasPermission,
+  listCustomerOrders,
   listCustomerPromoDiscounts,
   listCustomerQuotes,
   type CustomerDetailDto,
@@ -24,7 +25,7 @@ import {
 } from '@floral/core';
 import { MX_REGIONS, whatsappLink } from '@floral/domain';
 import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
-import { QuoteStatusBadge } from '@/components/common/status-badges';
+import { OrderStatusBadge, QuoteStatusBadge } from '@/components/common/status-badges';
 import { ArchiveControl } from '@/components/archive-control';
 import { PageHeader } from '@/components/page-header';
 import { DiscountCard } from '@/components/promotions/discount-card';
@@ -80,11 +81,13 @@ export default async function CustomerPage({
   const ctx = await getTenantContext(tenantSlug);
   const customer = await loadCustomer(ctx, customerId);
   const quotes = await listCustomerQuotes(ctx, customer.id);
+  const orders = await listCustomerOrders(ctx, customer.id);
   // Sconti della promo ricevuti dal cliente (ADR-048): quando scrive con un codice, si vede qui.
   const discounts = await listCustomerPromoDiscounts(ctx, customer.id);
   const canRedeem = canRedeemPromoDiscounts(ctx);
   const discountText = await discountTextBuilder(ctx.timezone);
   const canQuote = hasPermission(ctx, 'quotes:write') && customer.status === 'ACTIVE';
+  const canOrder = hasPermission(ctx, 'orders:write') && customer.status === 'ACTIVE';
   const created = (await searchParams).created === '1';
   const t = await getTranslations();
   const format = await getFormatter();
@@ -261,6 +264,49 @@ export default async function CustomerPage({
                   className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
                 >
                   {t('quotes.customerCard.viewAll')}
+                </Link>
+              ) : null}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-start justify-between gap-3">
+              <CardTitle>{t('orders.customerCard.title')}</CardTitle>
+              {canOrder ? (
+                <Button asChild size="sm" variant="outline">
+                  <Link href={routes.orders.new({ customerId: customer.id })}>
+                    <Plus />
+                    {t('orders.newOrder')}
+                  </Link>
+                </Button>
+              ) : null}
+            </CardHeader>
+            <CardContent>
+              {orders.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('orders.customerCard.empty')}</p>
+              ) : (
+                <ul className="-mx-2 divide-y">
+                  {orders.slice(0, 5).map((order) => (
+                    <li key={order.id}>
+                      <Link
+                        href={routes.orders.detail(order.id)}
+                        className="flex items-center gap-3 rounded-lg px-2 py-2.5 text-sm transition-colors hover:bg-muted/40"
+                      >
+                        <span className="font-medium tabular-nums">{order.numberLabel}</span>
+                        <OrderStatusBadge status={order.status} />
+                        <span className="ml-auto font-medium tabular-nums">
+                          {money(order.totalMinor, order.currency)}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {orders.length > 5 ? (
+                <Link
+                  href={routes.orders.list({ when: 'all', q: customer.displayName })}
+                  className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
+                >
+                  {t('orders.customerCard.viewAll')}
                 </Link>
               ) : null}
             </CardContent>

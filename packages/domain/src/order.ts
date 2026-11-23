@@ -23,6 +23,8 @@ import {
 } from './validation';
 
 export const ORDER_STATUSES = [
+  /** Ordine diretto in composizione (righe, consegna, tarjeta): non è ancora un impegno. */
+  'DRAFT',
   'PENDING_ACCEPTANCE',
   'CONFIRMED',
   'IN_PREPARATION',
@@ -62,6 +64,9 @@ export const ORDER_LIMITS = {
   paymentReference: 80,
   /** Quanto avanti si può fissare una consegna. */
   scheduleDaysMax: 365,
+  /** Righe per ordine e quantità massima per riga (come nei preventivi). */
+  lines: 60,
+  quantityMax: 999,
 } as const;
 
 export const ORDER_PAGE_SIZE = 20;
@@ -87,6 +92,8 @@ export function isOrderFinal(status: OrderStatus): boolean {
  * (`canCancelOrder`), perché chiede un motivo.
  */
 const STEPS: Readonly<Record<OrderStatus, readonly OrderStatus[]>> = {
+  // Il borrador si conferma con i dati di consegna (`confirmDraftOrder`), non con un passo.
+  DRAFT: [],
   PENDING_ACCEPTANCE: ['CONFIRMED'],
   CONFIRMED: ['IN_PREPARATION', 'READY'],
   IN_PREPARATION: ['READY', 'CONFIRMED'],
@@ -116,10 +123,14 @@ export function isOrderAcceptance(from: OrderStatus, to: OrderStatus): boolean {
 }
 
 export function canCancelOrder(status: OrderStatus): boolean {
-  return !isOrderFinal(status);
+  // Il borrador non si annulla: si scarta (`discardDraftOrder`), senza motivo.
+  return status !== 'DRAFT' && !isOrderFinal(status);
 }
 
-/** Dati di consegna, righe e costi si cambiano solo finché l'ordine non è uscito. */
+/**
+ * Dati di consegna e tarjeta si cambiano solo finché l'ordine non è uscito. Nel borrador si
+ * compilano una volta sola, alla conferma (`confirmDraftOrder`).
+ */
 export function isOrderEditable(status: OrderStatus): boolean {
   return (
     status === 'PENDING_ACCEPTANCE' ||
@@ -127,6 +138,19 @@ export function isOrderEditable(status: OrderStatus): boolean {
     status === 'IN_PREPARATION' ||
     status === 'READY'
   );
+}
+
+/**
+ * Cosa contiene l'ordine (righe e sconto) si cambia finché il ramo non è pronto. Un ordine del
+ * marketplace no: lo ha composto il cliente, e la fioreria lo accetta o lo rifiuta.
+ */
+export function areOrderLinesEditable(status: OrderStatus): boolean {
+  return status === 'DRAFT' || status === 'CONFIRMED' || status === 'IN_PREPARATION';
+}
+
+/** I pagamenti si registrano su un ordine confermato e non annullato. */
+export function acceptsOrderPayments(status: OrderStatus): boolean {
+  return status !== 'DRAFT' && status !== 'CANCELLED';
 }
 
 // -----------------------------------------------------------------------------
@@ -312,6 +336,12 @@ export function orderPaymentSchema(currency: CurrencyCode) {
 }
 export type OrderPaymentInput = z.infer<ReturnType<typeof orderPaymentSchema>>;
 
+export function orderDiscountSchema(currency: CurrencyCode) {
+  return z.object({
+    discount: optionalMoneyField(currency).transform((value) => value ?? 0),
+  });
+}
+
 export const orderCancelSchema = z.object({
   reason: requiredText(ORDER_LIMITS.cancelReason),
 });
@@ -320,7 +350,16 @@ export const orderCancelSchema = z.object({
  * Filtri rapidi dell'elenco per giorno di consegna, rispetto a oggi nel fuso della fioreria.
  * Senza scelta: da oggi in poi, i più vicini prima.
  */
-export const ORDER_WHEN_FILTERS = ['upcoming', 'today', 'tomorrow', 'week', 'past', 'all'] as const;
+export const ORDER_WHEN_FILTERS = [
+  'upcoming',
+  'today',
+  'tomorrow',
+  'week',
+  'past',
+  'all',
+  /** Ordini diretti ancora in composizione (senza data). */
+  'drafts',
+] as const;
 export type OrderWhenFilter = (typeof ORDER_WHEN_FILTERS)[number];
 
 export const orderListFiltersSchema = z.object({

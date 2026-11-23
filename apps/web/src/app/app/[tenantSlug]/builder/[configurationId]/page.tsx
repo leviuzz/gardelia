@@ -192,13 +192,13 @@ export default async function DesignPage({
             {hasPermission(ctx, 'builder:delete') ? (
               <DeleteDesignControl
                 action={deleteDesignAction.bind(null, ctx.tenantSlug, design.id)}
-                usedInQuotes={design.usedInQuotes}
+                inUse={design.inUse}
                 labels={{
                   delete: t('builder.editor.delete'),
                   confirmTitle: t('builder.editor.deleteTitle'),
                   confirmBody: t('builder.editor.deleteBody'),
-                  inQuoteTitle: t('builder.editor.deleteInQuoteTitle'),
-                  inQuoteBody: t('builder.editor.deleteInQuoteBody'),
+                  inUseTitle: t('builder.editor.deleteInUseTitle'),
+                  inUseBody: t('builder.editor.deleteInUseBody'),
                 }}
               />
             ) : null}
@@ -256,6 +256,11 @@ export default async function DesignPage({
         readOnly={archived}
         saveAction={saveDesignAction.bind(null, ctx.tenantSlug, design.id)}
         quoteHref={routes.quotes.new({ configurationId: design.id })}
+        orderHref={
+          hasPermission(ctx, 'orders:write') && !archived
+            ? routes.orders.new({ configurationId: design.id })
+            : null
+        }
         catalogHref={routes.catalog.list()}
         listHref={routes.builder.list()}
         previewStep={previewStep}

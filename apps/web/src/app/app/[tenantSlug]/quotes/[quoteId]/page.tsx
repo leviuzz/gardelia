@@ -10,15 +10,12 @@ import {
   getQuoteOrder,
   hasPermission,
   listQuotableItems,
-  type QuotableItemOption,
   type QuoteDetailDto,
-  type QuoteLineDto,
   type TenantContext,
 } from '@floral/core';
 import {
   QUOTE_LIMITS,
   getMarket,
-  isIngredientType,
   minorToDecimalString,
   todayInTimeZone,
   whatsappLink,
@@ -29,6 +26,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { money, phoneForInput } from '@/lib/format';
+import { lineFormatters, lineWarning } from '@/lib/line-ui';
 import { calendarDate } from '@/lib/quote-ui';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
@@ -41,13 +39,7 @@ import {
   updateLineQuantityAction,
 } from '../actions';
 import { PrintButton, QuoteDetailsForm, QuoteStatusActions } from './quote-controls';
-import {
-  QuoteLineComposer,
-  QuoteLineList,
-  type LineWarning,
-  type QuotableGroup,
-  type QuoteLineView,
-} from './quote-lines';
+import { QuoteLineComposer, QuoteLineList, type QuoteLineView } from './quote-lines';
 
 /** Una sola lettura per richiesta (metadata + pagina condividono il risultato). */
 const loadQuote = cache(async (ctx: TenantContext, quoteId: string): Promise<QuoteDetailDto> => {
@@ -76,31 +68,6 @@ function addDays(parts: { year: number; month: number; day: number }, days: numb
   return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() };
 }
 
-function groupOf(item: QuotableItemOption): QuotableGroup {
-  if (item.type === 'BOUQUET') return 'BOUQUET';
-  return isIngredientType(item.type) ? 'INGREDIENTS' : 'OTHER';
-}
-
-/**
- * Avviso di disponibilità: per i preventivi modificabili si usa lo stato ATTUALE del
- * catalogo (l'articolo potrebbe essere esaurito o archiviato dopo l'aggiunta); per gli
- * altri, lo snapshot del momento in cui la riga è stata aggiunta.
- */
-function lineWarning(
-  line: QuoteLineDto,
-  current: ReadonlyMap<string, QuotableItemOption> | null,
-): LineWarning | null {
-  if (line.kind === 'CUSTOM') return null;
-  // Righe del Builder: disponibilità più critica fra i componenti (snapshot).
-  const availability =
-    line.kind === 'CATALOG_ITEM' && line.catalogItemId && current
-      ? (current.get(line.catalogItemId)?.availability ?? 'UNAVAILABLE')
-      : line.availability;
-  if (availability === 'LIMITED' || availability === 'ON_REQUEST') return availability;
-  if (availability === 'UNAVAILABLE' || availability === 'OUT_OF_STOCK') return 'UNAVAILABLE';
-  return null;
-}
-
 export default async function QuotePage({
   params,
 }: PageProps<'/app/[tenantSlug]/quotes/[quoteId]'>) {
@@ -118,34 +85,16 @@ export default async function QuotePage({
 
   const quotable = quote.editable ? await listQuotableItems(ctx) : null;
   const quotableById = quotable ? new Map(quotable.map((item) => [item.id, item])) : null;
+  const lineUi = await lineFormatters(currency);
 
   const lines: QuoteLineView[] = quote.lines.map((line) => {
-    const unit = line.saleUnit
-      ? `${fmt(line.unitPriceMinor)} ${t('catalog.perUnit', { unit: t(`catalog.units.${line.saleUnit}`) })}`
-      : fmt(line.unitPriceMinor);
     return {
       id: line.id,
       description: line.description,
       quantity: line.quantity,
-      unitPriceLabel: unit,
+      unitPriceLabel: lineUi.unitPrice(line.unitPriceMinor, line.saleUnit),
       lineTotalLabel: fmt(line.lineTotalMinor),
-      recipeSummary:
-        line.recipe && line.recipe.length > 0
-          ? format.list(
-              line.recipe.map((ingredient) => {
-                const name = ingredient.variety
-                  ? `${ingredient.name} ${ingredient.variety}`
-                  : ingredient.name;
-                return ingredient.color && t.has(`catalog.colors.${ingredient.color}`)
-                  ? t('quotes.editor.recipeItemColor', {
-                      quantity: ingredient.quantity,
-                      name,
-                      color: t(`catalog.colors.${ingredient.color}`).toLocaleLowerCase('es-MX'),
-                    })
-                  : t('quotes.editor.recipeItem', { quantity: ingredient.quantity, name });
-              }),
-            )
-          : null,
+      recipeSummary: lineUi.recipe(line.recipe),
       warning: lineWarning(line, quotableById),
       designHref: line.bouquetConfigurationId
         ? routes.builder.design(line.bouquetConfigurationId)
@@ -324,17 +273,7 @@ export default async function QuotePage({
                   addCustomAction={addCustomLineAction.bind(null, slug, quote.id)}
                   currency={currency}
                   catalogHref={routes.catalog.list()}
-                  options={quotable.map((item) => ({
-                    id: item.id,
-                    group: groupOf(item),
-                    label: [
-                      item.variety ? `${item.name} · ${item.variety}` : item.name,
-                      `${fmt(item.priceMinor)} ${t('catalog.perUnit', { unit: t(`catalog.units.${item.saleUnit}`) })}`,
-                      ...(item.availability === 'AVAILABLE'
-                        ? []
-                        : [t(`catalog.availability.${item.availability}`)]),
-                    ].join(' — '),
-                  }))}
+                  options={quotable.map((item) => lineUi.option(item))}
                 />
               ) : null}
             </CardContent>

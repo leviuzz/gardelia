@@ -442,7 +442,7 @@ async function identicalDesignShowing(
  * Anteprime di un disegno che sta per essere eliminato (ADR-051), nella stessa transazione. I job
  * restano (i crediti e i costi già spesi non si restituiscono) ma si staccano dal disegno. Le
  * immagini si cancellano, tranne quelle che:
- *  - una riga di preventivo mostra (la cotización conserva la sua foto);
+ *  - una riga di preventivo o di ordine mostra (conservano la loro foto);
  *  - un altro disegno identico mostra ora (la cache è per contenuto): passano a lui, che le
  *    cancellerà se un giorno viene eliminato.
  * Una generazione in corso blocca l'eliminazione: la sua immagine arriverebbe dopo.
@@ -463,11 +463,11 @@ export async function releaseConfigurationPreviews(
   const withImage = jobs.filter(
     (job): job is typeof job & { outputKey: string } => job.outputKey !== null,
   );
-  const quoted = await tx.quoteLine.findMany({
-    where: { tenantId: ctx.tenantId, previewJobId: { in: withImage.map((job) => job.id) } },
-    select: { previewJobId: true },
-  });
-  const inQuotes = new Set(quoted.map((line) => line.previewJobId));
+  // Preventivi e ordini mostrano l'immagine con cui sono nati: quella resta (ADR-035, ADR-054).
+  const shown = { tenantId: ctx.tenantId, previewJobId: { in: withImage.map((job) => job.id) } };
+  const quoted = await tx.quoteLine.findMany({ where: shown, select: { previewJobId: true } });
+  const ordered = await tx.orderLine.findMany({ where: shown, select: { previewJobId: true } });
+  const inDocuments = new Set([...quoted, ...ordered].map((line) => line.previewJobId));
   // "Otra versión" dà più immagini con lo stesso hash: un solo controllo per hash.
   const heirs = new Map<string, string | null>();
   const deletedKeys: string[] = [];
@@ -477,7 +477,7 @@ export async function releaseConfigurationPreviews(
       heirs.set(job.inputHash, await identicalDesignShowing(tx, ctx, configurationId, job));
     }
     const heir = heirs.get(job.inputHash) ?? null;
-    if (heir || inQuotes.has(job.id)) {
+    if (heir || inDocuments.has(job.id)) {
       kept++;
       await tx.aiJob.updateMany({
         where: { id: job.id, tenantId: ctx.tenantId },

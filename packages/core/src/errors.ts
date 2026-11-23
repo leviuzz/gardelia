@@ -52,7 +52,7 @@ export type ConflictReason =
   | 'invalid_status_transition'
   | 'builder_configuration_archived'
   | 'builder_configuration_outdated'
-  | 'builder_configuration_in_quote'
+  | 'builder_configuration_in_use'
   | 'ai_preview_in_progress'
   | 'ai_unavailable'
   | 'ai_quota_exhausted'
@@ -67,7 +67,12 @@ export type ConflictReason =
   | 'quote_already_ordered'
   | 'order_not_editable'
   | 'order_closed'
-  | 'payment_already_reversed';
+  | 'payment_already_reversed'
+  | 'order_not_confirmed'
+  | 'order_empty'
+  | 'order_lines_locked'
+  | 'order_line_limit'
+  | 'order_total_below_paid';
 
 export class ConflictError extends AppError {
   readonly code = 'conflict' as const;

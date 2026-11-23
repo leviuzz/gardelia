@@ -1,7 +1,6 @@
 'use client';
 
 import { ChevronRight, LoaderCircle } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { SubmitButton } from '@/components/form/submit-button';
@@ -12,13 +11,19 @@ import { useActionToast } from '@/lib/use-action-toast';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
+/**
+ * Scelta del cliente per un nuovo documento (cotización o pedido): i testi arrivano già
+ * tradotti dalla pagina, che sa che cosa si sta creando.
+ */
 export interface PickableCustomer {
   readonly id: string;
   readonly displayName: string;
   readonly detail: string | null;
+  /** Nome accessibile del pulsante, es. "Pedido para Ana Torres". */
+  readonly pickLabel: string;
 }
 
-function PickButton({ customer, label }: { customer: PickableCustomer; label: string }) {
+function PickButton({ customer }: { customer: PickableCustomer }) {
   const { pending, data } = useFormStatus();
   const mine = pending && data?.get('customerId') === customer.id;
   return (
@@ -28,7 +33,7 @@ function PickButton({ customer, label }: { customer: PickableCustomer; label: st
       value={customer.id}
       disabled={pending}
       aria-busy={mine}
-      aria-label={label}
+      aria-label={customer.pickLabel}
       className="flex w-full items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none disabled:cursor-wait disabled:opacity-70"
     >
       <span
@@ -54,7 +59,7 @@ function PickButton({ customer, label }: { customer: PickableCustomer; label: st
 
 /**
  * Elenco di clienti: un solo form, un pulsante di invio per cliente (il valore del
- * pulsante premuto arriva nel FormData). La server action crea il preventivo e reindirizza.
+ * pulsante premuto arriva nel FormData). La server action crea il documento e reindirizza.
  */
 export function CustomerPicker({
   action,
@@ -63,10 +68,9 @@ export function CustomerPicker({
 }: {
   action: Action;
   customers: readonly PickableCustomer[];
-  /** Disegno del Builder da trasformare in preventivo (facoltativo). */
+  /** Disegno del Diseñador da cui parte il documento (facoltativo). */
   configurationId: string | null;
 }) {
-  const t = useTranslations('quotes.new');
   const [state, formAction] = useActionState(action, idleState);
   useActionToast(state);
   return (
@@ -77,7 +81,7 @@ export function CustomerPicker({
       <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
         {customers.map((customer) => (
           <li key={customer.id}>
-            <PickButton customer={customer} label={t('quoteFor', { name: customer.displayName })} />
+            <PickButton customer={customer} />
           </li>
         ))}
       </ul>
@@ -90,12 +94,13 @@ export function CreateForCustomer({
   action,
   customerId,
   configurationId,
+  labels,
 }: {
   action: Action;
   customerId: string;
   configurationId: string | null;
+  labels: { readonly create: string; readonly creating: string };
 }) {
-  const t = useTranslations('quotes.new');
   const [state, formAction] = useActionState(action, idleState);
   useActionToast(state);
   return (
@@ -104,8 +109,8 @@ export function CreateForCustomer({
       {configurationId ? (
         <input type="hidden" name="configurationId" value={configurationId} />
       ) : null}
-      <SubmitButton size="lg" className="w-full sm:w-auto" pendingLabel={t('creating')}>
-        {t('create')}
+      <SubmitButton size="lg" className="w-full sm:w-auto" pendingLabel={labels.creating}>
+        {labels.create}
       </SubmitButton>
     </form>
   );

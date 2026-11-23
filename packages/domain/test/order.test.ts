@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  acceptsOrderPayments,
+  areOrderLinesEditable,
   canCancelOrder,
   canStepOrder,
   deliveryAddressSchema,
@@ -7,6 +9,7 @@ import {
   formatTimeOfDay,
   isOrderAcceptance,
   isOrderEditable,
+  orderDiscountSchema,
   orderFulfillmentSchema,
   orderListFiltersSchema,
   orderPaymentSchema,
@@ -47,6 +50,27 @@ describe('numero e stati dell’ordine', () => {
     expect(canCancelOrder('CANCELLED')).toBe(false);
     expect(isOrderEditable('READY')).toBe(true);
     expect(isOrderEditable('OUT_FOR_DELIVERY')).toBe(false);
+  });
+
+  it('il borrador si conferma, si scarta e non riceve pagamenti', () => {
+    expect(orderStepsFrom('DRAFT', 'DELIVERY')).toEqual([]);
+    expect(canStepOrder('DRAFT', 'CONFIRMED', 'PICKUP')).toBe(false);
+    // Si scarta senza motivo, non si annulla; consegna e tarjeta si compilano alla conferma.
+    expect(canCancelOrder('DRAFT')).toBe(false);
+    expect(isOrderEditable('DRAFT')).toBe(false);
+    expect(areOrderLinesEditable('DRAFT')).toBe(true);
+    expect(acceptsOrderPayments('DRAFT')).toBe(false);
+    expect(acceptsOrderPayments('CONFIRMED')).toBe(true);
+    expect(acceptsOrderPayments('CANCELLED')).toBe(false);
+  });
+
+  it('righe e sconto si cambiano finché il ramo non è pronto', () => {
+    expect(areOrderLinesEditable('CONFIRMED')).toBe(true);
+    expect(areOrderLinesEditable('IN_PREPARATION')).toBe(true);
+    expect(areOrderLinesEditable('READY')).toBe(false);
+    // Quello del marketplace lo ha composto il cliente: la fioreria lo accetta o lo rifiuta.
+    expect(areOrderLinesEditable('PENDING_ACCEPTANCE')).toBe(false);
+    expect(areOrderLinesEditable('CANCELLED')).toBe(false);
   });
 
   it('riconosce l’accettazione di un ordine del marketplace', () => {
@@ -183,6 +207,16 @@ describe('pagamenti e filtri', () => {
       kind: 'REVERSAL',
     });
     expect(result.success).toBe(false);
+  });
+
+  it('sconto: vuoto vale zero, importi in unità minime', () => {
+    expect(orderDiscountSchema('MXN').parse({ discount: '' })).toEqual({ discount: 0 });
+    expect(orderDiscountSchema('MXN').parse({ discount: '50.5' })).toEqual({ discount: 5050 });
+    expect(orderDiscountSchema('MXN').safeParse({ discount: '-3' }).success).toBe(false);
+  });
+
+  it('i borradores hanno il loro filtro', () => {
+    expect(orderListFiltersSchema.parse({ when: 'drafts' }).when).toBe('drafts');
   });
 
   it('filtri dell’elenco tolleranti', () => {

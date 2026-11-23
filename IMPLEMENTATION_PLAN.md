@@ -474,6 +474,19 @@ Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test unit 279/279 �
 320 px. Prossimi: A1b ordine diretto con le righe, A2 impostazioni di consegna e coordinate, A3 stampa
 della tarjeta e link pubblici.
 
+**Ordini, blocco A1b (fatto il 23/11, ADR-054):** "Nuevo pedido" senza preventivo dall'elenco Pedidos,
+dalla scheda del cliente (nuova scheda "Pedidos" con gli ultimi ordini) e dal Diseñador ("Crear
+pedido"); il borrador si compone con lo stesso editor dei preventivi (catalogo, righe libere, sconto),
+poi "Confirmar pedido" con consegna e tarjeta; "Descartar borrador" senza motivo; filtro "Borradores".
+Dopo la conferma prodotti e sconto si cambiano fino a "En preparación" ("Cambiar productos o
+descuento"); il totale non scende mai sotto il già pagato (vale anche per il costo di consegna, buco
+di A1a chiuso); un disegno usato da un ordine non si elimina. Selettore del cliente e formattazione
+delle righe condivisi con i preventivi (`components/customers/customer-picker.tsx`, `lib/line-ui.ts`).
+Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test unit 283/283 ✅ · integrazione 286/286 ✅
+(9 nuovi sui borradores con isolamento A↔B, 1 sul Diseñador) · migrazioni = schema ✅ · build ✅ · E2E
+62/62 ✅ (2 nuovi); controllo visivo a 1280 e 320 px. Prossimi: A2 impostazioni di consegna e
+coordinate, A3 stampa della tarjeta e link pubblici.
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci

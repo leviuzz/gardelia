@@ -90,7 +90,7 @@
       "invalid_status_transition": "Questo cambio di stato non è consentito.",
       "builder_configuration_archived": "Questa composizione è archiviata: ripristinala per modificarla.",
       "builder_configuration_outdated": "Qualche prodotto della composizione non è più disponibile: controlla la composizione prima di fare il preventivo.",
-      "builder_configuration_in_quote": "Questa composizione è in un preventivo: non si può eliminare, solo archiviare.",
+      "builder_configuration_in_use": "Questa composizione è in un preventivo o in un ordine: non si può eliminare, solo archiviare.",
       "ai_preview_in_progress": "Si sta generando una foto di questa composizione: aspetta che finisca e riprova.",
       "ai_unavailable": "Le anteprime con IA non sono disponibili al momento.",
       "ai_quota_exhausted": "Non hai più anteprime disponibili questo mese.",
@@ -105,7 +105,12 @@
       "quote_already_ordered": "Questo preventivo ha già il suo ordine.",
       "order_not_editable": "L’ordine è già uscito: consegna e biglietto non si cambiano più.",
       "order_closed": "L’ordine è annullato.",
-      "payment_already_reversed": "Questo pagamento è già stato stornato."
+      "payment_already_reversed": "Questo pagamento è già stato stornato.",
+      "order_not_confirmed": "Prima conferma l’ordine.",
+      "order_empty": "Un ordine ha bisogno di almeno un prodotto.",
+      "order_lines_locked": "I prodotti di questo ordine non si possono più cambiare.",
+      "order_line_limit": "L’ordine ha raggiunto il numero massimo di righe.",
+      "order_total_below_paid": "Il totale scenderebbe sotto quanto il cliente ha già pagato: prima annulla il pagamento."
     },
     "pageNotFoundTitle": "Pagina non trovata",
     "pageNotFoundBody": "La pagina non esiste o non hai accesso.",
@@ -361,7 +366,13 @@
     "order.status_changed": "{actor} ha segnato {number} come «{status}»",
     "order.cancelled": "{actor} ha annullato l’ordine {number}",
     "order.payment_recorded": "{actor} ha registrato un pagamento su {number}",
-    "order.payment_reversed": "{actor} ha stornato un pagamento su {number}"
+    "order.payment_reversed": "{actor} ha stornato un pagamento su {number}",
+    "order.line_added": "{actor} ha aggiunto una riga a {number}",
+    "order.line_updated": "{actor} ha cambiato una quantità in {number}",
+    "order.line_removed": "{actor} ha tolto una riga da {number}",
+    "order.discount_changed": "{actor} ha cambiato lo sconto di {number}",
+    "order.confirmed": "{actor} ha confermato l’ordine {number}",
+    "order.discarded": "{actor} ha scartato la bozza {number}"
   },
   "catalog": {
     "title": "Catalogo",
@@ -942,9 +953,11 @@
       "tomorrow": "Domani",
       "week": "Questa settimana",
       "past": "Precedenti",
-      "all": "Tutti"
+      "all": "Tutti",
+      "drafts": "Bozze"
     },
     "statuses": {
+      "DRAFT": "Bozza",
       "PENDING_ACCEPTANCE": "Da accettare",
       "CONFIRMED": "Confermato",
       "IN_PREPARATION": "In preparazione",
@@ -977,7 +990,7 @@
     },
     "results": "{count, plural, =0 {Nessun risultato} one {# ordine} other {# ordini}}",
     "emptyTitle": "Non hai ancora ordini",
-    "emptyBody": "Un ordine nasce da un preventivo accettato: aprilo e scegli «Trasforma in ordine».",
+    "emptyBody": "Creane uno con «Nuovo ordine» o trasforma un preventivo accettato.",
     "noResultsTitle": "Nessun ordine con questi filtri",
     "noResultsBody": "Prova un altro giorno, un’altra ricerca o togli i filtri.",
     "goToQuotes": "Vedi preventivi",
@@ -1092,6 +1105,43 @@
       "total": "Totale: {total}",
       "paid": "Pagato: {paid}",
       "balance": "Da pagare: {balance}"
+    },
+    "newOrder": "Nuovo ordine",
+    "noDate": "Senza data",
+    "new": {
+      "title": "Nuovo ordine",
+      "subtitle": "Scegli il cliente; poi aggiungi i prodotti e la consegna.",
+      "orderFor": "Ordine per {name}",
+      "create": "Crea ordine",
+      "creating": "Creazione…",
+      "pickHint": "Scegli il cliente per creare l’ordine.",
+      "customerArchived": "Questo cliente è archiviato: ripristinalo dalla sua scheda per fargli un ordine.",
+      "fromDesign": "Ordine con la composizione «{name}»",
+      "fromDesignBody": "Scegli il cliente: l’ordine includerà il mazzo con la sua ricetta esatta e i prezzi attuali del tuo catalogo."
+    },
+    "draft": {
+      "intro": "Componi l’ordine: aggiungi i prodotti, indica la consegna e confermalo. Fino ad allora non compare tra le consegne.",
+      "stepProducts": "1. Prodotti",
+      "stepDelivery": "2. Consegna e biglietto",
+      "deliveryHint": "Quando e come si consegna. Alla conferma l’ordine diventa «Confermato», pronto da preparare.",
+      "needsLines": "Aggiungi almeno un prodotto per poter confermare l’ordine.",
+      "confirm": "Conferma ordine",
+      "confirmed": "Ordine confermato.",
+      "discountField": "Sconto ({currency})",
+      "saveDiscount": "Applica sconto",
+      "discountSaved": "Sconto aggiornato.",
+      "discard": "Scarta bozza",
+      "discardTitle": "Scartare questa bozza?",
+      "discardBody": "Non diventerà un ordine e non comparirà più nell’elenco.",
+      "discardConfirm": "Scarta",
+      "editLines": "Cambia prodotti o sconto",
+      "editLinesBody": "I prezzi vengono dal tuo catalogo attuale. Se il cliente ha già pagato, il totale non può scendere sotto quanto pagato.",
+      "discarded": "Questa bozza è stata scartata: non è un ordine."
+    },
+    "customerCard": {
+      "title": "Ordini",
+      "empty": "Non ha ancora ordini.",
+      "viewAll": "Vedi tutti i suoi ordini"
     }
   },
   "plans": {
@@ -1242,7 +1292,7 @@
       "savedNotice": "Composizione salvata. Ora puoi creare il preventivo.",
       "unsaved": "Hai modifiche non salvate.",
       "createQuote": "Crea preventivo",
-      "quoteHint": "Salva le modifiche per creare il preventivo.",
+      "quoteHint": "Salva le modifiche per creare il preventivo o l’ordine.",
       "pricesChanged": "I prezzi sono cambiati da quando hai salvato questa composizione (prima: {total}). Salva per aggiornarla.",
       "remove": "Rimuovi {name}",
       "archive": "Archivia",
@@ -1253,8 +1303,8 @@
       "delete": "Elimina",
       "deleteTitle": "Eliminare questa composizione?",
       "deleteBody": "La composizione e le sue foto generate con l’IA vengono cancellate per sempre. Non si può annullare e i crediti già usati non vengono restituiti.",
-      "deleteInQuoteTitle": "Questa composizione è in un preventivo",
-      "deleteInQuoteBody": "Non si può eliminare perché il preventivo conserva la sua composizione e la sua foto. Se non ti serve più, puoi archiviarla.",
+      "deleteInUseTitle": "Questa composizione è in un preventivo o in un ordine",
+      "deleteInUseBody": "Non si può eliminare perché il preventivo o l’ordine conservano la sua composizione e la sua foto. Se non ti serve più, puoi archiviarla.",
       "lineTotalColor": "{quantity} × {name} · {color}",
       "colorOf": "Colore di {name}",
       "colorFixed": "Colore: {color}",
@@ -1280,7 +1330,8 @@
         "skip": "Salta questo passo",
         "backToDesigns": "Torna alle composizioni",
         "chooseColors": "Scegli i colori mancanti per continuare."
-      }
+      },
+      "createOrder": "Crea ordine"
     },
     "settings": {
       "title": "Designer di bouquet",

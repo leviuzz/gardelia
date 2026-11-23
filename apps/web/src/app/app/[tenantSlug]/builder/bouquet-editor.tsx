@@ -3,6 +3,7 @@
 import {
   ArrowLeft,
   ArrowRight,
+  ClipboardList,
   FileText,
   LoaderCircle,
   Minus,
@@ -260,6 +261,7 @@ export function BouquetEditor({
   readOnly,
   saveAction,
   quoteHref,
+  orderHref = null,
   catalogHref,
   listHref,
   previewStep,
@@ -279,6 +281,8 @@ export function BouquetEditor({
   readOnly: boolean;
   saveAction: SaveAction;
   quoteHref: string | null;
+  /** "Crear pedido" con questo ramo (ADR-054); null senza permesso o per un disegno archiviato. */
+  orderHref?: string | null;
   catalogHref: string;
   /** Elenco dei disegni ("Volver a los diseños" nel passo finale). */
   listHref: string;
@@ -939,16 +943,28 @@ export function BouquetEditor({
           {currentKey === 'done' ? (
             <Card>
               <CardContent className="flex flex-col gap-4">
-                {canQuote && quoteHref !== null ? (
+                {(canQuote && quoteHref !== null) || orderHref ? (
                   dirty ? (
                     <p className="text-sm text-muted-foreground">{t('quoteHint')}</p>
                   ) : (
-                    <Button asChild size="lg" className="w-full sm:w-auto sm:self-start">
-                      <Link href={quoteHref}>
-                        <FileText />
-                        {t('createQuote')}
-                      </Link>
-                    </Button>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      {canQuote && quoteHref !== null ? (
+                        <Button asChild size="lg" className="w-full sm:w-auto">
+                          <Link href={quoteHref}>
+                            <FileText />
+                            {t('createQuote')}
+                          </Link>
+                        </Button>
+                      ) : null}
+                      {orderHref ? (
+                        <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
+                          <Link href={orderHref}>
+                            <ClipboardList />
+                            {t('createOrder')}
+                          </Link>
+                        </Button>
+                      ) : null}
+                    </div>
                   )
                 ) : null}
                 <Button asChild variant="outline" className="w-full sm:w-auto sm:self-start">
