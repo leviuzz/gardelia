@@ -70,8 +70,9 @@ test.describe('foto del catalogo (proprietario)', () => {
     }
     await other.close();
 
-    // Copertina nell'elenco del catalogo: la foto originale.
-    await page.goto('/app/las-camelias/catalog');
+    // Copertina nell'elenco del catalogo: la foto originale (cercando il prodotto, perché l'elenco
+    // è paginato e gli altri test aggiungono prodotti).
+    await page.goto(`/app/las-camelias/catalog?q=${encodeURIComponent('Rosa roja')}`);
     await expect(page.locator(`img[src="${src}"]:visible`)).toHaveCount(1);
 
     await page.goBack();
