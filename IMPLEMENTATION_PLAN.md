@@ -387,7 +387,10 @@ dietro 3 rose rosse aperte e sparivano anche dalla foto realistica. Boceto v4 (A
 deve restare visibile per almeno il 60% dei petali, altrimenti il boceto si ridisegna più arioso.
 Da osservare: i prodotti fotografati in bocciolo e il controllo che ignora i boccioli chiusi. Poi, con
 tutti i fiori visibili, il controllo non riconosceva "Fiore 1" (nome generico, nessun colore in
-catalogo): ora ogni tipo arriva al controllo anche con il colore misurato sulla sua foto.
+catalogo): ora ogni tipo arriva al controllo anche con il colore misurato sulla sua foto. Con i
+numeri giusti, la foto era però rigida, una copia del boceto. v7: ramo naturale disposto dal modello,
+poi la correzione dei fiori in più sulla stessa foto; sul ramo del founder 4 richieste su 4
+verificate, a ~0,24 USD l'una (ADR-034, `docs/AI_BENCHMARK.md`).
 
 **Tester senza email di conferma (fatto il 23/11, richiesta del founder, ADR-050):** operazione di
 piattaforma `confirm-user`. L'amministratore conferma a mano l'email di una persona registrata e, se

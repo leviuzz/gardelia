@@ -294,7 +294,8 @@ describe('anteprima esatta', () => {
 
     expect(provider.requests).toHaveLength(1);
     expect(provider.requests[0]).toMatchObject({ image: true });
-    expect(provider.requests[0]?.prompt).toContain('Turn this rough collage');
+    expect(provider.requests[0]?.prompt).toContain('Create a realistic photograph');
+    expect(provider.requests[0]?.prompt).toContain('The collage is only a rough reference');
     expect(provider.requests[0]?.prompt).toContain('exactly 3');
     // Il contatore riceve i tipi; le quantità attese restano nel server.
     expect(counter.seenTargets[0]?.map((target) => target.expected)).toEqual([3]);
@@ -333,7 +334,7 @@ describe('anteprima esatta', () => {
     ]);
   });
 
-  it('se i numeri non coincidono riprova una volta', async () => {
+  it('se la foto ha fiori in più li toglie sulla stessa foto e ricontrolla', async () => {
     const kit = await createKit('Florería Exacta retry');
     const design = await rosesWithWrap(kit);
     provider.requests = [];
@@ -341,6 +342,10 @@ describe('anteprima esatta', () => {
     const requested = await requestBouquetPreview(kit.shop.owner, design.id);
     expect(await runOnce(kit)).toBe('succeeded');
     expect(provider.requests).toHaveLength(2);
+    // La seconda immagine è la correzione della prima (una rosa in più da togliere).
+    expect(provider.requests[1]).toMatchObject({ image: true });
+    expect(provider.requests[1]?.prompt).toContain('This photo of a bouquet shows 4 stems');
+    expect(provider.requests[1]?.prompt).toContain('Remove 1 stem of "Rosa roja Freedom" (red)');
     expect((await getBouquetPreview(kit.shop.owner, design.id)).preview).toMatchObject({
       status: 'SUCCEEDED',
       verified: true,
@@ -349,10 +354,11 @@ describe('anteprima esatta', () => {
     expect((await jobOf(requested.jobId)).providerCostMicros).toBe(184_000);
   });
 
-  it('numeri sbagliati due volte: niente immagine, niente credito, poi stop ai tentativi', async () => {
+  it('numeri sbagliati anche dopo la correzione: niente immagine, niente credito, poi stop', async () => {
     const kit = await createKit('Florería Exacta mismatch');
     const design = await rosesWithWrap(kit);
-    counter.script = ['wrong', 'wrong'];
+    // Foto, correzione e nuova foto: tutte e tre sbagliate.
+    counter.script = ['wrong', 'wrong', 'wrong'];
     const first = await requestBouquetPreview(kit.shop.owner, design.id);
     expect(await runOnce(kit)).toBe('failed');
     expect(await jobOf(first.jobId)).toMatchObject({
@@ -373,7 +379,7 @@ describe('anteprima esatta', () => {
         },
       ],
       other: 0,
-      photos: 2,
+      photos: 3,
     });
     expect(state.retryLimitReached).toBe(false);
     expect((await getAiQuota(kit.shop.owner)).includedUsed).toBe(0);
@@ -382,7 +388,7 @@ describe('anteprima esatta', () => {
     );
 
     // Si può riprovare, ma non all'infinito (ogni tentativo costa alla piattaforma).
-    counter.script = ['wrong', 'wrong'];
+    counter.script = ['wrong', 'wrong', 'wrong'];
     await requestBouquetPreview(kit.shop.owner, design.id);
     expect(await runOnce(kit)).toBe('failed');
     expect((await getBouquetPreview(kit.shop.owner, design.id)).retryLimitReached).toBe(true);
