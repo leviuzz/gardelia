@@ -204,9 +204,12 @@ variabili da sistemare.
    la foto realistica.
 6. **Dati di prova (facoltativo):** per provare con un negozio pieno: 23 clienti con le loro date
    nel calendario, 13 fiori, 2 verdi, 2 carte e 1 nastro, con la foto di ogni fiore (ADR-049).
-   - Per le foto salva su GitHub (come al punto 2) altri cinque segreti, con gli stessi valori di
-     Vercel: `FAL_KEY`, `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`,
-     `R2_SECRET_ACCESS_KEY`. Senza questi segreti l'operazione aggiunge tutto tranne le foto.
+   - Per le foto salva su GitHub (come al punto 2) altri cinque segreti: `FAL_KEY`,
+     `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`. I valori sono gli
+     stessi di Vercel (nella tua nota privata). Se non li hai più, crea chiavi nuove solo per
+     GitHub: su fal una chiave `gardelia-github` (scope API); su R2 un token "Object Read & Write"
+     solo per `gardelia-staging` (account e bucket restano gli stessi). Così si revocano senza toccare Vercel. Senza questi segreti
+     l'operazione aggiunge tutto tranne le foto.
    - Lo stesso workflow, operazione `test-data`, la tua email, l'indirizzo della fioreria, con
      "Genera le foto" spuntato. Sono 15 foto, circa 1,20 USD di fal; lo scontorno parte subito.
    - Si può rilanciare: aggiunge solo quello che manca e non rifà le foto. Clienti e prodotti di
