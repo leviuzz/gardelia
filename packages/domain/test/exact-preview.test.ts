@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  SKETCH_CROWDING,
   SKETCH_LIMITS,
   SKETCH_SIZE,
   buildBoxCountPrompt,
@@ -408,6 +409,45 @@ describe('controllo dei conteggi', () => {
     expect(countsMatch(targets, { ...exact, counts: { 1: 4, 2: 3, 3: 0 } })).toBe(false);
     expect(countsMatch(targets, { ...exact, counts: { 1: 3, 2: 2, 3: 0 } })).toBe(false);
     expect(countsMatch(targets, { ...exact, other: 1 })).toBe(false);
+  });
+});
+
+describe('boceto v4: livelli di affollamento', () => {
+  /** Distanza minima fra due corolle, in proporzione alla loro grandezza media. */
+  function tightest(layout: ReturnType<typeof layoutBouquetSketch>) {
+    const blooms = bloomsOf(layout);
+    let ratio = Infinity;
+    for (let i = 0; i < blooms.length; i++) {
+      for (let j = i + 1; j < blooms.length; j++) {
+        const a = blooms[i]!;
+        const b = blooms[j]!;
+        const side = (Math.sqrt(a.width * a.height) + Math.sqrt(b.width * b.height)) / 2;
+        ratio = Math.min(ratio, Math.hypot(a.x - b.x, a.y - b.y) / side);
+      }
+    }
+    return ratio;
+  }
+  const area = (layout: ReturnType<typeof layoutBouquetSketch>) =>
+    bloomsOf(layout).reduce((sum, bloom) => sum + bloom.width * bloom.height, 0);
+
+  it('ogni livello: corolle più piccole e più distanziate; fuori scala si ferma ai limiti', () => {
+    const bouquet = spec([{ ...rose, quantity: 7 }, { ...daisy, quantity: 5 }, paper]);
+    const levels = Array.from({ length: SKETCH_CROWDING.levels }, (_, crowding) =>
+      layoutBouquetSketch({ spec: bouquet, cutoutAspects: aspects, crowding }),
+    );
+    for (let level = 1; level < levels.length; level++) {
+      expect(area(levels[level]!)).toBeLessThan(area(levels[level - 1]!));
+      expect(tightest(levels[level]!)).toBeGreaterThan(tightest(levels[level - 1]!) - 0.02);
+    }
+    expect(tightest(levels.at(-1)!)).toBeGreaterThan(0.85);
+    // Stessi fiori a ogni livello, e i livelli fuori scala valgono come il primo o l'ultimo.
+    for (const layout of levels) expect(bloomsOf(layout)).toHaveLength(12);
+    expect(layoutBouquetSketch({ spec: bouquet, cutoutAspects: aspects, crowding: -3 })).toEqual(
+      levels[0],
+    );
+    expect(layoutBouquetSketch({ spec: bouquet, cutoutAspects: aspects, crowding: 99 })).toEqual(
+      levels.at(-1),
+    );
   });
 });
 

@@ -556,6 +556,18 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   nel ramo. I dati erano già salvati in ogni job (`output.checks`), quindi si vedono anche per i
   job già scartati, ricaricando la pagina. La regola di accettazione non cambia. Il log della foto
   scartata riporta gli stessi numeri: tipo della distinta, attesi e trovati, mai nomi.
+- **v4 (23/11/2026): ogni fiore resta visibile.** Caso del founder su staging: 3 rose rosse aperte
+  e 2 boccioli rosa. Nel boceto i boccioli finivano quasi del tutto dietro le rose, la foto
+  realistica li perdeva e il controllo, giustamente, scartava la foto. Il boceto controllava solo
+  la distanza fra i centri, non quanto di ogni fiore resta in vista. Ora il core misura sulle forme
+  vere dei ritagli la parte dei petali di ogni corolla rimasta visibile (foglie e sepali verdi
+  esclusi, fuori dal quadro = nascosto). Sotto il 60% ridisegna con corolle più piccole del 7% e
+  più distanziate, al massimo 4 volte (`SKETCH_CROWDING`): il ramo resta fitto quando si può.
+  Inoltre il bordo inclinato della carta davanti non sale più sopra il centro delle corolle più
+  basse. Boceto `sketch-v4`: cambia la chiave di cache, quindi i ramos già scartati si possono
+  rigenerare. **Da osservare:** il controllo dei conteggi ignora i "boccioli chiusi", quindi un
+  prodotto fotografato in bocciolo (rose) potrebbe non essere contato. Se succede, si cambia il
+  prompt dopo una prova vera.
 
 ### ADR-035 — Immagine del ramo nel preventivo — ADOTTATO (21/11/2026)
 

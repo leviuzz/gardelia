@@ -382,8 +382,10 @@ non errori. Il job dell'anteprima era arrivato in fondo con una riga informativa
 foto realistica scartata perché i fiori non coincidevano con la distinta (ADR-034), senza che lo
 schermo dicesse perché. Ora il Diseñador mostra cosa ha contato il controllo nell'ultima foto
 (trovati di attesi per ogni fiore, fiori estranei). Funziona anche per i job già scartati e il log
-riporta gli stessi numeri. Prossimo passo: con i numeri veri del founder decidere come alzare la
-riuscita (prompt, fiori con più corolle per stelo, tolleranza o foto "non verificata").
+riporta gli stessi numeri. **Causa trovata con il founder:** nel boceto 2 boccioli rosa finivano
+dietro 3 rose rosse aperte e sparivano anche dalla foto realistica. Boceto v4 (ADR-034): ogni corolla
+deve restare visibile per almeno il 60% dei petali, altrimenti il boceto si ridisegna più arioso.
+Da osservare: i prodotti fotografati in bocciolo e il controllo che ignora i boccioli chiusi.
 
 **Tester senza email di conferma (fatto il 23/11, richiesta del founder, ADR-050):** operazione di
 piattaforma `confirm-user`. L'amministratore conferma a mano l'email di una persona registrata e, se
