@@ -92,6 +92,12 @@ export function tenantRoutes(slug: string) {
       /** "Nuevo pedido", eventualmente per un cliente o con il ramo di un disegno del Diseñador. */
       new: (query?: { readonly customerId?: string; readonly configurationId?: string | null }) =>
         withQuery(`${orders}/new`, query),
+      /** Il giorno: ordini per fascia e Producción del día (`date` = AAAA-MM-GG, senza = oggi). */
+      day: (query?: { readonly date?: string }) => withQuery(`${orders}/day`, query),
+      /** Producción del día da stampare. */
+      production: (query?: { readonly date?: string }) => withQuery(`${orders}/production`, query),
+      /** Il mese con gli ordini per giorno (`month` = AAAA-MM). */
+      calendar: (query?: { readonly month?: string }) => withQuery(`${orders}/calendar`, query),
       detail: (orderId: string) => `${orders}/${segment(orderId)}`,
       /** Tarjeta da stampare (formato biglietto). */
       card: (orderId: string) => `${orders}/${segment(orderId)}/card`,

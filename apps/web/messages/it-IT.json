@@ -1183,6 +1183,52 @@
       "open": "Stampa biglietto",
       "hint": "Misura 10 × 7 cm: stampa al 100 % e ritaglia lungo la linea tratteggiata.",
       "empty": "Questo ordine non ha un messaggio per il biglietto."
+    },
+    "tabs": {
+      "label": "Viste degli ordini",
+      "list": "Elenco",
+      "day": "Giorno",
+      "calendar": "Calendario"
+    },
+    "day": {
+      "title": "Ordini del giorno",
+      "today": "Oggi in uscita",
+      "previous": "Giorno precedente",
+      "next": "Giorno successivo",
+      "goToday": "Oggi",
+      "pickDate": "Scegli il giorno",
+      "show": "Vedi",
+      "emptyTitle": "Nessun ordine per questo giorno",
+      "emptyBody": "Quando registri ordini per questa data, compaiono qui per fascia oraria.",
+      "summary": "{total, plural, one {# ordine} other {# ordini}} · {deliveries} a domicilio · {pickups} in negozio · {pending, plural, =0 {tutto consegnato} one {# da consegnare} other {# da consegnare}}",
+      "toCollect": "Da incassare {amount}",
+      "withCard": "con biglietto",
+      "allDone": "Tutto quello di questo giorno è già uscito o consegnato.",
+      "done": "{count, plural, one {# ordine già uscito} other {# ordini già usciti}}"
+    },
+    "production": {
+      "title": "Produzione del giorno",
+      "summary": "{bouquets, plural, =0 {Nessun mazzo da comporre} one {# mazzo da comporre} other {# mazzi da comporre}} · {orders, plural, one {# ordine da preparare} other {# ordini da preparare}}",
+      "print": "Stampa",
+      "printNow": "Stampa la lista",
+      "empty": "Non c’è niente da preparare in questo giorno.",
+      "itemsCaption": "Fiori e materiali necessari",
+      "item": "Fiore o materiale",
+      "quantity": "Quantità",
+      "custom": "Altre voci",
+      "units": {
+        "STEM": "{count, plural, one {# stelo} other {# steli}}",
+        "BUNCH": "{count, plural, one {# mazzetto} other {# mazzetti}}",
+        "PIECE": "{count, plural, one {# pezzo} other {# pezzi}}",
+        "SERVICE": "{count, plural, one {# servizio} other {# servizi}}"
+      }
+    },
+    "calendar": {
+      "title": "Calendario degli ordini",
+      "subtitle": "Consegne e ritiri per giorno. Tocca un giorno per vederne gli ordini.",
+      "previous": "Mese precedente",
+      "next": "Mese successivo",
+      "dayLabel": "{date}: {deliveries} a domicilio, {pickups} in negozio"
     }
   },
   "plans": {

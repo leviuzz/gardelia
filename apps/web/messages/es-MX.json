@@ -1183,6 +1183,52 @@
       "open": "Imprimir tarjeta",
       "hint": "Mide 10 × 7 cm: imprime al 100 % y recorta por la línea punteada.",
       "empty": "Este pedido no tiene mensaje para la tarjeta."
+    },
+    "tabs": {
+      "label": "Vistas de pedidos",
+      "list": "Lista",
+      "day": "Día",
+      "calendar": "Calendario"
+    },
+    "day": {
+      "title": "Pedidos del día",
+      "today": "Hoy salen",
+      "previous": "Día anterior",
+      "next": "Día siguiente",
+      "goToday": "Hoy",
+      "pickDate": "Elegir día",
+      "show": "Ver",
+      "emptyTitle": "No hay pedidos para este día",
+      "emptyBody": "Cuando registres pedidos para esta fecha, aparecerán aquí por horario.",
+      "summary": "{total, plural, one {# pedido} other {# pedidos}} · {deliveries} a domicilio · {pickups} en tienda · {pending, plural, =0 {todo entregado} one {# por entregar} other {# por entregar}}",
+      "toCollect": "Por cobrar {amount}",
+      "withCard": "con tarjeta",
+      "allDone": "Todo lo de este día ya salió o se entregó.",
+      "done": "{count, plural, one {Ya salió # pedido} other {Ya salieron # pedidos}}"
+    },
+    "production": {
+      "title": "Producción del día",
+      "summary": "{bouquets, plural, =0 {Ningún ramo por armar} one {# ramo por armar} other {# ramos por armar}} · {orders, plural, one {# pedido por preparar} other {# pedidos por preparar}}",
+      "print": "Imprimir",
+      "printNow": "Imprimir lista",
+      "empty": "No hay nada por preparar este día.",
+      "itemsCaption": "Flores y materiales necesarios",
+      "item": "Flor o material",
+      "quantity": "Cantidad",
+      "custom": "Otros conceptos",
+      "units": {
+        "STEM": "{count, plural, one {# tallo} other {# tallos}}",
+        "BUNCH": "{count, plural, one {# manojo} other {# manojos}}",
+        "PIECE": "{count, plural, one {# pieza} other {# piezas}}",
+        "SERVICE": "{count, plural, one {# servicio} other {# servicios}}"
+      }
+    },
+    "calendar": {
+      "title": "Calendario de pedidos",
+      "subtitle": "Entregas y recolecciones por día. Toca un día para ver sus pedidos.",
+      "previous": "Mes anterior",
+      "next": "Mes siguiente",
+      "dayLabel": "{date}: {deliveries} a domicilio, {pickups} en tienda"
     }
   },
   "plans": {

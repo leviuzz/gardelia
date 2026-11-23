@@ -14,6 +14,7 @@ export * from './money';
 export * from './order';
 export * from './permissions';
 export * from './photos';
+export * from './production';
 export * from './plans';
 export * from './promotions';
 export * from './public-link';
