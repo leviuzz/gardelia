@@ -342,6 +342,26 @@ export function orderDiscountSchema(currency: CurrencyCode) {
   });
 }
 
+/** Chi ha ricevuto il ramo (prova di consegna, ADR-058); vuoto = non indicato. */
+export const orderHandoverSchema = z.object({
+  receivedBy: optionalText(CUSTOMER_LIMITS.recipientName),
+});
+
+/** La foto del ramo finito si scatta da "pronto" in poi (anche dopo la consegna). */
+export function acceptsOrderPhoto(status: OrderStatus): boolean {
+  return (
+    status === 'READY' ||
+    status === 'OUT_FOR_DELIVERY' ||
+    status === 'DELIVERED' ||
+    status === 'PICKED_UP'
+  );
+}
+
+/** Chi ha ricevuto si registra quando il ramo è stato consegnato o ritirato. */
+export function isOrderHandedOver(status: OrderStatus): boolean {
+  return status === 'DELIVERED' || status === 'PICKED_UP';
+}
+
 export const orderCancelSchema = z.object({
   reason: requiredText(ORDER_LIMITS.cancelReason),
 });

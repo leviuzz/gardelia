@@ -77,6 +77,8 @@ export type ConflictReason =
   | 'delivery_window_limit'
   | 'public_link_unavailable'
   | 'order_not_delivery'
+  | 'order_not_ready'
+  | 'order_not_handed_over'
   | 'inventory_insufficient_stock'
   | 'inventory_item_archived'
   | 'inventory_already_tracked'
