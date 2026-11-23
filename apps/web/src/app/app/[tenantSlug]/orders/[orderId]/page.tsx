@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { money, phoneForInput } from '@/lib/format';
 import { calendarDate } from '@/lib/quote-ui';
+import { deliveryFormOptions } from '@/lib/delivery-options';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
@@ -147,6 +148,7 @@ export default async function OrderPage({
     : null;
 
   const customer = order.editable ? await getCustomer(ctx, order.customer.id) : null;
+  const deliveryOptions = order.editable ? await deliveryFormOptions(ctx) : null;
   const delivery = order.deliveryAddress;
 
   return (
@@ -369,7 +371,7 @@ export default async function OrderPage({
                 ) : null}
               </dl>
 
-              {order.editable && customer ? (
+              {order.editable && customer && deliveryOptions ? (
                 <details className="rounded-xl border p-4 print:hidden">
                   <summary className="cursor-pointer font-medium">
                     {t('orders.detail.editDelivery')}
@@ -384,6 +386,8 @@ export default async function OrderPage({
                     regions={MX_REGIONS.map(({ code, name }) => ({ code, name }))}
                     dateMin={scheduledDate < today ? scheduledDate : today}
                     submitLabel={t('orders.form.save')}
+                    windows={deliveryOptions.windows}
+                    closedWeekdays={deliveryOptions.closedWeekdays}
                     addresses={customer.addresses.map((address) => ({
                       id: address.id,
                       label: [address.label, address.addressLine1, address.neighborhood]

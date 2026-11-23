@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { money } from '@/lib/format';
+import { deliveryFormOptions } from '@/lib/delivery-options';
 import { tenantRoutes } from '@/lib/routes';
 import { confirmDraftOrderAction, discardDraftOrderAction } from '../actions';
 import { DiscardDraftButton, FulfillmentForm } from '../order-forms';
@@ -40,6 +41,7 @@ export async function DraftOrderView({
   const defaultAddress =
     customer?.addresses.find((address) => address.isDefault) ?? customer?.addresses[0];
   const today = isoDate(todayInTimeZone(ctx.timezone));
+  const delivery = canWrite ? await deliveryFormOptions(ctx) : null;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -131,7 +133,7 @@ export async function DraftOrderView({
           </Card>
         </div>
 
-        {canWrite && customer ? (
+        {canWrite && customer && delivery ? (
           <div className="min-w-0 lg:col-start-1 lg:row-start-2">
             <Card>
               <CardHeader>
@@ -150,6 +152,8 @@ export async function DraftOrderView({
                     regions={MX_REGIONS.map(({ code, name }) => ({ code, name }))}
                     dateMin={today}
                     submitLabel={t('orders.draft.confirm')}
+                    windows={delivery.windows}
+                    closedWeekdays={delivery.closedWeekdays}
                     addresses={customer.addresses.map((address) => ({
                       id: address.id,
                       label: [address.label, address.addressLine1, address.neighborhood]
@@ -169,7 +173,7 @@ export async function DraftOrderView({
                       cardMessage: '',
                       cardSignature: '',
                       cardAnonymous: false,
-                      deliveryFee: '',
+                      deliveryFee: delivery.defaultFee,
                       notes: '',
                     }}
                   />

@@ -110,7 +110,9 @@
       "order_empty": "An order needs at least one product.",
       "order_lines_locked": "This order’s products can no longer be changed.",
       "order_line_limit": "The order has reached the maximum number of lines.",
-      "order_total_below_paid": "The total would drop below what the customer already paid: void the payment first."
+      "order_total_below_paid": "The total would drop below what the customer already paid: void the payment first.",
+      "delivery_window_exists": "You already have that time window.",
+      "delivery_window_limit": "You’ve reached the maximum number of time windows."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -372,7 +374,10 @@
     "order.line_removed": "{actor} removed a line from {number}",
     "order.discount_changed": "{actor} changed the discount on {number}",
     "order.confirmed": "{actor} confirmed order {number}",
-    "order.discarded": "{actor} discarded draft {number}"
+    "order.discarded": "{actor} discarded draft {number}",
+    "delivery_settings.updated": "{actor} changed the delivery settings",
+    "delivery_window.added": "{actor} added a delivery time window",
+    "delivery_window.removed": "{actor} removed a delivery time window"
   },
   "catalog": {
     "title": "Catalog",
@@ -588,7 +593,26 @@
     "locationSubtitle": "The address you prepare and deliver from.",
     "shopUrl": "Web address on Gardelia",
     "currency": "Currency",
-    "saved": "Changes saved"
+    "saved": "Changes saved",
+    "delivery": {
+      "title": "Deliveries",
+      "subtitle": "What’s suggested when you record an order. Each order keeps its own time and fee.",
+      "closedDays": "Days the shop is closed",
+      "closedDaysHint": "If an order falls on one of these days, we’ll point it out when you record it.",
+      "defaultFee": "Usual delivery fee ({currency})",
+      "defaultFeeHint": "Suggested on new delivery orders; you can change it on each one.",
+      "saved": "Delivery settings saved.",
+      "windowsTitle": "Time windows",
+      "windowsHint": "They show up as quick choices when you pick an order’s time. You can always enter another.",
+      "noWindows": "No time windows yet: when you record an order you type the time.",
+      "windowStart": "From",
+      "windowEnd": "To",
+      "addWindow": "Add time window",
+      "windowAdded": "Time window added.",
+      "windowRemoved": "Time window removed.",
+      "removeWindow": "Remove the time window {window}",
+      "windowLimit": "You’ve reached the maximum of {max} time windows."
+    }
   },
   "team": {
     "title": "Team",
@@ -1094,7 +1118,10 @@
       "notesHint": "Only your team sees them.",
       "create": "Create order",
       "save": "Save changes",
-      "created": "Order created"
+      "created": "Order created",
+      "closedDay": "According to your settings, the shop is closed that day. You can still record it.",
+      "window": "Time",
+      "customWindow": "Another time"
     },
     "whatsapp": {
       "greeting": "Hi {name}, we confirm your order {number} from {shop}.",

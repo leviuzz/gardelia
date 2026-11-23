@@ -6,12 +6,15 @@
  * `runTenantAction`. Gli ID legati con .bind() arrivano dal client: non sono affidabili.
  */
 import {
+  addDeliveryWindow,
   changeMemberRole,
   getMailer,
   inviteMember,
+  removeDeliveryWindow,
   revokeInvitation,
   setMemberActive,
   updateBuilderSettings,
+  updateDeliverySettings,
   updatePrimaryLocation,
   updateTenantLegal,
   updateTenantProfile,
@@ -121,6 +124,53 @@ export async function setMemberActiveAction(
     return {
       revalidate: routes.settings.team,
       success: active ? 'team.reactivated' : 'team.deactivated',
+    };
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Consegne (ADR-055): le leggono i form degli ordini, che si ricaricano.
+// -----------------------------------------------------------------------------
+
+export async function updateDeliverySettingsAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await updateDeliverySettings(ctx, formDataToObject(formData, ['closedWeekdays']));
+    return {
+      revalidate: [routes.settings.general, section(routes.orders.list())],
+      success: 'settings.delivery.saved',
+    };
+  });
+}
+
+export async function addDeliveryWindowAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await addDeliveryWindow(ctx, formDataToObject(formData));
+    return {
+      revalidate: [routes.settings.general, section(routes.orders.list())],
+      success: 'settings.delivery.windowAdded',
+    };
+  });
+}
+
+export async function removeDeliveryWindowAction(
+  slug: string,
+  windowId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await removeDeliveryWindow(ctx, windowId);
+    return {
+      revalidate: [routes.settings.general, section(routes.orders.list())],
+      success: 'settings.delivery.windowRemoved',
     };
   });
 }

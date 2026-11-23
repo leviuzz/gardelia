@@ -487,6 +487,15 @@ Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test unit 283/283 �
 62/62 ✅ (2 nuovi); controllo visivo a 1280 e 320 px. Prossimi: A2 impostazioni di consegna e
 coordinate, A3 stampa della tarjeta e link pubblici.
 
+**Consegne, blocco A2 (fatto il 23/11, ADR-055):** in Ajustes la scheda "Entregas" con i giorni in cui
+la fioreria non apre, il costo di consegna abituale e le fasce orarie (fino a 8). Nei form degli ordini
+le fasce sono scelte rapide ("Durante el día", le fasce, "Otro horario"), il costo abituale si propone
+nei nuovi ordini a domicilio e un giorno di chiusura dà un avviso senza bloccare. Costo per distanza e
+coordinate aspettano Google Places (O-14). Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test
+unit 289/289 ✅ · integrazione 292/292 ✅ (6 nuovi con isolamento A↔B) · migrazioni = schema ✅ · build ✅
+· E2E 63/63 ✅ (1 nuovo, nella seconda fioreria demo per non cambiare i form degli altri test, ripetibile);
+controllo visivo a 1280, 390 e 320 px. Prossimi: A3 stampa della tarjeta e link pubblici.
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci

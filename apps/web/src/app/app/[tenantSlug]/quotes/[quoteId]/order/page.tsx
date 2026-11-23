@@ -15,6 +15,7 @@ import { MX_REGIONS, todayInTimeZone } from '@floral/domain';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
+import { deliveryFormOptions } from '@/lib/delivery-options';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { createOrderFromQuoteAction } from '../../../orders/actions';
@@ -53,6 +54,7 @@ export default async function QuoteToOrderPage({
   const defaultAddress =
     customer.addresses.find((address) => address.isDefault) ?? customer.addresses[0];
   const today = isoDate(todayInTimeZone(ctx.timezone));
+  const delivery = await deliveryFormOptions(ctx);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -84,6 +86,8 @@ export default async function QuoteToOrderPage({
               regions={MX_REGIONS.map(({ code, name }) => ({ code, name }))}
               dateMin={today}
               submitLabel={t('orders.form.create')}
+              windows={delivery.windows}
+              closedWeekdays={delivery.closedWeekdays}
               addresses={customer.addresses.map((address) => ({
                 id: address.id,
                 label: [address.label, address.addressLine1, address.neighborhood]
@@ -103,7 +107,7 @@ export default async function QuoteToOrderPage({
                 cardMessage: '',
                 cardSignature: '',
                 cardAnonymous: false,
-                deliveryFee: '',
+                deliveryFee: delivery.defaultFee,
                 notes: '',
               }}
             />
