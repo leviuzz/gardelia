@@ -53,9 +53,10 @@ model User {
 
   sessions           Session[]
   accounts           Account[]
-  memberships        Membership[] @relation("MembershipUser")
-  invitedMemberships Membership[] @relation("MembershipInviter")
-  sentInvitations    Invitation[] @relation("InvitationInviter")
+  memberships        Membership[]  @relation("MembershipUser")
+  invitedMemberships Membership[]  @relation("MembershipInviter")
+  sentInvitations    Invitation[]  @relation("InvitationInviter")
+  buyerProfile       BuyerProfile?
 }
 
 model Session {
@@ -112,6 +113,58 @@ model RateLimit {
   key         String @unique
   count       Int
   lastRequest BigInt
+}
+
+// -----------------------------------------------------------------------------
+// Conto del cliente del marketplace (blocco C1, ADR-062)
+// -----------------------------------------------------------------------------
+// Dati di chi compra: appartengono alla persona, non a una fioreria. Tabelle di piattaforma con
+// RLS per utente (`"userId" = app_current_user_id()`): ognuno vede e modifica solo le sue righe.
+
+/// Si crea la prima volta che la persona apre "Mi cuenta": da lì l'accesso porta al conto
+/// cliente invece che alla creazione di una fioreria.
+model BuyerProfile {
+  userId    String   @id @db.Uuid
+  /// Formato E.164 (per la fioreria che consegna).
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addresses BuyerAddress[]
+}
+
+/// Indirizzi di consegna salvati da chi compra (stessi campi della rubrica della fioreria).
+model BuyerAddress {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  userId         String       @db.Uuid
+  /// Etichetta libera: "Casa", "Oficina", "Mamá".
+  label          String?
+  recipientName  String?
+  /// Formato E.164.
+  recipientPhone String?
+  addressLine1   String
+  addressLine2   String?
+  neighborhood   String?
+  city           String
+  region         String
+  postalCode     String
+  /// Google Places (ADR-059): ID del luogo (si conserva) e coordinate, cache di 30 giorni.
+  placeId        String?
+  latitude       Float?
+  longitude      Float?
+  coordinatesAt  DateTime?
+  countryCode    String       @db.Char(2)
+  /// Referencias / entre calles / istruzioni per chi consegna.
+  deliveryNotes  String?
+  isDefault      Boolean      @default(false)
+  status         RecordStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  profile BuyerProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // -----------------------------------------------------------------------------

@@ -160,3 +160,16 @@ export function tenantRoutes(slug: string) {
 }
 
 export type TenantRoutes = ReturnType<typeof tenantRoutes>;
+
+/** Conto del cliente del marketplace (blocco C1): di piattaforma, senza fioreria nel percorso. */
+export const accountRoutes = {
+  home: '/cuenta',
+} as const;
+
+/**
+ * La destinazione dopo l'accesso è del conto cliente: login e registrazione parlano a chi compra
+ * invece che alla fioreria.
+ */
+export function isAccountPath(path: string): boolean {
+  return path === accountRoutes.home || path.startsWith(`${accountRoutes.home}/`);
+}

@@ -213,7 +213,9 @@
     },
     "verifyInvalidTitle": "We couldn’t confirm your email",
     "verifiedTitle": "Email confirmed",
-    "verifiedBody": "Sign in to continue."
+    "verifiedBody": "Sign in to continue.",
+    "signupSubtitleBuyer": "Save your details and delivery addresses.",
+    "loginSubtitleBuyer": "Sign in to your account."
   },
   "onboarding": {
     "title": "Set up your shop",
@@ -247,12 +249,28 @@
   },
   "places": {
     "label": "Search address",
-    "placeholder": "Type street and number, e.g. Av. Madero 120",
+    "placeholder": "E.g. Av. Madero 120",
     "hint": "Pick a suggestion to fill in the fields, or type them yourself.",
     "suggestions": "Suggested addresses",
     "unavailable": "Address search isn't available right now. Type the address yourself.",
     "noResults": "No results. Check what you typed or fill in the fields yourself.",
     "found": "Address filled in. Check the unit number, colonia and postal code."
+  },
+  "account": {
+    "title": "My account",
+    "greeting": "Hi, {name}. Here are your details and delivery addresses.",
+    "shopsBody": "You also have access to a flower shop on Gardelia.",
+    "shopsCta": "Go to my shop",
+    "dataTitle": "Your details",
+    "dataSubtitle": "Your name and email are the ones you sign in with.",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "phoneHint": "Only the flower shop you order from will see it, to update you about the delivery.",
+    "addressesSubtitle": "Save them once and you won't have to type them again.",
+    "floristTitle": "Do you own a flower shop?",
+    "floristBody": "Register it on Gardelia to manage orders, customers and deliveries from your phone.",
+    "floristCta": "Register my shop"
   },
   "timezones": {
     "America/Mexico_City": "Central Time (CDMX, Aguascalientes, Guadalajara, Monterrey)",

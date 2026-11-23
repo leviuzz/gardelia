@@ -136,6 +136,7 @@ export * from './services/bouquet-photos';
 export { normalizeUploadedPhoto, sniffImageType } from './media/images';
 export * from './services/billing';
 export * from './services/builder';
+export * from './services/buyer-account';
 export * from './services/catalog';
 export * from './services/calendar';
 export * from './services/customers';

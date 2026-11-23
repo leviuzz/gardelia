@@ -147,7 +147,11 @@ function formatPhone(e164: string | null): string {
   return match ? `${match[1]} ${match[2]} ${match[3]}` : e164;
 }
 
-export function AddressSection({
+/**
+ * Rubrica degli indirizzi di consegna: quella di un cliente nel CRM della fioreria e quella di chi
+ * compra in "Mi cuenta" (blocco C1). Stessi campi, stessa ricerca con Google Places.
+ */
+export function AddressBook({
   addresses,
   canWrite,
   addAction,

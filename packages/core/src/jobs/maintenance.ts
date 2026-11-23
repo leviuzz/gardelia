@@ -24,14 +24,23 @@ export async function runDailyMaintenance(): Promise<MaintenanceResult> {
     SELECT quotes_expired, invitations_expired FROM app_expire_overdue()`;
   const row = rows[0];
   const purged = await getDb().$queryRaw<
-    { addresses_purged: number; locations_purged: number; orders_purged: number }[]
-  >`SELECT addresses_purged, locations_purged, orders_purged FROM app_purge_place_coordinates()`;
+    {
+      addresses_purged: number;
+      locations_purged: number;
+      orders_purged: number;
+      buyer_addresses_purged: number;
+    }[]
+  >`SELECT addresses_purged, locations_purged, orders_purged, buyer_addresses_purged
+    FROM app_purge_place_coordinates()`;
   const purge = purged[0];
   const result: MaintenanceResult = {
     quotesExpired: row?.quotes_expired ?? 0,
     invitationsExpired: row?.invitations_expired ?? 0,
     coordinatesPurged:
-      (purge?.addresses_purged ?? 0) + (purge?.locations_purged ?? 0) + (purge?.orders_purged ?? 0),
+      (purge?.addresses_purged ?? 0) +
+      (purge?.locations_purged ?? 0) +
+      (purge?.orders_purged ?? 0) +
+      (purge?.buyer_addresses_purged ?? 0),
   };
   logger.info(result, 'manutenzione giornaliera completata');
   return result;

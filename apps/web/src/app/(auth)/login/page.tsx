@@ -8,6 +8,7 @@ import { OAuthErrorAlert } from '@/components/auth/oauth-error-alert';
 import { authPath } from '@/lib/auth-paths';
 import { isGoogleLoginEnabled } from '@/lib/env';
 import { oauthErrorKey } from '@/lib/oauth-errors';
+import { isAccountPath } from '@/lib/routes';
 import { getSession, safeNextPath } from '@/lib/session';
 import { LoginForm } from './login-form';
 
@@ -27,7 +28,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
   return (
     <AuthCard
       title={t('loginTitle')}
-      subtitle={t('loginSubtitle')}
+      subtitle={isAccountPath(next) ? t('loginSubtitleBuyer') : t('loginSubtitle')}
       footer={
         <>
           {t('noAccount')}{' '}
