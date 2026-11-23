@@ -119,7 +119,9 @@
       "order_not_handed_over": "Quién lo recibió se anota después de entregarlo o de que lo recojan.",
       "order_not_pending": "Este pedido ya no está por aceptar.",
       "order_date_passed": "La fecha de este pedido ya pasó: cámbiala de acuerdo con el cliente antes de aceptarlo.",
-      "order_needs_acceptance": "Este pedido en línea se confirma con «Aceptar pedido», que le avisa al cliente."
+      "order_needs_acceptance": "Este pedido en línea se confirma con «Aceptar pedido», que le avisa al cliente.",
+      "delivery_fee_tier_exists": "Ya tienes una tarifa para esa distancia.",
+      "delivery_fee_tier_limit": "Llegaste al máximo de tarifas."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -522,7 +524,9 @@
     "coverAlt": "Foto de {name}",
     "orderCta": "Hacer un pedido",
     "orderHow": "Eliges en línea, la florería confirma y le pagas directo.",
-    "orderOnline": "Pedir en línea"
+    "orderOnline": "Pedir en línea",
+    "feeByDistance": "Envío según la distancia: {tiers}.",
+    "feeTier": "hasta {km} km {fee}"
   },
   "timezones": {
     "America/Mexico_City": "Tiempo del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -706,6 +710,10 @@
     "public_link": {
       "created": "{actor} compartió el enlace de {number}",
       "revoked": "{actor} desactivó el enlace de {number}"
+    },
+    "delivery_fee_tier": {
+      "added": "{actor} agregó una tarifa de envío por distancia",
+      "removed": "{actor} quitó una tarifa de envío por distancia"
     }
   },
   "catalog": {
@@ -943,7 +951,20 @@
       "windowAdded": "Franja agregada.",
       "windowRemoved": "Franja quitada.",
       "removeWindow": "Quitar la franja {window}",
-      "windowLimit": "Llegaste al máximo de {max} franjas."
+      "windowLimit": "Llegaste al máximo de {max} franjas.",
+      "tiersTitle": "Costo de envío por distancia",
+      "tiersHint": "La distancia se mide en línea recta desde tu tienda. Si una dirección queda más lejos que tu última tarifa, en tu tienda en línea solo se puede recoger.",
+      "tiersNoGoogle": "Para medir distancias se necesita Google Maps, que todavía no está configurado. Mientras tanto se usa el costo habitual.",
+      "tiersNoLocation": "Para medir distancias, elige la dirección de tu tienda con «Buscar dirección» en Dirección de la tienda. Mientras tanto se usa el costo habitual.",
+      "noTiers": "Sin tarifas por distancia: se usa el costo habitual.",
+      "tierUpTo": "Hasta {km} km",
+      "tierKm": "Distancia máxima (km)",
+      "tierFee": "Costo ({currency})",
+      "addTier": "Agregar tarifa",
+      "removeTier": "Quitar la tarifa {tier}",
+      "tierLimit": "Llegaste al máximo de {max} tarifas.",
+      "tierAdded": "Tarifa agregada.",
+      "tierRemoved": "Tarifa quitada."
     }
   },
   "team": {
@@ -1587,7 +1608,11 @@
       "created": "Pedido creado",
       "closedDay": "Según tus ajustes, la florería no abre ese día. Puedes registrarlo igual.",
       "window": "Horario",
-      "customWindow": "Otro horario"
+      "customWindow": "Otro horario",
+      "distanceButton": "Calcular por distancia",
+      "distanceFee": "A {km} km en línea recta: {fee}.",
+      "distanceOutOfZone": "A {km} km en línea recta: más lejos que tu última tarifa ({max} km). Escribe el costo a mano.",
+      "distanceUnknown": "No sabemos dónde está esta dirección: elígela con «Buscar dirección» para medir la distancia."
     },
     "whatsapp": {
       "greeting": "Hola {name}, te confirmamos tu pedido {number} de {shop}.",
@@ -2846,14 +2871,20 @@
       "no_items": "Elige al menos un producto.",
       "date_too_soon": "Ese día ya no se puede: elige una fecha posterior.",
       "date_too_far": "Elige una fecha dentro de los próximos 60 días.",
-      "closed_day": "La florería no abre ese día: elige otro."
+      "closed_day": "La florería no abre ese día: elige otro.",
+      "out_of_zone": "La florería no entrega tan lejos: elige otra dirección o recoger en la tienda."
     },
     "conflict": {
       "closed": "Esta florería no está recibiendo pedidos en línea por ahora.",
       "pending_limit": "Ya tienes 3 pedidos esperando respuesta de esta florería. Espera a que te respondan o escríbeles."
     },
     "totalWithoutDelivery": "Total sin envío",
-    "acceptTerms": "Al enviar el pedido aceptas los <terms>Términos para compradores</terms> y el <privacy>Aviso de privacidad</privacy>."
+    "acceptTerms": "Al enviar el pedido aceptas los <terms>Términos para compradores</terms> y el <privacy>Aviso de privacidad</privacy>.",
+    "outOfZone": "Esta dirección está a {km} km y la florería entrega hasta {max} km. Elige otra dirección o recoger en la tienda.",
+    "feeByDistance": "Envío según la distancia: {tiers}.",
+    "feeTier": "hasta {km} km {fee}",
+    "feeFree": "Sin costo",
+    "feeDistance": "a {km} km"
   },
   "legal": {
     "linksLabel": "Documentos legales",

@@ -77,6 +77,97 @@ export function DeliveryDefaultsForm({
   );
 }
 
+export interface DeliveryFeeTierView {
+  readonly id: string;
+  /** "Hasta 3 km" già formattato. */
+  readonly distanceLabel: string;
+  /** "$80.00" già formattato. */
+  readonly feeLabel: string;
+  readonly removeAction: Action;
+}
+
+/** Costo per distanza (ADR-069): fasce "hasta X km" con il loro costo e form per aggiungerne. */
+export function DeliveryFeeTiersEditor({
+  tiers,
+  addAction,
+  max,
+  currency,
+}: {
+  readonly tiers: readonly DeliveryFeeTierView[];
+  readonly addAction: Action;
+  readonly max: number;
+  readonly currency: string;
+}) {
+  const t = useTranslations('settings.delivery');
+  const [formKey, setFormKey] = useState(0);
+  const [state, formAction] = useToastActionState(addAction, () => setFormKey((key) => key + 1));
+  const err = (field: string) => fieldError(state, field);
+
+  return (
+    <div className="grid gap-4">
+      {tiers.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t('noTiers')}</p>
+      ) : (
+        <ul className="divide-y rounded-xl border">
+          {tiers.map((tier) => (
+            <li key={tier.id} className="flex items-center justify-between gap-3 px-4 py-2">
+              <span className="flex flex-wrap gap-x-3">
+                <span className="font-medium">{tier.distanceLabel}</span>
+                <span className="tabular-nums">{tier.feeLabel}</span>
+              </span>
+              <ActionButton
+                action={tier.removeAction}
+                size="icon-sm"
+                variant="ghost"
+                aria-label={t('removeTier', { tier: tier.distanceLabel })}
+                icon={<Trash />}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+      {tiers.length < max ? (
+        <form
+          key={formKey}
+          action={formAction}
+          onSubmit={preserveOnSubmit(formAction)}
+          className="grid grid-cols-2 gap-3 sm:grid-cols-[12rem_9rem_auto] sm:items-start"
+        >
+          <Field id="tier-km" label={t('tierKm')} error={err('upToKm')} required>
+            <Input
+              {...controlProps('tier-km', err('upToKm'))}
+              name="upToKm"
+              type="number"
+              inputMode="decimal"
+              min={0.1}
+              max={100}
+              step={0.1}
+              required
+            />
+          </Field>
+          <Field id="tier-fee" label={t('tierFee', { currency })} error={err('fee')} required>
+            <Input
+              {...controlProps('tier-fee', err('fee'))}
+              name="fee"
+              inputMode="decimal"
+              autoComplete="off"
+              required
+            />
+          </Field>
+          <div className="col-span-2 sm:col-span-1 sm:pt-7">
+            <SubmitButton variant="secondary" className="w-full sm:w-auto">
+              <Plus />
+              {t('addTier')}
+            </SubmitButton>
+          </div>
+        </form>
+      ) : (
+        <p className="text-sm text-muted-foreground">{t('tierLimit', { max })}</p>
+      )}
+    </div>
+  );
+}
+
 export interface DeliveryWindowView {
   readonly id: string;
   /** "9:00 – 12:00" già formattato. */

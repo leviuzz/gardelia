@@ -86,6 +86,7 @@ type ProbeableEntity =
   | 'Order'
   | 'OrderPayment'
   | 'DeliveryWindow'
+  | 'DeliveryFeeTier'
   | 'InventoryItem'
   | 'InventoryEntry'
   | 'Supplier'
@@ -147,6 +148,8 @@ async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<st
           return (await tx.orderPayment.findUnique({ where: { id }, select }))?.tenantId ?? null;
         case 'DeliveryWindow':
           return (await tx.deliveryWindow.findUnique({ where: { id }, select }))?.tenantId ?? null;
+        case 'DeliveryFeeTier':
+          return (await tx.deliveryFeeTier.findUnique({ where: { id }, select }))?.tenantId ?? null;
         case 'InventoryItem':
           return (await tx.inventoryItem.findUnique({ where: { id }, select }))?.tenantId ?? null;
         case 'InventoryEntry':

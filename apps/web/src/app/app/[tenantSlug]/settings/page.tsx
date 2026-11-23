@@ -1,4 +1,4 @@
-import { ChevronRight, Gem, Store } from 'lucide-react';
+import { ChevronRight, Gem, MapPinOff, Store } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -6,6 +6,7 @@ import {
   getBuilderSettings,
   getDeliverySettings,
   getEntitlements,
+  getPlacesProvider,
   getTenantSettings,
   hasPermission,
 } from '@floral/core';
@@ -19,12 +20,15 @@ import {
 } from '@floral/domain';
 import { Forbidden } from '@/components/forbidden';
 import { PageHeader } from '@/components/page-header';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { phoneForInput } from '@/lib/format';
+import { money, phoneForInput } from '@/lib/format';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
+  addDeliveryFeeTierAction,
   addDeliveryWindowAction,
+  removeDeliveryFeeTierAction,
   removeDeliveryWindowAction,
   updateBuilderSettingsAction,
   updateDeliverySettingsAction,
@@ -32,7 +36,11 @@ import {
   updateLocationAction,
   updateProfileAction,
 } from './actions';
-import { DeliveryDefaultsForm, DeliveryWindowsEditor } from './delivery-forms';
+import {
+  DeliveryDefaultsForm,
+  DeliveryFeeTiersEditor,
+  DeliveryWindowsEditor,
+} from './delivery-forms';
 import { BuilderSettingsForm, LegalForm, LocationForm, ProfileForm } from './settings-forms';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -172,6 +180,36 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
                   : '',
             }}
           />
+          <section className="grid gap-3 border-t pt-6">
+            <div>
+              <h3 className="text-sm font-medium">{t('settings.delivery.tiersTitle')}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t('settings.delivery.tiersHint')}
+              </p>
+            </div>
+            {/* Senza la posizione della tienda (o senza Google) le fasce non si possono usare. */}
+            {delivery.origin === null ? (
+              <Alert variant="warning">
+                <MapPinOff aria-hidden="true" />
+                <AlertDescription>
+                  {getPlacesProvider() === null
+                    ? t('settings.delivery.tiersNoGoogle')
+                    : t('settings.delivery.tiersNoLocation')}
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            <DeliveryFeeTiersEditor
+              addAction={addDeliveryFeeTierAction.bind(null, slug)}
+              max={DELIVERY_LIMITS.feeTiers}
+              currency={tenant.currency}
+              tiers={delivery.feeTiers.map((tier) => ({
+                id: tier.id,
+                distanceLabel: t('settings.delivery.tierUpTo', { km: tier.maxKm }),
+                feeLabel: money(tier.feeMinor, tenant.currency),
+                removeAction: removeDeliveryFeeTierAction.bind(null, slug, tier.id),
+              }))}
+            />
+          </section>
           <section className="grid gap-3 border-t pt-6">
             <div>
               <h3 className="text-sm font-medium">{t('settings.delivery.windowsTitle')}</h3>

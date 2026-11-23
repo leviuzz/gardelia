@@ -246,6 +246,7 @@ model Tenant {
   quoteLines        QuoteLine[]
   orders            Order[]
   deliveryWindows   DeliveryWindow[]
+  deliveryFeeTiers  DeliveryFeeTier[]
   orderLines        OrderLine[]
   orderPayments     OrderPayment[]
   orderEvents       OrderStatusEvent[]
@@ -1645,6 +1646,22 @@ model OrderStatusEvent {
 /// Fascia oraria di consegna o ritiro proposta nei form degli ordini (ADR-055). Configurazione,
 /// non dato commerciale: ogni ordine copia i propri minuti, quindi togliere una fascia non cambia
 /// gli ordini già fatti.
+/// Costo di consegna per distanza (ADR-069): "fino a N metri in linea retta dalla tienda costa X".
+/// Configurazione, non dato commerciale: ogni ordine copia il proprio costo.
+model DeliveryFeeTier {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  tenantId  String   @db.Uuid
+  maxMeters Int
+  feeMinor  Int
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, maxMeters])
+  @@index([tenantId])
+}
+
 model DeliveryWindow {
   id           String   @id @default(uuid(7)) @db.Uuid
   tenantId     String   @db.Uuid

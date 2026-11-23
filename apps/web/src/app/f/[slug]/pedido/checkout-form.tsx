@@ -17,7 +17,11 @@ import {
   MARKETPLACE_ORDER_LIMITS,
   ORDER_LIMITS,
   isClosedOn,
+  quoteDeliveryFee,
+  readCoordinates,
   type Availability,
+  type Coordinates,
+  type DeliveryFeeQuote,
   type SaleUnit,
   type StorePaymentMethod,
 } from '@floral/domain';
@@ -91,13 +95,20 @@ export function CheckoutForm({
     readonly windows: readonly { readonly start: string; readonly end: string }[];
     readonly closedWeekdays: readonly number[];
     readonly feeMinor: number;
+    /** Costo per distanza (ADR-069) e posizione della tienda: lo stesso calcolo del server. */
+    readonly feeTiers: readonly { readonly maxKm: number; readonly feeMinor: number }[];
+    readonly origin: Coordinates | null;
     readonly minDate: string;
     readonly maxDate: string;
   };
   readonly buyer: {
     readonly phone: string;
     readonly email: string;
-    readonly addresses: readonly { readonly id: string; readonly label: string }[];
+    readonly addresses: readonly {
+      readonly id: string;
+      readonly label: string;
+      readonly coordinates: Coordinates | null;
+    }[];
   };
   readonly regions: readonly { readonly code: string; readonly name: string }[];
   readonly preselected: string | null;
@@ -142,7 +153,18 @@ export function CheckoutForm({
 
   const chosen = items.filter((item) => (quantities[item.id] ?? 0) > 0);
   const subtotal = chosen.reduce((sum, item) => sum + item.priceMinor * quantities[item.id]!, 0);
-  const fee = mode === 'DELIVERY' ? delivery.feeMinor : 0;
+  // Costo di consegna: si calcola lasciando il passo "Entrega" (`checkStep(1)`), con l'indirizzo
+  // scelto; il server lo rifà uguale. Senza fasce o senza posizioni vale il costo abituale.
+  const [feeQuote, setFeeQuote] = useState<DeliveryFeeQuote | null>(null);
+  const [zoneError, setZoneError] = useState<string | null>(null);
+  const fee =
+    mode === 'DELIVERY'
+      ? feeQuote && feeQuote.kind !== 'out_of_zone'
+        ? feeQuote.feeMinor
+        : delivery.feeMinor
+      : 0;
+  // Un costo zero è "gratis" solo se viene da una fascia; altrimenti lo conferma la fioreria.
+  const feeKnown = fee > 0 || feeQuote?.kind === 'distance';
   const closedDay = date !== '' && isClosedOn(date, delivery.closedWeekdays);
   const newAddress = addressChoice === NEW_ADDRESS;
   const savedAddress = buyer.addresses.find((address) => address.id === addressChoice);
@@ -192,7 +214,40 @@ export function CheckoutForm({
   }
 
   /** Controlli del browser e regole del passo; false se il passo non è a posto. */
+  function chooseAddress(id: string) {
+    setAddressChoice(id);
+    setZoneError(null);
+  }
+
+  /** Posizione dell'indirizzo scelto: quello salvato, o quello nuovo trovato con Google. */
+  function destination(): Coordinates | null {
+    if (!newAddress) return savedAddress?.coordinates ?? null;
+    const field = (name: string) =>
+      (formRef.current?.elements.namedItem(name) as HTMLInputElement | null)?.value;
+    return readCoordinates(field('latitude'), field('longitude'));
+  }
+
   function checkStep(index: number): boolean {
+    if (index === 1 && mode === 'DELIVERY') {
+      const quote = quoteDeliveryFee({
+        tiers: delivery.feeTiers.map((tier) => ({
+          maxMeters: Math.round(tier.maxKm * 1000),
+          feeMinor: tier.feeMinor,
+        })),
+        defaultFeeMinor: delivery.feeMinor,
+        from: delivery.origin,
+        to: destination(),
+      });
+      setFeeQuote(quote);
+      if (quote.kind === 'out_of_zone') {
+        flushSync(() => {
+          setStep(1);
+          setZoneError(t('outOfZone', { km: quote.distanceKm, max: quote.maxKm }));
+        });
+        return false;
+      }
+      setZoneError(null);
+    }
     if (index === 0 && chosen.length === 0) {
       flushSync(() => {
         setStep(0);
@@ -466,7 +521,7 @@ export function CheckoutForm({
                           name="addressChoice"
                           value={address.id}
                           checked={addressChoice === address.id}
-                          onChange={() => setAddressChoice(address.id)}
+                          onChange={() => chooseAddress(address.id)}
                         >
                           {address.label}
                         </RadioCard>
@@ -475,7 +530,7 @@ export function CheckoutForm({
                         name="addressChoice"
                         value={NEW_ADDRESS}
                         checked={newAddress}
-                        onChange={() => setAddressChoice(NEW_ADDRESS)}
+                        onChange={() => chooseAddress(NEW_ADDRESS)}
                       >
                         {t('newAddress')}
                       </RadioCard>
@@ -483,6 +538,20 @@ export function CheckoutForm({
                   ) : null}
                   {err('buyerAddressId') ? (
                     <p className="text-sm text-destructive">{err('buyerAddressId')}</p>
+                  ) : null}
+                  {zoneError ? (
+                    <p className="text-sm text-destructive" role="alert">
+                      {zoneError}
+                    </p>
+                  ) : null}
+                  {delivery.feeTiers.length > 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      {t('feeByDistance', {
+                        tiers: delivery.feeTiers
+                          .map((tier) => t('feeTier', { km: tier.maxKm, fee: fmt(tier.feeMinor) }))
+                          .join(' · '),
+                      })}
+                    </p>
                   ) : null}
                 </fieldset>
                 <input
@@ -642,12 +711,17 @@ export function CheckoutForm({
                 <div className="flex justify-between gap-4">
                   <dt className="text-muted-foreground">{t('deliveryFee')}</dt>
                   <dd className="text-right tabular-nums">
-                    {fee > 0 ? fmt(fee) : t('feeToConfirm')}
+                    {feeKnown ? (fee > 0 ? fmt(fee) : t('feeFree')) : t('feeToConfirm')}
+                    {feeQuote?.kind === 'distance' ? (
+                      <span className="block text-xs text-muted-foreground">
+                        {t('feeDistance', { km: feeQuote.distanceKm })}
+                      </span>
+                    ) : null}
                   </dd>
                 </div>
               ) : null}
               <div className="flex justify-between gap-4 text-base font-semibold">
-                <dt>{mode === 'DELIVERY' && fee === 0 ? t('totalWithoutDelivery') : t('total')}</dt>
+                <dt>{mode === 'DELIVERY' && !feeKnown ? t('totalWithoutDelivery') : t('total')}</dt>
                 <dd className="tabular-nums" data-testid="checkout-total">
                   {fmt(subtotal + fee)}
                 </dd>

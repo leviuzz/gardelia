@@ -43,6 +43,9 @@ export const AUDIT_ACTIONS = {
   deliverySettingsUpdated: 'delivery_settings.updated',
   deliveryWindowAdded: 'delivery_window.added',
   deliveryWindowRemoved: 'delivery_window.removed',
+  /** Costo di consegna per distanza (ADR-069). */
+  deliveryFeeTierAdded: 'delivery_fee_tier.added',
+  deliveryFeeTierRemoved: 'delivery_fee_tier.removed',
   memberInvited: 'member.invited',
   invitationRevoked: 'invitation.revoked',
   invitationAccepted: 'invitation.accepted',

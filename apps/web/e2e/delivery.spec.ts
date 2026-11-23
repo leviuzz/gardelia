@@ -82,4 +82,35 @@ test.describe('ajustes de entrega (propietario)', () => {
     await expect(page.getByTestId('order-total')).toHaveText('$580.00');
     await expect(page.getByText('09:00 a 12:00').first()).toBeVisible();
   });
+
+  test('tarifas por distancia: se agregan, no se repiten y se quitan', async ({ page }) => {
+    await page.goto('/app/flores-del-valle/settings');
+    await expect(page.getByRole('heading', { name: 'Costo de envío por distancia' })).toBeVisible();
+    // In CI Google Maps non c'è: la pagina dice che per ora vale il costo abituale.
+    await expect(page.getByText(/Para medir distancias se necesita Google Maps/)).toBeVisible();
+
+    const existing = page.getByRole('button', { name: 'Quitar la tarifa Hasta 3.5 km' });
+    if ((await existing.count()) > 0) {
+      await existing.click();
+      await expect(page.getByText('Tarifa quitada.')).toBeVisible();
+    }
+    const add = async () => {
+      await page.getByLabel('Distancia máxima (km)').fill('3.5');
+      await page.getByRole('textbox', { name: 'Costo (MXN)' }).fill('80');
+      await page.getByRole('button', { name: 'Agregar tarifa' }).click();
+    };
+    await add();
+    await expect(page.getByText('Tarifa agregada.')).toBeVisible();
+    await expect(page.getByText('Hasta 3.5 km')).toBeVisible();
+    await expect(page.getByText('$80.00').first()).toBeVisible();
+    await add();
+    await expect(page.getByText('Ya tienes una tarifa para esa distancia.')).toBeVisible();
+
+    // Senza la posizione della tienda, nel pedido niente "Calcular por distancia".
+    await page.getByRole('button', { name: 'Quitar la tarifa Hasta 3.5 km' }).click();
+    await expect(page.getByText('Tarifa quitada.')).toBeVisible();
+    await expect(
+      page.getByText('Sin tarifas por distancia: se usa el costo habitual.'),
+    ).toBeVisible();
+  });
 });

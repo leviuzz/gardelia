@@ -23,6 +23,7 @@ import {
   deliveryAddressSchema,
   earliestMarketplaceDate,
   formatOrderNumber,
+  freshCoordinates,
   formatTimeOfDay,
   isPendingOrderExpired,
   isUuid,
@@ -34,12 +35,14 @@ import {
   orderPaymentStatus,
   priceOrder,
   publicLinkExpiry,
+  quoteDeliveryFee,
   resolveLocale,
   toFieldErrors,
   toIsoDate,
   todayInTimeZone,
   type Availability,
   type CatalogItemType,
+  type Coordinates,
   type DeliveryAddressInput,
   type FulfillmentMode,
   type OrderStatus,
@@ -60,6 +63,7 @@ import {
 import { createPublicLinkToken, publicLinkUrl } from './public-links';
 import { onlineItemWhere, publishedTenantId } from './public-store';
 import { addBuyerAddress, type BuyerAddressDto, type BuyerContext } from './services/buyer-account';
+import { loadDeliveryPricing } from './services/delivery-settings';
 import { catalogLineDraft, lineRowData, type LineDraft } from './services/line-internals';
 import {
   dateToParts,
@@ -101,8 +105,14 @@ export interface CheckoutFormDto {
     /** Fasce proposte dalla fioreria ("HH:MM"); nessuna = in giornata. */
     readonly windows: readonly { readonly start: string; readonly end: string }[];
     readonly closedWeekdays: readonly number[];
-    /** Costo di consegna della fioreria (0 = lo conferma la fioreria accettando). */
+    /** Costo di consegna abituale (0 = lo conferma la fioreria accettando). */
     readonly feeMinor: number;
+    /**
+     * Costo per distanza (ADR-069), dalla fascia più vicina, e posizione della tienda da cui si
+     * misura: il modulo mostra lo stesso calcolo che rifà il server. Senza posizione, vale `feeMinor`.
+     */
+    readonly feeTiers: readonly { readonly maxKm: number; readonly feeMinor: number }[];
+    readonly origin: Coordinates | null;
     /** Primo e ultimo giorno che si possono scegliere ("AAAA-MM-GG"). */
     readonly minDate: string;
     readonly maxDate: string;
@@ -113,7 +123,8 @@ export interface CheckoutFormDto {
     readonly name: string;
     readonly email: string;
     readonly phone: string | null;
-    readonly addresses: readonly BuyerAddressDto[];
+    /** Con le coordinate ancora valide, per il costo per distanza (o null). */
+    readonly addresses: readonly (BuyerAddressDto & { readonly coordinates: Coordinates | null })[];
   };
   /** Ordini di questa persona ancora da accettare in questa fioreria (limite: `pendingPerStore`). */
   readonly pendingCount: number;
@@ -203,6 +214,9 @@ export async function getCheckoutForm(
             deliveryNotes: true,
             isDefault: true,
             placeId: true,
+            latitude: true,
+            longitude: true,
+            coordinatesAt: true,
           },
         }),
         tx.order.count({
@@ -210,6 +224,8 @@ export async function getCheckoutForm(
         }),
       ]);
     const today = todayInTimeZone(tenant.timezone);
+    const pricing = await loadDeliveryPricing(tx, tenantId);
+    const now = new Date();
     return {
       store: {
         slug: tenant.slug,
@@ -232,11 +248,24 @@ export async function getCheckoutForm(
         })),
         closedWeekdays: tenant.deliveryClosedWeekdays.filter(isWeekday),
         feeMinor: tenant.defaultDeliveryFeeMinor,
+        feeTiers: pricing.tiers.map((tier) => ({
+          maxKm: tier.maxMeters / 1000,
+          feeMinor: tier.feeMinor,
+        })),
+        origin: pricing.origin,
         minDate: toIsoDate(earliestMarketplaceDate(today, store.minLeadDays)),
         maxDate: toIsoDate(addDays(today, MARKETPLACE_ORDER_LIMITS.scheduleDaysMax)),
       },
       items: items.map(({ photos, ...item }) => ({ ...item, photoId: photos[0]?.id ?? null })),
-      buyer: { name: user.name, email: user.email, phone: profile?.phone ?? null, addresses },
+      buyer: {
+        name: user.name,
+        email: user.email,
+        phone: profile?.phone ?? null,
+        addresses: addresses.map(({ latitude, longitude, coordinatesAt, ...address }) => ({
+          ...address,
+          coordinates: freshCoordinates({ latitude, longitude, coordinatesAt }, now),
+        })),
+      },
       pendingCount,
     };
   });
@@ -342,7 +371,6 @@ export async function placeMarketplaceOrder(
             timezone: true,
             currency: true,
             deliveryClosedWeekdays: true,
-            defaultDeliveryFeeMinor: true,
           },
         }),
         tx.user.findUniqueOrThrow({
@@ -415,11 +443,25 @@ export async function placeMarketplaceOrder(
         }
       }
 
-      const totals = priceOrder({
-        subtotalMinor,
-        discountMinor: 0,
-        deliveryFeeMinor: input.fulfillmentMode === 'DELIVERY' ? tenant.defaultDeliveryFeeMinor : 0,
-      });
+      // Costo di consegna (ADR-069): la fascia di distanza fra la tienda e l'indirizzo; senza
+      // fasce o senza le due posizioni, il costo abituale. Oltre l'ultima fascia non si consegna.
+      let deliveryFeeMinor = 0;
+      if (input.fulfillmentMode === 'DELIVERY') {
+        const pricing = await loadDeliveryPricing(tx, tenantId);
+        const quote = quoteDeliveryFee({
+          tiers: pricing.tiers,
+          defaultFeeMinor: pricing.defaultFeeMinor,
+          from: pricing.origin,
+          to: freshCoordinates(place, new Date()),
+        });
+        if (quote.kind === 'out_of_zone') {
+          throw new ValidationError({
+            [input.buyerAddressId ? 'buyerAddressId' : 'addressLine1']: 'checkout_out_of_zone',
+          });
+        }
+        deliveryFeeMinor = quote.feeMinor;
+      }
+      const totals = priceOrder({ subtotalMinor, discountMinor: 0, deliveryFeeMinor });
       if (!totals.ok) throw new ValidationError({ lines: totals.error });
 
       // Cliente del CRM della fioreria: quello con la stessa email, o uno nuovo.

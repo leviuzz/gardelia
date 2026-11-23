@@ -67,6 +67,8 @@ export interface PublicStoreDto {
     readonly closedWeekdays: readonly number[];
     /** Costo di consegna abituale (0 = da concordare o gratis: la pagina non promette nulla). */
     readonly defaultFeeMinor: number;
+    /** Costo per distanza (ADR-069), dalla fascia più vicina; vuoto se la fioreria non lo usa. */
+    readonly feeTiers: readonly { readonly maxKm: number; readonly feeMinor: number }[];
     readonly radiusKm: number | null;
   };
   readonly paymentMethods: readonly StorePaymentMethod[];
@@ -176,7 +178,7 @@ async function readStoreHeader(tx: TransactionClient, tenantId: string) {
 export async function getPublicStore(slug: unknown): Promise<PublicStoreDto | null> {
   return withPublishedStore(slug, async (tx, tenantId) => {
     const { tenant, store, header } = await readStoreHeader(tx, tenantId);
-    const [location, windows, items] = await Promise.all([
+    const [location, windows, items, feeTiers] = await Promise.all([
       tx.location.findFirst({
         where: { tenantId, isPrimary: true },
         select: {
@@ -206,6 +208,11 @@ export async function getPublicStore(slug: unknown): Promise<PublicStoreDto | nu
           },
         },
       }),
+      tx.deliveryFeeTier.findMany({
+        where: { tenantId },
+        orderBy: { maxMeters: 'asc' },
+        select: { maxMeters: true, feeMinor: true },
+      }),
     ]);
     const region = (code: string) => MX_REGIONS.find((item) => item.code === code)?.name ?? code;
     return {
@@ -227,6 +234,10 @@ export async function getPublicStore(slug: unknown): Promise<PublicStoreDto | nu
         })),
         closedWeekdays: tenant.deliveryClosedWeekdays,
         defaultFeeMinor: tenant.defaultDeliveryFeeMinor,
+        feeTiers: feeTiers.map((tier) => ({
+          maxKm: tier.maxMeters / 1000,
+          feeMinor: tier.feeMinor,
+        })),
         radiusKm: location?.deliveryRadiusKm ?? null,
       },
       paymentInstructions: store.paymentInstructions,

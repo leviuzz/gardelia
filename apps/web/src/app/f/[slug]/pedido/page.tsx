@@ -115,6 +115,7 @@ export default async function CheckoutPage({
                   label: [address.label, address.addressLine1, address.neighborhood]
                     .filter(Boolean)
                     .join(' · '),
+                  coordinates: address.coordinates,
                 })),
               }}
               regions={REGIONS}
