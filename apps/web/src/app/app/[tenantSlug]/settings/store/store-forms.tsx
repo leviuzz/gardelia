@@ -1,10 +1,19 @@
 'use client';
 
-import { Copy, ExternalLink, MessageCircle } from 'lucide-react';
+import { Copy, ExternalLink, ImageIcon, MessageCircle, Trash } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
 import { toast } from 'sonner';
-import { STORE_LIMITS, STORE_PAYMENT_METHODS, type StorePaymentMethod } from '@floral/domain';
+import {
+  PHOTO_LIMITS,
+  STORE_LIMITS,
+  STORE_PAYMENT_METHODS,
+  type StoreImageKind,
+  type StorePaymentMethod,
+} from '@floral/domain';
+import { ActionButton } from '@/components/form/action-button';
+import { PhotoFilesField, PhotoUploadFooter } from '@/components/photos/photo-upload-parts';
+import { usePhotoUpload } from '@/components/photos/use-photo-upload';
 import { Field, controlProps } from '@/components/form/field';
 import { SubmitButton } from '@/components/form/submit-button';
 import { Button } from '@/components/ui/button';
@@ -12,6 +21,7 @@ import { Checkbox, Input, Textarea } from '@/components/ui/input';
 import { fieldError, idleState, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 import { useActionToast } from '@/lib/use-action-toast';
+import { cn } from '@/lib/utils';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -138,6 +148,76 @@ export function StoreLinkCard({
           </a>
         </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Logo (quadrato, piccolo accanto al nome) o foto di copertina (larga, in alto nella pagina):
+ * anteprima, caricamento di una foto (ridotta nel browser come quelle del catalogo) e "Quitar".
+ */
+export function StoreImageField({
+  kind,
+  imageSrc,
+  upload,
+  removeAction,
+}: {
+  readonly kind: StoreImageKind;
+  /** Anteprima dell'immagine attuale, o null. */
+  readonly imageSrc: string | null;
+  readonly upload: (formData: FormData) => Promise<ActionState>;
+  readonly removeAction: Action;
+}) {
+  const t = useTranslations('store');
+  const state = usePhotoUpload(upload, { maxFiles: 1, maxSide: PHOTO_LIMITS.clientMaxSide });
+  const isLogo = kind === 'LOGO';
+  const preview = isLogo ? 'size-24 rounded-2xl' : 'aspect-[3/1] w-full rounded-xl';
+  return (
+    <div className="grid gap-3">
+      <div>
+        <p className="text-sm font-medium">{isLogo ? t('logo') : t('cover')}</p>
+        <p className="text-xs text-muted-foreground">{isLogo ? t('logoHint') : t('coverHint')}</p>
+      </div>
+      <div
+        className={cn('flex items-center justify-center overflow-hidden border bg-muted', preview)}
+      >
+        {imageSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element -- immagine privata servita dall'app.
+          <img
+            src={imageSrc}
+            alt={isLogo ? t('logo') : t('cover')}
+            className={isLogo ? 'size-full bg-white object-contain' : 'size-full object-cover'}
+          />
+        ) : (
+          <ImageIcon className="size-6 text-muted-foreground" aria-hidden="true" />
+        )}
+      </div>
+      <form method="post" onSubmit={state.onSubmit} className="space-y-3">
+        <PhotoFilesField
+          id={`store-image-${kind.toLowerCase()}`}
+          label={isLogo ? t('logoFile') : t('coverFile')}
+          hint={t('imageFileHint')}
+          error={state.fieldErrors['files'] ?? state.fieldErrors['file']}
+          multiple={false}
+        />
+        <PhotoUploadFooter
+          state={state}
+          submitLabel={
+            imageSrc
+              ? isLogo
+                ? t('changeLogo')
+                : t('changeCover')
+              : isLogo
+                ? t('uploadLogo')
+                : t('uploadCover')
+          }
+        />
+      </form>
+      {imageSrc ? (
+        <ActionButton action={removeAction} variant="ghost" icon={<Trash />} className="w-fit">
+          {isLogo ? t('removeLogo') : t('removeCover')}
+        </ActionButton>
+      ) : null}
     </div>
   );
 }

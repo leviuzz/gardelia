@@ -12,8 +12,10 @@ import {
   inviteMember,
   removeDeliveryWindow,
   revokeInvitation,
+  removeStoreImage,
   setMemberActive,
   setOnlineStorePublished,
+  setStoreImage,
   updateBuilderSettings,
   updateDeliverySettings,
   updateOnlineStore,
@@ -24,6 +26,7 @@ import {
 import type { ActionState } from '@/lib/action-state';
 import { serverEnv } from '@/lib/env';
 import { formDataToObject } from '@/lib/form-data';
+import { uploadedBytes } from '@/lib/uploads';
 import { runTenantAction, section } from '@/lib/tenant-action';
 
 export async function updateProfileAction(
@@ -202,5 +205,29 @@ export async function setOnlineStorePublishedAction(
       revalidate: routes.settings.store,
       success: publish ? 'store.publishedToast' : 'store.unpublishedToast',
     };
+  });
+}
+
+/** Logo o copertina della tienda (una foto per richiesta, come le foto del catalogo). */
+export async function uploadStoreImageAction(
+  slug: string,
+  kind: 'LOGO' | 'COVER',
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await setStoreImage(ctx, kind, await uploadedBytes(formData));
+    return { revalidate: routes.settings.store };
+  });
+}
+
+export async function removeStoreImageAction(
+  slug: string,
+  kind: 'LOGO' | 'COVER',
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await removeStoreImage(ctx, kind);
+    return { revalidate: routes.settings.store, success: 'store.imageRemoved' };
   });
 }

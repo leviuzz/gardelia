@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   canShowOnline,
   catalogItemInputSchema,
+  isStoreImageKind,
   onlineStoreFormSchema,
   storePublishBlockers,
 } from '../src/index';
@@ -60,5 +61,14 @@ describe('impostazioni della tienda', () => {
       'store_needs_contact',
     ]);
     expect(storePublishBlockers({ onlineItems: 2, contactPhone: '+524495550101' })).toEqual([]);
+  });
+});
+
+describe('immagini della tienda', () => {
+  it('solo logo e copertina', () => {
+    expect(isStoreImageKind('LOGO')).toBe(true);
+    expect(isStoreImageKind('COVER')).toBe(true);
+    expect(isStoreImageKind('logo')).toBe(false);
+    expect(isStoreImageKind(undefined)).toBe(false);
   });
 });

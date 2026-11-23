@@ -7,6 +7,7 @@ import { getPublicStore } from '@floral/core';
 import { BRAND, WEEKDAYS_FROM_MONDAY } from '@floral/domain';
 import { StoreShell } from '@/components/public/store-shell';
 import { Badge } from '@/components/ui/badge';
+import { serverEnv } from '@/lib/env';
 import { money } from '@/lib/format';
 import { storeShellProps } from '@/lib/public-store';
 import { publicStoreRoutes } from '@/lib/routes';
@@ -15,9 +16,21 @@ export async function generateMetadata({ params }: PageProps<'/f/[slug]'>): Prom
   const { slug } = await params;
   const store = await getPublicStore(slug);
   if (!store) return { title: BRAND.productName };
+  // Anteprima nei social e su WhatsApp: la copertina, altrimenti il logo.
+  const routes = publicStoreRoutes(store.slug);
+  const image = store.coverId
+    ? routes.image('COVER', store.coverId)
+    : store.logoId
+      ? routes.image('LOGO', store.logoId)
+      : null;
   return {
     title: `${store.name} · ${BRAND.productName}`,
     description: store.description ?? undefined,
+    openGraph: {
+      title: store.name,
+      description: store.description ?? undefined,
+      ...(image ? { images: [`${serverEnv().APP_URL.replace(/\/+$/, '')}${image}`] } : {}),
+    },
   };
 }
 
@@ -48,10 +61,30 @@ export default async function PublicStorePage({ params }: PageProps<'/f/[slug]'>
 
   return (
     <StoreShell {...shell}>
+      {store.coverId ? (
+        <div className="mb-6 aspect-[2/1] overflow-hidden rounded-2xl border bg-muted sm:aspect-[3/1]">
+          {/* eslint-disable-next-line @next/next/no-img-element -- copertina servita dall'app. */}
+          <img
+            src={routes.image('COVER', store.coverId)}
+            alt={t('coverAlt', { name: store.name })}
+            className="size-full object-cover"
+          />
+        </div>
+      ) : null}
       <section className="max-w-2xl">
-        <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-          {store.name}
-        </h1>
+        <div className="flex items-center gap-4">
+          {store.logoId ? (
+            // eslint-disable-next-line @next/next/no-img-element -- logo servito dall'app.
+            <img
+              src={routes.image('LOGO', store.logoId)}
+              alt={t('logoAlt', { name: store.name })}
+              className="size-16 shrink-0 rounded-2xl border bg-white object-contain sm:size-20"
+            />
+          ) : null}
+          <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+            {store.name}
+          </h1>
+        </div>
         {store.address ? (
           <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
             <MapPin className="size-4 shrink-0" aria-hidden="true" />

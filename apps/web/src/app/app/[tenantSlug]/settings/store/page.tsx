@@ -14,8 +14,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { serverEnv } from '@/lib/env';
 import { publicStoreRoutes, tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
-import { setOnlineStorePublishedAction, updateOnlineStoreAction } from '../actions';
-import { StoreInfoForm, StoreLinkCard } from './store-forms';
+import {
+  removeStoreImageAction,
+  setOnlineStorePublishedAction,
+  updateOnlineStoreAction,
+  uploadStoreImageAction,
+} from '../actions';
+import { StoreImageField, StoreInfoForm, StoreLinkCard } from './store-forms';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('store');
@@ -137,6 +142,29 @@ export default async function StoreSettingsPage({
               </ActionButton>
             </>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('store.imagesTitle')}</CardTitle>
+          <CardDescription>{t('store.imagesSubtitle')}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-8 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+          <StoreImageField
+            kind="LOGO"
+            imageSrc={settings.logoId ? routes.settings.storeImage('LOGO', settings.logoId) : null}
+            upload={uploadStoreImageAction.bind(null, slug, 'LOGO')}
+            removeAction={removeStoreImageAction.bind(null, slug, 'LOGO')}
+          />
+          <StoreImageField
+            kind="COVER"
+            imageSrc={
+              settings.coverId ? routes.settings.storeImage('COVER', settings.coverId) : null
+            }
+            upload={uploadStoreImageAction.bind(null, slug, 'COVER')}
+            removeAction={removeStoreImageAction.bind(null, slug, 'COVER')}
+          />
         </CardContent>
       </Card>
 
