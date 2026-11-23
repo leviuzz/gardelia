@@ -1126,6 +1126,11 @@
       "sketchNext": "With AI, we turn it into a realistic photo and check that the flower count matches.",
       "viewSketch": "View the exact sketch",
       "countMismatch": "The realistic photo didn’t match the flower count, so we’re not showing it and it wasn’t deducted from your balance. The sketch is still exact.",
+      "countCheck": {
+        "title": "In the last photo, the check counted:",
+        "line": "{name}: {found} of {expected}",
+        "other": "{count, plural, one {# flower that isn't in the bouquet} other {# flowers that aren't in the bouquet}}"
+      },
       "retryLimit": "We’ve already tried several times with this design. You can share the exact sketch or adjust the design.",
       "missingPhotos": "For a preview with the exact number of flowers, upload a photo of:",
       "missingPhotosHint": "One photo per flower, from the front; the background is removed automatically.",

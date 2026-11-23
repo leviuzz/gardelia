@@ -376,6 +376,20 @@ segreti GitHub `FAL_KEY` e `R2_*` (`docs/DEPLOY_VERCEL.md` §8.6). Verifiche: li
 test 485/485 ✅ (+7: conteggi e rilancio, calendario e consenso, codici e specie, foto fallita,
 rifiuti per non amministratore, fioreria altrui e staff, prompt della foto).
 
+**"Non va la generazione AI" su staging (23/11, segnalazione del founder):** nei log di Vercel le
+righe rosse sono solo avvisi di Node (modalità SSL di `pg`, query in parallelo sullo stesso client),
+non errori. Il job dell'anteprima era arrivato in fondo con una riga informativa: con ogni probabilità
+foto realistica scartata perché i fiori non coincidevano con la distinta (ADR-034), senza che lo
+schermo dicesse perché. Ora il Diseñador mostra cosa ha contato il controllo nell'ultima foto
+(trovati di attesi per ogni fiore, fiori estranei). Funziona anche per i job già scartati e il log
+riporta gli stessi numeri. Prossimo passo: con i numeri veri del founder decidere come alzare la
+riuscita (prompt, fiori con più corolle per stelo, tolleranza o foto "non verificata").
+
+**Log pubblici del workflow di piattaforma (corretto il 23/11):** il repository è pubblico e
+l'email dell'operatore compariva in chiaro nei log delle operazioni (variabili `env:` stampate da
+GitHub). Ora gli input si leggono dal file dell'evento e si mascherano (ADR-038, operazioni di
+piattaforma). Restano da cancellare i log delle due esecuzioni del 22/11.
+
 **Font Roboto (fatto il 22/11, richiesta del founder):** tutta l'app usa Roboto (testi e titoli) al
 posto di Inter e Fraunces, sempre servito dall'app stessa (pacchetto `@fontsource-variable/roboto`,
 nessuna richiesta a servizi esterni). I titoli senza peso esplicito ora sono in semibold. Le email

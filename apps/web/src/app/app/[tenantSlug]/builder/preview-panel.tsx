@@ -49,6 +49,15 @@ export interface PreviewPanelData {
     readonly verified: boolean | null;
     readonly errorCode: string | null;
     readonly imageUrl: string | null;
+    /** Foto scartata: cosa ha contato il controllo nell'ultima foto (fiore, trovati, attesi). */
+    readonly countCheck: {
+      readonly lines: readonly {
+        readonly name: string;
+        readonly expected: number;
+        readonly found: number;
+      }[];
+      readonly other: number;
+    } | null;
   } | null;
   /** Boceto esatto (ADR-034): immagine se disegnabile, altrimenti cosa manca. */
   readonly sketch: {
@@ -234,6 +243,34 @@ export function PreviewPanel({ data, dirty }: { data: PreviewPanelData; dirty: b
           <p className="text-sm text-muted-foreground" role="status">
             {t('countMismatch')}
           </p>
+        ) : null}
+        {mismatch && data.preview?.countCheck ? (
+          <div className="space-y-1.5 rounded-xl border bg-muted/30 p-3 text-sm">
+            <p>{t('countCheck.title')}</p>
+            <ul className="space-y-0.5">
+              {data.preview.countCheck.lines.map((line, index) => (
+                <li
+                  key={index}
+                  className={
+                    line.found === line.expected
+                      ? 'break-words text-muted-foreground'
+                      : 'font-medium break-words'
+                  }
+                >
+                  {t('countCheck.line', {
+                    name: line.name,
+                    found: line.found,
+                    expected: line.expected,
+                  })}
+                </li>
+              ))}
+              {data.preview.countCheck.other > 0 ? (
+                <li className="font-medium">
+                  {t('countCheck.other', { count: data.preview.countCheck.other })}
+                </li>
+              ) : null}
+            </ul>
+          </div>
         ) : null}
         {data.retryLimitReached ? (
           <p className="text-sm text-muted-foreground">{t('retryLimit')}</p>

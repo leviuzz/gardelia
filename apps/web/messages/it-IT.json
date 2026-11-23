@@ -1126,6 +1126,11 @@
       "sketchNext": "Con l’IA lo trasformiamo in una foto realistica e controlliamo che il numero di fiori corrisponda.",
       "viewSketch": "Vedi il bozzetto esatto",
       "countMismatch": "La foto realistica non ha rispettato il numero di fiori, quindi non la mostriamo e non è stata scalata dal tuo saldo. Il bozzetto invece è esatto.",
+      "countCheck": {
+        "title": "Nell'ultima foto il controllo ha contato:",
+        "line": "{name}: {found} su {expected}",
+        "other": "{count, plural, one {# fiore che non è nel ramo} other {# fiori che non sono nel ramo}}"
+      },
       "retryLimit": "Abbiamo già provato più volte con questa composizione. Puoi condividere il bozzetto esatto o modificare la composizione.",
       "missingPhotos": "Per un’anteprima con il numero esatto di fiori, carica una foto di:",
       "missingPhotosHint": "Una foto per fiore, di fronte; lo sfondo viene rimosso automaticamente.",

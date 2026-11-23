@@ -191,6 +191,13 @@ export interface BouquetPreviewSpec {
   readonly mode?: PreviewMode;
 }
 
+/** Spec salvata in un job (JSON dal database): forma minima prima di usarla. */
+export function isBouquetPreviewSpec(value: unknown): value is BouquetPreviewSpec {
+  if (!value || typeof value !== 'object') return false;
+  const spec = value as Partial<BouquetPreviewSpec>;
+  return spec.version === 1 && Array.isArray(spec.components) && spec.components.length > 0;
+}
+
 const ROLE_ORDER: Readonly<Record<BuilderRole, number>> = {
   FLOWER: 0,
   FOLIAGE: 1,

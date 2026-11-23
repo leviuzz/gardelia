@@ -7,9 +7,11 @@ import {
   buildPreviewSpec,
   buildSketchRenderPrompt,
   canonicalPreviewInput,
+  countMismatchSummary,
   countTargets,
   countsMatch,
   exactPreviewPlan,
+  isBouquetPreviewSpec,
   flowersWithoutSpecies,
   nameSaysWhichFlower,
   isRibbonLabel,
@@ -406,6 +408,67 @@ describe('controllo dei conteggi', () => {
     expect(countsMatch(targets, { ...exact, counts: { 1: 4, 2: 3, 3: 0 } })).toBe(false);
     expect(countsMatch(targets, { ...exact, counts: { 1: 3, 2: 2, 3: 0 } })).toBe(false);
     expect(countsMatch(targets, { ...exact, other: 1 })).toBe(false);
+  });
+});
+
+describe('perché la foto non si mostra (riepilogo del controllo)', () => {
+  const bouquet = spec([rose, daisy, gypsophila, eucalyptus]);
+
+  it('mostra l’ultima foto: attesi e trovati per i fiori a stelo, più i fiori estranei', () => {
+    const output = {
+      mode: 'EXACT',
+      verified: false,
+      checks: [
+        { counts: { 1: 2, 2: 3, 3: 1 }, other: 0, decidedBy: 'first' },
+        // JSON dal database: le chiavi tornano stringhe.
+        { counts: { '1': 4, '2': 3, '3': 5 }, other: 2, decidedBy: 'boxes' },
+      ],
+    };
+    expect(countMismatchSummary(bouquet, output)).toEqual({
+      lines: [
+        { name: 'Rosa roja Freedom', expected: 3, found: 4 },
+        { name: 'Margarita', expected: 3, found: 3 },
+      ],
+      other: 2,
+      photos: 2,
+    });
+  });
+
+  it('un fiore non trovato vale 0; dati rovinati o assenti non si mostrano', () => {
+    expect(countMismatchSummary(bouquet, { checks: [{ counts: { 2: 3 }, other: 0 }] })).toEqual({
+      lines: [
+        { name: 'Rosa roja Freedom', expected: 3, found: 0 },
+        { name: 'Margarita', expected: 3, found: 3 },
+      ],
+      other: 0,
+      photos: 1,
+    });
+    expect(countMismatchSummary(bouquet, null)).toBeNull();
+    expect(countMismatchSummary(bouquet, { checks: [] })).toBeNull();
+    expect(countMismatchSummary(bouquet, { checks: 'no' })).toBeNull();
+    // Valori non validi scartati (negativi, decimali, testo).
+    expect(
+      countMismatchSummary(bouquet, {
+        checks: [
+          { counts: { 1: -1, 2: 2.5, x: 3 }, other: 1 },
+          { counts: {}, other: 'tre' },
+        ],
+      }),
+    ).toEqual({
+      lines: [
+        { name: 'Rosa roja Freedom', expected: 3, found: 0 },
+        { name: 'Margarita', expected: 3, found: 0 },
+      ],
+      other: 1,
+      photos: 1,
+    });
+  });
+
+  it('riconosce una spec salvata nel job', () => {
+    expect(isBouquetPreviewSpec(bouquet)).toBe(true);
+    expect(isBouquetPreviewSpec({ version: 1, components: [] })).toBe(false);
+    expect(isBouquetPreviewSpec({ version: 2, components: [rose] })).toBe(false);
+    expect(isBouquetPreviewSpec(null)).toBe(false);
   });
 });
 
