@@ -12,9 +12,11 @@ import {
   BUYER_LIMITS,
   buyerAddressSchema,
   buyerProfileSchema,
+  freshCoordinates,
   isUuid,
   nextStoredPlace,
   toFieldErrors,
+  type Coordinates,
   type MarketCountry,
 } from '@floral/domain';
 import { NotFoundError, ValidationError } from '../errors';
@@ -245,4 +247,45 @@ export async function archiveBuyerAddress(ctx: BuyerContext, addressId: string):
 
 function assertBuyer(ctx: BuyerContext): void {
   if (!isUuid(ctx.userId)) throw new TypeError('BuyerContext senza un utente valido');
+}
+
+export interface BuyerSearchAddressDto {
+  readonly id: string;
+  /** Etichetta o via, per dire dove si cerca. */
+  readonly label: string;
+  readonly city: string;
+  /** Coordinate ancora valide (ADR-059), o null: allora si cerca per città. */
+  readonly coordinates: Coordinates | null;
+}
+
+/**
+ * Indirizzi salvati per cercare le fiorerie (ADR-066), senza aprire il conto cliente: chi non l'ha
+ * mai aperto non ne ha.
+ */
+export async function listBuyerSearchAddresses(
+  ctx: BuyerContext,
+): Promise<readonly BuyerSearchAddressDto[]> {
+  assertBuyer(ctx);
+  const rows = await withUserContext(getDb(), ctx.userId, (tx) =>
+    tx.buyerAddress.findMany({
+      where: { userId: ctx.userId, status: 'ACTIVE' },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+      select: {
+        id: true,
+        label: true,
+        addressLine1: true,
+        city: true,
+        latitude: true,
+        longitude: true,
+        coordinatesAt: true,
+      },
+    }),
+  );
+  const now = new Date();
+  return rows.map((row) => ({
+    id: row.id,
+    label: row.label ?? row.addressLine1,
+    city: row.city,
+    coordinates: freshCoordinates(row, now),
+  }));
 }

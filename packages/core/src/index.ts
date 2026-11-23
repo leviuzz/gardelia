@@ -55,6 +55,13 @@ export {
   type PlacesProvider,
 } from './places';
 export {
+  listPublicStoreCities,
+  refreshStoreCoordinates,
+  searchPublicStores,
+  type DirectoryStoreDto,
+  type StoreSearchResultDto,
+} from './public-directory';
+export {
   getPublicStore,
   getPublicStoreImage,
   getPublicStoreItem,

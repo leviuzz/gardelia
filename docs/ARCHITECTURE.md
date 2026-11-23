@@ -111,6 +111,9 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
 - **AuditLog:** solo SELECT/INSERT → append-only per l'applicazione.
 - **CanonicalFlower:** lettura pubblica, scrittura solo di sistema (dati di riferimento allineati
   a ogni rilascio; nomi e sinonimi per lingua, ADR-043).
+- **Ricerca delle fiorerie** (ADR-066): `app_public_store_directory()` (SECURITY DEFINER) elenca le
+  tiendas pubblicate con i soli dati pubblici; `app_store_places_to_refresh()` dice alla manutenzione
+  quali coordinate richiedere di nuovo a Google.
 - **Pagina pubblica della fioreria** (ADR-065): senza sessione, `app_public_store_tenant(slug)`
   (SECURITY DEFINER) dà l'ID solo per una tienda pubblicata di una fioreria attiva; poi
   `core/src/public-store.ts` legge in `withTenantContext` (RLS attiva) solo i campi pubblici.
