@@ -12,6 +12,7 @@ import {
   createReservation,
   createSupplier,
   extendReservation,
+  recordBouquetsMade,
   recordPurchase,
   recordStockCount,
   recordStockOut,
@@ -260,5 +261,21 @@ export async function releaseReservationAction(
   return runTenantAction(slug, async ({ ctx, routes }) => {
     await releaseReservation(ctx, reservationId);
     return { revalidate: stockPages(routes), success: 'inventory.reservations.actions.released' };
+  });
+}
+
+/** "Registrar ramos hechos" (ADR-063): la ricetta × N esce dall'inventario. */
+export async function recordBouquetsMadeAction(
+  slug: string,
+  bouquetId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const result = await recordBouquetsMade(ctx, bouquetId, formDataToObject(formData));
+    return {
+      revalidate: stockPages(routes),
+      success: (t) => t('inventory.bouquet.recorded', { count: result.count }),
+    };
   });
 }

@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 23 novembre 2026 (Google Places, ADR-059; inventario, ADR-060, ADR-061 e ADR-062; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 23 novembre 2026 (Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -1510,6 +1510,36 @@ Numerazione: ADR-055–059 sono riservati agli ordini e al marketplace (altra se
   - le schede dell'inventario sono quattro: su telefono stanno in una griglia di due colonne.
 - **Privacy:** "Para" e la nota possono contenere il nome del cliente, quindi restano fuori dai
   metadati dell'audit (prodotti, quantità e date sì).
+
+### ADR-063 — Inventario: avvisi nel pannello, ramos e costo previsto e reale (blocco 4) — ADOTTATO (23/11/2026)
+
+- **Avvisi nel pannello:** riquadro "Inventario" con i prodotti agotados e por agotarse,
+  calcolati sul disponibile (ADR-062), i primi cinque da guardare, e gli apartados che scadono
+  oggi o domani o sono già vencidos. Ogni riga porta alla pagina giusta. Senza il piano il riquadro
+  non c'è.
+- **Ramos del catálogo (spec INV-01: "avviso quando un ingrediente della ricetta non è
+  sufficiente"):** nella scheda di un ramo con ricetta, il riquadro "Inventario" mostra:
+  - quanti ramos si possono fare con la merce disponibile: il minimo fra gli ingredienti
+    controllati (`bouquetsPossible`);
+  - gli ingredienti non controllati non limitano e non si scaricano: chi compra a richiesta non
+    vede numeri inventati; se non si controlla nessun ingrediente, lo dice;
+  - per ogni ingrediente: quanto per ramo e quanto è disponibile.
+- **Costo previsto e reale (spec INV-01):** per chi vede i costi, i materiali di un ramo ai costi
+  del catalogo (previsto) e al costo medio delle compras (reale), con la differenza in percentuale
+  (`bouquetMaterialCost`). Per un ingrediente senza costo medio il reale usa il costo del catalogo,
+  e lo dice. Se un costo manca del tutto, nessun totale che sembri completo (come ADR-015).
+- **"Registrar ramos hechos"** (proprietario e manager): la ricetta × N esce dall'inventario con un
+  registro di uso ("3 × Ramo Clásico"), al costo medio del momento. Mentre si scrive si vede cosa
+  manca; se non basta serve la conferma (ADR-060). Si annulla come ogni registro. È il consumo per
+  chi vende ramos del catalogo al banco senza ordine. Gli ordini li collega l'altra sessione con
+  `consumeStockTx` e `consumeReservationTx`.
+- **Riepilogo del mese** (chi vede i costi), in testa ai Movimientos, con il mese precedente:
+  - compras pagate (per giorno della compra);
+  - usato al costo reale e ai costi del catalogo, cioè costo previsto e reale dell'intera fioreria;
+  - mermas;
+  - i registri annullati e le anulaciones non contano;
+  - il mese è quello del calendario della fioreria (fuso orario in SQL).
+- **Testi della pagina del piano** aggiornati: compras, apartados e quanti ramos alcanzan.
 
 ---
 

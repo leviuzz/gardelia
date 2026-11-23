@@ -223,7 +223,11 @@ totale pagato; ogni riga aggiorna il costo medio, l'anulación lo toglie. Aparta
 (`reservedQuantities`: apartados ACTIVE con la scadenza da oggi in poi, nel calendario della
 fioreria), che usano stato, avvisi e controlli; vencido si calcola alla lettura, senza job. "Usar"
 scrive un registro `USE` con quanto si è usato davvero; per gli ordini `reserveStockTx`,
-`consumeReservationTx` e `releaseReservationTx`.
+`consumeReservationTx` e `releaseReservationTx`. Avvisi, ramos e riepilogo (ADR-063,
+`inventory-insights.ts`): quanti ramos alcanzan e il costo previsto e reale si calcolano nel dominio
+(`bouquetsPossible`, `bouquetMaterialCost`) dalla ricetta e dal disponibile; "Registrar ramos
+hechos" scrive un registro `USE` con la ricetta × N; il riepilogo del mese somma i movimenti non
+annullati nel calendario della fioreria.
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per

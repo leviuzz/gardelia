@@ -585,6 +585,17 @@ di dominio, 10 d'integrazione con isolamento A↔B e due "Usar" nello stesso ist
 75/75 ✅ (1 nuovo: apartar, extender, usar e liberar; lo staff vede ma non crea); controllo a 320 px.
 Prossimo: blocco 4 avvisi nel pannello e costo dei ramos (ADR-063).
 
+**Inventario, blocco 4 (fatto il 23/11, ADR-063):** riquadro "Inventario" nel pannello (agotados,
+por agotarse sul disponibile, apartados in scadenza e vencidos). Nella scheda di un ramo con ricetta:
+quanti ramos alcanzan con la merce disponibile, ingredienti con disponibile, costo dei materiali
+previsto e reale con la differenza (chi vede i costi) e "Registrar ramos hechos" (la ricetta × N
+esce con un registro di uso, avviso e conferma se non basta). Riepilogo del mese nei Movimientos
+(compras, usato al costo reale e ai costi del catalogo, mermas; senza i registri annullati). Testi
+della pagina del piano aggiornati. Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test
+707/707 ✅ (9 nuovi: 3 di dominio, 6 d'integrazione con piano, ruoli e isolamento A↔B) · build ✅ ·
+E2E 76/76 ✅ (1 nuovo: ramo con ricetta, ramos hechos, pannello e riepilogo); controllo a 320 px.
+L'inventario della V1 è completo; restano consumo e apartados dagli ordini (sessione degli ordini).
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci
@@ -596,8 +607,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
    e ordine; aggiungere un disegno del Diseñador a un preventivo in bozza. Poi il marketplace per i
    clienti (D-26, deciso il 23/11: registrazione obbligatoria, pagamento diretto alla fioreria) e la
    ruta del día gratuita (D-27). Blocchi A1–C5 in `docs/ORDERS_MARKETPLACE_PLAN.md`; si parte da A1.
-3. Inventario: blocchi 1, 2 e 3 fatti (ADR-060, ADR-061, ADR-062); poi avvisi nel pannello e costo
-   dei ramos.
+3. Inventario: fatto (blocchi 1–4, ADR-060…063); restano consumo e apartados dagli ordini, che
+   collega la sessione degli ordini con le funzioni già pronte.
 4. Clienti completi: cronologia, etichette, import CSV.
 5. Abbonamenti dei clienti e Floral Care.
 6. Report.

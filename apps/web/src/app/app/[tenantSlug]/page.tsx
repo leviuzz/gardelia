@@ -19,6 +19,7 @@ import {
   type OrderStatus,
   type QuoteStatus,
 } from '@floral/domain';
+import { InventoryAlertsCard } from '@/components/inventory/inventory-alerts-card';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -275,6 +276,8 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
               ) : null}
             </CardContent>
           </Card>
+
+          <InventoryAlertsCard ctx={ctx} />
 
           <Card className="border-dashed bg-transparent shadow-none">
             <CardHeader>
