@@ -1781,6 +1781,25 @@ Numerata 070: 066 è già la home per chi compra e 067–069 restano ai blocchi 
     next-intl legge come annidamento: non si trovavano mai e compariva sempre "realizó un cambio".
     Ora sono annidate per modulo; un test controlla che nessuna chiave abbia un punto e che ogni
     azione di una fioreria abbia il suo testo nelle tre lingue.
+- **Blocco 3, import da CSV** (spec CRM-01: "import da CSV con validazione e anteprima"):
+  - "Importar" nella lista clienti, per proprietario e manager in tutti i piani: come preparare il
+    file, modello da scaricare con le intestazioni nella lingua di chi lo usa (nessuna riga
+    d'esempio: dimenticata nel file diventerebbe un cliente vero), caricamento;
+  - lettura tollerante: separatore riconosciuto (virgola, punto e virgola, tabulazione), virgolette
+    e a capo nelle celle, UTF-8 o Windows-1252 (Excel in spagnolo); fino a 1000 clienti e 512 KB;
+  - colonne riconosciute dal nome nelle tre lingue (senza accenti né maiuscole) e correggibili a
+    mano; il nome è obbligatorio e ogni dato viene da una sola colonna; compleanno e aniversario
+    diventano date speciali (giorno prima del mese: 14/02, 14/02/1990, oppure 1990-02-14);
+  - anteprima: righe pronte, con errori (campo per campo, come nel modulo "Nuevo cliente") e
+    duplicate (telefono o email di un cliente già presente, anche archiviato, o di una riga più su
+    nel file); le prime 100 con problemi, con il numero di riga del foglio, e qualche esempio;
+  - "Importar N clientes" ricontrolla tutto nella stessa transazione (bloccata contro il doppio
+    clic) e salva le righe pronte con origine IMPORT e **senza consenso marketing**, come deciso
+    dal founder; una voce di audit con i soli conti;
+  - la bozza (tabella `CustomerImport`, con RLS) tiene il testo del file solo finché non si importa
+    o si annulla, poi si svuota (vincolo nel database). Una nuova bozza chiude quelle aperte della
+    stessa persona; la manutenzione giornaliera chiude in tutte le fiorerie quelle dimenticate da
+    più di un giorno e ne cancella il file (`app_close_stale_customer_imports`).
 
 ## 3. Proposte da approvare
 

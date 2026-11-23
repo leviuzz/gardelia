@@ -6,17 +6,28 @@
  * Gli ID legati con .bind() arrivano dal client: i servizi li ricontrollano nel tenant.
  */
 import {
+  ValidationError,
   addCustomerAddress,
   addCustomerOccasion,
   archiveCustomerAddress,
+  cancelCustomerImport,
+  confirmCustomerImport,
   createCustomer,
+  createCustomerImport,
   removeCustomerOccasion,
   setCustomerArchived,
   updateCustomer,
   updateCustomerAddress,
+  updateCustomerImportMapping,
   updateCustomerTags,
 } from '@floral/core';
-import { CUSTOMER_LIMITS, customerCreateFormSchema, customerFormSchema } from '@floral/domain';
+import {
+  CUSTOMER_IMPORT_LIMITS,
+  CUSTOMER_LIMITS,
+  customerCreateFormSchema,
+  customerFormSchema,
+  decodeCsvBytes,
+} from '@floral/domain';
 import type { ActionState } from '@/lib/action-state';
 import { formDataToObject, parseForm } from '@/lib/form-data';
 import { runTenantAction, section, type Translate } from '@/lib/tenant-action';
@@ -181,5 +192,74 @@ export async function updateCustomerTagsAction(
       revalidate: section(routes.customers.list()),
       ...(result.full > 0 ? { warning: message } : { success: message }),
     };
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Import da CSV (ADR-070, blocco 3)
+// -----------------------------------------------------------------------------
+
+/** "Subir archivo": il file diventa una bozza con anteprima (UTF-8 o Windows-1252 di Excel). */
+export async function createCustomerImportAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const file = formData.get('file');
+    if (!(file instanceof File) || file.size === 0) {
+      throw new ValidationError({ file: 'customers_import_empty' });
+    }
+    if (file.size > CUSTOMER_IMPORT_LIMITS.bytes) {
+      throw new ValidationError({ file: 'customers_import_too_big' });
+    }
+    const content = decodeCsvBytes(new Uint8Array(await file.arrayBuffer()));
+    const { id } = await createCustomerImport(ctx, { fileName: file.name, content });
+    return { redirectTo: routes.customers.import.detail(id) };
+  });
+}
+
+/** "Usar estas columnas": la scelta delle colonne della bozza. */
+export async function updateCustomerImportMappingAction(
+  slug: string,
+  importId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await updateCustomerImportMapping(ctx, importId, formDataToObject(formData));
+    return {
+      revalidate: routes.customers.import.detail(importId),
+      success: 'customers.import.mappingSaved',
+    };
+  });
+}
+
+/** "Importar N clientes": si ricontrolla tutto e si salvano le righe pronte. */
+export async function confirmCustomerImportAction(
+  slug: string,
+  importId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await confirmCustomerImport(ctx, importId);
+    return {
+      revalidate: section(routes.customers.list()),
+      redirectTo: routes.customers.import.detail(importId),
+    };
+  });
+}
+
+/** "Cancelar": la bozza si chiude e il testo del file si cancella. */
+export async function cancelCustomerImportAction(
+  slug: string,
+  importId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await cancelCustomerImport(ctx, importId);
+    return { redirectTo: routes.customers.list() };
   });
 }

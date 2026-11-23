@@ -698,6 +698,19 @@ annidati, con un test che lo controlla. Verifiche locali: lint ✅ · format ✅
 · build ✅ · E2E 83/83 ✅ (1 nuovo: etichetta a più clienti e filtri); controllo a 320 px.
 Prossimo: blocco 3 import da CSV con anteprima.
 
+**Clienti completi, blocco 3 (fatto il 23/11, ADR-070):** "Importar" nella lista clienti
+(proprietario e manager, tutti i piani): modello da scaricare nella lingua di chi lo usa, CSV con
+separatore e codifica riconosciuti (anche Excel in spagnolo), colonne riconosciute nelle tre lingue e
+correggibili a mano, anteprima con righe pronte, errori campo per campo e duplicati per telefono o
+email (clienti già presenti o righe ripetute), poi import nella stessa transazione con origine
+IMPORT, compleanni e aniversarios come date speciali e **senza consenso marketing**. La bozza
+(`CustomerImport`, RLS) tiene il file solo finché non si importa o si annulla; quelle dimenticate
+si chiudono con la manutenzione giornaliera dopo un giorno. Verifiche locali: lint ✅ · format ✅ ·
+typecheck ✅ · test 787/787 ✅ (17 nuovi: 9 di dominio, 5 d'integrazione con isolamento A↔B, 3 sulle
+intestazioni del modello nelle tre lingue) · build ✅ · E2E 84/84 ✅ (1 nuovo: import con anteprima;
+aggiornato quello dei lavori giornalieri per il nuovo conto); controllo a 320 px.
+Resta per CRM-01: abbonamenti e interventi nella cronologia (con SUB-01 e CARE-01).
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci
@@ -711,7 +724,7 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
    ruta del día gratuita (D-27). Blocchi A1–C5 in `docs/ORDERS_MARKETPLACE_PLAN.md`; si parte da A1.
 3. Inventario: fatto (blocchi 1–4, ADR-060…063); restano consumo e apartados dagli ordini, che
    collega la sessione degli ordini con le funzioni già pronte.
-4. Clienti completi (ADR-070): cronologia ed etichette e filtri fatti; poi import CSV.
+4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
 5. Abbonamenti dei clienti e Floral Care.
 6. Report.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.

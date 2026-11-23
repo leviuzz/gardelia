@@ -175,6 +175,7 @@ export * from './services/inventory-reservations';
 export * from './services/inventory-insights';
 export * from './services/customer-timeline';
 export * from './services/customer-tags';
+export * from './services/customer-import';
 export * from './services/promo-discounts';
 export * from './services/promotions';
 export * from './services/online-store';

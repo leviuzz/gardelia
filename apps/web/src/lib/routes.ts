@@ -72,6 +72,11 @@ export function tenantRoutes(slug: string) {
       new: `${customers}/new`,
       detail: (customerId: string, query?: QueryValues) =>
         withQuery(`${customers}/${segment(customerId)}`, query),
+      /** Import da CSV (ADR-070): caricamento del file, poi anteprima e risultato. */
+      import: {
+        new: `${customers}/import`,
+        detail: (importId: string) => `${customers}/import/${segment(importId)}`,
+      },
     },
     quotes: {
       list: (query?: QueryValues) => withQuery(quotes, query),
