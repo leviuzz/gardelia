@@ -675,8 +675,12 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   repository via Corepack (`ENABLE_EXPERIMENTAL_COREPACK=1` nel progetto).
 - **Operazioni di piattaforma** (ADR-021: mai dal web): un workflow GitHub lanciato a mano
   (`.github/workflows/platform-ops.yml`) esegue le CLI sull'ambiente online con il ruolo dell'app
-  (segreto `PLATFORM_DATABASE_URL`); gli input passano da variabili d'ambiente, mai interpolati
-  nello script. Il founder non deve installare nulla sul proprio computer.
+  (segreto `PLATFORM_DATABASE_URL`). Il founder non deve installare nulla sul proprio computer.
+  **Corretto il 23/11:** il repository è pubblico e GitHub stampa in chiaro le variabili `env:` di
+  ogni passo, quindi l'email dell'operatore finiva nei log visibili a tutti. Ora gli input si
+  leggono dal file dell'evento (`$GITHUB_EVENT_PATH`, con `jq`), mai da `env:` né interpolati nello
+  script. Email, fioreria e nota si mascherano (`::add-mask::`) prima di qualsiasi output; in
+  `env:` restano solo i segreti, che GitHub mostra come `***`.
 - **Primo amministratore:** `pnpm platform:bootstrap-admin --email` nomina il primo
   `SUPER_ADMIN`, una sola volta (si rifiuta se ne esiste già uno, con un lock contro due esecuzioni
   insieme); l'utente deve essere attivo e con l'email confermata; resta nel registro di audit.
