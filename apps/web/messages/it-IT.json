@@ -658,7 +658,10 @@
       "discarded": "{actor} ha scartato la bozza {number}",
       "assigned": "{actor} ha cambiato il fattorino di {number}",
       "photo_added": "{actor} ha caricato la foto del mazzo di {number}",
-      "receiver_recorded": "{actor} ha indicato chi ha ricevuto {number}"
+      "receiver_recorded": "{actor} ha indicato chi ha ricevuto {number}",
+      "placed_online": "{actor} ha fatto l’ordine {number} dal negozio online",
+      "accepted": "{actor} ha accettato l’ordine online {number}",
+      "expired": "L’ordine online {number} si è annullato perché nessuno l’ha accettato in tempo"
     },
     "delivery_settings": {
       "updated": "{actor} ha cambiato le impostazioni di consegna"
@@ -670,10 +673,7 @@
     "public_link": {
       "created": "{actor} ha condiviso il link di {number}",
       "revoked": "{actor} ha disattivato il link di {number}"
-    },
-    "order.placed_online": "{actor} ha fatto l’ordine {number} dal negozio online",
-    "order.accepted": "{actor} ha accettato l’ordine online {number}",
-    "order.expired": "L’ordine online {number} si è annullato perché nessuno l’ha accettato in tempo"
+    }
   },
   "catalog": {
     "title": "Catalogo",

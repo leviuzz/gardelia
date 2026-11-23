@@ -99,6 +99,7 @@ test('i lavori giornalieri rispondono solo con il segreto e dicono cosa hanno fa
     invitationsExpired: expect.any(Number),
     coordinatesPurged: expect.any(Number),
     storePlacesRefreshed: expect.any(Number),
+    onlineOrdersExpired: expect.any(Number),
     promos: { tenants: expect.any(Number), sent: expect.any(Number), failed: expect.any(Number) },
   });
 });

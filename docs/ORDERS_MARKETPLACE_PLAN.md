@@ -188,7 +188,7 @@ sull'indirizzo dell'ordine: si riempiono con Google Places (ADR-059), le coordin
 | **C1** | ✅ Conto del cliente: registrazione per chi compra, accesso che porta a `/cuenta`, telefono e indirizzi (ADR-064)                                 |
 | **C2** | ✅ Mi tienda en línea e pagina pubblica della fioreria con i prodotti, logo e copertina, contatto WhatsApp (ADR-065)                              |
 | **C3** | ✅ Home per chi compra, `/floristas` e ricerca delle fiorerie per città o indirizzo (ADR-066)                                                     |
-| **C4** | Ordine del cliente, accettazione del fiorista, pagamento diretto, stato, email al cliente (ADR ordine da fuori)                                   |
+| **C4** | ✅ Ordine del cliente, accettazione del fiorista, pagamento diretto, stato, email, scadenza e attribuzione (ADR-067)                              |
 | **C5** | Pagine legali per i consumatori e privacy di chi compra nell'app                                                                                  |
 
 Ogni blocco segue la definizione di finito di CLAUDE.md §7 (test con isolamento A↔B, testi in tre

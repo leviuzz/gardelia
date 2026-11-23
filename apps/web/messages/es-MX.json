@@ -658,7 +658,10 @@
       "discarded": "{actor} descartó el borrador {number}",
       "assigned": "{actor} cambió el repartidor de {number}",
       "photo_added": "{actor} subió la foto del ramo de {number}",
-      "receiver_recorded": "{actor} anotó quién recibió {number}"
+      "receiver_recorded": "{actor} anotó quién recibió {number}",
+      "placed_online": "{actor} hizo el pedido {number} desde la tienda en línea",
+      "accepted": "{actor} aceptó el pedido en línea {number}",
+      "expired": "El pedido en línea {number} se canceló porque nadie lo aceptó a tiempo"
     },
     "delivery_settings": {
       "updated": "{actor} cambió los ajustes de entrega"
@@ -670,10 +673,7 @@
     "public_link": {
       "created": "{actor} compartió el enlace de {number}",
       "revoked": "{actor} desactivó el enlace de {number}"
-    },
-    "order.placed_online": "{actor} hizo el pedido {number} desde la tienda en línea",
-    "order.accepted": "{actor} aceptó el pedido en línea {number}",
-    "order.expired": "El pedido en línea {number} se canceló porque nadie lo aceptó a tiempo"
+    }
   },
   "catalog": {
     "title": "Catálogo",

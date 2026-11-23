@@ -108,8 +108,8 @@ describe('impostazioni degli ordini online', () => {
       'store_needs_payment',
       'store_needs_contact',
     ]);
-    expect(onlineOrdersBlockers({ paymentMethods: ['CASH'], contactPhone: '+524495550101' })).toEqual(
-      [],
-    );
+    expect(
+      onlineOrdersBlockers({ paymentMethods: ['CASH'], contactPhone: '+524495550101' }),
+    ).toEqual([]);
   });
 });

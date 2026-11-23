@@ -658,7 +658,10 @@
       "discarded": "{actor} discarded draft {number}",
       "assigned": "{actor} changed the driver of {number}",
       "photo_added": "{actor} uploaded the bouquet photo for {number}",
-      "receiver_recorded": "{actor} recorded who received {number}"
+      "receiver_recorded": "{actor} recorded who received {number}",
+      "placed_online": "{actor} placed order {number} from the online shop",
+      "accepted": "{actor} accepted online order {number}",
+      "expired": "Online order {number} was cancelled because nobody accepted it in time"
     },
     "delivery_settings": {
       "updated": "{actor} changed the delivery settings"
@@ -670,10 +673,7 @@
     "public_link": {
       "created": "{actor} shared the link for {number}",
       "revoked": "{actor} turned off the link for {number}"
-    },
-    "order.placed_online": "{actor} placed order {number} from the online shop",
-    "order.accepted": "{actor} accepted online order {number}",
-    "order.expired": "Online order {number} was cancelled because nobody accepted it in time"
+    }
   },
   "catalog": {
     "title": "Catalog",
