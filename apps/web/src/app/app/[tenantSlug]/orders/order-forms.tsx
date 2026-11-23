@@ -250,7 +250,8 @@ export function FulfillmentForm({
         ) : null}
 
         {windows.length === 0 || windowChoice === CUSTOM_WINDOW ? (
-          <div className="grid grid-cols-2 gap-4 sm:max-w-md">
+          // items-start: il suggerimento sotto "Desde" non deve spostare "Hasta".
+          <div className="grid grid-cols-2 items-start gap-4 sm:max-w-md">
             <Field
               id="order-window-start"
               label={t('form.windowStart')}

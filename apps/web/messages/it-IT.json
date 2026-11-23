@@ -1187,8 +1187,8 @@
     },
     "draft": {
       "intro": "Componi l’ordine: aggiungi i prodotti, indica la consegna e confermalo. Fino ad allora non compare tra le consegne.",
-      "stepProducts": "1. Prodotti",
-      "stepDelivery": "2. Consegna e biglietto",
+      "stepProducts": "Prodotti",
+      "stepDelivery": "Consegna e biglietto",
       "deliveryHint": "Quando e come si consegna. Alla conferma l’ordine diventa «Confermato», pronto da preparare.",
       "needsLines": "Aggiungi almeno un prodotto per poter confermare l’ordine.",
       "confirm": "Conferma ordine",
@@ -1202,7 +1202,11 @@
       "discardConfirm": "Scarta",
       "editLines": "Cambia prodotti o sconto",
       "editLinesBody": "I prezzi vengono dal tuo catalogo attuale. Se il cliente ha già pagato, il totale non può scendere sotto quanto pagato.",
-      "discarded": "Questa bozza è stata scartata: non è un ordine."
+      "discarded": "Questa bozza è stata scartata: non è un ordine.",
+      "stepCustomer": "Cliente",
+      "changeLines": "Cambia prodotti",
+      "linesCount": "{count, plural, one {# prodotto} other {# prodotti}}",
+      "continueHint": "Quando hai i prodotti, continua con la consegna."
     },
     "customerCard": {
       "title": "Ordini",

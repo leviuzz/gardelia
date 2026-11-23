@@ -1187,8 +1187,8 @@
     },
     "draft": {
       "intro": "Arma el pedido: agrega los productos, indica la entrega y confírmalo. Hasta entonces no aparece en las entregas.",
-      "stepProducts": "1. Productos",
-      "stepDelivery": "2. Entrega y tarjeta",
+      "stepProducts": "Productos",
+      "stepDelivery": "Entrega y tarjeta",
       "deliveryHint": "Cuándo y cómo se entrega. Al confirmar, el pedido queda «Confirmado» y listo para preparar.",
       "needsLines": "Agrega al menos un producto para poder confirmar el pedido.",
       "confirm": "Confirmar pedido",
@@ -1202,7 +1202,11 @@
       "discardConfirm": "Descartar",
       "editLines": "Cambiar productos o descuento",
       "editLinesBody": "Los precios salen de tu catálogo actual. Si el cliente ya pagó, el total no puede quedar por debajo de lo pagado.",
-      "discarded": "Este borrador se descartó: no es un pedido."
+      "discarded": "Este borrador se descartó: no es un pedido.",
+      "stepCustomer": "Cliente",
+      "changeLines": "Cambiar productos",
+      "linesCount": "{count, plural, one {# producto} other {# productos}}",
+      "continueHint": "Cuando tengas los productos, continúa con la entrega."
     },
     "customerCard": {
       "title": "Pedidos",

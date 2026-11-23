@@ -545,6 +545,12 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Flussi a passi (fatto il 23/11, ADR-044 esteso, richiesta del founder):** "Nuevo pedido" in tre passi
+(Cliente → Productos → Entrega y tarjeta, con "Continuar" solo quando c'è almeno un prodotto e il riepilogo
+sempre visibile) e creazione della fioreria in due (Tu florería → Dirección de la tienda), con l'aiuto
+`lib/form-steps.ts`. Corretto anche l'allineamento di "Desde"/"Hasta" nel modulo di consegna. Restano
+senza passi i moduli brevi e "Convertir en pedido". Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test 721/721 ✅ (2 nuovi sull'aiuto dei passi) · build ✅ · E2E 77/77 ✅ (i flussi di ordini e onboarding con i passi; l'onboarding controlla anche che senza nome non si va avanti e che "Atrás" non perde i dati); controllo visivo a 390 e 1280 px.
+
 **Conto del cliente, blocco C1 del marketplace (fatto il 23/11, ADR-064):** "Mi cuenta" (`/cuenta`) per
 chi compra: nome ed email dell'accesso, telefono, indirizzi di consegna con "Buscar dirección" (la stessa
 rubrica della fioreria, spostata in `components/addresses/address-book.tsx`). Login e registrazione

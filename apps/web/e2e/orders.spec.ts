@@ -137,6 +137,8 @@ test.describe('pedido directo (propietaria)', () => {
       page.getByText('Agrega al menos un producto para poder confirmar el pedido.'),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Confirmar pedido' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Continuar' })).toHaveCount(0);
+    await expect(page.getByRole('navigation', { name: 'Pasos' })).toBeVisible();
 
     const addForm = page
       .locator('form')
@@ -161,6 +163,9 @@ test.describe('pedido directo (propietaria)', () => {
     await page.getByRole('button', { name: 'Aplicar descuento' }).click();
     await expect(page.getByText('Descuento actualizado.')).toBeVisible();
     await expect(page.getByTestId('order-total')).toHaveText('$700.00');
+    // Nuevo pedido a passi: dai prodotti si continua alla consegna.
+    await page.getByRole('link', { name: 'Continuar' }).click();
+    await expect(page).toHaveURL(/\?step=delivery$/);
 
     // Conferma con ritiro in negozio: diventa un ordine come gli altri.
     await page.getByRole('radio', { name: 'Recoge en tienda' }).check();

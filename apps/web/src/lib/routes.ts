@@ -102,7 +102,9 @@ export function tenantRoutes(slug: string) {
       production: (query?: { readonly date?: string }) => withQuery(`${orders}/production`, query),
       /** Il mese con gli ordini per giorno (`month` = AAAA-MM). */
       calendar: (query?: { readonly month?: string }) => withQuery(`${orders}/calendar`, query),
-      detail: (orderId: string) => `${orders}/${segment(orderId)}`,
+      /** Scheda dell'ordine; per un borrador `{ step: 'delivery' }` apre il passo della consegna. */
+      detail: (orderId: string, query?: QueryValues) =>
+        withQuery(`${orders}/${segment(orderId)}`, query),
       /** Foto del ramo finito (prova di consegna; `thumb` = miniatura). */
       photo: (orderId: string, options?: { readonly thumb?: boolean; readonly v?: string }) =>
         withQuery(`${orders}/${segment(orderId)}/photo`, {

@@ -31,8 +31,17 @@ test('un nuovo fiorista si registra, verifica l’email, crea la fioreria e il p
 
   // Utente verificato e autenticato, senza fiorerie → onboarding.
   await expect(page).toHaveURL(/\/onboarding$/);
+  // A passi: senza il nome commerciale non si va avanti all'indirizzo.
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await expect(page.getByLabel('Calle y número')).toBeHidden();
   await page.getByLabel('Nombre comercial').fill(shopName);
   await page.getByLabel('Teléfono de contacto').fill('449 555 0123');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await expect(page.getByLabel('Calle y número')).toBeVisible();
+  // "Atrás" torna alla fioreria senza perdere quanto scritto.
+  await page.getByRole('button', { name: 'Atrás' }).click();
+  await expect(page.getByLabel('Nombre comercial')).toHaveValue(shopName);
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByLabel('Calle y número').fill('Av. Universidad 940');
   await page.getByLabel('Colonia').fill('Ciudad Universitaria');
   await page.getByLabel('Código postal').fill('20131');

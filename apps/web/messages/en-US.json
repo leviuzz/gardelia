@@ -1187,8 +1187,8 @@
     },
     "draft": {
       "intro": "Build the order: add the products, set the delivery and confirm it. Until then it doesn’t show up in deliveries.",
-      "stepProducts": "1. Products",
-      "stepDelivery": "2. Delivery and card",
+      "stepProducts": "Products",
+      "stepDelivery": "Delivery and card",
       "deliveryHint": "When and how it’s delivered. Once confirmed, the order is “Confirmed” and ready to prepare.",
       "needsLines": "Add at least one product to confirm the order.",
       "confirm": "Confirm order",
@@ -1202,7 +1202,11 @@
       "discardConfirm": "Discard",
       "editLines": "Change products or discount",
       "editLinesBody": "Prices come from your current catalog. If the customer already paid, the total can’t drop below what they paid.",
-      "discarded": "This draft was discarded: it isn’t an order."
+      "discarded": "This draft was discarded: it isn’t an order.",
+      "stepCustomer": "Customer",
+      "changeLines": "Change products",
+      "linesCount": "{count, plural, one {# product} other {# products}}",
+      "continueHint": "Once the products are in, continue to the delivery."
     },
     "customerCard": {
       "title": "Orders",

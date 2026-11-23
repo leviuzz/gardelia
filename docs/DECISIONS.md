@@ -923,6 +923,20 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   tutti i passi cliccabili come schede, e se si cambia qualcosa una barra "Tienes cambios sin
   guardar" offre "Guardar cambios" da qualsiasi passo. Senza AI (nessun provider) il passo
   dell'anteprima non c'è. Calcoli, colori e controlli di disponibilità sono quelli di prima.
+- **Esteso il 23/11/2026** (richiesta del founder: "dove vedi la possibilità di organizzare flussi
+  in stepper fallo"):
+  - **Nuevo pedido** a passi: 1. **Cliente** (scelta), 2. **Productos** (righe e sconto, "Continuar"
+    solo con almeno un prodotto), 3. **Entrega y tarjeta** con "Confirmar pedido". I passi del
+    borrador sono pagine vere (`?step=delivery`): si ricaricano e il tasto indietro funziona. Il
+    riepilogo con il totale resta accanto (su telefono prima del modulo di consegna) con "Cambiar
+    productos".
+  - **Creazione della fioreria** a passi: 1. **Tu florería**, 2. **Dirección de la tienda** con
+    "Crear mi florería": un solo modulo come qui sopra, con l'aiuto comune `lib/form-steps.ts`
+    (campi del passo controllati prima di andare avanti, errore del server → il suo passo, cursore
+    sul primo campo del passo aperto).
+  - **Non** a passi: i moduli brevi (telefono, un indirizzo, un pagamento) e "Convertir en pedido"
+    (un solo passo vero: consegna e tarjeta, il preventivo è già accettato). L'ordine del cliente
+    nel marketplace (C4) nascerà a passi.
 
 ### ADR-045 — "Generar otra versión" della foto realistica — ADOTTATO (22/11/2026)
 
