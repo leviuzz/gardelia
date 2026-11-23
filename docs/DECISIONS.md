@@ -1703,6 +1703,28 @@ Numerata 070: 066 è già la home per chi compra e 067–069 restano ai blocchi 
     quel numero di eventi, poi si uniscono e si taglia: nessun cursore che salti eventi con lo
     stesso istante;
   - abbonamenti e interventi entreranno con SUB-01 e CARE-01.
+- **Blocco 2, etichette e filtri** (spec CRM-01: "Segmenti: … tags", "consenso marketing"):
+  - filtri della lista clienti: etichetta (l'elenco delle etichette già usate dalla fioreria),
+    consenso alle promozioni (sì/no) e "Fecha especial en 30 días" (una data speciale da oggi a 30
+    giorni, contata come il pannello: il 29 febbraio vale il 28 negli anni non bisestili). Si
+    sommano a ricerca, tipo e stato e restano nell'indirizzo, come gli altri filtri;
+  - la data vicina si filtra nel database: dal fuso della fioreria si ricavano i giorni del
+    calendario della finestra (`upcomingMonthDays`) e si cercano le date speciali con quel mese e
+    giorno, senza caricare tutte le date in memoria;
+  - **etichetta a più clienti**: caselle nelle righe, "Seleccionar todos" della pagina, etichetta con
+    i suggerimenti di quelle usate, "Agregar etiqueta" o "Quitar etiqueta" (al massimo 100 clienti
+    per volta). Solo proprietario e manager (`customers:write`), come la scheda;
+  - un cliente con già 15 etichette viene saltato e contato nel messaggio (come avviso), gli altri
+    la ricevono; chi l'aveva già, o non l'aveva, è contato a parte;
+  - un ID di un'altra fioreria nel gruppo: 404 per tutto il gruppo, nessuna modifica, evento di
+    sicurezza;
+  - nel registro **una voce per gruppo** (`customer.tags_added` / `customer.tags_removed`) con
+    quanti e quali clienti (ID), mai il testo dell'etichetta, come per le modifiche della scheda.
+  - **Correzione trovata strada facendo:** le voci di "Actividad reciente" della dashboard
+    (clienti, catalogo, preventivi, ordini…) avevano chiavi col punto (`"customer.created"`) che
+    next-intl legge come annidamento: non si trovavano mai e compariva sempre "realizó un cambio".
+    Ora sono annidate per modulo; un test controlla che nessuna chiave abbia un punto e che ogni
+    azione di una fioreria abbia il suo testo nelle tre lingue.
 
 ## 3. Proposte da approvare
 

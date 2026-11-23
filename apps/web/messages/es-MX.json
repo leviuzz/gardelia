@@ -514,79 +514,115 @@
   },
   "activity": {
     "someone": "Alguien",
-    "tenant.created": "{actor} creó la florería",
-    "tenant.updated": "{actor} actualizó los datos de la florería",
-    "location.updated": "{actor} actualizó la dirección de la tienda",
-    "member.invited": "{actor} invitó a una persona como {role}",
-    "invitation.revoked": "{actor} canceló una invitación",
-    "invitation.accepted": "{actor} se unió al equipo",
-    "member.added_by_platform": "{actor} agregó a una persona al equipo como {role} (soporte de la plataforma)",
-    "member.role_changed": "{actor} cambió el rol de un miembro a {role}",
-    "member.deactivated": "{actor} desactivó a un miembro del equipo",
-    "member.reactivated": "{actor} reactivó a un miembro del equipo",
-    "catalog_item.created": "{actor} agregó «{name}» al catálogo",
-    "catalog_item.updated": "{actor} editó «{name}»",
-    "catalog_item.archived": "{actor} archivó «{name}»",
-    "catalog_item.restored": "{actor} restauró «{name}»",
-    "catalog_item.photo_added": "{actor} agregó una foto de «{name}»",
-    "catalog_item.photo_archived": "{actor} quitó una foto de «{name}»",
-    "recipe.updated": "{actor} actualizó la receta de «{name}»",
-    "recipe.line_added": "{actor} agregó {ingredient} a una receta",
-    "recipe.line_updated": "{actor} cambió la cantidad de {ingredient} en una receta",
-    "recipe.line_removed": "{actor} quitó {ingredient} de una receta",
+    "tenant": {
+      "created": "{actor} creó la florería",
+      "updated": "{actor} actualizó los datos de la florería",
+      "promo_updated": "{actor} cambió la promoción de fechas especiales"
+    },
+    "location": {
+      "updated": "{actor} actualizó la dirección de la tienda"
+    },
+    "member": {
+      "invited": "{actor} invitó a una persona como {role}",
+      "added_by_platform": "{actor} agregó a una persona al equipo como {role} (soporte de la plataforma)",
+      "role_changed": "{actor} cambió el rol de un miembro a {role}",
+      "deactivated": "{actor} desactivó a un miembro del equipo",
+      "reactivated": "{actor} reactivó a un miembro del equipo"
+    },
+    "invitation": {
+      "revoked": "{actor} canceló una invitación",
+      "accepted": "{actor} se unió al equipo"
+    },
+    "catalog_item": {
+      "created": "{actor} agregó «{name}» al catálogo",
+      "updated": "{actor} editó «{name}»",
+      "archived": "{actor} archivó «{name}»",
+      "restored": "{actor} restauró «{name}»",
+      "photo_added": "{actor} agregó una foto de «{name}»",
+      "photo_archived": "{actor} quitó una foto de «{name}»"
+    },
+    "recipe": {
+      "updated": "{actor} actualizó la receta de «{name}»",
+      "line_added": "{actor} agregó {ingredient} a una receta",
+      "line_updated": "{actor} cambió la cantidad de {ingredient} en una receta",
+      "line_removed": "{actor} quitó {ingredient} de una receta"
+    },
     "fallback": "{actor} realizó un cambio",
-    "customer.created": "{actor} agregó un cliente",
-    "customer.updated": "{actor} actualizó los datos de un cliente",
-    "customer.archived": "{actor} archivó un cliente",
-    "customer.restored": "{actor} restauró un cliente",
-    "customer.address_added": "{actor} agregó una dirección de entrega",
-    "customer.address_updated": "{actor} actualizó una dirección de entrega",
-    "customer.address_archived": "{actor} eliminó una dirección de entrega",
-    "customer.occasion_added": "{actor} agregó una fecha especial",
-    "customer.occasion_removed": "{actor} eliminó una fecha especial",
-    "quote.created": "{actor} creó la cotización {number}",
-    "quote.updated": "{actor} actualizó la cotización {number}",
-    "quote.line_added": "{actor} agregó un concepto a {number}",
-    "quote.line_updated": "{actor} cambió una cantidad en {number}",
-    "quote.line_removed": "{actor} quitó un concepto de {number}",
-    "quote.status_changed": "{actor} marcó {number} como «{status}»",
-    "subscription.assigned": "Se asignó el plan {plan} a la florería",
-    "builder.configuration_created": "{actor} guardó el diseño «{name}»",
-    "builder.configuration_updated": "{actor} actualizó el diseño «{name}»",
-    "builder.configuration_archived": "{actor} archivó el diseño «{name}»",
-    "builder.configuration_restored": "{actor} restauró el diseño «{name}»",
-    "builder.configuration_deleted": "{actor} eliminó el diseño «{name}»",
-    "builder.photo_added": "{actor} subió la foto del ramo «{name}»",
-    "builder.photo_removed": "{actor} quitó la foto del ramo «{name}»",
-    "ai.preview_requested": "{actor} pidió una vista previa con IA",
-    "ai_credits.granted": "Se agregaron {units} vistas previas extra",
-    "builder.style_reference_added": "{actor} agregó una foto a «Mis ramos»",
-    "builder.style_reference_archived": "{actor} quitó una foto de «Mis ramos»",
-    "tenant.promo_updated": "{actor} cambió la promoción de fechas especiales",
-    "customer.unsubscribed": "Un cliente se dio de baja de las promociones",
-    "promo.redeemed": "{actor} marcó como usado un descuento",
-    "promo.redemption_undone": "{actor} quitó el uso de un descuento",
-    "order.created": "{actor} creó el pedido {number}",
-    "order.updated": "{actor} cambió la entrega de {number}",
-    "order.status_changed": "{actor} marcó {number} como «{status}»",
-    "order.cancelled": "{actor} canceló el pedido {number}",
-    "order.payment_recorded": "{actor} registró un pago en {number}",
-    "order.payment_reversed": "{actor} anuló un pago en {number}",
-    "order.line_added": "{actor} agregó un concepto a {number}",
-    "order.line_updated": "{actor} cambió una cantidad en {number}",
-    "order.line_removed": "{actor} quitó un concepto de {number}",
-    "order.discount_changed": "{actor} cambió el descuento de {number}",
-    "order.confirmed": "{actor} confirmó el pedido {number}",
-    "order.discarded": "{actor} descartó el borrador {number}",
-    "delivery_settings.updated": "{actor} cambió los ajustes de entrega",
-    "delivery_window.added": "{actor} agregó una franja de entrega",
-    "delivery_window.removed": "{actor} quitó una franja de entrega",
-    "quote.accepted_online": "El cliente aceptó la cotización {number} desde el enlace",
-    "public_link.created": "{actor} compartió el enlace de {number}",
-    "public_link.revoked": "{actor} desactivó el enlace de {number}",
-    "order.assigned": "{actor} cambió el repartidor de {number}",
-    "order.photo_added": "{actor} subió la foto del ramo de {number}",
-    "order.receiver_recorded": "{actor} anotó quién recibió {number}"
+    "customer": {
+      "created": "{actor} agregó un cliente",
+      "updated": "{actor} actualizó los datos de un cliente",
+      "archived": "{actor} archivó un cliente",
+      "restored": "{actor} restauró un cliente",
+      "address_added": "{actor} agregó una dirección de entrega",
+      "address_updated": "{actor} actualizó una dirección de entrega",
+      "address_archived": "{actor} eliminó una dirección de entrega",
+      "occasion_added": "{actor} agregó una fecha especial",
+      "occasion_removed": "{actor} eliminó una fecha especial",
+      "unsubscribed": "Un cliente se dio de baja de las promociones",
+      "tags_added": "{actor} agregó una etiqueta a {count, plural, one {# cliente} other {# clientes}}",
+      "tags_removed": "{actor} quitó una etiqueta a {count, plural, one {# cliente} other {# clientes}}"
+    },
+    "quote": {
+      "created": "{actor} creó la cotización {number}",
+      "updated": "{actor} actualizó la cotización {number}",
+      "line_added": "{actor} agregó un concepto a {number}",
+      "line_updated": "{actor} cambió una cantidad en {number}",
+      "line_removed": "{actor} quitó un concepto de {number}",
+      "status_changed": "{actor} marcó {number} como «{status}»",
+      "accepted_online": "El cliente aceptó la cotización {number} desde el enlace"
+    },
+    "subscription": {
+      "assigned": "Se asignó el plan {plan} a la florería"
+    },
+    "builder": {
+      "configuration_created": "{actor} guardó el diseño «{name}»",
+      "configuration_updated": "{actor} actualizó el diseño «{name}»",
+      "configuration_archived": "{actor} archivó el diseño «{name}»",
+      "configuration_restored": "{actor} restauró el diseño «{name}»",
+      "configuration_deleted": "{actor} eliminó el diseño «{name}»",
+      "photo_added": "{actor} subió la foto del ramo «{name}»",
+      "photo_removed": "{actor} quitó la foto del ramo «{name}»",
+      "style_reference_added": "{actor} agregó una foto a «Mis ramos»",
+      "style_reference_archived": "{actor} quitó una foto de «Mis ramos»"
+    },
+    "ai": {
+      "preview_requested": "{actor} pidió una vista previa con IA"
+    },
+    "ai_credits": {
+      "granted": "Se agregaron {units} vistas previas extra"
+    },
+    "promo": {
+      "redeemed": "{actor} marcó como usado un descuento",
+      "redemption_undone": "{actor} quitó el uso de un descuento"
+    },
+    "order": {
+      "created": "{actor} creó el pedido {number}",
+      "updated": "{actor} cambió la entrega de {number}",
+      "status_changed": "{actor} marcó {number} como «{status}»",
+      "cancelled": "{actor} canceló el pedido {number}",
+      "payment_recorded": "{actor} registró un pago en {number}",
+      "payment_reversed": "{actor} anuló un pago en {number}",
+      "line_added": "{actor} agregó un concepto a {number}",
+      "line_updated": "{actor} cambió una cantidad en {number}",
+      "line_removed": "{actor} quitó un concepto de {number}",
+      "discount_changed": "{actor} cambió el descuento de {number}",
+      "confirmed": "{actor} confirmó el pedido {number}",
+      "discarded": "{actor} descartó el borrador {number}",
+      "assigned": "{actor} cambió el repartidor de {number}",
+      "photo_added": "{actor} subió la foto del ramo de {number}",
+      "receiver_recorded": "{actor} anotó quién recibió {number}"
+    },
+    "delivery_settings": {
+      "updated": "{actor} cambió los ajustes de entrega"
+    },
+    "delivery_window": {
+      "added": "{actor} agregó una franja de entrega",
+      "removed": "{actor} quitó una franja de entrega"
+    },
+    "public_link": {
+      "created": "{actor} compartió el enlace de {number}",
+      "revoked": "{actor} desactivó el enlace de {number}"
+    }
   },
   "catalog": {
     "title": "Catálogo",
@@ -1045,6 +1081,40 @@
       "promoSent": "Le enviamos la promoción de {occasion} con el código {code}",
       "promoRedeemed": "Usó el código {code}",
       "more": "Ver más"
+    },
+    "filters": {
+      "tag": "Filtrar por etiqueta",
+      "allTags": "Todas las etiquetas",
+      "consent": "Promociones",
+      "anyConsent": "Promociones: todos",
+      "consentOptions": {
+        "yes": "Aceptan promociones",
+        "no": "No aceptan promociones"
+      },
+      "upcoming": "Fecha especial",
+      "anyDate": "Cualquier fecha",
+      "upcomingOption": "Fecha especial en 30 días"
+    },
+    "bulk": {
+      "title": "Etiquetar clientes",
+      "noneSelected": "Elige clientes de la lista para agregarles o quitarles una etiqueta.",
+      "selected": "{count, plural, one {# cliente seleccionado} other {# clientes seleccionados}}",
+      "selectPage": "Seleccionar todos",
+      "clearSelection": "Quitar selección",
+      "select": "Seleccionar a {name}",
+      "tag": "Etiqueta",
+      "tagPlaceholder": "Ej. bodas",
+      "add": "Agregar etiqueta",
+      "remove": "Quitar etiqueta",
+      "added": "{count, plural, one {Etiqueta «{tag}» agregada a # cliente.} other {Etiqueta «{tag}» agregada a # clientes.}}",
+      "removed": "{count, plural, one {Etiqueta «{tag}» quitada a # cliente.} other {Etiqueta «{tag}» quitada a # clientes.}}",
+      "noChange": "Ningún cliente cambió.",
+      "alreadyHad": "{count, plural, one {# ya la tenía.} other {# ya la tenían.}}",
+      "didNotHave": "{count, plural, one {# no la tenía.} other {# no la tenían.}}",
+      "full": "{count, plural, one {# cliente ya tiene {max} etiquetas y no se cambió.} other {# clientes ya tienen {max} etiquetas y no se cambiaron.}}"
+    },
+    "validation": {
+      "none_selected": "Selecciona al menos un cliente."
     }
   },
   "quotes": {

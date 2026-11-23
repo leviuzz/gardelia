@@ -514,79 +514,115 @@
   },
   "activity": {
     "someone": "Qualcuno",
-    "tenant.created": "{actor} ha creato la fioreria",
-    "tenant.updated": "{actor} ha aggiornato i dati della fioreria",
-    "location.updated": "{actor} ha aggiornato l’indirizzo del negozio",
-    "member.invited": "{actor} ha invitato una persona come {role}",
-    "invitation.revoked": "{actor} ha annullato un invito",
-    "invitation.accepted": "{actor} ha raggiunto il team",
-    "member.added_by_platform": "{actor} ha aggiunto una persona al team come {role} (supporto della piattaforma)",
-    "member.role_changed": "{actor} ha cambiato il ruolo di un membro in {role}",
-    "member.deactivated": "{actor} ha disattivato un membro del team",
-    "member.reactivated": "{actor} ha riattivato un membro del team",
-    "catalog_item.created": "{actor} ha aggiunto «{name}» al catalogo",
-    "catalog_item.updated": "{actor} ha modificato «{name}»",
-    "catalog_item.archived": "{actor} ha archiviato «{name}»",
-    "catalog_item.restored": "{actor} ha ripristinato «{name}»",
-    "catalog_item.photo_added": "{actor} ha aggiunto una foto di «{name}»",
-    "catalog_item.photo_archived": "{actor} ha rimosso una foto di «{name}»",
-    "recipe.updated": "{actor} ha aggiornato la ricetta di «{name}»",
-    "recipe.line_added": "{actor} ha aggiunto {ingredient} a una ricetta",
-    "recipe.line_updated": "{actor} ha cambiato la quantità di {ingredient} in una ricetta",
-    "recipe.line_removed": "{actor} ha rimosso {ingredient} da una ricetta",
+    "tenant": {
+      "created": "{actor} ha creato la fioreria",
+      "updated": "{actor} ha aggiornato i dati della fioreria",
+      "promo_updated": "{actor} ha cambiato la promozione delle date speciali"
+    },
+    "location": {
+      "updated": "{actor} ha aggiornato l’indirizzo del negozio"
+    },
+    "member": {
+      "invited": "{actor} ha invitato una persona come {role}",
+      "added_by_platform": "{actor} ha aggiunto una persona al team come {role} (supporto della piattaforma)",
+      "role_changed": "{actor} ha cambiato il ruolo di un membro in {role}",
+      "deactivated": "{actor} ha disattivato un membro del team",
+      "reactivated": "{actor} ha riattivato un membro del team"
+    },
+    "invitation": {
+      "revoked": "{actor} ha annullato un invito",
+      "accepted": "{actor} ha raggiunto il team"
+    },
+    "catalog_item": {
+      "created": "{actor} ha aggiunto «{name}» al catalogo",
+      "updated": "{actor} ha modificato «{name}»",
+      "archived": "{actor} ha archiviato «{name}»",
+      "restored": "{actor} ha ripristinato «{name}»",
+      "photo_added": "{actor} ha aggiunto una foto di «{name}»",
+      "photo_archived": "{actor} ha rimosso una foto di «{name}»"
+    },
+    "recipe": {
+      "updated": "{actor} ha aggiornato la ricetta di «{name}»",
+      "line_added": "{actor} ha aggiunto {ingredient} a una ricetta",
+      "line_updated": "{actor} ha cambiato la quantità di {ingredient} in una ricetta",
+      "line_removed": "{actor} ha rimosso {ingredient} da una ricetta"
+    },
     "fallback": "{actor} ha apportato una modifica",
-    "customer.created": "{actor} ha aggiunto un cliente",
-    "customer.updated": "{actor} ha aggiornato i dati di un cliente",
-    "customer.archived": "{actor} ha archiviato un cliente",
-    "customer.restored": "{actor} ha ripristinato un cliente",
-    "customer.address_added": "{actor} ha aggiunto un indirizzo di consegna",
-    "customer.address_updated": "{actor} ha aggiornato un indirizzo di consegna",
-    "customer.address_archived": "{actor} ha eliminato un indirizzo di consegna",
-    "customer.occasion_added": "{actor} ha aggiunto una ricorrenza",
-    "customer.occasion_removed": "{actor} ha eliminato una ricorrenza",
-    "quote.created": "{actor} ha creato il preventivo {number}",
-    "quote.updated": "{actor} ha aggiornato il preventivo {number}",
-    "quote.line_added": "{actor} ha aggiunto una voce a {number}",
-    "quote.line_updated": "{actor} ha cambiato una quantità in {number}",
-    "quote.line_removed": "{actor} ha rimosso una voce da {number}",
-    "quote.status_changed": "{actor} ha segnato {number} come «{status}»",
-    "subscription.assigned": "Alla fioreria è stato assegnato il piano {plan}",
-    "builder.configuration_created": "{actor} ha salvato la composizione «{name}»",
-    "builder.configuration_updated": "{actor} ha aggiornato la composizione «{name}»",
-    "builder.configuration_archived": "{actor} ha archiviato la composizione «{name}»",
-    "builder.configuration_restored": "{actor} ha ripristinato la composizione «{name}»",
-    "builder.configuration_deleted": "{actor} ha eliminato la composizione «{name}»",
-    "builder.photo_added": "{actor} ha caricato la foto del bouquet «{name}»",
-    "builder.photo_removed": "{actor} ha tolto la foto del bouquet «{name}»",
-    "ai.preview_requested": "{actor} ha richiesto un’anteprima con IA",
-    "ai_credits.granted": "Sono state aggiunte {units} anteprime extra",
-    "builder.style_reference_added": "{actor} ha aggiunto una foto a «I miei bouquet»",
-    "builder.style_reference_archived": "{actor} ha rimosso una foto da «I miei bouquet»",
-    "tenant.promo_updated": "{actor} ha cambiato la promozione delle date speciali",
-    "customer.unsubscribed": "Un cliente ha smesso di ricevere le promozioni",
-    "promo.redeemed": "{actor} ha segnato come usato uno sconto",
-    "promo.redemption_undone": "{actor} ha tolto l'uso di uno sconto",
-    "order.created": "{actor} ha creato l’ordine {number}",
-    "order.updated": "{actor} ha cambiato la consegna di {number}",
-    "order.status_changed": "{actor} ha segnato {number} come «{status}»",
-    "order.cancelled": "{actor} ha annullato l’ordine {number}",
-    "order.payment_recorded": "{actor} ha registrato un pagamento su {number}",
-    "order.payment_reversed": "{actor} ha stornato un pagamento su {number}",
-    "order.line_added": "{actor} ha aggiunto una riga a {number}",
-    "order.line_updated": "{actor} ha cambiato una quantità in {number}",
-    "order.line_removed": "{actor} ha tolto una riga da {number}",
-    "order.discount_changed": "{actor} ha cambiato lo sconto di {number}",
-    "order.confirmed": "{actor} ha confermato l’ordine {number}",
-    "order.discarded": "{actor} ha scartato la bozza {number}",
-    "delivery_settings.updated": "{actor} ha cambiato le impostazioni di consegna",
-    "delivery_window.added": "{actor} ha aggiunto una fascia di consegna",
-    "delivery_window.removed": "{actor} ha tolto una fascia di consegna",
-    "quote.accepted_online": "Il cliente ha accettato il preventivo {number} dal link",
-    "public_link.created": "{actor} ha condiviso il link di {number}",
-    "public_link.revoked": "{actor} ha disattivato il link di {number}",
-    "order.assigned": "{actor} ha cambiato il fattorino di {number}",
-    "order.photo_added": "{actor} ha caricato la foto del mazzo di {number}",
-    "order.receiver_recorded": "{actor} ha indicato chi ha ricevuto {number}"
+    "customer": {
+      "created": "{actor} ha aggiunto un cliente",
+      "updated": "{actor} ha aggiornato i dati di un cliente",
+      "archived": "{actor} ha archiviato un cliente",
+      "restored": "{actor} ha ripristinato un cliente",
+      "address_added": "{actor} ha aggiunto un indirizzo di consegna",
+      "address_updated": "{actor} ha aggiornato un indirizzo di consegna",
+      "address_archived": "{actor} ha eliminato un indirizzo di consegna",
+      "occasion_added": "{actor} ha aggiunto una ricorrenza",
+      "occasion_removed": "{actor} ha eliminato una ricorrenza",
+      "unsubscribed": "Un cliente ha smesso di ricevere le promozioni",
+      "tags_added": "{actor} ha aggiunto un'etichetta a {count, plural, one {# cliente} other {# clienti}}",
+      "tags_removed": "{actor} ha tolto un'etichetta a {count, plural, one {# cliente} other {# clienti}}"
+    },
+    "quote": {
+      "created": "{actor} ha creato il preventivo {number}",
+      "updated": "{actor} ha aggiornato il preventivo {number}",
+      "line_added": "{actor} ha aggiunto una voce a {number}",
+      "line_updated": "{actor} ha cambiato una quantità in {number}",
+      "line_removed": "{actor} ha rimosso una voce da {number}",
+      "status_changed": "{actor} ha segnato {number} come «{status}»",
+      "accepted_online": "Il cliente ha accettato il preventivo {number} dal link"
+    },
+    "subscription": {
+      "assigned": "Alla fioreria è stato assegnato il piano {plan}"
+    },
+    "builder": {
+      "configuration_created": "{actor} ha salvato la composizione «{name}»",
+      "configuration_updated": "{actor} ha aggiornato la composizione «{name}»",
+      "configuration_archived": "{actor} ha archiviato la composizione «{name}»",
+      "configuration_restored": "{actor} ha ripristinato la composizione «{name}»",
+      "configuration_deleted": "{actor} ha eliminato la composizione «{name}»",
+      "photo_added": "{actor} ha caricato la foto del bouquet «{name}»",
+      "photo_removed": "{actor} ha tolto la foto del bouquet «{name}»",
+      "style_reference_added": "{actor} ha aggiunto una foto a «I miei bouquet»",
+      "style_reference_archived": "{actor} ha rimosso una foto da «I miei bouquet»"
+    },
+    "ai": {
+      "preview_requested": "{actor} ha richiesto un’anteprima con IA"
+    },
+    "ai_credits": {
+      "granted": "Sono state aggiunte {units} anteprime extra"
+    },
+    "promo": {
+      "redeemed": "{actor} ha segnato come usato uno sconto",
+      "redemption_undone": "{actor} ha tolto l'uso di uno sconto"
+    },
+    "order": {
+      "created": "{actor} ha creato l’ordine {number}",
+      "updated": "{actor} ha cambiato la consegna di {number}",
+      "status_changed": "{actor} ha segnato {number} come «{status}»",
+      "cancelled": "{actor} ha annullato l’ordine {number}",
+      "payment_recorded": "{actor} ha registrato un pagamento su {number}",
+      "payment_reversed": "{actor} ha stornato un pagamento su {number}",
+      "line_added": "{actor} ha aggiunto una riga a {number}",
+      "line_updated": "{actor} ha cambiato una quantità in {number}",
+      "line_removed": "{actor} ha tolto una riga da {number}",
+      "discount_changed": "{actor} ha cambiato lo sconto di {number}",
+      "confirmed": "{actor} ha confermato l’ordine {number}",
+      "discarded": "{actor} ha scartato la bozza {number}",
+      "assigned": "{actor} ha cambiato il fattorino di {number}",
+      "photo_added": "{actor} ha caricato la foto del mazzo di {number}",
+      "receiver_recorded": "{actor} ha indicato chi ha ricevuto {number}"
+    },
+    "delivery_settings": {
+      "updated": "{actor} ha cambiato le impostazioni di consegna"
+    },
+    "delivery_window": {
+      "added": "{actor} ha aggiunto una fascia di consegna",
+      "removed": "{actor} ha tolto una fascia di consegna"
+    },
+    "public_link": {
+      "created": "{actor} ha condiviso il link di {number}",
+      "revoked": "{actor} ha disattivato il link di {number}"
+    }
   },
   "catalog": {
     "title": "Catalogo",
@@ -1045,6 +1081,40 @@
       "promoSent": "Gli abbiamo inviato la promozione di {occasion} con il codice {code}",
       "promoRedeemed": "Ha usato il codice {code}",
       "more": "Mostra altro"
+    },
+    "filters": {
+      "tag": "Filtra per etichetta",
+      "allTags": "Tutte le etichette",
+      "consent": "Promozioni",
+      "anyConsent": "Promozioni: tutti",
+      "consentOptions": {
+        "yes": "Accettano le promozioni",
+        "no": "Non accettano le promozioni"
+      },
+      "upcoming": "Data speciale",
+      "anyDate": "Qualsiasi data",
+      "upcomingOption": "Data speciale entro 30 giorni"
+    },
+    "bulk": {
+      "title": "Etichettare clienti",
+      "noneSelected": "Scegli dei clienti nella lista per aggiungere o togliere un'etichetta.",
+      "selected": "{count, plural, one {# cliente selezionato} other {# clienti selezionati}}",
+      "selectPage": "Seleziona tutti",
+      "clearSelection": "Togli la selezione",
+      "select": "Seleziona {name}",
+      "tag": "Etichetta",
+      "tagPlaceholder": "Es. matrimoni",
+      "add": "Aggiungi etichetta",
+      "remove": "Togli etichetta",
+      "added": "{count, plural, one {Etichetta «{tag}» aggiunta a # cliente.} other {Etichetta «{tag}» aggiunta a # clienti.}}",
+      "removed": "{count, plural, one {Etichetta «{tag}» tolta a # cliente.} other {Etichetta «{tag}» tolta a # clienti.}}",
+      "noChange": "Nessun cliente è cambiato.",
+      "alreadyHad": "{count, plural, one {# l'aveva già.} other {# l'avevano già.}}",
+      "didNotHave": "{count, plural, one {# non l'aveva.} other {# non l'avevano.}}",
+      "full": "{count, plural, one {# cliente ha già {max} etichette e non è cambiato.} other {# clienti hanno già {max} etichette e non sono cambiati.}}"
+    },
+    "validation": {
+      "none_selected": "Seleziona almeno un cliente."
     }
   },
   "quotes": {

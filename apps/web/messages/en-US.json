@@ -514,79 +514,115 @@
   },
   "activity": {
     "someone": "Someone",
-    "tenant.created": "{actor} created the shop",
-    "tenant.updated": "{actor} updated the shop’s details",
-    "location.updated": "{actor} updated the store address",
-    "member.invited": "{actor} invited someone as {role}",
-    "invitation.revoked": "{actor} canceled an invitation",
-    "invitation.accepted": "{actor} joined the team",
-    "member.added_by_platform": "{actor} added someone to the team as {role} (platform support)",
-    "member.role_changed": "{actor} changed a member’s role to {role}",
-    "member.deactivated": "{actor} deactivated a team member",
-    "member.reactivated": "{actor} reactivated a team member",
-    "catalog_item.created": "{actor} added “{name}” to the catalog",
-    "catalog_item.updated": "{actor} edited “{name}”",
-    "catalog_item.archived": "{actor} archived “{name}”",
-    "catalog_item.restored": "{actor} restored “{name}”",
-    "catalog_item.photo_added": "{actor} added a photo of “{name}”",
-    "catalog_item.photo_archived": "{actor} removed a photo of “{name}”",
-    "recipe.updated": "{actor} updated the recipe for “{name}”",
-    "recipe.line_added": "{actor} added {ingredient} to a recipe",
-    "recipe.line_updated": "{actor} changed the quantity of {ingredient} in a recipe",
-    "recipe.line_removed": "{actor} removed {ingredient} from a recipe",
+    "tenant": {
+      "created": "{actor} created the shop",
+      "updated": "{actor} updated the shop’s details",
+      "promo_updated": "{actor} changed the special dates promotion"
+    },
+    "location": {
+      "updated": "{actor} updated the store address"
+    },
+    "member": {
+      "invited": "{actor} invited someone as {role}",
+      "added_by_platform": "{actor} added someone to the team as {role} (platform support)",
+      "role_changed": "{actor} changed a member’s role to {role}",
+      "deactivated": "{actor} deactivated a team member",
+      "reactivated": "{actor} reactivated a team member"
+    },
+    "invitation": {
+      "revoked": "{actor} canceled an invitation",
+      "accepted": "{actor} joined the team"
+    },
+    "catalog_item": {
+      "created": "{actor} added “{name}” to the catalog",
+      "updated": "{actor} edited “{name}”",
+      "archived": "{actor} archived “{name}”",
+      "restored": "{actor} restored “{name}”",
+      "photo_added": "{actor} added a photo of “{name}”",
+      "photo_archived": "{actor} removed a photo of “{name}”"
+    },
+    "recipe": {
+      "updated": "{actor} updated the recipe for “{name}”",
+      "line_added": "{actor} added {ingredient} to a recipe",
+      "line_updated": "{actor} changed the quantity of {ingredient} in a recipe",
+      "line_removed": "{actor} removed {ingredient} from a recipe"
+    },
     "fallback": "{actor} made a change",
-    "customer.created": "{actor} added a customer",
-    "customer.updated": "{actor} updated a customer’s details",
-    "customer.archived": "{actor} archived a customer",
-    "customer.restored": "{actor} restored a customer",
-    "customer.address_added": "{actor} added a delivery address",
-    "customer.address_updated": "{actor} updated a delivery address",
-    "customer.address_archived": "{actor} deleted a delivery address",
-    "customer.occasion_added": "{actor} added an occasion",
-    "customer.occasion_removed": "{actor} deleted an occasion",
-    "quote.created": "{actor} created quote {number}",
-    "quote.updated": "{actor} updated quote {number}",
-    "quote.line_added": "{actor} added a line item to {number}",
-    "quote.line_updated": "{actor} changed a quantity in {number}",
-    "quote.line_removed": "{actor} removed a line item from {number}",
-    "quote.status_changed": "{actor} marked {number} as “{status}”",
-    "subscription.assigned": "The {plan} plan was assigned to the shop",
-    "builder.configuration_created": "{actor} saved the design “{name}”",
-    "builder.configuration_updated": "{actor} updated the design “{name}”",
-    "builder.configuration_archived": "{actor} archived the design “{name}”",
-    "builder.configuration_restored": "{actor} restored the design “{name}”",
-    "builder.configuration_deleted": "{actor} deleted the design “{name}”",
-    "builder.photo_added": "{actor} uploaded the photo of the bouquet “{name}”",
-    "builder.photo_removed": "{actor} removed the photo of the bouquet “{name}”",
-    "ai.preview_requested": "{actor} requested an AI preview",
-    "ai_credits.granted": "{units} extra previews were added",
-    "builder.style_reference_added": "{actor} added a photo to “My bouquets”",
-    "builder.style_reference_archived": "{actor} removed a photo from “My bouquets”",
-    "tenant.promo_updated": "{actor} changed the special dates promotion",
-    "customer.unsubscribed": "A customer unsubscribed from promotions",
-    "promo.redeemed": "{actor} marked a discount as used",
-    "promo.redemption_undone": "{actor} removed the use of a discount",
-    "order.created": "{actor} created order {number}",
-    "order.updated": "{actor} changed the delivery of {number}",
-    "order.status_changed": "{actor} marked {number} as “{status}”",
-    "order.cancelled": "{actor} cancelled order {number}",
-    "order.payment_recorded": "{actor} recorded a payment on {number}",
-    "order.payment_reversed": "{actor} voided a payment on {number}",
-    "order.line_added": "{actor} added a line to {number}",
-    "order.line_updated": "{actor} changed a quantity in {number}",
-    "order.line_removed": "{actor} removed a line from {number}",
-    "order.discount_changed": "{actor} changed the discount on {number}",
-    "order.confirmed": "{actor} confirmed order {number}",
-    "order.discarded": "{actor} discarded draft {number}",
-    "delivery_settings.updated": "{actor} changed the delivery settings",
-    "delivery_window.added": "{actor} added a delivery time window",
-    "delivery_window.removed": "{actor} removed a delivery time window",
-    "quote.accepted_online": "The customer accepted quote {number} from the link",
-    "public_link.created": "{actor} shared the link for {number}",
-    "public_link.revoked": "{actor} turned off the link for {number}",
-    "order.assigned": "{actor} changed the driver of {number}",
-    "order.photo_added": "{actor} uploaded the bouquet photo for {number}",
-    "order.receiver_recorded": "{actor} recorded who received {number}"
+    "customer": {
+      "created": "{actor} added a customer",
+      "updated": "{actor} updated a customer’s details",
+      "archived": "{actor} archived a customer",
+      "restored": "{actor} restored a customer",
+      "address_added": "{actor} added a delivery address",
+      "address_updated": "{actor} updated a delivery address",
+      "address_archived": "{actor} deleted a delivery address",
+      "occasion_added": "{actor} added an occasion",
+      "occasion_removed": "{actor} deleted an occasion",
+      "unsubscribed": "A customer unsubscribed from promotions",
+      "tags_added": "{actor} added a tag to {count, plural, one {# customer} other {# customers}}",
+      "tags_removed": "{actor} removed a tag from {count, plural, one {# customer} other {# customers}}"
+    },
+    "quote": {
+      "created": "{actor} created quote {number}",
+      "updated": "{actor} updated quote {number}",
+      "line_added": "{actor} added a line item to {number}",
+      "line_updated": "{actor} changed a quantity in {number}",
+      "line_removed": "{actor} removed a line item from {number}",
+      "status_changed": "{actor} marked {number} as “{status}”",
+      "accepted_online": "The customer accepted quote {number} from the link"
+    },
+    "subscription": {
+      "assigned": "The {plan} plan was assigned to the shop"
+    },
+    "builder": {
+      "configuration_created": "{actor} saved the design “{name}”",
+      "configuration_updated": "{actor} updated the design “{name}”",
+      "configuration_archived": "{actor} archived the design “{name}”",
+      "configuration_restored": "{actor} restored the design “{name}”",
+      "configuration_deleted": "{actor} deleted the design “{name}”",
+      "photo_added": "{actor} uploaded the photo of the bouquet “{name}”",
+      "photo_removed": "{actor} removed the photo of the bouquet “{name}”",
+      "style_reference_added": "{actor} added a photo to “My bouquets”",
+      "style_reference_archived": "{actor} removed a photo from “My bouquets”"
+    },
+    "ai": {
+      "preview_requested": "{actor} requested an AI preview"
+    },
+    "ai_credits": {
+      "granted": "{units} extra previews were added"
+    },
+    "promo": {
+      "redeemed": "{actor} marked a discount as used",
+      "redemption_undone": "{actor} removed the use of a discount"
+    },
+    "order": {
+      "created": "{actor} created order {number}",
+      "updated": "{actor} changed the delivery of {number}",
+      "status_changed": "{actor} marked {number} as “{status}”",
+      "cancelled": "{actor} cancelled order {number}",
+      "payment_recorded": "{actor} recorded a payment on {number}",
+      "payment_reversed": "{actor} voided a payment on {number}",
+      "line_added": "{actor} added a line to {number}",
+      "line_updated": "{actor} changed a quantity in {number}",
+      "line_removed": "{actor} removed a line from {number}",
+      "discount_changed": "{actor} changed the discount on {number}",
+      "confirmed": "{actor} confirmed order {number}",
+      "discarded": "{actor} discarded draft {number}",
+      "assigned": "{actor} changed the driver of {number}",
+      "photo_added": "{actor} uploaded the bouquet photo for {number}",
+      "receiver_recorded": "{actor} recorded who received {number}"
+    },
+    "delivery_settings": {
+      "updated": "{actor} changed the delivery settings"
+    },
+    "delivery_window": {
+      "added": "{actor} added a delivery time window",
+      "removed": "{actor} removed a delivery time window"
+    },
+    "public_link": {
+      "created": "{actor} shared the link for {number}",
+      "revoked": "{actor} turned off the link for {number}"
+    }
   },
   "catalog": {
     "title": "Catalog",
@@ -1045,6 +1081,40 @@
       "promoSent": "We sent the {occasion} promotion with the code {code}",
       "promoRedeemed": "Used the code {code}",
       "more": "Show more"
+    },
+    "filters": {
+      "tag": "Filter by tag",
+      "allTags": "All tags",
+      "consent": "Promotions",
+      "anyConsent": "Promotions: all",
+      "consentOptions": {
+        "yes": "Accept promotions",
+        "no": "Don't accept promotions"
+      },
+      "upcoming": "Special date",
+      "anyDate": "Any date",
+      "upcomingOption": "Special date within 30 days"
+    },
+    "bulk": {
+      "title": "Tag customers",
+      "noneSelected": "Pick customers from the list to add or remove a tag.",
+      "selected": "{count, plural, one {# customer selected} other {# customers selected}}",
+      "selectPage": "Select all",
+      "clearSelection": "Clear selection",
+      "select": "Select {name}",
+      "tag": "Tag",
+      "tagPlaceholder": "E.g. weddings",
+      "add": "Add tag",
+      "remove": "Remove tag",
+      "added": "{count, plural, one {Tag “{tag}” added to # customer.} other {Tag “{tag}” added to # customers.}}",
+      "removed": "{count, plural, one {Tag “{tag}” removed from # customer.} other {Tag “{tag}” removed from # customers.}}",
+      "noChange": "No customer changed.",
+      "alreadyHad": "{count, plural, one {# already had it.} other {# already had it.}}",
+      "didNotHave": "{count, plural, one {# didn't have it.} other {# didn't have it.}}",
+      "full": "{count, plural, one {# customer already has {max} tags and was not changed.} other {# customers already have {max} tags and were not changed.}}"
+    },
+    "validation": {
+      "none_selected": "Select at least one customer."
     }
   },
   "quotes": {
