@@ -18,7 +18,11 @@ test.describe('staff', () => {
     await expect(page.getByRole('menuitem', { name: 'Ajustes' })).toHaveCount(0);
     await page.getByRole('menuitem', { name: 'Catálogo' }).click();
     await expect(page).toHaveURL(/\/catalog$/);
-    // Su mobile il catalogo è mostrato a schede, non in tabella.
+    // Su mobile il catalogo è mostrato a schede, non in tabella. Il prodotto si cerca: l'elenco
+    // è paginato e gli altri test aggiungono prodotti.
+    await page.getByRole('searchbox', { name: 'Buscar' }).fill('Rosa roja');
+    await page.getByRole('button', { name: 'Filtrar' }).click();
+    await expect(page).toHaveURL(/\/catalog\?q=Rosa\+roja(&|$)/);
     await expect(page.getByRole('table')).toBeHidden();
     await expect(page.getByRole('link', { name: /Rosa roja/ }).first()).toBeVisible();
   });
