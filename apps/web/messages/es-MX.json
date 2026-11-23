@@ -300,6 +300,7 @@
     "member.invited": "{actor} invitó a una persona como {role}",
     "invitation.revoked": "{actor} canceló una invitación",
     "invitation.accepted": "{actor} se unió al equipo",
+    "member.added_by_platform": "{actor} agregó a una persona al equipo como {role} (soporte de la plataforma)",
     "member.role_changed": "{actor} cambió el rol de un miembro a {role}",
     "member.deactivated": "{actor} desactivó a un miembro del equipo",
     "member.reactivated": "{actor} reactivó a un miembro del equipo",

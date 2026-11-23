@@ -1009,6 +1009,25 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   I segnaposto (cerchi colorati) funzionano solo con l'archivio su disco, cioè solo in locale: mai
   online.
 
+### ADR-050 — Accesso confermato a mano dall'amministratore (senza email di conferma) — ADOTTATO (23/11/2026)
+
+- **Problema:** senza dominio verificato su Resend le email (conferma, inviti, nuova password)
+  arrivano solo al titolare dell'account Resend, quindi i tester non riescono a entrare. Il
+  founder: "aggiungiamo la persona con uno script sul db e basta".
+- **Decisione:** operazione di piattaforma `confirm-user` (CLI `pnpm platform:confirm-user`,
+  workflow "Operazioni di piattaforma"). La persona si registra da sola sul sito e sceglie la sua
+  password: l'operazione non crea account e non tocca password. L'amministratore ne conferma
+  l'email e, se indica una fioreria, la aggiunge al team come **manager o staff**. Il proprietario
+  nasce solo creando la propria fioreria. Se la persona è già nel team, il ruolo non cambia (si
+  cambia dalla pagina Equipo).
+- **Garanzie:** solo un `SUPER_ADMIN` attivo. Tutto in una transazione, quindi un rifiuto (persona
+  o fioreria inesistente, ruolo non ammesso) non cambia nulla. Audit: email confermata (evento di
+  piattaforma) e ingresso nel team (attività della fioreria: "… (soporte de la plataforma)").
+  Nel workflow le email e la fioreria sono mascherate, anche in minuscolo.
+- **Responsabilità:** chi conferma garantisce che l'email è davvero di quella persona, perché la
+  conferma salta la prova di possesso. Va usata solo per persone conosciute, finché il dominio non
+  è verificato (`docs/DEPLOY_VERCEL.md` §4.4).
+
 ---
 
 ## 3. Proposte da approvare

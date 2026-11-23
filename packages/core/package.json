@@ -15,7 +15,8 @@
     "assign-plan": "tsx scripts/assign-plan.ts",
     "grant-ai-credits": "tsx scripts/grant-ai-credits.ts",
     "bootstrap-admin": "tsx scripts/bootstrap-admin.ts",
-    "fill-test-shop": "tsx scripts/fill-test-shop.ts"
+    "fill-test-shop": "tsx scripts/fill-test-shop.ts",
+    "confirm-user": "tsx scripts/confirm-user.ts"
   },
   "dependencies": {
     "@floral/db": "workspace:*",
