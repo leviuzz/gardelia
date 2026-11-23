@@ -134,6 +134,11 @@ export function tenantRoutes(slug: string) {
         withQuery(`${inventory}/purchases/${segment(entryId)}`, query),
       /** Proveedores (`archived=1` per vedere anche gli archiviati). */
       suppliers: (query?: QueryValues) => withQuery(`${inventory}/suppliers`, query),
+      /** Apartados (ADR-062): elenco (`view`, `q`, `page`), nuovo (`item` preselezionato), scheda. */
+      reservations: (query?: QueryValues) => withQuery(`${inventory}/reservations`, query),
+      newReservation: (query?: QueryValues) => withQuery(`${inventory}/reservations/new`, query),
+      reservation: (reservationId: string, query?: QueryValues) =>
+        withQuery(`${inventory}/reservations/${segment(reservationId)}`, query),
     },
     builder: {
       list: (query?: QueryValues) => withQuery(builder, query),

@@ -15,6 +15,7 @@
  *    catalogo, poi le compras); costo previsto = costo del catalogo.
  */
 import { z } from 'zod';
+import { addDays, compareDates, daysBetween, parseIsoDate, type CalendarDate } from './calendar';
 import { INGREDIENT_TYPES, type Availability, type CatalogItemType } from './catalog';
 import { optionalPhoneField } from './customer';
 import type { MarketCountry } from './markets';
@@ -419,3 +420,152 @@ export function supplierInputSchema(country: MarketCountry) {
   });
 }
 export type SupplierInput = z.infer<ReturnType<typeof supplierInputSchema>>;
+
+// -----------------------------------------------------------------------------
+// Apartados con vencimiento (ADR-062)
+// -----------------------------------------------------------------------------
+
+export const RESERVATION_LIMITS = {
+  /** "Para": l'evento o il cliente ("Boda de Ana"). */
+  label: 120,
+  note: 300,
+  /** Prodotti in un apartado. */
+  lines: 60,
+  /** Un apartado dura al massimo 90 giorni da oggi: la merce fresca non aspetta di più. */
+  maxDays: 90,
+  /** Scadenza proposta nel form: fra 3 giorni. */
+  defaultDays: 3,
+} as const;
+
+/** Stato salvato: ACTIVE finché non si usa o si libera. */
+export const RESERVATION_STATUSES = ['ACTIVE', 'USED', 'RELEASED'] as const;
+export type ReservationStatus = (typeof RESERVATION_STATUSES)[number];
+
+/**
+ * Stato da mostrare: un apartado ACTIVE vale fino alla fine del giorno di scadenza, nel calendario
+ * della fioreria; il giorno dopo è EXPIRED e non tiene più merce, senza bisogno di job.
+ */
+export const RESERVATION_STATES = ['ACTIVE', 'EXPIRED', 'USED', 'RELEASED'] as const;
+export type ReservationState = (typeof RESERVATION_STATES)[number];
+
+export function reservationState(
+  status: ReservationStatus,
+  expiresOn: CalendarDate,
+  today: CalendarDate,
+): ReservationState {
+  if (status !== 'ACTIVE') return status;
+  return compareDates(expiresOn, today) < 0 ? 'EXPIRED' : 'ACTIVE';
+}
+
+/** Giorni che restano (0 = scade oggi, negativo = vencido da tanti giorni). */
+export function reservationDaysLeft(expiresOn: CalendarDate, today: CalendarDate): number {
+  return daysBetween(today, expiresOn);
+}
+
+/** Date ammesse per la scadenza: da oggi a 90 giorni, con la proposta del form. */
+export function reservationExpiryRange(today: CalendarDate): {
+  readonly min: CalendarDate;
+  readonly max: CalendarDate;
+  readonly suggested: CalendarDate;
+} {
+  return {
+    min: today,
+    max: addDays(today, RESERVATION_LIMITS.maxDays),
+    suggested: addDays(today, RESERVATION_LIMITS.defaultDays),
+  };
+}
+
+/** Scadenza "AAAA-MM-GG": obbligatoria, da oggi (incluso) a 90 giorni. */
+function reservationExpiryField(today: CalendarDate) {
+  const { max } = reservationExpiryRange(today);
+  return z.preprocess(
+    toTrimmedString,
+    z.string().transform((value, ctx) => {
+      if (value === '') {
+        ctx.addIssue({ code: 'custom', message: 'required' });
+        return z.NEVER;
+      }
+      const date = parseIsoDate(value);
+      if (!date) {
+        ctx.addIssue({ code: 'custom', message: 'invalid_date' });
+        return z.NEVER;
+      }
+      if (compareDates(date, today) < 0) {
+        ctx.addIssue({ code: 'custom', message: 'inventory_expiry_past' });
+        return z.NEVER;
+      }
+      if (compareDates(date, max) > 0) {
+        ctx.addIssue({ code: 'custom', message: 'inventory_expiry_too_far' });
+        return z.NEVER;
+      }
+      return date;
+    }),
+  );
+}
+
+/**
+ * "Nuevo apartado": per chi o cosa, fino a quando, nota e una riga per prodotto controllato. Le
+ * quantità si scrivono come nelle compras ("50" o "2x25"); lo stesso prodotto in più righe si
+ * somma. `confirmShortage`: apartar anche se la merce disponibile non basta.
+ */
+export function reservationInputSchema(today: CalendarDate) {
+  return z.object({
+    label: requiredText(RESERVATION_LIMITS.label),
+    expiresOn: reservationExpiryField(today),
+    note: optionalText(RESERVATION_LIMITS.note),
+    lines: z.preprocess(
+      rowsToArray,
+      z
+        .array(
+          z.object({
+            inventoryItemId: z.preprocess(toTrimmedString, z.uuid({ error: 'required' })),
+            quantity: packQuantityField,
+          }),
+        )
+        .min(1, { error: 'inventory_no_lines' })
+        .max(RESERVATION_LIMITS.lines, { error: 'too_many_items' }),
+    ),
+    confirmShortage: checkboxField(),
+  });
+}
+export type ReservationInput = z.infer<ReturnType<typeof reservationInputSchema>>;
+
+/** "Extender": nuova scadenza, con le stesse regole (anche per un apartado già vencido). */
+export function reservationExtendSchema(today: CalendarDate) {
+  return z.object({ expiresOn: reservationExpiryField(today) });
+}
+
+/**
+ * "Usar apartado": quanto si è usato davvero di ogni riga (proposta: quanto era apartado). 0 =
+ * non usato, resta in giacenza. Almeno una quantità, altrimenti si libera l'apartado.
+ */
+export const reservationUseSchema = z.object({
+  lines: z.preprocess(
+    rowsToArray,
+    z
+      .array(
+        z.object({
+          lineId: z.preprocess(toTrimmedString, z.uuid({ error: 'invalid_option' })),
+          quantity: requiredInteger({ min: 0, max: INVENTORY_LIMITS.quantity }),
+        }),
+      )
+      .max(RESERVATION_LIMITS.lines, { error: 'too_many_items' })
+      .refine((lines) => lines.some((line) => line.quantity > 0), {
+        error: 'inventory_nothing_used',
+      }),
+  ),
+  confirmShortage: checkboxField(),
+});
+export type ReservationUseInput = z.infer<typeof reservationUseSchema>;
+
+/** Viste dell'elenco: vigentes, vencidos, cerrados (usati o liberati). */
+export const RESERVATION_VIEWS = ['current', 'expired', 'closed'] as const;
+export type ReservationView = (typeof RESERVATION_VIEWS)[number];
+
+/** Filtri dell'elenco degli apartados (`?view=…&q=…&page=…`). */
+export const reservationListFiltersSchema = z.object({
+  view: z.preprocess(toTrimmedString, z.enum(RESERVATION_VIEWS).catch('current')),
+  q: z.preprocess(toTrimmedString, z.string().max(80).catch('')),
+  page: pageField,
+});
+export type ReservationListFilters = z.infer<typeof reservationListFiltersSchema>;

@@ -7,13 +7,17 @@
  *    perdono aggiornamenti).
  *  - Ogni movimento salva la giacenza dopo di sé, il costo reale del momento (costo medio, o il
  *    prezzo della compra) e il costo del catalogo (costo previsto).
+ *  - La merce apartada (ADR-062) non cambia la giacenza: si toglie dal disponibile finché
+ *    l'apartado vale (`reservedQuantities`).
  *  - Chi chiama ha già controllato permessi e piano.
  */
 import { Prisma, type TransactionClient } from '@floral/db';
 import {
   INVENTORY_LIMITS,
   availableQuantity,
+  isUuid,
   missingQuantity,
+  todayInTimeZone,
   type InventoryEntryKind,
   type RecordStatus,
   type SaleUnit,
@@ -192,4 +196,129 @@ export async function writeInventoryEntry(
 /** Quanto manca, per un prodotto bloccato, per togliere `quantity` (0 se basta). */
 export function missingFor(item: LockedInventoryItem, quantity: number, reserved = 0): number {
   return missingQuantity(quantity, availableQuantity({ onHand: item.onHand, reserved }));
+}
+
+/** Oggi nel calendario della fioreria, come una colonna `@db.Date` (mezzanotte UTC). */
+export function shopToday(ctx: TenantContext): Date {
+  const today = todayInTimeZone(ctx.timezone);
+  return new Date(Date.UTC(today.year, today.month - 1, today.day));
+}
+
+/**
+ * Merce apartada per prodotto (ADR-062): le righe degli apartados ACTIVE che valgono ancora oggi,
+ * cioè con la scadenza da oggi in poi nel calendario della fioreria. Un apartado vencido non tiene
+ * più merce, senza bisogno di job. `excludeReservationId`: senza l'apartado che si sta usando.
+ */
+export async function reservedQuantities(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  options: {
+    readonly inventoryItemIds?: readonly string[];
+    readonly excludeReservationId?: string;
+  } = {},
+): Promise<Map<string, number>> {
+  if (options.inventoryItemIds?.length === 0) return new Map();
+  const rows = await tx.inventoryReservationLine.groupBy({
+    by: ['inventoryItemId'],
+    where: {
+      tenantId: ctx.tenantId,
+      ...(options.inventoryItemIds
+        ? { inventoryItemId: { in: [...options.inventoryItemIds] } }
+        : {}),
+      reservation: {
+        tenantId: ctx.tenantId,
+        status: 'ACTIVE',
+        expiresOn: { gte: shopToday(ctx) },
+        ...(options.excludeReservationId ? { id: { not: options.excludeReservationId } } : {}),
+      },
+    },
+    _sum: { quantity: true },
+  });
+  return new Map(rows.map((row) => [row.inventoryItemId, row._sum.quantity ?? 0]));
+}
+
+// -----------------------------------------------------------------------------
+// Richieste per prodotto del catalogo (ordini e apartados)
+// -----------------------------------------------------------------------------
+
+/** Una riga di richiesta: prodotto del catalogo e quantità nella sua unità di vendita. */
+export interface StockRequestLine {
+  readonly catalogItemId: string;
+  readonly quantity: number;
+}
+
+export interface StockCheckLine {
+  readonly catalogItemId: string;
+  /**
+   * false: il prodotto non si controlla, o la fioreria non ha l'inventario nel piano. Nessun
+   * avviso: chi compra la merce dopo l'ordine lavora come sempre.
+   */
+  readonly tracked: boolean;
+  readonly inventoryItemId: string | null;
+  readonly requested: number;
+  readonly onHand: number | null;
+  readonly available: number | null;
+  /** Quanto manca: sempre 0 per i prodotti non controllati. */
+  readonly missing: number;
+}
+
+export interface StockCheckResult {
+  readonly lines: readonly StockCheckLine[];
+  /** Solo i prodotti controllati per cui la merce non basta. */
+  readonly shortages: readonly StockCheckLine[];
+}
+
+/** Somma le quantità per prodotto (una ricetta può citare lo stesso fiore in più righe). */
+export function aggregateRequest(lines: readonly StockRequestLine[]): Map<string, number> {
+  const requested = new Map<string, number>();
+  for (const line of lines) {
+    if (
+      !isUuid(line.catalogItemId) ||
+      !Number.isSafeInteger(line.quantity) ||
+      line.quantity < 1 ||
+      line.quantity > INVENTORY_LIMITS.quantity
+    ) {
+      throw new ValidationError({ lines: 'invalid' });
+    }
+    requested.set(line.catalogItemId, (requested.get(line.catalogItemId) ?? 0) + line.quantity);
+  }
+  if (requested.size > INVENTORY_LIMITS.entryLines) {
+    throw new ValidationError({ lines: 'too_many_items' });
+  }
+  return requested;
+}
+
+export function checkLines(
+  requested: ReadonlyMap<string, number>,
+  items: ReadonlyMap<string, { readonly id: string; readonly onHand: number }>,
+  reserved: ReadonlyMap<string, number> = new Map(),
+): StockCheckResult {
+  const lines: StockCheckLine[] = [...requested].map(([catalogItemId, quantity]) => {
+    const item = items.get(catalogItemId);
+    if (!item) {
+      return {
+        catalogItemId,
+        tracked: false,
+        inventoryItemId: null,
+        requested: quantity,
+        onHand: null,
+        available: null,
+        missing: 0,
+      };
+    }
+    const available = availableQuantity({
+      onHand: item.onHand,
+      reserved: reserved.get(item.id) ?? 0,
+    });
+    return {
+      catalogItemId,
+      tracked: true,
+      inventoryItemId: item.id,
+      requested: quantity,
+      onHand: item.onHand,
+      available,
+      missing: missingQuantity(quantity, available),
+    };
+  });
+  return { lines, shortages: lines.filter((line) => line.missing > 0) };
 }

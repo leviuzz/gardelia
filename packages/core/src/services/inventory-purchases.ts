@@ -32,7 +32,12 @@ import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { requireEntitlement } from './billing';
-import { lockInventoryItems, writeInventoryEntry, type MovementLine } from './inventory-internals';
+import {
+  lockInventoryItems,
+  reservedQuantities,
+  writeInventoryEntry,
+  type MovementLine,
+} from './inventory-internals';
 import { dateToParts, formatDateParts, partsToDate } from './quote-internals';
 
 function parse<T>(schema: ZodType<T>, raw: unknown): T {
@@ -475,9 +480,11 @@ export interface TrackedProductOption {
   readonly variety: string | null;
   readonly type: CatalogItemType;
   readonly saleUnit: SaleUnit;
+  /** Disponibile oggi: giacenza meno gli apartados che valgono (ADR-062). */
+  readonly available: number;
 }
 
-/** Prodotti controllati (attivi) da scegliere in una compra, nell'ordine del catalogo. */
+/** Prodotti controllati (attivi) da scegliere in una compra o un apartado, nell'ordine del catalogo. */
 export async function listTrackedProductOptions(
   ctx: TenantContext,
 ): Promise<readonly TrackedProductOption[]> {
@@ -488,16 +495,19 @@ export async function listTrackedProductOptions(
       where: { tenantId: ctx.tenantId, status: 'ACTIVE' },
       select: {
         id: true,
+        onHand: true,
         catalogItem: { select: { name: true, variety: true, type: true, saleUnit: true } },
       },
       orderBy: [{ catalogItem: { type: 'asc' } }, { catalogItem: { name: 'asc' } }, { id: 'asc' }],
     });
+    const reserved = await reservedQuantities(tx, ctx);
     return rows.map((row) => ({
       inventoryItemId: row.id,
       name: row.catalogItem.name,
       variety: row.catalogItem.variety,
       type: row.catalogItem.type,
       saleUnit: row.catalogItem.saleUnit,
+      available: row.onHand - (reserved.get(row.id) ?? 0),
     }));
   });
 }

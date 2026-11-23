@@ -27,7 +27,6 @@ import {
   isReversibleEntryKind,
   isStockOutKind,
   isUuid,
-  missingQuantity,
   reverseEntrySchema,
   startInventorySchema,
   stockCountSchema,
@@ -50,11 +49,18 @@ import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { getEntitlements, requireEntitlement } from './billing';
 import {
+  aggregateRequest,
+  checkLines,
   lockInventoryItems,
   missingFor,
+  reservedQuantities,
+  shopToday,
   writeInventoryEntry,
   type LockedInventoryItem,
   type MovementLine,
+  type StockCheckLine,
+  type StockCheckResult,
+  type StockRequestLine,
 } from './inventory-internals';
 
 function parse<T>(schema: ZodType<T>, raw: unknown): T {
@@ -82,7 +88,7 @@ export interface InventoryItemDto {
   /** ARCHIVED = la fioreria non lo controlla più. */
   readonly tracking: RecordStatus;
   readonly onHand: number;
-  /** Merce apartada (arriva con gli apartados): per ora sempre 0. */
+  /** Merce apartada che vale oggi (ADR-062): non si può usare per altro. */
   readonly reserved: number;
   readonly available: number;
   readonly minQuantity: number | null;
@@ -135,9 +141,9 @@ function valueOf(onHand: number, avgUnitCostMinor: number | null): number | null
   return onHand > 0 ? stockValue(onHand, avgUnitCostMinor) : 0;
 }
 
-function toItemDto(row: ItemRow, ctx: TenantContext): InventoryItemDto {
+function toItemDto(row: ItemRow, ctx: TenantContext, reserved: number): InventoryItemDto {
   const costs = canSeeCosts(ctx);
-  const level = { onHand: row.onHand, reserved: 0, minQuantity: row.minQuantity };
+  const level = { onHand: row.onHand, reserved, minQuantity: row.minQuantity };
   return {
     id: row.id,
     catalogItemId: row.catalogItemId,
@@ -197,9 +203,12 @@ export async function listInventory(
     await requireEntitlement(ctx, 'inventory', tx);
     const active = await tx.inventoryItem.findMany({
       where: { tenantId: ctx.tenantId, status: 'ACTIVE' },
-      select: { onHand: true, minQuantity: true, avgUnitCostMinor: true },
+      select: { id: true, onHand: true, minQuantity: true, avgUnitCostMinor: true },
     });
-    const statuses = active.map((row) => stockStatus({ ...row, reserved: 0 }));
+    const reserved = await reservedQuantities(tx, ctx);
+    const statuses = active.map((row) =>
+      stockStatus({ ...row, reserved: reserved.get(row.id) ?? 0 }),
+    );
     const summary: InventorySummaryDto = {
       tracked: active.length,
       low: statuses.filter((status) => status === 'LOW').length,
@@ -233,7 +242,7 @@ export async function listInventory(
     });
     // Lo stato dipende da giacenza, apartados e minimo: si filtra qui (pochi prodotti per fioreria).
     const items = rows
-      .map((row) => toItemDto(row, ctx))
+      .map((row) => toItemDto(row, ctx, reserved.get(row.id) ?? 0))
       .filter((item) => filters.archived || !filters.status || item.status === filters.status);
     const pageCount = Math.max(1, Math.ceil(items.length / INVENTORY_PAGE_SIZE));
     const page = Math.min(filters.page, pageCount);
@@ -250,9 +259,20 @@ export async function listInventory(
   });
 }
 
+/** Un apartado che tiene merce di questo prodotto (ADR-062). */
+export interface ItemReservationDto {
+  readonly id: string;
+  readonly label: string;
+  /** "AAAA-MM-GG": ultimo giorno in cui vale. */
+  readonly expiresOn: string;
+  readonly quantity: number;
+}
+
 export interface InventoryItemDetailDto extends InventoryItemDto {
   /** C'è almeno una compra (non annullata o no): il costo reale viene dalle compras (ADR-061). */
   readonly hasPurchases: boolean;
+  /** Apartados che valgono oggi, dal primo che scade. */
+  readonly reservations: readonly ItemReservationDto[];
 }
 
 export async function getInventoryItem(
@@ -271,10 +291,36 @@ export async function getInventoryItem(
     const purchases = await tx.inventoryMovement.count({
       where: { tenantId: ctx.tenantId, inventoryItemId: row.id, kind: 'PURCHASE' },
     });
-    return { row, hasPurchases: purchases > 0 };
+    const holds = await tx.inventoryReservationLine.findMany({
+      where: {
+        tenantId: ctx.tenantId,
+        inventoryItemId: row.id,
+        reservation: {
+          tenantId: ctx.tenantId,
+          status: 'ACTIVE',
+          expiresOn: { gte: shopToday(ctx) },
+        },
+      },
+      select: {
+        quantity: true,
+        reservation: { select: { id: true, label: true, expiresOn: true } },
+      },
+      orderBy: [{ reservation: { expiresOn: 'asc' } }, { createdAt: 'asc' }],
+    });
+    return { row, hasPurchases: purchases > 0, holds };
   });
   if (!found) return notFound(ctx, 'InventoryItem', inventoryItemId);
-  return { ...toItemDto(found.row, ctx), hasPurchases: found.hasPurchases };
+  const reserved = found.holds.reduce((total, hold) => total + hold.quantity, 0);
+  return {
+    ...toItemDto(found.row, ctx, reserved),
+    hasPurchases: found.hasPurchases,
+    reservations: found.holds.map((hold) => ({
+      id: hold.reservation.id,
+      label: hold.reservation.label,
+      expiresOn: hold.reservation.expiresOn.toISOString().slice(0, 10),
+      quantity: hold.quantity,
+    })),
+  };
 }
 
 /**
@@ -293,8 +339,9 @@ export async function getCatalogItemInventory(
       where: { catalogItemId, tenantId: ctx.tenantId },
       select: itemSelect,
     });
+    const reserved = row ? await reservedQuantities(tx, ctx, { inventoryItemIds: [row.id] }) : null;
     return {
-      item: row ? toItemDto(row, ctx) : null,
+      item: row ? toItemDto(row, ctx, reserved?.get(row.id) ?? 0) : null,
       canWrite: hasPermission(ctx, 'inventory:write'),
     };
   });
@@ -760,7 +807,8 @@ export async function recordStockOut(
     await requireEntitlement(ctx, 'inventory', tx);
     const item = await lockActiveItem(tx, ctx, inventoryItemId);
     if (!item) return null;
-    const missing = missingFor(item, input.quantity);
+    const reserved = await reservedQuantities(tx, ctx, { inventoryItemIds: [item.id] });
+    const missing = missingFor(item, input.quantity, reserved.get(item.id) ?? 0);
     if (missing > 0 && !input.confirmShortage) {
       throw new ConflictError('inventory_insufficient_stock');
     }
@@ -867,11 +915,13 @@ export async function reverseInventoryEntry(
       const locked = await lockInventoryItems(tx, ctx, {
         ids: entry.movements.map((movement) => movement.inventoryItemId),
       });
+      const reserved = await reservedQuantities(tx, ctx, { inventoryItemIds: [...locked.keys()] });
       const lines: MovementLine[] = entry.movements.map((movement) => {
         const item = locked.get(movement.inventoryItemId);
         if (!item) throw new Error('movimento senza prodotto controllato');
         const quantity = -movement.quantity;
-        if (quantity < 0 && missingFor(item, -quantity) > 0 && !input.confirmShortage) {
+        const shortage = missingFor(item, -quantity, reserved.get(item.id) ?? 0) > 0;
+        if (quantity < 0 && shortage && !input.confirmShortage) {
           throw new ConflictError('inventory_insufficient_stock');
         }
         // Una compra annullata esce dal costo medio, al prezzo pagato (ADR-061).
@@ -921,83 +971,7 @@ export async function reverseInventoryEntry(
 // Per gli ordini (chi li collega): verifica e consumo riusabili nella sua transazione
 // -----------------------------------------------------------------------------
 
-/** Una riga di richiesta: prodotto del catalogo e quantità nella sua unità di vendita. */
-export interface StockRequestLine {
-  readonly catalogItemId: string;
-  readonly quantity: number;
-}
-
-export interface StockCheckLine {
-  readonly catalogItemId: string;
-  /**
-   * false: il prodotto non si controlla, o la fioreria non ha l'inventario nel piano. Nessun
-   * avviso: chi compra la merce dopo l'ordine lavora come sempre.
-   */
-  readonly tracked: boolean;
-  readonly inventoryItemId: string | null;
-  readonly requested: number;
-  readonly onHand: number | null;
-  readonly available: number | null;
-  /** Quanto manca: sempre 0 per i prodotti non controllati. */
-  readonly missing: number;
-}
-
-export interface StockCheckResult {
-  readonly lines: readonly StockCheckLine[];
-  /** Solo i prodotti controllati per cui la merce non basta. */
-  readonly shortages: readonly StockCheckLine[];
-}
-
-/** Somma le quantità per prodotto (una ricetta può citare lo stesso fiore in più righe). */
-function aggregateRequest(lines: readonly StockRequestLine[]): Map<string, number> {
-  const requested = new Map<string, number>();
-  for (const line of lines) {
-    if (
-      !isUuid(line.catalogItemId) ||
-      !Number.isSafeInteger(line.quantity) ||
-      line.quantity < 1 ||
-      line.quantity > INVENTORY_LIMITS.quantity
-    ) {
-      throw new ValidationError({ lines: 'invalid' });
-    }
-    requested.set(line.catalogItemId, (requested.get(line.catalogItemId) ?? 0) + line.quantity);
-  }
-  if (requested.size > INVENTORY_LIMITS.entryLines) {
-    throw new ValidationError({ lines: 'too_many_items' });
-  }
-  return requested;
-}
-
-function checkLines(
-  requested: ReadonlyMap<string, number>,
-  items: ReadonlyMap<string, { readonly id: string; readonly onHand: number }>,
-): StockCheckResult {
-  const lines: StockCheckLine[] = [...requested].map(([catalogItemId, quantity]) => {
-    const item = items.get(catalogItemId);
-    if (!item) {
-      return {
-        catalogItemId,
-        tracked: false,
-        inventoryItemId: null,
-        requested: quantity,
-        onHand: null,
-        available: null,
-        missing: 0,
-      };
-    }
-    const available = availableQuantity({ onHand: item.onHand, reserved: 0 });
-    return {
-      catalogItemId,
-      tracked: true,
-      inventoryItemId: item.id,
-      requested: quantity,
-      onHand: item.onHand,
-      available,
-      missing: missingQuantity(quantity, available),
-    };
-  });
-  return { lines, shortages: lines.filter((line) => line.missing > 0) };
-}
+export type { StockCheckLine, StockCheckResult, StockRequestLine } from './inventory-internals';
 
 /** Basta la merce? Dentro la transazione di chi chiama, che ha già controllato i suoi permessi. */
 export async function checkStockTx(
@@ -1017,7 +991,10 @@ export async function checkStockTx(
     },
     select: { id: true, catalogItemId: true, onHand: true },
   });
-  return checkLines(requested, new Map(items.map((item) => [item.catalogItemId, item])));
+  const reserved = await reservedQuantities(tx, ctx, {
+    inventoryItemIds: items.map((item) => item.id),
+  });
+  return checkLines(requested, new Map(items.map((item) => [item.catalogItemId, item])), reserved);
 }
 
 /** Basta la merce? Per mostrare l'avviso prima di confermare (es. un ordine). */
@@ -1072,7 +1049,10 @@ export async function consumeStockTx(
       .filter((item) => item.status === 'ACTIVE')
       .map((item) => [item.catalogItemId, item]),
   );
-  const check = checkLines(requested, active);
+  const reserved = await reservedQuantities(tx, ctx, {
+    inventoryItemIds: [...active.values()].map((item) => item.id),
+  });
+  const check = checkLines(requested, active, reserved);
   if (check.shortages.length > 0 && !input.confirmShortage) {
     throw new ConflictError('inventory_insufficient_stock');
   }

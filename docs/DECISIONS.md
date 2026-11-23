@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 23 novembre 2026 (inventario, ADR-060 e ADR-061; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 23 novembre 2026 (inventario, ADR-060, ADR-061 e ADR-062; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -1423,6 +1423,54 @@ Numerazione: ADR-055–059 sono riservati agli ordini e al marketplace (altra se
   esistono solo sulle compras, e una compra ha sempre il giorno. Il totale pagato esiste solo sulle
   righe di una compra e non è negativo.
 - **Fuori:** resi al fornitore e lotti, per decisione del founder (ADR-060).
+
+### ADR-062 — Inventario: apartados con vencimiento (blocco 3) — ADOTTATO (23/11/2026)
+
+- **Cosa:** merce messa da parte per un evento o un cliente ("Boda de Ana") fino a una data (spec
+  INV-01: "riserva temporanea configurabile, con timeout"). La durata si sceglie su ogni apartado:
+  proposta fra 3 giorni, da oggi a 90 giorni al massimo.
+- **Un apartado non cambia la giacenza:** toglie merce dal **disponibile** (`onHand − apartado`).
+  Il disponibile decide stato e avvisi ("Por agotarse", "Agotado"), l'avviso degli usi e il controllo
+  per gli ordini. Se la merce non basta: avviso e conferma, come per gli usi (ADR-060).
+- **Scadenza senza job:**
+  - un apartado vale fino alla fine del giorno di scadenza, nel calendario della fioreria;
+  - il giorno dopo è "vencido" e non tiene più merce: lo stato si calcola alla lettura;
+  - salvati sono solo ACTIVE, USED e RELEASED;
+  - così non serve un cron (il piano Hobby di Vercel ne ha solo di giornalieri) e il risultato non
+    dipende dall'ora in cui girerebbe.
+- **Azioni** (proprietario e manager, `inventory:write`; tutti vedono gli apartados, senza costi):
+  - "Usar": si scrive quanto si è usato davvero di ogni riga (proposta: quanto era apartado). La
+    merce esce con un registro di uso che porta il nome dell'apartado. Ciò che non si usa resta in
+    giacenza;
+  - "Extender": nuova data, anche per un apartado vencido;
+  - "Liberar": la merce torna disponibile.
+  - Niente si cancella. Un apartado si usa o si libera una volta sola: la riga è bloccata
+    (`FOR UPDATE`) e un test prova due "Usar" nello stesso istante.
+- **Il database garantisce:**
+  - `InventoryReservation` e `InventoryReservationLine` con RLS e FK composite su tenant, prodotto
+    e registro di uso;
+  - una riga per prodotto e quantità positive nei limiti;
+  - chiuso se e solo se ha la data di chiusura;
+  - il registro di uso solo su un apartado usato.
+- **Per gli ordini (li collega l'altra sessione, senza toccarne il codice):**
+  - `reserveStockTx(tx, ctx, { label, expiresOn, lines, confirmShortage })`, per prodotto del
+    catalogo: ignora i prodotti non controllati e le fiorerie senza il piano (restituisce `null`);
+  - `consumeReservationTx(tx, ctx, id, { lines?, confirmShortage })`: scarica quanto usato, anche
+    prodotti fuori dall'apartado, e lo chiude;
+  - `releaseReservationTx(tx, ctx, id)`: restituisce false se era già chiuso, così un annullamento
+    ripetuto non sbaglia;
+  - come `consumeStockTx`, non controllano i permessi dell'inventario: li controlla chi chiama;
+  - un ordine con apartado va scaricato con `consumeReservationTx`, non con `consumeStockTx`, che
+    conterebbe l'apartado dell'ordine stesso come merce non disponibile.
+- **UI:**
+  - scheda "Apartados" dell'inventario: vigentes, vencidos, cerrados, con la ricerca per "Para";
+  - "Nuevo apartado", con disponibile e mancante mentre si scrive;
+  - scheda dell'apartado con Usar, Extender e Liberar;
+  - nella scheda del prodotto, gli apartados che valgono e il link "Apartar";
+  - disponibile accanto alla giacenza nell'elenco e nel riquadro del catalogo;
+  - le schede dell'inventario sono quattro: su telefono stanno in una griglia di due colonne.
+- **Privacy:** "Para" e la nota possono contenere il nome del cliente, quindi restano fuori dai
+  metadati dell'audit (prodotti, quantità e date sì).
 
 ---
 

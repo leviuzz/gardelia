@@ -88,11 +88,8 @@ export default async function InventoryPage({
       <PageHeader title={t('title')} description={t('subtitle')} actions={chooseButton} />
       <InventoryTabs
         current="stock"
-        stockHref={routes.inventory.list()}
-        movementsHref={routes.inventory.movements()}
-        purchasesHref={
-          hasPermission(ctx, 'inventory:write') ? routes.inventory.purchases() : undefined
-        }
+        routes={routes}
+        showPurchases={hasPermission(ctx, 'inventory:write')}
       />
 
       {Number.isInteger(started) && single(raw.started) !== undefined ? (
@@ -221,6 +218,14 @@ export default async function InventoryPage({
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     {filters.archived ? null : <StockStatusBadge status={item.status} />}
+                    {item.reserved > 0 && !filters.archived ? (
+                      <span>
+                        {t('list.reserved', {
+                          quantity: t('quantity', { unit: item.saleUnit, count: item.reserved }),
+                          available: t('quantity', { unit: item.saleUnit, count: item.available }),
+                        })}
+                      </span>
+                    ) : null}
                     {item.minQuantity !== null ? (
                       <span>
                         {t('list.minimum', {

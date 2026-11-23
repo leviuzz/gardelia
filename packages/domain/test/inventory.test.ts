@@ -15,6 +15,13 @@ import {
   isReversibleEntryKind,
   isStockOutKind,
   missingQuantity,
+  reservationDaysLeft,
+  reservationExpiryRange,
+  reservationExtendSchema,
+  reservationInputSchema,
+  reservationListFiltersSchema,
+  reservationState,
+  reservationUseSchema,
   startInventorySchema,
   stockCountSchema,
   stockOutSchema,
@@ -304,5 +311,106 @@ describe('compras al mayorista (ADR-061)', () => {
       notes: null,
     });
     expect(schema.safeParse({ name: '' }).success).toBe(false);
+  });
+});
+
+describe('apartados con vencimiento (ADR-062)', () => {
+  const today = { year: 2026, month: 11, day: 23 };
+  const errors = (schema: { safeParse: (input: unknown) => unknown }, input: unknown) => {
+    const result = schema.safeParse(input) as { success: boolean; error?: unknown };
+    return result.success ? null : toFieldErrors(result.error as never);
+  };
+
+  it('vale fino alla fine del giorno di scadenza, poi è vencido senza job', () => {
+    expect(reservationState('ACTIVE', today, today)).toBe('ACTIVE');
+    expect(reservationState('ACTIVE', { year: 2026, month: 11, day: 22 }, today)).toBe('EXPIRED');
+    expect(reservationState('USED', { year: 2026, month: 11, day: 1 }, today)).toBe('USED');
+    expect(reservationState('RELEASED', { year: 2027, month: 1, day: 1 }, today)).toBe('RELEASED');
+    expect(reservationDaysLeft(today, today)).toBe(0);
+    expect(reservationDaysLeft({ year: 2026, month: 12, day: 1 }, today)).toBe(8);
+    expect(reservationDaysLeft({ year: 2026, month: 11, day: 20 }, today)).toBe(-3);
+  });
+
+  it('la merce apartada non è disponibile e conta per gli avvisi', () => {
+    expect(availableQuantity({ onHand: 50, reserved: 30 })).toBe(20);
+    expect(stockStatus({ onHand: 50, reserved: 50, minQuantity: null })).toBe('OUT');
+    expect(stockStatus({ onHand: 50, reserved: 40, minQuantity: 10 })).toBe('LOW');
+    expect(missingQuantity(30, availableQuantity({ onHand: 50, reserved: 40 }))).toBe(20);
+  });
+
+  it('scadenza: da oggi a 90 giorni, proposta fra 3 giorni', () => {
+    const range = reservationExpiryRange(today);
+    expect(range.min).toEqual(today);
+    expect(range.suggested).toEqual({ year: 2026, month: 11, day: 26 });
+    expect(range.max).toEqual({ year: 2027, month: 2, day: 21 });
+    const extend = reservationExtendSchema(today);
+    expect(extend.parse({ expiresOn: '2026-11-23' })).toEqual({ expiresOn: today });
+    expect(extend.parse({ expiresOn: '2027-02-21' })).toEqual({ expiresOn: range.max });
+    expect(errors(extend, { expiresOn: '' })).toEqual({ expiresOn: 'required' });
+    expect(errors(extend, { expiresOn: '2026-02-30' })).toEqual({ expiresOn: 'invalid_date' });
+    expect(errors(extend, { expiresOn: '2026-11-22' })).toEqual({
+      expiresOn: 'inventory_expiry_past',
+    });
+    expect(errors(extend, { expiresOn: '2027-02-22' })).toEqual({
+      expiresOn: 'inventory_expiry_too_far',
+    });
+  });
+
+  it('nuevo apartado: per chi, righe per indice con quantità come al mercato', () => {
+    const schema = reservationInputSchema(today);
+    expect(
+      schema.parse({
+        label: '  Boda de Ana ',
+        expiresOn: '2026-11-28',
+        note: '',
+        lines: {
+          '1': { inventoryItemId: PAPER, quantity: '10' },
+          '0': { inventoryItemId: ROSE, quantity: '2x25' },
+        },
+        confirmShortage: 'on',
+      }),
+    ).toEqual({
+      label: 'Boda de Ana',
+      expiresOn: { year: 2026, month: 11, day: 28 },
+      note: null,
+      lines: [
+        { inventoryItemId: ROSE, quantity: 50 },
+        { inventoryItemId: PAPER, quantity: 10 },
+      ],
+      confirmShortage: true,
+    });
+    expect(errors(schema, { label: '', expiresOn: '2026-11-28', lines: {} })).toMatchObject({
+      label: 'required',
+      lines: 'inventory_no_lines',
+    });
+    expect(
+      errors(schema, {
+        label: 'Evento',
+        expiresOn: '2026-11-28',
+        lines: { '0': { inventoryItemId: '', quantity: '0' } },
+      }),
+    ).toMatchObject({ 'lines.0.inventoryItemId': 'required', 'lines.0.quantity': 'out_of_range' });
+  });
+
+  it('usar apartado: quanto si è usato davvero, almeno una quantità', () => {
+    const line = '01a20000-0000-7000-8000-0000000000aa';
+    expect(
+      reservationUseSchema.parse({ lines: { '0': { lineId: line, quantity: '48' } } }),
+    ).toEqual({ lines: [{ lineId: line, quantity: 48 }], confirmShortage: false });
+    expect(
+      errors(reservationUseSchema, { lines: { '0': { lineId: line, quantity: '0' } } }),
+    ).toEqual({ lines: 'inventory_nothing_used' });
+    expect(
+      errors(reservationUseSchema, { lines: { '0': { lineId: line, quantity: '-1' } } }),
+    ).toMatchObject({ 'lines.0.quantity': 'out_of_range' });
+  });
+
+  it('filtri: vista sconosciuta → vigentes', () => {
+    expect(reservationListFiltersSchema.parse({ view: 'boh', page: 'x' })).toEqual({
+      view: 'current',
+      q: '',
+      page: 1,
+    });
+    expect(reservationListFiltersSchema.parse({ view: 'closed', q: ' ana ' }).view).toBe('closed');
   });
 });
