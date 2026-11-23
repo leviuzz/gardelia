@@ -1,4 +1,12 @@
+'use client';
+
 import { useTranslations } from 'next-intl';
+import { useRef } from 'react';
+import {
+  AddressSearch,
+  usePlacesConfig,
+  type FoundAddress,
+} from '@/components/form/address-search';
 import { Field, controlProps } from '@/components/form/field';
 import { Input, NativeSelect } from '@/components/ui/input';
 
@@ -16,6 +24,12 @@ const SPANS: Record<'wide' | 'compact', Partial<Record<AddressFieldName, string>
     region: 'sm:col-span-3',
   },
   compact: { addressLine1: 'sm:col-span-2' },
+};
+
+/** La ricerca di Google Places occupa tutta la riga. */
+const SEARCH_SPAN: Record<'wide' | 'compact', string> = {
+  wide: 'sm:col-span-6',
+  compact: 'sm:col-span-2',
 };
 
 /** Primo mercato (D-02): Aguascalientes, se l'indirizzo non ha ancora uno stato. */
@@ -36,7 +50,7 @@ export function AddressFields({
   idPrefix = '',
 }: {
   readonly regions: readonly { readonly code: string; readonly name: string }[];
-  readonly defaults?: Partial<Record<AddressFieldName, string | null>>;
+  readonly defaults?: Partial<Record<AddressFieldName | 'placeId', string | null>>;
   /** Errore per nome completo del campo (`fieldError(state, nome)`). */
   readonly error: (name: string) => string | undefined;
   readonly layout: 'wide' | 'compact';
@@ -49,9 +63,65 @@ export function AddressFields({
   const id = (field: AddressFieldName) => `${idPrefix}${field}`;
   const err = (field: AddressFieldName) => error(name(field));
   const value = (field: AddressFieldName) => defaults?.[field] ?? undefined;
+  const { enabled: placesEnabled } = usePlacesConfig();
+  const placeRef = useRef<HTMLInputElement>(null);
+  const latitudeRef = useRef<HTMLInputElement>(null);
+  const longitudeRef = useRef<HTMLInputElement>(null);
+
+  // Via, numero, municipio o stato cambiati a mano: il punto non è più quello di Google, quindi
+  // niente place ID né coordinate. Interno, colonia e CP no: completano l'indirizzo (Google spesso
+  // non li dà) senza spostarlo.
+  function clearPlace() {
+    for (const ref of [placeRef, latitudeRef, longitudeRef]) {
+      if (ref.current) ref.current.value = '';
+    }
+  }
+
+  function fill(found: FoundAddress) {
+    const form = placeRef.current?.form;
+    if (!form) return;
+    const set = (field: AddressFieldName, next: string | null) => {
+      const element = form.elements.namedItem(name(field));
+      if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement) {
+        if (element instanceof HTMLSelectElement) {
+          // Solo uno stato che esiste nell'elenco; altrimenti resta quello scelto.
+          if (next && [...element.options].some((option) => option.value === next)) {
+            element.value = next;
+          }
+        } else {
+          element.value = next ?? '';
+        }
+      }
+    };
+    set('addressLine1', found.addressLine1);
+    set('addressLine2', found.addressLine2);
+    set('neighborhood', found.neighborhood);
+    set('postalCode', found.postalCode);
+    set('city', found.city);
+    set('region', found.region);
+    if (placeRef.current) placeRef.current.value = found.placeId;
+    if (latitudeRef.current)
+      latitudeRef.current.value = found.coordinates?.latitude.toString() ?? '';
+    if (longitudeRef.current) {
+      longitudeRef.current.value = found.coordinates?.longitude.toString() ?? '';
+    }
+  }
 
   return (
     <>
+      <input
+        type="hidden"
+        ref={placeRef}
+        name={`${namePrefix}placeId`}
+        defaultValue={defaults?.placeId ?? ''}
+      />
+      <input type="hidden" ref={latitudeRef} name={`${namePrefix}latitude`} defaultValue="" />
+      <input type="hidden" ref={longitudeRef} name={`${namePrefix}longitude`} defaultValue="" />
+      {placesEnabled ? (
+        <div className={SEARCH_SPAN[layout]}>
+          <AddressSearch id={`${idPrefix}addressSearch`} onFound={fill} />
+        </div>
+      ) : null}
       <Field
         id={id('addressLine1')}
         label={t('addressLine1')}
@@ -63,6 +133,7 @@ export function AddressFields({
           {...controlProps(id('addressLine1'), err('addressLine1'))}
           name={name('addressLine1')}
           defaultValue={value('addressLine1')}
+          onChange={clearPlace}
           autoComplete="address-line1"
           required
         />
@@ -115,6 +186,7 @@ export function AddressFields({
           {...controlProps(id('city'), err('city'))}
           name={name('city')}
           defaultValue={value('city')}
+          onChange={clearPlace}
           autoComplete="address-level2"
           required
         />
@@ -130,6 +202,7 @@ export function AddressFields({
           {...controlProps(id('region'), err('region'))}
           name={name('region')}
           defaultValue={value('region') ?? DEFAULT_REGION}
+          onChange={clearPlace}
           required
         >
           {regions.map((region) => (

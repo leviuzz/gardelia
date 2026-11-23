@@ -1,10 +1,11 @@
 import { TriangleExclamationPoint } from 'lucide-react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { hasPermission, listUserTenants } from '@floral/core';
+import { getAddressSearchSettings, hasPermission, listUserTenants } from '@floral/core';
 import { BRAND } from '@floral/domain';
 import { BottomNav, SidebarNav, type NavItem } from '@/components/app-shell/app-nav';
 import { TenantSwitcher } from '@/components/app-shell/tenant-switcher';
+import { PlacesConfigProvider } from '@/components/form/address-search';
 import { UserMenu } from '@/components/app-shell/user-menu';
 import { LogoMark } from '@/components/brand/logo';
 import { tenantRoutes } from '@/lib/routes';
@@ -15,7 +16,10 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
   const { tenantSlug } = await params;
   const ctx = await getTenantContext(tenantSlug);
   const user = await requireUser();
-  const shops = await listUserTenants(user.id);
+  const [shops, addressSearch] = await Promise.all([
+    listUserTenants(user.id),
+    getAddressSearchSettings(ctx),
+  ]);
   const t = await getTranslations();
 
   const routes = tenantRoutes(ctx.tenantSlug);
@@ -109,7 +113,10 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
         ) : null}
 
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:pt-10 lg:pb-12 print:max-w-none print:p-0">
-          {children}
+          {/* "Buscar dirección" nei form degli indirizzi, se c'è la chiave di Google (ADR-059). */}
+          <PlacesConfigProvider enabled={addressSearch.enabled} near={addressSearch.near}>
+            {children}
+          </PlacesConfigProvider>
         </main>
       </div>
 

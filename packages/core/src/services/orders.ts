@@ -12,12 +12,13 @@
 import { getDb, withTenantContext, type Prisma, type TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
+  EMPTY_PLACE,
   ORDER_LIMITS,
+  ORDER_PAGE_SIZE,
+  ORDER_STATUSES,
   acceptsOrderPayments,
   acceptsOrderPhoto,
   areOrderLinesEditable,
-  ORDER_PAGE_SIZE,
-  ORDER_STATUSES,
   canCancelOrder,
   canStepOrder,
   catalogQuoteLineSchema,
@@ -32,6 +33,7 @@ import {
   isOrderEditable,
   isOrderHandedOver,
   isUuid,
+  nextStoredPlace,
   orderBalanceMinor,
   orderCancelSchema,
   orderDiscountSchema,
@@ -42,8 +44,8 @@ import {
   orderStepsFrom,
   priceOrder,
   quoteLineQuantitySchema,
-  toFieldErrors,
   todayInTimeZone,
+  toFieldErrors,
   worstAvailability,
   type AcquisitionSource,
   type Availability,
@@ -55,6 +57,7 @@ import {
   type OrderWhenFilter,
   type PaymentMethod,
   type SaleUnit,
+  type StoredPlace,
 } from '@floral/domain';
 import { notFound, recordAudit } from '../audit';
 import { hasPermission, requirePermission } from '../authorization';
@@ -165,6 +168,8 @@ export interface OrderDeliveryAddressDto {
   readonly region: string;
   readonly postalCode: string;
   readonly countryCode: string;
+  /** Google Places (ADR-059): presente se l'indirizzo è stato scelto fra i suggerimenti. */
+  readonly placeId: string | null;
 }
 
 export interface OrderDetailDto extends OrderSummaryDto {
@@ -449,6 +454,7 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
           region: order.deliveryRegion,
           postalCode: order.deliveryPostalCode,
           countryCode: order.deliveryCountryCode,
+          placeId: order.deliveryPlaceId,
         }
       : null;
   return {
@@ -571,6 +577,10 @@ interface ResolvedFulfillment {
     deliveryRegion: string | null;
     deliveryPostalCode: string | null;
     deliveryCountryCode: string | null;
+    deliveryPlaceId: string | null;
+    deliveryLatitude: number | null;
+    deliveryLongitude: number | null;
+    deliveryCoordinatesAt: Date | null;
     deliveryNotes: string | null;
     recipientName: string | null;
     recipientPhone: string | null;
@@ -600,6 +610,8 @@ async function resolveFulfillment(
   input: OrderFulfillmentInput,
   rawInput: unknown,
   keepDate: Date | null,
+  /** Luogo di Google Places già sull'ordine (modifica), per non allungare la cache. */
+  existingPlace: StoredPlace | null = null,
 ): Promise<ResolvedFulfillment> {
   const today = todayInTimeZone(ctx.timezone);
   const scheduled = partsToDate(input.scheduledDate);
@@ -612,8 +624,10 @@ async function resolveFulfillment(
     throw new ValidationError({ scheduledDate: 'out_of_range' });
   }
 
-  let address: Omit<OrderDeliveryAddressDto, 'countryCode'> | null = null;
+  let address: Omit<OrderDeliveryAddressDto, 'countryCode' | 'placeId'> | null = null;
   let customerAddressId: string | null = null;
+  // Google Places (ADR-059): place ID e coordinate (cache di 30 giorni) dell'indirizzo di consegna.
+  let place: StoredPlace = EMPTY_PLACE;
   let recipientName = input.recipientName;
   let recipientPhone = input.recipientPhone;
   let deliveryNotes = input.deliveryNotes;
@@ -630,6 +644,12 @@ async function resolveFulfillment(
       if (!saved) throw new ValidationError({ customerAddressId: 'invalid_option' });
       customerAddressId = saved.id;
       address = saved;
+      place = {
+        placeId: saved.placeId,
+        latitude: saved.latitude,
+        longitude: saved.longitude,
+        coordinatesAt: saved.coordinatesAt,
+      };
       // Dalla rubrica si prendono destinatario e referencias, se il form non li indica.
       recipientName ??= saved.recipientName;
       recipientPhone ??= saved.recipientPhone;
@@ -638,6 +658,11 @@ async function resolveFulfillment(
       const parsed = deliveryAddressSchema(ctx.country).safeParse(rawInput);
       if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
       address = parsed.data;
+      place = nextStoredPlace(
+        rawInput && typeof rawInput === 'object' ? (rawInput as Record<string, unknown>) : {},
+        existingPlace,
+        new Date(),
+      );
     }
   }
 
@@ -656,6 +681,10 @@ async function resolveFulfillment(
       deliveryRegion: address?.region ?? null,
       deliveryPostalCode: address?.postalCode ?? null,
       deliveryCountryCode: address ? ctx.country : null,
+      deliveryPlaceId: place.placeId,
+      deliveryLatitude: place.latitude,
+      deliveryLongitude: place.longitude,
+      deliveryCoordinatesAt: place.coordinatesAt,
       deliveryNotes: input.fulfillmentMode === 'DELIVERY' ? deliveryNotes : null,
       recipientName,
       recipientPhone,
@@ -801,6 +830,12 @@ export async function updateOrderFulfillment(
       input,
       rawInput,
       order.scheduledDate,
+      {
+        placeId: order.deliveryPlaceId,
+        latitude: order.deliveryLatitude,
+        longitude: order.deliveryLongitude,
+        coordinatesAt: order.deliveryCoordinatesAt,
+      },
     );
 
     const totals = priceOrder({

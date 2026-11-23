@@ -127,6 +127,18 @@ describe('configurazione della piattaforma', () => {
     expect(() => createMailerFromEnv({ NODE_ENV: 'production' })).toThrow(/SMTP_URL/);
   });
 
+  it('Google Places: chiave facoltativa, ma con la forma di una chiave di Google', () => {
+    expect(readPlatformConfig({}).GOOGLE_MAPS_API_KEY).toBeUndefined();
+    expect(readPlatformConfig({ GOOGLE_MAPS_API_KEY: ' ' }).GOOGLE_MAPS_API_KEY).toBeUndefined();
+    const key = `AIza${'x'.repeat(35)}`;
+    expect(readPlatformConfig({ GOOGLE_MAPS_API_KEY: ` ${key} ` }).GOOGLE_MAPS_API_KEY).toBe(key);
+    const issues = issuesOf({ GOOGLE_MAPS_API_KEY: 'la mia chiave!' });
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toMatch(/^GOOGLE_MAPS_API_KEY: /);
+    // Mai il valore nel messaggio.
+    expect(issues[0]).not.toContain('la mia chiave');
+  });
+
   it('riconosce gli URL locali', () => {
     expect(isLocalAppUrl(undefined)).toBe(true);
     expect(isLocalAppUrl('http://127.0.0.1:3100')).toBe(true);
