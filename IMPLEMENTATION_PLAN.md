@@ -447,6 +447,16 @@ restano con i font di sistema dei programmi di posta.
 `pnpm audit --prod` non trova vulnerabilità; `prisma generate`, migrazioni e 329 test verdi. Da
 togliere quando Prisma aggiornerà la dipendenza.
 
+**Modello economico, listino e roadmap (23/11, solo documenti, richiesta del founder):** analisi di
+ricavi, costi e tasse con il founder; nuovi documenti `docs/BUSINESS_MODEL.md` (listino, costi per
+fioreria, scenari, fee, aziende, domande per commercialista e contador) e `docs/ROADMAP.md` (tappe
+dopo la V1 con le loro condizioni). Decisioni: listino a tre livelli Esencial / Profesional /
+Premium al posto di Basic/Plus (D-23, prezzi proposti), fee sugli ordini (D-24), aziende prima come
+intermediario e servizio gestito solo dopo (D-25); nuovi punti aperti O-12 (fase gratuita) e O-13
+(ruolo della partner); prezzi dei crediti AI da rivedere (ADR-024, costo vero ~0,11 USD). Effetto sul
+codice, nello sprint billing: piani ed entitlements (`packages/domain/src/plans.ts`) sui livelli,
+quote AI 15 / 30, utenti inclusi per livello. Nessun codice cambiato in questa sessione.
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci
@@ -461,7 +471,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 5. Abbonamenti dei clienti e Floral Care.
 6. Report.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.
-8. Abbonamento a pagamento (Stripe in modalità di prova) e pannello della piattaforma.
+8. Abbonamento a pagamento sui livelli Esencial e Profesional (D-23; Stripe in modalità di prova) e
+   pannello della piattaforma.
 9. Privacy nell'app: pagine, consensi, esportazione e cancellazione dei dati.
 10. Rifinitura generale; Diseñador con foto vere (contenitori, dimensione del ramo, copertina,
     "usa l'originale"); prova da ~100 immagini → prezzi dei pacchetti (ADR-024); prova con i tester.
