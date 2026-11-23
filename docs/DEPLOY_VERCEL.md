@@ -218,6 +218,15 @@ variabili da sistemare.
      attivi la promo, la mattina dopo ti arriva l'email vera con il codice. Gli altri clienti hanno
      email inventate (`@example.com`) e nessun consenso, quindi la promo non scrive a loro.
    - Funziona solo su una fioreria di cui sei proprietario o manager.
+7. **Far entrare un tester senza dominio email (ADR-050):** finché il dominio non è verificato, le
+   email di conferma arrivano solo a te.
+   - La persona si registra sul sito con la sua email e la sua password (l'email non le arriverà:
+     va bene così).
+   - Lo stesso workflow, operazione `confirm-user`, la tua email e in "Email della persona" la sua.
+     Lascia vuoto l'indirizzo della fioreria se deve crearne una sua: al primo accesso l'app gliela
+     fa creare. Se invece deve entrare nella tua, scrivi l'indirizzo e scegli il ruolo (manager o
+     staff).
+   - Poi entra con la sua password. Conferma solo persone che conosci.
 
 ## 9. Se qualcosa non va
 

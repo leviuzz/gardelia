@@ -16,12 +16,13 @@ on:
           - assign-plan
           - grant-ai-credits
           - test-data
+          - confirm-user
       email:
         description: La tua email (amministratore della piattaforma)
         required: true
         type: string
       tenant:
-        description: Indirizzo della fioreria, la parte dopo /app/ (assign-plan, grant-ai-credits, test-data)
+        description: Indirizzo della fioreria, la parte dopo /app/ (assign-plan, grant-ai-credits, test-data, confirm-user)
         required: false
         type: string
       plan:
@@ -55,6 +56,18 @@ on:
         required: false
         type: boolean
         default: true
+      person:
+        description: Email della persona da confermare (confirm-user)
+        required: false
+        type: string
+      role:
+        description: Ruolo nella fioreria, se indicata (confirm-user)
+        required: false
+        type: choice
+        default: MANAGER
+        options:
+          - MANAGER
+          - STAFF
 
 permissions:
   contents: read
@@ -86,13 +99,16 @@ jobs:
           set -euo pipefail
           input() { jq -r --arg name "$1" '.inputs[$name] | if . == null then "" else tostring end' "${GITHUB_EVENT_PATH}"; }
           mask() { if [ -n "$1" ]; then echo "::add-mask::$1"; fi; }
-          EMAIL="$(input email)"; mask "${EMAIL}"
-          TENANT="$(input tenant)"; mask "${TENANT}"
+          # Anche in minuscolo: le CLI normalizzano le email e le maschere distinguono le maiuscole.
+          EMAIL="$(input email)"; mask "${EMAIL}"; mask "${EMAIL,,}"
+          TENANT="$(input tenant)"; mask "${TENANT}"; mask "${TENANT,,}"
           NOTE="$(input note)"; mask "${NOTE}"
+          PERSON="$(input person)"; mask "${PERSON}"; mask "${PERSON,,}"
           OPERATION="$(input operation)"
           PLAN="$(input plan)"
           STATUS="$(input status)"
           UNITS="$(input units)"
+          ROLE="$(input role)"
           if [ -z "${DATABASE_URL}" ]; then
             echo "Manca il segreto PLATFORM_DATABASE_URL (vedi docs/DEPLOY_VERCEL.md)." >&2
             exit 1
@@ -108,6 +124,11 @@ jobs:
             grant-ai-credits)
               pnpm -s platform:grant-ai-credits --operator "${EMAIL}" --tenant "${TENANT}" \
                 --units "${UNITS}" "${note_args[@]}" ;;
+            confirm-user)
+              tenant_args=()
+              if [ -n "${TENANT}" ]; then tenant_args=(--tenant "${TENANT}" --role "${ROLE}"); fi
+              pnpm -s platform:confirm-user --operator "${EMAIL}" --email "${PERSON}" \
+                "${tenant_args[@]}" ;;
           esac
       - name: Dati di prova
         if: inputs.operation == 'test-data'
@@ -125,8 +146,8 @@ jobs:
           set -euo pipefail
           input() { jq -r --arg name "$1" '.inputs[$name] | if . == null then "" else tostring end' "${GITHUB_EVENT_PATH}"; }
           mask() { if [ -n "$1" ]; then echo "::add-mask::$1"; fi; }
-          EMAIL="$(input email)"; mask "${EMAIL}"
-          TENANT="$(input tenant)"; mask "${TENANT}"
+          EMAIL="$(input email)"; mask "${EMAIL}"; mask "${EMAIL,,}"
+          TENANT="$(input tenant)"; mask "${TENANT}"; mask "${TENANT,,}"
           PHOTOS="$(input photos)"
           if [ -z "${DATABASE_URL}" ]; then
             echo "Manca il segreto PLATFORM_DATABASE_URL (vedi docs/DEPLOY_VERCEL.md)." >&2

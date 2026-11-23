@@ -385,6 +385,11 @@ schermo dicesse perché. Ora il Diseñador mostra cosa ha contato il controllo n
 riporta gli stessi numeri. Prossimo passo: con i numeri veri del founder decidere come alzare la
 riuscita (prompt, fiori con più corolle per stelo, tolleranza o foto "non verificata").
 
+**Tester senza email di conferma (fatto il 23/11, richiesta del founder, ADR-050):** operazione di
+piattaforma `confirm-user`. L'amministratore conferma a mano l'email di una persona registrata e, se
+serve, la aggiunge a una fioreria come manager o staff, con audit. Serve finché il dominio email non
+è verificato; poi tornano le email normali.
+
 **Log pubblici del workflow di piattaforma (corretto il 23/11):** il repository è pubblico e
 l'email dell'operatore compariva in chiaro nei log delle operazioni (variabili `env:` stampate da
 GitHub). Ora gli input si leggono dal file dell'evento e si mascherano (ADR-038, operazioni di

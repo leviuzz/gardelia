@@ -29,7 +29,8 @@
     "platform:assign-plan": "pnpm --filter @floral/core run assign-plan",
     "platform:grant-ai-credits": "pnpm --filter @floral/core run grant-ai-credits",
     "platform:bootstrap-admin": "pnpm --filter @floral/core run bootstrap-admin",
-    "platform:test-data": "pnpm --filter @floral/core run fill-test-shop"
+    "platform:test-data": "pnpm --filter @floral/core run fill-test-shop",
+    "platform:confirm-user": "pnpm --filter @floral/core run confirm-user"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
