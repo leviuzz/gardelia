@@ -8,6 +8,7 @@ import {
   buildPreviewSpec,
   buildSketchRenderPrompt,
   canonicalPreviewInput,
+  colorNameOf,
   countMismatchSummary,
   countTargets,
   countsMatch,
@@ -401,6 +402,51 @@ describe('controllo dei conteggi', () => {
     });
     expect(parseCountCheck('non è JSON', targets)).toBeNull();
     expect(parseCountCheck('{"counts":{}}', targets)).toBeNull();
+  });
+
+  it('senza colore in catalogo il tipo prende il colore misurato sulla sua foto', () => {
+    const fiore1 = { ...rose, name: 'Fiore 1', variety: null, colors: [], commonName: null };
+    const fiore2 = { ...daisy, name: 'Fiore 2', colors: ['pink'], commonName: null };
+    const [first, second] = countTargets(spec([fiore1, fiore2]), {
+      photoColors: { [ROSE_PHOTO]: 'red', [DAISY_PHOTO]: 'pink' },
+    });
+    expect(first?.description).toBe('"Fiore 1" (red)');
+    // Colore del catalogo uguale a quello della foto: invariato.
+    expect(second?.description).toBe('"Fiore 2" (pink)');
+    // Colore del catalogo diverso da quello della foto: si dicono entrambi.
+    const [wrong] = countTargets(spec([{ ...fiore1, colors: ['white'] }]), {
+      photoColors: { [ROSE_PHOTO]: 'red' },
+    });
+    expect(wrong?.description).toBe('"Fiore 1" (white; looks red in the photo)');
+    // Con la specie: "red roses (…)"; senza foto misurata resta come prima.
+    expect(
+      countTargets(spec([{ ...rose, colors: [] }]), { photoColors: { [ROSE_PHOTO]: 'red' } })[0]
+        ?.description,
+    ).toBe('red roses ("Rosa roja Freedom")');
+    expect(countTargets(spec([fiore1]))[0]?.description).toBe('"Fiore 1"');
+  });
+
+  it('dà un nome ai colori medi dei petali', () => {
+    const named = (hex: string) =>
+      colorNameOf(
+        parseInt(hex.slice(1, 3), 16),
+        parseInt(hex.slice(3, 5), 16),
+        parseInt(hex.slice(5, 7), 16),
+      );
+    expect(named('#9e1030')).toBe('red'); // rosa cremisi
+    expect(named('#c0392b')).toBe('red');
+    expect(named('#f4a9bb')).toBe('pink');
+    expect(named('#5a0f1f')).toBe('burgundy');
+    expect(named('#c2185b')).toBe('fuchsia');
+    expect(named('#fafaf5')).toBe('white');
+    expect(named('#f6c945')).toBe('yellow');
+    expect(named('#ef8a3c')).toBe('orange');
+    expect(named('#f7c9a9')).toBe('peach');
+    expect(named('#7e57c2')).toBe('purple');
+    expect(named('#c8a2e8')).toBe('lilac');
+    expect(named('#5b8def')).toBe('blue');
+    expect(named('#5f8f5a')).toBe('green');
+    expect(named('#808080')).toBeNull();
   });
 
   it('rifiuta un fiore in più, in meno o estraneo', () => {

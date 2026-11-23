@@ -385,7 +385,9 @@ schermo dicesse perché. Ora il Diseñador mostra cosa ha contato il controllo n
 riporta gli stessi numeri. **Causa trovata con il founder:** nel boceto 2 boccioli rosa finivano
 dietro 3 rose rosse aperte e sparivano anche dalla foto realistica. Boceto v4 (ADR-034): ogni corolla
 deve restare visibile per almeno il 60% dei petali, altrimenti il boceto si ridisegna più arioso.
-Da osservare: i prodotti fotografati in bocciolo e il controllo che ignora i boccioli chiusi.
+Da osservare: i prodotti fotografati in bocciolo e il controllo che ignora i boccioli chiusi. Poi, con
+tutti i fiori visibili, il controllo non riconosceva "Fiore 1" (nome generico, nessun colore in
+catalogo): ora ogni tipo arriva al controllo anche con il colore misurato sulla sua foto.
 
 **Tester senza email di conferma (fatto il 23/11, richiesta del founder, ADR-050):** operazione di
 piattaforma `confirm-user`. L'amministratore conferma a mano l'email di una persona registrata e, se

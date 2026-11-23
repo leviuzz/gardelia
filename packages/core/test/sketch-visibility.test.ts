@@ -8,6 +8,7 @@ import {
   type SketchLayout,
 } from '@floral/domain';
 import { bloomVisibility, renderBouquetSketch } from '../src/index';
+import { petalColorOf } from '../src/ai/sketch-renderer';
 import { bloomHeadFor } from '../src/ai/bloom-head';
 
 /**
@@ -116,6 +117,15 @@ describe('boceto v4: ogni corolla resta visibile', () => {
       ],
     };
     expect(Math.max(...(await bloomVisibility(shifted, cutouts)))).toBeLessThan(0.5);
+  });
+
+  it('misura il colore dei petali sul ritaglio, senza le foglie verdi', async () => {
+    expect(await petalColorOf(await openRose())).toBe('red');
+    expect(await petalColorOf(await bud())).toBe('pink');
+    const { photoColors } = await renderBouquetSketch(flowersSpec(1, 3, 2), async (id) =>
+      id === RED ? openRose() : bud(),
+    );
+    expect(photoColors).toEqual({ [RED]: 'red', [PINK]: 'pink' });
   });
 
   it('su ramos diversi il boceto scelto lascia visibile ogni fiore', async () => {

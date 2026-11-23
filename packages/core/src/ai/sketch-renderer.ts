@@ -7,6 +7,7 @@ import sharp, { type OverlayOptions } from 'sharp';
 import { bloomHeadFor } from './bloom-head';
 import {
   SKETCH_CROWDING,
+  colorNameOf,
   countedFlowers,
   layoutBouquetSketch,
   shadeHex,
@@ -271,6 +272,35 @@ export async function bloomVisibility(
   });
 }
 
+/**
+ * Colore dei petali di un ritaglio (media dei pixel pieni e non verdi), nel vocabolario del
+ * catalogo. Serve a descrivere il fiore al controllo dei conteggi quando il catalogo non dice il
+ * colore (ADR-034, 23/11). null se la foto non ha abbastanza petali o il colore è indistinto.
+ */
+export async function petalColorOf(png: Uint8Array): Promise<string | null> {
+  const { data, info } = await sharp(png)
+    .ensureAlpha()
+    .resize(96, 96, { fit: 'inside' })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  let red = 0;
+  let green = 0;
+  let blue = 0;
+  let count = 0;
+  for (let offset = 0; offset < data.length; offset += info.channels) {
+    if ((data[offset + 3] ?? 0) < 128) continue;
+    const r = data[offset]!;
+    const g = data[offset + 1]!;
+    const b = data[offset + 2]!;
+    if (isFoliageGreen(r, g, b)) continue;
+    red += r;
+    green += g;
+    blue += b;
+    count += 1;
+  }
+  return count < 20 ? null : colorNameOf(red / count, green / count, blue / count);
+}
+
 /** Foto scontornate che il boceto userà (fiori contati, riempimento e follaje con ritaglio). */
 export function sketchPhotoIds(spec: BouquetPreviewSpec): string[] {
   const ids = new Set<string>();
@@ -306,7 +336,12 @@ function flowerPhotoIds(spec: BouquetPreviewSpec): Set<string> {
 export async function renderBouquetSketch(
   spec: BouquetPreviewSpec,
   loadCutout: (photoId: string) => Promise<Uint8Array | null>,
-): Promise<{ png: Uint8Array; layout: SketchLayout }> {
+): Promise<{
+  png: Uint8Array;
+  layout: SketchLayout;
+  /** Colore dei petali di ogni foto di fiore (per il controllo dei conteggi). */
+  photoColors: Record<string, string | null>;
+}> {
   const cutouts = new Map<string, Uint8Array>();
   const cutoutAspects: Record<string, number> = {};
   const flowers = flowerPhotoIds(spec);
@@ -329,5 +364,10 @@ export async function renderBouquetSketch(
     if (minVisible >= SKETCH_CROWDING.minVisible) break;
   }
   const layout = chosen!.layout;
-  return { png: await renderSketch(layout, cutouts), layout };
+  const photoColors: Record<string, string | null> = {};
+  for (const photoId of flowers) {
+    const head = cutouts.get(photoId);
+    if (head) photoColors[photoId] = await petalColorOf(head);
+  }
+  return { png: await renderSketch(layout, cutouts), layout, photoColors };
 }
