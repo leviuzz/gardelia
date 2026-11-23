@@ -7,10 +7,15 @@
  * cerca solo nella fioreria del contesto e rifiuta i valori sconosciuti).
  */
 import {
+  applyRealCostToCatalog,
+  consumeReservation,
+  createReservation,
   createSupplier,
+  extendReservation,
   recordPurchase,
   recordStockCount,
   recordStockOut,
+  releaseReservation,
   reverseInventoryEntry,
   setCatalogItemAvailability,
   setSupplierArchived,
@@ -18,14 +23,13 @@ import {
   stopInventoryTracking,
   updateInventoryItemSettings,
   updateSupplier,
-  applyRealCostToCatalog,
 } from '@floral/core';
 import type { ActionState } from '@/lib/action-state';
 import { formDataToObject } from '@/lib/form-data';
 import type { TenantRoutes } from '@/lib/routes';
 import { runTenantAction, section } from '@/lib/tenant-action';
 
-/** L'inventario e il catalogo (riquadro della scheda) mostrano le stesse giacenze. */
+/** L'inventario (apartados compresi) e il catalogo (riquadro della scheda) mostrano le stesse giacenze. */
 function stockPages(routes: TenantRoutes) {
   return [section(routes.inventory.list()), section(routes.catalog.list())];
 }
@@ -204,5 +208,57 @@ export async function setSupplierArchivedAction(
       revalidate: section(routes.inventory.list()),
       success: archived ? 'inventory.suppliers.archivedDone' : 'inventory.suppliers.restoredDone',
     };
+  });
+}
+
+/** "Nuevo apartado" (ADR-062): crea e apre la scheda dell'apartado. */
+export async function createReservationAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const { reservationId } = await createReservation(ctx, formDataToObject(formData));
+    return {
+      revalidate: stockPages(routes),
+      redirectTo: routes.inventory.reservation(reservationId, { created: true }),
+    };
+  });
+}
+
+/** "Usar": quanto si è usato davvero di ogni riga; la merce esce e l'apartado si chiude. */
+export async function consumeReservationAction(
+  slug: string,
+  reservationId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await consumeReservation(ctx, reservationId, formDataToObject(formData));
+    return { revalidate: stockPages(routes), success: 'inventory.reservations.actions.used' };
+  });
+}
+
+export async function extendReservationAction(
+  slug: string,
+  reservationId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await extendReservation(ctx, reservationId, formDataToObject(formData));
+    return { revalidate: stockPages(routes), success: 'inventory.reservations.actions.extended' };
+  });
+}
+
+export async function releaseReservationAction(
+  slug: string,
+  reservationId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await releaseReservation(ctx, reservationId);
+    return { revalidate: stockPages(routes), success: 'inventory.reservations.actions.released' };
   });
 }

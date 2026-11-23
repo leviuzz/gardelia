@@ -1859,7 +1859,8 @@
       "label": "Sezioni dell'inventario",
       "stock": "Giacenze",
       "movements": "Movimenti",
-      "purchases": "Acquisti"
+      "purchases": "Acquisti",
+      "reservations": "Riserve"
     },
     "upsell": {
       "title": "L'inventario è incluso in {plan}",
@@ -1905,7 +1906,8 @@
       "archivedSubtitle": "I loro movimenti restano. Puoi tornare a controllarli da Scegli i prodotti.",
       "archivedEmpty": "Non ci sono prodotti che hai smesso di controllare.",
       "backToStock": "Torna alle giacenze",
-      "staffNote": "Vedi le giacenze; i movimenti li registrano il titolare e il responsabile."
+      "staffNote": "Vedi le giacenze; i movimenti li registrano il titolare e il responsabile.",
+      "reserved": "Riservati: {quantity} · disponibili: {available}"
     },
     "start": {
       "title": "Scegli i prodotti",
@@ -1959,7 +1961,10 @@
       "noRealCost": "Ancora nessun acquisto",
       "costDiff": "{diff} rispetto al catalogo",
       "useRealCost": "Usa questo costo nel catalogo",
-      "realCostApplied": "Fatto: il catalogo usa già il costo reale."
+      "realCostApplied": "Fatto: il catalogo usa già il costo reale.",
+      "reserved": "Riservato",
+      "reservedDetail": "Disponibili: {quantity}",
+      "noReserved": "Niente riservato"
     },
     "actions": {
       "use": "Registra uso",
@@ -2034,7 +2039,8 @@
       "untracked": "Non controlli la giacenza di questo prodotto.",
       "archived": "Non controlli più la giacenza di questo prodotto.",
       "start": "Controlla la giacenza",
-      "open": "Vedi nell'inventario"
+      "open": "Vedi nell'inventario",
+      "reserved": "Riservati: {quantity}; disponibili: {available}."
     },
     "planFeature": {
       "title": "Inventario",
@@ -2042,7 +2048,10 @@
     },
     "validation": {
       "none_selected": "Scrivi quanti ne hai di almeno un prodotto.",
-      "no_lines": "Aggiungi almeno un prodotto all'acquisto."
+      "no_lines": "Aggiungi almeno un prodotto all'acquisto.",
+      "expiry_past": "Scegli oggi o una data futura.",
+      "expiry_too_far": "Scegli una data entro i prossimi 90 giorni.",
+      "nothing_used": "Scrivi quanto hai usato di almeno un prodotto. Se non hai usato nulla, libera la riserva."
     },
     "conflict": {
       "insufficient_stock": "La merce non basta: controlla la quantità o conferma per registrare comunque.",
@@ -2050,7 +2059,8 @@
       "already_tracked": "Qualcuno ha iniziato a controllare questi prodotti nello stesso momento. Ricarica la pagina.",
       "entry_not_reversible": "Questo movimento non si può annullare: correggi la giacenza con un conteggio.",
       "entry_already_reversed": "Questo movimento è già stato annullato.",
-      "no_real_cost": "Questo prodotto non ha ancora un costo reale: registra un acquisto."
+      "no_real_cost": "Questo prodotto non ha ancora un costo reale: registra un acquisto.",
+      "reservation_closed": "Questa riserva è già stata usata o liberata. Ricarica la pagina."
     },
     "activity": {
       "tracking_started": "{units, plural, one {{actor} ha iniziato a controllare {name} nell'inventario} other {{actor} ha iniziato a controllare # prodotti nell'inventario}}",
@@ -2065,7 +2075,11 @@
       "supplier_updated": "{actor} ha modificato il fornitore {name}",
       "supplier_archived": "{actor} ha archiviato il fornitore {name}",
       "supplier_restored": "{actor} ha ripristinato il fornitore {name}",
-      "real_cost_applied": "{actor} ha usato il costo reale di {name} nel catalogo"
+      "real_cost_applied": "{actor} ha usato il costo reale di {name} nel catalogo",
+      "reservation_created": "{lines, plural, one {{actor} ha riservato {units} × {name}} other {{actor} ha riservato merce di # prodotti}}",
+      "reservation_extended": "{actor} ha prorogato una riserva",
+      "reservation_released": "{actor} ha liberato una riserva",
+      "reservation_used": "{actor} ha usato una riserva"
     },
     "purchases": {
       "title": "Acquisti",
@@ -2145,6 +2159,108 @@
       "restoredDone": "Fornitore ripristinato.",
       "showArchived": "Mostra anche gli archiviati",
       "hideArchived": "Nascondi gli archiviati"
+    },
+    "reservations": {
+      "title": "Riserve",
+      "subtitle": "Merce messa da parte per un evento o un cliente fino a una data: finché è riservata non risulta disponibile.",
+      "new": "Nuova riserva",
+      "viewsLabel": "Mostra le riserve",
+      "views": {
+        "current": "Attive ({count})",
+        "expired": "Scadute ({count})",
+        "closed": "Chiuse ({count})"
+      },
+      "searchPlaceholder": "Cerca per evento o cliente",
+      "results": "{count, plural, =0 {Nessuna riserva} one {# riserva} other {# riserve}}",
+      "emptyTitle": {
+        "current": "Nessuna riserva attiva",
+        "expired": "Nessuna riserva scaduta",
+        "closed": "Ancora nessuna riserva chiusa"
+      },
+      "emptyBody": {
+        "current": "Metti da parte i fiori di un matrimonio o di un evento e non li userai per sbaglio in un altro mazzo.",
+        "expired": "Quando una riserva supera la sua data compare qui: puoi prorogarla o liberarla.",
+        "closed": "Qui vedrai le riserve già usate o liberate."
+      },
+      "emptyBodyStaff": "Quando il titolare o il manager mettono da parte la merce, qui vedrai per che cosa.",
+      "noResultsTitle": "Nessuna riserva con questa ricerca",
+      "noResultsBody": "Prova con un'altra parola.",
+      "staffNote": "Vedi le riserve; le creano e le usano il titolare e il manager.",
+      "states": {
+        "ACTIVE": "Attiva",
+        "EXPIRED": "Scaduta",
+        "USED": "Usata",
+        "RELEASED": "Liberata"
+      },
+      "due": "{days, plural, =0 {Scade oggi} one {Scade domani} other {Scade tra # giorni}}",
+      "expiresOn": "Scade il {date}",
+      "expiredOn": "Scaduta il {date}",
+      "usedOn": "Usata il {date}",
+      "releasedOn": "Liberata il {date}",
+      "line": "{quantity} di {name}",
+      "moreLines": "{count, plural, one {e # altro prodotto} other {e altri # prodotti}}",
+      "form": {
+        "title": "Nuova riserva",
+        "subtitle": "Metti da parte la merce per un evento o un cliente. Le giacenze non cambiano finché non la usi.",
+        "back": "Torna alle riserve",
+        "label": "Per",
+        "labelHint": "Per esempio: Matrimonio di Anna, Evento Hotel Quinta Real.",
+        "expiresOn": "Scade il",
+        "expiresOnHint": "Dopo quel giorno la merce non è più riservata.",
+        "note": "Nota (facoltativa)",
+        "product": "Prodotto",
+        "choose": "Scegli un prodotto",
+        "quantity": "Quantità",
+        "quantityHint": "Puoi scrivere 2x25.",
+        "available": "Disponibili: {quantity}",
+        "missing": "Mancano {quantity}",
+        "shortage": "La merce disponibile non basta per tutto quello che vuoi riservare. Puoi riservarla comunque e comprare ciò che manca.",
+        "addLine": "Aggiungi prodotto",
+        "removeLine": "Togli prodotto",
+        "submit": "Riserva",
+        "submitShortage": "Riserva comunque",
+        "noProducts": "Prima scegli in Giacenze i prodotti che vuoi controllare."
+      },
+      "detail": {
+        "back": "Torna alle riserve",
+        "created": "Riserva pronta: questa merce non risulta più disponibile.",
+        "notTracked": "Non controlli più questo prodotto",
+        "missing": "Mancano {quantity}",
+        "createdBy": "Riservata da {name}",
+        "closedByUsed": "Usata da {name}",
+        "closedByReleased": "Liberata da {name}",
+        "expiredNotice": "Questa riserva è scaduta: la merce è di nuovo disponibile per altri mazzi. Prorogala se ti serve ancora.",
+        "usedNotice": "Questa riserva è già stata usata: la merce è uscita dall'inventario.",
+        "releasedNotice": "Questa riserva è stata liberata: la merce è di nuovo disponibile.",
+        "movementsLink": "Vedi i movimenti",
+        "usedLine": "Usato: {quantity}",
+        "forThisLine": "C'è per questa riserva: {quantity}"
+      },
+      "actions": {
+        "use": "Usa",
+        "useTitle": "Usa «{label}»",
+        "useBody": "Scrivi quanto hai usato di ogni prodotto. Quello che non usi resta in giacenza.",
+        "useShortage": "La merce non basta per tutto quello che hai scritto. Se continui, le giacenze andranno sotto zero.",
+        "useSubmit": "Registra l'uso",
+        "useSubmitShortage": "Registra comunque",
+        "used": "Uso registrato: la riserva è chiusa.",
+        "extend": "Proroga",
+        "extendTitle": "Proroga «{label}»",
+        "extendBody": "Scegli fino a che giorno la merce resta riservata.",
+        "extendSubmit": "Salva la data",
+        "extended": "Data salvata.",
+        "release": "Libera",
+        "releaseTitle": "Liberare «{label}»?",
+        "releaseBody": "La merce torna disponibile per altri mazzi. Le giacenze non cambiano.",
+        "releaseConfirm": "Libera",
+        "released": "Riserva liberata: la merce è di nuovo disponibile."
+      },
+      "itemBox": {
+        "title": "Riserve",
+        "empty": "Niente riservato di questo prodotto.",
+        "entry": "{quantity} per {label}",
+        "new": "Riserva"
+      }
     }
   }
 }

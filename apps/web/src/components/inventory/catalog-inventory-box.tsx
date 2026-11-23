@@ -65,6 +65,14 @@ export async function CatalogInventoryBox({
                   <span>{t('catalogBox.tracked', { quantity: quantity(stock.onHand) })}</span>
                   <StockStatusBadge status={stock.status} />
                 </p>
+                {stock.reserved > 0 ? (
+                  <p className="text-muted-foreground">
+                    {t('catalogBox.reserved', {
+                      quantity: quantity(stock.reserved),
+                      available: quantity(stock.available),
+                    })}
+                  </p>
+                ) : null}
                 {stock.minQuantity !== null ? (
                   <p className="text-muted-foreground">
                     {t('catalogBox.minimum', { quantity: quantity(stock.minQuantity) })}

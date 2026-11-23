@@ -59,11 +59,8 @@ export default async function InventoryMovementsPage({
       {header}
       <InventoryTabs
         current="movements"
-        stockHref={routes.inventory.list()}
-        movementsHref={routes.inventory.movements()}
-        purchasesHref={
-          hasPermission(ctx, 'inventory:write') ? routes.inventory.purchases() : undefined
-        }
+        routes={routes}
+        showPurchases={hasPermission(ctx, 'inventory:write')}
       />
       <form
         method="get"

@@ -39,6 +39,15 @@ describe('percorsi della fioreria (routes.ts)', () => {
     expect(routes.inventory.suppliers({ archived: true })).toBe(
       '/app/las-camelias/inventory/suppliers?archived=1',
     );
+    expect(routes.inventory.reservations({ view: 'expired', q: 'boda' })).toBe(
+      '/app/las-camelias/inventory/reservations?view=expired&q=boda',
+    );
+    expect(routes.inventory.newReservation({ item: 'i1' })).toBe(
+      '/app/las-camelias/inventory/reservations/new?item=i1',
+    );
+    expect(routes.inventory.reservation('r/1', { created: true })).toBe(
+      '/app/las-camelias/inventory/reservations/r%2F1?created=1',
+    );
   });
 
   it('la query contiene solo i valori presenti, nell’ordine dato', () => {

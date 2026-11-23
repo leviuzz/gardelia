@@ -182,6 +182,8 @@ model Tenant {
   inventoryEntries  InventoryEntry[]
   inventoryMoves    InventoryMovement[]
   suppliers         Supplier[]
+  inventoryHolds    InventoryReservation[]
+  inventoryHoldRows InventoryReservationLine[]
   customers         Customer[]
   customerAddresses CustomerAddress[]
   customerOccasions CustomerOccasion[]
@@ -520,9 +522,10 @@ model InventoryItem {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  catalogItem CatalogItem         @relation(fields: [tenantId, catalogItemId], references: [tenantId, id], onDelete: Restrict)
+  tenant      Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  catalogItem CatalogItem                @relation(fields: [tenantId, catalogItemId], references: [tenantId, id], onDelete: Restrict)
   movements   InventoryMovement[]
+  holds       InventoryReservationLine[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, catalogItemId])
@@ -547,17 +550,76 @@ model InventoryEntry {
   occurredAt      DateTime           @default(now())
   createdAt       DateTime           @default(now())
 
-  tenant     Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  supplier   Supplier?           @relation(fields: [tenantId, supplierId], references: [tenantId, id], onDelete: Restrict)
-  reverses   InventoryEntry?     @relation("InventoryReversal", fields: [tenantId, reversesEntryId], references: [tenantId, id], onDelete: Restrict)
-  reversedBy InventoryEntry?     @relation("InventoryReversal")
-  movements  InventoryMovement[]
+  tenant      Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier    Supplier?             @relation(fields: [tenantId, supplierId], references: [tenantId, id], onDelete: Restrict)
+  reverses    InventoryEntry?       @relation("InventoryReversal", fields: [tenantId, reversesEntryId], references: [tenantId, id], onDelete: Restrict)
+  reversedBy  InventoryEntry?       @relation("InventoryReversal")
+  movements   InventoryMovement[]
+  /// L'apartado usato con questo registro (ADR-062).
+  reservation InventoryReservation?
 
   @@unique([tenantId, id])
   /// Bersaglio della FK dei movimenti: il tipo del movimento è sempre quello del registro.
   @@unique([tenantId, id, kind])
   @@unique([tenantId, reversesEntryId])
   @@index([tenantId, occurredAt])
+}
+
+enum InventoryReservationStatus {
+  /// Tiene la merce fino alla fine del giorno di scadenza (poi è vencido, senza job).
+  ACTIVE
+  /// Usato: la merce è uscita con un registro di uso.
+  USED
+  /// Liberato a mano: la merce torna disponibile.
+  RELEASED
+}
+
+/// Apartado (ADR-062): merce messa da parte per un evento o un cliente fino a una data. Non cambia
+/// la giacenza: toglie merce dal disponibile finché vale.
+model InventoryReservation {
+  id          String                     @id @default(uuid(7)) @db.Uuid
+  tenantId    String                     @db.Uuid
+  /// "Para": l'evento o il cliente ("Boda de Ana").
+  label       String
+  note        String?
+  /// Ultimo giorno in cui vale, nel calendario della fioreria.
+  expiresOn   DateTime                   @db.Date
+  status      InventoryReservationStatus @default(ACTIVE)
+  /// Solo per USED: il registro di uso (nessuno se non restava nulla da registrare).
+  usedEntryId String?                    @db.Uuid
+  closedAt    DateTime?
+  closedById  String?                    @db.Uuid
+  createdById String?                    @db.Uuid
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+
+  tenant    Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  usedEntry InventoryEntry?            @relation(fields: [tenantId, usedEntryId], references: [tenantId, id], onDelete: Restrict)
+  lines     InventoryReservationLine[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, usedEntryId])
+  @@index([tenantId, status, expiresOn])
+}
+
+/// Riga di un apartado: un prodotto controllato e quanto se ne mette da parte.
+model InventoryReservationLine {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  tenantId        String   @db.Uuid
+  reservationId   String   @db.Uuid
+  inventoryItemId String   @db.Uuid
+  quantity        Int
+  /// Quanto si è usato davvero quando l'apartado è stato usato (NULL prima).
+  usedQuantity    Int?
+  createdAt       DateTime @default(now())
+
+  tenant      Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reservation InventoryReservation @relation(fields: [tenantId, reservationId], references: [tenantId, id], onDelete: Restrict)
+  item        InventoryItem        @relation(fields: [tenantId, inventoryItemId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([reservationId, inventoryItemId])
+  @@index([tenantId, inventoryItemId])
 }
 
 /// Proveedor della fioreria (mayorista, mercado) per le compras (ADR-061). Si archivia, non si cancella.
