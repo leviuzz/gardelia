@@ -572,7 +572,8 @@ Attribuzione dalla ricerca (`/buscar/ir/<slug>`, cookie di 30 giorni): `MARKETPL
 era già cliente della fioreria. Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test 793/793 ✅ (23
 nuovi: 6 di dominio, 14 d'integrazione con isolamento A↔B fra fiorerie e fra persone, 3 del web) ·
 migrazioni = schema ✅ · build ✅ · E2E 84/84 ✅ (1 nuovo: dalla scheda del prodotto alla registrazione,
-all'ordine, all'accettazione e a "Mis pedidos"); controllo visivo a 320 e 1280 px. Prossimi: C5 (termini per
+all'ordine, all'accettazione e a "Mis pedidos"); controllo visivo a 320 e 1280 px. Dopo l'unione con l'import dei clienti (migrazione rinominata a `20261123232000` per seguire
+quelle già su staging): test 810/810 ✅ · E2E 85/85 ✅. Prossimi: C5 (termini per
 i consumatori e privacy di chi compra); costo di consegna per distanza; scarico dell'inventario dagli
 ordini; chi compra che annulla da solo un ordine in attesa.
 
