@@ -248,9 +248,9 @@ funziona lo stesso, a mano.
    - **API restrictions → Restrict key** → spunta solo **Places API (New)** → **Save**;
    - **Application restrictions:** lascia **None**. La chiave la usa solo il server dell'app
      (mai il browser) e i server di Vercel non hanno un indirizzo fisso da indicare.
-4. **Metti un tetto alle richieste:** **APIs & Services → Places API (New) → Quotas**, modifica
-   i limiti **al giorno** per l'autocompletamento e per i dettagli (es. 300 ciascuno per lo
-   staging). Oltre il limite la ricerca si ferma per quel giorno e gli indirizzi si scrivono a
+4. **Metti un tetto alle richieste:** dal menu **Google Maps Platform → Quotas**, scegli
+   **Places API (New)**, spunta i limiti **al giorno** ("per day") dell'autocompletamento e dei
+   dettagli e con **Edit quotas** mettili bassi (es. 300 ciascuno per lo staging). Oltre il limite la ricerca si ferma per quel giorno e gli indirizzi si scrivono a
    mano: nessun costo a sorpresa.
 5. **Avviso di spesa:** **Billing → Budgets & alerts → Create budget**, 10 USD con l'email
    d'avviso. È solo un avviso (il tetto vero è il punto 4).
