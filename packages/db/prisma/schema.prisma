@@ -179,6 +179,10 @@ model Tenant {
   customerOccasions CustomerOccasion[]
   quotes            Quote[]
   quoteLines        QuoteLine[]
+  orders            Order[]
+  orderLines        OrderLine[]
+  orderPayments     OrderPayment[]
+  orderEvents       OrderStatusEvent[]
   counters          TenantCounter[]
   aiJobs            AiJob[]
   auditLogs         AuditLog[]
@@ -397,6 +401,7 @@ model CatalogItem {
   recipe          BouquetRecipe?
   usedInRecipes   BouquetRecipeLine[]        @relation("RecipeIngredient")
   quoteLines      QuoteLine[]
+  orderLines      OrderLine[]
   builderLines    BouquetConfigurationLine[]
   photos          CatalogItemPhoto[]
 
@@ -501,6 +506,7 @@ model Customer {
 
   tenant      Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   quotes      Quote[]
+  orders      Order[]
   addresses   CustomerAddress[]
   occasions   CustomerOccasion[]
   promoEmails OccasionPromoEmail[]
@@ -536,6 +542,7 @@ model CustomerAddress {
 
   tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   customer Customer @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Cascade)
+  orders   Order[]
 
   @@unique([tenantId, id])
   @@index([tenantId, customerId])
@@ -695,6 +702,7 @@ model Quote {
   tenant   Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   customer Customer    @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
   lines    QuoteLine[]
+  order    Order?
 
   @@unique([tenantId, id])
   @@unique([tenantId, number])
@@ -796,6 +804,7 @@ model AiJob {
   tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   bouquetConfiguration BouquetConfiguration? @relation(fields: [tenantId, bouquetConfigurationId], references: [tenantId, id], onDelete: Restrict)
   quoteLines           QuoteLine[]
+  orderLines           OrderLine[]
 
   @@unique([tenantId, id])
   @@index([tenantId, feature, createdAt])
@@ -933,6 +942,7 @@ model BouquetConfiguration {
   tenant     Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   lines      BouquetConfigurationLine[]
   quoteLines QuoteLine[]
+  orderLines OrderLine[]
   aiJobs     AiJob[]
 
   @@unique([tenantId, id])
@@ -1048,4 +1058,189 @@ model StyleReferencePhoto {
 
   @@unique([tenantId, id])
   @@index([tenantId, status, createdAt])
+}
+
+// =============================================================================
+// Ordini, pagamenti registrati e consegne [ORD-01] (ADR-052, docs/ORDERS_MARKETPLACE_PLAN.md)
+// =============================================================================
+
+enum OrderStatus {
+  /// Ordine del marketplace in attesa che la fioreria lo accetti (D-26; arriva con il blocco C4).
+  PENDING_ACCEPTANCE
+  CONFIRMED
+  IN_PREPARATION
+  READY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  PICKED_UP
+  CANCELLED
+}
+
+enum FulfillmentMode {
+  DELIVERY
+  PICKUP
+}
+
+enum OrderPaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+/// Pagamento ricevuto dalla fioreria e registrato a mano (D-26: nessun pagamento online nella V1).
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CARD_TERMINAL
+  PAYMENT_LINK
+  OTHER
+}
+
+enum OrderPaymentKind {
+  DEPOSIT
+  BALANCE
+  /// Storno di un pagamento registrato per errore: importo negativo, nessuna cancellazione.
+  REVERSAL
+}
+
+model Order {
+  id                   String             @id @default(uuid(7)) @db.Uuid
+  tenantId             String             @db.Uuid
+  /// Numero progressivo per tenant (PED-0001), assegnato dal servizio.
+  number               Int
+  customerId           String             @db.Uuid
+  /// Preventivo da cui è nato l'ordine (al massimo un ordine per preventivo).
+  quoteId              String?            @db.Uuid
+  status               OrderStatus        @default(CONFIRMED)
+  statusChangedAt      DateTime           @default(now())
+  currency             String             @db.Char(3)
+  fulfillmentMode      FulfillmentMode
+  /// Giorno di consegna o ritiro, nel calendario del tenant.
+  scheduledDate        DateTime           @db.Date
+  /// Fascia oraria in minuti dalla mezzanotte (fuso del tenant); entrambi NULL = in giornata.
+  windowStartMinutes   Int?
+  windowEndMinutes     Int?
+  /// Indirizzo del cliente da cui è stato copiato quello di consegna (facoltativo).
+  customerAddressId    String?            @db.Uuid
+  /// Indirizzo di consegna COPIATO nell'ordine: cambiare la rubrica non cambia gli ordini.
+  deliveryAddressLine1 String?
+  deliveryAddressLine2 String?
+  deliveryNeighborhood String?
+  deliveryCity         String?
+  deliveryRegion       String?
+  deliveryPostalCode   String?
+  deliveryCountryCode  String?            @db.Char(2)
+  /// Referencias / entre calles / istruzioni per chi consegna ("llamar antes", "es sorpresa").
+  deliveryNotes        String?
+  recipientName        String?
+  /// Formato E.164.
+  recipientPhone       String?
+  /// Tarjeta: messaggio per chi riceve il ramo.
+  cardMessage          String?
+  cardSignature        String?
+  cardAnonymous        Boolean            @default(false)
+  /// Note interne della fioreria.
+  notes                String?
+  subtotalMinor        Int
+  discountMinor        Int                @default(0)
+  deliveryFeeMinor     Int                @default(0)
+  taxMinor             Int                @default(0)
+  totalMinor           Int
+  /// Somma dei pagamenti registrati (storni compresi), mantenuta dal servizio.
+  paidMinor            Int                @default(0)
+  paymentStatus        OrderPaymentStatus @default(UNPAID)
+  acquisitionSource    AcquisitionSource  @default(MERCHANT_DIRECT)
+  cancelReason         String?
+  createdById          String?            @db.Uuid
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer        Customer           @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
+  quote           Quote?             @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Restrict)
+  customerAddress CustomerAddress?   @relation(fields: [tenantId, customerAddressId], references: [tenantId, id], onDelete: Restrict)
+  lines           OrderLine[]
+  payments        OrderPayment[]
+  events          OrderStatusEvent[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, number])
+  @@unique([tenantId, quoteId])
+  @@index([tenantId, status])
+  @@index([tenantId, scheduledDate])
+  @@index([tenantId, customerId])
+}
+
+/// Righe dell'ordine: stesse regole e snapshot delle righe del preventivo (`QuoteLineKind`).
+model OrderLine {
+  id                     String        @id @default(uuid(7)) @db.Uuid
+  tenantId               String        @db.Uuid
+  orderId                String        @db.Uuid
+  kind                   QuoteLineKind @default(CATALOG_ITEM)
+  catalogItemId          String?       @db.Uuid
+  bouquetConfigurationId String?       @db.Uuid
+  description            String
+  quantity               Int
+  unitPriceMinor         Int
+  unitCostMinor          Int?
+  lineTotalMinor         Int
+  snapshot               Json?
+  previewJobId           String?       @db.Uuid
+  sortOrder              Int           @default(0)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order                Order                 @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Cascade)
+  catalogItem          CatalogItem?          @relation(fields: [tenantId, catalogItemId], references: [tenantId, id], onDelete: Restrict)
+  bouquetConfiguration BouquetConfiguration? @relation(fields: [tenantId, bouquetConfigurationId], references: [tenantId, id], onDelete: Restrict)
+  previewJob           AiJob?                @relation(fields: [tenantId, previewJobId], references: [tenantId, id], onDelete: Restrict)
+
+  @@index([tenantId, orderId])
+  @@index([tenantId, bouquetConfigurationId])
+  @@index([tenantId, previewJobId])
+}
+
+model OrderPayment {
+  id                String           @id @default(uuid(7)) @db.Uuid
+  tenantId          String           @db.Uuid
+  orderId           String           @db.Uuid
+  kind              OrderPaymentKind
+  method            PaymentMethod
+  /// Positivo per acconti e saldi, negativo per gli storni.
+  amountMinor       Int
+  /// Giorno del pagamento, nel calendario del tenant.
+  paidOn            DateTime         @db.Date
+  reference         String?
+  /// Solo per gli storni: il pagamento stornato (uno storno per pagamento).
+  reversedPaymentId String?          @db.Uuid
+  createdById       String?          @db.Uuid
+  createdAt         DateTime         @default(now())
+
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order           Order         @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Cascade)
+  reversedPayment OrderPayment? @relation("PaymentReversal", fields: [tenantId, reversedPaymentId], references: [tenantId, id], onDelete: Restrict)
+  reversal        OrderPayment? @relation("PaymentReversal")
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, reversedPaymentId])
+  @@index([tenantId, orderId])
+}
+
+/// Cronologia degli stati dell'ordine (chi, quando, da dove a dove).
+model OrderStatusEvent {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  tenantId    String       @db.Uuid
+  orderId     String       @db.Uuid
+  /// NULL per l'evento di creazione.
+  fromStatus  OrderStatus?
+  toStatus    OrderStatus
+  note        String?
+  createdById String?      @db.Uuid
+  createdAt   DateTime     @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order  Order  @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Cascade)
+
+  @@index([tenantId, orderId, createdAt])
 }

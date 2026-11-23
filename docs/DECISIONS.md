@@ -1128,6 +1128,41 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   - Audit `builder.configuration_deleted` con nome e numero di foto cancellate e tenute.
   - Un'altra fioreria riceve 404.
 
+### ADR-052 — Ordini: dal preventivo accettato, consegna, tarjeta, stati e pagamenti registrati — ADOTTATO (23/11/2026)
+
+Blocco A1a di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26, D-27).
+
+- **Modello:** `Order` (numero per tenant `PED-0001` con `TenantCounter`), `OrderLine` (stesse regole e
+  snapshot di `QuoteLine`, enum `QuoteLineKind` riusato), `OrderPayment`, `OrderStatusEvent`. Tutte
+  con `tenantId`, RLS e FK composite. Un ordine per preventivo (`@@unique([tenantId, quoteId])`).
+- **Nascita:** "Convertir en pedido" su un preventivo ACCETTATO copia righe, snapshot e immagine del
+  ramo; prezzi e sconto restano quelli concordati. L'ordine diretto, senza preventivo, arriva con
+  A1b. L'origine del preventivo passa all'ordine (`acquisitionSource`, base delle fee D-24).
+- **Consegna:** domicilio o ritiro, data e fascia oraria (minuti dalla mezzanotte nel fuso della
+  fioreria, entrambi o nessuno). L'indirizzo si **copia** nell'ordine, dalla rubrica del cliente
+  (che deve essere lo stesso cliente) o nuovo con le regole della rubrica; destinatario e
+  referencias vengono dalla rubrica se il form non li indica. Il ritiro non ha costo di consegna.
+- **Tarjeta:** messaggio, firma o anonimo. Note interne separate.
+- **Stati:** Confermato → In preparazione → Pronto → In consegna → Consegnato, oppure Pronto →
+  Ritirato; un passo indietro per correggere; annullamento con motivo obbligatorio. Consegna e
+  tarjeta si cambiano fino a "Pronto". `PENDING_ACCEPTANCE` è già nel modello per il marketplace (C4).
+- **Pagamenti (D-26):** registrati a mano (contanti, trasferimento, terminale, link, altro), acconto o
+  saldo, mai oltre quanto resta da incassare, mai nel futuro. Uno sbaglio si **storna** (riga
+  negativa che punta al pagamento), non si cancella. `paidMinor` e `paymentStatus` sull'ordine.
+- **Il database verifica:** totale = subtotale − sconto + consegna; stato del pagamento coerente con
+  pagato e totale; fascia valida; indirizzo completo per il domicilio; niente "ritirato" per le
+  consegne né consegna per i ritiri; motivo presente solo se annullato; storni negativi e collegati.
+- **Permessi (PROPOSTO, insieme a O-08):** `orders:read` e `orders:fulfill` (far avanzare un ordine)
+  a tutti; `orders:write` (creare, cambiare consegna, accettare, annullare) e `orders:payments` a
+  proprietario e manager. Coerente con O-08: lo staff non crea clienti né preventivi.
+- **Navigazione:** "Pedidos" nella barra in basso del telefono; il Catálogo passa nel menu "Más"
+  per lasciare cinque colonne.
+- **Audit:** `order.created`, `order.updated` (solo campi non personali), `order.status_changed`,
+  `order.cancelled`, `order.payment_recorded`, `order.payment_reversed`; un ID di un'altra fioreria
+  dà 404 e un evento di sicurezza.
+- **Prossimi:** A1b (ordine diretto con le righe), A2 (fasce e costi di consegna nelle impostazioni,
+  coordinate), A3 (stampa della tarjeta, link pubblici).
+
 ---
 
 ## 3. Proposte da approvare

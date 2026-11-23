@@ -40,6 +40,8 @@ export const VALIDATION_CODES = [
   'too_many_photos',
   'photos_not_allowed_for_type',
   'consent_required',
+  'invalid_time_window',
+  'payment_exceeds_balance',
   'invalid',
 ] as const;
 

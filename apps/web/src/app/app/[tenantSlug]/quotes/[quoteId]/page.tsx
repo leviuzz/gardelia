@@ -1,4 +1,4 @@
-import { ArrowLeft, Info, MessageCircle } from 'lucide-react';
+import { ArrowLeft, ClipboardList, Info, MessageCircle } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -7,6 +7,8 @@ import { cache } from 'react';
 import {
   NotFoundError,
   getQuote,
+  getQuoteOrder,
+  hasPermission,
   listQuotableItems,
   type QuotableItemOption,
   type QuoteDetailDto,
@@ -204,6 +206,9 @@ export default async function QuotePage({
       : null;
 
   const today = todayInTimeZone(ctx.timezone);
+  // Dal preventivo accettato si passa all'ordine (ADR-052).
+  const order = quote.status === 'ACCEPTED' ? await getQuoteOrder(ctx, quote.id) : null;
+  const canOrder = quote.status === 'ACCEPTED' && !order && hasPermission(ctx, 'orders:write');
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -391,6 +396,31 @@ export default async function QuotePage({
               ) : null}
             </CardContent>
           </Card>
+
+          {order || canOrder ? (
+            <Card className="print:hidden">
+              <CardHeader>
+                <CardTitle>{t('quotes.editor.orderTitle')}</CardTitle>
+                <CardDescription>
+                  {order
+                    ? t('quotes.editor.orderDone', { number: order.numberLabel })
+                    : t('quotes.editor.orderHint')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild className="w-full" variant={order ? 'outline' : 'default'}>
+                  <Link
+                    href={order ? routes.orders.detail(order.id) : routes.quotes.toOrder(quote.id)}
+                  >
+                    <ClipboardList />
+                    {order
+                      ? t('quotes.editor.viewOrder', { number: order.numberLabel })
+                      : t('quotes.editor.convertToOrder')}
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : null}
 
           {quote.canWrite ? (
             <Card className="print:hidden">

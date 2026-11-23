@@ -118,6 +118,7 @@ export * from './services/customers';
 export * from './services/dashboard';
 export * from './services/promo-discounts';
 export * from './services/promotions';
+export * from './services/orders';
 export * from './services/quotes';
 export * from './services/recipes';
 export * from './services/team';

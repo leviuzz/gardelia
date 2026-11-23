@@ -3,6 +3,7 @@
 import {
   BadgePercent,
   CalendarDays,
+  ClipboardList,
   Contact,
   Ellipsis,
   FileText,
@@ -27,6 +28,7 @@ import { cn } from '@/lib/utils';
 
 export type NavIcon =
   | 'dashboard'
+  | 'orders'
   | 'quotes'
   | 'builder'
   | 'customers'
@@ -50,6 +52,7 @@ export interface NavItem {
 
 const ICONS = {
   dashboard: LayoutDashboard,
+  orders: ClipboardList,
   quotes: FileText,
   builder: Sparkles,
   customers: Contact,
