@@ -136,6 +136,7 @@ export default async function DesignPage({
                 mode: previewState.preview.mode,
                 verified: previewState.preview.verified,
                 errorCode: previewState.preview.errorCode,
+                countCheck: previewState.preview.countCheck,
                 imageUrl:
                   previewState.preview.status === 'SUCCEEDED'
                     ? routes.builder.preview(previewState.preview.jobId)

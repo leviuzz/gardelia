@@ -548,6 +548,14 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   quindi un fiore vero fuori elenco ("Iris", "Nube") non lo fa scattare, altrimenti il fiorista
   non potrebbe toglierlo. Il riconoscimento delle grandezze ora capisce anche i nomi italiani
   (ortensia, giglio, garofano, ranuncolo, margherita, camomilla).
+- **Perché la foto non si mostra (23/11/2026).** Il founder su staging: "non va la generazione
+  AI". Dai log il job era arrivato in fondo (riga informativa, non un errore): con ogni
+  probabilità foto scartata per numeri diversi, ma né lo schermo né il log dicevano quali. Ora,
+  quando la foto si scarta, il Diseñador mostra cosa ha contato il controllo nell'ultima foto:
+  per ogni fiore a stelo "trovati di attesi" (in grassetto quelli diversi) e i fiori che non sono
+  nel ramo. I dati erano già salvati in ogni job (`output.checks`), quindi si vedono anche per i
+  job già scartati, ricaricando la pagina. La regola di accettazione non cambia. Il log della foto
+  scartata riporta gli stessi numeri: tipo della distinta, attesi e trovati, mai nomi.
 
 ### ADR-035 — Immagine del ramo nel preventivo — ADOTTATO (21/11/2026)
 

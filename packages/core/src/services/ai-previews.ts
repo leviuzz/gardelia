@@ -27,9 +27,12 @@ import {
   buildPreviewSpec,
   canonicalPreviewInput,
   computeAiQuota,
+  countMismatchSummary,
+  isBouquetPreviewSpec,
   isUuid,
   type AiQuota,
   type BouquetPreviewSpec,
+  type CountMismatchSummary,
 } from '@floral/domain';
 import { fitsMonthlyAiBudget } from '../ai/budget';
 import { getFlowerCounter } from '../ai/flower-counter';
@@ -60,6 +63,11 @@ export interface AiPreviewDto {
   /** Numero di fiori ricontrollato da un modello di visione; null = non verificato. */
   readonly verified: boolean | null;
   readonly errorCode: string | null;
+  /**
+   * Foto scartata perché i fiori non coincidono (`count_mismatch`): cosa ha contato il controllo
+   * nell'ultima foto, per dire al fiorista perché non si mostra. null negli altri casi.
+   */
+  readonly countCheck: CountMismatchSummary | null;
   readonly createdAt: Date;
   readonly finishedAt: Date | null;
 }
@@ -140,6 +148,10 @@ function toDto(
     mode: input?.mode === 'EXACT' ? 'EXACT' : 'PROMPT',
     verified: typeof output?.verified === 'boolean' ? output.verified : null,
     errorCode: job.errorCode,
+    countCheck:
+      job.errorCode === 'count_mismatch' && isBouquetPreviewSpec(job.input)
+        ? countMismatchSummary(job.input, job.output)
+        : null,
     createdAt: job.createdAt,
     finishedAt: job.finishedAt,
   };

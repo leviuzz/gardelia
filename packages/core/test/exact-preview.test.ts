@@ -341,6 +341,18 @@ describe('anteprima esatta', () => {
     });
     const state = await getBouquetPreview(kit.shop.owner, design.id);
     expect(state.preview).toMatchObject({ status: 'FAILED', errorCode: 'count_mismatch' });
+    // Il fiorista vede cosa ha contato il controllo nell'ultima foto (una rosa in più).
+    expect(state.preview?.countCheck).toEqual({
+      lines: [
+        {
+          name: kit.rose.variety ? `${kit.rose.name} ${kit.rose.variety}` : kit.rose.name,
+          expected: 3,
+          found: 4,
+        },
+      ],
+      other: 0,
+      photos: 2,
+    });
     expect(state.retryLimitReached).toBe(false);
     expect((await getAiQuota(kit.shop.owner)).includedUsed).toBe(0);
     await expect(getAiPreviewImage(kit.shop.owner, first.jobId)).rejects.toBeInstanceOf(

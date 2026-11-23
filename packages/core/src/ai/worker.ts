@@ -25,6 +25,7 @@ import {
   cleanStyleDescription,
   countTargets,
   countsMatch,
+  isBouquetPreviewSpec,
   isUuid,
   type BouquetPreviewSpec,
 } from '@floral/domain';
@@ -61,12 +62,6 @@ const EXTENSION: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/webp': 'webp',
 };
-
-function isPreviewSpec(value: unknown): value is BouquetPreviewSpec {
-  if (!value || typeof value !== 'object') return false;
-  const spec = value as Partial<BouquetPreviewSpec>;
-  return spec.version === 1 && Array.isArray(spec.components) && spec.components.length > 0;
-}
 
 export type AiJobOutcome = 'idle' | 'succeeded' | 'retry' | 'failed';
 
@@ -412,7 +407,14 @@ async function processExactPreview(
         }),
       );
       logger.info(
-        { jobId: job.id, tenantId: job.tenantId, attempts: checks.length },
+        {
+          jobId: job.id,
+          tenantId: job.tenantId,
+          attempts: checks.length,
+          // Solo numeri (tipo della distinta → steli attesi / fiori trovati), mai nomi.
+          expected: Object.fromEntries(targets.map((target) => [target.index, target.expected])),
+          found: checks.map((check) => ({ counts: check.counts, other: check.other })),
+        },
         'anteprima esatta scartata: i fiori non coincidono con la distinta',
       );
       return 'failed';
@@ -468,7 +470,8 @@ export async function processNextAiJob(
 
   try {
     if (!provider) throw new AiProviderError('invalid_request', 'provider non configurato');
-    if (!isPreviewSpec(job.input)) throw new AiProviderError('provider_error', 'input non valido');
+    if (!isBouquetPreviewSpec(job.input))
+      throw new AiProviderError('provider_error', 'input non valido');
     if (job.provider !== provider.id || job.model !== provider.model) {
       // Provider cambiato dopo l'accodamento: si rigenera con quello attuale solo su nuova
       // richiesta (la chiave di cache include il modello).

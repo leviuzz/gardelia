@@ -1126,6 +1126,11 @@
       "sketchNext": "Con IA lo convertimos en una foto realista y revisamos que el número de flores coincida.",
       "viewSketch": "Ver el boceto exacto",
       "countMismatch": "La foto realista no respetó el número de flores, así que no la mostramos y no se descontó de tu saldo. El boceto sí es exacto.",
+      "countCheck": {
+        "title": "En la última foto, el control contó:",
+        "line": "{name}: {found} de {expected}",
+        "other": "{count, plural, one {# flor que no está en el ramo} other {# flores que no están en el ramo}}"
+      },
       "retryLimit": "Ya lo intentamos varias veces con este diseño. Puedes compartir el boceto exacto o ajustar el diseño.",
       "missingPhotos": "Para una vista previa con el número exacto de flores, sube una foto de:",
       "missingPhotosHint": "Una foto por flor, de frente; el fondo se quita automáticamente.",

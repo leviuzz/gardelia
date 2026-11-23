@@ -377,3 +377,65 @@ export function countsMatch(targets: readonly CountTarget[], result: CountCheckR
     )
   );
 }
+
+// -----------------------------------------------------------------------------
+// Perché la foto non si mostra (spiegazione per il fiorista)
+// -----------------------------------------------------------------------------
+
+export interface CountMismatchLine {
+  /** Nome dell'articolo come nel catalogo (con la varietà). */
+  readonly name: string;
+  readonly expected: number;
+  readonly found: number;
+}
+
+export interface CountMismatchSummary {
+  /** Fiori contati a stelo, nell'ordine della distinta (gli altri hanno quantità libera). */
+  readonly lines: readonly CountMismatchLine[];
+  /** Fiori nella foto che non sono nel ramo. */
+  readonly other: number;
+  /** Foto provate e controllate; il riepilogo è dell'ultima. */
+  readonly photos: number;
+}
+
+const isCount = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isInteger(value) && value >= 0;
+
+/** Controlli salvati nel risultato del job (JSON dal database: dato da ricontrollare). */
+function storedChecks(output: unknown): CountCheckResult[] {
+  const checks = (output as { checks?: unknown } | null)?.checks;
+  if (!Array.isArray(checks)) return [];
+  return checks.flatMap((check: unknown) => {
+    const { counts, other } = (check ?? {}) as { counts?: unknown; other?: unknown };
+    if (!counts || typeof counts !== 'object' || !isCount(other)) return [];
+    const parsed: Record<number, number> = {};
+    for (const [key, value] of Object.entries(counts)) {
+      const index = Number(key);
+      if (Number.isInteger(index) && index > 0 && isCount(value)) parsed[index] = value;
+    }
+    return [{ counts: parsed, other }];
+  });
+}
+
+/**
+ * Cosa ha trovato il controllo nell'ultima foto scartata, per dire al fiorista perché non si
+ * mostra (es. "Rosa roja: 10 de 12", "2 flores que no están en el ramo"). null se il job non ha
+ * controlli salvati.
+ */
+export function countMismatchSummary(
+  spec: BouquetPreviewSpec,
+  output: unknown,
+): CountMismatchSummary | null {
+  const checks = storedChecks(output);
+  const last = checks.at(-1);
+  if (!last) return null;
+  const flowers = spec.components.filter((component) => component.role === 'FLOWER');
+  const lines = countTargets(spec).flatMap((target) => {
+    const flower = flowers[target.index - 1];
+    if (target.expected === null || !flower) return [];
+    return [
+      { name: labelOf(flower), expected: target.expected, found: last.counts[target.index] ?? 0 },
+    ];
+  });
+  return { lines, other: last.other, photos: checks.length };
+}
