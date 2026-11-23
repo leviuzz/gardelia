@@ -178,6 +178,9 @@ model Tenant {
   catalogItems      CatalogItem[]
   recipes           BouquetRecipe[]
   recipeLines       BouquetRecipeLine[]
+  inventoryItems    InventoryItem[]
+  inventoryEntries  InventoryEntry[]
+  inventoryMoves    InventoryMovement[]
   customers         Customer[]
   customerAddresses CustomerAddress[]
   customerOccasions CustomerOccasion[]
@@ -413,6 +416,7 @@ model CatalogItem {
   orderLines      OrderLine[]
   builderLines    BouquetConfigurationLine[]
   photos          CatalogItemPhoto[]
+  inventoryItem   InventoryItem?
 
   @@unique([tenantId, id])
   @@unique([tenantId, sku])
@@ -468,6 +472,108 @@ model BouquetRecipeLine {
 
   @@unique([tenantId, recipeId, ingredientItemId])
   @@index([tenantId, ingredientItemId])
+}
+
+// -----------------------------------------------------------------------------
+// Inventario [INV-01] (ADR-060): giacenze dei prodotti del catalogo e registri di magazzino
+// -----------------------------------------------------------------------------
+
+/// Tipo di registro di magazzino. Il segno delle quantità dipende dal tipo (CHECK nel DB).
+enum InventoryEntryKind {
+  /// Existencia inicial, quando si comincia a controllare un prodotto.
+  OPENING
+  /// Compra al mayorista.
+  PURCHASE
+  /// Uso: merce usata per un ramo o venduta.
+  USE
+  /// Merma: merce buttata (appassita, rovinata).
+  WASTE
+  /// Ajuste: la differenza trovata con un conteggio fisico.
+  ADJUSTMENT
+  /// Anulación di un registro sbagliato: movimenti opposti, mai una cancellazione.
+  REVERSAL
+}
+
+/// Prodotto del catalogo di cui la fioreria controlla la giacenza (uno per prodotto).
+/// La giacenza cambia solo insieme a un movimento, nella stessa transazione.
+model InventoryItem {
+  id               String       @id @default(uuid(7)) @db.Uuid
+  tenantId         String       @db.Uuid
+  catalogItemId    String       @db.Uuid
+  /// Giacenza nell'unità di vendita del prodotto; sotto zero solo con conferma.
+  onHand           Int          @default(0)
+  /// Costo reale medio per unità (media ponderata degli ingressi), unità minime. NULL = non noto.
+  avgUnitCostMinor Int?
+  currency         String       @db.Char(3)
+  /// "Avísame cuando queden": avviso quando il disponibile scende a questo numero. NULL = nessuno.
+  minQuantity      Int?
+  /// ARCHIVED = la fioreria non lo controlla più (lo storico resta).
+  status           RecordStatus @default(ACTIVE)
+  archivedAt       DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  catalogItem CatalogItem         @relation(fields: [tenantId, catalogItemId], references: [tenantId, id], onDelete: Restrict)
+  movements   InventoryMovement[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, catalogItemId])
+  @@index([tenantId, status])
+}
+
+/// Registro di magazzino: un'operazione con una o più righe. Solo lettura e inserimento (RLS):
+/// uno sbaglio si annulla con un registro REVERSAL.
+model InventoryEntry {
+  id              String             @id @default(uuid(7)) @db.Uuid
+  tenantId        String             @db.Uuid
+  kind            InventoryEntryKind
+  note            String?
+  /// Solo per REVERSAL: il registro annullato (una sola anulación per registro).
+  reversesEntryId String?            @db.Uuid
+  createdById     String?            @db.Uuid
+  /// Quando è successo (es. il giorno della compra); di solito coincide con createdAt.
+  occurredAt      DateTime           @default(now())
+  createdAt       DateTime           @default(now())
+
+  tenant     Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reverses   InventoryEntry?     @relation("InventoryReversal", fields: [tenantId, reversesEntryId], references: [tenantId, id], onDelete: Restrict)
+  reversedBy InventoryEntry?     @relation("InventoryReversal")
+  movements  InventoryMovement[]
+
+  @@unique([tenantId, id])
+  /// Bersaglio della FK dei movimenti: il tipo del movimento è sempre quello del registro.
+  @@unique([tenantId, id, kind])
+  @@unique([tenantId, reversesEntryId])
+  @@index([tenantId, occurredAt])
+}
+
+/// Riga di un registro: di quanto cambia la giacenza di un prodotto e a che costo.
+model InventoryMovement {
+  id                    String             @id @default(uuid(7)) @db.Uuid
+  tenantId              String             @db.Uuid
+  entryId               String             @db.Uuid
+  /// Uguale al tipo del registro (FK composita): permette il CHECK sul segno.
+  kind                  InventoryEntryKind
+  inventoryItemId       String             @db.Uuid
+  /// Variazione della giacenza, con segno, nell'unità di vendita del prodotto.
+  quantity              Int
+  /// Giacenza del prodotto subito dopo questo movimento.
+  balanceAfter          Int
+  /// Costo reale per unità: prezzo della compra o costo medio al momento. NULL = non noto.
+  unitCostMinor         Int?
+  /// Costo del catalogo al momento (costo previsto). NULL = non compilato.
+  expectedUnitCostMinor Int?
+  currency              String             @db.Char(3)
+  createdAt             DateTime           @default(now())
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  entry         InventoryEntry @relation(fields: [tenantId, entryId, kind], references: [tenantId, id, kind], onDelete: Restrict)
+  inventoryItem InventoryItem  @relation(fields: [tenantId, inventoryItemId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, entryId, inventoryItemId])
+  @@index([tenantId, inventoryItemId, createdAt])
 }
 
 // -----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 23 novembre 2026 (listino a livelli, fee, aziende: D-23, D-24, D-25).
+Ultimo aggiornamento: 23 novembre 2026 (inventario, ADR-060; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -37,6 +37,7 @@ Ultimo aggiornamento: 23 novembre 2026 (listino a livelli, fee, aziende: D-23, D
 | D-25       | Aziende: per ora solo il marketplace per i clienti e gli ordini; poi **intermediario** (fee del 10% sulle fatture pagate, fiorista titolare più riserve, ricetta standard del cliente, pagamento per consegna confermata); il **servizio gestito** (fattura unica, margine) parte solo dopo che l'intermediario ha portato ricavi | Ordine e condizione DECISI (founder, 23/11/2026); fee e modalità PROPOSTE (il founder aveva indicato 7%) | Nessun codice ora (Network dopo la V1); `NetworkContract` (una sola offerta accettata, spec §12.2) andrà esteso con assegnazioni per consegna e riserve (`docs/BUSINESS_MODEL.md` §5)          |
 | D-26       | **Marketplace per i clienti nella V1**: pagine pubbliche, ricerca per indirizzo, pagina di ogni fioreria con i suoi ramos, ordine del cliente. Il cliente **si registra prima di ordinare**; **pagamento diretto alla fioreria** (nessun pagamento online e nessun pagamento simulato nella V1)                                   | DECISO (founder, 23/11/2026)                                                                             | Un solo `Order` per ordini del fiorista e del marketplace; piano in `docs/ORDERS_MARKETPLACE_PLAN.md`; ADR da scrivere per dati del cliente, ordine creato da fuori e catalogo pubblico        |
 | D-27       | **Ruta del día gratuita**: fermate ordinate per fascia oraria e vicinanza con un calcolo nostro, navigazione con i link di Google Maps; niente tracciamento in tempo reale né ottimizzazione a pagamento                                                                                                                          | DECISO (founder, 23/11/2026)                                                                             | Coordinate facoltative negli indirizzi; senza coordinate solo ordine per fascia (`docs/ORDERS_MARKETPLACE_PLAN.md` §4)                                                                         |
+| D-28       | **Organizzazioni per le catene**: un account crea organizzazioni e sotto ognuna più fiorerie, gestite dall'organizzazione                                                                                                                                                                                                         | DECISO come direzione (founder, 23/11/2026), da progettare dopo la V1                                    | Oggi più fiorerie indipendenti per account; inventario per fioreria (ADR-060). Da progettare: ruoli, catalogo condiviso, trasferimenti, report (spec §8.6)                                     |
 
 ---
 
@@ -1326,6 +1327,74 @@ Blocco B2 di `docs/ORDERS_MARKETPLACE_PLAN.md`, senza la prova di consegna (pros
 - **Ordine per vicinanza:** non c'è ancora, di proposito: servono le coordinate degli indirizzi
   (Google Places, O-14). Fino ad allora le fermate restano in ordine di fascia, come previsto dal
   piano, e la pagina lo dice.
+
+### ADR-060 — Inventario: giacenze, movimenti e avvisi (blocco 1) — ADOTTATO (23/11/2026)
+
+Numerazione: ADR-055–059 sono riservati agli ordini e al marketplace (altra sessione).
+
+- **Decisioni del founder (23/11/2026):**
+  - giacenza per fioreria; le organizzazioni con più fiorerie arrivano dopo (D-28);
+  - si conta nell'unità del catalogo e delle ricette (tallo, manojo, pieza), come già contano ricette
+    e preventivi;
+  - se la merce non basta: avviso e conferma esplicita, e la giacenza può scendere sotto zero (spec
+    CAT-01);
+  - registrano i movimenti solo proprietario e manager (`inventory:write`); tutti vedono le giacenze
+    (`inventory:read`), lo staff senza costi (`catalog:costs:read`);
+  - inventario nel piano Plus, domani Profesional (D-23): entitlement `inventory`; su Basic l'invito
+    all'upgrade;
+  - la giacenza non cambia da sola la disponibilità del catalogo: l'inventario propone il clic
+    ("Marcar como agotado / limitado / disponible", `suggestedAvailability`), così un conteggio
+    sbagliato non cambia all'improvviso Diseñador, preventivi e marketplace;
+  - niente resi, lotti né ordine di scadenza (FEFO): un inventario semplice.
+- **Chi non usa l'inventario non vede differenze:** piano Basic, prodotti non controllati, chi compra
+  gli steli dopo l'ordine. Si controllano solo i prodotti scelti ("Elegir productos") fra i tipi
+  fisici (fiori, verde, piante, vasi, carte, accessori); ramos e servizi non hanno giacenza, un ramo
+  consuma i suoi ingredienti.
+- **Modello:**
+  - `InventoryItem`: uno per prodotto, con giacenza, costo medio e minimo ("Avísame cuando
+    queden"); ARCHIVED = non si controlla più, lo storico resta;
+  - `InventoryEntry`: il registro, con tipo, nota, chi e quando; un `REVERSAL` punta al registro
+    annullato, uno solo;
+  - `InventoryMovement`: una riga per prodotto, con quantità con segno, giacenza dopo, costo reale e
+    costo del catalogo del momento;
+  - tipi: `OPENING` (existencia inicial), `PURCHASE` (compra, blocco 2), `USE`, `WASTE` (merma),
+    `ADJUSTMENT` (conteggio), `REVERSAL`.
+- **Il database garantisce:**
+  - RLS su tutte e tre le tabelle; registri e movimenti solo in lettura e inserimento, come l'audit
+    (nessuna policy UPDATE né DELETE);
+  - FK composite sul tenant, più una FK `(tenantId, entryId, kind)` che dà a ogni movimento il tipo
+    del suo registro;
+  - segno per tipo (OPENING e PURCHASE positivi, USE e WASTE negativi), limiti della giacenza, costi
+    non negativi, una sola anulación per registro.
+- **La giacenza cambia solo con un movimento:** `writeInventoryEntry` (core) scrive registro, righe e
+  giacenza nella stessa transazione, con le righe dei prodotti bloccate (`FOR UPDATE`, in ordine di
+  id). Il conteggio fisico registra la differenza come ajuste. Un test controlla che la giacenza sia
+  sempre la somma dei movimenti, anche con usi contemporanei.
+- **Errori:** un registro sbagliato non si cancella. "Anular" scrive il registro opposto, una volta
+  sola; l'existencia inicial si corregge con un conteggio.
+- **Costi:** costo reale = media ponderata degli ingressi (`averageCostAfterReceipt`); l'existencia
+  inicial entra al costo del catalogo. Ogni movimento conserva costo reale e costo del catalogo del
+  momento: è la base del costo previsto e reale (blocchi 2 e 4).
+- **Per gli ordini (li collega l'altra sessione, senza toccarne il codice):**
+  - `checkStock` / `checkStockTx`: basta la merce? Serve a mostrare l'avviso prima di confermare;
+  - `consumeStockTx(tx, ctx, { lines, note, confirmShortage })`, dentro la transazione
+    dell'ordine: somma le righe dello stesso prodotto e ignora i prodotti non controllati e le
+    fiorerie senza il piano;
+  - se la merce non basta chiede la conferma (`inventory_insufficient_stock`); restituisce il
+    registro e i costi previsto e reale;
+  - non controlla i permessi dell'inventario: li controlla chi chiama (es. `orders:fulfill`, che ha
+    anche lo staff).
+- **UI:**
+  - una sola voce "Inventario" nel menu (su telefono in "Más"), con le schede Existencias e
+    Movimientos;
+  - "Elegir productos": quantità e minimo per più prodotti insieme;
+  - scheda del prodotto: uso, merma (con avviso e "Registrar de todos modos"), conteggio, aviso,
+    "Dejar de controlar" e lo storico con "Anular";
+  - riquadro nella scheda del catalogo e riga nella pagina del piano;
+  - testi nel namespace `inventory` delle tre lingue, compresi errori (`inventory.conflict.*`,
+    `inventory.validation.*`) e attività (`inventory.activity.*`), letti dal prefisso del modulo.
+- **Prossimi blocchi:** compras y proveedores (ADR-061), apartados con vencimiento (ADR-062), avvisi
+  nel pannello e costo dei ramos (ADR-063).
 
 ---
 

@@ -51,6 +51,16 @@ export const PERMISSIONS = {
   /** Registrare e stornare i pagamenti ricevuti (D-26: registrati a mano). */
   'orders:payments': MANAGEMENT,
   /**
+   * Vedere giacenze, avvisi e movimenti dell'inventario (ADR-060). I costi solo con
+   * `catalog:costs:read`: lo staff vede le quantità, mai i costi.
+   */
+  'inventory:read': ALL,
+  /**
+   * Registrare i movimenti (uso, merma, conteggio, anulación) e scegliere i prodotti da controllare
+   * con il loro minimo: solo proprietario e manager (founder, 23/11/2026).
+   */
+  'inventory:write': MANAGEMENT,
+  /**
    * Comporre bouquet nel Builder e salvarne il disegno (anche lo staff al banco); per
    * trasformarlo in preventivo serve `quotes:write`. Richiede il piano con il Builder.
    */

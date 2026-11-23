@@ -41,6 +41,13 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
       : []),
     // Si usa soprattutto all'inizio: su mobile nel menu "Más" per lasciare posto ai Pedidos.
     { href: routes.catalog.list(), label: t('nav.catalog'), icon: 'catalog', secondary: true },
+    // Inventario (ADR-060): una sola voce; su mobile nel menu "Más".
+    {
+      href: routes.inventory.list(),
+      label: t('inventory.nav'),
+      icon: 'inventory',
+      secondary: true,
+    },
     // Sezioni d'uso occasionale: su mobile finiscono nel menu "Más".
     ...(hasPermission(ctx, 'members:read')
       ? [
