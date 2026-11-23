@@ -16,19 +16,25 @@ export function StockStatusBadge({ status }: { readonly status: StockStatus }) {
   return <Badge variant={STOCK_STATUS_BADGE[status]}>{t(status)}</Badge>;
 }
 
-/** Le due sezioni dell'inventario (una sola voce nel menu). */
+/**
+ * Le sezioni dell'inventario (una sola voce nel menu). "Compras" solo per chi le registra: hanno
+ * i prezzi (ADR-061).
+ */
 export function InventoryTabs({
   current,
   stockHref,
   movementsHref,
+  purchasesHref,
 }: {
-  readonly current: 'stock' | 'movements';
+  readonly current: 'stock' | 'purchases' | 'movements';
   readonly stockHref: string;
   readonly movementsHref: string;
+  readonly purchasesHref?: string | undefined;
 }) {
   const t = useTranslations('inventory.tabs');
   const tabs = [
     { key: 'stock', href: stockHref, label: t('stock') },
+    ...(purchasesHref ? [{ key: 'purchases', href: purchasesHref, label: t('purchases') }] : []),
     { key: 'movements', href: movementsHref, label: t('movements') },
   ] as const;
   return (
@@ -39,7 +45,7 @@ export function InventoryTabs({
           href={tab.href}
           aria-current={current === tab.key ? 'page' : undefined}
           className={cn(
-            'flex-1 rounded-lg px-4 py-2 text-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:flex-none',
+            'min-w-0 flex-1 truncate rounded-lg px-2 py-2 text-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:flex-none sm:px-4',
             current === tab.key && 'bg-background text-foreground shadow-xs',
           )}
         >

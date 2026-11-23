@@ -29,6 +29,16 @@ describe('percorsi della fioreria (routes.ts)', () => {
     expect(routes.inventory.movements({ kind: 'WASTE', page: 2 })).toBe(
       '/app/las-camelias/inventory/movements?kind=WASTE&page=2',
     );
+    expect(routes.inventory.purchases({ q: 'jamaica' })).toBe(
+      '/app/las-camelias/inventory/purchases?q=jamaica',
+    );
+    expect(routes.inventory.newPurchase).toBe('/app/las-camelias/inventory/purchases/new');
+    expect(routes.inventory.purchase('e1', { created: true })).toBe(
+      '/app/las-camelias/inventory/purchases/e1?created=1',
+    );
+    expect(routes.inventory.suppliers({ archived: true })).toBe(
+      '/app/las-camelias/inventory/suppliers?archived=1',
+    );
   });
 
   it('la query contiene solo i valori presenti, nell’ordine dato', () => {

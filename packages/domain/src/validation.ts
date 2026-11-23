@@ -44,6 +44,8 @@ export const VALIDATION_CODES = [
   'payment_exceeds_balance',
   /** Inventario (ADR-060): nessun prodotto con la quantità in "Elegir productos". */
   'inventory_none_selected',
+  /** Inventario (ADR-061): una compra senza righe. */
+  'inventory_no_lines',
   'invalid',
 ] as const;
 
