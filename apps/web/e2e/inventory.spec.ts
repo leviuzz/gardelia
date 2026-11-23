@@ -6,7 +6,8 @@ import { createProduct } from './support/catalog';
  * registrano uso, merma (con la conferma quando non basta), conteggio e un'anulación; il clic
  * proposto cambia la disponibilità nel catalogo. Lo staff vede le quantità senza costi né azioni;
  * una fioreria senza Plus vede l'invito all'upgrade. Apartados (ADR-062): la merce apartada esce
- * dal disponibile, "Usar" scarica quanto si è usato davvero, "Liberar" la restituisce.
+ * dal disponibile, "Usar" scarica quanto si è usato davvero, "Liberar" la restituisce. Ramos
+ * (ADR-063): quanti se ne possono fare, "Registrar ramos hechos", avvisi nel pannello e riepilogo.
  */
 
 const SHOP = '/app/las-camelias';
@@ -174,6 +175,9 @@ test.describe.serial('inventario', () => {
       await expect(page.getByRole('link', { name: 'Compras' })).toHaveCount(0);
       await page.goto(`${SHOP}/inventory/reservations/new`);
       await expect(page.getByText('Sin acceso a esta sección')).toBeVisible();
+      // Il riepilogo del mese ha i costi: lo staff non lo vede.
+      await page.goto(`${SHOP}/inventory/movements`);
+      await expect(page.getByRole('heading', { name: /^Resumen de / })).toHaveCount(0);
       await page.goto(`${SHOP}/inventory/start`);
       await expect(page.getByText('Sin acceso a esta sección')).toBeVisible();
     });
@@ -251,6 +255,60 @@ test.describe.serial('inventario', () => {
       await expect(page.getByText('Usado', { exact: true })).toBeVisible();
       await openItem(page);
       await expect(page.getByText('22 tallos').first()).toBeVisible();
+    });
+  });
+
+  test.describe('ramos, pannello e riepilogo (proprietario)', () => {
+    test.use({ storageState: 'e2e/.auth/owner.json' });
+
+    test('quanti ramos si possono fare e "Registrar ramos hechos"', async ({ page }) => {
+      const bouquet = `Ramo inventario ${Date.now()}`;
+      await page.goto(`${SHOP}/catalog/new`);
+      await createProduct(page, { type: 'BOUQUET', name: bouquet, price: '500' });
+      await page.getByRole('link', { name: 'Saltar por ahora' }).click();
+      await page.getByRole('link', { name: 'Armar la receta' }).click();
+      await page.getByLabel('Ingrediente', { exact: true }).selectOption({ label: name });
+      await page.getByLabel('Cantidad', { exact: true }).fill('10');
+      await page.getByRole('button', { name: 'Agregar ingrediente' }).click();
+      await expect(page.getByText('Ingrediente agregado')).toBeVisible();
+
+      // Nella scheda del ramo: 22 tallos disponibili, 10 per ramo → 2 ramos.
+      await page.goto(`${SHOP}/catalog?q=${encodeURIComponent(bouquet)}`);
+      await page.getByRole('link', { name: bouquet }).first().click();
+      await expect(page.getByText('Con lo que tienes alcanzan para 2 ramos.')).toBeVisible();
+      await expect(page.getByText('10 tallos por ramo · disponibles: 22 tallos')).toBeVisible();
+      await expect(page.getByText(/^Previsto \(catálogo\):/)).toBeVisible();
+      await expect(page.getByText(/^Real \(lo que pagaste\):/)).toBeVisible();
+
+      // 3 ramos non ci stanno: avviso; con 2 sì.
+      await page.getByRole('button', { name: 'Registrar ramos hechos' }).click();
+      const dialog = page.getByRole('dialog');
+      await dialog.getByLabel('Cuántos ramos').fill('3');
+      await expect(dialog.getByText(`Faltan 8 tallos de ${name}`)).toBeVisible();
+      await expect(dialog.getByRole('button', { name: 'Registrar de todos modos' })).toBeVisible();
+      await dialog.getByLabel('Cuántos ramos').fill('2');
+      await dialog.getByRole('button', { name: 'Registrar', exact: true }).click();
+      await expect(page.getByText('Listo: registramos 2 ramos hechos.')).toBeVisible();
+      await expect(page.getByText('Con lo que tienes no alcanza para ningún ramo.')).toBeVisible();
+
+      await openItem(page);
+      await expect(page.getByText('2 tallos').first()).toBeVisible();
+      await expect(page.getByText(`2 × ${bouquet}`, { exact: true })).toBeVisible();
+
+      // Il pannello avvisa di ciò che sta finendo e porta all'elenco filtrato.
+      await page.goto(SHOP);
+      await page
+        .getByRole('link', { name: /por agotarse/ })
+        .first()
+        .click();
+      await expect(page).toHaveURL(/\/inventory\?status=LOW$/);
+
+      // Riepilogo del mese nei movimenti, con il mese precedente.
+      await page.goto(`${SHOP}/inventory/movements`);
+      await expect(page.getByRole('heading', { name: /^Resumen de / })).toBeVisible();
+      await page.getByRole('link', { name: 'Mes anterior' }).click();
+      await expect(page).toHaveURL(/month=\d{4}-\d{2}/);
+      await expect(page.getByRole('link', { name: 'Mes siguiente' })).toBeVisible();
     });
   });
 

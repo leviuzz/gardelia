@@ -213,7 +213,9 @@
     },
     "verifyInvalidTitle": "We couldn’t confirm your email",
     "verifiedTitle": "Email confirmed",
-    "verifiedBody": "Sign in to continue."
+    "verifiedBody": "Sign in to continue.",
+    "signupSubtitleBuyer": "Save your details and delivery addresses.",
+    "loginSubtitleBuyer": "Sign in to your account."
   },
   "onboarding": {
     "title": "Set up your shop",
@@ -247,12 +249,28 @@
   },
   "places": {
     "label": "Search address",
-    "placeholder": "Type street and number, e.g. Av. Madero 120",
+    "placeholder": "E.g. Av. Madero 120",
     "hint": "Pick a suggestion to fill in the fields, or type them yourself.",
     "suggestions": "Suggested addresses",
     "unavailable": "Address search isn't available right now. Type the address yourself.",
     "noResults": "No results. Check what you typed or fill in the fields yourself.",
     "found": "Address filled in. Check the unit number, colonia and postal code."
+  },
+  "account": {
+    "title": "My account",
+    "greeting": "Hi, {name}. Here are your details and delivery addresses.",
+    "shopsBody": "You also have access to a flower shop on Gardelia.",
+    "shopsCta": "Go to my shop",
+    "dataTitle": "Your details",
+    "dataSubtitle": "Your name and email are the ones you sign in with.",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "phoneHint": "Only the flower shop you order from will see it, to update you about the delivery.",
+    "addressesSubtitle": "Save them once and you won't have to type them again.",
+    "floristTitle": "Do you own a flower shop?",
+    "floristBody": "Register it on Gardelia to manage orders, customers and deliveries from your phone.",
+    "floristCta": "Register my shop"
   },
   "timezones": {
     "America/Mexico_City": "Central Time (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -1864,7 +1882,7 @@
     },
     "upsell": {
       "title": "Inventory is included in {plan}",
-      "body": "Keep count of your flowers, foliage, packaging and accessories: how much you have, what is running out and everything that comes in and goes out.",
+      "body": "Keep count of your flowers, foliage, packaging and accessories: how much you have, what is reserved, what is running out, what each bouquet really costs and everything that comes in and goes out.",
       "ownerHint": "You can see your plan and what it includes in Plan and features.",
       "teamHint": "Ask the shop owner to change the plan.",
       "seePlan": "See my plan"
@@ -2044,7 +2062,7 @@
     },
     "planFeature": {
       "title": "Inventory",
-      "body": "Stock of every product, alerts when it runs out and everything that comes in and goes out."
+      "body": "Stock of every product, purchases at real cost, reservations, alerts when it runs out and how many bouquets you can make."
     },
     "validation": {
       "none_selected": "Enter how many you have of at least one product.",
@@ -2060,7 +2078,8 @@
       "entry_not_reversible": "This movement cannot be reversed: fix the stock with a count.",
       "entry_already_reversed": "This movement was already reversed.",
       "no_real_cost": "This product has no real cost yet: record a purchase.",
-      "reservation_closed": "This reservation was already used or released. Reload the page."
+      "reservation_closed": "This reservation was already used or released. Reload the page.",
+      "bouquet_without_recipe": "This bouquet has no recipe: add its ingredients in the catalog."
     },
     "activity": {
       "tracking_started": "{units, plural, one {{actor} started tracking {name} in the inventory} other {{actor} started tracking # products in the inventory}}",
@@ -2079,7 +2098,8 @@
       "reservation_created": "{lines, plural, one {{actor} reserved {units} × {name}} other {{actor} reserved stock of # products}}",
       "reservation_extended": "{actor} extended a reservation",
       "reservation_released": "{actor} released a reservation",
-      "reservation_used": "{actor} used a reservation"
+      "reservation_used": "{actor} used a reservation",
+      "bouquets_made": "{units, plural, one {{actor} recorded # bouquet made of {name}} other {{actor} recorded # bouquets made of {name}}}"
     },
     "purchases": {
       "title": "Purchases",
@@ -2261,6 +2281,52 @@
         "entry": "{quantity} for {label}",
         "new": "Reserve"
       }
+    },
+    "alerts": {
+      "title": "Inventory",
+      "allGood": "All good: nothing is running out.",
+      "low": "{count, plural, one {# running low} other {# running low}}",
+      "out": "{count, plural, one {# out of stock} other {# out of stock}}",
+      "left": "{quantity} left",
+      "gone": "Out of stock",
+      "dueSoon": "{count, plural, one {# reservation expires today or tomorrow} other {# reservations expire today or tomorrow}}",
+      "expired": "{count, plural, one {# expired reservation: use, extend or release it} other {# expired reservations: use, extend or release them}}",
+      "open": "See inventory"
+    },
+    "bouquet": {
+      "title": "Inventory",
+      "possible": "{count, plural, =0 {With what you have there's not enough for any bouquet.} one {With what you have there's enough for # bouquet.} other {With what you have there's enough for # bouquets.}}",
+      "noneTracked": "No ingredient of this bouquet is tracked in the inventory.",
+      "perBouquet": "{quantity} per bouquet",
+      "available": "available: {quantity}",
+      "notTracked": "not tracked",
+      "costTitle": "Materials for one bouquet",
+      "expected": "Expected (catalog): {amount}",
+      "real": "Real (what you paid): {amount}",
+      "diff": "{diff} vs. the catalog",
+      "fallback": "{count, plural, one {The catalog cost is used for # ingredient.} other {The catalog cost is used for # ingredients.}}",
+      "costUnknown": "An ingredient has no cost.",
+      "record": "Record bouquets made",
+      "recordTitle": "Record bouquets made: {name}",
+      "recordBody": "We take the recipe's ingredients out of the inventory for each bouquet. The ones you don't track don't change.",
+      "count": "How many bouquets",
+      "missing": "{quantity} of {name} short",
+      "shortage": "There isn't enough stock for all the bouquets. If you continue, those stock levels will go below zero.",
+      "submit": "Record",
+      "submitShortage": "Record anyway",
+      "recorded": "{count, plural, one {Done: # bouquet recorded.} other {Done: # bouquets recorded.}}"
+    },
+    "monthSummary": {
+      "title": "{month} summary",
+      "hint": "Reversed records don't count. Purchases go by their date; use and waste by the day they were recorded.",
+      "purchases": "Purchases",
+      "purchasesCount": "{count, plural, =0 {No purchases} one {# purchase} other {# purchases}}",
+      "used": "Used",
+      "usedExpected": "At catalog costs: {amount}",
+      "waste": "Waste",
+      "unknown": "A product has no cost",
+      "previous": "Previous month",
+      "next": "Next month"
     }
   }
 }

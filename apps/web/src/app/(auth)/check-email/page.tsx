@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { AuthCard } from '@/components/auth/auth-card';
 import { ResendVerification } from '@/components/auth/resend-verification';
+import { authPath } from '@/lib/auth-paths';
+import { safeNextPath } from '@/lib/session';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('auth');
@@ -13,12 +15,16 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function CheckEmailPage({ searchParams }: PageProps<'/check-email'>) {
   const params = await searchParams;
   const email = typeof params.email === 'string' ? params.email : '';
+  const next = safeNextPath(typeof params.next === 'string' ? params.next : null);
   const t = await getTranslations('auth');
   return (
     <AuthCard
       title={t('checkEmailTitle')}
       footer={
-        <Link href="/login" className="font-medium text-primary hover:underline">
+        <Link
+          href={authPath('/login', { next })}
+          className="font-medium text-primary hover:underline"
+        >
           {t('goToLogin')}
         </Link>
       }
@@ -29,7 +35,7 @@ export default async function CheckEmailPage({ searchParams }: PageProps<'/check
         </div>
         <p className="leading-relaxed">{t('checkEmailBody')}</p>
         <p className="text-sm text-muted-foreground">{t('checkEmailHint')}</p>
-        <ResendVerification defaultEmail={email} next="/app" />
+        <ResendVerification defaultEmail={email} next={next} />
       </div>
     </AuthCard>
   );

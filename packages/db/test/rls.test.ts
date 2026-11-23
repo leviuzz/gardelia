@@ -96,6 +96,35 @@ describe('configurazione di sicurezza', () => {
     }
   });
 
+  it('ogni tabella per persona ("userId", niente "tenantId") ha la RLS per utente', async () => {
+    const tables = await db.$queryRaw<
+      { table: string; rls: boolean; forced: boolean; userPolicies: bigint }[]
+    >`
+      SELECT c.relname AS table, c.relrowsecurity AS rls, c.relforcerowsecurity AS forced,
+             (SELECT count(*) FROM pg_policies p
+              WHERE p.schemaname = 'public' AND p.tablename = c.relname
+                AND p.qual LIKE '%app_current_user_id()%'
+                AND p.with_check LIKE '%app_current_user_id()%') AS "userPolicies"
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = 'public' AND c.relkind = 'r'
+        AND EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attname = 'userId' AND NOT a.attisdropped)
+        AND NOT EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attname = 'tenantId' AND NOT a.attisdropped)`;
+    const perPerson = tables.filter((table) => !TABLES_WITHOUT_RLS.has(table.table));
+    // Conto del cliente del marketplace (blocco C1).
+    expect(perPerson.map((table) => table.table).sort()).toEqual(
+      expect.arrayContaining(['BuyerAddress', 'BuyerProfile']),
+    );
+    for (const table of perPerson) {
+      expect({ table: table.table, rls: table.rls, forced: table.forced }).toEqual({
+        table: table.table,
+        rls: true,
+        forced: true,
+      });
+      expect(Number(table.userPolicies), `${table.table} senza policy per utente`).toBe(1);
+    }
+  });
+
   it('ogni tabella senza RLS è nella lista esplicita delle eccezioni', async () => {
     const tables = await db.$queryRaw<{ table: string }[]>`
       SELECT c.relname AS table FROM pg_class c

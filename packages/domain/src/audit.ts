@@ -120,6 +120,8 @@ export const AUDIT_ACTIONS = {
   inventoryReservationExtended: 'inventory.reservation_extended',
   inventoryReservationReleased: 'inventory.reservation_released',
   inventoryReservationUsed: 'inventory.reservation_used',
+  /** "Registrar ramos hechos" (ADR-063): la ricetta × N esce dall'inventario. */
+  inventoryBouquetsMade: 'inventory.bouquets_made',
   builderConfigurationCreated: 'builder.configuration_created',
   builderConfigurationUpdated: 'builder.configuration_updated',
   builderConfigurationArchived: 'builder.configuration_archived',

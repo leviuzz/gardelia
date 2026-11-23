@@ -213,7 +213,9 @@
     },
     "verifyInvalidTitle": "No pudimos confirmar tu correo",
     "verifiedTitle": "Correo confirmado",
-    "verifiedBody": "Inicia sesión para continuar."
+    "verifiedBody": "Inicia sesión para continuar.",
+    "signupSubtitleBuyer": "Guarda tus datos y tus direcciones de entrega.",
+    "loginSubtitleBuyer": "Entra a tu cuenta."
   },
   "onboarding": {
     "title": "Configura tu florería",
@@ -247,12 +249,28 @@
   },
   "places": {
     "label": "Buscar dirección",
-    "placeholder": "Escribe calle y número, p. ej. Av. Madero 120",
+    "placeholder": "Ej. Av. Madero 120",
     "hint": "Elige una sugerencia para llenar los campos; también puedes escribirlos a mano.",
     "suggestions": "Direcciones sugeridas",
     "unavailable": "La búsqueda no está disponible ahora. Escribe la dirección a mano.",
     "noResults": "Sin resultados. Revisa lo que escribiste o llena los campos a mano.",
     "found": "Dirección completada. Revisa el número interior, la colonia y el código postal."
+  },
+  "account": {
+    "title": "Mi cuenta",
+    "greeting": "Hola, {name}. Aquí están tus datos y tus direcciones de entrega.",
+    "shopsBody": "También tienes acceso a una florería en Gardelia.",
+    "shopsCta": "Ir a mi florería",
+    "dataTitle": "Tus datos",
+    "dataSubtitle": "El nombre y el correo son los de tu acceso.",
+    "name": "Nombre",
+    "email": "Correo",
+    "phone": "Teléfono",
+    "phoneHint": "Solo lo verá la florería a la que le hagas un pedido, para avisarte de la entrega.",
+    "addressesSubtitle": "Guárdalas una vez y no tendrás que escribirlas de nuevo.",
+    "floristTitle": "¿Tienes una florería?",
+    "floristBody": "Regístrala en Gardelia para llevar pedidos, clientes y entregas desde el celular.",
+    "floristCta": "Registrar mi florería"
   },
   "timezones": {
     "America/Mexico_City": "Tiempo del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -1864,7 +1882,7 @@
     },
     "upsell": {
       "title": "El inventario está incluido en {plan}",
-      "body": "Lleva la cuenta de tus flores, follajes, empaques y accesorios: cuánto tienes, qué se está acabando y todo lo que entra y sale.",
+      "body": "Lleva la cuenta de tus flores, follajes, empaques y accesorios: cuánto tienes, qué está apartado, qué se está acabando, cuánto te cuesta de verdad cada ramo y todo lo que entra y sale.",
       "ownerHint": "Puedes ver tu plan y lo que incluye en Plan y funciones.",
       "teamHint": "Pide al propietario de la florería que cambie el plan.",
       "seePlan": "Ver mi plan"
@@ -2044,7 +2062,7 @@
     },
     "planFeature": {
       "title": "Inventario",
-      "body": "Existencias de cada producto, avisos cuando se acaban y todo lo que entra y sale."
+      "body": "Existencias de cada producto, compras con el costo real, apartados, avisos cuando se acaban y cuántos ramos alcanzan."
     },
     "validation": {
       "none_selected": "Escribe cuántos tienes de al menos un producto.",
@@ -2060,7 +2078,8 @@
       "entry_not_reversible": "Este movimiento no se puede anular: corrige las existencias con un conteo.",
       "entry_already_reversed": "Este movimiento ya se anuló.",
       "no_real_cost": "Este producto todavía no tiene un costo real: registra una compra.",
-      "reservation_closed": "Este apartado ya se usó o se liberó. Recarga la página."
+      "reservation_closed": "Este apartado ya se usó o se liberó. Recarga la página.",
+      "bouquet_without_recipe": "Este ramo no tiene receta: agrégale los ingredientes en el catálogo."
     },
     "activity": {
       "tracking_started": "{units, plural, one {{actor} empezó a controlar {name} en el inventario} other {{actor} empezó a controlar # productos en el inventario}}",
@@ -2079,7 +2098,8 @@
       "reservation_created": "{lines, plural, one {{actor} apartó {units} × {name}} other {{actor} apartó mercancía de # productos}}",
       "reservation_extended": "{actor} extendió un apartado",
       "reservation_released": "{actor} liberó un apartado",
-      "reservation_used": "{actor} usó un apartado"
+      "reservation_used": "{actor} usó un apartado",
+      "bouquets_made": "{units, plural, one {{actor} registró # ramo hecho de {name}} other {{actor} registró # ramos hechos de {name}}}"
     },
     "purchases": {
       "title": "Compras",
@@ -2261,6 +2281,52 @@
         "entry": "{quantity} para {label}",
         "new": "Apartar"
       }
+    },
+    "alerts": {
+      "title": "Inventario",
+      "allGood": "Todo en orden: nada se está acabando.",
+      "low": "{count, plural, one {# por agotarse} other {# por agotarse}}",
+      "out": "{count, plural, one {# agotado} other {# agotados}}",
+      "left": "Quedan {quantity}",
+      "gone": "Agotado",
+      "dueSoon": "{count, plural, one {# apartado vence hoy o mañana} other {# apartados vencen hoy o mañana}}",
+      "expired": "{count, plural, one {# apartado vencido: úsalo, extiéndelo o libéralo} other {# apartados vencidos: úsalos, extiéndelos o libéralos}}",
+      "open": "Ver inventario"
+    },
+    "bouquet": {
+      "title": "Inventario",
+      "possible": "{count, plural, =0 {Con lo que tienes no alcanza para ningún ramo.} one {Con lo que tienes alcanza para # ramo.} other {Con lo que tienes alcanzan para # ramos.}}",
+      "noneTracked": "Ningún ingrediente de este ramo se controla en el inventario.",
+      "perBouquet": "{quantity} por ramo",
+      "available": "disponibles: {quantity}",
+      "notTracked": "no se controla",
+      "costTitle": "Materiales de un ramo",
+      "expected": "Previsto (catálogo): {amount}",
+      "real": "Real (lo que pagaste): {amount}",
+      "diff": "{diff} vs. el catálogo",
+      "fallback": "{count, plural, one {Para # ingrediente se usa el costo del catálogo.} other {Para # ingredientes se usa el costo del catálogo.}}",
+      "costUnknown": "Falta el costo de algún ingrediente.",
+      "record": "Registrar ramos hechos",
+      "recordTitle": "Registrar ramos hechos: {name}",
+      "recordBody": "Descontamos del inventario los ingredientes de la receta por cada ramo. Los que no controlas no cambian.",
+      "count": "Cuántos ramos",
+      "missing": "Faltan {quantity} de {name}",
+      "shortage": "No alcanza la mercancía para todos los ramos. Si continúas, esas existencias quedarán en negativo.",
+      "submit": "Registrar",
+      "submitShortage": "Registrar de todos modos",
+      "recorded": "{count, plural, one {Listo: registramos # ramo hecho.} other {Listo: registramos # ramos hechos.}}"
+    },
+    "monthSummary": {
+      "title": "Resumen de {month}",
+      "hint": "Lo anulado no cuenta. Las compras van por su fecha; el uso y las mermas, por el día en que se registraron.",
+      "purchases": "Compras",
+      "purchasesCount": "{count, plural, =0 {Sin compras} one {# compra} other {# compras}}",
+      "used": "Usado",
+      "usedExpected": "Con los costos del catálogo: {amount}",
+      "waste": "Mermas",
+      "unknown": "Falta el costo de algún producto",
+      "previous": "Mes anterior",
+      "next": "Mes siguiente"
     }
   }
 }

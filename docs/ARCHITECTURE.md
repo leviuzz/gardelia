@@ -92,7 +92,7 @@ Esempio: un gerente modifica il prezzo di un articolo.
 | Helper                                          | Imposta                        | Uso                                                                                                           |
 | ----------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | `withTenantContext(db, {tenantId, userId}, fn)` | `app.tenant_id`, `app.user_id` | Tutte le operazioni di un utente dentro una fioreria; creazione di una nuova fioreria (con l'ID pre-generato) |
-| `withUserContext(db, userId, fn)`               | `app.user_id`                  | Elenco delle proprie fiorerie, risoluzione dello slug                                                         |
+| `withUserContext(db, userId, fn)`               | `app.user_id`                  | Elenco delle proprie fiorerie, risoluzione dello slug; conto del cliente del marketplace (ADR-064)            |
 | `withSystemContext(db, {reason}, fn)`           | `app.bypass_rls = on`          | Seed, inviti via token, verifiche di sicurezza (whitelist ESLint)                                             |
 
 I valori sono impostati con `set_config(…, true)`: valgono solo per la transazione corrente,
@@ -111,6 +111,10 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
 - **AuditLog:** solo SELECT/INSERT → append-only per l'applicazione.
 - **CanonicalFlower:** lettura pubblica, scrittura solo di sistema (dati di riferimento allineati
   a ogni rilascio; nomi e sinonimi per lingua, ADR-043).
+- **Per persona** (`app_enable_user_rls`, ADR-064): le tabelle del conto cliente del marketplace
+  (`BuyerProfile`, `BuyerAddress`) non hanno `tenantId`; righe visibili/modificabili solo se
+  `userId = app_current_user_id()`. Le usano solo i servizi `buyer-account` dentro
+  `withUserContext`, con il contesto preso dalla sessione (`getBuyerContext`, `runBuyerAction`).
 - Vincoli aggiuntivi nel SQL: CHECK su importi/quantità/valute/slug, indici univoci parziali
   (una sede primaria per tenant, un invito pendente per email).
 
@@ -119,7 +123,7 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
 `packages/db/test/rls.test.ts` (database reale, ruolo applicativo): fail-closed senza contesto,
 invisibilità/immodificabilità delle righe altrui, rifiuto di INSERT/UPDATE verso altri tenant, FK
 composite anche con RLS aggirata, nessuna fuga di contesto nel pool, audit append-only, copertura
-RLS di ogni tabella con `tenantId`. `packages/core/test/tenant-isolation.test.ts`: gli stessi
+RLS di ogni tabella con `tenantId` e della policy per utente di ogni tabella per persona. `packages/core/test/tenant-isolation.test.ts`: gli stessi
 principi a livello di servizi e ruoli (TEN-01).
 
 ## 5. Autenticazione e autorizzazione
@@ -223,7 +227,11 @@ totale pagato; ogni riga aggiorna il costo medio, l'anulación lo toglie. Aparta
 (`reservedQuantities`: apartados ACTIVE con la scadenza da oggi in poi, nel calendario della
 fioreria), che usano stato, avvisi e controlli; vencido si calcola alla lettura, senza job. "Usar"
 scrive un registro `USE` con quanto si è usato davvero; per gli ordini `reserveStockTx`,
-`consumeReservationTx` e `releaseReservationTx`.
+`consumeReservationTx` e `releaseReservationTx`. Avvisi, ramos e riepilogo (ADR-063,
+`inventory-insights.ts`): quanti ramos alcanzan e il costo previsto e reale si calcolano nel dominio
+(`bouquetsPossible`, `bouquetMaterialCost`) dalla ricetta e dal disponibile; "Registrar ramos
+hechos" scrive un registro `USE` con la ricetta × N; il riepilogo del mese somma i movimenti non
+annullati nel calendario della fioreria.
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per

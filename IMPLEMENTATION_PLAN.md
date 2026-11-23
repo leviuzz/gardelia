@@ -197,10 +197,10 @@ toast (visto nell'E2E delle fasce di consegna). Ora si controlla dopo il commit 
 smonta prima, toast). Gli errori di campi che la pagina non mostra restano un toast. Test: hook con
 React vero in happy-dom (prima dipendenza di test per il DOM, `apps/web/test/*.test.tsx`) e un
 rendering lento, 3 casi su 6 fallivano col codice di prima; E2E con la CPU di Chromium rallentata
-20× (`errors.spec.ts`): col codice di prima il toast doppio usciva 5 volte su 5, ora mai. Da fare
-al merge del ramo del marketplace (C1): lì l'E2E delle fasce punta a `#window-end-error` con un
-commento che dice che il testo può comparire anche in un toast, non più vero. Verifiche locali:
-lint ✅ · format ✅ · typecheck ✅ · test 704/704 ✅ (+6) · build ✅ · E2E 76/76 ✅ (+1).
+20× (`errors.spec.ts`): col codice di prima il toast doppio usciva 5 volte su 5, ora mai. Nel merge
+con staging (C1) corretto il commento dell'E2E delle fasce, che dava il doppione per normale. Verifiche locali:
+lint ✅ · format ✅ · typecheck ✅ · test 704/704 ✅ (+6) · build ✅ · E2E 76/76 ✅ (+1); dopo il merge
+con staging (C1, inventario blocco 4): test 725/725 ✅ · build ✅ · E2E 78/78 ✅.
 
 **Fase 0, immagini private (fatto il 22/11):** un solo helper per livello. Core: `readStoredImage`
 (file mancante → "non trovata" e avviso nel log, invece di un 500) e `storeFilesThenCommit` (i
@@ -558,6 +558,19 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Conto del cliente, blocco C1 del marketplace (fatto il 23/11, ADR-064):** "Mi cuenta" (`/cuenta`) per
+chi compra: nome ed email dell'accesso, telefono, indirizzi di consegna con "Buscar dirección" (la stessa
+rubrica della fioreria, spostata in `components/addresses/address-book.tsx`). Login e registrazione
+verso `/cuenta` parlano a chi compra e la destinazione resta fino alla verifica dell'email; da quando la
+persona ha aperto "Mi cuenta", un accesso senza fiorerie porta lì invece che all'onboarding (i
+fioristi non cambiano strada). Dati per persona (`BuyerProfile`, `BuyerAddress`) con RLS per utente,
+servizi in `withUserContext`, contesto solo dalla sessione (`getBuyerContext`, `runBuyerAction`);
+coordinate anche qui cancellate dopo 30 giorni. Gli ordini in "Mi cuenta" arrivano con C4. Verifiche
+locali: lint ✅ · format ✅ · typecheck ✅ · test 694/694 ✅ (nuovi: 9 d'integrazione con isolamento fra persone
+A↔B e salvataggi contemporanei, 1 di RLS per utente, 1 di manutenzione, 1 sui percorsi) · migrazioni = schema ✅ ·
+build ✅ · E2E 75/75 ✅ (1 nuovo: registrazione del cliente fino al rientro in "Mi cuenta"; quello delle fasce di consegna ora controlla l'errore sotto il campo, perché con una pagina lenta lo stesso testo compare anche in un toast: correzione proposta a parte); controllo
+visivo a 390 e 1280 px. Prossimi: C2 "Mi tienda en línea" e pagina pubblica della fioreria.
+
 **Inventario, blocco 1 (fatto il 23/11, ADR-060, richiesta del founder):** voce "Inventario" nel menu
 (su telefono in "Más") con Existencias e Movimientos. "Elegir productos": si scrive quanti ce ne sono
 di ogni prodotto fisico del catalogo da controllare e, se si vuole, il minimo ("Avísame con"); la
@@ -598,6 +611,17 @@ di dominio, 10 d'integrazione con isolamento A↔B e due "Usar" nello stesso ist
 75/75 ✅ (1 nuovo: apartar, extender, usar e liberar; lo staff vede ma non crea); controllo a 320 px.
 Prossimo: blocco 4 avvisi nel pannello e costo dei ramos (ADR-063).
 
+**Inventario, blocco 4 (fatto il 23/11, ADR-063):** riquadro "Inventario" nel pannello (agotados,
+por agotarse sul disponibile, apartados in scadenza e vencidos). Nella scheda di un ramo con ricetta:
+quanti ramos alcanzan con la merce disponibile, ingredienti con disponibile, costo dei materiali
+previsto e reale con la differenza (chi vede i costi) e "Registrar ramos hechos" (la ricetta × N
+esce con un registro di uso, avviso e conferma se non basta). Riepilogo del mese nei Movimientos
+(compras, usato al costo reale e ai costi del catalogo, mermas; senza i registri annullati). Testi
+della pagina del piano aggiornati. Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test
+707/707 ✅ (9 nuovi: 3 di dominio, 6 d'integrazione con piano, ruoli e isolamento A↔B) · build ✅ ·
+E2E 76/76 ✅ (1 nuovo: ramo con ricetta, ramos hechos, pannello e riepilogo); controllo a 320 px.
+L'inventario della V1 è completo; restano consumo e apartados dagli ordini (sessione degli ordini).
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci
@@ -609,8 +633,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
    e ordine; aggiungere un disegno del Diseñador a un preventivo in bozza. Poi il marketplace per i
    clienti (D-26, deciso il 23/11: registrazione obbligatoria, pagamento diretto alla fioreria) e la
    ruta del día gratuita (D-27). Blocchi A1–C5 in `docs/ORDERS_MARKETPLACE_PLAN.md`; si parte da A1.
-3. Inventario: blocchi 1, 2 e 3 fatti (ADR-060, ADR-061, ADR-062); poi avvisi nel pannello e costo
-   dei ramos.
+3. Inventario: fatto (blocchi 1–4, ADR-060…063); restano consumo e apartados dagli ordini, che
+   collega la sessione degli ordini con le funzioni già pronte.
 4. Clienti completi: cronologia, etichette, import CSV.
 5. Abbonamenti dei clienti e Floral Care.
 6. Report.
