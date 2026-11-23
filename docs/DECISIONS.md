@@ -1235,6 +1235,29 @@ Blocco A1a di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26, D-27).
 - **Prossimi:** A2 (fasce e costi di consegna nelle impostazioni, coordinate), A3 (stampa della
   tarjeta, link pubblici).
 
+### ADR-055 — Impostazioni di consegna: fasce, giorni di chiusura e costo proposto — ADOTTATO (23/11/2026)
+
+Blocco A2 di `docs/ORDERS_MARKETPLACE_PLAN.md`, senza la parte che richiede le coordinate.
+
+- **Fasce orarie** (`DeliveryWindow`, con `tenantId`, RLS e CHECK: dentro la giornata e in ordine;
+  massimo 8, niente doppioni): nei form degli ordini diventano scelte rapide insieme a "Durante el
+  día" e "Otro horario" (che riapre Desde/Hasta). Senza fasce il form resta quello di prima. Ogni
+  ordine **copia i propri minuti**: togliere una fascia non cambia gli ordini già fatti, per questo
+  la fascia (configurazione, non dato commerciale) si cancella davvero.
+- **Giorni di chiusura** (`Tenant.deliveryClosedWeekdays`, CHECK 0–6): se la data di un ordine cade
+  in un giorno chiuso il form lo **avvisa** ma non blocca: chi registra l'ordine sa se fa
+  un'eccezione (es. 10 de mayo). Il blocco vero servirà agli ordini del marketplace (C4).
+- **Costo di consegna proposto** (`Tenant.defaultDeliveryFeeMinor`, ≥ 0): precompila il costo nei nuovi
+  ordini a domicilio (conversione dal preventivo e borrador); si cambia in ogni ordine e resta
+  congelato nell'ordine.
+- **Non fatto, di proposito:** costo per distanza (fasce in km) e raggio massimo hanno bisogno delle
+  coordinate degli indirizzi, cioè di Google Places (O-14): finché non c'è non mostriamo nulla che
+  finga di calcolarli. Il preavviso minimo serve solo agli ordini del marketplace e arriva con C4.
+- **Permessi:** le leggono tutti (servono a chi compila un ordine); le cambiano proprietario e
+  manager (`tenant:settings:update`). Audit: `delivery_settings.updated` (con le differenze),
+  `delivery_window.added`, `delivery_window.removed`; una fascia di un'altra fioreria dà 404 e un
+  evento di sicurezza.
+
 ---
 
 ## 3. Proposte da approvare

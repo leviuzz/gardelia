@@ -5,6 +5,7 @@ export * from './ai';
 export * from './audit';
 export * from './catalog';
 export * from './customer';
+export * from './delivery';
 export * from './exact-preview';
 export * from './i18n';
 export * from './ids';

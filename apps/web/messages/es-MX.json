@@ -110,7 +110,9 @@
       "order_empty": "Un pedido necesita al menos un producto.",
       "order_lines_locked": "Los productos de este pedido ya no se pueden cambiar.",
       "order_line_limit": "El pedido llegó al máximo de conceptos.",
-      "order_total_below_paid": "El total quedaría por debajo de lo que el cliente ya pagó: primero anula el pago."
+      "order_total_below_paid": "El total quedaría por debajo de lo que el cliente ya pagó: primero anula el pago.",
+      "delivery_window_exists": "Ya tienes esa franja.",
+      "delivery_window_limit": "Llegaste al máximo de franjas."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -372,7 +374,10 @@
     "order.line_removed": "{actor} quitó un concepto de {number}",
     "order.discount_changed": "{actor} cambió el descuento de {number}",
     "order.confirmed": "{actor} confirmó el pedido {number}",
-    "order.discarded": "{actor} descartó el borrador {number}"
+    "order.discarded": "{actor} descartó el borrador {number}",
+    "delivery_settings.updated": "{actor} cambió los ajustes de entrega",
+    "delivery_window.added": "{actor} agregó una franja de entrega",
+    "delivery_window.removed": "{actor} quitó una franja de entrega"
   },
   "catalog": {
     "title": "Catálogo",
@@ -588,7 +593,26 @@
     "locationSubtitle": "Dirección desde la que preparas y entregas.",
     "shopUrl": "Dirección en Gardelia",
     "currency": "Moneda",
-    "saved": "Cambios guardados"
+    "saved": "Cambios guardados",
+    "delivery": {
+      "title": "Entregas",
+      "subtitle": "Lo que se propone al registrar un pedido. Cada pedido guarda su propio horario y costo.",
+      "closedDays": "Días en que la florería no abre",
+      "closedDaysHint": "Si un pedido cae en uno de estos días, te lo avisamos al registrarlo.",
+      "defaultFee": "Costo de envío habitual ({currency})",
+      "defaultFeeHint": "Se propone en los pedidos nuevos a domicilio; puedes cambiarlo en cada uno.",
+      "saved": "Ajustes de entrega guardados.",
+      "windowsTitle": "Franjas horarias",
+      "windowsHint": "Aparecen como opciones rápidas al elegir el horario de un pedido. Siempre puedes poner otro.",
+      "noWindows": "Aún no tienes franjas: al registrar un pedido escribes la hora a mano.",
+      "windowStart": "Desde",
+      "windowEnd": "Hasta",
+      "addWindow": "Agregar franja",
+      "windowAdded": "Franja agregada.",
+      "windowRemoved": "Franja quitada.",
+      "removeWindow": "Quitar la franja {window}",
+      "windowLimit": "Llegaste al máximo de {max} franjas."
+    }
   },
   "team": {
     "title": "Equipo",
@@ -1094,7 +1118,10 @@
       "notesHint": "Solo las ve tu equipo.",
       "create": "Crear pedido",
       "save": "Guardar cambios",
-      "created": "Pedido creado"
+      "created": "Pedido creado",
+      "closedDay": "Según tus ajustes, la florería no abre ese día. Puedes registrarlo igual.",
+      "window": "Horario",
+      "customWindow": "Otro horario"
     },
     "whatsapp": {
       "greeting": "Hola {name}, te confirmamos tu pedido {number} de {shop}.",

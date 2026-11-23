@@ -1,6 +1,6 @@
 'use client';
 
-import { Ban, LoaderCircle, Trash, Undo2 } from 'lucide-react';
+import { Ban, LoaderCircle, Trash, TriangleExclamationPoint, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
@@ -8,6 +8,7 @@ import {
   ORDER_LIMITS,
   ORDER_PAYMENT_INPUT_KINDS,
   PAYMENT_METHODS,
+  isClosedOn,
   type FulfillmentMode,
   type OrderStatus,
 } from '@floral/domain';
@@ -15,6 +16,7 @@ import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import { AddressFields } from '@/components/form/address-fields';
 import { Field, controlProps } from '@/components/form/field';
 import { SubmitButton } from '@/components/form/submit-button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -65,6 +67,20 @@ export interface FulfillmentDefaults {
 }
 
 const NEW_ADDRESS = 'new';
+const ALL_DAY = 'all';
+const CUSTOM_WINDOW = 'custom';
+
+/** Fascia della fioreria (ADR-055), "HH:MM". */
+export interface WindowOption {
+  readonly start: string;
+  readonly end: string;
+  /** Già formattata ("09:00 a 12:00"). */
+  readonly label: string;
+}
+
+function windowKey(window: { readonly start: string; readonly end: string }): string {
+  return `${window.start}-${window.end}`;
+}
 
 function RadioCard({
   name,
@@ -112,6 +128,8 @@ export function FulfillmentForm({
   dateMin,
   submitLabel,
   formKey,
+  windows,
+  closedWeekdays,
 }: {
   readonly action: Action;
   readonly defaults: FulfillmentDefaults;
@@ -122,6 +140,10 @@ export function FulfillmentForm({
   readonly submitLabel: string;
   /** Cambia quando il server modifica i valori salvati. */
   readonly formKey?: string;
+  /** Fasce della fioreria: scelte rapide (resta "Otro horario"). Vuoto = solo Desde/Hasta. */
+  readonly windows: readonly WindowOption[];
+  /** Giorni di chiusura (0 = domenica): avviso, non blocco. */
+  readonly closedWeekdays: readonly number[];
 }) {
   const t = useTranslations('orders');
   const [state, formAction] = useToastActionState(action);
@@ -132,6 +154,16 @@ export function FulfillmentForm({
   );
   const [anonymous, setAnonymous] = useState(defaults.cardAnonymous);
   const newAddress = addressChoice === NEW_ADDRESS;
+  const [date, setDate] = useState(defaults.scheduledDate);
+  const [windowChoice, setWindowChoice] = useState(() => {
+    if (!defaults.windowStart && !defaults.windowEnd) return ALL_DAY;
+    const saved = windows.find(
+      (window) => window.start === defaults.windowStart && window.end === defaults.windowEnd,
+    );
+    return saved ? windowKey(saved) : CUSTOM_WINDOW;
+  });
+  const chosenWindow = windows.find((window) => windowKey(window) === windowChoice);
+  const closedDay = isClosedOn(date, closedWeekdays);
 
   return (
     <form
@@ -157,40 +189,87 @@ export function FulfillmentForm({
         </div>
       </fieldset>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Field id="order-date" label={t('form.date')} error={err('scheduledDate')} required>
+      <div className="grid gap-4">
+        <Field
+          id="order-date"
+          label={t('form.date')}
+          error={err('scheduledDate')}
+          required
+          className="sm:max-w-56"
+        >
           <Input
             {...controlProps('order-date', err('scheduledDate'))}
             name="scheduledDate"
             type="date"
             min={dateMin}
             defaultValue={defaults.scheduledDate}
+            onChange={(event) => setDate(event.target.value)}
             required
           />
         </Field>
-        <Field
-          id="order-window-start"
-          label={t('form.windowStart')}
-          error={err('windowStart')}
-          hint={t('form.windowHint')}
-        >
-          <Input
-            {...controlProps('order-window-start', err('windowStart'), true)}
-            name="windowStart"
-            type="time"
-            step={900}
-            defaultValue={defaults.windowStart}
-          />
-        </Field>
-        <Field id="order-window-end" label={t('form.windowEnd')} error={err('windowEnd')}>
-          <Input
-            {...controlProps('order-window-end', err('windowEnd'))}
-            name="windowEnd"
-            type="time"
-            step={900}
-            defaultValue={defaults.windowEnd}
-          />
-        </Field>
+        {closedDay ? (
+          <Alert variant="warning">
+            <TriangleExclamationPoint aria-hidden="true" />
+            <AlertDescription>{t('form.closedDay')}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {windows.length > 0 ? (
+          <fieldset className="space-y-2">
+            <legend className="mb-2 text-sm font-medium">{t('form.window')}</legend>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {[
+                { key: ALL_DAY, label: t('allDay') },
+                ...windows.map((window) => ({ key: windowKey(window), label: window.label })),
+                { key: CUSTOM_WINDOW, label: t('form.customWindow') },
+              ].map((option) => (
+                <RadioCard
+                  key={option.key}
+                  name="windowChoice"
+                  value={option.key}
+                  checked={windowChoice === option.key}
+                  onChange={() => setWindowChoice(option.key)}
+                >
+                  <span className="tabular-nums">{option.label}</span>
+                </RadioCard>
+              ))}
+            </div>
+            {windowChoice === CUSTOM_WINDOW ? null : (
+              <>
+                <input type="hidden" name="windowStart" value={chosenWindow?.start ?? ''} />
+                <input type="hidden" name="windowEnd" value={chosenWindow?.end ?? ''} />
+              </>
+            )}
+          </fieldset>
+        ) : null}
+
+        {windows.length === 0 || windowChoice === CUSTOM_WINDOW ? (
+          <div className="grid grid-cols-2 gap-4 sm:max-w-md">
+            <Field
+              id="order-window-start"
+              label={t('form.windowStart')}
+              error={err('windowStart')}
+              hint={windows.length === 0 ? t('form.windowHint') : undefined}
+            >
+              <Input
+                {...controlProps('order-window-start', err('windowStart'), windows.length === 0)}
+                name="windowStart"
+                type="time"
+                step={900}
+                defaultValue={defaults.windowStart}
+              />
+            </Field>
+            <Field id="order-window-end" label={t('form.windowEnd')} error={err('windowEnd')}>
+              <Input
+                {...controlProps('order-window-end', err('windowEnd'))}
+                name="windowEnd"
+                type="time"
+                step={900}
+                defaultValue={defaults.windowEnd}
+              />
+            </Field>
+          </div>
+        ) : null}
       </div>
 
       {mode === 'DELIVERY' ? (
