@@ -637,7 +637,8 @@
       "updated": "{actor} updated the shop’s details",
       "promo_updated": "{actor} changed the special dates promotion",
       "deletion_requested": "{actor} scheduled the deletion of the shop",
-      "deletion_cancelled": "{actor} restored the shop"
+      "deletion_cancelled": "{actor} restored the shop",
+      "data_exported": "{actor} downloaded the shop’s data"
     },
     "location": {
       "updated": "{actor} updated the store address"
@@ -1035,7 +1036,8 @@
       "confirmTitle": "Confirm the deletion",
       "confirmBody": "To avoid mistakes, type the shop’s name exactly as it appears.",
       "confirmLabel": "Shop name: {name}",
-      "submit": "Delete shop"
+      "submit": "Delete shop",
+      "exportFirst": "Before deleting it, <link>download your shop’s data</link>: after the final deletion it can no longer be recovered."
     },
     "quotes": {
       "title": "Quotes",
@@ -1057,6 +1059,12 @@
       "addRangeFor": "Add a time range on {day}",
       "saved": "Opening hours saved",
       "deliveryMismatch": "Your shop is closed on these days, but in Deliveries you accept deliveries and pickups: {days}. If you don’t work those days, mark them as closed in Deliveries."
+    },
+    "export": {
+      "title": "Your shop’s data",
+      "subtitle": "Download customers, orders, quotes, payments, catalog, inventory, team and Floral Care in files that open with Excel or Google Sheets.",
+      "download": "Download the data (ZIP)",
+      "hint": "One file per area, with a LEEME (read me) that explains each one. Photos are not included. Downloading deletes nothing."
     }
   },
   "team": {

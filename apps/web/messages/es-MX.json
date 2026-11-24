@@ -637,7 +637,8 @@
       "updated": "{actor} actualizó los datos de la florería",
       "promo_updated": "{actor} cambió la promoción de fechas especiales",
       "deletion_requested": "{actor} programó la eliminación de la florería",
-      "deletion_cancelled": "{actor} recuperó la florería"
+      "deletion_cancelled": "{actor} recuperó la florería",
+      "data_exported": "{actor} descargó los datos de la florería"
     },
     "location": {
       "updated": "{actor} actualizó la dirección de la tienda"
@@ -1035,7 +1036,8 @@
       "confirmTitle": "Confirma la eliminación",
       "confirmBody": "Para evitar errores, escribe el nombre de la florería tal como aparece.",
       "confirmLabel": "Nombre de la florería: {name}",
-      "submit": "Eliminar florería"
+      "submit": "Eliminar florería",
+      "exportFirst": "Antes de eliminarla, <link>descarga los datos de tu florería</link>: después del borrado definitivo ya no se pueden recuperar."
     },
     "quotes": {
       "title": "Cotizaciones",
@@ -1057,6 +1059,12 @@
       "addRangeFor": "Agregar horario el {day}",
       "saved": "Horario guardado",
       "deliveryMismatch": "Tu tienda cierra estos días, pero en Entregas aceptas entregas y recogidas: {days}. Si no trabajas esos días, márcalos como cerrados en Entregas."
+    },
+    "export": {
+      "title": "Datos de tu florería",
+      "subtitle": "Descarga clientes, pedidos, cotizaciones, pagos, catálogo, inventario, equipo y Floral Care en archivos que se abren con Excel o Google Sheets.",
+      "download": "Descargar los datos (ZIP)",
+      "hint": "Un archivo por área, con un LEEME que explica cada uno. No incluye las fotos. Descargarlos no borra nada."
     }
   },
   "team": {

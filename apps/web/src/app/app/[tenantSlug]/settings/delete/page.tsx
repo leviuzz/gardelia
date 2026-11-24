@@ -1,4 +1,4 @@
-import { ArrowLeft, EyeOff, RotateCcw, Trash2, UserRound } from 'lucide-react';
+import { ArrowLeft, Download, EyeOff, RotateCcw, Trash2, UserRound } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -71,6 +71,26 @@ export default async function DeleteShopPage({
           </ul>
         </CardContent>
       </Card>
+
+      {/* Prima di eliminarla, i dati si possono portare via (ADR-079). */}
+      {hasPermission(ctx, 'tenant:export') ? (
+        <Alert variant="info" data-testid="delete-export-hint">
+          <Download aria-hidden="true" />
+          <AlertDescription>
+            {t.rich('deleteShop.exportFirst', {
+              link: (chunks) => (
+                <a
+                  href={routes.settings.exportData}
+                  download
+                  className="font-medium underline underline-offset-2"
+                >
+                  {chunks}
+                </a>
+              ),
+            })}
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       {overview.blockers.length > 0 ? (
         <Alert variant="warning" data-testid="delete-blocked">

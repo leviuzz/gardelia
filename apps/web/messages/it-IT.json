@@ -637,7 +637,8 @@
       "updated": "{actor} ha aggiornato i dati della fioreria",
       "promo_updated": "{actor} ha cambiato la promozione delle date speciali",
       "deletion_requested": "{actor} ha programmato l’eliminazione della fioreria",
-      "deletion_cancelled": "{actor} ha recuperato la fioreria"
+      "deletion_cancelled": "{actor} ha recuperato la fioreria",
+      "data_exported": "{actor} ha scaricato i dati della fioreria"
     },
     "location": {
       "updated": "{actor} ha aggiornato l’indirizzo del negozio"
@@ -1035,7 +1036,8 @@
       "confirmTitle": "Conferma l’eliminazione",
       "confirmBody": "Per evitare errori, scrivi il nome della fioreria così come compare.",
       "confirmLabel": "Nome della fioreria: {name}",
-      "submit": "Elimina fioreria"
+      "submit": "Elimina fioreria",
+      "exportFirst": "Prima di eliminarla, <link>scarica i dati della tua fioreria</link>: dopo la cancellazione definitiva non si possono più recuperare."
     },
     "quotes": {
       "title": "Preventivi",
@@ -1057,6 +1059,12 @@
       "addRangeFor": "Aggiungi fascia il {day}",
       "saved": "Orari salvati",
       "deliveryMismatch": "Il negozio è chiuso in questi giorni, ma nelle Consegne accetti consegne e ritiri: {days}. Se quei giorni non lavori, segnali come chiusi nelle Consegne."
+    },
+    "export": {
+      "title": "Dati della tua fioreria",
+      "subtitle": "Scarica clienti, ordini, preventivi, pagamenti, catalogo, inventario, squadra e Floral Care in file che si aprono con Excel o Google Sheets.",
+      "download": "Scarica i dati (ZIP)",
+      "hint": "Un file per area, con un LEEME che spiega ognuno. Non include le foto. Scaricarli non cancella nulla."
     }
   },
   "team": {
