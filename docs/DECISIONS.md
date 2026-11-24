@@ -2369,6 +2369,43 @@ fioreria (ADR-074): prima di eliminarla, i dati si portano via.
   versione fissa). Per le fiorerie della V1 bastano pochi MB; con archivi molto grandi servirà
   generarlo in background e mandarlo per email.
 
+### ADR-080 — Reportes: vendite, prodotti, margine dichiarato, mermas e prossimi giorni — ADOTTATO (24/11/2026)
+
+Voce 11 di `docs/V1_SCOPE.md` (BI-01 P0 dello spec), chiesta dal founder ("fai la 1 e poi la 2").
+Nuova pagina "Reportes" nel menu, solo per chi gestisce (`reports:read`: owner e manager), perché
+mostra vendite, margini e costi.
+
+- **Periodo:** il mese, con frecce avanti e indietro, oppure l'anno; mai il futuro. Ogni numero
+  principale si confronta con il periodo prima (mese prima o anno prima).
+- **Ventas:**
+  - pedidos consegnati o ritirati con il giorno di consegna nel periodo: il totale del pedido, con
+    consegna e sconto;
+  - ordini e ticket medio;
+  - a parte, quanto c'è ancora "por entregar" fra i pedidos confermati del periodo;
+  - grafico per giorno o per mese: una sola serie, barre sottili, tooltip e tabella per chi usa un
+    lettore di schermo.
+- **Cobrado:** i pagamenti registrati con data nel periodo; le anulaciones sottraggono.
+- **Lo más vendido:** i 10 prodotti per importo, antes de descuentos. I disegni del Diseñador
+  contano insieme, i concetti liberi per descrizione.
+- **Margen bruto:** solo sulle righe con il costo (spec 5.8: "se mancano i costi non mostrare margini
+  apparentemente accurati").
+  - Lo sconto del pedido si ripartisce sulle righe; la consegna non entra.
+  - La pagina dice sempre su che quota delle vendite è calcolato e quante righe non hanno costo.
+  - Senza nessun costo non c'è margine, ma l'invito a completare il catalogo.
+- **Mermas:** dall'inventario, come il riepilogo del mese (ADR-063), con il costo dove c'è. Solo
+  con l'inventario nel piano.
+- **Floral Care:** ricavi ricorrenti stimati al mese dei contratti attivi (`estimateCareMonth`, da–a
+  quando le visite settimanali variano). I cargos e pagamenti veri di Floral Care sono dell'altra
+  linea di lavoro (blocco 3 di `docs/FLORAL_CARE_PLAN.md`).
+- **Próximos 7 días:** pedidos da consegnare e visite programmate, con i link al calendario e
+  all'Agenda.
+- **IVA:** gli importi sono quelli dei pedidos, senza scorporo (O-06, ADR-076); la pagina lo dice.
+- **Non fatto (P1 dello spec):**
+  - funnel cotización → pedido, retention, valore dei clienti;
+  - profitto per ramo;
+  - confronto fra sedi;
+  - export dei report (i dati grezzi ci sono già, ADR-079).
+
 ## 3. Proposte da approvare
 
 | ID   | Proposta                                                                                                                                                                               | Motivazione                                                                                                                                  | Quando serve                 |

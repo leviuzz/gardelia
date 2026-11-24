@@ -588,7 +588,8 @@
     "promotions": "Promotions",
     "orders": "Orders",
     "agenda": "Schedule",
-    "care": "Floral Care"
+    "care": "Floral Care",
+    "reports": "Reports"
   },
   "roles": {
     "OWNER": "Owner",
@@ -3916,5 +3917,71 @@
       "othersRevoked": "Other devices signed out",
       "note": "On the other device the session ends within a few minutes."
     }
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "How your shop is doing: sales, products, margin and what’s coming.",
+    "periodNav": "Period",
+    "previous": "Previous period: {period}",
+    "next": "Next period",
+    "viewBy": "View by",
+    "month": "Month",
+    "year": "Year",
+    "vsPrevious": "vs. {period}",
+    "kpi": {
+      "sales": "Sales",
+      "orders": "Orders delivered",
+      "average": "Average ticket",
+      "collected": "Collected",
+      "collectedHint": "Payments recorded with a date in the period.",
+      "toDeliver": "Plus {amount} in {count, plural, one {# order} other {# orders}} to deliver"
+    },
+    "chart": {
+      "byDay": "Sales by day",
+      "byMonth": "Sales by month",
+      "subtitle": "Orders delivered or picked up, by delivery date.",
+      "caption": "Sales for {period}",
+      "dayColumn": "Day",
+      "monthColumn": "Month"
+    },
+    "empty": "No orders delivered in this period yet.",
+    "top": {
+      "title": "Best sellers",
+      "subtitle": "By amount, before discounts.",
+      "empty": "No sales in this period.",
+      "builder": "Designer creations",
+      "quantity": "{count, plural, one {# unit} other {# units}}"
+    },
+    "margin": {
+      "title": "Gross margin",
+      "subtitle": "Product sales minus their cost.",
+      "noSales": "No sales in this period.",
+      "noCosts": "To see the margin, add the cost of your products.",
+      "toCatalog": "Go to the catalog",
+      "percent": "{percent}%",
+      "partial": "Calculated only on {percent}% of your product sales ({covered} of {total}): {count, plural, one {# item has no cost and is not counted} other {# items have no cost and are not counted}}.",
+      "complete": "Cost of goods sold: {cost}.",
+      "note": "Delivery is not included. Discounts are spread across the order’s products."
+    },
+    "waste": {
+      "title": "Waste",
+      "subtitle": "What was thrown away in the period, with its cost.",
+      "none": "No waste recorded in this period.",
+      "noCost": "no cost",
+      "partial": "Some waste has no cost: the total may be higher.",
+      "toInventory": "Go to inventory"
+    },
+    "upcoming": {
+      "title": "Next 7 days",
+      "subtitle": "From {from} to {to}.",
+      "orders": "{count, plural, =0 {No orders to deliver} one {# order to deliver} other {# orders to deliver}}",
+      "visits": "{count, plural, =0 {No Floral Care visits} one {# Floral Care visit} other {# Floral Care visits}}"
+    },
+    "recurring": {
+      "none": "Floral Care: no active contracts.",
+      "exact": "Floral Care: {amount} a month ({count, plural, one {# active contract} other {# active contracts}}).",
+      "range": "Floral Care: between {min} and {max} a month ({count, plural, one {# active contract} other {# active contracts}})."
+    },
+    "footnote": "Amounts are those of your orders; the IVA breakdown is not available yet."
   }
 }
