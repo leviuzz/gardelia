@@ -1385,6 +1385,8 @@ delle zone per codice postale.
   **Aggiunta del 24/11/2026** (visto dal founder su staging):
   - se Google ha trovato una zona senza via (una colonia, un fraccionamiento), la via scritta a mano
     completa l'indirizzo dentro quella zona e il punto resta;
+  - se Google non dà la via, il form usa il testo del suggerimento scelto quando ha un numero civico
+    ("Magnolias 59", `streetFromSuggestion`); altrimenti il cursore va sulla via da scrivere;
   - place ID e coordinate stanno nello stato del componente e non vengono scritti a mano nei campi
     nascosti: React riscriveva il loro valore predefinito a ogni nuovo disegno del form, e il punto
     scelto spariva prima dell'invio (tienda mai sulla mappa, costo per distanza perso nel pedido

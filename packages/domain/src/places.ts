@@ -118,6 +118,22 @@ export function parsePlaceAddress(
   };
 }
 
+/**
+ * Via e numero da mettere nel form quando Google non li dà (succede con un indirizzo appena
+ * costruito o con un negozio): il testo del suggerimento che la persona ha scelto, se ha un numero
+ * civico ("Magnolias 59"). Una colonia ("Rancho Santa Monica") no: la via la scrive la persona.
+ */
+export function streetFromSuggestion(
+  label: string | null | undefined,
+  found: { readonly neighborhood: string | null; readonly city: string | null },
+): string {
+  const text = (label ?? '').trim();
+  if (text === '' || !/\d/.test(text)) return '';
+  const same = (other: string | null) => other !== null && normalize(other) === normalize(text);
+  if (same(found.neighborhood) || same(found.city) || /^\d{5}$/.test(text)) return '';
+  return text;
+}
+
 // -----------------------------------------------------------------------------
 // Coordinate e distanze
 // -----------------------------------------------------------------------------

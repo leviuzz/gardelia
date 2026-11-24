@@ -10,6 +10,7 @@ import {
   nextStoredPlace,
   parsePlaceAddress,
   readCoordinates,
+  streetFromSuggestion,
   readPlaceFields,
 } from '../src/index';
 
@@ -216,5 +217,24 @@ describe('cosa salvare dopo il form', () => {
     expect(isSamePlace(saved, { ...saved, coordinatesAt: now })).toBe(false);
     expect(isSamePlace(saved, { ...saved, placeId: 'ChIJ_other_place' })).toBe(false);
     expect(isSamePlace(EMPTY_PLACE, { ...EMPTY_PLACE })).toBe(true);
+  });
+});
+
+/** Google senza via: si usa il suggerimento scelto, se ha un numero civico (visto il 24/11). */
+describe('streetFromSuggestion', () => {
+  const zone = { neighborhood: 'Rancho Santa Monica', city: 'Aguascalientes' };
+
+  it('una via con il numero diventa la via del form', () => {
+    expect(streetFromSuggestion('Magnolias 59', zone)).toBe('Magnolias 59');
+    expect(streetFromSuggestion('  Av. Madero 120 ', zone)).toBe('Av. Madero 120');
+  });
+
+  it('una colonia, la città, un CP o niente: la via resta da scrivere', () => {
+    expect(streetFromSuggestion('Rancho Santa Monica', zone)).toBe('');
+    expect(streetFromSuggestion('Rancho Santa Mónica', zone)).toBe('');
+    expect(streetFromSuggestion('Aguascalientes', zone)).toBe('');
+    expect(streetFromSuggestion('20286', zone)).toBe('');
+    expect(streetFromSuggestion('', zone)).toBe('');
+    expect(streetFromSuggestion(undefined, zone)).toBe('');
   });
 });
