@@ -191,6 +191,7 @@ describe('moduli dei passi', () => {
     expect(careFinishSchema.parse({ sendReport: 'on' })).toEqual({
       sendReport: true,
       confirmShortage: false,
+      archiveSeasonal: false,
     });
     expect(careNotDoneSchema.parse({ note: ' Cerrado ' })).toEqual({
       note: 'Cerrado',

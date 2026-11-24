@@ -3056,8 +3056,11 @@
       "visit_started": "{actor} empezó una visita de {number}",
       "visit_photo_removed": "{actor} quitó una foto de una visita de {number}",
       "follow_up_created": "{actor} dejó un aviso en una visita de {number}",
-      "follow_up_resolved": "{actor} atendió un aviso de {number}",
-      "photos_deleted": "Se borraron las fotos de {number}, 30 días después del fin del contrato"
+      "follow_up_resolved": "{actor} resolvió un aviso de {number}",
+      "photos_deleted": "Se borraron las fotos de {number}, 30 días después del fin del contrato",
+      "extra_visit_created": "{actor} agendó una visita extra de {number}",
+      "quote_created": "{actor} creó una cotización desde {number}",
+      "seasonal_plants_archived": "{actor} archivó las plantas de temporada de {number}"
     },
     "notice": {
       "label": "Sí, avisé al cliente"
@@ -3259,7 +3262,8 @@
       "material_limit": "Llegaste al máximo de materiales en esta visita.",
       "follow_up_limit": "Llegaste al máximo de avisos en esta visita.",
       "photo_locked": "La visita ya se cerró: solo quien administra puede quitar la foto.",
-      "email_not_retryable": "Este reporte ya se envió o ya no se puede reenviar. Comparte el enlace."
+      "email_not_retryable": "Este reporte ya se envió o ya no se puede reenviar. Comparte el enlace.",
+      "follow_up_resolved": "Este aviso ya se resolvió. Recarga la página."
     },
     "contracts": {
       "title": "Floral Care",

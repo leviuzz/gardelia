@@ -7,7 +7,12 @@
  */
 import { z } from 'zod';
 import { addDays, compareDates, type CalendarDate } from './calendar';
-import { CARE_LIMITS, type CareServiceUnit, type CareVisitStatus } from './floral-care';
+import {
+  CARE_LIMITS,
+  type CareServiceUnit,
+  type CareVisitStatus,
+  type DeadPlantPolicy,
+} from './floral-care';
 import {
   checkboxField,
   optionalInteger,
@@ -71,6 +76,36 @@ export const CARE_FOLLOW_UP_KINDS = ['REPLACEMENT', 'EXTRA', 'OTHER'] as const;
 export type CareFollowUpKind = (typeof CARE_FOLLOW_UP_KINDS)[number];
 export const CARE_FOLLOW_UP_STATUSES = ['OPEN', 'RESOLVED'] as const;
 export type CareFollowUpStatus = (typeof CARE_FOLLOW_UP_STATUSES)[number];
+
+/**
+ * Come si è risolto un avviso (blocco 2b, ADR-078). Una pianta morta: reposición sin costo con una
+ * visita extra, alla prossima visita, con una cotización o "no se repone". Gli altri avvisi:
+ * "Atendido" o una cotización. `HANDLED` è anche l'"Atendido" del blocco 2a.
+ */
+export const CARE_FOLLOW_UP_RESOLUTIONS = [
+  'HANDLED',
+  'FREE_VISIT',
+  'NEXT_VISIT',
+  'QUOTED',
+  'NOT_REPLACED',
+] as const;
+export type CareFollowUpResolution = (typeof CARE_FOLLOW_UP_RESOLUTIONS)[number];
+
+/** Le scelte che si segnano e basta: le altre nascono dalla visita extra e dalla cotización. */
+export const CARE_FOLLOW_UP_MARK_RESOLUTIONS = ['HANDLED', 'NEXT_VISIT', 'NOT_REPLACED'] as const;
+export type CareFollowUpMarkResolution = (typeof CARE_FOLLOW_UP_MARK_RESOLUTIONS)[number];
+
+/** Le scelte per un avviso, secondo il tipo. */
+export function careFollowUpResolutions(kind: CareFollowUpKind): readonly CareFollowUpResolution[] {
+  return kind === 'REPLACEMENT'
+    ? ['FREE_VISIT', 'NEXT_VISIT', 'QUOTED', 'NOT_REPLACED']
+    : ['HANDLED', 'QUOTED'];
+}
+
+/** Per una pianta morta la regola della fioreria suggerisce la scelta (solo un suggerimento). */
+export function suggestedCareReplacement(policy: DeadPlantPolicy): 'FREE_VISIT' | 'QUOTED' {
+  return policy === 'INCLUDED' ? 'FREE_VISIT' : 'QUOTED';
+}
 
 /** Email di Floral Care al cliente (tabella d'uscita: una per visita e tipo). */
 export const CARE_EMAIL_KINDS = ['VISIT_REPORT'] as const;
@@ -263,10 +298,12 @@ export const careFollowUpSchema = z.object({
 });
 export type CareFollowUpInput = z.infer<typeof careFollowUpSchema>;
 
-/** Chi gestisce segna l'avviso come atteso, con una nota facoltativa. */
+/** Chi gestisce segna come si è risolto l'avviso, con una nota facoltativa. */
 export const careFollowUpResolveSchema = z.object({
+  resolution: requiredEnum(CARE_FOLLOW_UP_MARK_RESOLUTIONS),
   note: optionalText(CARE_VISIT_LIMITS.followUpNote),
 });
+export type CareFollowUpResolveInput = z.infer<typeof careFollowUpResolveSchema>;
 
 /** Una foto della visita: la chiave del file (per i nuovi tentativi) e la pianta, se c'è. */
 export const carePhotoUploadSchema = z.object({
@@ -275,10 +312,14 @@ export const carePhotoUploadSchema = z.object({
 });
 export type CarePhotoUploadInput = z.infer<typeof carePhotoUploadSchema>;
 
-/** "Terminar visita": mandare il resoconto, e la conferma se manca giacenza dei materiali. */
+/**
+ * "Terminar visita": mandare il resoconto, la conferma se manca giacenza dei materiali e, alla
+ * visita di ritiro del cambio di stagione, archiviare le piante di temporada (casella attiva).
+ */
 export const careFinishSchema = z.object({
   sendReport: checkboxField(),
   confirmShortage: checkboxField(),
+  archiveSeasonal: checkboxField(),
 });
 export type CareFinishInput = z.infer<typeof careFinishSchema>;
 

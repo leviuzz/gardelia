@@ -3056,8 +3056,11 @@
       "visit_started": "{actor} ha iniziato una visita di {number}",
       "visit_photo_removed": "{actor} ha tolto una foto da una visita di {number}",
       "follow_up_created": "{actor} ha lasciato un avviso in una visita di {number}",
-      "follow_up_resolved": "{actor} ha gestito un avviso di {number}",
-      "photos_deleted": "Sono state cancellate le foto di {number}, 30 giorni dopo la fine del contratto"
+      "follow_up_resolved": "{actor} ha risolto un avviso di {number}",
+      "photos_deleted": "Sono state cancellate le foto di {number}, 30 giorni dopo la fine del contratto",
+      "extra_visit_created": "{actor} ha fissato una visita extra di {number}",
+      "quote_created": "{actor} ha creato una cotización da {number}",
+      "seasonal_plants_archived": "{actor} ha archiviato le piante di stagione di {number}"
     },
     "notice": {
       "label": "Sì, ho avvisato il cliente"
@@ -3259,7 +3262,8 @@
       "material_limit": "Hai raggiunto il massimo di materiali per questa visita.",
       "follow_up_limit": "Hai raggiunto il massimo di avvisi per questa visita.",
       "photo_locked": "La visita è chiusa: solo chi gestisce può togliere la foto.",
-      "email_not_retryable": "Questo resoconto è già stato mandato o non si può più rimandare. Condividi il link."
+      "email_not_retryable": "Questo resoconto è già stato mandato o non si può più rimandare. Condividi il link.",
+      "follow_up_resolved": "Questo avviso è già stato risolto. Ricarica la pagina."
     },
     "contracts": {
       "title": "Floral Care",

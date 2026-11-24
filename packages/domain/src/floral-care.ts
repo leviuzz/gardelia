@@ -237,7 +237,8 @@ const weekdayField = z.preprocess(
     .refine(isWeekday, { error: 'invalid_option' }),
 );
 
-const requiredTime = z.preprocess(
+/** Un'ora "HH:MM" del giorno, in minuti dalla mezzanotte. */
+export const careTimeField = z.preprocess(
   toTrimmedString,
   z.string().transform((value, ctx) => {
     const minutes = parseTimeInput(value);
@@ -249,7 +250,8 @@ const requiredTime = z.preprocess(
   }),
 );
 
-const requiredDate = z.preprocess(
+/** Un giorno "AAAA-MM-GG" del calendario della fioreria. */
+export const careDateField = z.preprocess(
   toTrimmedString,
   z.string().transform((value, ctx) => {
     if (value === '') {
@@ -319,8 +321,8 @@ export type CareServiceInput = z.infer<ReturnType<typeof careServiceSchema>>;
 export const careSlotSchema = z
   .object({
     weekday: weekdayField,
-    start: requiredTime,
-    end: requiredTime,
+    start: careTimeField,
+    end: careTimeField,
     capacity: requiredInteger({ min: 1, max: CARE_LIMITS.slotCapacity }),
   })
   .superRefine((value, ctx) => {
@@ -342,6 +344,11 @@ export const carePlantSchema = z.object({
   watering: optionalText(CARE_LIMITS.plantText),
   /** Istruzioni per chi sta sul posto fra una visita e l'altra (le vede il cliente). */
   instructions: optionalText(CARE_LIMITS.plantText),
+  /**
+   * Pianta del cambio di stagione (ADR-078): fuori dal prezzo del contratto (la paga la
+   * cotización) e archiviata alla visita di ritiro.
+   */
+  seasonal: checkboxField(),
 });
 export type CarePlantInput = z.infer<typeof carePlantSchema>;
 
@@ -352,7 +359,7 @@ const careScheduleShape = {
     (list) => list.length > 0,
     { error: 'required' },
   ),
-  startDate: requiredDate,
+  startDate: careDateField,
   seats: optionalInteger({ min: 1, max: CARE_LIMITS.visitSeats }).transform((value) => value ?? 1),
 };
 
@@ -408,12 +415,84 @@ export type CareScheduleChangeInput = z.infer<typeof careScheduleChangeSchema>;
 /** "Hecha" o "No se pudo": una nota facoltativa per il registro della visita. */
 export const careVisitOutcomeSchema = z.object({ note: optionalText(CARE_LIMITS.notes) });
 
-/** Spostare una visita: giorno e fascia nuovi, con la casella dell'avviso. */
-export const careVisitMoveSchema = z.object({
-  date: requiredDate,
-  slotId: z.preprocess(toTrimmedString, z.uuid({ error: 'required' })),
-  ...careNoticeSchema.shape,
-});
+/**
+ * Dove va una visita: in un orario di visita (conta i posti) o, solo una visita extra, a un'ora
+ * libera (decisione del founder del 24/11/2026, ADR-078): non tocca i posti e i clienti non la
+ * possono scegliere.
+ */
+export const CARE_VISIT_PLACEMENTS = ['SLOT', 'TIME'] as const;
+export type CareVisitPlacement = (typeof CARE_VISIT_PLACEMENTS)[number];
+
+export type CarePlacementInput =
+  | { readonly placement: 'SLOT'; readonly date: CalendarDate; readonly slotId: string }
+  | {
+      readonly placement: 'TIME';
+      readonly date: CalendarDate;
+      readonly startMinutes: number;
+      readonly endMinutes: number;
+    };
+
+const optionalTimeField = z.preprocess(
+  toTrimmedString,
+  z.string().transform((value, ctx) => {
+    if (value === '') return null;
+    const minutes = parseTimeInput(value);
+    if (minutes === null) {
+      ctx.addIssue({ code: 'custom', message: 'invalid_time_window' });
+      return z.NEVER;
+    }
+    return minutes;
+  }),
+);
+
+/** I campi del posto di una visita: giorno, e la fascia oppure l'ora libera. */
+export const carePlacementShape = {
+  // Senza scelta (o con una scelta sconosciuta) vale l'orario di visita, come nel blocco 1.
+  placement: z.preprocess(toTrimmedString, z.enum(CARE_VISIT_PLACEMENTS).catch('SLOT')),
+  date: careDateField,
+  slotId: optionalUuidField,
+  start: optionalTimeField,
+  end: optionalTimeField,
+};
+
+interface PlacementFields {
+  readonly placement: CareVisitPlacement;
+  readonly date: CalendarDate;
+  readonly slotId: string | null;
+  readonly start: number | null;
+  readonly end: number | null;
+}
+
+/** In un orario serve la fascia; a un'ora libera servono inizio e fine, nell'ordine. */
+export function checkCarePlacement(value: PlacementFields, ctx: z.RefinementCtx): void {
+  if (value.placement === 'SLOT') {
+    if (!value.slotId) ctx.addIssue({ code: 'custom', path: ['slotId'], message: 'required' });
+    return;
+  }
+  if (value.start === null) ctx.addIssue({ code: 'custom', path: ['start'], message: 'required' });
+  if (value.end === null) ctx.addIssue({ code: 'custom', path: ['end'], message: 'required' });
+  if (value.start !== null && value.end !== null && value.start >= value.end) {
+    ctx.addIssue({ code: 'custom', path: ['end'], message: 'invalid_time_window' });
+  }
+}
+
+/** Dopo `checkCarePlacement`: il posto scelto, senza i campi dell'altra scelta. */
+export function toCarePlacement(value: PlacementFields): CarePlacementInput {
+  return value.placement === 'SLOT'
+    ? { placement: 'SLOT', date: value.date, slotId: value.slotId ?? '' }
+    : {
+        placement: 'TIME',
+        date: value.date,
+        startMinutes: value.start ?? 0,
+        endMinutes: value.end ?? 0,
+      };
+}
+
+/** Spostare una visita: giorno e fascia nuovi (o un'ora libera, solo le extra), con l'avviso. */
+export const careVisitMoveSchema = z
+  .object({ ...carePlacementShape, ...careNoticeSchema.shape })
+  .superRefine(checkCarePlacement)
+  .transform((value) => ({ ...toCarePlacement(value), customerNotified: value.customerNotified }));
 export type CareVisitMoveInput = z.infer<typeof careVisitMoveSchema>;
 
 /** Cancellare una visita: chi la toglie, perché, e la casella dell'avviso. */
@@ -426,7 +505,7 @@ export type CareVisitCancelInput = z.infer<typeof careVisitCancelSchema>;
 
 /** Fine del contratto: l'ultimo giorno di servizio (le visite dopo si cancellano). */
 export const careEndSchema = z.object({
-  endDate: requiredDate,
+  endDate: careDateField,
   ...careNoticeSchema.shape,
 });
 export type CareEndInput = z.infer<typeof careEndSchema>;

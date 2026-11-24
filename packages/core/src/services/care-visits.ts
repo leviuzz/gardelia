@@ -24,6 +24,8 @@ import {
   todayInTimeZone,
   toIsoDate,
   type CalendarDate,
+  type CareExtraFee,
+  type CareExtraKind,
   type CareVisitCancelReason,
   type CareVisitStatus,
 } from '@floral/domain';
@@ -66,6 +68,13 @@ export interface CareAgendaVisitDto {
   readonly slotId: string | null;
   readonly seats: number;
   readonly isExtra: boolean;
+  /** Visita extra (ADR-078): perché, quale costo e quanto, la nota per chi la fa. */
+  readonly extra: {
+    readonly kind: CareExtraKind;
+    readonly fee: CareExtraFee;
+    readonly feeMinor: number;
+    readonly note: string | null;
+  } | null;
   /** Non è più nel suo giorno originale. */
   readonly moved: boolean;
   readonly assignee: { readonly membershipId: string; readonly name: string } | null;
@@ -87,7 +96,7 @@ export interface CareAgendaVisitDto {
 }
 
 export interface CareAgendaSlotGroup {
-  /** null = visite senza fascia (non succede per quelle programmate). */
+  /** null = visite extra a un'ora libera (ADR-078): un gruppo per ora, senza posti. */
   readonly slotId: string | null;
   readonly start: string | null;
   readonly end: string | null;
@@ -129,6 +138,8 @@ export interface CareVisitMoveOptionsDto {
   readonly visit: CareAgendaVisitDto;
   /** Fasce con posto nei prossimi 21 giorni (dentro il contratto). */
   readonly options: readonly CareMoveOptionDto[];
+  /** Una visita extra si può spostare anche a un'ora libera (ADR-078). */
+  readonly freeTime: boolean;
 }
 
 export interface CareAssigneeDto {
@@ -186,7 +197,8 @@ export async function getCareAgendaDay(
       });
     }
     for (const row of rows) {
-      const key = row.slotId ?? 'none';
+      // Senza fascia (visita extra a un'ora libera): un gruppo per ora, senza posti da contare.
+      const key = row.slotId ?? `time:${row.startMinutes ?? ''}-${row.endMinutes ?? ''}`;
       let group = groups.get(key);
       if (!group) {
         group = {
@@ -200,10 +212,11 @@ export async function getCareAgendaDay(
         groups.set(key, group);
       }
       group.visits.push(toAgendaVisit(ctx, row, plants, today));
-      groups.set(key, { ...group, used: group.used + row.seats });
+      groups.set(key, { ...group, used: row.slotId ? group.used + row.seats : 0 });
     }
-    const ordered = [...groups.values()].sort((a, b) =>
-      (a.start ?? '').localeCompare(b.start ?? ''),
+    const ordered = [...groups.values()].sort(
+      (a, b) =>
+        (a.start ?? '').localeCompare(b.start ?? '') || (a.end ?? '').localeCompare(b.end ?? ''),
     );
     const done = rows.filter((row) => row.status === 'DONE' || row.status === 'NOT_DONE').length;
     return {
@@ -329,7 +342,7 @@ export async function getCareVisitMoveOptions(
     if (end) until = earlierDate(until, end);
     const plants = await plantCounts(tx, ctx.tenantId, [row.subscriptionId]);
     const visit = toAgendaVisit(ctx, row, plants, today);
-    if (compareDates(from, until) > 0) return { visit, options: [] };
+    if (compareDates(from, until) > 0) return { visit, options: [], freeTime: row.isExtra };
     const book = await openSlotBook(tx, ctx.tenantId, { from, until }, { lock: false });
     const current = dateToParts(row.scheduledDate);
     const options: CareMoveOptionDto[] = [];
@@ -349,7 +362,7 @@ export async function getCareVisitMoveOptions(
         });
       }
     }
-    return { visit, options };
+    return { visit, options, freeTime: row.isExtra };
   });
   if (!found) return notFound(ctx, 'CareVisit', visitId);
   return found;
@@ -361,7 +374,8 @@ export async function getCareVisitMoveOptions(
 
 /**
  * Sposta una visita (anche una "Por reprogramar") a un giorno e una fascia con posto, fino a 90
- * giorni da oggi e dentro il contratto. Senza "Sí, avisé al cliente" non si salva.
+ * giorni da oggi e dentro il contratto. Una visita extra può andare anche a un'ora libera, che non
+ * tocca i posti (ADR-078). Senza "Sí, avisé al cliente" non si salva.
  */
 export async function moveCareVisit(
   ctx: TenantContext,
@@ -376,14 +390,17 @@ export async function moveCareVisit(
   const today = todayInTimeZone(ctx.timezone);
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     await requireEntitlement(ctx, 'floralCare', tx);
-    // Ordine dei blocchi: contratto, fasce, visita (care-booking.ts).
+    // Ordine dei blocchi: contratto, fasce, visita (care-booking.ts). Un'ora libera non ha fasce.
     const first = await tx.careVisit.findFirst({
       where: { tenantId: ctx.tenantId, id: visitId },
       select: { subscriptionId: true },
     });
     if (!first) return false;
     await lockSubscription(tx, ctx.tenantId, first.subscriptionId);
-    const book = await openSlotBook(tx, ctx.tenantId, { from: input.date, until: input.date });
+    const book =
+      input.placement === 'SLOT'
+        ? await openSlotBook(tx, ctx.tenantId, { from: input.date, until: input.date })
+        : null;
     const visit = await lockVisit(tx, ctx, visitId);
     if (!visit) return false;
     if (visit.status !== 'SCHEDULED' && visit.status !== 'TO_RESCHEDULE') {
@@ -399,33 +416,38 @@ export async function moveCareVisit(
     ) {
       throw new ValidationError({ date: 'care_move_out_of_range' });
     }
-    const slot = book.slot(input.slotId);
-    if (!slot?.active) throw new ValidationError({ slotId: 'invalid_option' });
-    if (slot.weekday !== dayOfWeek(input.date)) {
-      throw new ValidationError({ slotId: 'care_slot_weekday' });
-    }
     const current = dateToParts(visit.scheduledDate);
-    if (
-      visit.status === 'SCHEDULED' &&
-      current &&
-      visit.slotId === slot.id &&
-      compareDates(current, input.date) === 0
-    ) {
-      return true;
+    const sameDay =
+      visit.status === 'SCHEDULED' && current && compareDates(current, input.date) === 0;
+    let target: { slotId: string | null; startMinutes: number; endMinutes: number };
+    if (input.placement === 'TIME') {
+      // Solo le visite extra hanno l'ora libera: le altre stanno negli orari di visita.
+      if (!visit.isExtra) throw new ValidationError({ placement: 'invalid_option' });
+      if (
+        sameDay &&
+        visit.slotId === null &&
+        visit.startMinutes === input.startMinutes &&
+        visit.endMinutes === input.endMinutes
+      ) {
+        return true;
+      }
+      target = { slotId: null, startMinutes: input.startMinutes, endMinutes: input.endMinutes };
+    } else {
+      const slot = book?.slot(input.slotId);
+      if (!book || !slot?.active) throw new ValidationError({ slotId: 'invalid_option' });
+      if (slot.weekday !== dayOfWeek(input.date)) {
+        throw new ValidationError({ slotId: 'care_slot_weekday' });
+      }
+      if (sameDay && visit.slotId === slot.id) return true;
+      if (book.free(slot.id, input.date) < visit.seats) throw new ConflictError('care_slot_full');
+      target = { slotId: slot.id, startMinutes: slot.startMinutes, endMinutes: slot.endMinutes };
     }
-    if (book.free(slot.id, input.date) < visit.seats) throw new ConflictError('care_slot_full');
     if (!input.customerNotified) {
       throw new ValidationError({ customerNotified: 'care_notice_required' });
     }
     await tx.careVisit.update({
       where: { id: visit.id, tenantId: ctx.tenantId },
-      data: {
-        status: 'SCHEDULED',
-        scheduledDate: dbDate(input.date),
-        slotId: slot.id,
-        startMinutes: slot.startMinutes,
-        endMinutes: slot.endMinutes,
-      },
+      data: { status: 'SCHEDULED', scheduledDate: dbDate(input.date), ...target },
     });
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.careVisitMoved,
@@ -435,7 +457,13 @@ export async function moveCareVisit(
         number: formatSubscriptionNumber(visit.subscription.number),
         from: current ? toIsoDate(current) : null,
         to: toIsoDate(input.date),
-        slotId: slot.id,
+        slotId: target.slotId,
+        ...(target.slotId === null
+          ? {
+              start: formatTimeOfDay(target.startMinutes),
+              end: formatTimeOfDay(target.endMinutes),
+            }
+          : {}),
         customerNotified: true,
       },
     });

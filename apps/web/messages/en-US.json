@@ -3056,8 +3056,11 @@
       "visit_started": "{actor} started a visit of {number}",
       "visit_photo_removed": "{actor} removed a photo from a visit of {number}",
       "follow_up_created": "{actor} left a note on a visit of {number}",
-      "follow_up_resolved": "{actor} handled a note of {number}",
-      "photos_deleted": "The photos of {number} were deleted, 30 days after the contract ended"
+      "follow_up_resolved": "{actor} resolved a notice for {number}",
+      "photos_deleted": "The photos of {number} were deleted, 30 days after the contract ended",
+      "extra_visit_created": "{actor} scheduled an extra visit for {number}",
+      "quote_created": "{actor} created a quote from {number}",
+      "seasonal_plants_archived": "{actor} archived the seasonal plants of {number}"
     },
     "notice": {
       "label": "Yes, I let the customer know"
@@ -3259,7 +3262,8 @@
       "material_limit": "You reached the maximum number of materials for this visit.",
       "follow_up_limit": "You reached the maximum number of notes for this visit.",
       "photo_locked": "The visit is closed: only managers can remove the photo.",
-      "email_not_retryable": "This report was already sent or can’t be resent. Share the link."
+      "email_not_retryable": "This report was already sent or can’t be resent. Share the link.",
+      "follow_up_resolved": "This notice was already resolved. Reload the page."
     },
     "contracts": {
       "title": "Floral Care",

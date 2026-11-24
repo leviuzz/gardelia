@@ -156,8 +156,9 @@ export async function priceContractNow(
   settings: CareSettings,
 ): Promise<ContractPricing> {
   const [plants, services, tiers] = await Promise.all([
+    // Le piante di temporada le paga la cotización del cambio di stagione (ADR-078).
     tx.carePlant.findMany({
-      where: { tenantId, subscriptionId: subscription.id, status: 'ACTIVE' },
+      where: { tenantId, subscriptionId: subscription.id, status: 'ACTIVE', seasonal: false },
       select: { size: true, quantity: true },
     }),
     tx.customerSubscriptionService.findMany({
@@ -203,15 +204,18 @@ export async function priceContractNow(
 /**
  * Le visite ancora da fare di un contratto da un giorno in poi: programmate da quel giorno, o "Por
  * reprogramar" nate da quel giorno in poi. Sono quelle che un cambio tocca (casella dell'avviso).
+ * Un nuovo calendario non tocca le visite extra; la fine del contratto sì (ADR-078).
  */
 export function openVisitsFrom(
   tenantId: string,
   subscriptionId: string,
   from: CalendarDate,
+  options: { readonly includeExtra: boolean },
 ): Prisma.CareVisitWhereInput {
   return {
     tenantId,
     subscriptionId,
+    ...(options.includeExtra ? {} : { isExtra: false }),
     OR: [
       { status: 'SCHEDULED', scheduledDate: { gte: dbDate(from) } },
       { status: 'TO_RESCHEDULE', originalDate: { gte: dbDate(from) } },

@@ -1113,19 +1113,25 @@ model Quote {
   validUntil        DateTime?         @db.Date
   notes             String?
   acquisitionSource AcquisitionSource @default(MERCHANT_DIRECT)
+  /// Contratto di Floral Care da cui nasce (cambio di stagione, reposición, extra; ADR-078).
+  subscriptionId    String?           @db.Uuid
   createdById       String?           @db.Uuid
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
-  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customer    Customer     @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
-  lines       QuoteLine[]
-  order       Order?
-  publicLinks PublicLink[]
+  tenant        Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer      Customer              @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
+  subscription  CustomerSubscription? @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
+  lines         QuoteLine[]
+  order         Order?
+  publicLinks   PublicLink[]
+  careVisits    CareVisit[]
+  careFollowUps CareFollowUp[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, number])
   @@index([tenantId, status])
+  @@index([tenantId, subscriptionId])
 }
 
 model QuoteLine {
@@ -1933,6 +1939,30 @@ enum CareFollowUpStatus {
   RESOLVED
 }
 
+/// Come si è risolto un avviso (ADR-078, blocco 2b). HANDLED è anche l'"Atendido" del blocco 2a.
+enum CareFollowUpResolution {
+  HANDLED
+  FREE_VISIT
+  NEXT_VISIT
+  QUOTED
+  NOT_REPLACED
+}
+
+/// Perché si fa una visita extra (ADR-078, blocco 2b).
+enum CareExtraKind {
+  EXTRA
+  REPLACEMENT
+  SEASONAL_INSTALL
+  SEASONAL_PICKUP
+}
+
+/// Quanto costa una visita extra: la tariffa per visita del contratto, niente, o nella cotización.
+enum CareExtraFee {
+  VISIT_FEE
+  FREE
+  QUOTE
+}
+
 /// Email di Floral Care al cliente (tabella d'uscita).
 enum CareEmailKind {
   VISIT_REPORT
@@ -2085,6 +2115,7 @@ model CustomerSubscription {
   photos          CarePhoto[]
   followUps       CareFollowUp[]
   emails          CareEmail[]
+  quotes          Quote[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, number])
@@ -2144,6 +2175,8 @@ model CarePlant {
   watering          String?
   /// Istruzioni per chi sta sul posto (le vede il cliente).
   instructions      String?
+  /// Pianta del cambio di stagione (ADR-078): fuori dal prezzo del contratto, archiviata al ritiro.
+  seasonal          Boolean      @default(false)
   status            RecordStatus @default(ACTIVE)
   sortOrder         Int          @default(0)
   createdAt         DateTime     @default(now())
@@ -2188,25 +2221,37 @@ model CareVisit {
   closedById           String?                @db.Uuid
   /// Registro d'inventario con i materiali usati, scritto a "Terminar visita" (ADR-078).
   inventoryEntryId     String?                @db.Uuid
+  /// Visita extra (ADR-078, blocco 2b): perché, quale costo e quanto (calcolato dal server).
+  extraKind            CareExtraKind?
+  extraFee             CareExtraFee?
+  extraFeeMinor        Int?
+  /// Nota della visita extra per chi la fa.
+  extraNote            String?
+  /// La cotización del contratto che paga questa visita ("en la cotización").
+  quoteId              String?                @db.Uuid
   createdById          String?                @db.Uuid
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
 
-  tenant         Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  subscription   CustomerSubscription     @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
-  slot           CareSlot?                @relation(fields: [tenantId, slotId], references: [tenantId, id], onDelete: Restrict)
-  assignedTo     Membership?              @relation(fields: [tenantId, assignedMembershipId], references: [tenantId, id], onDelete: Restrict)
-  inventoryEntry InventoryEntry?          @relation(fields: [tenantId, inventoryEntryId], references: [tenantId, id], onDelete: Restrict)
-  serviceResults CareVisitServiceResult[]
-  plantResults   CareVisitPlantResult[]
-  materials      CareVisitMaterial[]
-  photos         CarePhoto[]
-  followUps      CareFollowUp[]
-  emails         CareEmail[]
-  publicLinks    PublicLink[]
+  tenant            Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription      CustomerSubscription     @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
+  slot              CareSlot?                @relation(fields: [tenantId, slotId], references: [tenantId, id], onDelete: Restrict)
+  assignedTo        Membership?              @relation(fields: [tenantId, assignedMembershipId], references: [tenantId, id], onDelete: Restrict)
+  inventoryEntry    InventoryEntry?          @relation(fields: [tenantId, inventoryEntryId], references: [tenantId, id], onDelete: Restrict)
+  quote             Quote?                   @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Restrict)
+  serviceResults    CareVisitServiceResult[]
+  plantResults      CareVisitPlantResult[]
+  materials         CareVisitMaterial[]
+  photos            CarePhoto[]
+  followUps         CareFollowUp[]           @relation("CareFollowUpVisit")
+  /// Gli avvisi che questa visita extra ha risolto ("Reposición sin costo").
+  resolvedFollowUps CareFollowUp[]           @relation("CareFollowUpExtraVisit")
+  emails            CareEmail[]
+  publicLinks       PublicLink[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, inventoryEntryId])
+  @@index([tenantId, quoteId])
   @@index([tenantId, scheduledDate])
   @@index([tenantId, slotId, scheduledDate])
   @@index([tenantId, subscriptionId])
@@ -2318,26 +2363,33 @@ model CarePhoto {
 /// Avviso della squadra per chi gestisce (ADR-078): una pianta morta da reponer (anche creato da
 /// solo), un lavoro extra chiesto dal cliente, altro. Non si cancella: si segna come atteso.
 model CareFollowUp {
-  id             String             @id @default(uuid(7)) @db.Uuid
-  tenantId       String             @db.Uuid
-  subscriptionId String             @db.Uuid
-  visitId        String             @db.Uuid
+  id             String                  @id @default(uuid(7)) @db.Uuid
+  tenantId       String                  @db.Uuid
+  subscriptionId String                  @db.Uuid
+  visitId        String                  @db.Uuid
   kind           CareFollowUpKind
-  plantId        String?            @db.Uuid
+  plantId        String?                 @db.Uuid
   quantity       Int?
   note           String?
-  status         CareFollowUpStatus @default(OPEN)
+  status         CareFollowUpStatus      @default(OPEN)
+  /// Come si è risolto (ADR-078, blocco 2b): solo se RESOLVED.
+  resolution     CareFollowUpResolution?
+  /// La cotización ("Cotizar") o la visita extra ("Reposición sin costo") che l'hanno risolto.
+  quoteId        String?                 @db.Uuid
+  extraVisitId   String?                 @db.Uuid
   resolutionNote String?
-  resolvedById   String?            @db.Uuid
+  resolvedById   String?                 @db.Uuid
   resolvedAt     DateTime?
-  createdById    String?            @db.Uuid
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  createdById    String?                 @db.Uuid
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
 
   tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
-  visit        CareVisit            @relation(fields: [tenantId, visitId], references: [tenantId, id], onDelete: Restrict)
+  visit        CareVisit            @relation("CareFollowUpVisit", fields: [tenantId, visitId], references: [tenantId, id], onDelete: Restrict)
   plant        CarePlant?           @relation(fields: [tenantId, plantId], references: [tenantId, id], onDelete: Restrict)
+  quote        Quote?               @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Restrict)
+  extraVisit   CareVisit?           @relation("CareFollowUpExtraVisit", fields: [tenantId, extraVisitId], references: [tenantId, id], onDelete: Restrict)
 
   @@unique([tenantId, id])
   @@index([tenantId, status])

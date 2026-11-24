@@ -819,7 +819,10 @@ describe('avvisi per chi gestisce', () => {
     await expect(resolveCareFollowUp(live.staff, mine[0]!.id, {})).rejects.toBeInstanceOf(
       ForbiddenError,
     );
-    await resolveCareFollowUp(live.manager, mine[0]!.id, { note: 'Cotizada' });
+    await resolveCareFollowUp(live.manager, mine[0]!.id, {
+      resolution: 'NOT_REPLACED',
+      note: 'El cliente no la quiere',
+    });
     const after = await listCareFollowUps(live.manager, 'OPEN');
     expect(after.items.some((item) => item.id === mine[0]!.id)).toBe(false);
     expect((await getCareAgendaDay(live.manager, iso(today()))).openFollowUps).toEqual(
@@ -860,9 +863,9 @@ describe('isolamento fra fiorerie', () => {
     await expect(removeCareVisitPhoto(other.owner, kit.visitId, photo.id)).rejects.toBeInstanceOf(
       NotFoundError,
     );
-    await expect(resolveCareFollowUp(other.owner, followUp.id, {})).rejects.toBeInstanceOf(
-      NotFoundError,
-    );
+    await expect(
+      resolveCareFollowUp(other.owner, followUp.id, { resolution: 'HANDLED' }),
+    ).rejects.toBeInstanceOf(NotFoundError);
     const route = await getDayRoute(other.owner, iso(today()));
     expect(route.stops.some((stop) => stop.kind === 'visit' && stop.visit.id === kit.visitId)).toBe(
       false,

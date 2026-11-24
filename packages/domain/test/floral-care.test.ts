@@ -351,8 +351,12 @@ describe('moduli dei cambi che toccano visite', () => {
     const move = careVisitMoveSchema.safeParse({ date: '', slotId: '' });
     expect(move.success).toBe(false);
     if (!move.success) {
-      expect(toFieldErrors(move.error)).toMatchObject({ date: 'required', slotId: 'required' });
+      // Prima il giorno; con il giorno, la fascia (blocco 2b: o l'ora libera di una extra).
+      expect(toFieldErrors(move.error)).toMatchObject({ date: 'required' });
     }
+    const noSlot = careVisitMoveSchema.safeParse({ date: '2026-12-03', slotId: '' });
+    expect(noSlot.success).toBe(false);
+    if (!noSlot.success) expect(toFieldErrors(noSlot.error)).toEqual({ slotId: 'required' });
     expect(careVisitCancelSchema.parse({ reason: 'SHOP', note: ' Vacaciones ' })).toEqual({
       reason: 'SHOP',
       note: 'Vacaciones',

@@ -28,6 +28,10 @@ export const agendaSelect = {
   endMinutes: true,
   seats: true,
   isExtra: true,
+  extraKind: true,
+  extraFee: true,
+  extraFeeMinor: true,
+  extraNote: true,
   outcomeNote: true,
   cancelReason: true,
   assignedMembershipId: true,
@@ -84,7 +88,17 @@ export function toAgendaVisit(
     slotId: row.slotId,
     seats: row.seats,
     isExtra: row.isExtra,
-    moved: date !== null && compareDates(date, original) !== 0,
+    extra:
+      row.isExtra && row.extraKind && row.extraFee
+        ? {
+            kind: row.extraKind,
+            fee: row.extraFee,
+            feeMinor: row.extraFeeMinor ?? 0,
+            note: row.extraNote,
+          }
+        : null,
+    // Una visita extra non ha un "giorno originale" del calendario: non risulta mai spostata.
+    moved: !row.isExtra && date !== null && compareDates(date, original) !== 0,
     assignee:
       row.assignedMembershipId && row.assignedTo
         ? { membershipId: row.assignedMembershipId, name: row.assignedTo.user.name }

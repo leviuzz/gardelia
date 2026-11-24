@@ -205,6 +205,10 @@ export const AUDIT_ACTIONS = {
   careFollowUpResolved: 'care.follow_up_resolved',
   /** Il lavoro giornaliero ha cancellato le foto di un contratto finito da 30 giorni. */
   carePhotosDeleted: 'care.photos_deleted',
+  /** Blocco 2b (ADR-078): visita extra, cotización dal contratto, piante di temporada al ritiro. */
+  careExtraVisitCreated: 'care.extra_visit_created',
+  careQuoteCreated: 'care.quote_created',
+  careSeasonalPlantsArchived: 'care.seasonal_plants_archived',
   /**
    * Contratti con i clienti (CustomerSubscription): `customer_subscription.*`, da non confondere con
    * `subscription.assigned`, il piano della fioreria su Gardelia.

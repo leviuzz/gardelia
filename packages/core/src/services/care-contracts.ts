@@ -38,6 +38,8 @@ import {
   type CareServicePricing,
   type CareServiceUnit,
   type CareTravelQuote,
+  type CareExtraFee,
+  type CareExtraKind,
   type CareVisitCancelReason,
   type CareVisitPrice,
   type CareVisitStatus,
@@ -93,6 +95,8 @@ export interface CarePlantDto {
   readonly light: PlantLight | null;
   readonly watering: string | null;
   readonly instructions: string | null;
+  /** Pianta del cambio di stagione: fuori dal prezzo, si archivia al ritiro (ADR-078). */
+  readonly seasonal: boolean;
 }
 
 export interface CareContractSlotDto {
@@ -120,6 +124,9 @@ export interface CareVisitSummaryDto {
   readonly start: string | null;
   readonly end: string | null;
   readonly isExtra: boolean;
+  /** Visita extra (ADR-078): perché e quale costo. */
+  readonly extraKind: CareExtraKind | null;
+  readonly extraFee: CareExtraFee | null;
   readonly assigneeName: string | null;
   readonly cancelReason: CareVisitCancelReason | null;
 }
@@ -805,6 +812,7 @@ export async function addCarePlant(
         light: input.light,
         watering: input.watering,
         instructions: input.instructions,
+        seasonal: input.seasonal,
         sortOrder: (last?.sortOrder ?? -1) + 1,
       },
     });
@@ -869,6 +877,7 @@ export async function updateCarePlant(
         light: input.light,
         watering: input.watering,
         instructions: input.instructions,
+        seasonal: input.seasonal,
       },
     });
     await recordAudit(tx, ctx, {
@@ -1126,7 +1135,8 @@ export async function changeCareSchedule(
       before.slotIds.join(',') === after.slotIds.join(',') &&
       (!notStarted || compareDates(contractStart, from) === 0);
     if (same) return { cancelled: 0, scheduled: 0, toReschedule: 0 };
-    const where = openVisitsFrom(ctx.tenantId, subscription.id, from);
+    // Le visite extra restano: sono state fissate a parte (ADR-078).
+    const where = openVisitsFrom(ctx.tenantId, subscription.id, from, { includeExtra: false });
     const touched = await tx.careVisit.count({ where });
     requireNotice(touched, input.customerNotified);
     const scope = memberScope(ctx);
@@ -1223,7 +1233,7 @@ export async function endCareContract(
             { status: 'TO_RESCHEDULE' },
           ],
         }
-      : openVisitsFrom(ctx.tenantId, subscriptionId, after);
+      : openVisitsFrom(ctx.tenantId, subscriptionId, after, { includeExtra: true });
     const touched = await tx.careVisit.count({ where });
     requireNotice(touched, input.customerNotified);
     const cancelled = await cancelOpenVisitsTx(tx, memberScope(ctx), where, 'CONTRACT_END');
@@ -1266,6 +1276,8 @@ const visitSummarySelect = {
   startMinutes: true,
   endMinutes: true,
   isExtra: true,
+  extraKind: true,
+  extraFee: true,
   cancelReason: true,
   assignedTo: { select: { user: { select: { name: true } } } },
 } satisfies Prisma.CareVisitSelect;
@@ -1281,6 +1293,8 @@ function toVisitSummary(row: VisitSummaryRow): CareVisitSummaryDto {
     start: row.startMinutes === null ? null : formatTimeOfDay(row.startMinutes),
     end: row.endMinutes === null ? null : formatTimeOfDay(row.endMinutes),
     isExtra: row.isExtra,
+    extraKind: row.extraKind,
+    extraFee: row.extraFee,
     assigneeName: row.assignedTo?.user.name ?? null,
     cancelReason: row.cancelReason,
   };
@@ -1479,6 +1493,7 @@ export async function getCareContract(
       light: plant.light,
       watering: plant.watering,
       instructions: plant.instructions,
+      seasonal: plant.seasonal,
     })),
     plantCount: plants.reduce((total, plant) => total + plant.quantity, 0),
     contactName: subscription.contactName,

@@ -240,6 +240,15 @@ export {
   type CareFollowUpDto,
   type CareFollowUpListDto,
 } from './services/care-follow-ups';
+// Visite extra, cotizaciones dal contratto e cambio di stagione (ADR-078, blocco 2b).
+export {
+  createCareExtraVisit,
+  createCareQuote,
+  getCareExtraVisitOptions,
+  listCareContractQuotes,
+  type CareContractQuoteDto,
+  type CareExtraVisitOptionsDto,
+} from './services/care-extras';
 export type {
   CareReportPhotoDto,
   CareReportPlantDto,

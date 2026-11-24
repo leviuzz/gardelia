@@ -43,7 +43,10 @@ export interface CareGenerationResult {
 
 const NOTHING: CareGenerationResult = { scheduled: 0, toReschedule: 0 };
 
-/** I giorni in cui ogni contratto ha già una visita che occupa un posto (per non metterne due). */
+/**
+ * I giorni in cui ogni contratto ha già una visita del calendario (per non metterne due). Le visite
+ * extra non contano: una reposición non sposta la visita del mese (ADR-078).
+ */
 async function busyDays(
   tx: TransactionClient,
   tenantId: string,
@@ -54,6 +57,7 @@ async function busyDays(
     where: {
       tenantId,
       subscriptionId: { in: [...subscriptionIds] },
+      isExtra: false,
       status: { in: [...CARE_VISIT_HOLDING_STATUSES] },
       scheduledDate: { gte: dbDate(addDays(range.from, -7)), lte: dbDate(addDays(range.until, 7)) },
     },
