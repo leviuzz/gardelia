@@ -62,7 +62,8 @@
     "consent_required": "To upload photos, confirm the authorization.",
     "builder_color_required": "Choose the color of the wrapping or add-on.",
     "invalid_time_window": "Enter a start and an end time, in order.",
-    "payment_exceeds_balance": "The amount is more than what is left to collect."
+    "payment_exceeds_balance": "The amount is more than what is left to collect.",
+    "tenant_deletion_name_mismatch": "The name doesn’t match the shop’s name."
   },
   "errors": {
     "validation": "Check the highlighted fields.",
@@ -122,7 +123,8 @@
       "order_needs_acceptance": "This online order is confirmed with “Accept order”, which notifies the customer.",
       "delivery_fee_tier_exists": "You already have a rate for that distance.",
       "delivery_fee_tier_limit": "You reached the maximum number of rates.",
-      "order_inventory_shortage": "There isn’t enough stock for this order. Open or reload the order page to see what’s missing and confirm it’s ready."
+      "order_inventory_shortage": "There isn’t enough stock for this order. Open or reload the order page to see what’s missing and confirm it’s ready.",
+      "tenant_deletion_open_orders": "There are orders in progress: deliver or cancel them before deleting the shop."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -299,7 +301,15 @@
     "submitting": "Creating your shop…",
     "chooseTitle": "Choose a shop",
     "chooseSubtitle": "You have access to several shops.",
-    "createAnother": "Create another shop"
+    "createAnother": "Create another shop",
+    "pendingDeletion": {
+      "title": "Shops being deleted",
+      "subtitle": "Nobody can see them. If you change your mind, restore them before the date.",
+      "deleteOn": "Permanently deleted on {date}",
+      "restore": "Restore",
+      "restoreNamed": "Restore {name}",
+      "scheduled": "The deletion is scheduled. If you change your mind, restore the shop here before the date."
+    }
   },
   "places": {
     "label": "Search address",
@@ -617,7 +627,9 @@
     "tenant": {
       "created": "{actor} created the shop",
       "updated": "{actor} updated the shop’s details",
-      "promo_updated": "{actor} changed the special dates promotion"
+      "promo_updated": "{actor} changed the special dates promotion",
+      "deletion_requested": "{actor} scheduled the deletion of the shop",
+      "deletion_cancelled": "{actor} restored the shop"
     },
     "location": {
       "updated": "{actor} updated the store address"
@@ -998,7 +1010,25 @@
       "tierRemoved": "Rate removed."
     },
     "locationOnMap": "Your store is on the map: buyers who search their address find it, and distances are measured from here.",
-    "locationOffMap": "Your store isn’t on the map: pick the address from the suggestions. Otherwise buyers searching by address won’t find it and distance fees can’t be calculated."
+    "locationOffMap": "Your store isn’t on the map: pick the address from the suggestions. Otherwise buyers searching by address won’t find it and distance fees can’t be calculated.",
+    "deleteShop": {
+      "title": "Delete shop",
+      "subtitle": "It disappears for everyone at once and is permanently deleted after {days} days. Until then you can restore it.",
+      "open": "Delete shop…",
+      "pageTitle": "Delete {name}",
+      "pageSubtitle": "Read what happens before you confirm.",
+      "whatHappens": "What happens if you delete it",
+      "hidden": "It disappears at once for your team, your customers and your online shop; order and quote links stop working.",
+      "grace": "Until {date} you can restore it as it is: when you sign in to Gardelia you’ll see it with a “Restore” button. Owners get an email with the date.",
+      "final": "On {date} it is permanently deleted, with no way back: customers, orders, payments, catalog, inventory and photos.",
+      "account": "Your account stays: you can sign in and create another shop whenever you like.",
+      "blocked": "{count, plural, one {You have # order in progress} other {You have # orders in progress}}: deliver or cancel it before deleting the shop.",
+      "goToOrders": "See orders",
+      "confirmTitle": "Confirm the deletion",
+      "confirmBody": "To avoid mistakes, type the shop’s name exactly as it appears.",
+      "confirmLabel": "Shop name: {name}",
+      "submit": "Delete shop"
+    }
   },
   "team": {
     "title": "Team",

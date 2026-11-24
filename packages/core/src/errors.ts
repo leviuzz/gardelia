@@ -136,7 +136,9 @@ export type ConflictReason =
   /** Visite: fascia senza posto, visita già chiusa, visita di un giorno che non è arrivato. */
   | 'care_slot_full'
   | 'care_visit_closed'
-  | 'care_visit_future';
+  | 'care_visit_future'
+  /** "Eliminar florería" con ordini ancora da consegnare o ritirare (ADR-074). */
+  | 'tenant_deletion_open_orders';
 
 export class ConflictError extends AppError {
   readonly code = 'conflict' as const;

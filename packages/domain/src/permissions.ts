@@ -20,6 +20,8 @@ export const PERMISSIONS = {
   'tenant:settings:update': MANAGEMENT,
   /** Modificare dati legali/fiscali (ragione sociale, RFC). */
   'tenant:legal:update': OWNER_ONLY,
+  /** "Eliminar florería" e "Recuperar" (ADR-074). */
+  'tenant:delete': OWNER_ONLY,
   /** Vedere il piano della fioreria e cosa include. */
   'billing:read': MANAGEMENT,
   /** Gestire piano SaaS, addon e pagamenti (sprint billing). */

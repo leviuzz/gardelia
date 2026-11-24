@@ -62,7 +62,8 @@
     "consent_required": "Per caricare le foto conferma l’autorizzazione.",
     "builder_color_required": "Scegli il colore dell’incarto o del complemento.",
     "invalid_time_window": "Indica l’ora di inizio e quella di fine, in ordine.",
-    "payment_exceeds_balance": "L’importo supera quanto resta da incassare."
+    "payment_exceeds_balance": "L’importo supera quanto resta da incassare.",
+    "tenant_deletion_name_mismatch": "Il nome non corrisponde a quello della fioreria."
   },
   "errors": {
     "validation": "Controlla i campi evidenziati.",
@@ -122,7 +123,8 @@
       "order_needs_acceptance": "Questo ordine online si conferma con «Accetta l’ordine», che avvisa il cliente.",
       "delivery_fee_tier_exists": "Hai già una tariffa per quella distanza.",
       "delivery_fee_tier_limit": "Hai raggiunto il massimo di tariffe.",
-      "order_inventory_shortage": "In inventario non basta per questo ordine. Apri o ricarica la scheda dell’ordine per vedere cosa manca e confermare che è pronto."
+      "order_inventory_shortage": "In inventario non basta per questo ordine. Apri o ricarica la scheda dell’ordine per vedere cosa manca e confermare che è pronto.",
+      "tenant_deletion_open_orders": "Ci sono ordini in corso: consegnali o annullali prima di eliminare la fioreria."
     },
     "pageNotFoundTitle": "Pagina non trovata",
     "pageNotFoundBody": "La pagina non esiste o non hai accesso.",
@@ -299,7 +301,15 @@
     "submitting": "Creazione della tua fioreria…",
     "chooseTitle": "Scegli una fioreria",
     "chooseSubtitle": "Hai accesso a più fiorerie.",
-    "createAnother": "Crea un’altra fioreria"
+    "createAnother": "Crea un’altra fioreria",
+    "pendingDeletion": {
+      "title": "Fiorerie in eliminazione",
+      "subtitle": "Nessuno le vede. Se cambi idea, recuperale prima della data.",
+      "deleteOn": "Si cancella definitivamente il {date}",
+      "restore": "Recupera",
+      "restoreNamed": "Recupera {name}",
+      "scheduled": "L’eliminazione è programmata. Se cambi idea, recupera la fioreria qui prima della data."
+    }
   },
   "places": {
     "label": "Cerca indirizzo",
@@ -617,7 +627,9 @@
     "tenant": {
       "created": "{actor} ha creato la fioreria",
       "updated": "{actor} ha aggiornato i dati della fioreria",
-      "promo_updated": "{actor} ha cambiato la promozione delle date speciali"
+      "promo_updated": "{actor} ha cambiato la promozione delle date speciali",
+      "deletion_requested": "{actor} ha programmato l’eliminazione della fioreria",
+      "deletion_cancelled": "{actor} ha recuperato la fioreria"
     },
     "location": {
       "updated": "{actor} ha aggiornato l’indirizzo del negozio"
@@ -998,7 +1010,25 @@
       "tierRemoved": "Tariffa tolta."
     },
     "locationOnMap": "Il tuo negozio è sulla mappa: chi cerca il proprio indirizzo lo trova e le distanze si misurano da qui.",
-    "locationOffMap": "Il tuo negozio non è sulla mappa: scegli l’indirizzo tra i suggerimenti. Altrimenti chi cerca per indirizzo non lo trova e il costo per distanza non si calcola."
+    "locationOffMap": "Il tuo negozio non è sulla mappa: scegli l’indirizzo tra i suggerimenti. Altrimenti chi cerca per indirizzo non lo trova e il costo per distanza non si calcola.",
+    "deleteShop": {
+      "title": "Elimina fioreria",
+      "subtitle": "Sparisce subito per tutti e si cancella definitivamente dopo {days} giorni. Nel frattempo la puoi recuperare.",
+      "open": "Elimina fioreria…",
+      "pageTitle": "Elimina {name}",
+      "pageSubtitle": "Leggi con calma cosa succede prima di confermare.",
+      "whatHappens": "Cosa succede se la elimini",
+      "hidden": "Sparisce subito per il tuo team, i tuoi clienti e il tuo negozio online; i link di ordini e preventivi smettono di funzionare.",
+      "grace": "Fino al {date} la puoi recuperare così com’è: entrando in Gardelia la vedrai con il pulsante «Recupera». I titolari ricevono un’email con la data.",
+      "final": "Il {date} si cancella definitivamente, senza ritorno: clienti, ordini, pagamenti, catalogo, inventario e foto.",
+      "account": "Il tuo account resta: puoi entrare e creare un’altra fioreria quando vuoi.",
+      "blocked": "{count, plural, one {Hai # ordine in corso} other {Hai # ordini in corso}}: consegnalo o annullalo prima di eliminare la fioreria.",
+      "goToOrders": "Vedi gli ordini",
+      "confirmTitle": "Conferma l’eliminazione",
+      "confirmBody": "Per evitare errori, scrivi il nome della fioreria così come compare.",
+      "confirmLabel": "Nome della fioreria: {name}",
+      "submit": "Elimina fioreria"
+    }
   },
   "team": {
     "title": "Team",

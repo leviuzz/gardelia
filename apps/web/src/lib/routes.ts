@@ -192,6 +192,8 @@ export function tenantRoutes(slug: string) {
       store: `${settings}/store`,
       /** Offerta di Floral Care: tariffe, servizi, fasce di uscita (ADR-075). */
       care: `${settings}/floral-care`,
+      /** "Eliminar florería" (ADR-074), solo per il titolare. */
+      deleteShop: `${settings}/delete`,
       /** Anteprima di logo o copertina nelle impostazioni (`v` = ID attuale, contro la cache). */
       storeImage: (kind: 'LOGO' | 'COVER', imageId: string) =>
         withQuery(`${settings}/store/image/${kind === 'LOGO' ? 'logo' : 'cover'}`, { v: imageId }),
@@ -202,6 +204,11 @@ export function tenantRoutes(slug: string) {
 export type TenantRoutes = ReturnType<typeof tenantRoutes>;
 
 /** Conto del cliente del marketplace (blocco C1): di piattaforma, senza fioreria nel percorso. */
+/** Ingresso nell'app del fiorista: scelta della fioreria e fiorerie in eliminazione (ADR-074). */
+export const appRoutes = {
+  home: '/app',
+} as const;
+
 export const accountRoutes = {
   home: '/cuenta',
   /** "Descargar mis datos" (diritto di accesso, ADR-068). */

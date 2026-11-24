@@ -13,6 +13,7 @@ import {
 import {
   ConflictError,
   ForbiddenError,
+  MemoryStorage,
   NotFoundError,
   ValidationError,
   addCarePlant,
@@ -39,8 +40,11 @@ import {
   listCareVisitsToReschedule,
   markCareVisitNotDone,
   moveCareVisit,
+  purgeDeletedTenants,
   repriceCareContract,
+  requestTenantDeletion,
   runCareMaintenance,
+  setObjectStorage,
   updateCareSettings,
   updateCareSlot,
   updatePrimaryLocation,
@@ -997,5 +1001,54 @@ describe('chi resta e chi si sposta quando una fascia cambia', () => {
     expect(plan.keep.map((row) => row.id)).toEqual(['a', 'c']);
     expect(plan.move.map((row) => row.id)).toEqual(['b']);
     expect(planSlotChange(rows, null).move.map((row) => row.id)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('cancellazione definitiva di una fioreria con Floral Care (ADR-074)', () => {
+  it('contratti, visite, piante, servizi e fasce se ne vanno con la fioreria', async () => {
+    setObjectStorage(new MemoryStorage());
+    const gone = await createTestShop('Florería Care Se Va');
+    await setUpShop(gone, 'care-se-va');
+    await updateCareSettings(gone.owner, settingsInput());
+    const slot = (
+      await createCareSlot(gone.owner, slotInput(dayOfWeek(today()), '09:00', '10:00', 2))
+    ).id;
+    await addCareTravelTier(gone.owner, { upToKm: '5', fee: '30' });
+    const company = await newCustomer(gone.owner, 'Cliente Que Se Va');
+    const settings = await getCareSettings(gone.owner);
+    const contract = (
+      await createCareContract(gone.owner, company.customerId, {
+        customerAddressId: company.addressId,
+        frequency: 'WEEKLY',
+        slotIds: [slot],
+        startDate: iso(today()),
+        serviceIds: [settings.services[0]!.id],
+      })
+    ).id;
+    await addCarePlant(gone.owner, contract, { name: 'Plantas', quantity: '2', size: 'SMALL' });
+    await confirmCareContract(gone.owner, contract);
+    const [first] = await visitsOf(gone.tenant.tenantId, contract);
+    await completeCareVisit(gone.owner, first!.id, {});
+
+    await requestTenantDeletion(gone.owner, { confirmName: 'Florería Care Se Va' }, null);
+    await withSystemContext(db, { reason: 'test: 30 giorni passati' }, (tx) =>
+      tx.tenant.update({
+        where: { id: gone.tenant.tenantId },
+        data: {
+          deletionRequestedAt: new Date(Date.now() - 32 * 86_400_000),
+          deleteAfter: new Date(Date.now() - 60_000),
+        },
+      }),
+    );
+    expect(await purgeDeletedTenants()).toBeGreaterThanOrEqual(1);
+    const left = await withSystemContext(db, { reason: 'test: resti della fioreria' }, (tx) =>
+      Promise.all([
+        tx.tenant.count({ where: { id: gone.tenant.tenantId } }),
+        tx.customerSubscription.count({ where: { tenantId: gone.tenant.tenantId } }),
+        tx.careVisit.count({ where: { tenantId: gone.tenant.tenantId } }),
+        tx.careSlot.count({ where: { tenantId: gone.tenant.tenantId } }),
+      ]),
+    );
+    expect(left).toEqual([0, 0, 0, 0]);
   });
 });

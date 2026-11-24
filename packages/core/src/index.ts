@@ -7,8 +7,10 @@ export {
   type PlatformConfig,
 } from './config';
 export {
+  listTenantsPendingDeletion,
   listUserTenants,
   resolveTenantContext,
+  type TenantPendingDeletion,
   type RequestMeta,
   type ResolveTenantContextInput,
   type TenantContext,
@@ -187,6 +189,7 @@ export * from './services/promotions';
 export * from './services/online-store';
 export * from './services/orders';
 export * from './services/order-inventory';
+export * from './services/tenant-deletion';
 export * from './services/order-schedule';
 export * from './services/delivery-route';
 export * from './services/order-handover';

@@ -65,7 +65,9 @@ test.describe('Floral Care (propietaria)', () => {
 
     // Un cliente con la dirección del lugar con le piante.
     await page.goto(`${SHOP}/customers/new`);
-    await page.getByRole('textbox', { name: 'Nombre', exact: true }).fill(`Oficinas Verdes ${stamp}`);
+    await page
+      .getByRole('textbox', { name: 'Nombre', exact: true })
+      .fill(`Oficinas Verdes ${stamp}`);
     await page.getByRole('button', { name: 'Crear cliente' }).click();
     await expect(page).toHaveURL(/\/customers\/[0-9a-f-]{36}\?created=1$/);
     await page.getByRole('button', { name: 'Agregar dirección' }).click();

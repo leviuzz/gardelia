@@ -1,4 +1,4 @@
-import { ChevronRight, Gem, MapPinOff, Sprout, Store } from 'lucide-react';
+import { ChevronRight, Gem, MapPinOff, Sprout, Store, Trash2 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -14,6 +14,7 @@ import {
   DELIVERY_LIMITS,
   MX_REGIONS,
   MX_TIMEZONES,
+  TENANT_DELETION,
   WEEKDAYS_FROM_MONDAY,
   isCurrencyCode,
   minorToDecimalString,
@@ -21,6 +22,7 @@ import {
 import { Forbidden } from '@/components/forbidden';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { money, phoneForInput } from '@/lib/format';
 import { tenantRoutes } from '@/lib/routes';
@@ -282,6 +284,26 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
           />
         </CardContent>
       </Card>
+
+      {/* Zona di pericolo: solo il titolare elimina la fioreria (ADR-074). */}
+      {hasPermission(ctx, 'tenant:delete') ? (
+        <Card className="border-destructive/30" data-testid="danger-zone">
+          <CardHeader>
+            <CardTitle>{t('settings.deleteShop.title')}</CardTitle>
+            <CardDescription>
+              {t('settings.deleteShop.subtitle', { days: TENANT_DELETION.graceDays })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline" className="text-destructive hover:text-destructive">
+              <Link href={tenantRoutes(slug).settings.deleteShop}>
+                <Trash2 />
+                {t('settings.deleteShop.open')}
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

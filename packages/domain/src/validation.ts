@@ -60,6 +60,8 @@ export const VALIDATION_CODES = [
   'customers_import_too_many_columns',
   'customers_import_name_column',
   'customers_import_repeated_column',
+  /** "Eliminar florería" (ADR-074): il nome scritto non è quello della fioreria. */
+  'tenant_deletion_name_mismatch',
   'invalid',
 ] as const;
 

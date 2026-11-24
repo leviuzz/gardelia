@@ -92,8 +92,9 @@ async function withActiveLink<T>(
       select: { quoteId: true, orderId: true },
     });
     if (!link) return null;
-    const tenant = await tx.tenant.findUniqueOrThrow({
-      where: { id: ids.tenantId },
+    // Una fioreria archiviata (anche in eliminazione, ADR-074) non mostra più nulla a nessuno.
+    const tenant = await tx.tenant.findFirst({
+      where: { id: ids.tenantId, status: 'ACTIVE' },
       select: {
         displayName: true,
         contactPhone: true,
@@ -102,6 +103,7 @@ async function withActiveLink<T>(
         locations: { where: { isPrimary: true }, select: { phone: true }, take: 1 },
       },
     });
+    if (!tenant) return null;
     return fn(tx, {
       tenantId: ids.tenantId,
       quoteId: link.quoteId,

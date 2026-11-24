@@ -16,6 +16,7 @@
 import { getDb } from '@floral/db';
 import { logger } from '../logger';
 import { expireUnacceptedOrders } from '../marketplace-orders';
+import { purgeDeletedTenants } from '../services/tenant-deletion';
 import type { OrderMailDeps } from '../order-mail';
 import { refreshStoreCoordinates } from '../public-directory';
 import { closeStaleCustomerImports } from '../services/customer-import';
@@ -35,6 +36,8 @@ export interface MaintenanceResult {
   /** Floral Care (ADR-075): visite nuove (con posto o da riprogrammare) e contratti chiusi. */
   readonly careVisitsCreated: number;
   readonly careContractsEnded: number;
+  /** Fiorerie cancellate davvero, 30 giorni dopo "Eliminar florería" (ADR-074). */
+  readonly tenantsPurged: number;
 }
 
 /** `mail`: per scrivere a chi compra quando il suo ordine scade (null nei test senza email). */
@@ -59,6 +62,7 @@ export async function runDailyMaintenance(
   const customerImportsClosed = await closeStaleCustomerImports();
   const onlineOrdersExpired = await expireUnacceptedOrders(mail);
   const care = await runCareMaintenance();
+  const tenantsPurged = await purgeDeletedTenants();
   const result: MaintenanceResult = {
     quotesExpired: row?.quotes_expired ?? 0,
     invitationsExpired: row?.invitations_expired ?? 0,
@@ -72,6 +76,7 @@ export async function runDailyMaintenance(
     onlineOrdersExpired,
     careVisitsCreated: care.visitsScheduled + care.visitsToReschedule,
     careContractsEnded: care.contractsEnded,
+    tenantsPurged,
   };
   logger.info(result, 'manutenzione giornaliera completata');
   return result;

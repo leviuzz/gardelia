@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 24 novembre 2026 (dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 24 novembre 2026 (eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -1987,7 +1987,7 @@ Avviato dal founder ("si vai col punto 1": i resti degli ordini della lista per 
     apartado al primo cambio (righe, giorno, stato); se non cambiano, a "Listo" scaricano come
     prima. La ricerca fra gli apartados trova quelli degli ordini anche per il nome del cliente.
 
-### ADR-073 — Il dominio gardelia.co: indirizzi ed email — PROPOSTO (24/11/2026)
+### ADR-073 — Il dominio gardelia.co: indirizzi ed email — ADOTTATO (24/11/2026)
 
 Il founder ha comprato `gardelia.co` su Cloudflare e ha chiesto di aggiornare tutto quello che serve
 ("aggiorna tutto quello che devo aggiornare. mail ecc"). Passi per lui in `docs/DEPLOY_VERCEL.md` §12.
@@ -2007,6 +2007,52 @@ Il founder ha comprato `gardelia.co` su Cloudflare e ha chiesto di aggiornare tu
   `EMAIL_FROM`. La funzione che svuota la coda AI segue il dominio di produzione del progetto,
   quello che Vercel indica.
 - **Sicurezza:** verifica in due passaggi sull'account Cloudflare e rinnovo automatico del dominio.
+- **Fatto dal founder il 24/11/2026:**
+  - Resend verificato con la configurazione automatica su Cloudflare;
+  - DMARC con il DMARC Management di Cloudflare (`p=none`, rapporti su Cloudflare);
+  - `staging.gardelia.co` attivo su Vercel; `gardelia.vercel.app` e `gardelia-staging.vercel.app`
+    rimandano lì;
+  - variabili `APP_URL`, `BETTER_AUTH_URL` ed `EMAIL_FROM` aggiornate.
+
+### ADR-074 — Eliminare una fioreria: subito invisibile, cancellata dopo 30 giorni — ADOTTATO (24/11/2026)
+
+Chiesto dal founder ("dobbiamo implementare nelle impostazioni una sezione dedicata alla
+eliminazione"); scelta sua la cancellazione **definitiva dopo 30 giorni** ("ok cancella dopo 30
+giorni"). È un'eccezione voluta alla regola "nessuna cancellazione fisica di dati commerciali"
+(CLAUDE.md §5): quando chi possiede i dati chiude, non teniamo una copia del suo negozio.
+
+- **Chi e come:** solo il titolare (`tenant:delete`, OWNER), da "Ajustes → Zona de peligro →
+  Eliminar florería…". La pagina dice cosa succede e quando; si conferma **scrivendo il nome della
+  fioreria** (maiuscole, accenti e spazi non contano). Il controllo si ripete nel servizio.
+- **Cosa la blocca:** gli **ordini in corso** (da aceptar, confirmado, en preparación, listo, en
+  camino): chi ha ordinato aspetta i fiori. Borradores, consegnati, ritirati e annullati non bloccano.
+  Il controllo è nella stessa transazione che archivia, con la riga della fioreria bloccata.
+- **Subito:** la fioreria diventa `ARCHIVED` con `deletionRequestedAt`, `deletionRequestedById` e
+  `deleteAfter` (+30 giorni; un vincolo CHECK li tiene insieme). Da quel momento nessuno la apre (404
+  per squadra e titolare), la tienda en línea si spegne (`isPublished` e `ordersEnabled` a false), i
+  link pubblici di ordini e preventivi smettono di funzionare. Audit `tenant.deletion_requested`. Ogni
+  titolare riceve un'email con la data e il link per recuperarla; un'email non partita non annulla
+  l'eliminazione.
+- **Per 30 giorni:** il titolare la vede nella scelta della fioreria (`/app`, "Florerías en
+  eliminación") e la **recupera** con un clic: torna com'era, con la squadra; la tienda resta spenta e
+  si riaccende dalle impostazioni. Il manager e gli altri non la vedono. Audit
+  `tenant.deletion_cancelled`.
+- **Dopo 30 giorni:** la manutenzione giornaliera (`purgeDeletedTenants`, 20 per giro) cancella prima
+  i **file** dall'archivio (foto del catalogo con i ritagli, dei ramos, di stile, prove di consegna,
+  anteprime AI, logo e copertina), poi la fioreria con **tutti i suoi dati** (cascata nel database,
+  funzione `app_purge_tenant`, che ricontrolla la data). Se l'archivio dei file non risponde la fioreria
+  resta e si riprova il giorno dopo: nessun file senza padrone. Resta solo l'evento di piattaforma
+  `platform.tenant_purged` con l'ID della fioreria, l'ID di chi l'ha chiesta, la data della richiesta
+  e il numero di file (niente nomi né dati dei clienti).
+- **I conti delle persone restano:** si entra e si crea un'altra fioreria. Chi aveva comprato online
+  da quella fioreria non vede più quegli ordini in "Mis pedidos" (link e tienda non si aprono più;
+  tornano se la fioreria si recupera); "Descargar mis datos" li include finché esistono.
+- **Da validare `[validar]`:** con il contador e l'avvocato, se la fioreria o Gardelia devono
+  conservare qualcosa (ordini, pagamenti registrati) per obblighi fiscali o per reclami, e per quanto
+  (domanda 18 in `docs/legal/README.md`). Se servisse, la cancellazione diventerebbe
+  un'anonimizzazione di quella parte, senza cambiare il flusso.
+- **Non fatto:** l'**esportazione dei dati della fioreria** prima di eliminarla (V1 §2.15); finché
+  manca, la pagina non promette nulla di simile.
 
 ### ADR-075 — Floral Care, blocco 1: offerta, fasce, contratti, visite e Agenda — ADOTTATO (24/11/2026)
 

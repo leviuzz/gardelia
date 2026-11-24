@@ -39,6 +39,9 @@ export const AUDIT_ACTIONS = {
   tenantCreated: 'tenant.created',
   tenantUpdated: 'tenant.updated',
   tenantPromoUpdated: 'tenant.promo_updated',
+  /** Eliminazione programmata e annullata (ADR-074). */
+  tenantDeletionRequested: 'tenant.deletion_requested',
+  tenantDeletionCancelled: 'tenant.deletion_cancelled',
   locationUpdated: 'location.updated',
   deliverySettingsUpdated: 'delivery_settings.updated',
   deliveryWindowAdded: 'delivery_window.added',
@@ -157,6 +160,8 @@ export const AUDIT_ACTIONS = {
   styleReferenceAdded: 'builder.style_reference_added',
   styleReferenceArchived: 'builder.style_reference_archived',
   aiCreditsGranted: 'ai_credits.granted',
+  /** La fioreria è stata cancellata davvero (evento di piattaforma, senza dati personali). */
+  platformTenantPurged: 'platform.tenant_purged',
   securityTenantAccessDenied: 'security.tenant_access_denied',
   securityCrossTenantAccess: 'security.cross_tenant_access_attempt',
   platformAdminBootstrapped: 'platform.admin_bootstrapped',
