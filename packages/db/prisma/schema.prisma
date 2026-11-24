@@ -339,7 +339,7 @@ model Membership {
   invitedBy      User?       @relation("MembershipInviter", fields: [invitedById], references: [id], onDelete: SetNull)
   /// Ordini da consegnare assegnati a questo membro (repartidor, ADR-058).
   assignedOrders Order[]
-  /// Visite di Floral Care assegnate a questo membro (ADR-074).
+  /// Visite di Floral Care assegnate a questo membro (ADR-075).
   careVisits     CareVisit[]
 
   @@unique([tenantId, userId])
@@ -865,7 +865,7 @@ model CustomerAddress {
   tenant        Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   customer      Customer               @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Cascade)
   orders        Order[]
-  /// Sedi dei contratti di Floral Care (ADR-074).
+  /// Sedi dei contratti di Floral Care (ADR-075).
   subscriptions CustomerSubscription[]
 
   @@unique([tenantId, id])
@@ -1764,7 +1764,7 @@ model OrderPhoto {
 }
 
 // -----------------------------------------------------------------------------
-// Floral Care e suscripciones dei clienti (ADR-074)
+// Floral Care e suscripciones dei clienti (ADR-075)
 // -----------------------------------------------------------------------------
 
 enum CareFrequency {

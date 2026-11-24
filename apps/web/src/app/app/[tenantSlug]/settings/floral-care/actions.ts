@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Server action dell'offerta di Floral Care (ADR-074): il servizio di @floral/core valida l'input
+ * Server action dell'offerta di Floral Care (ADR-075): il servizio di @floral/core valida l'input
  * e ricontrolla permessi, piano e fioreria. Gli ID legati con .bind() arrivano dal client: non
  * sono affidabili (li ricontrolla il servizio).
  */

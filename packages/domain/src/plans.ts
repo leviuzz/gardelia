@@ -27,7 +27,7 @@ export const planEntitlementsSchema = z.object({
   bouquetBuilder: z.boolean().catch(false),
   /** Inventario: giacenze, movimenti e avvisi (ADR-060; nel Plus, domani Profesional, D-23). */
   inventory: z.boolean().catch(false),
-  /** Floral Care e suscripciones dei clienti (ADR-074; nel Profesional, D-23). */
+  /** Floral Care e suscripciones dei clienti (ADR-075; nel Profesional, D-23). */
   floralCare: z.boolean().catch(false),
   /**
    * Anteprime AI incluse al mese. Il consumo arriva con la pipeline AI (S1-12); la

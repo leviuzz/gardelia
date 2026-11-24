@@ -81,14 +81,16 @@ export async function generateMetadata({
 }
 
 /**
- * Scheda di un contratto di Floral Care (ADR-074): sede e dati pratici, calendario, piante della
+ * Scheda di un contratto di Floral Care (ADR-075): sede e dati pratici, calendario, piante della
  * diagnosi, prezzo salvato e quello di oggi, prossime visite. In bozza: piante, poi "Confirmar".
  * Confermato: calendario, servizi, prezzo e fine, con "Sí, avisé al cliente" se toccano visite.
  */
 export default async function CareContractPage({
   params,
+  searchParams,
 }: PageProps<'/app/[tenantSlug]/subscriptions/[subscriptionId]'>) {
   const { tenantSlug, subscriptionId } = await params;
+  const created = (await searchParams).created === '1';
   const ctx = await getTenantContext(tenantSlug);
   if (!hasPermission(ctx, 'subscriptions:read')) return <Forbidden />;
   const t = await getTranslations();
@@ -205,6 +207,11 @@ export default async function CareContractPage({
         />
       </div>
 
+      {created && isDraft ? (
+        <Alert variant="success">
+          <AlertDescription>{t('care.contracts.created')}</AlertDescription>
+        </Alert>
+      ) : null}
       {isDraft ? (
         <Alert variant="info">
           <Leaf aria-hidden="true" />

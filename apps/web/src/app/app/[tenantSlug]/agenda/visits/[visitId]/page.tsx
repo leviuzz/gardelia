@@ -61,7 +61,7 @@ export async function generateMetadata({
 }
 
 /**
- * Una visita di Floral Care (ADR-074): dove, chi la fa, le piante con le loro indicazioni e
+ * Una visita di Floral Care (ADR-075): dove, chi la fa, le piante con le loro indicazioni e
  * l'accesso alla sede. "Hecha" o "No se pudo" per tutta la squadra; spostare, cancellare e
  * assegnare per chi gestisce (spostare e cancellare con "Sí, avisé al cliente").
  */

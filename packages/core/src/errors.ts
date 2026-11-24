@@ -112,7 +112,7 @@ export type ConflictReason =
   | 'order_needs_acceptance'
   /** "Listo": i materiali dell'ordine non bastano nell'inventario (ADR-071). */
   | 'order_inventory_shortage'
-  /** Floral Care (ADR-074): l'offerta non è ancora salvata. */
+  /** Floral Care (ADR-075): l'offerta non è ancora salvata. */
   | 'care_not_configured'
   /** Servizi, fasce e fasce di distanza: troppi, o uguali a uno che c'è già. */
   | 'care_service_limit'

@@ -33,7 +33,7 @@ const day = (iso: string): CalendarDate => {
 };
 const isoList = (dates: readonly CalendarDate[]) => dates.map((date) => toIsoDate(date));
 
-describe('date delle visite (ADR-074)', () => {
+describe('date delle visite (ADR-075)', () => {
   it('trova il 1º e il 3º martes del mese, e nessun 5º se non c’è', () => {
     expect(nthWeekdayOfMonth(2026, 11, 2, 1)).toEqual(day('2026-11-03'));
     expect(nthWeekdayOfMonth(2026, 11, 2, 3)).toEqual(day('2026-11-17'));

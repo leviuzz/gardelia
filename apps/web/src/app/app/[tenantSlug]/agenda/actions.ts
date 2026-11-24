@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Server action delle visite di Floral Care nell'Agenda (ADR-074): "Hecha", "No se pudo",
+ * Server action delle visite di Floral Care nell'Agenda (ADR-075): "Hecha", "No se pudo",
  * spostare, cancellare, assegnare. Il servizio di @floral/core ricontrolla permessi, piano,
  * fioreria, posti nella fascia e la casella "Sí, avisé al cliente". Gli ID legati con .bind()
  * arrivano dal client: non sono affidabili.

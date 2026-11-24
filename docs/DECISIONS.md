@@ -35,7 +35,7 @@ Ultimo aggiornamento: 24 novembre 2026 (dominio gardelia.co, ADR-073; scarico de
 | D-23       | Listino a **tre livelli** (Esencial, Profesional, Premium) più add-on (Studio, crediti AI, utenti e sedi extra, WhatsApp a consumo), al posto di Basic/Plus. Prezzi 699 / 1.199 / 1.899 MXN + IVA; immagini AI incluse 15 nel Profesional e 30 nel Premium; crediti 169 / 299 / 549 MXN; al lancio solo Esencial e Profesional    | Struttura DECISA (founder, 23/11/2026); prezzi, quote e lancio a due livelli PROPOSTI                    | `SaasPlan`/entitlements (`packages/domain/src/plans.ts`) da rifare sui livelli nello sprint billing; dettagli e conti in `docs/BUSINESS_MODEL.md` §1–3                                                          |
 | D-24       | Fee sugli ordini: **nessuna** sui clienti propri del fiorista (spec §3.2); **10–15%** sugli ordini portati da Gardelia, privati compresi, a carico del fiorista; **1–2%** sui pagamenti online tramite Gardelia, dopo la V1                                                                                                       | Regole DECISE (founder, 23/11/2026); percentuali PROPOSTE                                                | `AcquisitionSource` distingue gli ordini portati da Gardelia; all'inizio la fee va sulla fattura mensile del fiorista, senza soldi che passano dalla piattaforma (`docs/BUSINESS_MODEL.md` §4)                  |
 | D-25       | Aziende: per ora solo il marketplace per i clienti e gli ordini; poi **intermediario** (fee del 10% sulle fatture pagate, fiorista titolare più riserve, ricetta standard del cliente, pagamento per consegna confermata); il **servizio gestito** (fattura unica, margine) parte solo dopo che l'intermediario ha portato ricavi | Ordine e condizione DECISI (founder, 23/11/2026); fee e modalità PROPOSTE (il founder aveva indicato 7%) | Nessun codice ora (Network dopo la V1); `NetworkContract` (una sola offerta accettata, spec §12.2) andrà esteso con assegnazioni per consegna e riserve (`docs/BUSINESS_MODEL.md` §5)                           |
-| D-26       | **Marketplace per i clienti nella V1**: pagine pubbliche, ricerca per indirizzo, pagina di ogni fioreria con i suoi ramos, ordine del cliente. Il cliente **si registra prima di ordinare**; **pagamento diretto alla fioreria** (nessun pagamento online e nessun pagamento simulato nella V1)                                   | DECISO (founder, 23/11/2026)                                                                             | Un solo `Order` per ordini del fiorista e del marketplace; piano in `docs/ORDERS_MARKETPLACE_PLAN.md`; dati del cliente in ADR-064, catalogo pubblico in ADR-065; ADR da scrivere per l’'ordine creato da fuori |
+| D-26       | **Marketplace per i clienti nella V1**: pagine pubbliche, ricerca per indirizzo, pagina di ogni fioreria con i suoi ramos, ordine del cliente. Il cliente **si registra prima di ordinare**; **pagamento diretto alla fioreria** (nessun pagamento online e nessun pagamento simulato nella V1)                                   | DECISO (founder, 23/11/2026); ricariche dell'Asistente pagate a Gardelia: ADR-075                        | Un solo `Order` per ordini del fiorista e del marketplace; piano in `docs/ORDERS_MARKETPLACE_PLAN.md`; dati del cliente in ADR-064, catalogo pubblico in ADR-065; ADR da scrivere per l’'ordine creato da fuori |
 | D-27       | **Ruta del día gratuita**: fermate ordinate per fascia oraria e vicinanza con un calcolo nostro, navigazione con i link di Google Maps; niente tracciamento in tempo reale né ottimizzazione a pagamento                                                                                                                          | DECISO (founder, 23/11/2026)                                                                             | Coordinate facoltative negli indirizzi; senza coordinate solo ordine per fascia (`docs/ORDERS_MARKETPLACE_PLAN.md` §4)                                                                                          |
 | D-28       | **Organizzazioni per le catene**: un account crea organizzazioni e sotto ognuna più fiorerie, gestite dall'organizzazione                                                                                                                                                                                                         | DECISO come direzione (founder, 23/11/2026), da progettare dopo la V1                                    | Oggi più fiorerie indipendenti per account; inventario per fioreria (ADR-060). Da progettare: ruoli, catalogo condiviso, trasferimenti, report (spec §8.6)                                                      |
 | D-29       | **Fase di prova senza piani** (founder, 24/11/2026): con poche fiorerie tester ognuna ha **tutte le funzioni** (`PLAN_FEATURES_ENFORCED`); le **anteprime con IA si pagano sempre**, con crediti assegnati dalla piattaforma dopo il pagamento, chiesti su WhatsApp. I livelli di D-23 tornano prima della produzione             | DECISO come direzione (founder, 23/11/2026), da progettare dopo la V1                                    | Oggi più fiorerie indipendenti per account; inventario per fioreria (ADR-060). Da progettare: ruoli, catalogo condiviso, trasferimenti, report (spec §8.6)                                                      |
@@ -1329,6 +1329,8 @@ Blocco B1 di `docs/ORDERS_MARKETPLACE_PLAN.md`.
 - **Calendario:** mese con quante consegne e quanti ritiri per giorno; un clic apre il giorno.
 - **Chi vede:** tutta la squadra (`orders:read`); i passi seguono i permessi (`orders:fulfill`); niente
   costi. Borradores e ordini annullati non compaiono.
+- **Aggiornato da ADR-075 (24/11/2026):** l'"Agenda" dei lavori, voce di menu a sé, mette insieme
+  le visite di Floral Care e i pedidos del giorno e del mese. Le viste dei Pedidos restano qui.
 
 ### ADR-058 — Ruta del día, repartidor e prova di consegna — ADOTTATO (23/11/2026)
 
@@ -2005,6 +2007,84 @@ Il founder ha comprato `gardelia.co` su Cloudflare e ha chiesto di aggiornare tu
   `EMAIL_FROM`. La funzione che svuota la coda AI segue il dominio di produzione del progetto,
   quello che Vercel indica.
 - **Sicurezza:** verifica in due passaggi sull'account Cloudflare e rinnovo automatico del dominio.
+
+### ADR-075 — Floral Care, blocco 1: offerta, fasce, contratti, visite e Agenda — ADOTTATO (24/11/2026)
+
+Avviato dal founder con la visione del 24/11 ("l'offerta floral care deve essere configurabile",
+"pensala bene nel profondo") e il piano approvato, ora in `docs/FLORAL_CARE_PLAN.md` (blocchi
+1–7). Questo è il blocco 1.
+
+- **Prezzo (DECISO dal founder):**
+  - tariffa per uscita + cura per pianta secondo la misura (chica, mediana, grande) + servizi
+    extra, per visita, per pianta o una volta sola. Il cliente sceglie la frequenza e il canone si
+    calcola da solo (`priceCareVisit`, `estimateCareMonth`);
+  - lo calcola **solo il server**, alla conferma, e si copia nel contratto (versione del prezzo).
+    "Actualizar precio" lo rifà con piante, servizi e tariffe di oggi: nuova versione, con la
+    casella dell'avviso. I servizi del contratto copiano nome e prezzo;
+  - sovrapprezzo per distanza con fasce proprie di Floral Care, in linea retta dalla tienda. La
+    distanza si salva nel contratto, perché le coordinate dei clienti scadono dopo 30 giorni
+    (ADR-059);
+  - fuori dal raggio il contratto si fa solo con la casella "voy de todos modos", e vale l'ultima
+    fascia. Distanza sconosciuta: niente sovrapprezzo, e la scheda lo dice.
+- **Frequenze (PROPOSTO):** 1 o 2 volte al mese in giorni fissi (1º; 1º e 3º giorno della settimana
+  scelto), oppure ogni settimana in 1–3 giorni diversi.
+- **Fasce e capienza:**
+  - fasce per giorno della settimana con i posti; un contratto grande occupa più posti per visita;
+  - una sola strada per dare giorno e fascia a una visita (`SlotBook`, `care-booking.ts`). Blocca
+    tutte le fasce della fioreria in ordine di id e conta i posti delle visite che le occupano;
+  - fascia piena: un'altra lo stesso giorno, poi il giorno più vicino della stessa settimana e
+    dello stesso mese, altrimenti la visita resta "Por reprogramar";
+  - ordine dei blocchi: contratto → fasce → visite. Chi cambia visite di un contratto blocca
+    anche le fasce prima di toccarle; un cambio di fascia non blocca i contratti.
+- **Visite:**
+  - si creano alla conferma per 60 giorni. La manutenzione le allunga quando coprono meno di 45:
+    un contratto per transazione, al massimo 100 per giro;
+  - sono uniche per contratto, versione del calendario e data originale (indice parziale): una
+    seconda generazione non crea doppioni;
+  - le cancellate restano con il motivo (`cancelReason`: cambio di calendario, fine del
+    contratto, la fioreria, il cliente), per i cargos del blocco 3;
+  - un contratto con l'ultimo giorno passato lo chiude la manutenzione (ENDED). Un cambio di piano
+    non ferma i contratti già firmati.
+- **"Sí, avisé al cliente" (DECISO):**
+  - il server lo chiede (`care_notice_required`) su ogni cambio che tocca visite già fissate:
+    calendario nuovo, fine del contratto, spostare o cancellare una visita, prezzo aggiornato;
+  - anche capienza abbassata, orario cambiato o fascia archiviata, se la fascia ha visite;
+  - cambiare solo la persona assegnata non lo chiede. Il registro ricorda `customerNotified`.
+- **Agenda (aggiorna ADR-057):**
+  - nuova voce di menu: il giorno con le visite per fascia (posti occupati) e i pedidos del
+    giorno, con il link a "Hoy salen" per la produzione;
+  - il mese con visite, consegne e ritiri; le visite da riprogrammare;
+  - la pagina della visita, con quello che serve sul posto: indirizzo, contatto, accesso, piante
+    con le loro indicazioni, servizi. Da lì "Hecha" e "No se pudo" (tutta la squadra), poi
+    spostare, cancellare e assegnare (chi gestisce);
+  - le viste dei Pedidos restano dove sono. Su mobile "Agenda" e "Floral Care" stanno in "Más":
+    la barra in basso resta di cinque voci (ADR-054). **Da decidere col founder** se l'Agenda
+    debba prendere il posto di un'altra voce.
+- **Lavori senza utente (§8 del piano):**
+  - lo `JobScope` lo costruisce solo `loadJobScope`, che rilegge la fioreria attiva nella
+    transazione del lavoro. Le funzioni `…Tx` ricevono uno `WriteScope` (un membro o un lavoro);
+  - `recordJobAudit` scrive attore nullo e il nome del lavoro;
+  - le funzioni SQL `app_care_contracts_to_extend` e `app_care_contracts_to_close` danno solo gli
+    ID;
+  - un test delle convenzioni vieta `as TenantContext` fuori da `context.ts`.
+- **Permessi e piano:** `subscriptions:read` (tutti), `subscriptions:write` e
+  `subscriptions:payments` (proprietario e gerente), `care:visit` (tutti). La funzione di piano
+  `floralCare` è accesa per tutti nella fase di prova (D-29).
+- **Dati:**
+  - tabelle con RLS, FK composite e CHECK; si chiamano `CustomerSubscription…` perché
+    `Subscription` è già il piano della fioreria;
+  - azioni del registro `care.*` e `customer_subscription.*` (`subscription.*` resta il piano);
+  - servizi della nostra lista: i 6 inclusi si creano al primo salvataggio. Gli extra
+    (fertilización, sustrato, trasplante) sono proposte da aggiungere con il prezzo del fiorista:
+    non inventiamo prezzi;
+  - i termini li scrive la fioreria: Gardelia non aggiunge condizioni.
+- **Non fatto (blocchi 2–7 del piano):**
+  - 2: visita dal telefono con checklist, stato delle piante e foto; ruta del día con le visite;
+  - 3: cargos e pagamenti;
+  - 4: blocchi, vacanze e cambi di massa con l'elenco dei clienti toccati;
+  - 5: pagina del cliente con messaggi e "Cambiar fecha";
+  - 6: Asistente de plantas, con le ricariche pagate a Gardelia. Cambia D-26 solo per le consultas;
+  - 7: consegne periodiche.
 
 ## 3. Proposte da approvare
 

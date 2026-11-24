@@ -1,5 +1,5 @@
 /**
- * Offerta di Floral Care della fioreria (ADR-074, Ajustes → Floral Care): tariffa per uscita, care
+ * Offerta di Floral Care della fioreria (ADR-075, Ajustes → Floral Care): tariffa per uscita, care
  * per pianta secondo la misura, frequenze offerte, raggio e sovrapprezzo per distanza, regole e
  * termini; i servizi (la nostra lista più quelli del fiorista) e le fasce di uscita con capienza.
  * La legge tutta la squadra (`subscriptions:read`); la cambia chi gestisce (`subscriptions:write`).

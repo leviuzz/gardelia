@@ -5,7 +5,7 @@
  * (`app_purge_place_coordinates`, regole di Google Places, ADR-059); chiude le bozze di import di
  * clienti dimenticate da più di un giorno e ne cancella il file (`app_close_stale_customer_imports`,
  * ADR-070); annulla gli ordini online che nessuna fioreria ha accettato in tempo e lo scrive a chi
- * compra (ADR-067); allunga le visite di Floral Care e chiude i contratti finiti (ADR-074). Le pagine
+ * compra (ADR-067); allunga le visite di Floral Care e chiude i contratti finiti (ADR-075). Le pagine
  * mostrano già lo stato effettivo calcolato in lettura: questo lavoro rende il dato salvato coerente
  * (filtri, report, esportazioni).
  *
@@ -32,7 +32,7 @@ export interface MaintenanceResult {
   readonly customerImportsClosed: number;
   /** Ordini online annullati perché nessuno li ha accettati in tempo. */
   readonly onlineOrdersExpired: number;
-  /** Floral Care (ADR-074): visite nuove (con posto o da riprogrammare) e contratti chiusi. */
+  /** Floral Care (ADR-075): visite nuove (con posto o da riprogrammare) e contratti chiusi. */
   readonly careVisitsCreated: number;
   readonly careContractsEnded: number;
 }

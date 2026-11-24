@@ -100,7 +100,7 @@ export default async function CustomerPage({
   const customer = await loadCustomer(ctx, customerId);
   const quotes = await listCustomerQuotes(ctx, customer.id);
   const orders = await listCustomerOrders(ctx, customer.id);
-  // Floral Care (ADR-074): i contratti del cliente (null = funzione non nel piano).
+  // Floral Care (ADR-075): i contratti del cliente (null = funzione non nel piano).
   const careContracts = await loadCareContracts(ctx, customer.id);
   const canCare = hasPermission(ctx, 'subscriptions:write') && customer.status === 'ACTIVE';
   // Sconti della promo ricevuti dal cliente (ADR-048): quando scrive con un codice, si vede qui.

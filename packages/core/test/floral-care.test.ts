@@ -50,7 +50,7 @@ import { planSlotChange, type SlotVisitRow } from '../src/services/care-generati
 import { createTestShop, type TestShop } from '../src/testing';
 
 /**
- * Floral Care, blocco 1 (ADR-074): offerta, contratti dal borrador alla conferma con il prezzo
+ * Floral Care, blocco 1 (ADR-075): offerta, contratti dal borrador alla conferma con il prezzo
  * del server, visite nelle fasce senza superare la capienza (anche con due conferme insieme),
  * "Sí, avisé al cliente" obbligatorio sui cambi che toccano visite, lavori automatici senza
  * utente e isolamento fra fiorerie.

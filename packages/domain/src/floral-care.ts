@@ -1,5 +1,5 @@
 /**
- * Floral Care [CARE-01] (ADR-074): l'offerta di cura delle piante della fioreria e i contratti con
+ * Floral Care [CARE-01] (ADR-075): l'offerta di cura delle piante della fioreria e i contratti con
  * i suoi clienti. Regole pure, senza I/O:
  *  - prezzo: tariffa per uscita + care per pianta secondo la misura + servizi extra (decisione del
  *    founder del 24/11/2026); il cliente sceglie quante uscite e il canone si calcola da solo;

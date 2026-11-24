@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Server action dei contratti di Floral Care (ADR-074): il servizio di @floral/core valida l'input
+ * Server action dei contratti di Floral Care (ADR-075): il servizio di @floral/core valida l'input
  * e ricontrolla permessi, piano e fioreria; il prezzo lo calcola solo il server. Gli ID legati con
  * .bind() arrivano dal client: non sono affidabili (il servizio cerca tutto dentro la fioreria).
  */
@@ -59,10 +59,10 @@ export async function createCareContractAction(
       customerId,
       formDataToObject(formData, CONTRACT_LISTS),
     );
+    // Dopo il redirect il toast non c'è più: la scheda lo dice con `?created=1`.
     return {
       revalidate: careSections(routes),
-      redirectTo: routes.subscriptions.detail(id),
-      success: 'care.contracts.created',
+      redirectTo: routes.subscriptions.detail(id, { created: 1 }),
     };
   });
 }
@@ -78,7 +78,6 @@ export async function updateCareContractDraftAction(
     return {
       revalidate: careSections(routes),
       redirectTo: routes.subscriptions.detail(subscriptionId),
-      success: 'care.contracts.saved',
     };
   });
 }
@@ -108,7 +107,6 @@ export async function discardCareContractAction(
     return {
       revalidate: careSections(routes),
       redirectTo: routes.subscriptions.list({ view: 'closed' }),
-      success: 'care.contracts.discarded',
     };
   });
 }

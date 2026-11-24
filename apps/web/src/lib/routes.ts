@@ -149,7 +149,7 @@ export function tenantRoutes(slug: string) {
       reservation: (reservationId: string, query?: QueryValues) =>
         withQuery(`${inventory}/reservations/${segment(reservationId)}`, query),
     },
-    /** Floral Care (ADR-074): i contratti di cura delle piante con i clienti. */
+    /** Floral Care (ADR-075): i contratti di cura delle piante con i clienti. */
     subscriptions: {
       /** Elenco (`view`: active, draft, closed; `q`; `page`). */
       list: (query?: QueryValues) => withQuery(subscriptions, query),
@@ -160,7 +160,7 @@ export function tenantRoutes(slug: string) {
       /** Modifica della bozza (stesso modulo della creazione). */
       edit: (subscriptionId: string) => `${subscriptions}/${segment(subscriptionId)}/edit`,
     },
-    /** Agenda dei lavori (ADR-074): il giorno con visite e consegne, il mese, le visite da riprogrammare. */
+    /** Agenda dei lavori (ADR-075): il giorno con visite e consegne, il mese, le visite da riprogrammare. */
     agenda: {
       day: (query?: { readonly date?: string }) => withQuery(agenda, query),
       month: (query?: { readonly month?: string }) => withQuery(`${agenda}/month`, query),
@@ -190,7 +190,7 @@ export function tenantRoutes(slug: string) {
       plan: `${settings}/plan`,
       /** "Mi tienda en línea" (ADR-065). */
       store: `${settings}/store`,
-      /** Offerta di Floral Care: tariffe, servizi, fasce di uscita (ADR-074). */
+      /** Offerta di Floral Care: tariffe, servizi, fasce di uscita (ADR-075). */
       care: `${settings}/floral-care`,
       /** Anteprima di logo o copertina nelle impostazioni (`v` = ID attuale, contro la cache). */
       storeImage: (kind: 'LOGO' | 'COVER', imageId: string) =>

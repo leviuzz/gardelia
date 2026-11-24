@@ -94,7 +94,7 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
         </Link>
       ) : null}
 
-      {/* Floral Care (ADR-074): tariffe, servizi e fasce di uscita della cura delle piante. */}
+      {/* Floral Care (ADR-075): tariffe, servizi e fasce di uscita della cura delle piante. */}
       <Link
         href={tenantRoutes(slug).settings.care}
         className="flex items-center gap-4 rounded-2xl border bg-card p-4 transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"

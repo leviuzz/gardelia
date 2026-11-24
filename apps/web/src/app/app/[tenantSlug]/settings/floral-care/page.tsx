@@ -60,7 +60,7 @@ async function loadSettings(ctx: TenantContext): Promise<CareSettingsDto | null>
 }
 
 /**
- * Ajustes → Floral Care (ADR-074): tariffe e regole, il simulatore del canone, le fasce di uscita
+ * Ajustes → Floral Care (ADR-075): tariffe e regole, il simulatore del canone, le fasce di uscita
  * con la capienza, i servizi (la nostra lista più quelli del fiorista) e il sovrapprezzo per
  * distanza. La vede tutta la squadra; la cambia chi gestisce.
  */
@@ -179,7 +179,7 @@ export default async function CareSettingsPage({
               <CardTitle>{t('care.slots.title')}</CardTitle>
               <CardDescription>{t('care.slots.subtitle')}</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4">
+            <CardContent className="grid gap-4 [&>*]:min-w-0">
               {activeSlots.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t('care.slots.empty')}</p>
               ) : (
@@ -256,7 +256,7 @@ export default async function CareSettingsPage({
               <CardTitle>{t('care.services.title')}</CardTitle>
               <CardDescription>{t('care.services.subtitle')}</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4">
+            <CardContent className="grid gap-4 [&>*]:min-w-0">
               {activeServices.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t('care.services.empty')}</p>
               ) : (
@@ -405,7 +405,7 @@ export default async function CareSettingsPage({
               <CardTitle>{t('care.tiers.title')}</CardTitle>
               <CardDescription>{t('care.tiers.subtitle')}</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4">
+            <CardContent className="grid gap-4 [&>*]:min-w-0">
               {settings.hasOrigin ? null : (
                 <Alert variant="warning">
                   <MapPinOff aria-hidden="true" />

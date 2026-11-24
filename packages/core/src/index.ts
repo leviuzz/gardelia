@@ -191,7 +191,7 @@ export * from './services/order-schedule';
 export * from './services/delivery-route';
 export * from './services/order-handover';
 export * from './services/delivery-settings';
-// Floral Care (ADR-074): offerta, contratti, visite. Le funzioni interne (`…Tx`, posti nelle fasce)
+// Floral Care (ADR-075): offerta, contratti, visite. Le funzioni interne (`…Tx`, posti nelle fasce)
 // restano dentro il pacchetto.
 export * from './services/care-settings';
 export * from './services/care-contracts';

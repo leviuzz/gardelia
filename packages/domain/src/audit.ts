@@ -166,7 +166,7 @@ export const AUDIT_ACTIONS = {
   platformBuyerAccountDeleted: 'platform.buyer_account_deleted',
   /** Persona aggiunta al team dall'amministratore della piattaforma (ADR-050). */
   memberAddedByPlatform: 'member.added_by_platform',
-  /** Floral Care (ADR-074): offerta, servizi, fasce, contratti, piante e visite. */
+  /** Floral Care (ADR-075): offerta, servizi, fasce, contratti, piante e visite. */
   careSettingsUpdated: 'care.settings_updated',
   careServiceCreated: 'care.service_created',
   careServiceUpdated: 'care.service_updated',

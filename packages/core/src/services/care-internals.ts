@@ -1,5 +1,5 @@
 /**
- * Funzioni interne di Floral Care (ADR-074) condivise da offerta, contratti, visite e lavori. NON
+ * Funzioni interne di Floral Care (ADR-075) condivise da offerta, contratti, visite e lavori. NON
  * esportate da `@floral/core`: lavorano dentro una transazione già aperta nel contesto della
  * fioreria e presuppongono permessi già verificati.
  */

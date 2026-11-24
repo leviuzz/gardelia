@@ -34,7 +34,7 @@ export function VisitStatusBadge({ status }: { readonly status: CareVisitStatus 
   return <Badge variant={VISIT_BADGE[status]}>{t(status)}</Badge>;
 }
 
-/** Le viste dell'Agenda (ADR-074): il giorno, il mese, le visite da riprogrammare. */
+/** Le viste dell'Agenda (ADR-075): il giorno, il mese, le visite da riprogrammare. */
 export function AgendaTabs({
   routes,
   current,

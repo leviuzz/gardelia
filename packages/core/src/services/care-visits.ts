@@ -1,5 +1,5 @@
 /**
- * Visite di Floral Care nell'Agenda dei lavori (ADR-074, blocco 1): il giorno per fascia (con i
+ * Visite di Floral Care nell'Agenda dei lavori (ADR-075, blocco 1): il giorno per fascia (con i
  * posti occupati), il mese (quante visite per giorno) e le visite "Por reprogramar". Dalla visita:
  * "Hecha" o "No se pudo" (tutta la squadra, `care:visit`), e chi gestisce la sposta, la cancella o
  * la assegna a una persona. Spostare o cancellare tocca una visita già fissata: serve "Sí, avisé al

@@ -1,5 +1,5 @@
 /**
- * Posti nelle fasce di Floral Care (ADR-074). È l'unica strada per dare giorno e fascia a una
+ * Posti nelle fasce di Floral Care (ADR-075). È l'unica strada per dare giorno e fascia a una
  * visita: generazione, spostamento del fiorista, cambio o archivio di una fascia (e poi il cliente
  * dal portale).
  *

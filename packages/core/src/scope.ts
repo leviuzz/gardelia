@@ -1,5 +1,5 @@
 /**
- * Chi scrive dentro una fioreria (ADR-074 §8): un membro, con il `TenantContext` che viene SOLO da
+ * Chi scrive dentro una fioreria (ADR-075 §8): un membro, con il `TenantContext` che viene SOLO da
  * `resolveTenantContext`, oppure un lavoro automatico senza utente, con un `JobScope` che viene
  * SOLO da `loadJobScope` (rilegge la fioreria attiva dentro la transazione del lavoro).
  *

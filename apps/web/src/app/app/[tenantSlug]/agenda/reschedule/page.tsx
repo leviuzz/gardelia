@@ -33,7 +33,7 @@ async function load(ctx: TenantContext): Promise<readonly CareAgendaVisitDto[] |
 }
 
 /**
- * Visite "Por reprogramar" (ADR-074): nel loro mese non c'era posto (fascia piena o archiviata).
+ * Visite "Por reprogramar" (ADR-075): nel loro mese non c'era posto (fascia piena o archiviata).
  * Dalla più vecchia; chi gestisce dà a ognuna un giorno e una fascia, con l'avviso al cliente.
  */
 export default async function AgendaReschedulePage({

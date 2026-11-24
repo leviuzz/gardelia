@@ -1,5 +1,5 @@
 /**
- * Contratti di Floral Care (ADR-074, blocco 1). Si parte da una bozza (sede, frequenza e fasce,
+ * Contratti di Floral Care (ADR-075, blocco 1). Si parte da una bozza (sede, frequenza e fasce,
  * primo giorno, servizi, dati pratici) a cui si aggiungono le piante della diagnosi, anche a
  * gruppi. Il prezzo lo calcola il server alla conferma e si copia nel contratto: poi le visite si
  * creano da sole per 60 giorni.

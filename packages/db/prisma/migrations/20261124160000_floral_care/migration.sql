@@ -1,4 +1,4 @@
--- Floral Care e suscripciones dei clienti (ADR-074, blocco 1):
+-- Floral Care e suscripciones dei clienti (ADR-075, blocco 1):
 --  - offerta della fioreria (tariffa per uscita, care per misura, frequenze, raggio, regole), fasce
 --    di sovrapprezzo per distanza, servizi (lista nostra più quelli del fiorista) e fasce di uscita
 --    per giorno della settimana con capienza;

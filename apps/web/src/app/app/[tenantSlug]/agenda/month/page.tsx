@@ -49,7 +49,7 @@ async function loadCareMonth(ctx: TenantContext, month: string | undefined) {
   }
 }
 
-/** Il mese dell'Agenda (ADR-074): visite di Floral Care, consegne e ritiri per giorno. */
+/** Il mese dell'Agenda (ADR-075): visite di Floral Care, consegne e ritiri per giorno. */
 export default async function AgendaMonthPage({
   params,
   searchParams,

@@ -82,7 +82,7 @@ export const PERMISSIONS = {
   'promotions:manage': MANAGEMENT,
   /** Vedere il registro attività (audit) della fioreria. */
   'audit:read': MANAGEMENT,
-  /** Vedere contratti di Floral Care e suscripciones, e l'agenda delle visite (ADR-074). */
+  /** Vedere contratti di Floral Care e suscripciones, e l'agenda delle visite (ADR-075). */
   'subscriptions:read': ALL,
   /** Offerta di Floral Care, contratti, piante, fasce di uscita e cambi di agenda. */
   'subscriptions:write': MANAGEMENT,
