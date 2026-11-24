@@ -1225,6 +1225,11 @@ isolamento A↔B con evento, blocco e spostamento insieme, "Enviar aviso", cambi
 anteprima, pagina del blocco e mese: nessuno sbordo (la barra delle schede dell'Agenda scorre).
 Il test di concorrenza nella suite completa ha trovato uno stallo possibile (le righe nuove puntano
 ai contratti): ora il blocco tiene prima i contratti toccati, poi le fasce, poi le visite.
+E2E completo in locale 111/112: l'unico fallito era il test dei sostituti del catalogo (ADR-081),
+solo sul database locale già usato. A parità di specie e prezzo i sostituti si ordinano per nome, e
+le rose di prova delle esecuzioni precedenti (stesso prezzo) riempivano i 4 posti proposti. Ora il
+test usa un prezzo diverso a ogni esecuzione: 6/6 due volte di seguito sullo stesso database. CI
+verde su `59f8701` (run 218, E2E compreso) e rilascio su staging.
 
 Prossimo: il blocco 5 di `docs/FLORAL_CARE_PLAN.md` (la pagina del cliente).
 
