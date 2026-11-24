@@ -573,9 +573,16 @@ scrivendo il nome della fioreria. Gli ordini in corso bloccano, con il link agli
 
 Migrazioni `20261124140000_tenant_deletion` (campi, vincolo, indice, due funzioni SQL) e
 `20261124141000_buyer_orders_shop_active`. La cancellazione in cascata è stata provata su tutte le 2.624
-fiorerie del database di test (ognuna in una transazione annullata): nessun vincolo la blocca. Da
+fiorerie del database di test e sulle 7 di quello E2E (ognuna in una transazione annullata): nessun
+vincolo la blocca. Da
 validare con contador e avvocato cosa va conservato (domanda 18 in `docs/legal/README.md`). Manca
-l'esportazione dei dati della fioreria. Verifiche: VERIFICHE_DA_SCRIVERE
+l'esportazione dei dati della fioreria. Verifiche: lint ✅ · format ✅ · typecheck ✅ · test 890/890 ✅ (3 di dominio, 9 d'integrazione:
+permessi, ordini in corso, nome, effetti, email, recupero con isolamento A↔B, cancellazione con i file,
+archivio che non risponde, recuperata non cancellata, "Mis pedidos" di chi compra; link pubblici di una
+fioreria archiviata) · migrazioni = schema ✅ · build ✅ · E2E 95/95 ✅ su database nuovo (3 nuovi:
+titolare che elimina e recupera con l'email, staff senza accesso, zona di pericolo nella demo; ora ogni
+fiorista dei test si registra da un suo IP di prova, il limite di 5 registrazioni al minuto si
+sommava) · controllo a 320 px.
 
 **Dominio gardelia.co (24/11, ADR-073):** comprato dal founder su Cloudflare. Nel repository:
 
