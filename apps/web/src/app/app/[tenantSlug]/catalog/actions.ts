@@ -12,6 +12,7 @@ import {
   createCatalogItem,
   removeRecipeLine,
   setCatalogItemArchived,
+  setCatalogItemOnline,
   updateCatalogItem,
   updateRecipeDetails,
   updateRecipeLineQuantity,
@@ -131,5 +132,26 @@ export async function updateRecipeDetailsAction(
       parseForm(recipeDetailsFormSchema(ctx.currency), formData),
     );
     return { revalidate: routes.catalog.item(bouquetId), success: 'recipe.detailsSaved' };
+  });
+}
+
+/**
+ * Interruttore "Tienda en línea" dell'elenco del catalogo: il valore arriva dal pulsante premuto
+ * (`online=on|off`); il servizio ricontrolla permessi, tipo e stato del prodotto.
+ */
+export async function setItemOnlineAction(
+  slug: string,
+  itemId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const online = formData.get('online') === 'on';
+    await setCatalogItemOnline(ctx, itemId, online);
+    return {
+      // Anche "Mi tienda en línea": conta i prodotti visibili e dice se si può pubblicare.
+      revalidate: [section(routes.catalog.list()), routes.settings.store],
+      success: online ? 'catalog.onlineShown' : 'catalog.onlineHidden',
+    };
   });
 }

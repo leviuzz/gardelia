@@ -890,7 +890,12 @@
       "useInDesigner": "Usarlo en el diseñador",
       "buildRecipe": "Armar la receta"
     },
-    "onlineBadge": "En línea"
+    "onlineBadge": "En línea",
+    "columnOnline": "Tienda en línea",
+    "onlineToggle": "Mostrar {name} en tu tienda en línea",
+    "onlineShown": "Ahora se ve en tu tienda en línea.",
+    "onlineHidden": "Ya no aparece en tu tienda en línea.",
+    "onlineRow": "En tu tienda en línea"
   },
   "recipe": {
     "title": "Receta del ramo",

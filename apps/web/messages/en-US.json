@@ -890,7 +890,12 @@
       "useInDesigner": "Use it in the Designer",
       "buildRecipe": "Build the recipe"
     },
-    "onlineBadge": "Online"
+    "onlineBadge": "Online",
+    "columnOnline": "Online shop",
+    "onlineToggle": "Show {name} in your online shop",
+    "onlineShown": "Now shown in your online shop.",
+    "onlineHidden": "No longer shown in your online shop.",
+    "onlineRow": "In your online shop"
   },
   "recipe": {
     "title": "Bouquet recipe",

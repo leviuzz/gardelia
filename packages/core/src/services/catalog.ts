@@ -18,6 +18,7 @@ import {
   AVAILABILITY_STATES,
   CATALOG_PAGE_SIZE,
   INGREDIENT_TYPES,
+  canShowOnline,
   catalogItemInputSchema,
   catalogListFiltersSchema,
   diffFields,
@@ -396,6 +397,44 @@ export async function setCatalogItemAvailability(
       metadata: {
         name: existing.name,
         changes: { availability: { from: existing.availability, to: availability } },
+      },
+    });
+    return true;
+  });
+  if (!found) await notFound(ctx, 'CatalogItem', itemId);
+}
+
+/**
+ * "Mostrar en mi tienda en línea" senza aprire la scheda: l'interruttore nell'elenco del catalogo.
+ * Stesse regole della scheda: solo i tipi che la tienda vende (ramos, piante, fiori, accessori) e
+ * solo i prodotti attivi; chi compra vede il cambio alla prossima apertura della pagina pubblica.
+ */
+export async function setCatalogItemOnline(
+  ctx: TenantContext,
+  itemId: string,
+  online: unknown,
+): Promise<void> {
+  requirePermission(ctx, 'catalog:write');
+  if (!isUuid(itemId)) throw new NotFoundError('CatalogItem');
+  if (typeof online !== 'boolean') throw new ValidationError({ isOnline: 'invalid_option' });
+  const found = await withTenantContext(getDb(), ctx, async (tx) => {
+    const existing = await tx.catalogItem.findFirst({
+      where: { id: itemId, tenantId: ctx.tenantId },
+      select: { id: true, name: true, type: true, status: true, isOnline: true },
+    });
+    if (!existing) return false;
+    if (existing.isOnline === online) return true;
+    if (online && (!canShowOnline(existing.type) || existing.status !== 'ACTIVE')) {
+      throw new ValidationError({ isOnline: 'invalid_option' });
+    }
+    await tx.catalogItem.update({ where: { id: existing.id }, data: { isOnline: online } });
+    await recordAudit(tx, ctx, {
+      action: AUDIT_ACTIONS.catalogItemUpdated,
+      entityType: 'CatalogItem',
+      entityId: existing.id,
+      metadata: {
+        name: existing.name,
+        changes: { isOnline: { from: existing.isOnline, to: online } },
       },
     });
     return true;

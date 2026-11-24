@@ -890,7 +890,12 @@
       "useInDesigner": "Usalo nel Designer",
       "buildRecipe": "Componi la ricetta"
     },
-    "onlineBadge": "Online"
+    "onlineBadge": "Online",
+    "columnOnline": "Negozio online",
+    "onlineToggle": "Mostra {name} nel tuo negozio online",
+    "onlineShown": "Ora si vede nel tuo negozio online.",
+    "onlineHidden": "Non compare più nel tuo negozio online.",
+    "onlineRow": "Nel tuo negozio online"
   },
   "recipe": {
     "title": "Ricetta del bouquet",

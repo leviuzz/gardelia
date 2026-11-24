@@ -558,6 +558,14 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**"Tienda en línea" nell'elenco del catalogo (24/11, chiesto dal founder):** una colonna con
+l'interruttore per mostrare o togliere un prodotto dalla tienda senza aprirne la scheda. Su telefono è
+una riga sotto ogni scheda. Valgono le stesse regole della scheda: solo ramos, piante, fiori e
+accessori attivi, solo per chi modifica il catalogo; lo staff vede il badge. Servizio
+`setCatalogItemOnline` con audit; ricarica anche "Mi tienda en línea", che conta i prodotti visibili.
+Verifiche: integrazione (accendi/spegni, tipi, archiviati, staff, isolamento A↔B), E2E (elenco → scheda
+→ spento, staff senza interruttore), controllo a 320 e 1280 px.
+
 **La tienda sulla mappa (24/11, aggiunta ad ADR-059):** il founder non trovava la sua fioreria cercando
 il proprio indirizzo. Le cause erano due:
 

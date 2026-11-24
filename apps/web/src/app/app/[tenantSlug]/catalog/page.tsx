@@ -3,7 +3,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { listCatalogItems, type CatalogItemDto } from '@floral/core';
-import { AVAILABILITY_STATES, CATALOG_ITEM_TYPES, catalogListFiltersSchema } from '@floral/domain';
+import {
+  AVAILABILITY_STATES,
+  CATALOG_ITEM_TYPES,
+  canShowOnline,
+  catalogListFiltersSchema,
+} from '@floral/domain';
 import { AvailabilityBadge } from '@/components/common/status-badges';
 import { ColorSwatch } from '@/components/common/color-swatch';
 import { FilterBar } from '@/components/common/list/filter-bar';
@@ -17,6 +22,8 @@ import { money } from '@/lib/format';
 import { tenantRoutes, type TenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { PrivateImage } from '@/components/common/private-image';
+import { setItemOnlineAction } from './actions';
+import { OnlineToggle } from './online-toggle';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('catalog');
@@ -47,6 +54,18 @@ export default async function CatalogPage({
   const routes = tenantRoutes(ctx.tenantSlug);
   const hasFilters = Boolean(
     filters.q || filters.type || filters.availability || filters.status !== 'ACTIVE',
+  );
+
+  // L'interruttore "Tienda en línea" c'è per chi modifica il catalogo, sui prodotti che la tienda
+  // può vendere e solo se attivi (stesse regole della scheda del prodotto).
+  const canToggleOnline = (item: CatalogItemDto) =>
+    result.canWrite && canShowOnline(item.type) && item.status === 'ACTIVE';
+  const onlineToggle = (item: CatalogItemDto) => (
+    <OnlineToggle
+      action={setItemOnlineAction.bind(null, ctx.tenantSlug, item.id)}
+      isOnline={item.isOnline}
+      name={item.name}
+    />
   );
 
   function pageHref(page: number): string {
@@ -136,11 +155,8 @@ export default async function CatalogPage({
         {/* Mobile: schede */}
         <ul className="space-y-3 md:hidden">
           {result.items.map((item) => (
-            <li key={item.id}>
-              <Link
-                href={routes.catalog.item(item.id)}
-                className="block rounded-2xl border bg-card p-4 shadow-xs active:bg-muted/50"
-              >
+            <li key={item.id} className="overflow-hidden rounded-2xl border bg-card shadow-xs">
+              <Link href={routes.catalog.item(item.id)} className="block p-4 active:bg-muted/50">
                 <div className="flex items-start justify-between gap-3">
                   <ItemName item={item} routes={routes} />
                   <span className="shrink-0 text-right font-semibold tabular-nums">
@@ -153,12 +169,21 @@ export default async function CatalogPage({
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Badge variant="secondary">{t(`types.${item.type}`)}</Badge>
                   <AvailabilityBadge availability={item.availability} />
-                  {item.isOnline ? <Badge variant="info">{t('onlineBadge')}</Badge> : null}
+                  {item.isOnline && !canToggleOnline(item) ? (
+                    <Badge variant="info">{t('onlineBadge')}</Badge>
+                  ) : null}
                   {item.status === 'ARCHIVED' ? (
                     <Badge variant="muted">{t('archivedBadge')}</Badge>
                   ) : null}
                 </div>
               </Link>
+              {/* Fuori dal link: un interruttore dentro un link non si può premere da solo. */}
+              {canToggleOnline(item) ? (
+                <div className="flex items-center justify-between gap-3 border-t px-4 py-2.5 text-sm">
+                  <span>{t('onlineRow')}</span>
+                  {onlineToggle(item)}
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -184,6 +209,9 @@ export default async function CatalogPage({
                 ) : null}
                 <th scope="col" className="px-4 py-3">
                   {t('columnAvailability')}
+                </th>
+                <th scope="col" className="px-4 py-3">
+                  {t('columnOnline')}
                 </th>
               </tr>
             </thead>
@@ -226,11 +254,19 @@ export default async function CatalogPage({
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1.5">
                       <AvailabilityBadge availability={item.availability} />
-                      {item.isOnline ? <Badge variant="info">{t('onlineBadge')}</Badge> : null}
                       {item.status === 'ARCHIVED' ? (
                         <Badge variant="muted">{t('archivedBadge')}</Badge>
                       ) : null}
                     </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {canToggleOnline(item) ? (
+                      onlineToggle(item)
+                    ) : item.isOnline ? (
+                      <Badge variant="info">{t('onlineBadge')}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
                 </tr>
               ))}
