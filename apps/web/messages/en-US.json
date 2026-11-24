@@ -729,6 +729,15 @@
     "delivery_fee_tier": {
       "added": "{actor} added a delivery rate by distance",
       "removed": "{actor} removed a delivery rate by distance"
+    },
+    "customer_subscription": {
+      "created": "{actor} created the Floral Care contract {number}",
+      "updated": "{actor} changed the contract {number}",
+      "confirmed": "{actor} confirmed the contract {number}",
+      "schedule_changed": "{actor} changed the schedule of {number}",
+      "ended": "End of contract {number} recorded",
+      "repriced": "{actor} updated the price of {number}",
+      "discarded": "{actor} discarded the draft {number}"
     }
   },
   "catalog": {
@@ -2960,5 +2969,27 @@
     "buyerTerms": "Terms for buyers",
     "spanishOnly": "This document is only available in Spanish, the language of the market.",
     "signupNotice": "By creating your account you accept the <terms>Terms</terms> and the <privacy>Privacy notice</privacy>."
+  },
+  "care": {
+    "activity": {
+      "settings_updated": "{actor} changed the Floral Care offer",
+      "service_created": "{actor} added a Floral Care service",
+      "service_updated": "{actor} changed a Floral Care service",
+      "service_archived": "{actor} archived a Floral Care service",
+      "travel_tier_added": "{actor} added a Floral Care distance charge",
+      "travel_tier_removed": "{actor} removed a Floral Care distance charge",
+      "slot_created": "{actor} added a visit time slot",
+      "slot_updated": "{actor} changed a visit time slot",
+      "slot_archived": "{actor} archived a visit time slot",
+      "plant_added": "{actor} added plants to {number}",
+      "plant_updated": "{actor} changed plants in {number}",
+      "plant_removed": "{actor} removed plants from {number}",
+      "visits_generated": "Visits scheduled for {number}",
+      "visit_done": "{actor} marked a visit of {number} as done",
+      "visit_not_done": "{actor} noted that a visit of {number} couldn't be done",
+      "visit_assigned": "{actor} changed who does a visit of {number}",
+      "visit_moved": "{actor} moved a visit of {number}",
+      "visit_cancelled": "{actor} cancelled a visit of {number}"
+    }
   }
 }

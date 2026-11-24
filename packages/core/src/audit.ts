@@ -91,7 +91,13 @@ type ProbeableEntity =
   | 'InventoryEntry'
   | 'Supplier'
   | 'InventoryReservation'
-  | 'CustomerImport';
+  | 'CustomerImport'
+  | 'CareTravelTier'
+  | 'CareService'
+  | 'CareSlot'
+  | 'CustomerSubscription'
+  | 'CarePlant'
+  | 'CareVisit';
 
 async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<string | null> {
   return withSystemContext(
@@ -162,6 +168,20 @@ async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<st
           );
         case 'CustomerImport':
           return (await tx.customerImport.findUnique({ where: { id }, select }))?.tenantId ?? null;
+        case 'CareTravelTier':
+          return (await tx.careTravelTier.findUnique({ where: { id }, select }))?.tenantId ?? null;
+        case 'CareService':
+          return (await tx.careService.findUnique({ where: { id }, select }))?.tenantId ?? null;
+        case 'CareSlot':
+          return (await tx.careSlot.findUnique({ where: { id }, select }))?.tenantId ?? null;
+        case 'CustomerSubscription':
+          return (
+            (await tx.customerSubscription.findUnique({ where: { id }, select }))?.tenantId ?? null
+          );
+        case 'CarePlant':
+          return (await tx.carePlant.findUnique({ where: { id }, select }))?.tenantId ?? null;
+        case 'CareVisit':
+          return (await tx.careVisit.findUnique({ where: { id }, select }))?.tenantId ?? null;
       }
     },
   );

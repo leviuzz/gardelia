@@ -729,6 +729,15 @@
     "delivery_fee_tier": {
       "added": "{actor} agregó una tarifa de envío por distancia",
       "removed": "{actor} quitó una tarifa de envío por distancia"
+    },
+    "customer_subscription": {
+      "created": "{actor} creó el contrato de Floral Care {number}",
+      "updated": "{actor} cambió el contrato {number}",
+      "confirmed": "{actor} confirmó el contrato {number}",
+      "schedule_changed": "{actor} cambió el calendario de {number}",
+      "ended": "Se registró el fin del contrato {number}",
+      "repriced": "{actor} actualizó el precio de {number}",
+      "discarded": "{actor} descartó el borrador {number}"
     }
   },
   "catalog": {
@@ -2960,5 +2969,27 @@
     "buyerTerms": "Términos para compradores",
     "spanishOnly": "Este documento está disponible solo en español.",
     "signupNotice": "Al crear tu cuenta aceptas los <terms>Términos</terms> y el <privacy>Aviso de privacidad</privacy>."
+  },
+  "care": {
+    "activity": {
+      "settings_updated": "{actor} cambió la oferta de Floral Care",
+      "service_created": "{actor} agregó un servicio de Floral Care",
+      "service_updated": "{actor} cambió un servicio de Floral Care",
+      "service_archived": "{actor} archivó un servicio de Floral Care",
+      "travel_tier_added": "{actor} agregó un cargo por distancia de Floral Care",
+      "travel_tier_removed": "{actor} quitó un cargo por distancia de Floral Care",
+      "slot_created": "{actor} agregó un horario de visitas",
+      "slot_updated": "{actor} cambió un horario de visitas",
+      "slot_archived": "{actor} archivó un horario de visitas",
+      "plant_added": "{actor} agregó plantas a {number}",
+      "plant_updated": "{actor} cambió plantas de {number}",
+      "plant_removed": "{actor} quitó plantas de {number}",
+      "visits_generated": "Se agendaron visitas de {number}",
+      "visit_done": "{actor} marcó como hecha una visita de {number}",
+      "visit_not_done": "{actor} anotó que no se pudo hacer una visita de {number}",
+      "visit_assigned": "{actor} cambió quién hace una visita de {number}",
+      "visit_moved": "{actor} cambió la fecha de una visita de {number}",
+      "visit_cancelled": "{actor} canceló una visita de {number}"
+    }
   }
 }

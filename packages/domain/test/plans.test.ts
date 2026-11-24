@@ -14,11 +14,12 @@ describe('entitlements dei piani', () => {
     expect(parseEntitlements({ bouquetBuilder: true, aiPreviewsPerMonth: 25 })).toEqual({
       bouquetBuilder: true,
       inventory: false,
+      floralCare: false,
       aiPreviewsPerMonth: 25,
     });
     expect(
       parseEntitlements({ bouquetBuilder: true, inventory: true, aiPreviewsPerMonth: 25 }),
-    ).toEqual({ bouquetBuilder: true, inventory: true, aiPreviewsPerMonth: 25 });
+    ).toEqual({ bouquetBuilder: true, inventory: true, floralCare: false, aiPreviewsPerMonth: 25 });
   });
 
   it('fail closed: valori mancanti o malformati non danno accesso', () => {
@@ -32,6 +33,7 @@ describe('entitlements dei piani', () => {
     expect(parseEntitlements({ bouquetBuilder: true, aiPreviewsPerMonth: 2.5 })).toEqual({
       bouquetBuilder: true,
       inventory: false,
+      floralCare: false,
       aiPreviewsPerMonth: 0,
     });
     expect(parseEntitlements({ inventory: 'yes' }).inventory).toBe(false);
@@ -71,13 +73,19 @@ describe('stato dell’abbonamento', () => {
 });
 
 describe('fase di prova (D-29)', () => {
-  const basic = { bouquetBuilder: false, inventory: false, aiPreviewsPerMonth: 0 };
+  const basic = {
+    bouquetBuilder: false,
+    inventory: false,
+    floralCare: false,
+    aiPreviewsPerMonth: 0,
+  };
 
   it('con i piani spenti ogni fioreria ha tutte le funzioni, non immagini in più', () => {
     expect(PLAN_FEATURES_ENFORCED).toBe(false);
     expect(effectiveEntitlements(basic)).toEqual({
       bouquetBuilder: true,
       inventory: true,
+      floralCare: true,
       aiPreviewsPerMonth: 0,
     });
     expect(effectiveEntitlements({ ...basic, aiPreviewsPerMonth: 25 })).toMatchObject({

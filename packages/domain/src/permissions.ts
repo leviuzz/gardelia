@@ -82,6 +82,14 @@ export const PERMISSIONS = {
   'promotions:manage': MANAGEMENT,
   /** Vedere il registro attività (audit) della fioreria. */
   'audit:read': MANAGEMENT,
+  /** Vedere contratti di Floral Care e suscripciones, e l'agenda delle visite (ADR-074). */
+  'subscriptions:read': ALL,
+  /** Offerta di Floral Care, contratti, piante, fasce di uscita e cambi di agenda. */
+  'subscriptions:write': MANAGEMENT,
+  /** Pagamenti dei cargos dei contratti (registrati a mano, come gli ordini). */
+  'subscriptions:payments': MANAGEMENT,
+  /** Fare le visite: segnarle fatte o non realizzate (anche lo staff). */
+  'care:visit': ALL,
 } as const satisfies Record<string, readonly MembershipRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

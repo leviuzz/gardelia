@@ -729,6 +729,15 @@
     "delivery_fee_tier": {
       "added": "{actor} ha aggiunto una tariffa di consegna per distanza",
       "removed": "{actor} ha tolto una tariffa di consegna per distanza"
+    },
+    "customer_subscription": {
+      "created": "{actor} ha creato il contratto di Floral Care {number}",
+      "updated": "{actor} ha cambiato il contratto {number}",
+      "confirmed": "{actor} ha confermato il contratto {number}",
+      "schedule_changed": "{actor} ha cambiato il calendario di {number}",
+      "ended": "Registrata la fine del contratto {number}",
+      "repriced": "{actor} ha aggiornato il prezzo di {number}",
+      "discarded": "{actor} ha scartato la bozza {number}"
     }
   },
   "catalog": {
@@ -2960,5 +2969,27 @@
     "buyerTerms": "Termini per chi compra",
     "spanishOnly": "Questo documento è disponibile solo in spagnolo, la lingua del mercato.",
     "signupNotice": "Creando l’account accetti i <terms>Termini</terms> e l’<privacy>Informativa sulla privacy</privacy>."
+  },
+  "care": {
+    "activity": {
+      "settings_updated": "{actor} ha cambiato l'offerta di Floral Care",
+      "service_created": "{actor} ha aggiunto un servizio di Floral Care",
+      "service_updated": "{actor} ha cambiato un servizio di Floral Care",
+      "service_archived": "{actor} ha archiviato un servizio di Floral Care",
+      "travel_tier_added": "{actor} ha aggiunto un sovrapprezzo per distanza di Floral Care",
+      "travel_tier_removed": "{actor} ha tolto un sovrapprezzo per distanza di Floral Care",
+      "slot_created": "{actor} ha aggiunto una fascia di visite",
+      "slot_updated": "{actor} ha cambiato una fascia di visite",
+      "slot_archived": "{actor} ha archiviato una fascia di visite",
+      "plant_added": "{actor} ha aggiunto piante a {number}",
+      "plant_updated": "{actor} ha cambiato piante di {number}",
+      "plant_removed": "{actor} ha tolto piante da {number}",
+      "visits_generated": "Visite programmate per {number}",
+      "visit_done": "{actor} ha segnato come fatta una visita di {number}",
+      "visit_not_done": "{actor} ha segnato che una visita di {number} non si è potuta fare",
+      "visit_assigned": "{actor} ha cambiato chi fa una visita di {number}",
+      "visit_moved": "{actor} ha spostato una visita di {number}",
+      "visit_cancelled": "{actor} ha cancellato una visita di {number}"
+    }
   }
 }
