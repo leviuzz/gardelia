@@ -64,7 +64,9 @@
     "invalid_time_window": "Indica la hora de inicio y la de fin, en orden.",
     "payment_exceeds_balance": "El importe es mayor que lo que falta por cobrar.",
     "tenant_deletion_name_mismatch": "El nombre no coincide con el de la florería.",
-    "opening_hours_overlap": "Este horario se cruza con otro del mismo día: júntalos en uno solo."
+    "opening_hours_overlap": "Este horario se cruza con otro del mismo día: júntalos en uno solo.",
+    "substitute_required": "Elige con qué flor sustituirla.",
+    "substitution_customer_required": "Confirma que el cliente aceptó el cambio."
   },
   "errors": {
     "validation": "Revisa los campos marcados.",
@@ -126,7 +128,9 @@
       "delivery_fee_tier_limit": "Llegaste al máximo de tarifas.",
       "order_inventory_shortage": "No alcanza el inventario para este pedido. Abre o recarga la ficha del pedido para ver qué falta y confirmar que está listo.",
       "tenant_deletion_open_orders": "Hay pedidos en curso: entrégalos o cancélalos antes de eliminar la florería.",
-      "session_is_current": "Para cerrar la sesión de este dispositivo usa «Cerrar sesión» en el menú."
+      "session_is_current": "Para cerrar la sesión de este dispositivo usa «Cerrar sesión» en el menú.",
+      "order_not_substitutable": "Este pedido ya no admite cambios de flores: el ramo ya está hecho o el pedido está cerrado.",
+      "substitution_not_allowed": "Este ramo no admite sustituciones. Habla con el cliente para decidir qué hacer."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -737,7 +741,8 @@
       "placed_online": "{actor} hizo el pedido {number} desde la tienda en línea",
       "accepted": "{actor} aceptó el pedido en línea {number}",
       "expired": "El pedido en línea {number} se canceló porque nadie lo aceptó a tiempo",
-      "cancelled_by_buyer": "{actor} canceló su pedido {number}"
+      "cancelled_by_buyer": "{actor} canceló su pedido {number}",
+      "ingredient_substituted": "{actor} cambió {name} por {ingredient} en {number}"
     },
     "delivery_settings": {
       "updated": "{actor} cambió los ajustes de entrega"
@@ -896,7 +901,18 @@
       "builderEnabled": "Disponible en el diseñador de ramos",
       "builderEnabledHint": "Se podrá elegir al armar ramos a la medida en el diseñador (plan Plus).",
       "online": "Mostrar en mi tienda en línea",
-      "onlineHint": "Aparece en tu página pública con su foto y su precio."
+      "onlineHint": "Aparece en tu página pública con su foto y su precio.",
+      "prepMinutesHint": "Sirve para estimar el trabajo del día en Producción del día.",
+      "supplier": "Proveedor habitual",
+      "supplierNone": "Ninguno",
+      "supplierHint": "A quién se lo compras normalmente. Sirve para pedirlo cuando se esté acabando.",
+      "supplierEmpty": "Todavía no tienes proveedores.",
+      "supplierAdd": "Agregar proveedores",
+      "serviceDuration": "Duración del servicio",
+      "serviceDurationNone": "Sin indicar",
+      "serviceDurationHint": "Aproximada. Se muestra en la cotización y en el pedido.",
+      "serviceRadius": "Hasta cuántos km lo haces",
+      "serviceRadiusHint": "En línea recta desde tu florería. Si un pedido queda más lejos, te avisamos."
     },
     "wizard": {
       "stepWhat": "Qué es",
@@ -928,7 +944,8 @@
     "onlineToggle": "Mostrar {name} en tu tienda en línea",
     "onlineShown": "Ahora se ve en tu tienda en línea.",
     "onlineHidden": "Ya no aparece en tu tienda en línea.",
-    "onlineRow": "En tu tienda en línea"
+    "onlineRow": "En tu tienda en línea",
+    "radiusKm": "Hasta {km} km"
   },
   "recipe": {
     "title": "Receta del ramo",
@@ -1536,7 +1553,9 @@
       "viewOrder": "Ver pedido {number}",
       "orderTitle": "Pedido",
       "orderHint": "El cliente aceptó: conviértela en pedido para fijar entrega, tarjeta y pagos.",
-      "orderDone": "Esta cotización ya es el pedido {number}."
+      "orderDone": "Esta cotización ya es el pedido {number}.",
+      "serviceDuration": "Duración aprox. {duration}",
+      "recipeReplaces": "en lugar de {name}"
     },
     "whatsapp": {
       "greeting": "Hola {name}, te comparto la cotización {number} de {shop}:",
@@ -1684,7 +1703,9 @@
       "forwardShortage": "Marcar listo aunque falte",
       "shortage": "No alcanza el inventario para este pedido:",
       "shortageItem": "{name}: faltan {missing}",
-      "shortageConfirm": "Si lo marcas como listo, se descuenta igual y la existencia queda en negativo hasta que registres la compra o un conteo."
+      "shortageConfirm": "Si lo marcas como listo, se descuenta igual y la existencia queda en negativo hasta que registres la compra o un conteo.",
+      "serviceZoneTitle": "La dirección queda fuera de la zona de un servicio",
+      "serviceZoneLine": "«{service}» llega hasta {radius} km y la dirección queda a {distance} km en línea recta. Confírmalo con el cliente."
     },
     "form": {
       "title": "Convertir en pedido",
@@ -1824,7 +1845,9 @@
         "BUNCH": "{count, plural, one {# manojo} other {# manojos}}",
         "PIECE": "{count, plural, one {# pieza} other {# piezas}}",
         "SERVICE": "{count, plural, one {# servicio} other {# servicios}}"
-      }
+      },
+      "prepTime": "Tiempo de preparación estimado: {duration}",
+      "prepUnknown": "{count, plural, one {# ramo} other {# ramos}} sin tiempo de preparación en el catálogo"
     },
     "calendar": {
       "title": "Calendario de pedidos",
@@ -1910,6 +1933,33 @@
       "reservations": "Ver apartados",
       "held": "Apartados para este pedido hasta el {date}: no se ofrecen como disponibles para otros ramos.",
       "heldFrom": "Se apartan para este pedido desde el {date}, {days} días antes de la entrega; hasta entonces siguen disponibles."
+    },
+    "substitution": {
+      "title": "Faltan flores",
+      "subtitle": "Algo de estos ramos se acabó. Elige con qué sustituirlo: el precio del pedido no cambia.",
+      "mode": {
+        "ALLOWED": "Se puede sustituir por algo similar",
+        "ASK_CUSTOMER": "Pregunta al cliente antes",
+        "NOT_ALLOWED": "No se sustituye"
+      },
+      "outOfStock": "Agotado en el catálogo",
+      "short": "Faltan {quantity} en el inventario",
+      "notAllowedHint": "Este ramo no admite sustituciones: habla con el cliente para cambiar el ramo o la fecha, o consigue la flor.",
+      "noCandidates": "No hay una flor parecida disponible en tu catálogo. Habla con el cliente.",
+      "chooseLabel": "Sustituir por",
+      "reason": {
+        "SAME_SPECIES": "Misma flor, otra variedad",
+        "SAME_COLOR": "Mismo color",
+        "SAME_KIND": "Del mismo tipo"
+      },
+      "askHint": "Este cambio necesita el visto bueno del cliente. Pregúntale y marca cuando acepte.",
+      "askWhatsapp": "Preguntar por WhatsApp",
+      "customerAgreed": "El cliente aceptó el cambio",
+      "apply": "Cambiar flor",
+      "applying": "Cambiando…",
+      "askManager": "Pide a quien administra la florería que haga el cambio.",
+      "done": "Flor cambiada en el ramo",
+      "whatsapp": "Hola {name}, te escribimos por tu pedido {number} ({bouquet}): se nos acabó {from}. ¿Te parece si usamos {to}? El precio no cambia."
     }
   },
   "plans": {
@@ -2501,7 +2551,8 @@
       "stock": "Existencias",
       "movements": "Movimientos",
       "purchases": "Compras",
-      "reservations": "Apartados"
+      "reservations": "Apartados",
+      "restock": "Por pedir"
     },
     "upsell": {
       "title": "El inventario está incluido en {plan}",
@@ -2921,7 +2972,8 @@
       "gone": "Agotado",
       "dueSoon": "{count, plural, one {# apartado vence hoy o mañana} other {# apartados vencen hoy o mañana}}",
       "expired": "{count, plural, one {# apartado vencido: úsalo, extiéndelo o libéralo} other {# apartados vencidos: úsalos, extiéndelos o libéralos}}",
-      "open": "Ver inventario"
+      "open": "Ver inventario",
+      "reorder": "Qué pedir"
     },
     "bouquet": {
       "title": "Inventario",
@@ -2957,6 +3009,24 @@
       "unknown": "Falta el costo de algún producto",
       "previous": "Mes anterior",
       "next": "Mes siguiente"
+    },
+    "restock": {
+      "title": "Por pedir",
+      "subtitle": "Lo que se está acabando, agrupado por proveedor habitual. Pídeselo y registra la compra cuando llegue.",
+      "empty": "Nada por pedir: todo está por encima de su mínimo.",
+      "count": "{count, plural, one {# producto por pedir} other {# productos por pedir}}",
+      "noSupplier": "Sin proveedor habitual",
+      "noSupplierHint": "Elige el proveedor habitual en la ficha de cada producto del catálogo y aparecerán agrupados.",
+      "minimum": "mínimo {quantity}",
+      "whatsapp": "Pedir por WhatsApp",
+      "record": "Registrar compra",
+      "noPhone": "Para pedir por WhatsApp, agrega su teléfono en",
+      "suppliersLink": "Proveedores",
+      "message": {
+        "greeting": "Hola {supplier}, te escribo de {shop}. Quisiera pedirte:",
+        "line": "• {product}",
+        "closing": "¿Me confirmas disponibilidad y precio? Gracias."
+      }
     }
   },
   "checkout": {
@@ -3983,5 +4053,10 @@
       "range": "Floral Care: entre {min} y {max} al mes ({count, plural, one {# contrato activo} other {# contratos activos}})."
     },
     "footnote": "Los importes son los de tus pedidos; el desglose de IVA todavía no está disponible."
+  },
+  "duration": {
+    "hours": "{hours} h",
+    "minutes": "{minutes} min",
+    "hoursMinutes": "{hours} h {minutes} min"
   }
 }

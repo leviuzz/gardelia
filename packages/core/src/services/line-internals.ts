@@ -35,6 +35,8 @@ export interface RecipeLineSnapshot {
   readonly saleUnit: SaleUnit;
   /** Colore di carta, vaso o nastro scelto nel Builder. */
   readonly color?: string | null;
+  /** Il fiore concordato all'inizio, se poi è stato sostituito nel pedido (ADR-081). */
+  readonly replaces?: { readonly name: string; readonly variety: string | null };
 }
 
 /**
@@ -51,7 +53,27 @@ export function recipeForDisplay(
     quantity: line.quantity,
     saleUnit: line.saleUnit,
     ...(line.color !== undefined ? { color: line.color } : {}),
+    ...(line.replaces ? { replaces: line.replaces } : {}),
   }));
+}
+
+/** Durata e raggio di un servizio come concordati nella riga (ADR-081); null se non detti. */
+export interface LineServiceInfo {
+  readonly durationMinutes: number | null;
+  readonly radiusKm: number | null;
+}
+
+function positiveInt(value: unknown): number | null {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : null;
+}
+
+/** Il servizio di una riga, dallo snapshot (`item`): null per i prodotti e per le righe di prima. */
+export function serviceForDisplay(item: unknown): LineServiceInfo | null {
+  if (!item || typeof item !== 'object') return null;
+  const record = item as { serviceDurationMinutes?: unknown; serviceRadiusKm?: unknown };
+  const durationMinutes = positiveInt(record.serviceDurationMinutes);
+  const radiusKm = positiveInt(record.serviceRadiusKm);
+  return durationMinutes === null && radiusKm === null ? null : { durationMinutes, radiusKm };
 }
 
 /** Riga pronta da inserire, con la quantità decisa da chi la aggiunge. */
@@ -132,6 +154,11 @@ export async function catalogLineDraft(
       type: item.type,
       saleUnit: item.saleUnit,
       availability: item.availability,
+      // Servizi (ADR-081): durata e fin dove arriva, come concordati con il cliente.
+      ...(item.serviceDurationMinutes !== null
+        ? { serviceDurationMinutes: item.serviceDurationMinutes }
+        : {}),
+      ...(item.serviceRadiusKm !== null ? { serviceRadiusKm: item.serviceRadiusKm } : {}),
     },
     ...(recipe ? { recipe } : {}),
   };

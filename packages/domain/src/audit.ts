@@ -101,6 +101,8 @@ export const AUDIT_ACTIONS = {
   orderLineAdded: 'order.line_added',
   orderLineUpdated: 'order.line_updated',
   orderLineRemoved: 'order.line_removed',
+  /** Un ingrediente di un ramo cambiato con un sostituto (ADR-081). */
+  orderIngredientSubstituted: 'order.ingredient_substituted',
   orderConfirmed: 'order.confirmed',
   orderDiscarded: 'order.discarded',
   orderDiscountChanged: 'order.discount_changed',

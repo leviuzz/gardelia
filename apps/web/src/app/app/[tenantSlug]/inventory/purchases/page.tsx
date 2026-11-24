@@ -52,7 +52,7 @@ export default async function PurchasesPage({
   const result = await listPurchases(ctx, query);
   const newButton = (
     <Button asChild>
-      <Link href={routes.inventory.newPurchase}>
+      <Link href={routes.inventory.newPurchase()}>
         <ShoppingBasket />
         {t('purchases.new')}
       </Link>

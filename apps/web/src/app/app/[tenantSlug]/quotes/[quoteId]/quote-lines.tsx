@@ -27,6 +27,8 @@ export interface QuoteLineView {
   readonly unitPriceLabel: string;
   readonly lineTotalLabel: string;
   readonly recipeSummary: string | null;
+  /** Servizi (ADR-081): "Duración aprox. 2 h · Hasta 15 km". */
+  readonly serviceSummary: string | null;
   readonly warning: LineWarning | null;
   /** Righe del Builder: link al disegno di origine. */
   readonly designHref: string | null;
@@ -98,6 +100,9 @@ export function QuoteLineList({
                 <p className="text-sm text-muted-foreground">
                   {t('recipeOf')} {line.recipeSummary}
                 </p>
+              ) : null}
+              {line.serviceSummary ? (
+                <p className="text-sm text-muted-foreground">{line.serviceSummary}</p>
               ) : null}
               {line.warning ? (
                 <Badge variant={line.warning === 'UNAVAILABLE' ? 'danger' : 'warning'}>

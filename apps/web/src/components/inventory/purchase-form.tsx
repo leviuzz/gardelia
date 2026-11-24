@@ -56,6 +56,8 @@ export function PurchaseForm({
   today,
   currency,
   locale,
+  initialSupplierId = '',
+  initialProductIds = [],
 }: {
   readonly action: Action;
   readonly products: readonly PurchaseProductOption[];
@@ -63,14 +65,22 @@ export function PurchaseForm({
   readonly today: string;
   readonly currency: CurrencyCode;
   readonly locale: string;
+  /** Da "Por pedir" (ADR-081): il proveedor e i prodotti da comprare, già scelti. */
+  readonly initialSupplierId?: string;
+  readonly initialProductIds?: readonly string[];
 }) {
   const t = useTranslations('inventory.purchases.form');
   const [state, formAction] = useToastActionState(action);
-  const [supplier, setSupplier] = useState('');
-  const [lines, setLines] = useState<readonly LineState[]>([
-    { key: 0, inventoryItemId: '', quantity: '', total: '' },
-  ]);
-  const [nextKey, setNextKey] = useState(1);
+  const [supplier, setSupplier] = useState(
+    suppliers.some((option) => option.id === initialSupplierId) ? initialSupplierId : '',
+  );
+  const [lines, setLines] = useState<readonly LineState[]>(() => {
+    const known = initialProductIds.filter((id) => products.some((option) => option.id === id));
+    return known.length > 0
+      ? known.map((id, index) => ({ key: index, inventoryItemId: id, quantity: '', total: '' }))
+      : [{ key: 0, inventoryItemId: '', quantity: '', total: '' }];
+  });
+  const [nextKey, setNextKey] = useState(() => Math.max(lines.length, 1));
 
   const groups = new Map<string, PurchaseProductOption[]>();
   for (const product of products) {

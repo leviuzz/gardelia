@@ -42,7 +42,7 @@ export function ReservationStateBadge({
 }
 
 /** Le sezioni dell'inventario (una sola voce nel menu). */
-export type InventoryTab = 'stock' | 'reservations' | 'purchases' | 'movements';
+export type InventoryTab = 'stock' | 'restock' | 'reservations' | 'purchases' | 'movements';
 
 /**
  * Schede dell'inventario. "Compras" solo per chi le registra: hanno i prezzi (ADR-061). Su
@@ -60,6 +60,10 @@ export function InventoryTabs({
   const t = useTranslations('inventory.tabs');
   const tabs = [
     { key: 'stock', href: routes.inventory.list(), label: t('stock') },
+    // "Por pedir" (ADR-081) e le compras: per chi compra la merce.
+    ...(showPurchases
+      ? [{ key: 'restock', href: routes.inventory.restock(), label: t('restock') }]
+      : []),
     { key: 'reservations', href: routes.inventory.reservations(), label: t('reservations') },
     ...(showPurchases
       ? [{ key: 'purchases', href: routes.inventory.purchases(), label: t('purchases') }]

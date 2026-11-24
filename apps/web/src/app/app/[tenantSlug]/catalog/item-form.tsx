@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import {
   useActionState,
@@ -17,11 +18,15 @@ import {
   AVAILABILITY_STATES,
   CATALOG_COLORS,
   CATALOG_ITEM_TYPES,
+  CATALOG_LIMITS,
   DEFAULT_UNIT_BY_TYPE,
+  SERVICE_DURATION_OPTIONS,
   allowsPhotos,
   canShowOnline,
+  hasSupplier,
   isBuilderComponentType,
   isCanonicalLinkable,
+  isServiceType,
   suggestSpecies,
   type Availability,
   type CatalogItemType,
@@ -37,6 +42,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox, Input, NativeSelect, Textarea } from '@/components/ui/input';
 import { fieldError, idleState, type ActionState } from '@/lib/action-state';
+import { formatDuration } from '@/lib/duration';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 import { useActionToast } from '@/lib/use-action-toast';
 import { SpeciesField } from './species-field';
@@ -57,6 +63,11 @@ export interface ItemFormDefaults {
   readonly prepMinutes: string;
   readonly heightCm: string;
   readonly widthCm: string;
+  /** Proveedor habitual (ADR-081). */
+  readonly supplierId: string;
+  /** Servizi (ADR-081): durata in minuti e raggio in km. */
+  readonly serviceDurationMinutes: string;
+  readonly serviceRadiusKm: string;
   readonly isBuilderEnabled: boolean;
   /** "Mostrar en mi tienda en línea" (ADR-065). */
   readonly isOnline: boolean;
@@ -64,6 +75,16 @@ export interface ItemFormDefaults {
 
 /** Specie della tassonomia pronta per la ricerca (ADR-043). */
 export type CanonicalOption = SpeciesOption;
+
+/**
+ * Proveedores tra cui scegliere quello abituale (ADR-081); null = il campo non c'è (senza il piano
+ * dell'inventario o senza i permessi): il valore salvato resta com'è.
+ */
+export interface SupplierChoices {
+  readonly options: readonly { readonly id: string; readonly name: string }[];
+  /** Pagina dei proveedores, per chi non ne ha ancora. */
+  readonly manageHref: string;
+}
 
 const EMPTY: ItemFormDefaults = {
   type: 'CUT_FLOWER',
@@ -81,6 +102,9 @@ const EMPTY: ItemFormDefaults = {
   prepMinutes: '',
   heightCm: '',
   widthCm: '',
+  supplierId: '',
+  serviceDurationMinutes: '',
+  serviceRadiusKm: '',
   isBuilderEnabled: true,
   isOnline: false,
 };
@@ -94,7 +118,10 @@ const STEP_FIELDS: readonly (readonly string[])[] = [
     'availability',
     'price',
     'cost',
+    'serviceDurationMinutes',
+    'serviceRadiusKm',
     'isOnline',
+    'supplierId',
     'sku',
     'description',
     'tags',
@@ -107,6 +134,7 @@ const STEP_FIELDS: readonly (readonly string[])[] = [
 const LAST_FORM_STEP = STEP_FIELDS.length - 1;
 /** Campi facoltativi raccolti in "Más detalles" (aperto se uno ha un errore). */
 const MORE_FIELDS = [
+  'supplierId',
   'sku',
   'description',
   'tags',
@@ -130,15 +158,18 @@ export function ItemForm({
   mode,
   action,
   canonicalOptions,
+  suppliers = null,
   defaults = EMPTY,
 }: {
   mode: 'create' | 'edit';
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   canonicalOptions: readonly CanonicalOption[];
+  suppliers?: SupplierChoices | null;
   defaults?: ItemFormDefaults;
 }) {
   const t = useTranslations('catalog');
   const ts = useTranslations('steps');
+  const tDuration = useTranslations('duration');
   const [state, formAction] = useActionState(action, idleState);
   useActionToast(mode === 'edit' ? state : idleState);
   const [type, setType] = useState<CatalogItemType>(defaults.type);
@@ -414,6 +445,46 @@ export function ItemForm({
           placeholder="0.00"
         />
       </Field>
+      {/* Servizi (ADR-081): durata e fin dove si fanno, al posto del tempo di preparazione. */}
+      {isServiceType(type) ? (
+        <>
+          <Field
+            id="serviceDurationMinutes"
+            label={t('form.serviceDuration')}
+            hint={t('form.serviceDurationHint')}
+            error={err('serviceDurationMinutes')}
+          >
+            <NativeSelect
+              {...controlProps('serviceDurationMinutes', err('serviceDurationMinutes'), true)}
+              name="serviceDurationMinutes"
+              defaultValue={defaults.serviceDurationMinutes}
+            >
+              <option value="">{t('form.serviceDurationNone')}</option>
+              {serviceDurationChoices(defaults.serviceDurationMinutes).map((minutes) => (
+                <option key={minutes} value={minutes}>
+                  {formatDuration((key, values) => tDuration(key, values), minutes)}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+          <Field
+            id="serviceRadiusKm"
+            label={t('form.serviceRadius')}
+            hint={t('form.serviceRadiusHint')}
+            error={err('serviceRadiusKm')}
+          >
+            <Input
+              {...controlProps('serviceRadiusKm', err('serviceRadiusKm'), true)}
+              name="serviceRadiusKm"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={CATALOG_LIMITS.serviceRadiusKmMax}
+              defaultValue={defaults.serviceRadiusKm}
+            />
+          </Field>
+        </>
+      ) : null}
       {/* Pagina pubblica della fioreria (ADR-065): solo ramos, piante, fiori e accessori. */}
       {canShowOnline(type) ? (
         <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-3 sm:col-span-2">
@@ -429,6 +500,42 @@ export function ItemForm({
 
   const moreFields = (
     <div className="grid gap-5 sm:grid-cols-3">
+      {/* Proveedor habitual (ADR-081): solo con l'inventario, dove i proveedores esistono. */}
+      {suppliers && hasSupplier(type) ? (
+        suppliers.options.length > 0 ? (
+          <Field
+            id="supplierId"
+            label={t('form.supplier')}
+            hint={t('form.supplierHint')}
+            error={err('supplierId')}
+            className="sm:col-span-3"
+          >
+            <NativeSelect
+              {...controlProps('supplierId', err('supplierId'), true)}
+              name="supplierId"
+              defaultValue={defaults.supplierId}
+            >
+              <option value="">{t('form.supplierNone')}</option>
+              {suppliers.options.map((supplier) => (
+                <option key={supplier.id} value={supplier.id}>
+                  {supplier.name}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+        ) : (
+          // Nessun proveedor ancora: si dice dove aggiungerli (il valore salvato, se c'è, resta).
+          <div className="grid gap-1 text-sm sm:col-span-3">
+            <span className="font-medium">{t('form.supplier')}</span>
+            <p className="text-muted-foreground">
+              {t('form.supplierEmpty')}{' '}
+              <Link href={suppliers.manageHref} className="font-medium text-primary underline">
+                {t('form.supplierAdd')}
+              </Link>
+            </p>
+          </div>
+        )
+      ) : null}
       <Field id="sku" label={t('form.sku')} error={err('sku')}>
         <Input
           {...controlProps('sku', err('sku'))}
@@ -478,17 +585,24 @@ export function ItemForm({
           </span>
         </label>
       ) : null}
-      <Field id="prepMinutes" label={t('form.prepMinutes')} error={err('prepMinutes')}>
-        <Input
-          {...controlProps('prepMinutes', err('prepMinutes'))}
-          name="prepMinutes"
-          type="number"
-          inputMode="numeric"
-          min={0}
-          max={1440}
-          defaultValue={defaults.prepMinutes}
-        />
-      </Field>
+      {isServiceType(type) ? null : (
+        <Field
+          id="prepMinutes"
+          label={t('form.prepMinutes')}
+          hint={t('form.prepMinutesHint')}
+          error={err('prepMinutes')}
+        >
+          <Input
+            {...controlProps('prepMinutes', err('prepMinutes'), true)}
+            name="prepMinutes"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={1440}
+            defaultValue={defaults.prepMinutes}
+          />
+        </Field>
+      )}
       <Field id="heightCm" label={t('form.heightCm')} error={err('heightCm')}>
         <Input
           {...controlProps('heightCm', err('heightCm'))}
@@ -618,6 +732,17 @@ export function ItemForm({
       </div>
     </form>
   );
+}
+
+/** Le durate della tendina, più quella salvata se non è tra le proposte (non si perde). */
+function serviceDurationChoices(saved: string): readonly number[] {
+  const current = Number(saved);
+  const options: number[] = [...SERVICE_DURATION_OPTIONS];
+  if (Number.isInteger(current) && current > 0 && !options.includes(current)) {
+    options.push(current);
+    options.sort((a, b) => a - b);
+  }
+  return options;
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {

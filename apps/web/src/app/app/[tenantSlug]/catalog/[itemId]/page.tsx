@@ -14,7 +14,7 @@ import {
   type RecipeDto,
   type TenantContext,
 } from '@floral/core';
-import { isCurrencyCode, minorToDecimalString } from '@floral/domain';
+import { isCurrencyCode, isServiceType, minorToDecimalString } from '@floral/domain';
 import { AvailabilityBadge } from '@/components/common/status-badges';
 import { ArchiveControl } from '@/components/archive-control';
 import { CatalogInventoryBox } from '@/components/inventory/catalog-inventory-box';
@@ -22,6 +22,7 @@ import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatDuration } from '@/lib/duration';
 import { money, percentFromBps } from '@/lib/format';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
@@ -34,6 +35,7 @@ import {
   updateRecipeLineAction,
 } from '../actions';
 import { ItemForm, type ItemFormDefaults } from '../item-form';
+import { loadSupplierChoices } from '../supplier-choices';
 import { PhotosSection } from './photos-section';
 import { AddIngredientForm, RecipeDetailsForm, RecipeLineRow } from './recipe-editor';
 
@@ -70,10 +72,11 @@ export default async function ItemPage({
   const t = await getTranslations();
   const slug = ctx.tenantSlug;
 
-  const [canonical, recipe, ingredients] = await Promise.all([
+  const [canonical, recipe, ingredients, suppliers] = await Promise.all([
     canWrite ? listCanonicalFlowers(ctx.locale) : Promise.resolve([]),
     item.type === 'BOUQUET' ? getRecipe(ctx, item.id) : Promise.resolve(null),
     item.type === 'BOUQUET' && canWrite ? listIngredientOptions(ctx) : Promise.resolve([]),
+    canWrite ? loadSupplierChoices(ctx, item.supplierId) : Promise.resolve(null),
   ]);
 
   const defaults: ItemFormDefaults = {
@@ -92,6 +95,9 @@ export default async function ItemPage({
     prepMinutes: item.prepMinutes?.toString() ?? '',
     heightCm: item.heightCm?.toString() ?? '',
     widthCm: item.widthCm?.toString() ?? '',
+    supplierId: item.supplierId ?? '',
+    serviceDurationMinutes: item.serviceDurationMinutes?.toString() ?? '',
+    serviceRadiusKm: item.serviceRadiusKm?.toString() ?? '',
     isBuilderEnabled: item.isBuilderEnabled,
     isOnline: item.isOnline,
   };
@@ -164,6 +170,7 @@ export default async function ItemPage({
           mode="edit"
           action={updateItemAction.bind(null, slug, item.id)}
           canonicalOptions={canonical}
+          suppliers={suppliers}
           defaults={defaults}
         />
       ) : (
@@ -362,6 +369,10 @@ function CostRow({
 
 async function ReadOnlyDetails({ item }: { item: CatalogItemDto }) {
   const t = await getTranslations('catalog');
+  const tDuration = await getTranslations('duration');
+  const duration = (minutes: number) =>
+    formatDuration((key, values) => tDuration(key, values), minutes);
+  const service = isServiceType(item.type);
   const rows: [string, string][] = [
     [
       t('form.price'),
@@ -370,7 +381,21 @@ async function ReadOnlyDetails({ item }: { item: CatalogItemDto }) {
     [t('form.sku'), item.sku ?? '—'],
     [t('form.colors'), item.colors.map((color) => t(`colors.${color}`)).join(', ') || '—'],
     [t('form.tags'), item.tags.join(', ') || '—'],
-    [t('form.prepMinutes'), item.prepMinutes?.toString() ?? '—'],
+    ...(service
+      ? ([
+          [
+            t('form.serviceDuration'),
+            item.serviceDurationMinutes ? duration(item.serviceDurationMinutes) : '—',
+          ],
+          [
+            t('form.serviceRadius'),
+            item.serviceRadiusKm ? t('radiusKm', { km: item.serviceRadiusKm }) : '—',
+          ],
+        ] satisfies [string, string][])
+      : ([
+          [t('form.prepMinutes'), item.prepMinutes?.toString() ?? '—'],
+          [t('form.supplier'), item.supplierName ?? '—'],
+        ] satisfies [string, string][])),
   ];
   return (
     <Card>

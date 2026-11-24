@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 24 novembre 2026 (Floral Care, la visita dal telefono e le visite extra, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 24 novembre 2026 (catalogo completo e sostituto, ADR-081; reportes, ADR-080; esportazione dei dati, ADR-079; Floral Care, la visita dal telefono e le visite extra, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -2406,6 +2406,57 @@ mostra vendite, margini e costi.
   - confronto fra sedi;
   - export dei report (i dati grezzi ci sono già, ADR-079).
 
+### ADR-081 — Catalogo completo: sostituto quando manca un fiore, servizi con durata e zona, proveedor habitual e tempi, elenco dei fiori — ADOTTATO (24/11/2026)
+
+Avviato dal founder ("fai la 4": il punto Catalogo dei resti della V1). Scelte del founder del
+24/11/2026: il sostituto **segue la regola del ramo**, anche lo staff; la zona dei servizi è un
+**raggio in km**; l'elenco dei fiori lo **mantiene Gardelia, con la revisione di un fiorista** (O-09).
+
+- **Sostituto quando manca un fiore** (CAT-01, spec §6.4 "mai sostituire in silenzio"):
+  - **Quando:** in un pedido confermato o in preparazione, non ancora scaricato (ADR-071), un
+    ingrediente di un ramo è agotado nel catalogo (o archiviato) o la merce controllata non basta
+    (con l'apartado dell'ordine, ADR-072). La scheda del pedido mostra il riquadro "Faltan flores".
+  - **Cosa si propone:** fino a 4 prodotti dello stesso tipo e della stessa unità (12 tallos restano
+    12 tallos), attivi, non agotados, non già nel ramo e, se controllati, con merce sufficiente; prima
+    la stessa specie (altra varietà), poi lo stesso colore, poi per verde e materiali lo stesso tipo;
+    a parità il prezzo più vicino. Regole pure in `packages/domain/src/substitution.ts`.
+  - **Regola del ramo:** "No se sustituye" → nessuna proposta, il cambio si rifiuta; "Preguntar al
+    cliente" → il messaggio di WhatsApp al cliente è pronto (lingua del mercato) e serve la casella
+    "El cliente aceptó el cambio"; "Similar permitido" → si cambia subito. I disegni del Diseñador
+    valgono come "Preguntar" (li ha scelti il cliente). Lo fa chiunque prepara i ramos
+    (`orders:fulfill`, staff compreso).
+  - **Cosa cambia:** solo la distinta della riga (snapshot: il nuovo fiore con `replaces`, quello
+    concordato all'inizio), quindi cosa esce a "Listo", l'apartado dell'ordine e la Producción del
+    día. Il **prezzo resta quello concordato**; il costo stimato della riga si aggiorna quando i due
+    costi sono noti, altrimenti resta la stima di prima. La distinta mostra "(en lugar de …)" nella
+    scheda e nella comanda stampata. Audit `order.ingredient_substituted` con regola e ok del cliente.
+  - **Non fatto:** sostituire un prodotto venduto da solo (cambierebbe il prezzo: si parla con il
+    cliente), cambiare la quantità del sostituto, le righe nate prima di ADR-071 (senza gli ID degli
+    ingredienti), le cotizaciones (il Diseñador blocca già gli agotados).
+- **Servizi con durata e zona:** per i servizi (e i servizi aggiuntivi) la durata indicativa (una
+  tendina da 15 minuti a una giornata) e il raggio in km dalla fioreria (1–200), al posto del tempo di
+  preparazione; la migrazione sposta nella durata il tempo che i servizi avevano già. Nella riga
+  (snapshot, come concordati) e quindi in cotización, pedido, stampe e link per il cliente:
+  "Duración aprox. 3 h · Hasta 15 km". Il pedido a domicilio avvisa se l'indirizzo è oltre il raggio
+  (linea retta, come ADR-069, solo con le posizioni di Google ancora valide; altrimenti nessun avviso
+  inventato). I servizi non hanno proveedor. CHECK nel database.
+- **Proveedor habitual:** campo del prodotto (FK composita a `Supplier`), solo con il piano
+  dell'inventario, dove i proveedores esistono (ADR-061); un campo assente nel form non cambia il
+  valore salvato, un proveedor archiviato resta finché non si cambia. Nuova scheda **"Por pedir"**
+  dell'inventario (per chi compra): agotados e por agotarse raggruppati per proveedor, con il
+  messaggio di WhatsApp già scritto (prodotti, senza quantità: le decide la fioreria) e "Registrar
+  compra" con proveedor e prodotti già scelti; dal riquadro del pannello "Qué pedir".
+- **Tempo di preparazione:** c'era già nel prodotto ma non serviva a niente; ora la Producción del
+  día stima il lavoro ("Tiempo de preparación estimado: 2 h 15 min") e dice quanti ramos non hanno
+  il tempo nel catalogo. Si usa il tempo attuale del catalogo (è una stima per organizzarsi).
+- **Elenco dei fiori (O-09):** resta unico, in `packages/db/src/reference-data.ts`, curato da Gardelia.
+  Per la revisione c'è il foglio `docs/LISTA_FLORES_REVISION.md`, in spagnolo, generato dal file
+  (`pnpm --filter @floral/db flowers:review`; un test controlla che sia aggiornato): il founder lo dà
+  a un fiorista di Aguascalientes e le correzioni entrano con il rilascio successivo. Le specie
+  private per fioreria non ci sono (l'IA riceverebbe nomi non controllati).
+- **Esportazione (ADR-079):** `productos.csv` ha anche tempo di preparazione, proveedor habitual,
+  durata e raggio dei servizi.
+
 ## 3. Proposte da approvare
 
 | ID   | Proposta                                                                                                                                                                               | Motivazione                                                                                                                                  | Quando serve                 |
@@ -2434,7 +2485,7 @@ mostra vendite, margini e costi.
 | O-06 | Trattamento fiscale nei preventivi (IVA inclusa/esclusa, aliquota zona di frontiera, ricevute); domande concrete in ADR-076                                                                                                                                                                                                                                                                                                                                                                                                        | Contador           | Preventivi con imposte                             |
 | O-07 | Términos y condiciones e Aviso de privacidad (LFPDPPP 2025): **bozze scritte** su richiesta del founder (`docs/legal/`, 22/11/2026), da far revisionare a un avvocato messicano prima del lancio                                                                                                                                                                                                                                                                                                                                   | Legale             | Lancio commerciale                                 |
 | O-08 | Conferma della matrice ruoli: lo STAFF non vede costi; il MANAGER invita solo STAFF e non modifica dati fiscali; lo STAFF compone nel Builder ma non crea preventivi né clienti                                                                                                                                                                                                                                                                                                                                                    | Founder            | — (default già implementato)                       |
-| O-09 | Chi mantiene la tassonomia canonica dei fiori e con quale copertura                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Founder            | Builder, Network                                   |
+| O-09 | ✅ **RISOLTA** (founder, 24/11/2026): la tassonomia la mantiene **Gardelia**, unica per tutte le fiorerie, con la **revisione di un fiorista** sul foglio `docs/LISTA_FLORES_REVISION.md` (ADR-081); copertura iniziale 72 specie (ADR-043)                                                                                                                                                                                                                                                                                        | Founder            | Builder, Network                                   |
 | O-10 | Durata della finestra di attribuzione delle fee del Network (spec §8.4). Proposta del 23/11/2026: 12 mesi (D-25)                                                                                                                                                                                                                                                                                                                                                                                                                   | Founder + legale   | Network                                            |
 | O-11 | ✅ **RISOLTA** (founder, 22/11/2026): la promo delle date speciali resta in tutti i piani per ora; le promo più articolate saranno a pagamento (ADR-047)                                                                                                                                                                                                                                                                                                                                                                           | Founder            | —                                                  |
 | O-12 | Fase gratuita iniziale (detta dal founder il 22/11/2026): solo con la V1 completa (D-22) o prima? Durata, quota AI ridotta (proposta 10 immagini), termini che annunciano il passaggio a pagamento; "precio de fundador" per i primi 20 fioristi (proposta: −30% per 12 mesi). Senza incassi non serve ancora la partita IVA                                                                                                                                                                                                       | Founder            | Lancio                                             |

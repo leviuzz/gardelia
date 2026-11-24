@@ -30,6 +30,7 @@ import {
   formatOrderNumber,
   formatQuoteNumber,
   formatTimeOfDay,
+  freshCoordinates,
   isOrderAcceptance,
   isOrderEditable,
   isOrderHandedOver,
@@ -46,6 +47,7 @@ import {
   orderStepsFrom,
   priceOrder,
   quoteLineQuantitySchema,
+  roundedDistanceKm,
   todayInTimeZone,
   toFieldErrors,
   worstAvailability,
@@ -79,6 +81,7 @@ import { consumeStockTx } from './inventory';
 import { consumeReservationTx, releaseReservationTx } from './inventory-reservations';
 import { orderStockRequest } from './order-inventory';
 import { activeOrderReservationId, syncOrderReservationTx } from './order-reservation';
+import { loadShopPlace } from './care-internals';
 import { ensureOrderPublicLinkTx } from './public-links';
 import {
   catalogLineDraft,
@@ -86,7 +89,9 @@ import {
   customLineDraft,
   lineRowData,
   recipeForDisplay,
+  serviceForDisplay,
   type LineDraft,
+  type LineServiceInfo,
 } from './line-internals';
 import {
   addDays,
@@ -129,6 +134,8 @@ export interface OrderRecipeLineSnapshot {
   readonly quantity: number;
   readonly saleUnit: SaleUnit;
   readonly color?: string | null;
+  /** Il fiore concordato all'inizio, se poi è stato sostituito (ADR-081). */
+  readonly replaces?: { readonly name: string; readonly variety: string | null };
 }
 
 export interface OrderLineDto {
@@ -143,6 +150,8 @@ export interface OrderLineDto {
   readonly lineTotalMinor: number;
   readonly saleUnit: SaleUnit | null;
   readonly recipe: readonly OrderRecipeLineSnapshot[] | null;
+  /** Servizi (ADR-081): durata e raggio come concordati nella riga. */
+  readonly service: LineServiceInfo | null;
   readonly bouquetConfigurationId: string | null;
   /**
    * Immagine del ramo dalla riga del preventivo: `photo` = foto vera caricata dalla fioreria
@@ -188,8 +197,19 @@ export interface OrderDeliveryAddressDto {
   readonly placeId: string | null;
 }
 
+/**
+ * Servizi della riga oltre il loro raggio (ADR-081): distanza in linea retta fra la fioreria e
+ * l'indirizzo del pedido. Null se non si può misurare (ritiro, posizioni mancanti o scadute) o se
+ * tutti i servizi arrivano fin lì.
+ */
+export interface OrderServiceZoneDto {
+  readonly distanceKm: number;
+  readonly lines: readonly { readonly description: string; readonly radiusKm: number }[];
+}
+
 export interface OrderDetailDto extends OrderSummaryDto {
   readonly quote: { readonly id: string; readonly numberLabel: string } | null;
+  readonly serviceZone: OrderServiceZoneDto | null;
   readonly customer: {
     readonly id: string;
     readonly displayName: string;
@@ -466,10 +486,40 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
       where: { tenantId: ctx.tenantId, orderId },
       orderBy: [{ createdAt: 'asc' }],
     });
-    return { order, lines, payments, events };
+    // Servizi con un raggio (ADR-081): la posizione della fioreria solo se serve.
+    const withRadius = lines.filter(
+      (line) => serviceForDisplay(readSnapshot(line.snapshot)?.item)?.radiusKm,
+    );
+    const shop =
+      withRadius.length > 0 && order.fulfillmentMode === 'DELIVERY'
+        ? await loadShopPlace(tx, ctx.tenantId)
+        : null;
+    return { order, lines, payments, events, shopOrigin: shop?.origin ?? null };
   });
   if (!result) return notFound(ctx, 'Order', orderId);
-  const { order, lines, payments, events } = result;
+  const { order, lines, payments, events, shopOrigin } = result;
+  const site = shopOrigin
+    ? freshCoordinates(
+        {
+          latitude: order.deliveryLatitude,
+          longitude: order.deliveryLongitude,
+          coordinatesAt: order.deliveryCoordinatesAt,
+        },
+        new Date(),
+      )
+    : null;
+  const distanceKm = shopOrigin && site ? roundedDistanceKm(shopOrigin, site) : null;
+  const beyond =
+    distanceKm === null
+      ? []
+      : lines.flatMap((line) => {
+          const radiusKm = serviceForDisplay(readSnapshot(line.snapshot)?.item)?.radiusKm ?? null;
+          return radiusKm !== null && distanceKm > radiusKm
+            ? [{ description: line.description, radiusKm }]
+            : [];
+        });
+  const serviceZone =
+    distanceKm !== null && beyond.length > 0 ? { distanceKm, lines: beyond } : null;
   const canWrite = hasPermission(ctx, 'orders:write');
   const delivery: OrderDeliveryAddressDto | null =
     order.fulfillmentMode === 'DELIVERY' &&
@@ -494,6 +544,7 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
     quote: order.quote
       ? { id: order.quote.id, numberLabel: formatQuoteNumber(order.quote.number) }
       : null,
+    serviceZone,
     customer: order.customer,
     customerAddressId: order.customerAddressId,
     deliveryAddress: delivery,
@@ -528,6 +579,7 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
         lineTotalMinor: line.lineTotalMinor,
         saleUnit: snapshot?.item?.saleUnit ?? null,
         recipe: recipeForDisplay(snapshot?.recipe),
+        service: serviceForDisplay(snapshot?.item),
         bouquetConfigurationId: line.bouquetConfigurationId,
         // La foto vera del ramo (ADR-052) ha la precedenza sull'anteprima AI.
         image: line.bouquetPhoto

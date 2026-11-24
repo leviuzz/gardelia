@@ -141,7 +141,10 @@ export function tenantRoutes(slug: string) {
       movements: (query?: QueryValues) => withQuery(`${inventory}/movements`, query),
       /** Compras al mayorista (ADR-061): elenco (`q`, `page`), nuova, scheda. */
       purchases: (query?: QueryValues) => withQuery(`${inventory}/purchases`, query),
-      newPurchase: `${inventory}/purchases/new`,
+      /** Nuova compra; da "Por pedir" con `proveedor` e `productos` già scelti (ADR-081). */
+      newPurchase: (query?: QueryValues) => withQuery(`${inventory}/purchases/new`, query),
+      /** "Por pedir" (ADR-081): cosa sta finendo, per proveedor habitual. */
+      restock: () => `${inventory}/restock`,
       purchase: (entryId: string, query?: QueryValues) =>
         withQuery(`${inventory}/purchases/${segment(entryId)}`, query),
       /** Proveedores (`archived=1` per vedere anche gli archiviati). */

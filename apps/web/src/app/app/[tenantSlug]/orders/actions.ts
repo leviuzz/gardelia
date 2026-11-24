@@ -22,6 +22,7 @@ import {
   reverseOrderPayment,
   setOrderReceiver,
   revokePublicLink,
+  substituteOrderIngredient,
   sharePublicLink,
   updateOrderDiscount,
   updateOrderFulfillment,
@@ -330,5 +331,18 @@ export async function setOrderReceiverAction(
   return runTenantAction(slug, async ({ ctx, routes }) => {
     await setOrderReceiver(ctx, orderId, formDataToObject(formData));
     return { revalidate: section(routes.orders.list()), success: 'orders.handover.saved' };
+  });
+}
+
+/** "Cambiar flor" (ADR-081): la regola del ramo e l'ok del cliente li controlla il servizio. */
+export async function substituteIngredientAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await substituteOrderIngredient(ctx, orderId, formDataToObject(formData));
+    return { revalidate: section(routes.orders.list()), success: 'orders.substitution.done' };
   });
 }

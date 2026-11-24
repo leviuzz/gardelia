@@ -37,6 +37,7 @@ export * from './reports';
 export * from './recipe';
 export * from './route';
 export * from './sketch';
+export * from './substitution';
 export * from './slug';
 export * from './species';
 export * from './team';

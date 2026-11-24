@@ -9,6 +9,7 @@ import { PublicInvalidLink, PublicShell } from '@/components/public/public-shell
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { serverEnv } from '@/lib/env';
 import { money } from '@/lib/format';
+import { serviceSummary } from '@/lib/line-ui';
 import { calendarDate } from '@/lib/quote-ui';
 import { acceptQuoteAction } from './actions';
 
@@ -111,6 +112,7 @@ export default async function PublicQuotePage({ params }: PageProps<'/cotizacion
                       ),
                     )}`
                   : null,
+              service: serviceSummary(tAll, line.service),
               imageUrl: line.hasImage
                 ? `/cotizacion/${encodeURIComponent(token)}/imagen/${line.id}`
                 : null,

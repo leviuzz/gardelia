@@ -162,6 +162,8 @@ export async function runSeed(db: DbClient, options: { password: string }): Prom
             availability: item.availability,
             prepMinutes: item.prepMinutes ?? null,
             heightCm: item.heightCm ?? null,
+            serviceDurationMinutes: item.serviceDurationMinutes ?? null,
+            serviceRadiusKm: item.serviceRadiusKm ?? null,
             tags: [...item.tags],
             // Stesso default dei nuovi articoli: i componenti sono utilizzabili nel Builder.
             isBuilderEnabled: isBuilderComponentType(item.type),

@@ -9,6 +9,7 @@ import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { createItemAction } from '../actions';
 import { ItemForm } from '../item-form';
+import { loadSupplierChoices } from '../supplier-choices';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('catalog.form');
@@ -22,7 +23,10 @@ export default async function NewItemPage({ params }: PageProps<'/app/[tenantSlu
 
   const t = await getTranslations('catalog');
   const tc = await getTranslations('common');
-  const canonical = await listCanonicalFlowers(ctx.locale);
+  const [canonical, suppliers] = await Promise.all([
+    listCanonicalFlowers(ctx.locale),
+    loadSupplierChoices(ctx),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -38,6 +42,7 @@ export default async function NewItemPage({ params }: PageProps<'/app/[tenantSlu
         mode="create"
         action={createItemAction.bind(null, ctx.tenantSlug)}
         canonicalOptions={canonical}
+        suppliers={suppliers}
       />
     </div>
   );
