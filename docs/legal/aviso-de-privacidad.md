@@ -12,9 +12,9 @@
 
 [Razón social del responsable] (en adelante, "Gardelia"), con domicilio en [domicilio completo], es
 responsable del tratamiento de los datos personales que nos proporcionas al usar la plataforma
-Gardelia, disponible en [dominio].
+Gardelia, disponible en gardelia.co.
 
-Para cualquier tema relacionado con tus datos personales escríbenos a **[privacidad@dominio]**.
+Para cualquier tema relacionado con tus datos personales escríbenos a **privacidad@gardelia.co**.
 
 ## 2. A quién aplica este aviso
 
@@ -81,7 +81,7 @@ responsable** de los datos del pedido y de tu ficha en su lista de clientes.
 2. Invitarte a encuestas para mejorar el producto.
 
 Si no quieres que usemos tus datos para estas finalidades adicionales, escríbenos a
-[privacidad@dominio] en cualquier momento, también antes de crear tu cuenta. Negarte no afecta el
+privacidad@gardelia.co en cualquier momento, también antes de crear tu cuenta. Negarte no afecta el
 servicio. [Validar si se requiere un mecanismo adicional en la app, p. ej. una casilla en el
 registro.]
 
@@ -116,7 +116,7 @@ También podremos compartir datos con autoridades cuando una ley o una orden lo 
 ## 6. Tus derechos (ARCO) y cómo ejercerlos
 
 Puedes **acceder** a tus datos, **rectificarlos**, **cancelarlos** u **oponerte** a su tratamiento,
-así como **revocar** tu consentimiento, escribiendo a [privacidad@dominio] con:
+así como **revocar** tu consentimiento, escribiendo a privacidad@gardelia.co con:
 
 1. tu nombre y un medio para responderte;
 2. un documento que acredite tu identidad o, si actúas por otra persona, la representación;
@@ -165,7 +165,7 @@ al personal que lo necesita.
 
 ## 10. Cambios a este aviso
 
-Publicaremos cualquier cambio en [dominio]/privacidad y, si es relevante, te avisaremos por correo
+Publicaremos cualquier cambio en gardelia.co/privacidad y, si es relevante, te avisaremos por correo
 o dentro de la app.
 
 ## 11. Autoridad

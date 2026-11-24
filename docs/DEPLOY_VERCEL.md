@@ -1,7 +1,7 @@
 # Ambiente online di prova su Vercel — guida passo passo
 
-Per il founder. Risultato: Gardelia online su un indirizzo `https://gardelia-staging.vercel.app`, da
-provare dal telefono, con il Diseñador e l'AI vera. Costo: **0 USD al mese** di piattaforma con i
+Per il founder. Risultato: Gardelia online su un indirizzo di prova (`https://staging.gardelia.co`,
+prima `https://gardelia-staging.vercel.app`: sezione 12), da provare dal telefono, con il Diseñador e l'AI vera. Costo: **0 USD al mese** di piattaforma con i
 piani gratuiti, più l'AI a consumo (pochi dollari di prove). Decisioni: `docs/DECISIONS.md`
 (P-03, O-04), piano: `docs/PLATFORM_PLAN.md`.
 
@@ -86,13 +86,12 @@ avrà nomi propri (`gardelia-production`).
    - `EMAIL_FROM` = `Gardelia <onboarding@resend.dev>` (indirizzo di prova di Resend: con il
      dominio Gardelia verificato useremo il nostro).
 4. **Dominio verificato (per scrivere a tutti, anche ai clienti delle fiorerie: ADR-047):** con
-   l'indirizzo di prova le email arrivano solo al titolare dell'account Resend. Quando hai il
-   dominio:
-   - su Resend, **Domains** → **Add domain** (il dominio o un sottodominio, es. `mail.` più il
-     tuo dominio);
-   - copia i record DNS che Resend mostra (SPF, DKIM e, consigliato, DMARC) nel pannello DNS di
-     chi ti ha venduto il dominio, poi aspetta che Resend lo dia per verificato;
-   - su Vercel cambia `EMAIL_FROM` in `Gardelia <no-reply@il-tuo-dominio>` e rifai il deploy.
+   l'indirizzo di prova le email arrivano solo al titolare dell'account Resend. Con `gardelia.co`
+   i passi esatti sono nella **sezione 12**; in breve:
+   - su Resend, **Domains** → **Add domain** → `gardelia.co`;
+   - copia i record DNS che Resend mostra (SPF, DKIM e, consigliato, DMARC) nel DNS di
+     Cloudflare, poi aspetta che Resend lo dia per verificato;
+   - su Vercel cambia `EMAIL_FROM` in `Gardelia <no-reply@gardelia.co>` e rifai il deploy.
      La chiave e `SMTP_URL` restano le stesse.
 
 ## 5. Immagini AI (fal.ai)
@@ -293,7 +292,93 @@ tenere); la chiave non arriva mai al browser.
   email che possono registrarsi.
 - **Prima del lancio:**
   - piano Neon a pagamento (backup e ripristino più lunghi);
-  - dominio Gardelia verificato su Resend, così le email partono a tutti;
+  - `gardelia.co` e `www.gardelia.co` sul progetto di produzione (sezione 12, "Dopo");
   - progetto `gardelia-production` (database e chiavi propri) che pubblica il ramo `prod`;
   - Sentry;
   - client OAuth di Google (ADR-036).
+
+## 12. Il dominio gardelia.co (Cloudflare)
+
+Comprato dal founder il 24/11/2026 su Cloudflare. Come si usa (ADR-073):
+
+| Indirizzo                                       | A cosa serve                                                    | Quando                                |
+| ----------------------------------------------- | --------------------------------------------------------------- | ------------------------------------- |
+| `staging.gardelia.co`                           | ambiente di prova (progetto `gardelia-staging`, ramo `staging`) | ora                                   |
+| `no-reply@gardelia.co`                          | mittente delle email dell'app (Resend)                          | ora                                   |
+| `soporte@gardelia.co`, `privacidad@gardelia.co` | per scriverci (testi legali): arrivano alla tua casella         | ora                                   |
+| `gardelia.co`, `www.gardelia.co`                | produzione (progetto `gardelia-production`, ramo `prod`)        | al lancio, col via libera del founder |
+
+Tempo: circa 30 minuti, più l'attesa dei DNS. Fai i passi in quest'ordine.
+
+### Passo 0 — Proteggi il dominio (2 minuti)
+
+1. Cloudflare → **My Profile → Authentication**: attiva la **verifica in due passaggi**. Chi entra
+   nel tuo Cloudflare può dirottare sito ed email.
+2. Cloudflare → **Domain Registration → gardelia.co**: **Auto-renew** acceso. Il blocco del
+   trasferimento è già attivo da solo.
+
+### Passo 1 — Email in arrivo: soporte@ e privacidad@ (Cloudflare Email Routing, gratis)
+
+1. Cloudflare → **gardelia.co → Email → Email Routing** → **Get started**. Accetta "Add records and
+   enable": Cloudflare crea da solo i record MX e il TXT (SPF) del dominio.
+2. **Destination addresses → Add destination address**: la tua email personale. Confermala con il
+   link che ti arriva.
+3. **Routing rules → Custom addresses → Create address**: `soporte` → **Send to an email** → la tua
+   email. Ripeti per `privacidad`.
+4. Prova: da un altro account scrivi a `soporte@gardelia.co` e controlla che arrivi.
+
+### Passo 2 — Email in uscita: no-reply@gardelia.co (Resend)
+
+1. Resend → **Domains → Add Domain** → `gardelia.co`, regione **North Virginia (us-east-1)**, la
+   stessa di Vercel e Neon.
+2. Resend mostra tre record: un **MX** e un **TXT** con nome `send`, e un **TXT**
+   `resend._domainkey`. Se Resend offre di configurarli da solo su Cloudflare, accetta. Altrimenti,
+   in Cloudflare → **DNS → Records → Add record**, copiali uno per uno: tipo, nome e contenuto
+   esattamente come li mostra Resend (per l'MX anche la priorità).
+3. Sempre in Cloudflare aggiungi il **DMARC**: tipo `TXT`, nome `_dmarc`, contenuto
+   `v=DMARC1; p=none;`. Più avanti, quando tutto funziona, si può rendere più severo.
+4. Resend → **Verify DNS Records**, poi aspetta lo stato **Verified**: di solito minuti, a volte
+   qualche ora. **Non cambiare `EMAIL_FROM` prima**: con un dominio non verificato le email non
+   partono.
+5. La chiave che usi già (`SMTP_URL`, permesso "All domains") resta la stessa.
+
+I due SPF non si toccano: quello di Email Routing sta su `gardelia.co`, quello di Resend su
+`send.gardelia.co`. Non unirli in un solo record.
+
+### Passo 3 — L'indirizzo di prova staging.gardelia.co (Vercel)
+
+1. Vercel → progetto **gardelia-staging → Settings → Domains → Add Domain** →
+   `staging.gardelia.co`, collegato a **Production**. Vercel mostra il record da creare: un
+   **CNAME** con un valore come `cname.vercel-dns.com` (copia quello che mostra a te).
+2. Cloudflare → **DNS → Records → Add record**: tipo `CNAME`, nome `staging`, target il valore di
+   Vercel, **Proxy status: DNS only** (nuvola grigia). Con la nuvola arancione Vercel non riesce a
+   fare il certificato e le richieste passano da due proxy.
+3. Torna su Vercel e aspetta **Valid Configuration** (pochi minuti).
+4. Sempre in **Domains**, su `gardelia-staging.vercel.app` → **Edit** → rimando a
+   `staging.gardelia.co` (308). Così i vecchi link portano al nuovo indirizzo.
+
+### Passo 4 — Variabili e nuovo deploy
+
+1. Vercel → **Settings → Environment Variables** (Production), cambia:
+   - `APP_URL` = `https://staging.gardelia.co`;
+   - `BETTER_AUTH_URL` = `https://staging.gardelia.co`;
+   - `EMAIL_FROM` = `Gardelia <no-reply@gardelia.co>`, **solo dopo** il "Verified" del passo 2.
+2. **Deployments** → l'ultimo → **⋯ → Redeploy**.
+
+### Passo 5 — Controlli
+
+1. Apri `https://staging.gardelia.co` ed entra di nuovo: le sessioni valgono per indirizzo, quella
+   del vecchio non vale più.
+2. Invita nel Team un'email diversa dalla tua (o chiedi il recupero della password): deve arrivare,
+   e non nello spam, da `no-reply@gardelia.co`.
+3. Il vecchio indirizzo `gardelia-staging.vercel.app` deve portare al nuovo.
+
+### Dopo (non ora)
+
+- **Login con Google:** nel client OAuth l'URI di reindirizzamento è
+  `https://staging.gardelia.co/api/auth/callback/google`; nel branding il dominio autorizzato è
+  `gardelia.co` (ADR-036).
+- **Produzione:** `gardelia.co` e `www.gardelia.co` (rimando a `gardelia.co`) si collegano al
+  progetto `gardelia-production` al lancio (ADR-041). Fino ad allora **non puntarli a staging**:
+  chi arriva penserebbe che sia il prodotto (D-22).
+- La chiave di Google Places non cambia: la usa solo il server.
