@@ -51,6 +51,15 @@ export async function InventoryAlertsCard({ ctx }: { readonly ctx: TenantContext
                 <Badge variant="warning">{t('alerts.low', { count: alerts.low })}</Badge>
               </Link>
             ) : null}
+            {/* "Por pedir" (ADR-081): per chi compra la merce. */}
+            {hasPermission(ctx, 'inventory:write') ? (
+              <Link
+                href={routes.inventory.restock()}
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                {t('alerts.reorder')}
+              </Link>
+            ) : null}
           </div>
         ) : null}
         {alerts.items.length > 0 ? (

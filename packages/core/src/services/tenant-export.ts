@@ -156,6 +156,7 @@ export async function exportTenantData(
 
   const customerName = new Map(data.customers.map((row) => [row.id, row.displayName]));
   const itemName = new Map(data.items.map((row) => [row.id, row.name]));
+  const supplierName = new Map(data.suppliers.map((row) => [row.id, row.name]));
   const quoteNumber = new Map(data.quotes.map((row) => [row.id, formatQuoteNumber(row.number)]));
   const orderNumber = new Map(data.orders.map((row) => [row.id, formatOrderNumber(row.number)]));
   const contractNumber = new Map(
@@ -260,6 +261,19 @@ export async function exportTenantData(
         { header: 'En la tienda en línea', value: (r) => yesNo(r.isOnline) },
         { header: 'Colores', value: (r) => r.colors.join(', ') },
         { header: 'Etiquetas', value: (r) => r.tags.join(', ') },
+        // ADR-081: tempo di preparazione, proveedor habitual, durata e raggio dei servizi.
+        { header: 'Tiempo de preparación (min)', value: (r) => r.prepMinutes, numeric: true },
+        { header: 'proveedor_id', value: (r) => r.supplierId },
+        {
+          header: 'Proveedor habitual',
+          value: (r) => (r.supplierId ? supplierName.get(r.supplierId) : null),
+        },
+        {
+          header: 'Duración del servicio (min)',
+          value: (r) => r.serviceDurationMinutes,
+          numeric: true,
+        },
+        { header: 'Radio del servicio (km)', value: (r) => r.serviceRadiusKm, numeric: true },
         { header: 'Estado', value: (r) => LABELS.record[r.status] },
       ],
       data.items,

@@ -45,6 +45,7 @@ export async function OrderLinesEditor({
     unitPriceLabel: lineUi.unitPrice(line.unitPriceMinor, line.saleUnit),
     lineTotalLabel: money(line.lineTotalMinor, order.currency),
     recipeSummary: lineUi.recipe(line.recipe),
+    serviceSummary: lineUi.service(line.service),
     warning: lineWarning(line, canEdit ? quotableById : null),
     designHref: line.bouquetConfigurationId
       ? routes.builder.design(line.bouquetConfigurationId)

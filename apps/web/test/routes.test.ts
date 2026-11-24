@@ -40,7 +40,12 @@ describe('percorsi della fioreria (routes.ts)', () => {
     expect(routes.inventory.purchases({ q: 'jamaica' })).toBe(
       '/app/las-camelias/inventory/purchases?q=jamaica',
     );
-    expect(routes.inventory.newPurchase).toBe('/app/las-camelias/inventory/purchases/new');
+    expect(routes.inventory.newPurchase()).toBe('/app/las-camelias/inventory/purchases/new');
+    // "Por pedir" (ADR-081): la compra nasce con proveedor e prodotti già scelti.
+    expect(routes.inventory.newPurchase({ proveedor: 'p1', productos: 'a,b' })).toBe(
+      '/app/las-camelias/inventory/purchases/new?proveedor=p1&productos=a%2Cb',
+    );
+    expect(routes.inventory.restock()).toBe('/app/las-camelias/inventory/restock');
     expect(routes.inventory.purchase('e1', { created: true })).toBe(
       '/app/las-camelias/inventory/purchases/e1?created=1',
     );

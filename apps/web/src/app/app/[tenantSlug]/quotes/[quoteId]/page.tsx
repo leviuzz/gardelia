@@ -104,6 +104,7 @@ export default async function QuotePage({
       unitPriceLabel: lineUi.unitPrice(line.unitPriceMinor, line.saleUnit),
       lineTotalLabel: fmt(line.lineTotalMinor),
       recipeSummary: lineUi.recipe(line.recipe),
+      serviceSummary: lineUi.service(line.service),
       warning: lineWarning(line, quotableById),
       designHref: line.bouquetConfigurationId
         ? routes.builder.design(line.bouquetConfigurationId)

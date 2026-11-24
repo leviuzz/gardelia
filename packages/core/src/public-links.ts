@@ -32,6 +32,7 @@ import { NotFoundError } from './errors';
 import { logger } from './logger';
 import { readStoredImage, type StoredImage } from './media/stored-files';
 import { loadCareVisitReportTx, type CareVisitReportDto } from './services/care-report';
+import { serviceForDisplay, type LineServiceInfo } from './services/line-internals';
 import { dateToParts, formatDateParts } from './services/quote-internals';
 import { readIdPair, signIdPair } from './signed-ids';
 
@@ -157,6 +158,8 @@ export interface PublicLineDto {
   readonly saleUnit: SaleUnit | null;
   readonly lineTotalMinor: number;
   readonly recipe: readonly PublicRecipeItem[] | null;
+  /** Servizi (ADR-081): durata e raggio, come nel preventivo. */
+  readonly service: LineServiceInfo | null;
   readonly hasImage: boolean;
 }
 
@@ -197,6 +200,7 @@ function toPublicLine(line: {
         quantity: item.quantity,
         color: item.color ?? null,
       })) ?? null,
+    service: serviceForDisplay(snapshot?.item),
     hasImage:
       line.bouquetPhotoId !== null ||
       (line.previewJob?.status === 'SUCCEEDED' && line.previewJob.outputKey !== null),

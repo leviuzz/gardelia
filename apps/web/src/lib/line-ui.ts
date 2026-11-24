@@ -6,6 +6,7 @@
 import { getFormatter, getTranslations } from 'next-intl/server';
 import type { QuotableItemOption } from '@floral/core';
 import { isIngredientType, type Availability, type SaleUnit } from '@floral/domain';
+import { formatDuration } from '@/lib/duration';
 import { money } from '@/lib/format';
 
 export type LineWarning = 'LIMITED' | 'ON_REQUEST' | 'UNAVAILABLE';
@@ -16,6 +17,8 @@ interface RecipeIngredient {
   readonly variety: string | null;
   readonly quantity: number;
   readonly color?: string | null;
+  /** Il fiore concordato all'inizio, se è stato sostituito nel pedido (ADR-081). */
+  readonly replaces?: { readonly name: string; readonly variety: string | null };
 }
 
 interface LineAvailability {
@@ -50,6 +53,41 @@ export function lineWarning(
   return null;
 }
 
+/** Durata e raggio di un servizio nella riga (ADR-081). */
+export interface LineService {
+  readonly durationMinutes: number | null;
+  readonly radiusKm: number | null;
+}
+
+/**
+ * "Duración aprox. 2 h · Hasta 15 km", o null per i prodotti. Con il traduttore della lingua di chi
+ * guarda (app) o del mercato (link e stampe per il cliente).
+ */
+export function serviceSummary(
+  t: Awaited<ReturnType<typeof getTranslations>>,
+  service: LineService | null,
+): string | null {
+  if (!service) return null;
+  const parts = [
+    ...(service.durationMinutes
+      ? [
+          t('quotes.editor.serviceDuration', {
+            duration: formatDuration(
+              (key, values) => t(`duration.${key}`, values),
+              service.durationMinutes,
+            ),
+          }),
+        ]
+      : []),
+    ...(service.radiusKm ? [t('catalog.radiusKm', { km: service.radiusKm })] : []),
+  ];
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
+function ingredientName(item: { readonly name: string; readonly variety: string | null }) {
+  return item.variety ? `${item.name} ${item.variety}` : item.name;
+}
+
 /** Formattatori delle righe nella lingua di chi guarda, per la valuta del documento. */
 export async function lineFormatters(currency: string) {
   const t = await getTranslations();
@@ -70,15 +108,23 @@ export async function lineFormatters(currency: string) {
           const name = ingredient.variety
             ? `${ingredient.name} ${ingredient.variety}`
             : ingredient.name;
-          return ingredient.color && t.has(`catalog.colors.${ingredient.color}`)
-            ? t('quotes.editor.recipeItemColor', {
-                quantity: ingredient.quantity,
-                name,
-                color: t(`catalog.colors.${ingredient.color}`).toLocaleLowerCase('es-MX'),
-              })
-            : t('quotes.editor.recipeItem', { quantity: ingredient.quantity, name });
+          const text =
+            ingredient.color && t.has(`catalog.colors.${ingredient.color}`)
+              ? t('quotes.editor.recipeItemColor', {
+                  quantity: ingredient.quantity,
+                  name,
+                  color: t(`catalog.colors.${ingredient.color}`).toLocaleLowerCase('es-MX'),
+                })
+              : t('quotes.editor.recipeItem', { quantity: ingredient.quantity, name });
+          return ingredient.replaces
+            ? `${text} (${t('quotes.editor.recipeReplaces', { name: ingredientName(ingredient.replaces) })})`
+            : text;
         }),
       );
+    },
+    /** "Duración aprox. 2 h · Hasta 15 km" per i servizi (ADR-081). */
+    service(service: LineService | null): string | null {
+      return serviceSummary(t, service);
     },
     /** Prodotto del catalogo da aggiungere: nome, prezzo per unità ed eventuale disponibilità. */
     option(item: QuotableItemOption): { id: string; group: QuotableGroup; label: string } {

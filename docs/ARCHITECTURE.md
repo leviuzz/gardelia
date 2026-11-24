@@ -257,6 +257,15 @@ scrive un registro `USE` con quanto si è usato davvero; per gli ordini `reserve
 hechos" scrive un registro `USE` con la ricetta × N; il riepilogo del mese somma i movimenti non
 annullati nel calendario della fioreria.
 
+Sostituto e approvvigionamento (ADR-081): il sostituto di un ingrediente di un ramo cambia solo lo
+snapshot della riga del pedido (il nuovo fiore con `replaces`), mai il prezzo; le proposte e la
+regola del ramo sono nel dominio (`substitution.ts`), lettura e cambio in
+`services/order-substitutions.ts`, che dopo il cambio riallinea l'apartado dell'ordine
+(`syncOrderReservationTx`). `CatalogItem.supplierId` (FK composita a `Supplier`) alimenta "Por pedir"
+(`getRestockList` in `inventory-insights.ts`); durata e raggio dei servizi vanno nello snapshot della
+riga (`serviceForDisplay` in `line-internals.ts`) e il pedido misura la distanza in linea retta solo
+con coordinate di Google ancora valide.
+
 Floral Care (ADR-075): la fioreria imposta l'offerta (tariffa per uscita, care per misura della
 pianta, servizi, sovrapprezzo per distanza) e le fasce di uscita con la capienza (`CareSlot`). Il
 contratto (`CustomerSubscription`) nasce in borrador dalla scheda del cliente; alla conferma il

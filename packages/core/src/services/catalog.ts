@@ -37,6 +37,7 @@ import { notFound, recordAudit } from '../audit';
 import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
+import { requireEntitlement } from './billing';
 
 export interface CatalogItemDto {
   readonly id: string;
@@ -57,6 +58,12 @@ export interface CatalogItemDto {
   readonly prepMinutes: number | null;
   readonly heightCm: number | null;
   readonly widthCm: number | null;
+  /** Proveedor habitual (ADR-081). */
+  readonly supplierId: string | null;
+  readonly supplierName: string | null;
+  /** Servizi (ADR-081): durata indicativa in minuti e raggio in km dalla fioreria. */
+  readonly serviceDurationMinutes: number | null;
+  readonly serviceRadiusKm: number | null;
   readonly tags: readonly string[];
   /** Utilizzabile nel Bouquet Builder. */
   readonly isBuilderEnabled: boolean;
@@ -72,6 +79,8 @@ export interface CatalogItemDto {
 
 const itemInclude = {
   canonicalFlower: { select: { names: true } },
+  // Stesso tenant per costruzione (FK composita).
+  supplier: { select: { name: true } },
   recipe: { select: { _count: { select: { lines: true } } } },
   // Stesso tenant per costruzione (FK composita) e per RLS.
   photos: {
@@ -111,6 +120,10 @@ function toDto(item: ItemWithRelations, ctx: TenantContext): CatalogItemDto {
     prepMinutes: item.prepMinutes,
     heightCm: item.heightCm,
     widthCm: item.widthCm,
+    supplierId: item.supplierId,
+    supplierName: item.supplier?.name ?? null,
+    serviceDurationMinutes: item.serviceDurationMinutes,
+    serviceRadiusKm: item.serviceRadiusKm,
     tags: item.tags,
     isBuilderEnabled: item.isBuilderEnabled,
     isOnline: item.isOnline,
@@ -214,8 +227,39 @@ async function assertCanonicalCompatible(
   }
 }
 
+/**
+ * Il proveedor scelto (ADR-081): della fioreria, attivo e con il piano dell'inventario, che è dove
+ * i proveedores esistono. Quello che il prodotto ha già si può tenere anche se archiviato.
+ */
+async function assertSupplierUsable(
+  tx: Prisma.TransactionClient,
+  ctx: TenantContext,
+  supplierId: string | null | undefined,
+  current: string | null,
+): Promise<void> {
+  if (supplierId === undefined || supplierId === null || supplierId === current) return;
+  await requireEntitlement(ctx, 'inventory', tx);
+  const supplier = await tx.supplier.findFirst({
+    where: { tenantId: ctx.tenantId, id: supplierId, status: 'ACTIVE' },
+    select: { id: true },
+  });
+  if (!supplier) throw new ValidationError({ supplierId: 'invalid_option' });
+}
+
+/** I campi che il form manda solo a volte (ADR-081): assenti = non cambiarli. */
+function optionalItemData(input: CatalogItemInput) {
+  return {
+    ...(input.supplierId !== undefined ? { supplierId: input.supplierId } : {}),
+    ...(input.serviceDurationMinutes !== undefined
+      ? { serviceDurationMinutes: input.serviceDurationMinutes }
+      : {}),
+    ...(input.serviceRadiusKm !== undefined ? { serviceRadiusKm: input.serviceRadiusKm } : {}),
+  };
+}
+
 function itemData(input: CatalogItemInput) {
   return {
+    ...optionalItemData(input),
     name: input.name,
     description: input.description,
     sku: input.sku,
@@ -244,6 +288,7 @@ export async function createCatalogItem(
   try {
     return await withTenantContext(getDb(), ctx, async (tx) => {
       await assertCanonicalCompatible(tx, input);
+      await assertSupplierUsable(tx, ctx, input.supplierId, null);
       const created = await tx.catalogItem.create({
         data: {
           tenantId: ctx.tenantId,
@@ -284,6 +329,9 @@ const AUDITED_FIELDS = [
   'prepMinutes',
   'heightCm',
   'widthCm',
+  'supplierId',
+  'serviceDurationMinutes',
+  'serviceRadiusKm',
   'tags',
   'isBuilderEnabled',
   'isOnline',
@@ -307,6 +355,7 @@ export async function updateCatalogItem(
       if (!existing) return null;
       if (existing.type !== input.type) throw new ValidationError({ type: 'invalid_option' });
       await assertCanonicalCompatible(tx, input);
+      await assertSupplierUsable(tx, ctx, input.supplierId, existing.supplierId);
 
       const data = itemData(input);
       const changes = diffFields(existing, data, AUDITED_FIELDS);

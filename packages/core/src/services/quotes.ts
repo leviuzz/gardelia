@@ -49,7 +49,14 @@ import {
   recalculateTotals,
 } from './quote-internals';
 import { readStoredImage } from '../media/stored-files';
-import { catalogLineDraft, customLineDraft, lineRowData, recipeForDisplay } from './line-internals';
+import {
+  catalogLineDraft,
+  customLineDraft,
+  lineRowData,
+  recipeForDisplay,
+  serviceForDisplay,
+  type LineServiceInfo,
+} from './line-internals';
 
 // -----------------------------------------------------------------------------
 // DTO
@@ -96,6 +103,8 @@ export interface QuoteLineDto {
   /** Per le righe BUILDER: la disponibilità più critica fra i componenti. */
   readonly availability: Availability | null;
   readonly recipe: readonly QuoteRecipeLineSnapshot[] | null;
+  /** Servizi (ADR-081): durata e raggio come concordati nella riga. */
+  readonly service: LineServiceInfo | null;
   /**
    * Righe BUILDER: immagine del ramo agganciata quando la riga è nata (ADR-035). `source`:
    * `photo` = foto vera caricata dalla fioreria (ADR-052), `ai` = anteprima generata;
@@ -319,6 +328,7 @@ export async function getQuote(ctx: TenantContext, quoteId: string): Promise<Quo
         snapshot?.item?.availability ??
         worstAvailability((snapshot?.components ?? []).map((component) => component.availability)),
       recipe: recipeForDisplay(snapshot?.recipe),
+      service: serviceForDisplay(snapshot?.item),
       // La foto vera del ramo (ADR-052) ha la precedenza sull'anteprima AI.
       image: line.bouquetPhoto
         ? { source: 'photo', verified: false, simulated: false }

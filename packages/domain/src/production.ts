@@ -27,6 +27,8 @@ export interface ProductionLineInput {
     readonly variety: string | null;
     readonly saleUnit: SaleUnit;
   } | null;
+  /** Minuti per armare UNA unità (tiempo de armado del catalogo, ADR-081); null = non detto. */
+  readonly prepMinutes?: number | null;
 }
 
 export interface ProductionItem {
@@ -44,12 +46,18 @@ export interface ProductionSummary {
   readonly bouquets: number;
   /** Righe libere (es. "Globo metálico"): non hanno distinta, si elencano come sono. */
   readonly custom: readonly { readonly description: string; readonly quantity: number }[];
+  /** Tempo di armado stimato (ADR-081): somma dei minuti dei prodotti che lo dicono. */
+  readonly prepMinutes: number;
+  /** Ramos da armare senza un tempo nel catalogo (la stima non li conta). */
+  readonly bouquetsWithoutPrepTime: number;
 }
 
 export function aggregateProduction(lines: readonly ProductionLineInput[]): ProductionSummary {
   const items = new Map<string, { item: ProductionItem; quantity: number }>();
   const custom = new Map<string, number>();
   let bouquets = 0;
+  let prepMinutes = 0;
+  let bouquetsWithoutPrepTime = 0;
 
   const add = (entry: Omit<ProductionItem, 'quantity'>, quantity: number) => {
     const key = [entry.name, entry.variety ?? '', entry.color ?? '', entry.saleUnit].join('|');
@@ -60,6 +68,12 @@ export function aggregateProduction(lines: readonly ProductionLineInput[]): Prod
 
   for (const line of lines) {
     if (line.quantity <= 0) continue;
+    const isBouquet = Boolean(line.recipe && line.recipe.length > 0);
+    if (typeof line.prepMinutes === 'number' && line.prepMinutes > 0) {
+      prepMinutes += line.prepMinutes * line.quantity;
+    } else if (isBouquet) {
+      bouquetsWithoutPrepTime += line.quantity;
+    }
     if (line.recipe && line.recipe.length > 0) {
       bouquets += line.quantity;
       for (const ingredient of line.recipe) {
@@ -91,5 +105,7 @@ export function aggregateProduction(lines: readonly ProductionLineInput[]): Prod
     custom: [...custom.entries()]
       .map(([description, quantity]) => ({ description, quantity }))
       .sort((a, b) => a.description.localeCompare(b.description, 'es')),
+    prepMinutes,
+    bouquetsWithoutPrepTime,
   };
 }

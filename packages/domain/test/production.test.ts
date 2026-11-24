@@ -64,6 +64,40 @@ describe('producción del día', () => {
       },
     ]);
     expect(summary.items.map((item) => item.color)).toEqual(['red', 'white']);
-    expect(aggregateProduction([])).toEqual({ items: [], bouquets: 0, custom: [] });
+    expect(aggregateProduction([])).toEqual({
+      items: [],
+      bouquets: 0,
+      custom: [],
+      prepMinutes: 0,
+      bouquetsWithoutPrepTime: 0,
+    });
+  });
+
+  it('tempo di preparazione (ADR-081): minuti × quantità, i ramos senza tempo a parte', () => {
+    const recipe = [{ ...rose, quantity: 6 }];
+    const summary = aggregateProduction([
+      {
+        kind: 'CATALOG_ITEM',
+        description: 'Ramo',
+        quantity: 3,
+        item: null,
+        recipe,
+        prepMinutes: 25,
+      },
+      { kind: 'BUILDER', description: 'Diseño', quantity: 2, item: null, recipe },
+      // Un articolo sciolto con un tempo (una pianta da incartare) conta; senza tempo non avvisa.
+      {
+        kind: 'CATALOG_ITEM',
+        description: 'Orquídea',
+        quantity: 1,
+        item: rose,
+        recipe: null,
+        prepMinutes: 10,
+      },
+      { kind: 'CATALOG_ITEM', description: 'Rosa suelta', quantity: 4, item: rose, recipe: null },
+      { kind: 'CUSTOM', description: 'Globo', quantity: 1, item: null, recipe: null },
+    ]);
+    expect(summary.prepMinutes).toBe(85);
+    expect(summary.bouquetsWithoutPrepTime).toBe(2);
   });
 });

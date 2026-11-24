@@ -1,15 +1,36 @@
 import { getTranslations } from 'next-intl/server';
 import type { ProductionSummary } from '@floral/domain';
+import { formatDuration } from '@/lib/duration';
 
 /** Producción del día (ADR-057): quanto serve, sommato dalle distinte. Stessa lista a schermo e in stampa. */
 export async function ProductionList({ production }: { readonly production: ProductionSummary }) {
   const t = await getTranslations('orders.production');
   const tColors = await getTranslations('catalog.colors');
+  const tDuration = await getTranslations('duration');
   if (production.items.length === 0 && production.custom.length === 0) {
     return <p className="text-sm text-muted-foreground">{t('empty')}</p>;
   }
   return (
     <div className="grid gap-4">
+      {/* Tempo di armado (ADR-081): solo se il catalogo lo dice per almeno un prodotto. */}
+      {production.prepMinutes > 0 ? (
+        <p className="text-sm" data-testid="production-prep-time">
+          <span className="font-medium">
+            {t('prepTime', {
+              duration: formatDuration(
+                (key, values) => tDuration(key, values),
+                production.prepMinutes,
+              ),
+            })}
+          </span>
+          {production.bouquetsWithoutPrepTime > 0 ? (
+            <span className="text-muted-foreground">
+              {' · '}
+              {t('prepUnknown', { count: production.bouquetsWithoutPrepTime })}
+            </span>
+          ) : null}
+        </p>
+      ) : null}
       {production.items.length > 0 ? (
         <table className="w-full text-sm">
           <caption className="sr-only">{t('itemsCaption')}</caption>
