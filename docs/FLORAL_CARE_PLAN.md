@@ -364,11 +364,19 @@ rilascio su staging) e lascia qualcosa di usabile.
    - **2b (fatto, ADR-078):** visita extra (in un orario o a un'ora libera, con il costo calcolato
      dal server), reposición delle piante morte (sin costo, alla prossima visita, cotización o no se
      repone) e cambio di stagione con la cotización legata al contratto.
-3. **Cargos e pagamenti.**
-   - Cargo del mese, proporzione del primo mese, crediti ed extra sul mese dopo.
-   - Pagamenti e storni, "en retraso".
-   - Estado de cuenta per più sedi.
-   - Voci nella cronologia del cliente.
+3. **Cargos e pagamenti**, in due rilasci (decisioni del founder del 24/11: "Días para pagar"
+   scelti dalla fioreria, 10 di default; il cliente che non apre paga la visita e il recupero è
+   gratis; un solo pagamento sull'estado de cuenta per tutte le sedi; lo staff segna gli incassi
+   "por registrar").
+   - **3a (fatto, ADR-079):** cargo del mese alla conferma (con le visite che restano) e ogni mese
+     dal lavoro giornaliero; crediti, debiti, visite extra e servizi "una sola vez" sul cargo del
+     mese dopo; prezzo copiato in ogni cargo; saldo a favore portato avanti e devolución nel cargo
+     finale; pagamenti su un cargo o distribuiti sull'estado de cuenta, storni; Cobros con i
+     vencidos; regole copiate nel contratto; causa di "No se pudo"; voci nella cronologia;
+     riquadro nel pannello.
+   - **3b:** "Cobré en la visita" (por registrar, confermato o rifiutato da chi gestisce), "Por
+     recuperar" con la visita extra "Sin costo" legata alla visita mancata, "Ajuste para el
+     próximo cargo".
 4. **Blocchi, vacanze e cambi di massa.**
    - Blocchi di giorni o fasce, giorni di punta proposti.
    - Elenco dei clienti toccati, spostamento o credito di tutte le visite insieme, email

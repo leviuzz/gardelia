@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 24 novembre 2026 (Floral Care, la visita dal telefono e le visite extra, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 24 novembre 2026 (Floral Care, cargos e pagamenti, ADR-079; la visita dal telefono e le visite extra, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -2333,6 +2333,94 @@ di Clientes; una visita extra si fissa in un orario di visita oppure a un'ora li
   coerente con la cotización o la visita che l'hanno chiusa.
 - **Non fatto (2b):** il cliente che chiede una visita extra dal portale (blocco 5); i cargos delle
   visite extra (blocco 3); il collegamento inverso dalla cotización al contratto nell'editor.
+
+### ADR-079 — Floral Care, blocco 3: cargos e pagamenti dei contratti — ADOTTATO (24/11/2026)
+
+Blocco 3 del piano approvato (`docs/FLORAL_CARE_PLAN.md` §3 e §7), chiesto dal founder ("ok vai col
+blocco 3") e diviso in due rilasci: 3a (questo) e 3b ("Cobré en la visita" per lo staff, "Por
+recuperar", "Ajuste para el próximo cargo"). Il founder ha deciso il 24/11:
+
+1. scadenza con i **"Días para pagar"** scelti da ogni fioreria (Ajustes → Floral Care, 10 di
+   default);
+2. il cliente che non apre, con «Se agenda otra visita»: **la visita mancata si paga e il recupero
+   è gratis** (3b);
+3. più sedi: **un solo pagamento sull'estado de cuenta**, distribuito sui cargos più vecchi; resta
+   possibile pagare un cargo alla volta;
+4. lo staff segna gli incassi alla visita come "por registrar" già nel blocco 3 (3b).
+
+- **Una regola sola, per visita** (dominio, `floral-care-charges.ts`):
+  - una visita del calendario è **dovuta** se non è "Por reprogramar" e non l'ha tolta la fioreria
+    (cancellata dalla fioreria, cambio di calendario, fine del contratto, "No pudimos ir");
+  - all'emissione del mese P si confronta "dovuta" con "cobrada" (`CareVisitBilling`): dovute e
+    mai cobrate del mese → riga delle visite al prezzo di P; dei mesi prima → debito al prezzo del
+    cargo del loro mese (o di oggi se quel mese non ha cargo); cobrate e non più dovute → credito;
+  - una visita chiusa con lo stato pari diventa stabile e non si guarda più; le altre si
+    riguardano ogni mese. Così una visita spostata in un altro mese si paga una volta, una cobrada
+    che diventa "Por reprogramar" si accredita e si cobra di nuovo quando torna dovuta, una nata
+    dopo il cargo si cobra il mese dopo;
+  - visite extra fatte con la tariffa per visita e servizi EXTRA "una sola vez" fatti (al prezzo
+    copiato quando la squadra li segna): una volta, nel cargo dopo la visita. Il commento "nel
+    primo mese" di `priceCareVisit` è corretto;
+  - il cargo emesso non cambia più: ogni variazione va sul cargo del mese dopo (§3 del piano).
+- **Prezzo:** ogni cargo salva il prezzo per visita e la versione del prezzo. Un cambio di prezzo
+  vale dal mese dopo: `repriceCareContract` emette prima il mese in corso, se manca.
+- **Saldo a favore:** con il contratto attivo un cargo non va sotto zero, l'eccedenza passa al
+  cargo dopo (coppia di righe, unica per cargo d'origine). Il cargo dopo l'ultimo giorno del
+  contratto resta "A favor del cliente" e si chiude con "Registrar devolución".
+- **Quando nasce:** alla conferma del contratto (il mese in corso, con le visite che restano: la
+  proporzione viene da sola) e poi dal lavoro giornaliero dal giorno 1, **prima** degli altri
+  lavori di Floral Care, con il suo tetto di tempo (`app_care_contracts_to_charge`, solo ID). Un
+  mese per transazione, fino a 3 per contratto in un giro; quelli che restano li prende il giro
+  dopo (`careChargesPending` nel risultato della manutenzione, con un warning nel log). Un
+  contratto finito si guarda finché ha visite non sistemate o un saldo a favore da portare nel
+  cargo finale. Un mese si emette una volta (chiave unica per contratto e mese). Numero `CAR-0001`.
+- **Scadenza:** dal primo del mese, o dal giorno in cui il cargo nasce se è dopo (un lavoro in
+  ritardo o una conferma a metà mese), più i "Días para pagar". Lo stato (pendiente, parcial,
+  vencido, pagado, sin saldo, a favor, devuelto) si calcola in lettura nel giorno della fioreria.
+- **Ordine dei blocchi:** l'emissione blocca il contratto, legge le visite e scrive solo le sue
+  tabelle: il cargo non aggiorna mai `CareVisit` (il cambio di una fascia aggiorna le visite senza
+  bloccare il contratto; la sua modifica, se arriva dopo, va sul cargo del mese dopo). I pagamenti
+  bloccano i cargos toccati in ordine di id (uno storno prima il suo movimento), mai contratti o
+  visite: non si incrociano con l'emissione. Provato insieme a "Terminar", a uno spostamento e al
+  cambio di una fascia.
+- **Pagamenti** (`care-payments.ts`, registrati a mano come gli ordini, D-26):
+  - su un cargo, mai oltre il saldo; sull'estado de cuenta, distribuiti dal cargo più vecchio;
+  - "Anular": uno storno di segno opposto su tutti i cargos toccati, una volta sola (anche con due
+    richieste insieme); una devolución si annulla allo stesso modo, uno storno no;
+  - la chiave del modulo (`submitKey`) fa sì che lo stesso invio arrivato due volte non raddoppi;
+  - le distribuzioni portano il cliente nelle due chiavi esterne: il database non lascia mettere un
+    pagamento sui cargos di un altro cliente. Pagato e saldo del cargo sono controllati (CHECK).
+  - Nel registro numeri e importi, mai referencia o nota.
+- **Pagine:** "Cobros" (Floral Care → Cobros: por cobrar, vencidos, pagados, a favor; mese,
+  ricerca, totali), la pagina del cargo (righe, pagamenti, stampa con l'intestazione nella lingua
+  del mercato e "Precios finales, sin impuestos", O-06: non è una factura), l'estado de cuenta del
+  cliente (tutte le sedi, stampabile), la card "Cargos" e le regole nel contratto, l'etichetta
+  "Vencido" negli elenchi, il riquadro "Cobros de Floral Care" nel pannello, la cronologia del
+  cliente (cargo emesso, pagamenti), "Días para pagar" nelle impostazioni.
+- **"No se pudo" chiede perché:** "El cliente no abrió" si paga (con «Cuenta como hecha» per la
+  regola stessa, con «Se agenda otra visita» per la decisione 2) o "No pudimos ir" (credito). Le
+  visite "No se pudo" di prima valgono come il cliente che non apre.
+- **Regole copiate nel contratto:** alla conferma il contratto copia le regole della fioreria
+  (cliente che non apre, piante morte): valgono per tutto il contratto, e i suggerimenti delle
+  piante morte (2b) usano queste. Per i contratti già confermati la migrazione ha copiato quelle
+  di oggi.
+- **PROPOSTO (si cambia facilmente):**
+  - una visita cancellata dal cliente si paga, come quella mancata;
+  - i soldi (cargos, pagamenti, estado de cuenta, riquadro, etichetta "Vencido", voci della
+    cronologia) li vede solo chi ha `subscriptions:payments` (proprietario e gerente);
+  - emettere, leggere e cobrar i cargos dei contratti firmati non chiede il piano: un cambio di
+    piano non ferma i contratti e la fioreria deve poter cobrar.
+- **Dati:** migrazione M4 con soli enum nuovi (`CareChargeLineKind`, `CareCreditReason`,
+  `CarePaymentKind`, `CarePaymentStatus`, `CareNotDoneCause`), le tabelle `CareCharge`,
+  `CareChargeLine`, `CareVisitBilling`, `CarePayment`, `CarePaymentAllocation` con RLS e vincoli,
+  le colonne `CareVisit.notDoneCause`, `CareVisitServiceResult.priceMinor`,
+  `CustomerSubscription.chargedThrough/missedVisitPolicy/deadPlantPolicy`,
+  `CareSettings.paymentDueDays`. `CarePayment` ha già stato e visita per il 3b.
+- **Dialoghi:** il dialogo condiviso scorre da solo negli schermi bassi (anche i moduli di
+  pagamento si vedono interi a 320 px); tolte le due eccezioni del 2b.
+- **Non fatto (3a):** "Cobré en la visita" (por registrar), "Por recuperar" e gli ajustes (3b);
+  pagamenti online dei contratti (fuori dal perimetro, §9 del piano); factura e IVA (O-06, da
+  validare con il contador).
 
 ## 3. Proposte da approvare
 

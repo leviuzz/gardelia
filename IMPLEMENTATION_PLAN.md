@@ -1011,8 +1011,8 @@ Verifiche locali, dopo l'unione con staging (verifica in due passaggi, dati dell
 - **Cambio di stagione:** piante "De temporada" fuori dal prezzo; la scheda del contratto guida
   cotización, piante, installazione e ritiro, e mostra le cotizaciones del contratto; alla fine del
   ritiro le piante di temporada si archiviano (casella attiva).
-- I due dialoghi lunghi (visita extra, piante) ora scorrono dentro lo schermo. Lo stesso manca nel
-  dialogo condiviso: da sistemare per tutti (`components/ui/dialog.tsx`).
+- I due dialoghi lunghi (visita extra, piante) ora scorrono dentro lo schermo (poi esteso a tutti
+  nel blocco 3a).
 
 Verifiche locali:
 
@@ -1030,8 +1030,54 @@ Verifiche locali:
 - controllo a 320 px di contratto, dialogo della visita extra, avvisi e Agenda (la riga di una
   visita extra nel contratto sbordava di 6 px: corretta).
 
-Prossimo: il blocco 3 di `docs/FLORAL_CARE_PLAN.md` (cargos e pagamenti), con le regole del
-contratto copiate alla firma.
+**Floral Care, blocco 3a (fatto il 24/11, ADR-079):** "ok vai col blocco 3" del founder, con le
+sue quattro decisioni del 24/11 ("Días para pagar" della fioreria, 10 di default; il cliente che
+non apre paga la visita e il recupero è gratis; un solo pagamento sull'estado de cuenta per tutte
+le sedi; lo staff segna gli incassi "por registrar"). Diviso in 3a (questo) e 3b.
+
+- **Cargo del mese** (`CAR-0001`): nasce alla conferma per il mese in corso, con le visite che
+  restano, e poi ogni mese dal lavoro giornaliero (prima degli altri lavori di Floral Care, con il
+  suo tetto di tempo; un contratto rimasto indietro recupera un mese alla volta). Non cambia più:
+  crediti (visite tolte dalla fioreria, "No pudimos ir", visite cobrate che diventano "Por
+  reprogramar"), debiti (visite dovute mai cobrate), visite extra fatte e servizi "una sola vez"
+  fatti vanno sul cargo del mese dopo. Prezzo copiato in ogni cargo: un cambio di prezzo emette
+  prima il mese in corso al prezzo vecchio. Con il contratto attivo un cargo non va sotto zero (il
+  saldo a favore passa al cargo dopo); il cargo dopo la fine può restare a favore del cliente e si
+  chiude con "Registrar devolución".
+- **Pagamenti:** su un cargo o sull'estado de cuenta (distribuito sui cargos più vecchi), "Anular"
+  con lo storno (una volta sola), devolución; chiave del modulo contro il doppio invio; il cliente
+  nelle chiavi esterne delle distribuzioni.
+- **Pagine:** Floral Care → Cobros (por cobrar, vencidos, pagados, a favor; mese, ricerca, totali);
+  pagina del cargo con le righe, i pagamenti e la stampa (intestazione e lingua del mercato,
+  "Precios finales, sin impuestos"); estado de cuenta del cliente (tutte le sedi, stampabile); card
+  "Cargos" e "Reglas del contrato" nel contratto; "Vencido" negli elenchi; riquadro nel pannello;
+  cargos e pagamenti nella cronologia del cliente; "Días para pagar" nelle impostazioni; la causa in
+  "No se pudo". I soldi li vede solo chi ha `subscriptions:payments` (PROPOSTO).
+- **Regole copiate nel contratto** alla conferma (cliente che non apre, piante morte); i contratti
+  già confermati hanno preso quelle di oggi con la migrazione.
+- Il dialogo condiviso ora scorre da solo negli schermi bassi (chiusa la nota del 2b).
+
+Verifiche locali:
+
+- lint ✅ · format ✅ · typecheck ✅ · migrazioni = schema ✅ · build ✅;
+- test 1056/1056 ✅: 23 nuovi di dominio (visita dovuta, mesi da emettere, righe del mese con
+  proporzione, spostamenti, "Por reprogramar", crediti e debiti, extra e "una sola vez", cargo
+  finale, scadenza, stati, distribuzione, moduli) e 18 d'integrazione (cargo alla conferma, lavoro
+  idempotente e senza utente, mesi saltati, crediti del mese dopo, extra e servizi una volta, cambio
+  di calendario, cargo finale e devolución, cambio di prezzo, pagamenti parziali e oltre il saldo,
+  storno una volta anche in parallelo, due pagamenti insieme, chiave del modulo, estado de cuenta
+  su due sedi, permessi, isolamento A↔B con evento, FK sul cliente, emissione insieme a
+  "Terminar", spostamento e cambio di fascia, vencidos nel pannello e negli elenchi);
+- E2E: esecuzione completa 94/103. I 9 falliti (ordini, cotizaciones, link pubblici) cercavano
+  "Hotel Casa Fuentes" fra i primi 20 clienti dell'elenco, ma il DB locale, dopo molte esecuzioni,
+  ne aveva 186. Ora quei test cercano il cliente per nome (`e2e/support/customers.ts`). Gli 8 file
+  rilanciati: 28/28 ✅; cotizaciones e link pubblici ripetuti 3 volte: 24/24 ✅. Floral Care 5/5 ✅,
+  compreso il nuovo "cargos y pagos";
+- controllo a 320 px di pannello, Cobros, cargo, dialogo del pagamento, estado de cuenta, contratto,
+  elenco e impostazioni: nessuno sbordo.
+
+Prossimo: il blocco 3b ("Cobré en la visita" per lo staff, "Por recuperar", "Ajuste para el
+próximo cargo").
 
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
@@ -1047,8 +1093,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 3. Inventario: fatto (blocchi 1–4, ADR-060…063), con lo scarico (ADR-071) e gli apartados
    (ADR-072) dagli ordini.
 4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
-5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075) e 2 (ADR-078) fatti; blocchi 3–7 in
-   `docs/FLORAL_CARE_PLAN.md`.
+5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078) e 3a (ADR-079) fatti;
+   3b e blocchi 4–7 in `docs/FLORAL_CARE_PLAN.md`.
 6. Report.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.
 8. Abbonamento a pagamento sui livelli Esencial e Profesional (D-23; Stripe in modalità di prova) e
