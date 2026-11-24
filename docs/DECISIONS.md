@@ -1382,6 +1382,15 @@ delle zone per codice postale.
   coordinate (il punto non è più quello di Google); interno, colonia e CP no, perché completano
   l'indirizzo senza spostarlo e Google spesso non li dà. Coordinate non valide si scartano senza
   bloccare il salvataggio. Un ordine che usa un indirizzo della rubrica ne copia luogo e data.
+  **Aggiunta del 24/11/2026** (visto dal founder su staging):
+  - se Google ha trovato una zona senza via (una colonia, un fraccionamiento), la via scritta a mano
+    completa l'indirizzo dentro quella zona e il punto resta;
+  - place ID e coordinate stanno nello stato del componente e non vengono scritti a mano nei campi
+    nascosti: React riscriveva il loro valore predefinito a ogni nuovo disegno del form, e il punto
+    scelto spariva prima dell'invio (tienda mai sulla mappa, costo per distanza perso nel pedido
+    fra un passo e l'altro);
+  - nella sede della fioreria il form dice se la tienda è sulla mappa. "Mi tienda en línea" avvisa
+    quando non lo è: allora la trova solo chi cerca la città (ADR-066).
 - **Costi:** sessioni di Places (New): i suggerimenti di una ricerca che finisce con un indirizzo
   scelto non si pagano; si paga la "Place Details Essentials" (campi `id`, `addressComponents`,
   `location`), con una quota gratuita mensile (circa 10.000 dal 1° marzo 2025, da ricontrollare sul

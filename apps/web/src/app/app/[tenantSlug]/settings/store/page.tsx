@@ -1,13 +1,14 @@
-import { ArrowLeft, Check, CircleAlert, EyeOff, Globe } from 'lucide-react';
+import { ArrowLeft, Check, CircleAlert, EyeOff, Globe, MapPinOff } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { getOnlineStoreSettings, hasPermission } from '@floral/core';
+import { getOnlineStoreSettings, getPlacesProvider, hasPermission } from '@floral/core';
 import { whatsappShareLink } from '@floral/domain';
 import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import { ActionButton } from '@/components/form/action-button';
 import { Forbidden } from '@/components/forbidden';
 import { PageHeader } from '@/components/page-header';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -88,6 +89,21 @@ export default async function StoreSettingsPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
+          {/* Senza la posizione di Google la tienda la trova solo chi cerca la città (ADR-066). */}
+          {!settings.onMap && getPlacesProvider() !== null ? (
+            <Alert variant="warning" data-testid="store-off-map">
+              <MapPinOff aria-hidden="true" />
+              <AlertDescription className="space-y-1">
+                <p>{t('store.offMap')}</p>
+                <Link
+                  href={`${routes.settings.general}#location`}
+                  className="font-medium underline-offset-4 hover:underline"
+                >
+                  {t('store.offMapAction')}
+                </Link>
+              </AlertDescription>
+            </Alert>
+          ) : null}
           {settings.isPublished ? (
             <>
               <StoreLinkCard

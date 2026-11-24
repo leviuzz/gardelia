@@ -7,6 +7,8 @@ import { fieldError, idleState, type ActionState } from '@/lib/action-state';
 import { useActionToast, useToastActionState } from '@/lib/use-action-toast';
 
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+// I testi arrivano dal provider dell'app: qui basta la chiave.
+vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 
 /**
  * Gli hook dei toast con React vero (happy-dom) e un rendering lento: l'errore accanto al campo
@@ -158,5 +160,34 @@ describe('useToastActionState: successo', () => {
     await until(() => vi.mocked(toast.success).mock.calls.length > 0);
     expect(toast.success).toHaveBeenCalledWith('Franja agregada.');
     expect(toast.error).not.toHaveBeenCalled();
+  });
+});
+
+describe('useToastActionState: pagina rimasta alla versione precedente', () => {
+  it("niente pagina d'errore: il form resta e un avviso offre di ricaricare", async () => {
+    // L'errore che Next lancia nel browser quando il server non conosce più l'azione.
+    const stale = Object.assign(new Error('Server Action "70a1" was not found on the server.'), {
+      name: 'UnrecognizedActionError',
+    });
+    root.render(
+      <ToastStateForm
+        action={async () => {
+          throw stale;
+        }}
+        renderDone={Promise.resolve()}
+      />,
+    );
+    await until(() => container.querySelector('button') !== null);
+    container.querySelector('button')!.click();
+    await until(() => vi.mocked(toast.error).mock.calls.length > 0);
+    expect(toast.error).toHaveBeenCalledWith(
+      'toast',
+      expect.objectContaining({
+        id: 'stale-version',
+        action: expect.objectContaining({ label: 'reload' }),
+      }),
+    );
+    // Il form è ancora lì (nessun confine d'errore ha preso il posto del componente).
+    expect(container.querySelector('button')?.textContent).toBe('Agregar');
   });
 });
