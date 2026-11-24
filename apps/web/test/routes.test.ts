@@ -58,6 +58,17 @@ describe('percorsi della fioreria (routes.ts)', () => {
     );
   });
 
+  it('Floral Care: cobros, cargo del contratto ed estado de cuenta (ADR-079)', () => {
+    expect(routes.subscriptions.charges()).toBe('/app/las-camelias/subscriptions/charges');
+    expect(routes.subscriptions.charges({ view: 'overdue', month: '2026-11' })).toBe(
+      '/app/las-camelias/subscriptions/charges?view=overdue&month=2026-11',
+    );
+    expect(routes.subscriptions.charge('s1', 'c/1')).toBe(
+      '/app/las-camelias/subscriptions/s1/charges/c%2F1',
+    );
+    expect(routes.customers.statement('c1')).toBe('/app/las-camelias/customers/c1/statement');
+  });
+
   it('la query contiene solo i valori presenti, nell’ordine dato', () => {
     expect(
       routes.catalog.list({ q: 'rosa roja', type: undefined, status: 'ARCHIVED', page: 2 }),

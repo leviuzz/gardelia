@@ -40,6 +40,7 @@ import {
   type CareExtraKind,
 } from '@floral/domain';
 import { ContractStatusBadge, ExtraVisitBadge, VisitStatusBadge } from '@/components/care/care-ui';
+import { ContractChargesCard } from '@/components/care/contract-charges-card';
 import { CareUpsell } from '@/components/care/care-upsell';
 import {
   CareDetailsDialog,
@@ -624,6 +625,13 @@ export default async function CareContractPage({
         </div>
 
         <div className="min-w-0 space-y-6">
+          {contract.canPayments ? (
+            <ContractChargesCard
+              ctx={ctx}
+              subscriptionId={contract.id}
+              customerId={contract.customer.id}
+            />
+          ) : null}
           {isActive && (canWrite || contractQuotes.length > 0) ? (
             <Card>
               <CardHeader>
@@ -888,6 +896,21 @@ export default async function CareContractPage({
               )}
             </CardContent>
           </Card>
+
+          {contract.rules ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('care.rules.title')}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <ul className="list-disc space-y-1 pl-5">
+                  <li>{t(`care.rules.missed.${contract.rules.missedVisitPolicy}`)}</li>
+                  <li>{t(`care.rules.deadPlant.${contract.rules.deadPlantPolicy}`)}</li>
+                </ul>
+                <p className="text-xs text-muted-foreground">{t('care.rules.subtitle')}</p>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 import {
   CARE_FREQUENCIES,
+  CARE_CHARGE_LIMITS,
   CARE_LIMITS,
   CARE_SERVICE_UNITS,
   DEAD_PLANT_POLICIES,
@@ -61,6 +62,8 @@ export interface CareOfferDefaults {
   readonly minNoticeHours: string;
   readonly missedVisitPolicy: string;
   readonly deadPlantPolicy: string;
+  /** "Días para pagar" un cargo (ADR-079). */
+  readonly paymentDueDays: string;
   readonly termsText: string;
 }
 
@@ -224,6 +227,24 @@ export function CareOfferForm({
             </label>
           ))}
         </fieldset>
+
+        <Field
+          id="care-due-days"
+          label={t('paymentDueDays')}
+          hint={t('paymentDueDaysHint')}
+          error={err('paymentDueDays')}
+        >
+          <Input
+            {...controlProps('care-due-days', err('paymentDueDays'), true)}
+            name="paymentDueDays"
+            type="number"
+            inputMode="numeric"
+            min={CARE_CHARGE_LIMITS.dueDaysMin}
+            max={CARE_CHARGE_LIMITS.dueDaysMax}
+            defaultValue={defaults.paymentDueDays}
+            className="sm:max-w-40"
+          />
+        </Field>
 
         <Field id="care-terms" label={t('terms')} hint={t('termsHint')} error={err('termsText')}>
           <Textarea

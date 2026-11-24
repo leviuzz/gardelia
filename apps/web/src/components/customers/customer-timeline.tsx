@@ -6,6 +6,7 @@ import {
   Package,
   PackageCheck,
   PackageX,
+  Receipt,
   Sprout,
   Ticket,
   UserPlus,
@@ -37,6 +38,10 @@ function EventIcon({ event }: { readonly event: CustomerTimelineEvent }) {
       return <Ticket />;
     case 'care_visit':
       return <Sprout />;
+    case 'care_charge':
+      return <Receipt />;
+    case 'care_payment':
+      return <Banknote />;
   }
 }
 
@@ -142,6 +147,34 @@ export async function CustomerTimeline({
               : t('customers.timeline.careVisitNotDone', { number: event.number }),
           detail: null,
           href: routes.agenda.visit(event.visitId),
+        };
+      case 'care_charge':
+        return {
+          text: t('customers.timeline.careCharge', {
+            number: event.number,
+            month: format.dateTime(new Date(`${event.period}T12:00:00Z`), {
+              month: 'long',
+              year: 'numeric',
+              timeZone: 'UTC',
+            }),
+          }),
+          detail: money(event.totalMinor, event.currency),
+          href: routes.subscriptions.charge(event.subscriptionId, event.chargeId),
+        };
+      case 'care_payment':
+        return {
+          text:
+            event.paymentKind === 'REVERSAL'
+              ? t('customers.timeline.carePaymentReversed', {
+                  amount: money(event.amountMinor, event.currency),
+                })
+              : t('customers.timeline.carePayment', {
+                  kind: t(`care.payment.kinds.${event.paymentKind}`),
+                  amount: money(Math.abs(event.amountMinor), event.currency),
+                  method: t(`orders.methods.${event.method}`),
+                }),
+          detail: null,
+          href: routes.customers.statement(customerId),
         };
     }
   }

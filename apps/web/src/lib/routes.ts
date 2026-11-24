@@ -74,6 +74,8 @@ export function tenantRoutes(slug: string) {
       new: `${customers}/new`,
       detail: (customerId: string, query?: QueryValues) =>
         withQuery(`${customers}/${segment(customerId)}`, query),
+      /** Estado de cuenta di Floral Care (ADR-079): tutte le sedi, cargos e pagamenti. */
+      statement: (customerId: string) => `${customers}/${segment(customerId)}/statement`,
       /** Import da CSV (ADR-070): caricamento del file, poi anteprima e risultato. */
       import: {
         new: `${customers}/import`,
@@ -159,6 +161,11 @@ export function tenantRoutes(slug: string) {
         withQuery(`${subscriptions}/${segment(subscriptionId)}`, query),
       /** Modifica della bozza (stesso modulo della creazione). */
       edit: (subscriptionId: string) => `${subscriptions}/${segment(subscriptionId)}/edit`,
+      /** Cobros (ADR-079): `view` (open, overdue, paid, credit), `month` (AAAA-MM), `q`, `page`. */
+      charges: (query?: QueryValues) => withQuery(`${subscriptions}/charges`, query),
+      /** Un cargo del contratto: righe, pagamenti, stampa. */
+      charge: (subscriptionId: string, chargeId: string) =>
+        `${subscriptions}/${segment(subscriptionId)}/charges/${segment(chargeId)}`,
     },
     /** Agenda dei lavori (ADR-075): il giorno con visite e consegne, il mese, le visite da riprogrammare. */
     agenda: {
