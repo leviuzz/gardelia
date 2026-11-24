@@ -1,16 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import {
   allocateCarePayment,
+  careAdjustmentSchema,
   careBillingPeriods,
   careChargeDueDate,
   careChargeListFiltersSchema,
   careChargeStatus,
+  careCollectionConfirmSchema,
+  careCollectionRejectSchema,
   careCreditReason,
   careExtraVisitCharge,
   careNotDoneSchema,
   carePaymentSchema,
   careSettingsSchema,
+  careVisitCollectionSchema,
   careVisitOwed,
+  careVisitRecoverable,
   formatCareChargeNumber,
   isCareChargeOpen,
   planCareChargeLines,
@@ -545,5 +550,104 @@ describe('cargos: i moduli', () => {
       month: null,
     });
     expect(formatCareChargeNumber(12)).toBe('CAR-0012');
+  });
+});
+
+describe('cargos: blocco 3b', () => {
+  it('gli ajustes entrano una volta nel cargo dopo, con il segno e il motivo', () => {
+    const result = plan({
+      visits: [visit({ date: '2026-12-08' })],
+      adjustments: [
+        { id: 'a-1', amountMinor: -10_000, reason: 'Descuento por la visita del 3' },
+        { id: 'a-2', amountMinor: 2_500, reason: 'Maceta extra' },
+      ],
+    });
+    expect(result.lines.map((item) => [item.kind, item.amountMinor, item.adjustmentId])).toEqual([
+      ['VISITS', 49_000, null],
+      ['ADJUSTMENT', -10_000, 'a-1'],
+      ['ADJUSTMENT', 2_500, 'a-2'],
+    ]);
+    expect(result.lines[1]).toMatchObject({
+      label: 'Descuento por la visita del 3',
+      quantity: 1,
+      unitPriceMinor: 10_000,
+    });
+    expect(result.totalMinor).toBe(41_500);
+  });
+
+  it('un ajuste a favore più grande del cargo passa come saldo al cargo dopo', () => {
+    const result = plan({
+      adjustments: [{ id: 'a-3', amountMinor: -60_000, reason: 'Error en noviembre' }],
+    });
+    expect(result.lines.map((item) => [item.kind, item.amountMinor])).toEqual([
+      ['ADJUSTMENT', -60_000],
+      ['CREDIT_CARRIED_OUT', 60_000],
+    ]);
+    expect(result.totalMinor).toBe(0);
+    // Nel cargo finale resta a favore del cliente.
+    const last = plan({
+      final: true,
+      adjustments: [{ id: 'a-4', amountMinor: -60_000, reason: 'Error en noviembre' }],
+    });
+    expect(last.totalMinor).toBe(-60_000);
+  });
+
+  it('"Por recuperar": solo le visite del calendario mancate per il cliente, con «Se agenda otra visita»', () => {
+    const missed = { isExtra: false, status: 'NOT_DONE', notDoneCause: 'CUSTOMER' } as const;
+    expect(careVisitRecoverable(missed, 'RECOVER')).toBe(true);
+    expect(careVisitRecoverable({ ...missed, notDoneCause: null }, 'RECOVER')).toBe(true);
+    expect(careVisitRecoverable(missed, 'COUNTS')).toBe(false);
+    expect(careVisitRecoverable(missed, null)).toBe(false);
+    expect(careVisitRecoverable({ ...missed, notDoneCause: 'SHOP' }, 'RECOVER')).toBe(false);
+    expect(careVisitRecoverable({ ...missed, isExtra: true }, 'RECOVER')).toBe(false);
+    expect(careVisitRecoverable({ ...missed, status: 'DONE' }, 'RECOVER')).toBe(false);
+  });
+
+  it('i moduli di incasso, conferma, rifiuto e ajuste', () => {
+    const collection = careVisitCollectionSchema('MXN');
+    expect(collection.parse({ amount: '450', method: 'CASH', note: '' })).toEqual({
+      amount: 45_000,
+      method: 'CASH',
+      note: null,
+      submitKey: null,
+    });
+    expect(errors(collection.safeParse({ amount: '0', method: 'CASH' }))).toMatchObject({
+      amount: 'care_payment_zero',
+    });
+    expect(errors(collection.safeParse({ amount: '100', method: '' }))).toMatchObject({
+      method: 'required',
+    });
+
+    const confirm = careCollectionConfirmSchema('MXN');
+    expect(confirm.parse({ amount: '400', reference: '' })).toEqual({
+      amount: 40_000,
+      reference: null,
+    });
+    expect(errors(confirm.safeParse({ amount: '' }))).toHaveProperty('amount');
+
+    expect(errors(careCollectionRejectSchema.safeParse({ reason: '  ' }))).toMatchObject({
+      reason: 'required',
+    });
+    expect(careCollectionRejectSchema.parse({ reason: 'No estaba en caja' })).toEqual({
+      reason: 'No estaba en caja',
+    });
+
+    const adjustment = careAdjustmentSchema('MXN');
+    expect(adjustment.parse({ direction: 'CREDIT', amount: '100', reason: 'Descuento' })).toEqual({
+      amountMinor: -10_000,
+      reason: 'Descuento',
+    });
+    expect(adjustment.parse({ direction: 'DEBIT', amount: '25.50', reason: 'Maceta' })).toEqual({
+      amountMinor: 2_550,
+      reason: 'Maceta',
+    });
+    expect(errors(adjustment.safeParse({ direction: '', amount: '0', reason: '' }))).toMatchObject({
+      direction: 'required',
+      amount: 'care_payment_zero',
+      reason: 'required',
+    });
+    expect(
+      errors(adjustment.safeParse({ direction: 'DEBIT', amount: '1', reason: 'x'.repeat(121) })),
+    ).toMatchObject({ reason: 'too_long' });
   });
 });

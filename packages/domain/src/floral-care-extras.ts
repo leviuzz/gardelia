@@ -82,7 +82,8 @@ function requiredEnum<const T extends readonly [string, ...string[]]>(values: T)
 /**
  * Nuova visita extra: tipo, giorno con fascia o ora libera, costo (con la cotización se è "en la
  * cotización"), nota e persona. `followUpId`: l'avviso di una pianta morta che questa visita
- * risolve ("Reposición sin costo").
+ * risolve ("Reposición sin costo"). `recoveryOfVisitId` (blocco 3b): la visita mancata che questa
+ * recupera, sempre "Sin costo" (la visita mancata resta cobrada, decisione del founder del 24/11).
  */
 export const careExtraVisitSchema = z
   .object({
@@ -93,11 +94,15 @@ export const careExtraVisitSchema = z
     note: optionalText(CARE_EXTRA_LIMITS.note),
     assignee: optionalUuidField,
     followUpId: optionalUuidField,
+    recoveryOfVisitId: optionalUuidField,
   })
   .superRefine((value, ctx) => {
     checkCarePlacement(value, ctx);
     if (value.fee === 'QUOTE' && !value.quoteId) {
       ctx.addIssue({ code: 'custom', path: ['quoteId'], message: 'required' });
+    }
+    if (value.recoveryOfVisitId && (value.kind !== 'EXTRA' || value.fee !== 'FREE')) {
+      ctx.addIssue({ code: 'custom', path: ['fee'], message: 'invalid_option' });
     }
   })
   .transform((value) => ({
@@ -108,6 +113,7 @@ export const careExtraVisitSchema = z
     note: value.note,
     assignee: value.assignee,
     followUpId: value.followUpId,
+    recoveryOfVisitId: value.recoveryOfVisitId,
   }));
 export type CareExtraVisitInput = z.infer<typeof careExtraVisitSchema>;
 

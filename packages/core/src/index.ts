@@ -262,6 +262,7 @@ export {
   getCareChargesOverview,
   listCareCharges,
   listContractCharges,
+  type CareAdjustmentDto,
   type CareChargeDetailDto,
   type CareChargeLineDto,
   type CareChargeListItemDto,
@@ -277,6 +278,16 @@ export {
   refundCareCharge,
   reverseCarePayment,
 } from './services/care-payments';
+export {
+  confirmCarePayment,
+  listCareVisitCollections,
+  listPendingCareCollections,
+  rejectCarePayment,
+  submitCareVisitCollection,
+  type CareCollectionDto,
+  type CarePendingCollectionDto,
+} from './services/care-collections';
+export { addCareChargeAdjustment, removeCareChargeAdjustment } from './services/care-adjustments';
 export {
   getCustomerCareStatement,
   type CareStatementChargeDto,

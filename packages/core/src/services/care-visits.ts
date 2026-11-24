@@ -9,6 +9,7 @@ import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
   CARE_LIMITS,
+  CARE_LIVE_RECOVERY_STATUSES,
   CARE_VISIT_HOLDING_STATUSES,
   addDays,
   careVisitCancelSchema,
@@ -86,6 +87,18 @@ export interface CareAgendaVisitDto {
   readonly cancelReason: CareVisitCancelReason | null;
   /** "No se pudo": il cliente non ha aperto o la fioreria non è potuta andare (ADR-082). */
   readonly notDoneCause: CareNotDoneCause | null;
+  /**
+   * Blocco 3b: una visita mancata per il cliente in un contratto con «Se agenda otra visita».
+   * `visitId` è la sua visita di recupero ancora valida ("Recuperada el …"); senza, è "Por
+   * recuperar" e chi gestisce la può fissare (`canSchedule`). null se la regola non vale.
+   */
+  readonly recovery: {
+    readonly visitId: string | null;
+    readonly date: string | null;
+    readonly canSchedule: boolean;
+  } | null;
+  /** Questa visita extra recupera una visita mancata ("Recuperación de la visita del …"). */
+  readonly recoveryOf: { readonly visitId: string; readonly date: string } | null;
   /** Chi guarda può iniziarla adesso ("Empezar visita": programmata, di oggi o di un giorno passato). */
   readonly canStart: boolean;
   /** È in corso e chi guarda può continuarla. */
@@ -117,6 +130,8 @@ export interface CareAgendaDayDto {
   readonly counts: { readonly total: number; readonly done: number; readonly pending: number };
   /** Visite di tutta la fioreria ancora da riprogrammare. */
   readonly toReschedule: number;
+  /** Blocco 3b: visite mancate per il cliente da recuperare con una visita gratis. */
+  readonly toRecover: number;
   /** Avvisi della squadra ancora aperti (reposición, extra, altro), per chi gestisce. */
   readonly openFollowUps: number;
 }
@@ -156,6 +171,22 @@ function parseDay(ctx: TenantContext, raw: unknown): CalendarDate {
   return parseIsoDate(raw) ?? todayInTimeZone(ctx.timezone);
 }
 
+/**
+ * "Por recuperar" (blocco 3b): visite del calendario mancate per il cliente (o di prima, senza
+ * causa), in un contratto attivo con «Se agenda otra visita», senza una visita di recupero valida.
+ * Stessa regola di `careVisitRecoverable`, scritta per il database.
+ */
+function toRecoverWhere(tenantId: string) {
+  return {
+    tenantId,
+    isExtra: false,
+    status: 'NOT_DONE' as const,
+    OR: [{ notDoneCause: null }, { notDoneCause: 'CUSTOMER' as const }],
+    subscription: { missedVisitPolicy: 'RECOVER' as const, status: 'ACTIVE' as const },
+    recoveries: { none: { status: { in: [...CARE_LIVE_RECOVERY_STATUSES] } } },
+  };
+}
+
 /** Un giorno dell'Agenda: le fasce di quel giorno della settimana con le visite e i posti. */
 export async function getCareAgendaDay(
   ctx: TenantContext,
@@ -166,7 +197,7 @@ export async function getCareAgendaDay(
   const today = todayInTimeZone(ctx.timezone);
   return withTenantContext(getDb(), ctx, async (tx) => {
     await requireEntitlement(ctx, 'floralCare', tx);
-    const [rows, slots, toReschedule, openFollowUps] = await Promise.all([
+    const [rows, slots, toReschedule, toRecover, openFollowUps] = await Promise.all([
       tx.careVisit.findMany({
         where: {
           tenantId: ctx.tenantId,
@@ -181,6 +212,7 @@ export async function getCareAgendaDay(
         orderBy: [{ startMinutes: 'asc' }, { endMinutes: 'asc' }],
       }),
       tx.careVisit.count({ where: { tenantId: ctx.tenantId, status: 'TO_RESCHEDULE' } }),
+      tx.careVisit.count({ where: toRecoverWhere(ctx.tenantId) }),
       countOpenCareFollowUpsTx(tx, ctx.tenantId),
     ]);
     const plants = await plantCounts(
@@ -228,6 +260,7 @@ export async function getCareAgendaDay(
       groups: ordered,
       counts: { total: rows.length, done, pending: rows.length - done },
       toReschedule,
+      toRecover,
       openFollowUps,
     };
   });
@@ -285,6 +318,29 @@ export async function listCareVisitsToReschedule(
     const rows = await tx.careVisit.findMany({
       where: { tenantId: ctx.tenantId, status: 'TO_RESCHEDULE' },
       orderBy: [{ originalDate: 'asc' }, { createdAt: 'asc' }],
+      take: 100,
+      select: agendaSelect,
+    });
+    const plants = await plantCounts(
+      tx,
+      ctx.tenantId,
+      rows.map((row) => row.subscriptionId),
+    );
+    return rows.map((row) => toAgendaVisit(ctx, row, plants, today));
+  });
+}
+
+/** "Por recuperar": le visite mancate da recuperare, dalla più vecchia (blocco 3b). */
+export async function listCareVisitsToRecover(
+  ctx: TenantContext,
+): Promise<readonly CareAgendaVisitDto[]> {
+  requirePermission(ctx, 'subscriptions:read');
+  const today = todayInTimeZone(ctx.timezone);
+  return withTenantContext(getDb(), ctx, async (tx) => {
+    await requireEntitlement(ctx, 'floralCare', tx);
+    const rows = await tx.careVisit.findMany({
+      where: toRecoverWhere(ctx.tenantId),
+      orderBy: [{ scheduledDate: 'asc' }, { originalDate: 'asc' }, { createdAt: 'asc' }],
       take: 100,
       select: agendaSelect,
     });

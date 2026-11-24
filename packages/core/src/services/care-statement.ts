@@ -67,7 +67,22 @@ export interface CareStatementDto {
     readonly addressLine: string | null;
   }[];
   readonly charges: readonly CareStatementChargeDto[];
+  /** I movimenti registrati (gli incassi "por registrar" sono a parte). */
   readonly payments: readonly CareStatementPaymentDto[];
+  /**
+   * Blocco 3b: gli incassi segnati alla visita che chi gestisce non ha ancora confermato. Non
+   * contano nel saldo; stanno qui perché nessuno li registri una seconda volta.
+   */
+  readonly pending: readonly {
+    readonly id: string;
+    readonly collectedMinor: number;
+    readonly method: PaymentMethod;
+    readonly paidOn: string;
+    readonly note: string | null;
+    readonly createdByName: string | null;
+    readonly visitId: string | null;
+    readonly contractLabel: string | null;
+  }[];
   readonly totals: {
     /** Quanto manca da pagare in tutti i cargos. */
     readonly openMinor: number;
@@ -94,7 +109,7 @@ export async function getCustomerCareStatement(
     });
     if (!customer) return null;
     const scope = { tenantId: ctx.tenantId, customerId };
-    const [contracts, charges, payments, open, overdue, credit] = await Promise.all([
+    const [contracts, charges, payments, pending, open, overdue, credit] = await Promise.all([
       tx.customerSubscription.findMany({
         where: { ...scope, kind: 'CARE', confirmedAt: { not: null } },
         orderBy: { number: 'asc' },
@@ -129,7 +144,7 @@ export async function getCustomerCareStatement(
         },
       }),
       tx.carePayment.findMany({
-        where: { ...scope, paidOn: { gte: dbDate(since) } },
+        where: { ...scope, status: 'RECORDED', paidOn: { gte: dbDate(since) } },
         orderBy: [{ paidOn: 'desc' }, { createdAt: 'desc' }],
         select: {
           id: true,
@@ -153,6 +168,21 @@ export async function getCustomerCareStatement(
           },
         },
       }),
+      tx.carePayment.findMany({
+        where: { ...scope, status: 'PENDING' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          collectedMinor: true,
+          amountMinor: true,
+          method: true,
+          paidOn: true,
+          note: true,
+          createdById: true,
+          visitId: true,
+          visit: { select: { subscription: { select: { number: true } } } },
+        },
+      }),
       tx.careCharge.aggregate({
         where: { ...scope, balanceMinor: { gt: 0 } },
         _sum: { balanceMinor: true },
@@ -167,9 +197,9 @@ export async function getCustomerCareStatement(
       }),
     ]);
     const names = await memberNamesTx(tx, ctx.tenantId, [
-      ...new Set(payments.flatMap((payment) => payment.createdById ?? [])),
+      ...new Set([...payments, ...pending].flatMap((payment) => payment.createdById ?? [])),
     ]);
-    return { customer, contracts, charges, payments, open, overdue, credit, names };
+    return { customer, contracts, charges, payments, pending, open, overdue, credit, names };
   });
   if (!found) return notFound(ctx, 'Customer', customerId);
   return {
@@ -212,6 +242,18 @@ export async function getCustomerCareStatement(
       })),
       createdAt: payment.createdAt,
       createdByName: payment.createdById ? (found.names.get(payment.createdById) ?? null) : null,
+    })),
+    pending: found.pending.map((payment) => ({
+      id: payment.id,
+      collectedMinor: payment.collectedMinor ?? payment.amountMinor,
+      method: payment.method,
+      paidOn: isoOf(payment.paidOn) ?? '',
+      note: payment.note,
+      createdByName: payment.createdById ? (found.names.get(payment.createdById) ?? null) : null,
+      visitId: payment.visitId,
+      contractLabel: payment.visit
+        ? formatSubscriptionNumber(payment.visit.subscription.number)
+        : null,
     })),
     totals: {
       openMinor: found.open._sum.balanceMinor ?? 0,

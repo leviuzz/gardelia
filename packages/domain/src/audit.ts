@@ -222,6 +222,15 @@ export const AUDIT_ACTIONS = {
   carePaymentReversed: 'care.payment_reversed',
   carePaymentRefunded: 'care.payment_refunded',
   /**
+   * Blocco 3b: l'incasso segnato alla visita ("por registrar"), confermato o rifiutato, e gli
+   * ajustes per il cargo dopo. Mai la nota, il motivo del rifiuto o quello dell'ajuste.
+   */
+  carePaymentSubmitted: 'care.payment_submitted',
+  carePaymentConfirmed: 'care.payment_confirmed',
+  carePaymentRejected: 'care.payment_rejected',
+  careAdjustmentAdded: 'care.adjustment_added',
+  careAdjustmentRemoved: 'care.adjustment_removed',
+  /**
    * Contratti con i clienti (CustomerSubscription): `customer_subscription.*`, da non confondere con
    * `subscription.assigned`, il piano della fioreria su Gardelia.
    */

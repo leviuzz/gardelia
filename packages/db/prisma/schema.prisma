@@ -313,6 +313,7 @@ model Tenant {
   careVisitBilling     CareVisitBilling[]
   carePayments         CarePayment[]
   careAllocations      CarePaymentAllocation[]
+  careAdjustments      CareChargeAdjustment[]
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -2184,6 +2185,7 @@ model CustomerSubscription {
   emails          CareEmail[]
   quotes          Quote[]
   charges         CareCharge[]
+  adjustments     CareChargeAdjustment[]
 
   @@unique([tenantId, id])
   /// Per le FK dei cargos: il cargo è dello stesso cliente del contratto.
@@ -2301,6 +2303,8 @@ model CareVisit {
   extraNote            String?
   /// La cotización del contratto che paga questa visita ("en la cotización").
   quoteId              String?                @db.Uuid
+  /// Blocco 3b: la visita mancata (cliente) che questa visita extra gratis recupera.
+  recoveryOfVisitId    String?                @db.Uuid
   createdById          String?                @db.Uuid
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
@@ -2324,10 +2328,15 @@ model CareVisit {
   billing           CareVisitBilling?
   chargeLines       CareChargeLine[]
   payments          CarePayment[]
+  recoveryOf        CareVisit?               @relation("CareVisitRecovery", fields: [tenantId, subscriptionId, recoveryOfVisitId], references: [tenantId, subscriptionId, id], onDelete: Restrict)
+  recoveries        CareVisit[]              @relation("CareVisitRecovery")
 
   @@unique([tenantId, id])
+  /// Per la FK della visita di recupero: è dello stesso contratto della visita mancata.
+  @@unique([tenantId, subscriptionId, id])
   @@unique([tenantId, inventoryEntryId])
   @@index([tenantId, quoteId])
+  @@index([tenantId, recoveryOfVisitId])
   @@index([tenantId, scheduledDate])
   @@index([tenantId, slotId, scheduledDate])
   @@index([tenantId, subscriptionId])
@@ -2570,8 +2579,10 @@ model CareChargeLine {
   serviceId       String?            @db.Uuid
   /// CREDIT_CARRIED_IN: il cargo da cui viene il saldo a favore.
   sourceChargeId  String?            @db.Uuid
+  /// ADJUSTMENT: l'ajuste che la riga porta nel cargo (una volta sola).
+  adjustmentId    String?            @db.Uuid
   creditReason    CareCreditReason?
-  /// Nome copiato del servizio "una sola vez".
+  /// Nome copiato del servizio "una sola vez" o motivo dell'ajuste.
   label           String?
   quantity        Int                @default(1)
   unitPriceMinor  Int
@@ -2584,13 +2595,42 @@ model CareChargeLine {
   serviceResult CareVisitServiceResult? @relation(fields: [tenantId, serviceResultId], references: [tenantId, id], onDelete: Restrict)
   service       CareService?            @relation(fields: [tenantId, serviceId], references: [tenantId, id], onDelete: Restrict)
   sourceCharge  CareCharge?             @relation("CareChargeLineSource", fields: [tenantId, sourceChargeId], references: [tenantId, id], onDelete: Restrict)
+  adjustment    CareChargeAdjustment?   @relation(fields: [tenantId, subscriptionId, adjustmentId], references: [tenantId, subscriptionId, id], onDelete: Restrict)
 
   @@unique([tenantId, id])
   @@unique([tenantId, chargeId, position])
+  @@unique([tenantId, adjustmentId])
   /// Ogni emissione cerca le righe del contratto per tipo (servizi "una sola vez", saldi a favore).
   @@index([tenantId, subscriptionId, kind])
   @@index([tenantId, visitId])
   @@index([tenantId, sourceChargeId])
+}
+
+/// "Ajuste para el próximo cargo" (blocco 3b, ADR-082): chi gestisce corregge un errore o fa uno
+/// sconto. Entra una volta nel primo cargo che nasce (riga ADJUSTMENT); prima si può togliere.
+model CareChargeAdjustment {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  tenantId       String    @db.Uuid
+  subscriptionId String    @db.Uuid
+  /// Con il segno: negativo a favore del cliente, positivo a suo carico.
+  amountMinor    Int
+  currency       String
+  /// Il motivo, che diventa l'etichetta della riga del cargo.
+  reason         String
+  createdById    String?   @db.Uuid
+  createdAt      DateTime  @default(now())
+  /// "Quitar" prima che entri in un cargo: resta nello storico.
+  removedAt      DateTime?
+  removedById    String?   @db.Uuid
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
+  lines        CareChargeLine[]
+
+  @@unique([tenantId, id])
+  /// Per la FK delle righe: l'ajuste è dello stesso contratto del cargo.
+  @@unique([tenantId, subscriptionId, id])
+  @@index([tenantId, subscriptionId])
 }
 
 /// Quanto è cobrado adesso per una visita (ADR-082). La scrive solo l'emissione dei cargos, in una
@@ -2624,6 +2664,9 @@ model CarePayment {
   status            CarePaymentStatus @default(RECORDED)
   /// Con il segno: pagamenti positivi, devoluciones negative, storni di segno opposto.
   amountMinor       Int
+  /// Blocco 3b: quanto ha segnato chi ha fatto la visita ("Cobré en la visita"). Chi conferma può
+  /// registrare meno (amountMinor), mai di più.
+  collectedMinor    Int?
   currency          String
   method            PaymentMethod
   /// Giorno del pagamento, nel calendario della fioreria.
