@@ -377,9 +377,17 @@ I due SPF non si toccano: quello di Email Routing sta su `gardelia.co`, quello d
 
 ### Dopo (non ora)
 
-- **Login con Google:** nel client OAuth l'URI di reindirizzamento è
-  `https://staging.gardelia.co/api/auth/callback/google`; nel branding il dominio autorizzato è
-  `gardelia.co` (ADR-036).
+- **Login con Google (se è già configurato, va fatto subito dopo il passo 4):** in Google Cloud →
+  **Google Auth Platform → Clients** → il client "Web application":
+  - **Authorized redirect URIs** → aggiungi `https://staging.gardelia.co/api/auth/callback/google`,
+    esattamente così;
+  - **Authorized JavaScript origins** → `https://staging.gardelia.co`;
+  - **Branding → Authorized domains** → `gardelia.co`;
+  - con l'app in **Testing**, le email di chi prova vanno in **Audience → Test users**.
+
+  Senza l'indirizzo di ritorno nuovo Google risponde "Errore 400: redirect_uri_mismatch" (visto il
+  24/11/2026). Le modifiche di Google valgono dopo qualche minuto (ADR-036).
+
 - **Produzione:** `gardelia.co` e `www.gardelia.co` (rimando a `gardelia.co`) si collegano al
   progetto `gardelia-production` al lancio (ADR-041). Fino ad allora **non puntarli a staging**:
   chi arriva penserebbe che sia il prodotto (D-22).
