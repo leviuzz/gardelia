@@ -574,7 +574,14 @@ persona e da "Mi cuenta".
 - **Pulizia nel pannello:** tolta la card "Próximamente en Gardelia", che diceva ancora "in sviluppo"
   ordini, pagamenti e consegne, ormai fatti.
 
-Nuova dipendenza `uqr` (QR, senza dipendenze, versione fissa). Verifiche: VERIFICHE_SICUREZZA
+Nuova dipendenza `uqr` (QR, senza dipendenze, versione fissa). Supporto: l'operazione di piattaforma
+`reset-two-factor` toglie la verifica a chi ha perso telefono e codici (dopo aver verificato chi è).
+Verifiche: lint ✅ · format ✅ · typecheck ✅ · test 957/957 ✅ (dominio: obbligo e scadenza, codice,
+dispositivi; integrazione: titolare con password, demo e manager esclusi, sessioni solo della persona,
+eventi, reset di piattaforma) · migrazioni = schema ✅ · build ✅ · E2E 100/100 ✅ su database nuovo (2
+nuovi: attivazione con QR e primo codice, codici di respaldo, accesso con codice sbagliato e con
+codice di respaldo, codice di respaldo già usato, chiusura dell'altro dispositivo; fioreria che non si
+apre dopo 14 giorni) · controllo a 320 px di avviso, attivazione e passo del codice.
 
 **Dati della fioreria (24/11, ADR-076):** chiesti dal founder dalla voce 2 della V1. Prima di
 cominciare: allineamento a staging, con Floral Care (ADR-075) dell'altra chat.
