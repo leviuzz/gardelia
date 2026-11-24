@@ -558,6 +558,32 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Eliminar florería (24/11, ADR-074):** chiesto dal founder; la cancellazione definitiva dopo 30
+giorni è una sua scelta (eccezione voluta alla regola "solo archiviare"). In "Ajustes" il titolare trova
+la "Zona de peligro" e la pagina "Eliminar florería", che dice cosa succede e quando; si conferma
+scrivendo il nome della fioreria. Gli ordini in corso bloccano, con il link agli ordini.
+
+- **Subito:** la fioreria sparisce per tutti (404 anche per il titolare), la tienda si spegne, i link
+  di ordini e preventivi non si aprono più. Chi compra non vede più quegli ordini in "Mis pedidos";
+  "Descargar mis datos" li tiene. I titolari ricevono un'email con la data.
+- **Per 30 giorni:** in `/app` il titolare vede "Florerías en eliminación" e la recupera con un clic.
+- **Dopo:** la manutenzione giornaliera cancella prima i file dall'archivio (se non risponde, riprova
+  il giorno dopo), poi la fioreria con tutti i dati in cascata. Resta solo l'evento di piattaforma con
+  gli ID.
+
+Migrazioni `20261124140000_tenant_deletion` (campi, vincolo, indice, due funzioni SQL) e
+`20261124141000_buyer_orders_shop_active`. La cancellazione in cascata è stata provata su tutte le 2.624
+fiorerie del database di test e sulle 7 di quello E2E (ognuna in una transazione annullata): nessun
+vincolo la blocca. Da
+validare con contador e avvocato cosa va conservato (domanda 18 in `docs/legal/README.md`). Manca
+l'esportazione dei dati della fioreria. Verifiche: lint ✅ · format ✅ · typecheck ✅ · test 890/890 ✅ (3 di dominio, 9 d'integrazione:
+permessi, ordini in corso, nome, effetti, email, recupero con isolamento A↔B, cancellazione con i file,
+archivio che non risponde, recuperata non cancellata, "Mis pedidos" di chi compra; link pubblici di una
+fioreria archiviata) · migrazioni = schema ✅ · build ✅ · E2E 95/95 ✅ su database nuovo (3 nuovi:
+titolare che elimina e recupera con l'email, staff senza accesso, zona di pericolo nella demo; ora ogni
+fiorista dei test si registra da un suo IP di prova, il limite di 5 registrazioni al minuto si
+sommava) · controllo a 320 px.
+
 **Dominio gardelia.co (24/11, ADR-073):** comprato dal founder su Cloudflare. Nel repository:
 
 - guida passo passo in `docs/DEPLOY_VERCEL.md` §12 (`staging.gardelia.co`, email in arrivo con
@@ -565,8 +591,9 @@ scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 - bozze legali con `gardelia.co`, `soporte@` e `privacidad@`;
 - esempio di `EMAIL_FROM`.
 
-Il codice non cambia: tutto passa da `APP_URL` ed `EMAIL_FROM`. Restano al founder i passi su
-Cloudflare, Resend e Vercel.
+Il codice non cambia: tutto passa da `APP_URL` ed `EMAIL_FROM`. Fatto dal founder lo stesso giorno:
+Resend verificato, DMARC attivo, **`https://staging.gardelia.co` online**, con i vecchi indirizzi
+`vercel.app` che rimandano lì.
 
 **"Tienda en línea" nell'elenco del catalogo (24/11, chiesto dal founder):** una colonna con
 l'interruttore per mostrare o togliere un prodotto dalla tienda senza aprirne la scheda. Su telefono è
@@ -868,7 +895,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.
 8. Abbonamento a pagamento sui livelli Esencial e Profesional (D-23; Stripe in modalità di prova) e
    pannello della piattaforma.
-9. Privacy nell'app: pagine, consensi, esportazione e cancellazione dei dati.
+9. Privacy nell'app: pagine e diritti di chi compra fatti (ADR-068), eliminazione della fioreria fatta
+   (ADR-074); mancano esportazione dei dati della fioreria, consensi se l'avvocato li chiede, testi definitivi.
 10. Rifinitura generale; Diseñador con foto vere (contenitori, dimensione del ramo, copertina,
     "usa l'originale"); prova da ~100 immagini → prezzi dei pacchetti (ADR-024); prova con i tester.
     Contador: IVA e fatturazione (O-06, O-02). Poi il lancio.

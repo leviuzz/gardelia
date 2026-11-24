@@ -67,10 +67,15 @@ che si registra con ogni ordine online.
 17. **Cancellazione del conto cliente:** oggi immediata (conto, telefono, indirizzi; gli ordini
     restano alle fiorerie senza il collegamento; nel registro di sicurezza resta solo l'ID).
     Serve conservare qualcosa (prova dell'accettazione, reclami aperti) e per quanto?
+18. **Eliminazione di una fioreria (ADR-074):** il titolare la elimina dalle impostazioni; sparisce
+    subito e dopo 30 giorni si cancellano tutti i suoi dati (clienti, ordini, pagamenti registrati,
+    foto). Gardelia deve conservare qualcosa per obblighi fiscali o reclami? E la fioreria va avvisata
+    di scaricare prima i suoi dati (esportazione ancora da fare)?
 
 ## Prima del lancio (V1, `docs/V1_SCOPE.md` §2.15)
 
 - Revisione dell'avvocato e testi definitivi (senza riquadro "BORRADOR") sulle pagine già pronte.
 - Caselle di consenso in registrazione o nel pedido, se l'avvocato le richiede.
-- Esportazione e cancellazione dei dati dall'app **per le fiorerie** (per chi compra ci sono già:
-  "Descargar mis datos" ed "Eliminar mi cuenta" in "Mi cuenta", ADR-068).
+- Esportazione dei dati dall'app **per le fiorerie** (la cancellazione c'è: "Eliminar florería" nelle
+  impostazioni, ADR-074; per chi compra ci sono già "Descargar mis datos" ed "Eliminar mi cuenta" in
+  "Mi cuenta", ADR-068).

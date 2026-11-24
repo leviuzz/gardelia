@@ -121,6 +121,12 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
   (`BuyerProfile`, `BuyerAddress`) non hanno `tenantId`; righe visibili/modificabili solo se
   `userId = app_current_user_id()`. Le usano solo i servizi `buyer-account` dentro
   `withUserContext`, con il contesto preso dalla sessione (`getBuyerContext`, `runBuyerAction`).
+- **Eliminazione di una fioreria** (ADR-074): la fioreria archiviata non si risolve più per
+  nessuno; dopo 30 giorni la manutenzione chiede `app_tenants_to_purge(n)`, cancella i file
+  dall'archivio e chiama `app_purge_tenant(id)` (SECURITY DEFINER, ricontrolla stato e data), che
+  cancella la riga `Tenant`: i dati della fioreria seguono in cascata, registro compreso. Resta
+  l'evento di piattaforma `platform.tenant_purged`. `app_buyer_orders()` dice se la fioreria è
+  attiva: "Mis pedidos" nasconde quelle in eliminazione.
 - Vincoli aggiuntivi nel SQL: CHECK su importi/quantità/valute/slug, indici univoci parziali
   (una sede primaria per tenant, un invito pendente per email).
 

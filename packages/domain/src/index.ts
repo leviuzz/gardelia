@@ -35,4 +35,5 @@ export * from './slug';
 export * from './species';
 export * from './team';
 export * from './tenant';
+export * from './tenant-deletion';
 export * from './validation';

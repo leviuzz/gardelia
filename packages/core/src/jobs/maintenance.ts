@@ -15,6 +15,7 @@
 import { getDb } from '@floral/db';
 import { logger } from '../logger';
 import { expireUnacceptedOrders } from '../marketplace-orders';
+import { purgeDeletedTenants } from '../services/tenant-deletion';
 import type { OrderMailDeps } from '../order-mail';
 import { refreshStoreCoordinates } from '../public-directory';
 import { closeStaleCustomerImports } from '../services/customer-import';
@@ -30,6 +31,8 @@ export interface MaintenanceResult {
   readonly customerImportsClosed: number;
   /** Ordini online annullati perché nessuno li ha accettati in tempo. */
   readonly onlineOrdersExpired: number;
+  /** Fiorerie cancellate davvero, 30 giorni dopo "Eliminar florería" (ADR-074). */
+  readonly tenantsPurged: number;
 }
 
 /** `mail`: per scrivere a chi compra quando il suo ordine scade (null nei test senza email). */
@@ -53,6 +56,7 @@ export async function runDailyMaintenance(
   const purge = purged[0];
   const customerImportsClosed = await closeStaleCustomerImports();
   const onlineOrdersExpired = await expireUnacceptedOrders(mail);
+  const tenantsPurged = await purgeDeletedTenants();
   const result: MaintenanceResult = {
     quotesExpired: row?.quotes_expired ?? 0,
     invitationsExpired: row?.invitations_expired ?? 0,
@@ -64,6 +68,7 @@ export async function runDailyMaintenance(
     storePlacesRefreshed,
     customerImportsClosed,
     onlineOrdersExpired,
+    tenantsPurged,
   };
   logger.info(result, 'manutenzione giornaliera completata');
   return result;

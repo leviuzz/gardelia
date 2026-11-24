@@ -174,3 +174,99 @@ export async function listUserTenants(userId: string): Promise<
     mode: m.tenant.mode,
   }));
 }
+
+/** Una fioreria in eliminazione che il titolare può ancora recuperare (ADR-074). */
+export interface TenantPendingDeletion {
+  readonly slug: string;
+  readonly displayName: string;
+  /** Da quando la manutenzione la cancella davvero. */
+  readonly deleteAfter: Date;
+}
+
+/**
+ * Fiorerie archiviate con l'eliminazione in corso di cui l'utente è titolare: compaiono nella
+ * scelta della fioreria con "Recuperar". Le altre archiviate (da piattaforma) no.
+ */
+export async function listTenantsPendingDeletion(
+  userId: string,
+): Promise<readonly TenantPendingDeletion[]> {
+  if (!isUuid(userId)) return [];
+  const memberships = await withUserContext(getDb(), userId, (tx) =>
+    tx.membership.findMany({
+      where: {
+        userId,
+        role: 'OWNER',
+        status: 'ACTIVE',
+        tenant: { status: 'ARCHIVED', deleteAfter: { not: null, gt: new Date() } },
+      },
+      include: { tenant: { select: { slug: true, displayName: true, deleteAfter: true } } },
+      orderBy: { createdAt: 'asc' },
+    }),
+  );
+  return memberships.flatMap(({ tenant }) =>
+    tenant.deleteAfter
+      ? [{ slug: tenant.slug, displayName: tenant.displayName, deleteAfter: tenant.deleteAfter }]
+      : [],
+  );
+}
+
+/**
+ * Contesto SOLO per "Recuperar" una fioreria in eliminazione (ADR-074): titolare attivo, fioreria
+ * archiviata con l'eliminazione non ancora eseguita. Ogni altro servizio continua a richiedere una
+ * fioreria attiva (`resolveTenantContext`); null → 404 come per qualsiasi fioreria non tua.
+ */
+export async function resolveTenantContextForRestore(
+  input: ResolveTenantContextInput,
+): Promise<TenantContext | null> {
+  if (!isUuid(input.userId) || !SLUG_SHAPE.test(input.slug) || input.slug.length > 64) {
+    return null;
+  }
+  const membership = await withUserContext(getDb(), input.userId, (tx) =>
+    tx.membership.findFirst({
+      where: {
+        userId: input.userId,
+        role: 'OWNER',
+        status: 'ACTIVE',
+        user: { status: 'ACTIVE' },
+        tenant: {
+          slug: input.slug,
+          status: 'ARCHIVED',
+          deleteAfter: { not: null, gt: new Date() },
+        },
+      },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            slug: true,
+            displayName: true,
+            mode: true,
+            marketCountry: true,
+            currency: true,
+            timezone: true,
+            defaultLocale: true,
+          },
+        },
+        user: { select: { locale: true } },
+      },
+    }),
+  );
+  if (!membership) return null;
+  const { tenant } = membership;
+  if (!isMarketCountry(tenant.marketCountry) || !isCurrencyCode(tenant.currency)) return null;
+  const context = {
+    tenantId: tenant.id,
+    tenantSlug: tenant.slug,
+    tenantName: tenant.displayName,
+    mode: tenant.mode,
+    country: tenant.marketCountry,
+    currency: tenant.currency,
+    timezone: tenant.timezone,
+    locale: resolveLocale(input.locale ?? membership.user.locale ?? tenant.defaultLocale),
+    userId: input.userId,
+    membershipId: membership.id,
+    role: membership.role,
+    request: input.request ?? {},
+  };
+  return context as TenantContext;
+}

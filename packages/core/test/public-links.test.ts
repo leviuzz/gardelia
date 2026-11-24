@@ -263,6 +263,24 @@ describe('link dell’ordine', () => {
     ).rejects.toMatchObject({ reason: 'public_link_unavailable' });
   });
 
+  it('una fioreria archiviata (anche in eliminazione) non mostra più il link', async () => {
+    const quoteId = await sentQuote();
+    await changeQuoteStatus(shop.owner, quoteId, 'ACCEPTED');
+    const { id: orderId } = await createOrderFromQuote(shop.owner, quoteId, pickup());
+    const link = await sharePublicLink(shop.owner, SECRET, { kind: 'ORDER', id: orderId });
+    const setStatus = (status: 'ACTIVE' | 'ARCHIVED') =>
+      withSystemContext(getDb(), { reason: 'test: fioreria archiviata' }, (tx) =>
+        tx.tenant.update({ where: { id: shop.owner.tenantId }, data: { status } }),
+      );
+    await setStatus('ARCHIVED');
+    try {
+      expect(await getPublicOrder(SECRET, link.token)).toBeNull();
+    } finally {
+      await setStatus('ACTIVE');
+    }
+    expect(await getPublicOrder(SECRET, link.token)).not.toBeNull();
+  });
+
   it('un borrador non si condivide', async () => {
     const { id } = await createDraftOrder(shop.owner, { customerId });
     await expect(sharePublicLink(shop.owner, SECRET, { kind: 'ORDER', id })).rejects.toMatchObject({
