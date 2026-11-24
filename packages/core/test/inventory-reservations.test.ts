@@ -11,7 +11,6 @@ import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
-  PlanRequiredError,
   ValidationError,
   checkStock,
   createCatalogItem,
@@ -432,7 +431,7 @@ describe('per gli ordini', () => {
     expect((await getInventoryItem(kit.shop.owner, kit.roseItemId)).reserved).toBe(0);
   });
 
-  it('senza il piano non apparta nulla', async () => {
+  it('fase di prova (D-29): senza abbonamento si apparta solo la merce controllata', async () => {
     const basic = await createTestShop('Florería Basic Apartados');
     const rose = await createCatalogItem(basic.owner, itemInput());
     const ctx = basic.owner;
@@ -444,8 +443,9 @@ describe('per gli ordini', () => {
         confirmShortage: false,
       }),
     );
+    // Il prodotto non è nell'inventario: niente da apartare (non dipende dal piano).
     expect(result.reservationId).toBeNull();
-    await expect(listReservations(ctx, {})).rejects.toBeInstanceOf(PlanRequiredError);
+    await expect(listReservations(ctx, {})).resolves.toMatchObject({ items: [], total: 0 });
   });
 });
 

@@ -240,16 +240,14 @@ test.describe('eliminare un disegno (ADR-051)', () => {
   });
 });
 
-test.describe('Bouquet Builder (fioreria Basic)', () => {
+test.describe('Bouquet Builder (fioreria senza abbonamento)', () => {
   test.use({ storageState: 'e2e/.auth/other-owner.json' });
 
-  test('senza Plus si vede l’invito all’upgrade, nessuna funzione finta', async ({ page }) => {
+  test('fase di prova (D-29): il Diseñador si usa anche senza abbonamento', async ({ page }) => {
     await page.goto('/app/flores-del-valle/builder');
+    await expect(page.getByRole('heading', { name: 'Diseñador de ramos', level: 1 })).toBeVisible();
     await expect(
       page.getByRole('heading', { name: 'El diseñador de ramos está incluido en Gardelia Plus' }),
-    ).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Ver mi plan' })).toBeVisible();
-    await page.goto('/app/flores-del-valle/builder/new');
-    await expect(page.getByRole('spinbutton')).toHaveCount(0);
+    ).toHaveCount(0);
   });
 });

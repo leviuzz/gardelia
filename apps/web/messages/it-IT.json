@@ -93,7 +93,7 @@
       "builder_configuration_in_use": "Questa composizione è in un preventivo o in un ordine: non si può eliminare, solo archiviare.",
       "ai_preview_in_progress": "Si sta generando una foto di questa composizione: aspetta che finisca e riprova.",
       "ai_unavailable": "Le anteprime con IA non sono disponibili al momento.",
-      "ai_quota_exhausted": "Non hai più anteprime disponibili questo mese.",
+      "ai_quota_exhausted": "Non hai più anteprime disponibili: compra altri crediti.",
       "ai_budget_reached": "Le anteprime non sono disponibili al momento. Riprova più tardi.",
       "cutout_unavailable": "Al momento non possiamo rimuovere lo sfondo. Riprova più tardi.",
       "cutout_retry_limit": "Il servizio che toglie lo sfondo non ha funzionato più volte con questa foto: il problema è nostro, non della foto. Riprova più tardi caricandola di nuovo.",
@@ -1849,13 +1849,24 @@
     "featureStates": {
       "included": "Incluso",
       "upgrade": "Disponibile con Plus",
-      "soon": "Prossimamente"
+      "soon": "Prossimamente",
+      "credits": "Con crediti"
     },
     "pilotNote": "Durante la fase pilota, il team di {product} assegna il piano di ogni fioreria. L’addebito online non è ancora disponibile: da qui non viene effettuato alcun pagamento.",
     "settingsLink": "Piano e funzioni",
     "settingsLinkBody": "Consulta il tuo piano e le funzioni che include.",
     "aiUsage": "Anteprime con IA questo mese: {used} su {limit}",
-    "aiExtra": "{count, plural, one {# anteprima extra disponibile} other {# anteprime extra disponibili}} (non scadono)"
+    "aiExtra": "{count, plural, one {# anteprima extra disponibile} other {# anteprime extra disponibili}} (non scadono)",
+    "tester": {
+      "label": "Fase di prova",
+      "title": "Tutto incluso",
+      "body": "Durante la prova hai tutte le funzioni di {product}. Solo le anteprime con IA si pagano a parte, con crediti che non scadono.",
+      "aiBody": "Immagini realistiche del ramo da condividere con il cliente: ogni anteprima usa 1 credito."
+    },
+    "credits": "{count, plural, =0 {Non hai crediti per le anteprime con IA.} one {Ti resta # credito per le anteprime con IA.} other {Ti restano # crediti per le anteprime con IA.}}",
+    "creditsWhatsapp": "Compra crediti su WhatsApp",
+    "creditsWhatsappText": "Ciao, vorrei comprare crediti per le anteprime con IA di {shop}.",
+    "creditsNoContact": "Per comprare crediti, scrivi al team di {product}."
   },
   "builder": {
     "title": "Designer di bouquet",
@@ -2048,7 +2059,10 @@
       "anotherBody": "Si crea una foto nuova dello stesso bouquet e si usa 1 credito (te ne restano {remaining}). I preventivi che hanno già questa immagine la conservano.",
       "anotherConfirm": "Genera, usa 1 credito",
       "anotherRequested": "Sto generando un’altra versione…",
-      "anotherFailed": "Non è stato possibile generare un’altra versione: resta quella precedente e non è stato scalato nessun credito."
+      "anotherFailed": "Non è stato possibile generare un’altra versione: resta quella precedente e non è stato scalato nessun credito.",
+      "credits": "{count, plural, one {Ti resta # credito} other {Ti restano # crediti}}",
+      "creditsEmpty": "Non hai crediti per generare anteprime.",
+      "creditsWhatsapp": "Compra crediti su WhatsApp"
     },
     "photo": {
       "choose": "Come vuoi la foto del bouquet?",

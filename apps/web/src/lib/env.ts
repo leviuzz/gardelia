@@ -15,6 +15,22 @@ const optionalText = z
   .optional()
   .transform((value) => value?.trim() || undefined);
 
+/**
+ * Numero WhatsApp con il prefisso internazionale (E.164): spazi, trattini e parentesi si tolgono,
+ * così si può incollare com'è ("+39 348 …"). Senza "+" non si sa di che paese è: errore.
+ */
+const optionalWhatsapp = optionalText.pipe(
+  z
+    .string()
+    .transform((value) => value.replace(/[\s().-]/g, ''))
+    .pipe(
+      z
+        .string()
+        .regex(/^\+\d{8,15}$/, 'numero completo con il prefisso del paese, es. +52 449 123 4567'),
+    )
+    .optional(),
+);
+
 export const serverEnvSchema = z
   .object({
     APP_URL: z.url(),
@@ -27,6 +43,8 @@ export const serverEnvSchema = z
     // Login con Google (ADR-036): facoltativo, entrambe le chiavi o nessuna.
     GOOGLE_CLIENT_ID: optionalText,
     GOOGLE_CLIENT_SECRET: optionalText,
+    // Fase di prova (D-29): WhatsApp della piattaforma per comprare i crediti delle immagini AI.
+    PLATFORM_WHATSAPP: optionalWhatsapp,
   })
   .superRefine((env, ctx) => {
     // Una sola delle due chiavi Google è quasi sempre un errore di configurazione: meglio

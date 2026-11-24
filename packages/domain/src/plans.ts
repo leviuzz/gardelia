@@ -45,6 +45,29 @@ export const NO_ENTITLEMENTS: PlanEntitlements = Object.freeze({
   aiPreviewsPerMonth: 0,
 });
 
+/**
+ * Fase di prova con poche fiorerie (D-29, founder 24/11/2026): i piani NON limitano le funzioni,
+ * ogni fioreria le ha tutte. Le immagini AI restano a parte: si generano con quelle incluse nel piano
+ * assegnato (nessuna nel piano predefinito) e con i crediti che la piattaforma assegna dopo il
+ * pagamento. Prima della produzione tornano i livelli veri (D-23): si rimette `true`.
+ */
+export const PLAN_FEATURES_ENFORCED: boolean = false;
+
+/**
+ * Entitlements effettivi: con i piani spenti tutte le funzioni sono accese; le immagini AI incluse
+ * restano quelle del piano (nessuna in quello predefinito).
+ */
+export function effectiveEntitlements(
+  plan: PlanEntitlements,
+  enforced: boolean = PLAN_FEATURES_ENFORCED,
+): PlanEntitlements {
+  if (enforced) return plan;
+  const allFeatures = Object.fromEntries(
+    FEATURE_ENTITLEMENTS.map((feature) => [feature, true]),
+  ) as Record<FeatureEntitlement, true>;
+  return { ...plan, ...allFeatures };
+}
+
 /** JSON del database → entitlements tipizzati; se non è un oggetto valido, nessun accesso. */
 export function parseEntitlements(value: unknown): PlanEntitlements {
   const parsed = planEntitlementsSchema.safeParse(value);

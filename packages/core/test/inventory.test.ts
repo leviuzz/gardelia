@@ -10,7 +10,6 @@ import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
-  PlanRequiredError,
   checkStock,
   consumeStockTx,
   createCatalogItem,
@@ -406,17 +405,11 @@ describe('ruoli e piano', () => {
     );
   });
 
-  it('senza il piano: l’inventario propone l’upgrade, gli ordini passano senza registri', async () => {
+  it('fase di prova (D-29): anche senza abbonamento l’inventario si usa', async () => {
     const basic = await createTestShop('Florería Basic Inventario');
     const rose = await createCatalogItem(basic.owner, itemInput());
-    await expect(listInventory(basic.owner, {})).rejects.toBeInstanceOf(PlanRequiredError);
-    await expect(
-      startInventoryTracking(basic.owner, {
-        rows: { '0': { catalogItemId: rose.id, quantity: '5' } },
-      }),
-    ).rejects.toBeInstanceOf(PlanRequiredError);
-    expect(await getCatalogItemInventory(basic.owner, rose.id)).toBeNull();
-
+    // Finché la rosa non si controlla, gli ordini passano senza registri.
+    expect(await getCatalogItemInventory(basic.owner, rose.id)).toMatchObject({ item: null });
     const check = await checkStock(basic.owner, [{ catalogItemId: rose.id, quantity: 3 }]);
     expect(check.shortages).toEqual([]);
     expect(check.lines[0]).toMatchObject({ tracked: false, missing: 0 });
@@ -427,6 +420,11 @@ describe('ruoli e piano', () => {
       }),
     );
     expect(consumed.entryId).toBeNull();
+
+    await startInventoryTracking(basic.owner, {
+      rows: { '0': { catalogItemId: rose.id, quantity: '5' } },
+    });
+    expect((await listInventory(basic.owner, {})).total).toBe(1);
   });
 });
 

@@ -9,7 +9,6 @@ import {
   ForbiddenError,
   MemoryStorage,
   NotFoundError,
-  PlanRequiredError,
   ValidationError,
   addCatalogItemPhoto,
   addStyleReference,
@@ -347,12 +346,12 @@ describe('file salvati fuori dalla transazione (fase 0)', () => {
 });
 
 describe('Mis ramos (riferimenti di stile)', () => {
-  it('solo con il piano Plus', async () => {
+  it('fase di prova (D-29): Mis ramos anche senza abbonamento, sempre con il consenso', async () => {
     await withPlan(shopB, 'BASIC');
-    await expect(listStyleReferences(shopB.owner)).rejects.toBeInstanceOf(PlanRequiredError);
-    await expect(
-      addStyleReference(shopB.owner, await jpeg(800, 800), { consent: 'on' }),
-    ).rejects.toBeInstanceOf(PlanRequiredError);
+    await expect(listStyleReferences(shopB.owner)).resolves.toEqual([]);
+    await expect(addStyleReference(shopB.owner, await jpeg(800, 800), {})).rejects.toMatchObject({
+      fieldErrors: { consent: 'consent_required' },
+    });
   });
 
   it('senza consenso non si salva nulla; con consenso si registra chi e quando', async () => {

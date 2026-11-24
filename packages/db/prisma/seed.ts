@@ -246,8 +246,9 @@ export async function runSeed(db: DbClient, options: { password: string }): Prom
         });
       }
 
-      // Pilota: la fioreria demo ha Plus (Builder) assegnato dalla piattaforma; la seconda
-      // fioreria resta senza abbonamento (piano predefinito Basic) per mostrare l'upgrade.
+      // La fioreria demo ha Plus (anteprime AI incluse) assegnato dalla piattaforma; la seconda
+      // resta senza abbonamento: nella fase di prova (D-29) ha tutte le funzioni ma nessuna
+      // anteprima inclusa, solo i crediti assegnati dalla piattaforma.
       const plus = await tx.saasPlan.findUnique({ where: { code: 'PLUS' }, select: { id: true } });
       if (!plus) throw new Error('Piano PLUS mancante: esegui le migrazioni (pnpm db:deploy).');
       await tx.tenantSubscription.upsert({

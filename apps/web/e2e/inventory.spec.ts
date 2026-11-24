@@ -312,16 +312,13 @@ test.describe.serial('inventario', () => {
     });
   });
 
-  test.describe('fioreria senza Plus', () => {
+  test.describe('fioreria senza abbonamento (fase di prova, D-29)', () => {
     test.use({ storageState: 'e2e/.auth/other-owner.json' });
 
-    test('l’inventario propone l’upgrade, senza funzioni finte', async ({ page }) => {
+    test('l’inventario si usa anche senza abbonamento', async ({ page }) => {
       await page.goto('/app/flores-del-valle/inventory');
-      await expect(page.getByText('El inventario está incluido en Gardelia Plus')).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Registrar uso' })).toHaveCount(0);
-      await page.goto('/app/flores-del-valle/settings/plan');
-      const inventory = page.getByRole('listitem').filter({ hasText: 'Inventario' });
-      await expect(inventory.getByText('Disponible en Plus')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Inventario', level: 1 })).toBeVisible();
+      await expect(page.getByText('El inventario está incluido en Gardelia Plus')).toHaveCount(0);
     });
   });
 });

@@ -10,7 +10,6 @@ import {
   ForbiddenError,
   MemoryStorage,
   NotFoundError,
-  PlanRequiredError,
   ValidationError,
   createCatalogItem,
   getAiPreviewImage,
@@ -195,9 +194,20 @@ describe('disponibilità e piano', () => {
     }
   });
 
-  it('BILL-01: una fioreria Basic non usa le anteprime', async () => {
-    const basic = await createTestShop();
-    await expect(getAiQuota(basic.owner)).rejects.toBeInstanceOf(PlanRequiredError);
+  it('fase di prova (D-29): senza piano nessuna immagine inclusa, si genera con i crediti', async () => {
+    const tester = await createTestShop();
+    expect(await getAiQuota(tester.owner)).toMatchObject({
+      includedLimit: 0,
+      remaining: 0,
+      nextSource: null,
+    });
+    await grantAiCredits({ operatorEmail, tenantSlug: tester.tenant.slug, units: 3 });
+    expect(await getAiQuota(tester.owner)).toMatchObject({
+      includedLimit: 0,
+      extraRemaining: 3,
+      remaining: 3,
+      nextSource: 'EXTRA',
+    });
   });
 });
 

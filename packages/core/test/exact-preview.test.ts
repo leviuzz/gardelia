@@ -8,7 +8,6 @@ import {
   ChromaKeyBackgroundRemover,
   MemoryStorage,
   NotFoundError,
-  PlanRequiredError,
   addCatalogItemPhoto,
   archiveCatalogItemPhoto,
   createCatalogItem,
@@ -270,7 +269,7 @@ describe('boceto esatto', () => {
     expect((await getBouquetPreview(kit.shop.owner, huge.id)).mode).toBe('PROMPT');
   });
 
-  it('BILL-01 e isolamento A ↔ B: niente boceto senza Plus né fra fiorerie', async () => {
+  it('isolamento A ↔ B: niente boceto fra fiorerie, anche senza abbonamento', async () => {
     const kit = await createKit('Florería Boceto A');
     const design = await rosesWithWrap(kit);
     const other = await createKit('Florería Boceto B');
@@ -282,7 +281,7 @@ describe('boceto esatto', () => {
     );
     const basic = await createTestShop('Florería Boceto Basic');
     await expect(getBouquetSketchPlan(basic.owner, design.id)).rejects.toBeInstanceOf(
-      PlanRequiredError,
+      NotFoundError,
     );
   });
 });

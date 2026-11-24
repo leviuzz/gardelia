@@ -5,6 +5,7 @@ import {
   FlaskConical,
   ImageIcon,
   LoaderCircle,
+  MessageCircle,
   RefreshCw,
   Sparkles,
 } from 'lucide-react';
@@ -71,6 +72,8 @@ export interface PreviewPanelData {
   readonly withoutSpecies: readonly { readonly name: string; readonly href: string }[];
   readonly designName: string;
   readonly productName: string;
+  /** WhatsApp della piattaforma per comprare crediti (fase di prova, D-29), se configurato. */
+  readonly creditsLink: string | null;
   readonly requestAction: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   /** "Generar otra versión" (1 credito, con conferma). */
   readonly anotherAction: (prev: ActionState, formData: FormData) => Promise<ActionState>;
@@ -327,23 +330,40 @@ export function PreviewPanel({ data, dirty }: { data: PreviewPanelData; dirty: b
         ) : null}
 
         <div className="space-y-1 text-xs text-muted-foreground" aria-live="polite">
+          {/* Senza anteprime incluse nel piano (fase di prova, D-29) contano solo i crediti. */}
           {data.quota.remaining > 0 ? (
             <p>
-              {t('quota', {
-                remaining: data.quota.includedRemaining,
-                limit: data.quota.includedLimit,
-              })}
-              {data.quota.extraRemaining > 0
+              {data.quota.includedLimit > 0
+                ? t('quota', {
+                    remaining: data.quota.includedRemaining,
+                    limit: data.quota.includedLimit,
+                  })
+                : t('credits', { count: data.quota.extraRemaining })}
+              {data.quota.includedLimit > 0 && data.quota.extraRemaining > 0
                 ? ` · ${t('quotaExtra', { count: data.quota.extraRemaining })}`
                 : ''}
             </p>
           ) : (
-            <>
-              <p className="font-medium text-foreground">{t('quotaEmpty')}</p>
-              <p>{t('quotaEmptyHint', { product: data.productName })}</p>
-            </>
+            <p className="font-medium text-foreground">
+              {data.quota.includedLimit > 0 ? t('quotaEmpty') : t('creditsEmpty')}
+            </p>
           )}
-          <p>{t('renews', { date: data.quota.renewsOn })}</p>
+          {data.creditsLink && (data.quota.includedLimit === 0 || data.quota.remaining === 0) ? (
+            <a
+              href={data.creditsLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-medium text-primary hover:underline [&_svg]:size-3.5"
+            >
+              <MessageCircle aria-hidden="true" />
+              {t('creditsWhatsapp')}
+            </a>
+          ) : data.quota.remaining === 0 ? (
+            <p>{t('quotaEmptyHint', { product: data.productName })}</p>
+          ) : null}
+          {data.quota.includedLimit > 0 ? (
+            <p>{t('renews', { date: data.quota.renewsOn })}</p>
+          ) : null}
         </div>
       </CardContent>
     </Card>

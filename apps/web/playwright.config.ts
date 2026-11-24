@@ -73,6 +73,8 @@ export default defineConfig({
       GOOGLE_CLIENT_SECRET: 'floral-e2e-google-secret',
       E2E_GOOGLE_OAUTH_MOCK: '1',
       CRON_SECRET: E2E_CRON_SECRET,
+      // Fase di prova (D-29): numero finto per il link "Comprar créditos por WhatsApp".
+      PLATFORM_WHATSAPP: '+52 449 000 0000',
       NODE_OPTIONS: [process.env.NODE_OPTIONS, `--import=${GOOGLE_OAUTH_MOCK}`]
         .filter(Boolean)
         .join(' '),
