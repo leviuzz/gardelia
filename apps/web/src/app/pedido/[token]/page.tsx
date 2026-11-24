@@ -16,6 +16,7 @@ import { PublicInvalidLink, PublicShell } from '@/components/public/public-shell
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { serverEnv } from '@/lib/env';
 import { money } from '@/lib/format';
+import { serviceSummary } from '@/lib/line-ui';
 import { calendarDate } from '@/lib/quote-ui';
 import { cn } from '@/lib/utils';
 
@@ -269,6 +270,7 @@ export default async function PublicOrderPage({
             quantityLabel: `${line.quantity} × ${fmt(line.unitPriceMinor)}`,
             totalLabel: fmt(line.lineTotalMinor),
             recipe: null,
+            service: serviceSummary(tAll, line.service),
             imageUrl: line.hasImage
               ? `/pedido/${encodeURIComponent(token)}/imagen/${line.id}`
               : null,

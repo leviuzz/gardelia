@@ -112,6 +112,9 @@ export type ConflictReason =
   | 'order_needs_acceptance'
   /** "Listo": i materiali dell'ordine non bastano nell'inventario (ADR-071). */
   | 'order_inventory_shortage'
+  /** Sostituto (ADR-081): il ramo è già fatto o il pedido è chiuso; il ramo non ammette cambi. */
+  | 'order_not_substitutable'
+  | 'substitution_not_allowed'
   /** Floral Care (ADR-075): l'offerta non è ancora salvata. */
   | 'care_not_configured'
   /** Servizi, fasce e fasce di distanza: troppi, o uguali a uno che c'è già. */

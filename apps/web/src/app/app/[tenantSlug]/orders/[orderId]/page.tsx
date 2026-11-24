@@ -1,4 +1,12 @@
-import { ArrowLeft, Check, Globe, Info, MessageCircle, Printer } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  Globe,
+  Info,
+  MessageCircle,
+  Printer,
+  TriangleExclamationPoint,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -10,6 +18,7 @@ import {
   getCustomer,
   getOrder,
   getOrderInventory,
+  getOrderSubstitutions,
   getPublicLink,
   hasPermission,
   listOrderAssignees,
@@ -35,12 +44,13 @@ import { ShareLinkPanel } from '@/components/common/share-link-card';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status-badges';
 import { ActionButton } from '@/components/form/action-button';
 import { PageHeader } from '@/components/page-header';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { serverEnv } from '@/lib/env';
 import { money, phoneForInput } from '@/lib/format';
+import { serviceSummary } from '@/lib/line-ui';
 import { calendarDate } from '@/lib/quote-ui';
 import { deliveryFormOptions, savedAddressOptions } from '@/lib/delivery-options';
 import { tenantRoutes } from '@/lib/routes';
@@ -55,6 +65,7 @@ import {
   revokeOrderLinkAction,
   setOrderReceiverAction,
   shareOrderLinkAction,
+  substituteIngredientAction,
   updateFulfillmentAction,
   uploadOrderPhotoAction,
 } from '../actions';
@@ -68,6 +79,7 @@ import {
 } from '../order-forms';
 import { DraftOrderView } from './draft-order';
 import { HandoverPanel } from './handover-panel';
+import { SubstitutionPanel, type SubstitutionLineView } from './substitution-panel';
 import { OrderLinesEditor } from './order-lines';
 import { PrintOrderButton } from './print-button';
 
@@ -198,6 +210,51 @@ export default async function OrderPage({
 
   // Materiali dell'inventario (ADR-071): null senza il piano o se l'ordine non tocca prodotti controllati.
   const inventory = await getOrderInventory(ctx, order.id);
+  // "Faltan flores" (ADR-081): null se non manca niente o il ramo è già fatto.
+  const substitutions = await getOrderSubstitutions(ctx, order.id);
+  const ingredientLabel = (item: { name: string; variety: string | null }) =>
+    item.variety ? `${item.name} ${item.variety}` : item.name;
+  const substitutionLines: SubstitutionLineView[] = (substitutions?.lines ?? []).map((line) => ({
+    lineId: line.lineId,
+    title: `${line.quantity} × ${line.description}`,
+    mode: line.mode,
+    missing: line.missing.map((missing) => ({
+      itemId: missing.catalogItemId,
+      label: ingredientLabel(missing),
+      quantityLabel: t('inventory.quantity', { unit: missing.saleUnit, count: missing.total }),
+      problemLabel:
+        missing.problem === 'OUT_OF_STOCK'
+          ? t('orders.substitution.outOfStock')
+          : t('orders.substitution.short', {
+              quantity: t('inventory.quantity', {
+                unit: missing.saleUnit,
+                count: missing.shortBy ?? 0,
+              }),
+            }),
+      candidates: missing.candidates.map((candidate) => ({
+        id: candidate.id,
+        label: ingredientLabel(candidate),
+        reason: candidate.reason,
+        availabilityNote:
+          candidate.availability === 'AVAILABLE'
+            ? null
+            : t(`catalog.availability.${candidate.availability}`),
+        // Al cliente nella lingua del mercato (ADR-042), come gli altri messaggi del pedido.
+        whatsappHref: order.customer.phone
+          ? whatsappLink(
+              order.customer.phone,
+              tShop('orders.substitution.whatsapp', {
+                name: order.customer.displayName,
+                number: order.numberLabel,
+                from: ingredientLabel(missing),
+                to: ingredientLabel(candidate),
+                bouquet: line.description,
+              }),
+            )
+          : null,
+      })),
+    })),
+  }));
   const customer = order.editable ? await getCustomer(ctx, order.customer.id) : null;
   const deliveryOptions = order.editable ? await deliveryFormOptions(ctx) : null;
   const delivery = order.deliveryAddress;
@@ -335,6 +392,37 @@ export default async function OrderPage({
         </Card>
       ) : null}
 
+      {/* Servizi oltre il loro raggio (ADR-081): solo un avviso, il pedido resta com'è. */}
+      {order.serviceZone && !isOrderFinal(order.status) ? (
+        <Alert variant="warning" className="print:hidden" data-testid="service-zone-warning">
+          <TriangleExclamationPoint aria-hidden="true" />
+          <AlertTitle>{t('orders.detail.serviceZoneTitle')}</AlertTitle>
+          <AlertDescription>
+            <ul className="space-y-1">
+              {order.serviceZone.lines.map((line) => (
+                <li key={line.description}>
+                  {t('orders.detail.serviceZoneLine', {
+                    service: line.description,
+                    radius: line.radiusKm,
+                    distance: format.number(order.serviceZone!.distanceKm, {
+                      maximumFractionDigits: 1,
+                    }),
+                  })}
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {substitutions && substitutionLines.length > 0 ? (
+        <SubstitutionPanel
+          lines={substitutionLines}
+          action={substituteIngredientAction.bind(null, slug, order.id)}
+          canApply={substitutions.canApply}
+        />
+      ) : null}
+
       {order.status === 'CANCELLED' && order.cancelReason ? (
         <Alert variant="info">
           <Info aria-hidden="true" />
@@ -369,15 +457,24 @@ export default async function OrderPage({
                         <p className="text-sm text-muted-foreground">
                           {t('quotes.editor.recipeOf')}{' '}
                           {format.list(
-                            line.recipe.map((ingredient) =>
-                              t('quotes.editor.recipeItem', {
+                            line.recipe.map((ingredient) => {
+                              const item = t('quotes.editor.recipeItem', {
                                 quantity: ingredient.quantity,
-                                name: ingredient.variety
-                                  ? `${ingredient.name} ${ingredient.variety}`
-                                  : ingredient.name,
-                              }),
-                            ),
+                                name: ingredientLabel(ingredient),
+                              });
+                              // Sostituito nel pedido (ADR-081): chi arma il ramo lo vede.
+                              return ingredient.replaces
+                                ? `${item} (${t('quotes.editor.recipeReplaces', {
+                                    name: ingredientLabel(ingredient.replaces),
+                                  })})`
+                                : item;
+                            }),
                           )}
+                        </p>
+                      ) : null}
+                      {line.service ? (
+                        <p className="text-sm text-muted-foreground">
+                          {serviceSummary(t, line.service)}
                         </p>
                       ) : null}
                     </div>

@@ -26,8 +26,15 @@ export async function generateMetadata(): Promise<Metadata> {
 /** "Nueva compra" (ADR-061): i prodotti controllati, i proveedores attivi e la data di oggi. */
 export default async function NewPurchasePage({
   params,
+  searchParams,
 }: PageProps<'/app/[tenantSlug]/inventory/purchases/new'>) {
   const { tenantSlug } = await params;
+  // Da "Por pedir" (ADR-081): `proveedor` e `productos` (ID separati da virgola) già scelti. Sono
+  // solo una proposta per il form: il server ricontrolla tutto al salvataggio.
+  const query = await searchParams;
+  const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
+  const initialSupplierId = first(query.proveedor) ?? '';
+  const initialProductIds = (first(query.productos) ?? '').split(',').filter(Boolean).slice(0, 50);
   const ctx = await getTenantContext(tenantSlug);
   if (!hasPermission(ctx, 'inventory:write')) return <Forbidden />;
   const t = await getTranslations('inventory');
@@ -86,6 +93,8 @@ export default async function NewPurchasePage({
           today={todayIso}
           currency={currency}
           locale="es-MX"
+          initialSupplierId={initialSupplierId}
+          initialProductIds={initialProductIds}
         />
       )}
     </div>

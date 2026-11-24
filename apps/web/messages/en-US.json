@@ -64,7 +64,9 @@
     "invalid_time_window": "Enter a start and an end time, in order.",
     "payment_exceeds_balance": "The amount is more than what is left to collect.",
     "tenant_deletion_name_mismatch": "The name doesn’t match the shop’s name.",
-    "opening_hours_overlap": "This range overlaps another one on the same day: merge them into one."
+    "opening_hours_overlap": "This range overlaps another one on the same day: merge them into one.",
+    "substitute_required": "Choose the flower to use instead.",
+    "substitution_customer_required": "Confirm the customer agreed to the change."
   },
   "errors": {
     "validation": "Check the highlighted fields.",
@@ -126,7 +128,9 @@
       "delivery_fee_tier_limit": "You reached the maximum number of rates.",
       "order_inventory_shortage": "There isn’t enough stock for this order. Open or reload the order page to see what’s missing and confirm it’s ready.",
       "tenant_deletion_open_orders": "There are orders in progress: deliver or cancel them before deleting the shop.",
-      "session_is_current": "To sign out of this device, use “Sign out” in the menu."
+      "session_is_current": "To sign out of this device, use “Sign out” in the menu.",
+      "order_not_substitutable": "This order no longer accepts flower changes: the bouquet is already made or the order is closed.",
+      "substitution_not_allowed": "This bouquet doesn't allow substitutions. Talk to the customer to decide what to do."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -737,7 +741,8 @@
       "placed_online": "{actor} placed order {number} from the online shop",
       "accepted": "{actor} accepted online order {number}",
       "expired": "Online order {number} was cancelled because nobody accepted it in time",
-      "cancelled_by_buyer": "{actor} cancelled their order {number}"
+      "cancelled_by_buyer": "{actor} cancelled their order {number}",
+      "ingredient_substituted": "{actor} replaced {name} with {ingredient} in {number}"
     },
     "delivery_settings": {
       "updated": "{actor} changed the delivery settings"
@@ -896,7 +901,18 @@
       "builderEnabled": "Available in the bouquet designer",
       "builderEnabledHint": "It can be chosen when building custom bouquets in the designer (Plus plan).",
       "online": "Show in my online shop",
-      "onlineHint": "It appears on your public page with its photo and price."
+      "onlineHint": "It appears on your public page with its photo and price.",
+      "prepMinutesHint": "Used to estimate the day's work in Today's production.",
+      "supplier": "Usual supplier",
+      "supplierNone": "None",
+      "supplierHint": "Who you usually buy it from. Used to reorder it when it runs low.",
+      "supplierEmpty": "You don't have any suppliers yet.",
+      "supplierAdd": "Add suppliers",
+      "serviceDuration": "Service duration",
+      "serviceDurationNone": "Not set",
+      "serviceDurationHint": "Approximate. Shown on the quote and the order.",
+      "serviceRadius": "How far you go (km)",
+      "serviceRadiusHint": "Straight-line distance from your shop. We'll warn you if an order is farther."
     },
     "wizard": {
       "stepWhat": "What it is",
@@ -928,7 +944,8 @@
     "onlineToggle": "Show {name} in your online shop",
     "onlineShown": "Now shown in your online shop.",
     "onlineHidden": "No longer shown in your online shop.",
-    "onlineRow": "In your online shop"
+    "onlineRow": "In your online shop",
+    "radiusKm": "Up to {km} km"
   },
   "recipe": {
     "title": "Bouquet recipe",
@@ -1539,7 +1556,9 @@
       "viewOrder": "View order {number}",
       "orderTitle": "Order",
       "orderHint": "The customer accepted: turn it into an order to set delivery, card and payments.",
-      "orderDone": "This quote is already order {number}."
+      "orderDone": "This quote is already order {number}.",
+      "serviceDuration": "Approx. {duration}",
+      "recipeReplaces": "instead of {name}"
     },
     "whatsapp": {
       "greeting": "Hi {name}, here’s quote {number} from {shop}:",
@@ -1687,7 +1706,9 @@
       "forwardShortage": "Mark ready anyway",
       "shortage": "There isn’t enough stock for this order:",
       "shortageItem": "{name}: {missing} short",
-      "shortageConfirm": "If you mark it ready, it’s deducted anyway and the stock goes below zero until you record the purchase or a count."
+      "shortageConfirm": "If you mark it ready, it’s deducted anyway and the stock goes below zero until you record the purchase or a count.",
+      "serviceZoneTitle": "The address is outside a service's area",
+      "serviceZoneLine": "“{service}” covers up to {radius} km and the address is {distance} km away in a straight line. Check with the customer."
     },
     "form": {
       "title": "Turn into order",
@@ -1827,7 +1848,9 @@
         "BUNCH": "{count, plural, one {# bunch} other {# bunches}}",
         "PIECE": "{count, plural, one {# piece} other {# pieces}}",
         "SERVICE": "{count, plural, one {# service} other {# services}}"
-      }
+      },
+      "prepTime": "Estimated prep time: {duration}",
+      "prepUnknown": "{count, plural, one {# bouquet} other {# bouquets}} without a prep time in the catalog"
     },
     "calendar": {
       "title": "Order calendar",
@@ -1913,6 +1936,33 @@
       "reservations": "See reservations",
       "held": "Reserved for this order until {date}: not offered as available for other bouquets.",
       "heldFrom": "They’ll be reserved for this order from {date}, {days} days before delivery; until then they stay available."
+    },
+    "substitution": {
+      "title": "Missing flowers",
+      "subtitle": "Something in these bouquets ran out. Choose what to use instead: the order price doesn't change.",
+      "mode": {
+        "ALLOWED": "Similar substitutes allowed",
+        "ASK_CUSTOMER": "Ask the customer first",
+        "NOT_ALLOWED": "No substitutions"
+      },
+      "outOfStock": "Out of stock in the catalog",
+      "short": "{quantity} short in inventory",
+      "notAllowedHint": "This bouquet doesn't allow substitutions: talk to the customer about another bouquet or date, or get the flower.",
+      "noCandidates": "There's no similar flower available in your catalog. Talk to the customer.",
+      "chooseLabel": "Replace with",
+      "reason": {
+        "SAME_SPECIES": "Same flower, another variety",
+        "SAME_COLOR": "Same color",
+        "SAME_KIND": "Same kind"
+      },
+      "askHint": "This change needs the customer's OK. Ask them and tick the box once they agree.",
+      "askWhatsapp": "Ask on WhatsApp",
+      "customerAgreed": "The customer agreed to the change",
+      "apply": "Change flower",
+      "applying": "Changing…",
+      "askManager": "Ask whoever manages the shop to make the change.",
+      "done": "Flower changed in the bouquet",
+      "whatsapp": "Hi {name}, about your order {number} ({bouquet}): we ran out of {from}. Would {to} work for you instead? The price stays the same."
     }
   },
   "plans": {
@@ -2504,7 +2554,8 @@
       "stock": "Stock",
       "movements": "Movements",
       "purchases": "Purchases",
-      "reservations": "Reservations"
+      "reservations": "Reservations",
+      "restock": "To reorder"
     },
     "upsell": {
       "title": "Inventory is included in {plan}",
@@ -2924,7 +2975,8 @@
       "gone": "Out of stock",
       "dueSoon": "{count, plural, one {# reservation expires today or tomorrow} other {# reservations expire today or tomorrow}}",
       "expired": "{count, plural, one {# expired reservation: use, extend or release it} other {# expired reservations: use, extend or release them}}",
-      "open": "See inventory"
+      "open": "See inventory",
+      "reorder": "What to reorder"
     },
     "bouquet": {
       "title": "Inventory",
@@ -2960,6 +3012,24 @@
       "unknown": "A product has no cost",
       "previous": "Previous month",
       "next": "Next month"
+    },
+    "restock": {
+      "title": "To reorder",
+      "subtitle": "What's running low, grouped by usual supplier. Order it and record the purchase when it arrives.",
+      "empty": "Nothing to reorder: everything is above its minimum.",
+      "count": "{count, plural, one {# product to reorder} other {# products to reorder}}",
+      "noSupplier": "No usual supplier",
+      "noSupplierHint": "Pick the usual supplier on each catalog product and they'll show up grouped.",
+      "minimum": "minimum {quantity}",
+      "whatsapp": "Order on WhatsApp",
+      "record": "Record purchase",
+      "noPhone": "To order on WhatsApp, add their phone in",
+      "suppliersLink": "Suppliers",
+      "message": {
+        "greeting": "Hi {supplier}, this is {shop}. I'd like to order:",
+        "line": "• {product}",
+        "closing": "Could you confirm availability and price? Thanks."
+      }
     }
   },
   "checkout": {
@@ -4181,5 +4251,10 @@
       "range": "Floral Care: between {min} and {max} a month ({count, plural, one {# active contract} other {# active contracts}})."
     },
     "footnote": "Amounts are those of your orders; the IVA breakdown is not available yet."
+  },
+  "duration": {
+    "hours": "{hours} h",
+    "minutes": "{minutes} min",
+    "hoursMinutes": "{hours} h {minutes} min"
   }
 }

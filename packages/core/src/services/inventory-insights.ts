@@ -136,6 +136,108 @@ export async function getInventoryAlerts(ctx: TenantContext): Promise<InventoryA
 }
 
 // -----------------------------------------------------------------------------
+// Por pedir (ADR-081)
+// -----------------------------------------------------------------------------
+
+export interface RestockItemDto {
+  readonly inventoryItemId: string;
+  readonly name: string;
+  readonly variety: string | null;
+  readonly saleUnit: SaleUnit;
+  /** Giacenza meno apartados. */
+  readonly available: number;
+  readonly minQuantity: number | null;
+  readonly status: Exclude<StockStatus, 'OK'>;
+}
+
+export interface RestockGroupDto {
+  /** Proveedor habitual del catalogo; null = prodotti senza proveedor (in fondo). */
+  readonly supplier: {
+    readonly id: string;
+    readonly name: string;
+    readonly phone: string | null;
+  } | null;
+  readonly items: readonly RestockItemDto[];
+}
+
+/**
+ * "Por pedir": i prodotti agotados o por agotarse raggruppati per proveedor habitual (ADR-081), per
+ * chiedere la merce a ognuno e registrare la compra. Per chi compra (`inventory:write`); null senza
+ * il piano. Un proveedor archiviato non propone più ordini: i suoi prodotti vanno con quelli senza.
+ */
+export async function getRestockList(
+  ctx: TenantContext,
+): Promise<readonly RestockGroupDto[] | null> {
+  requirePermission(ctx, 'inventory:write');
+  return withTenantContext(getDb(), ctx, async (tx) => {
+    if (!(await getEntitlements(ctx, tx)).inventory) return null;
+    const rows = await tx.inventoryItem.findMany({
+      where: { tenantId: ctx.tenantId, status: 'ACTIVE' },
+      select: {
+        id: true,
+        onHand: true,
+        minQuantity: true,
+        catalogItem: {
+          select: {
+            name: true,
+            variety: true,
+            saleUnit: true,
+            supplier: { select: { id: true, name: true, phone: true, status: true } },
+          },
+        },
+      },
+    });
+    const reserved = await reservedQuantities(tx, ctx);
+    const groups = new Map<
+      string,
+      { supplier: RestockGroupDto['supplier']; items: RestockItemDto[] }
+    >();
+    for (const row of rows) {
+      const level = {
+        onHand: row.onHand,
+        reserved: reserved.get(row.id) ?? 0,
+        minQuantity: row.minQuantity,
+      };
+      const status = stockStatus(level);
+      if (status === 'OK') continue;
+      const found = row.catalogItem.supplier;
+      const supplier =
+        found && found.status === 'ACTIVE'
+          ? { id: found.id, name: found.name, phone: found.phone }
+          : null;
+      const key = supplier?.id ?? '';
+      const group = groups.get(key) ?? { supplier, items: [] };
+      group.items.push({
+        inventoryItemId: row.id,
+        name: row.catalogItem.name,
+        variety: row.catalogItem.variety,
+        saleUnit: row.catalogItem.saleUnit,
+        available: level.onHand - level.reserved,
+        minQuantity: row.minQuantity,
+        status,
+      });
+      groups.set(key, group);
+    }
+    for (const group of groups.values()) {
+      group.items.sort(
+        (a, b) =>
+          (a.status === b.status ? 0 : a.status === 'OUT' ? -1 : 1) ||
+          a.name.localeCompare(b.name, 'es'),
+      );
+    }
+    return [...groups.values()].sort((a, b) =>
+      a.supplier && b.supplier
+        ? a.supplier.name.localeCompare(b.supplier.name, 'es')
+        : a.supplier
+          ? -1
+          : b.supplier
+            ? 1
+            : 0,
+    );
+  });
+}
+
+// -----------------------------------------------------------------------------
 // Ramos del catálogo
 // -----------------------------------------------------------------------------
 

@@ -9,3 +9,5 @@ packages/db/prisma/migrations/**/*.sql
 docs/FLORAL_OS_MASTER_SPEC.md
 docs/CLAUDE_CODE_START.md
 apps/web/src/content/legal.generated.ts
+# Generato da packages/db/scripts/flower-review.ts (O-09, ADR-081): il test lo confronta così com'è.
+docs/LISTA_FLORES_REVISION.md

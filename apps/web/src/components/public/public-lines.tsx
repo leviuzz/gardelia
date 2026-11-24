@@ -8,6 +8,8 @@ export interface PublicLineView {
   readonly quantityLabel: string;
   readonly totalLabel: string;
   readonly recipe: string | null;
+  /** Servizi (ADR-081): durata e raggio. */
+  readonly service: string | null;
   readonly imageUrl: string | null;
   readonly imageAlt: string;
 }
@@ -28,6 +30,7 @@ export function PublicLines({ lines }: { readonly lines: readonly PublicLineView
             <p className="font-medium break-words">{line.description}</p>
             <p className="text-sm text-muted-foreground tabular-nums">{line.quantityLabel}</p>
             {line.recipe ? <p className="text-sm text-muted-foreground">{line.recipe}</p> : null}
+            {line.service ? <p className="text-sm text-muted-foreground">{line.service}</p> : null}
           </div>
           <p className="shrink-0 font-medium tabular-nums">{line.totalLabel}</p>
         </li>

@@ -558,6 +558,30 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Catalogo completo (24/11, ADR-081):** il punto "Catalogo" dei resti della V1, con le tre scelte
+del founder (regola del ramo per il sostituto, raggio in km per i servizi, elenco dei fiori curato da
+Gardelia con la revisione di un fiorista).
+
+- **"Faltan flores" nel pedido:** se un fiore di un ramo è agotado o non basta in inventario, la scheda
+  propone fino a 4 sostituti (stessa specie, poi stesso colore, prezzo vicino, con merce) e cambia
+  secondo la regola del ramo: no / con l'ok del cliente (WhatsApp pronto) / subito. Il prezzo non
+  cambia; distinta, apartado, scarico e costo sì; "(en lugar de …)" nella distinta e nella comanda.
+- **Servizi:** durata e raggio in km, nella riga di cotización, pedido, stampe e link; avviso nel
+  pedido a domicilio oltre il raggio.
+- **Proveedor habitual** nel prodotto e scheda **"Por pedir"** dell'inventario (per proveedor, con
+  WhatsApp e "Registrar compra" già compilata); **tempo di preparazione** stimato nella Producción
+  del día.
+- **Elenco dei fiori (O-09 risolta):** foglio `docs/LISTA_FLORES_REVISION.md` per il fiorista,
+  generato dall'elenco e controllato da un test.
+
+Verifiche: lint ✅ · format ✅ · typecheck ✅ · test 1061/1061 ✅
+(dominio: proposte e regola del ramo, campi dei servizi e del proveedor, tempo di preparazione;
+integrazione: le tre regole, merce che non basta con l'apartado che segue, Diseñador, dopo "Listo",
+proveedor archiviato e di un'altra fioreria, "Por pedir", avviso di zona, isolamento A↔B; il foglio dei
+fiori aggiornato) · migrazioni = schema ✅ · build ✅ · E2E 109/109 ✅ su database nuovo (3 nuovi:
+proveedor e "Por pedir", servizio nella riga, sostituto con l'ok del cliente) · controllo a 320 e
+1280 px.
+
 **Reportes (24/11, ADR-080):** nuova voce "Reportes" nel menu, per owner e manager. Mostra il mese
 (frecce avanti e indietro) o l'anno, con il confronto sul periodo prima:
 
@@ -1138,6 +1162,7 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078) e 3a (ADR-082) fatti;
    3b e blocchi 4–7 in `docs/FLORAL_CARE_PLAN.md`.
 6. Report: fatti (ADR-080); restano i P1 dello spec (funnel, retention, profitto per ramo).
+   Catalogo completo (ADR-081): fatto; manca la revisione dell'elenco dei fiori da un fiorista.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.
 8. Abbonamento a pagamento sui livelli Esencial e Profesional (D-23; Stripe in modalità di prova) e
    pannello della piattaforma.

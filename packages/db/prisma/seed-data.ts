@@ -97,6 +97,8 @@ export interface SeedCatalogItem {
   readonly description?: string;
   readonly prepMinutes?: number;
   readonly heightCm?: number;
+  readonly serviceDurationMinutes?: number;
+  readonly serviceRadiusKm?: number;
   readonly tags: readonly string[];
 }
 
@@ -272,7 +274,8 @@ export const DEMO_CATALOG: readonly SeedCatalogItem[] = [
     priceMinor: 45000,
     costMinor: null,
     availability: 'AVAILABLE',
-    prepMinutes: 60,
+    serviceDurationMinutes: 60,
+    serviceRadiusKm: 15,
     description: 'Limpieza, poda ligera, revisión de sustrato y riego. Incluye reporte con fotos.',
     tags: ['floral care', 'empresas'],
   },

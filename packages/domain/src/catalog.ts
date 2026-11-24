@@ -98,6 +98,29 @@ export function isUnitAllowed(type: CatalogItemType, unit: SaleUnit): boolean {
   return ALLOWED_UNITS_BY_TYPE[type].includes(unit);
 }
 
+/** Servizi e servizi aggiuntivi: hanno durata e zona, non un proveedor (ADR-081). */
+export const SERVICE_TYPES = [
+  'SERVICE',
+  'SERVICE_ADDON',
+] as const satisfies readonly CatalogItemType[];
+
+export function isServiceType(type: CatalogItemType): boolean {
+  return (SERVICE_TYPES as readonly CatalogItemType[]).includes(type);
+}
+
+/** Prodotti che si comprano da un proveedor: tutto tranne i servizi (ADR-081). */
+export function hasSupplier(type: CatalogItemType): boolean {
+  return !isServiceType(type);
+}
+
+/**
+ * Durate proposte per un servizio, in minuti (ADR-081): una tendina, non un numero da scrivere.
+ * Da 15 minuti a una giornata di montaggio.
+ */
+export const SERVICE_DURATION_OPTIONS = [
+  15, 30, 45, 60, 90, 120, 180, 240, 300, 360, 480, 600, 720, 1440,
+] as const;
+
 export const SKU_PATTERN = /^[A-Za-z0-9._-]+$/;
 
 export const CATALOG_LIMITS = {
@@ -111,6 +134,8 @@ export const CATALOG_LIMITS = {
   tagLength: 30,
   prepMinutesMax: 24 * 60,
   dimensionCmMax: 1000,
+  serviceDurationMax: 24 * 60,
+  serviceRadiusKmMax: 200,
 } as const;
 
 function refineCatalogItem(
@@ -157,6 +182,24 @@ export const catalogItemInputSchema = z
     prepMinutes: z.int().min(0).max(CATALOG_LIMITS.prepMinutesMax).nullable(),
     heightCm: z.int().min(1).max(CATALOG_LIMITS.dimensionCmMax).nullable(),
     widthCm: z.int().min(1).max(CATALOG_LIMITS.dimensionCmMax).nullable(),
+    /**
+     * Proveedor habitual (ADR-081). `undefined` = non cambiarlo (il campo c'è solo con
+     * l'inventario): chi modifica senza il piano non lo perde.
+     */
+    supplierId: z.uuid({ error: 'invalid_option' }).nullable().optional(),
+    /** Servizi (ADR-081): durata indicativa e raggio dalla fioreria. `undefined` = non cambiarli. */
+    serviceDurationMinutes: z
+      .int()
+      .min(1, { error: 'out_of_range' })
+      .max(CATALOG_LIMITS.serviceDurationMax, { error: 'out_of_range' })
+      .nullable()
+      .optional(),
+    serviceRadiusKm: z
+      .int()
+      .min(1, { error: 'out_of_range' })
+      .max(CATALOG_LIMITS.serviceRadiusKmMax, { error: 'out_of_range' })
+      .nullable()
+      .optional(),
     tags: z
       .array(z.string().trim().toLowerCase().min(1).max(CATALOG_LIMITS.tagLength))
       .max(CATALOG_LIMITS.tags),
@@ -172,6 +215,12 @@ export const catalogItemInputSchema = z
     isBuilderEnabled: isBuilderComponentType(value.type) ? (value.isBuilderEnabled ?? true) : false,
     // Solo ramos, piante, fiori e accessori si mostrano in linea (mai materiali o servizi).
     isOnline: canShowOnline(value.type) ? (value.isOnline ?? false) : false,
+    // I servizi non si comprano da un proveedor e hanno una durata, non un tempo di preparazione;
+    // durata e zona valgono solo per i servizi.
+    prepMinutes: isServiceType(value.type) ? null : value.prepMinutes,
+    supplierId: hasSupplier(value.type) ? value.supplierId : null,
+    serviceDurationMinutes: isServiceType(value.type) ? value.serviceDurationMinutes : null,
+    serviceRadiusKm: isServiceType(value.type) ? value.serviceRadiusKm : null,
   }));
 
 export type CatalogItemInput = z.infer<typeof catalogItemInputSchema>;
@@ -203,6 +252,14 @@ export function catalogItemFormSchema(currency: CurrencyCode) {
       prepMinutes: optionalInteger({ min: 0, max: CATALOG_LIMITS.prepMinutesMax }),
       heightCm: optionalInteger({ min: 1, max: CATALOG_LIMITS.dimensionCmMax }),
       widthCm: optionalInteger({ min: 1, max: CATALOG_LIMITS.dimensionCmMax }),
+      // Campi che il form mostra solo a volte: assenti = non cambiarli.
+      supplierId: z.undefined().or(optionalText(36)),
+      serviceDurationMinutes: z
+        .undefined()
+        .or(optionalInteger({ min: 1, max: CATALOG_LIMITS.serviceDurationMax })),
+      serviceRadiusKm: z
+        .undefined()
+        .or(optionalInteger({ min: 1, max: CATALOG_LIMITS.serviceRadiusKmMax })),
       tags: tagsField(CATALOG_LIMITS.tags, CATALOG_LIMITS.tagLength),
       isBuilderEnabled: checkboxField(),
       isOnline: checkboxField(),

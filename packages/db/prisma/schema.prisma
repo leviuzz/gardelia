@@ -548,39 +548,46 @@ model OnlineStore {
 }
 
 model CatalogItem {
-  id                String          @id @default(uuid(7)) @db.Uuid
-  tenantId          String          @db.Uuid
-  type              CatalogItemType
-  name              String
-  description       String?
+  id                     String          @id @default(uuid(7)) @db.Uuid
+  tenantId               String          @db.Uuid
+  type                   CatalogItemType
+  name                   String
+  description            String?
   /// Codice interno facoltativo, unico per tenant.
-  sku               String?
-  canonicalFlowerId String?         @db.Uuid
-  variety           String?
+  sku                    String?
+  canonicalFlowerId      String?         @db.Uuid
+  variety                String?
   /// Chiavi colore controllate (vedi @floral/domain CATALOG_COLORS).
-  colors            String[]
-  saleUnit          SaleUnit
+  colors                 String[]
+  saleUnit               SaleUnit
   /// Prezzo di vendita per unità di vendita, in unità minime.
-  priceMinor        Int
+  priceMinor             Int
   /// Costo stimato per unità di vendita, in unità minime. NULL = non compilato.
-  costMinor         Int?
-  currency          String          @db.Char(3)
-  availability      Availability    @default(AVAILABLE)
-  prepMinutes       Int?
-  heightCm          Int?
-  widthCm           Int?
-  tags              String[]
+  costMinor              Int?
+  currency               String          @db.Char(3)
+  availability           Availability    @default(AVAILABLE)
+  /// Minuti per armarlo (ramos) o prepararlo: stima per la Producción del día (ADR-081).
+  prepMinutes            Int?
+  heightCm               Int?
+  widthCm                Int?
+  /// Proveedor habitual (ADR-081): da chi si compra di solito; serve per riordinare.
+  supplierId             String?         @db.Uuid
+  /// Servizi (ADR-081): durata indicativa in minuti e raggio in km dalla fioreria. NULL = non detto.
+  serviceDurationMinutes Int?
+  serviceRadiusKm        Int?
+  tags                   String[]
   /// Utilizzabile come componente nel Bouquet Builder [AI-BQ-01].
-  isBuilderEnabled  Boolean         @default(false)
+  isBuilderEnabled       Boolean         @default(false)
   /// Mostrato nella pagina pubblica della fioreria ("Mi tienda en línea", blocco C2).
-  isOnline          Boolean         @default(false)
-  status            RecordStatus    @default(ACTIVE)
-  archivedAt        DateTime?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  isOnline               Boolean         @default(false)
+  status                 RecordStatus    @default(ACTIVE)
+  archivedAt             DateTime?
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
 
   tenant          Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   canonicalFlower CanonicalFlower?           @relation(fields: [canonicalFlowerId], references: [id], onDelete: SetNull)
+  supplier        Supplier?                  @relation(fields: [tenantId, supplierId], references: [tenantId, id], onDelete: Restrict)
   recipe          BouquetRecipe?
   usedInRecipes   BouquetRecipeLine[]        @relation("RecipeIngredient")
   quoteLines      QuoteLine[]
@@ -593,6 +600,7 @@ model CatalogItem {
   @@unique([tenantId, id])
   @@unique([tenantId, sku])
   @@index([tenantId, status, type])
+  @@index([tenantId, supplierId])
 }
 
 enum SubstitutionPolicy {
@@ -806,8 +814,9 @@ model Supplier {
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 
-  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  purchases InventoryEntry[]
+  tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  purchases    InventoryEntry[]
+  catalogItems CatalogItem[]
 
   @@unique([tenantId, id])
   @@index([tenantId, status, name])

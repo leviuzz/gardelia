@@ -119,9 +119,24 @@ export async function getOrdersDay(ctx: TenantContext, rawDate: unknown): Promis
     const lines = await tx.orderLine.findMany({
       where: { tenantId: ctx.tenantId, orderId: { in: orders.map((order) => order.id) } },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-      select: { orderId: true, kind: true, description: true, quantity: true, snapshot: true },
+      select: {
+        orderId: true,
+        kind: true,
+        catalogItemId: true,
+        description: true,
+        quantity: true,
+        snapshot: true,
+      },
     });
-    return { orders, lines };
+    // Tempo di armado (ADR-081): quello attuale del catalogo, è una stima per organizzare il giorno.
+    const itemIds = [
+      ...new Set(lines.map((line) => line.catalogItemId).filter((id): id is string => !!id)),
+    ];
+    const prepTimes = await tx.catalogItem.findMany({
+      where: { tenantId: ctx.tenantId, id: { in: itemIds }, prepMinutes: { not: null } },
+      select: { id: true, prepMinutes: true },
+    });
+    return { orders, lines, prepTimes };
   });
 
   const linesByOrder = new Map<string, typeof rows.lines>();
@@ -167,6 +182,7 @@ export async function getOrdersDay(ctx: TenantContext, rawDate: unknown): Promis
   const producing = new Set(
     rows.orders.filter((order) => TO_PRODUCE.includes(order.status)).map((order) => order.id),
   );
+  const prepByItem = new Map(rows.prepTimes.map((item) => [item.id, item.prepMinutes]));
   const productionLines: ProductionLineInput[] = rows.lines
     .filter((line) => producing.has(line.orderId))
     .map((line) => {
@@ -175,6 +191,7 @@ export async function getOrdersDay(ctx: TenantContext, rawDate: unknown): Promis
         kind: line.kind,
         description: line.description,
         quantity: line.quantity,
+        prepMinutes: line.catalogItemId ? (prepByItem.get(line.catalogItemId) ?? null) : null,
         recipe: snapshot?.recipe ?? null,
         item:
           line.kind === 'CATALOG_ITEM' && snapshot?.item
