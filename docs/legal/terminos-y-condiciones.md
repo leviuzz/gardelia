@@ -25,7 +25,7 @@ crea en Gardelia. "Clientes de la florería" son las personas cuyos datos la flo
 2. Cuida tu contraseña y tu acceso a Google: lo que se haga con tu cuenta es tu responsabilidad.
 3. La persona propietaria de la florería decide quién entra y con qué rol, y puede desactivar
    usuarios en cualquier momento.
-4. Avísanos de inmediato a [soporte@dominio] si sospechas de un acceso indebido.
+4. Avísanos de inmediato a soporte@gardelia.co si sospechas de un acceso indebido.
 
 ## 3. Planes, pruebas y pagos
 
@@ -122,4 +122,4 @@ competentes y, en su caso, mecanismos de solución de controversias.]
 
 ## 14. Contacto
 
-[soporte@dominio] · [domicilio]
+soporte@gardelia.co · [domicilio]

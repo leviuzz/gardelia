@@ -558,6 +558,16 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Dominio gardelia.co (24/11, ADR-073):** comprato dal founder su Cloudflare. Nel repository:
+
+- guida passo passo in `docs/DEPLOY_VERCEL.md` §12 (`staging.gardelia.co`, email in arrivo con
+  Cloudflare Email Routing, invio da `no-reply@gardelia.co` con Resend, variabili, controlli);
+- bozze legali con `gardelia.co`, `soporte@` e `privacidad@`;
+- esempio di `EMAIL_FROM`.
+
+Il codice non cambia: tutto passa da `APP_URL` ed `EMAIL_FROM`. Restano al founder i passi su
+Cloudflare, Resend e Vercel.
+
 **"Tienda en línea" nell'elenco del catalogo (24/11, chiesto dal founder):** una colonna con
 l'interruttore per mostrare o togliere un prodotto dalla tienda senza aprirne la scheda. Su telefono è
 una riga sotto ogni scheda. Valgono le stesse regole della scheda: solo ramos, piante, fiori e

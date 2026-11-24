@@ -79,7 +79,7 @@ dipendenze nella CI. Mancano quattro cose:
 **Infrastruttura:**
 
 - **Progetto Vercel `gardelia-production`:**
-  - dominio definitivo (O-03);
+  - dominio `gardelia.co` (comprato il 24/11/2026, ADR-073), con `www` che rimanda lì;
   - variabili e segreti propri, mai copiati da staging (`BETTER_AUTH_SECRET` nuovo);
   - piano Pro per l'uso commerciale;
   - pubblica il ramo `prod`.

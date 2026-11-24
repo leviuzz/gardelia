@@ -82,7 +82,7 @@ de la responsabilidad de Gardelia frente al consumidor.]
 ## 9. Quejas
 
 Si tienes un problema con un pedido, primero contacta a la florería: su teléfono y su WhatsApp están
-en su tienda y en tu pedido. Si no se resuelve, escríbenos a [soporte@dominio] y te ayudaremos a
+en su tienda y en tu pedido. Si no se resuelve, escríbenos a soporte@gardelia.co y te ayudaremos a
 comunicarte con ella. También puedes acudir a la Procuraduría Federal del Consumidor (PROFECO).
 [Validar con el abogado los datos de contacto y el procedimiento que deben informarse.]
 
@@ -98,4 +98,4 @@ competentes y derechos irrenunciables del consumidor.]
 
 ## 12. Contacto
 
-[soporte@dominio] · [domicilio]
+soporte@gardelia.co · [domicilio]
