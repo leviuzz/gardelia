@@ -348,6 +348,25 @@ export async function listCareVisitsToReschedule(
   });
 }
 
+/** Una visita (Agenda → la visita): per chi la fa e per chi la sposta. */
+export async function getCareVisit(
+  ctx: TenantContext,
+  visitId: string,
+): Promise<CareAgendaVisitDto> {
+  requirePermission(ctx, 'subscriptions:read');
+  if (!isUuid(visitId)) throw new NotFoundError('CareVisit');
+  const today = todayInTimeZone(ctx.timezone);
+  const found = await withTenantContext(getDb(), ctx, async (tx) => {
+    await requireEntitlement(ctx, 'floralCare', tx);
+    const row = await findVisit(tx, ctx, visitId);
+    if (!row) return null;
+    const plants = await plantCounts(tx, ctx.tenantId, [row.subscriptionId]);
+    return toAgendaVisit(ctx, row, plants, today);
+  });
+  if (!found) return notFound(ctx, 'CareVisit', visitId);
+  return found;
+}
+
 async function findVisit(tx: TransactionClient, ctx: TenantContext, visitId: string) {
   return tx.careVisit.findFirst({
     where: { tenantId: ctx.tenantId, id: visitId },

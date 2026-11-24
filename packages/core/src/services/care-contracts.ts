@@ -75,6 +75,8 @@ import {
 } from './care-internals';
 import { dateToParts, nextTenantCounter } from './quote-internals';
 
+export type { CareGenerationResult } from './care-generation';
+
 // -----------------------------------------------------------------------------
 // DTO
 // -----------------------------------------------------------------------------

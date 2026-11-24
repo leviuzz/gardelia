@@ -28,6 +28,19 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
     // Il lavoro di ogni giorno (ADR-054): su mobile nella barra in basso.
     { href: routes.orders.list(), label: t('nav.orders'), icon: 'orders' },
     { href: routes.quotes.list(), label: t('nav.quotes'), icon: 'quotes' },
+    // Floral Care (ADR-074): l'Agenda dei lavori (visite e consegne) e i contratti. Su mobile nel
+    // menu "Más": la barra in basso resta di cinque voci (ADR-054).
+    { href: routes.agenda.day(), label: t('nav.agenda'), icon: 'agenda', secondary: true },
+    ...(hasPermission(ctx, 'subscriptions:read')
+      ? [
+          {
+            href: routes.subscriptions.list(),
+            label: t('nav.care'),
+            icon: 'care' as const,
+            secondary: true,
+          },
+        ]
+      : []),
     // Funzione Plus: chi non ce l'ha trova l'invito all'upgrade (mai una finta funzione).
     { href: routes.builder.list(), label: t('nav.builder'), icon: 'builder', secondary: true },
     { href: routes.customers.list(), label: t('nav.customers'), icon: 'customers' },

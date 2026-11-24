@@ -44,6 +44,8 @@ import {
   planSlotChange,
   type RebookResult,
 } from './care-generation';
+
+export type { RebookResult } from './care-generation';
 import {
   careFeesOf,
   dbDate,

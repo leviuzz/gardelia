@@ -3,6 +3,7 @@
 import {
   BadgePercent,
   Boxes,
+  CalendarClock,
   CalendarDays,
   ClipboardList,
   Contact,
@@ -13,6 +14,7 @@ import {
   LoaderCircle,
   Settings,
   Sparkles,
+  Sprout,
   Users,
   type LucideProps,
 } from 'lucide-react';
@@ -30,6 +32,8 @@ import { cn } from '@/lib/utils';
 export type NavIcon =
   | 'dashboard'
   | 'orders'
+  | 'agenda'
+  | 'care'
   | 'quotes'
   | 'builder'
   | 'customers'
@@ -55,6 +59,8 @@ export interface NavItem {
 const ICONS = {
   dashboard: LayoutDashboard,
   orders: ClipboardList,
+  agenda: CalendarClock,
+  care: Sprout,
   quotes: FileText,
   builder: Sparkles,
   customers: Contact,
