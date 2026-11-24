@@ -236,6 +236,14 @@ export default async function CareVisitPage({
               {visit.status === 'NOT_DONE' && visit.notDoneCause ? (
                 <span>{t(`care.visit.notDoneCauses.${visit.notDoneCause}`)}</span>
               ) : null}
+              {visit.status === 'CANCELLED' && visit.cancelReason ? (
+                <span>
+                  {t(`care.cancelReasons.${visit.cancelReason}`)}
+                  {visit.cancelCharged === null
+                    ? null
+                    : ` · ${t(visit.cancelCharged ? 'care.visit.cancelCharged' : 'care.visit.cancelNotCharged')}`}
+                </span>
+              ) : null}
               {visit.recovery && !visit.recovery.visitId ? (
                 <Badge variant="warning">{t('care.recovery.toRecover')}</Badge>
               ) : null}
@@ -875,7 +883,30 @@ export default async function CareVisitPage({
 
       {visit.canManage ? (
         <div className="flex justify-end">
-          <VisitCancelDialog action={cancelCareVisitAction.bind(null, slug, visit.id)} />
+          <VisitCancelDialog
+            action={cancelCareVisitAction.bind(null, slug, visit.id)}
+            lateCancel={
+              visit.lateCancel
+                ? {
+                    chargedNow: visit.lateCancel.chargedNow,
+                    message: visit.lateCancel.chargedNow
+                      ? t('care.visit.lateCancelCharged', { hours: visit.lateCancel.hours })
+                      : visit.lateCancel.freeUntil
+                        ? t('care.visit.lateCancelFreeUntil', {
+                            time: format.dateTime(new Date(visit.lateCancel.freeUntil), {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              timeZone: ctx.timezone,
+                            }),
+                          })
+                        : t('care.visit.lateCancelFree'),
+                  }
+                : null
+            }
+          />
         </div>
       ) : null}
     </div>

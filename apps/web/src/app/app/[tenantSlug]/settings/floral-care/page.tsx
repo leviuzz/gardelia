@@ -152,6 +152,7 @@ export default async function CareSettingsPage({
               missedVisitPolicy: settings.missedVisitPolicy,
               deadPlantPolicy: settings.deadPlantPolicy,
               paymentDueDays: String(settings.paymentDueDays),
+              lateCancelHours: String(settings.lateCancelHours),
               termsText: settings.termsText ?? '',
             }}
           />

@@ -187,6 +187,7 @@ export const LABELS = {
     SCHEDULE_CHANGE: 'Cambio de horario',
     CONTRACT_END: 'Fin del contrato',
     NOT_DONE: 'No pudimos ir',
+    CUSTOMER: 'El cliente avisó a tiempo',
   } satisfies Record<CareCreditReason, string>,
   carePaymentKind: {
     PAYMENT: 'Pago',

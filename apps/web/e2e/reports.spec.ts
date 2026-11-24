@@ -18,6 +18,10 @@ test.describe('reportes (propietaria)', () => {
     }
     await expect(page.getByTestId('report-margin')).toBeVisible();
     await expect(page.getByTestId('report-upcoming')).toBeVisible();
+    // Floral Care con i cargos e i pagamenti veri (ADR-082), non più la stima.
+    const care = page.getByTestId('report-care');
+    await expect(care.getByText('Floral Care', { exact: true })).toBeVisible();
+    await expect(care.getByRole('link', { name: 'Ver Cobros' })).toBeVisible();
 
     await page.getByRole('link', { name: /^Periodo anterior/ }).click();
     await expect(page).toHaveURL(/\/reports\?mes=\d{4}-\d{2}$/);

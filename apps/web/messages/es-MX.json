@@ -3214,7 +3214,9 @@
       "termsHint": "Los escribes tú: Gardelia no agrega condiciones. Tu cliente los verá.",
       "saved": "Tarifas guardadas",
       "paymentDueDays": "Días para pagar un cargo",
-      "paymentDueDaysHint": "Desde el día 1 del mes (o desde que nace el cargo). Vacío = 10."
+      "paymentDueDaysHint": "Desde el día 1 del mes (o desde que nace el cargo). Vacío = 10.",
+      "lateCancelHours": "Si el cliente cancela con menos de (horas)",
+      "lateCancelHoursHint": "…de aviso, la visita se cobra. Antes, no se cobra. 0 = no se cobra nunca. Vacío = 12. Vale para los contratos que confirmes desde ahora."
     },
     "simulator": {
       "title": "Simulador",
@@ -3675,7 +3677,14 @@
       "notDoneCauseHints": {
         "CUSTOMER": "La visita se cobra, como dice la regla del contrato.",
         "SHOP": "La visita se descuenta en el próximo cargo."
-      }
+      },
+      "lateCancelCharged": "Si es tu cliente quien la cancela ahora, la visita se cobra: falta menos de {hours, plural, one {# hora} other {# horas}} (la regla del contrato).",
+      "lateCancelFreeUntil": "Si es tu cliente quien la cancela, no se cobra si avisa antes del {time}; después, sí.",
+      "lateCancelFree": "Si es tu cliente quien la cancela, no se cobra.",
+      "noCharge": "No cobrar esta vez",
+      "noChargeHint": "Por ejemplo, si te avisó a tiempo y lo registras tarde.",
+      "cancelCharged": "se cobra",
+      "cancelNotCharged": "no se cobra"
     },
     "visitWork": {
       "start": "Empezar visita",
@@ -3996,7 +4005,8 @@
         "SHOP": "la quitó la florería",
         "SCHEDULE_CHANGE": "cambio de horario",
         "CONTRACT_END": "fin del contrato",
-        "NOT_DONE": "no pudimos ir"
+        "NOT_DONE": "no pudimos ir",
+        "CUSTOMER": "el cliente avisó a tiempo"
       },
       "total": "Total",
       "paid": "Pagado",
@@ -4068,7 +4078,9 @@
       "deadPlant": {
         "INCLUDED": "Si una planta se muere, el reemplazo va incluido.",
         "QUOTE": "Si una planta se muere, el reemplazo se cotiza aparte."
-      }
+      },
+      "lateCancel": "Si el cliente cancela con menos de {hours, plural, one {# hora} other {# horas}} de aviso, la visita se cobra.",
+      "lateCancelNever": "Si el cliente cancela una visita, no se cobra."
     },
     "statement": {
       "title": "Estado de cuenta",
@@ -4333,12 +4345,17 @@
       "orders": "{count, plural, =0 {Ningún pedido por entregar} one {# pedido por entregar} other {# pedidos por entregar}}",
       "visits": "{count, plural, =0 {Ninguna visita de Floral Care} one {# visita de Floral Care} other {# visitas de Floral Care}}"
     },
-    "recurring": {
-      "none": "Floral Care: sin contratos activos.",
-      "exact": "Floral Care: {amount} al mes ({count, plural, one {# contrato activo} other {# contratos activos}}).",
-      "range": "Floral Care: entre {min} y {max} al mes ({count, plural, one {# contrato activo} other {# contratos activos}})."
-    },
-    "footnote": "Los importes son los de tus pedidos; el desglose de IVA todavía no está disponible."
+    "footnote": "Los importes son los de tus pedidos; el desglose de IVA todavía no está disponible.",
+    "care": {
+      "title": "Floral Care",
+      "subtitle": "Los cargos y pagos reales de tus contratos. {count, plural, =0 {Hoy no tienes contratos activos.} one {Hoy tienes # contrato activo.} other {Hoy tienes # contratos activos.}}",
+      "none": "Sin cargos ni pagos en {period}.",
+      "charged": "{count, plural, one {# cargo del periodo} other {# cargos del periodo}}",
+      "collected": "Cobrado en el periodo",
+      "open": "Falta por cobrar de esos cargos",
+      "overdue": "{count, plural, one {# cargo vencido} other {# cargos vencidos}}: {amount}",
+      "toCharges": "Ver Cobros"
+    }
   },
   "duration": {
     "hours": "{hours} h",

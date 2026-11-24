@@ -360,8 +360,11 @@ describe('moduli dei cambi che toccano visite', () => {
     expect(careVisitCancelSchema.parse({ reason: 'SHOP', note: ' Vacaciones ' })).toEqual({
       reason: 'SHOP',
       note: 'Vacaciones',
+      noCharge: false,
       customerNotified: false,
     });
+    // "No cobrar esta vez" arriva come casella.
+    expect(careVisitCancelSchema.parse({ reason: 'CUSTOMER', noCharge: 'on' }).noCharge).toBe(true);
     expect(careVisitCancelSchema.safeParse({ reason: 'SCHEDULE_CHANGE' }).success).toBe(false);
   });
 

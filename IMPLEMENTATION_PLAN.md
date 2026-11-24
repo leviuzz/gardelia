@@ -591,7 +591,8 @@ proveedor e "Por pedir", servizio nella riga, sostituto con l'ok del cliente) ·
 - margine lordo solo sulle righe con il costo, con lo sconto ripartito, dicendo su che quota delle
   vendite è calcolato;
 - mermas con il costo;
-- ricavi ricorrenti stimati di Floral Care e i prossimi 7 giorni (pedidos e visite).
+- ricavi ricorrenti stimati di Floral Care (dal 24/11 i cargos e i pagamenti veri, ADR-082) e i
+  prossimi 7 giorni (pedidos e visite).
 
 Verifiche: lint ✅ · format ✅ · typecheck ✅ · test 1032/1032 ✅
 (dominio: periodo, vendite, prodotti, margine con la quota coperta; integrazione: permessi, pedidos
@@ -1176,6 +1177,26 @@ Verifiche locali:
 - controllo a 320 px di visita (staff, prima e dopo la conferma), dialoghi dell'incasso, della
   conferma e dell'ajuste, Cobros con "Por registrar", contratto con gli ajustes e "Visitas por
   recuperar": nessuno sbordo.
+
+**Floral Care, le risposte del founder dopo il 3b (fatto il 24/11, ADR-082):** i soldi li vedono
+solo proprietario e gerente; un incasso confermato senza cargos resta "por registrar"; e due modifiche.
+
+- **Cancelación del cliente con orario limite:** in Ajustes → Floral Care "Si el cliente cancela
+  con menos de [12] horas" (0 = mai), copiato nel contratto alla conferma e mostrato fra le regole
+  del contratto. Cancellando "La pidió el cliente" la finestra dice se si paga ("no se cobra si
+  avisa antes del …" oppure "se cobra") e, se è tardi, offre "No cobrar esta vez" (PROPOSTO). In
+  tempo: credito "el cliente avisó a tiempo" nel cargo dopo. La visita ricorda "se cobra" o "no se
+  cobra". Migrazione con il nuovo motivo di credito e i contratti già confermati a 12 ore.
+- **Reportes con i soldi veri:** la card "Floral Care" del periodo (cargos, cobrado, quanto manca,
+  vencido di oggi con il link a Cobros) al posto della stima; solo per chi gestisce i soldi.
+
+Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · migrazioni = schema ✅ · test 1124/1124 ✅
+(nuovi: regola dell'orario limite nel fuso della fioreria, 0 ore e visita senza ora, credito con il
+suo motivo, campo delle impostazioni; integrazione: cancellazione tardiva pagata, in tempo con il
+credito, "No cobrar esta vez" con il registro, Reportes con cargos, cobrado, vencido e una
+fioreria vuota) · build ✅ · E2E Floral Care e Reportes 11/11 ✅ (nuovi controlli: regola nel
+contratto, cancellazione in tempo "no se cobra", card dei Reportes) · controllo a 320 px di
+Reportes, impostazioni, contratto e finestra della cancellazione: nessuno sbordo.
 
 Prossimo: il blocco 4 di `docs/FLORAL_CARE_PLAN.md` (blocchi, vacanze e cambi di massa).
 

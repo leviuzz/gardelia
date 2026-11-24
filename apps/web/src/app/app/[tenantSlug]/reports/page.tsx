@@ -347,27 +347,63 @@ export default async function ReportsPage({
                 </Link>
               </p>
             ) : null}
-            {report.recurring ? (
-              <p className="flex items-start gap-2 border-t pt-3 text-muted-foreground">
-                <Sprout className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                <span>
-                  {report.recurring.contracts === 0
-                    ? t('recurring.none')
-                    : report.recurring.minMinor === report.recurring.maxMinor
-                      ? t('recurring.exact', {
-                          amount: fmt(report.recurring.minMinor),
-                          count: report.recurring.contracts,
-                        })
-                      : t('recurring.range', {
-                          min: fmt(report.recurring.minMinor),
-                          max: fmt(report.recurring.maxMinor),
-                          count: report.recurring.contracts,
-                        })}
-                </span>
-              </p>
-            ) : null}
           </CardContent>
         </Card>
+
+        {report.care ? (
+          <Card data-testid="report-care">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sprout className="size-4 text-muted-foreground" aria-hidden="true" />
+                {t('care.title')}
+              </CardTitle>
+              <CardDescription>
+                {t('care.subtitle', { count: report.care.contracts })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {report.care.charges === 0 && report.care.collectedMinor === 0 ? (
+                <p className="text-muted-foreground">{t('care.none', { period: periodLabel })}</p>
+              ) : (
+                <dl className="grid gap-2">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-muted-foreground">
+                      {t('care.charged', { count: report.care.charges })}
+                    </dt>
+                    <dd className="font-medium tabular-nums">{fmt(report.care.chargedMinor)}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-muted-foreground">{t('care.collected')}</dt>
+                    <dd className="font-medium tabular-nums">{fmt(report.care.collectedMinor)}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-muted-foreground">{t('care.open')}</dt>
+                    <dd className="font-medium tabular-nums">{fmt(report.care.openMinor)}</dd>
+                  </div>
+                </dl>
+              )}
+              {report.care.overdueCount > 0 ? (
+                <p className="border-t pt-3">
+                  <Link
+                    href={routes.subscriptions.charges({ view: 'overdue' })}
+                    className="font-medium text-destructive hover:underline"
+                  >
+                    {t('care.overdue', {
+                      count: report.care.overdueCount,
+                      amount: fmt(report.care.overdueMinor),
+                    })}
+                  </Link>
+                </p>
+              ) : null}
+              <Link
+                href={routes.subscriptions.charges()}
+                className="block font-medium text-primary hover:underline"
+              >
+                {t('care.toCharges')}
+              </Link>
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
 
       <p className="flex items-start gap-2 text-xs text-muted-foreground">

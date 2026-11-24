@@ -151,6 +151,8 @@ quaderni; il cliente ha una pagina sua; ogni visita lascia la prova (ora, checkl
 - Il primo mese è in proporzione alle visite che restano.
 - Ogni variazione va sul cargo del mese dopo:
   - visita cancellata dalla fioreria e non recuperata: credito;
+  - visita cancellata dal cliente: si paga solo con meno ore di preavviso del limite della
+    fioreria (12 di default, deciso dal founder il 24/11, ADR-082), altrimenti credito;
   - cliente che non apre: la regola del contratto;
   - spostata nello stesso mese: niente;
   - extra fatti e visite extra: si aggiungono.
@@ -377,6 +379,9 @@ rilascio su staging) e lascia qualcosa di usabile.
    - **3b (fatto, ADR-082):** "Cobré en la visita" (por registrar, confermato anche per meno o
      rifiutato con il motivo da chi gestisce), "Por recuperar" con la visita extra "Sin costo"
      legata alla visita mancata, "Ajuste para el próximo cargo".
+   - **Dopo il 3b (fatto, ADR-082, risposte del founder del 24/11):** la cancellazione del cliente
+     si paga solo dentro l'orario limite della fioreria; i Reportes usano i cargos e i pagamenti
+     veri.
 4. **Blocchi, vacanze e cambi di massa.**
    - Blocchi di giorni o fasce, giorni di punta proposti.
    - Elenco dei clienti toccati, spostamento o credito di tutte le visite insieme, email

@@ -107,6 +107,8 @@ export interface CareSettingsDto {
   readonly deadPlantPolicy: DeadPlantPolicy;
   /** "Días para pagar" un cargo (ADR-082). */
   readonly paymentDueDays: number;
+  /** Cancelación del cliente: si paga con meno di queste ore di preavviso; 0 = mai (ADR-082). */
+  readonly lateCancelHours: number;
   readonly termsText: string | null;
   /** Raggio di consegna della tienda principale: il punto di partenza proposto per il raggio. */
   readonly deliveryRadiusKm: number | null;
@@ -176,6 +178,7 @@ async function readSettings(tx: TransactionClient, ctx: TenantContext): Promise<
     missedVisitPolicy: settings?.missedVisitPolicy ?? 'COUNTS',
     deadPlantPolicy: settings?.deadPlantPolicy ?? 'QUOTE',
     paymentDueDays: settings?.paymentDueDays ?? CARE_CHARGE_LIMITS.dueDaysDefault,
+    lateCancelHours: settings?.lateCancelHours ?? CARE_CHARGE_LIMITS.lateCancelHoursDefault,
     termsText: settings?.termsText ?? null,
     deliveryRadiusKm: place.deliveryRadiusKm,
     hasOrigin: place.origin !== null,
@@ -250,6 +253,7 @@ export async function updateCareSettings(ctx: TenantContext, rawInput: unknown):
       missedVisitPolicy: input.missedVisitPolicy,
       deadPlantPolicy: input.deadPlantPolicy,
       paymentDueDays: input.paymentDueDays,
+      lateCancelHours: input.lateCancelHours,
       termsText: input.termsText,
     };
     if (!before) {
