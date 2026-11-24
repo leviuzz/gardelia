@@ -223,6 +223,12 @@ model Tenant {
   occasionPromoKind       DiscountKind @default(PERCENT)
   /// Percentuale intera (1–90) o importo in unità minime; null finché non si sceglie.
   occasionPromoValue      Int?
+  /// "Eliminar florería" (ADR-074): chi l'ha chiesta e quando. La fioreria è ARCHIVED e la
+  /// manutenzione la cancella davvero da `deleteAfter` (30 giorni dopo); fino ad allora il titolare
+  /// la può recuperare. Tutti e tre NULL quando non c'è nessuna eliminazione in corso.
+  deletionRequestedAt     DateTime?
+  deletionRequestedById   String?      @db.Uuid
+  deleteAfter             DateTime?
   createdAt               DateTime     @default(now())
   updatedAt               DateTime     @updatedAt
 

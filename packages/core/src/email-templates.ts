@@ -127,6 +127,48 @@ export function invitationEmail(input: {
   };
 }
 
+/**
+ * Ai titolari della fioreria quando qualcuno ne programma l'eliminazione (ADR-074): data della
+ * cancellazione definitiva e come recuperarla. Se non è stato lui, se ne accorge subito.
+ */
+export function tenantDeletionScheduledEmail(input: {
+  to: string;
+  name: string;
+  tenantName: string;
+  /** Data già scritta per chi legge, es. "24 de diciembre de 2026". */
+  deleteOn: string;
+  url: string;
+}): EmailMessage {
+  const footer =
+    'Si no fuiste tú, recupera la florería con el botón y cambia tu contraseña. Para cualquier duda escríbenos a soporte@gardelia.co.';
+  return {
+    to: input.to,
+    category: 'tenant_deletion_scheduled',
+    subject: `${input.tenantName} se eliminará el ${input.deleteOn}`,
+    text: [
+      `Hola ${input.name}:`,
+      '',
+      `Se programó la eliminación de ${input.tenantName} en ${BRAND.productName}. Ya nadie la ve: ni tu equipo, ni tus clientes, ni tu tienda en línea.`,
+      `El ${input.deleteOn} se borrará definitivamente con todos sus datos: clientes, pedidos, catálogo, inventario y fotos.`,
+      '',
+      'Hasta ese día puedes recuperarla desde aquí:',
+      input.url,
+      '',
+      footer,
+    ].join('\n'),
+    html: layout(
+      `${input.tenantName} se eliminará el ${input.deleteOn}`,
+      [
+        `Hola ${escapeHtml(input.name)}:`,
+        `Se programó la eliminación de <strong>${escapeHtml(input.tenantName)}</strong> en ${escapeHtml(BRAND.productName)}. Ya nadie la ve: ni tu equipo, ni tus clientes, ni tu tienda en línea.`,
+        `El <strong>${escapeHtml(input.deleteOn)}</strong> se borrará definitivamente con todos sus datos: clientes, pedidos, catálogo, inventario y fotos. Hasta ese día puedes recuperarla.`,
+      ],
+      { label: 'Recuperar la florería', url: input.url },
+      footer,
+    ),
+  };
+}
+
 /** Conferma della cancellazione del conto cliente (ADR-068): niente si cancella senza il clic. */
 export function deleteAccountEmail(input: { to: string; name: string; url: string }): EmailMessage {
   const footer =

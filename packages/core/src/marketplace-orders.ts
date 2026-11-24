@@ -660,6 +660,7 @@ export async function listBuyerOrders(
           tenant_id: string;
           shop_slug: string;
           shop_name: string;
+          shop_active: boolean;
           number: number;
           status: OrderStatus;
           fulfillment_mode: FulfillmentMode;
@@ -671,25 +672,28 @@ export async function listBuyerOrders(
         }[]
       >`SELECT * FROM app_buyer_orders()`,
   );
-  return rows.map((row) => ({
-    orderId: row.order_id,
-    shopSlug: row.shop_slug,
-    shopName: row.shop_name,
-    numberLabel: formatOrderNumber(row.number),
-    status: row.status,
-    fulfillmentMode: row.fulfillment_mode,
-    scheduledDate: row.scheduled_date ? formatDateParts(dateToParts(row.scheduled_date)) : null,
-    totalMinor: row.total_minor,
-    currency: row.currency.trim(),
-    createdAt: row.created_at,
-    trackingPath: row.link_id
-      ? publicLinkUrl(
-          '',
-          'ORDER',
-          createPublicLinkToken(secret, { tenantId: row.tenant_id, linkId: row.link_id }),
-        )
-      : null,
-  }));
+  // Una fioreria in eliminazione (ADR-074) sparisce anche da qui: link e tienda non si aprono più.
+  return rows
+    .filter((row) => row.shop_active)
+    .map((row) => ({
+      orderId: row.order_id,
+      shopSlug: row.shop_slug,
+      shopName: row.shop_name,
+      numberLabel: formatOrderNumber(row.number),
+      status: row.status,
+      fulfillmentMode: row.fulfillment_mode,
+      scheduledDate: row.scheduled_date ? formatDateParts(dateToParts(row.scheduled_date)) : null,
+      totalMinor: row.total_minor,
+      currency: row.currency.trim(),
+      createdAt: row.created_at,
+      trackingPath: row.link_id
+        ? publicLinkUrl(
+            '',
+            'ORDER',
+            createPublicLinkToken(secret, { tenantId: row.tenant_id, linkId: row.link_id }),
+          )
+        : null,
+    }));
 }
 
 /**
@@ -711,7 +715,7 @@ export async function cancelMarketplaceOrder(
     buyer.userId,
     (tx) =>
       tx.$queryRaw<{ tenant_id: string }[]>`
-      SELECT tenant_id FROM app_buyer_orders() WHERE order_id = ${orderId}::uuid`,
+      SELECT tenant_id FROM app_buyer_orders() WHERE order_id = ${orderId}::uuid AND shop_active`,
   );
   const tenantId = owned[0]?.tenant_id;
   if (!tenantId) throw new NotFoundError('Order');
