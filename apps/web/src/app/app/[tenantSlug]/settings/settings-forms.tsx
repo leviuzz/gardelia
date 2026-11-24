@@ -76,8 +76,11 @@ export function LocationForm({
   action,
   defaults,
   regions,
+  onMap,
 }: {
   action: Action;
+  /** La sede ha la posizione di Google ancora valida (la trova chi cerca il proprio indirizzo). */
+  onMap: boolean;
   defaults: {
     addressLine1: string;
     addressLine2: string;
@@ -93,6 +96,7 @@ export function LocationForm({
 }) {
   const t = useTranslations('onboarding');
   const tc = useTranslations('common');
+  const tSettings = useTranslations('settings');
   const [state, formAction] = useActionState(action, idleState);
   useActionToast(state);
   const err = (field: string) => fieldError(state, field);
@@ -102,7 +106,17 @@ export function LocationForm({
       onSubmit={preserveOnSubmit(formAction)}
       className="grid gap-5 sm:grid-cols-6"
     >
-      <AddressFields regions={regions} defaults={defaults} error={err} layout="wide" />
+      <AddressFields
+        regions={regions}
+        defaults={defaults}
+        error={err}
+        layout="wide"
+        mapStatus={{
+          onMap,
+          onMapText: tSettings('locationOnMap'),
+          offMapText: tSettings('locationOffMap'),
+        }}
+      />
       <Field id="phone" label={t('contactPhone')} error={err('phone')} className="sm:col-span-3">
         <Input
           {...controlProps('phone', err('phone'))}

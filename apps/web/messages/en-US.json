@@ -134,7 +134,13 @@
     "errorReference": "Reference: {digest}",
     "forbiddenTitle": "No access to this section",
     "forbiddenBody": "Your role doesn’t let you see this section. If you need it, ask the shop’s owner for access.",
-    "planRequired": "This feature isn’t included in your shop’s plan."
+    "planRequired": "This feature isn’t included in your shop’s plan.",
+    "staleVersion": {
+      "title": "There’s a new version of Gardelia",
+      "body": "Gardelia was updated while this page was open. Reload the page to continue; anything that wasn’t saved needs to be entered again.",
+      "reload": "Reload the page",
+      "toast": "Gardelia was updated: reload the page and try again."
+    }
   },
   "landing": {
     "eyebrow": "For flower shops in Mexico",
@@ -473,7 +479,9 @@
       "goToPayment": "Payment methods",
       "notPublished": "Your shop is not published yet: orders will arrive once you publish it.",
       "save": "Save online orders"
-    }
+    },
+    "offMap": "Buyers searching their address can’t find your store yet, because your main store isn’t on the map. Only people searching your city find you.",
+    "offMapAction": "Pick the address on the map"
   },
   "publicStore": {
     "demoNotice": "Demo flower shop: products and prices are examples.",
@@ -972,7 +980,9 @@
       "tierLimit": "You reached the maximum of {max} rates.",
       "tierAdded": "Rate added.",
       "tierRemoved": "Rate removed."
-    }
+    },
+    "locationOnMap": "Your store is on the map: buyers who search their address find it, and distances are measured from here.",
+    "locationOffMap": "Your store isn’t on the map: pick the address from the suggestions. Otherwise buyers searching by address won’t find it and distance fees can’t be calculated."
   },
   "team": {
     "title": "Team",

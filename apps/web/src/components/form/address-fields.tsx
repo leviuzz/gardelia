@@ -1,7 +1,8 @@
 'use client';
 
+import { MapPinCheck, MapPinOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import {
   AddressSearch,
   usePlacesConfig,
@@ -9,6 +10,7 @@ import {
 } from '@/components/form/address-search';
 import { Field, controlProps } from '@/components/form/field';
 import { Input, NativeSelect } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 export type AddressFieldName =
   'addressLine1' | 'addressLine2' | 'neighborhood' | 'postalCode' | 'city' | 'region';
@@ -32,6 +34,15 @@ const SEARCH_SPAN: Record<'wide' | 'compact', string> = {
   compact: 'sm:col-span-2',
 };
 
+/** Punto di Google nei campi nascosti del form (stringhe vuote = nessun punto). */
+interface StoredPlaceFields {
+  readonly placeId: string;
+  readonly latitude: string;
+  readonly longitude: string;
+}
+
+const NO_PLACE: StoredPlaceFields = { placeId: '', latitude: '', longitude: '' };
+
 /** Primo mercato (D-02): Aguascalientes, se l'indirizzo non ha ancora uno stato. */
 const DEFAULT_REGION = 'AGU';
 
@@ -48,6 +59,7 @@ export function AddressFields({
   layout,
   namePrefix = '',
   idPrefix = '',
+  mapStatus,
 }: {
   readonly regions: readonly { readonly code: string; readonly name: string }[];
   readonly defaults?: Partial<Record<AddressFieldName | 'placeId', string | null>>;
@@ -56,6 +68,15 @@ export function AddressFields({
   readonly layout: 'wide' | 'compact';
   readonly namePrefix?: string;
   readonly idPrefix?: string;
+  /**
+   * Dice sotto la ricerca se l'indirizzo ha la posizione di Google (solo dove conta: la sede della
+   * fioreria, che chi compra trova cercando il proprio indirizzo). Cambia mentre si scrive.
+   */
+  readonly mapStatus?: {
+    readonly onMap: boolean;
+    readonly onMapText: string;
+    readonly offMapText: string;
+  };
 }) {
   const t = useTranslations('onboarding');
   const spans = SPANS[layout];
@@ -65,16 +86,31 @@ export function AddressFields({
   const value = (field: AddressFieldName) => defaults?.[field] ?? undefined;
   const { enabled: placesEnabled } = usePlacesConfig();
   const placeRef = useRef<HTMLInputElement>(null);
-  const latitudeRef = useRef<HTMLInputElement>(null);
-  const longitudeRef = useRef<HTMLInputElement>(null);
+  // Punto di Google in stato React, non scritto a mano nei campi nascosti: React riscrive il
+  // `defaultValue` di un input nascosto a ogni nuovo disegno (per gli input nascosti valore e valore
+  // predefinito coincidono), e il punto appena scelto sparirebbe prima dell'invio (visto il 24/11).
+  const [place, setPlace] = useState<StoredPlaceFields>(() => ({
+    placeId: defaults?.placeId ?? '',
+    latitude: '',
+    longitude: '',
+  }));
+  const [onMap, setOnMap] = useState(mapStatus?.onMap ?? false);
+  // Google ha trovato una zona senza via (una colonia, un fraccionamiento): la via si completa a
+  // mano dentro quella zona, quindi scriverla non sposta il punto. Vale finché non si cerca altro.
+  const streetToComplete = useRef(false);
 
   // Via, numero, municipio o stato cambiati a mano: il punto non è più quello di Google, quindi
   // niente place ID né coordinate. Interno, colonia e CP no: completano l'indirizzo (Google spesso
-  // non li dà) senza spostarlo.
+  // non li dà) senza spostarlo. Nemmeno la via, se Google non l'aveva data (vedi sotto).
   function clearPlace() {
-    for (const ref of [placeRef, latitudeRef, longitudeRef]) {
-      if (ref.current) ref.current.value = '';
-    }
+    setPlace((current) => (current.placeId === '' && current.latitude === '' ? current : NO_PLACE));
+    setOnMap(false);
+    streetToComplete.current = false;
+  }
+
+  /** La via scritta a mano toglie il punto di Google, tranne quando Google non l'aveva data. */
+  function onStreetChange() {
+    if (!streetToComplete.current) clearPlace();
   }
 
   function fill(found: FoundAddress) {
@@ -94,32 +130,45 @@ export function AddressFields({
       }
     };
     set('addressLine1', found.addressLine1);
+    streetToComplete.current = found.addressLine1.trim() === '';
     set('addressLine2', found.addressLine2);
     set('neighborhood', found.neighborhood);
     set('postalCode', found.postalCode);
     set('city', found.city);
     set('region', found.region);
-    if (placeRef.current) placeRef.current.value = found.placeId;
-    if (latitudeRef.current)
-      latitudeRef.current.value = found.coordinates?.latitude.toString() ?? '';
-    if (longitudeRef.current) {
-      longitudeRef.current.value = found.coordinates?.longitude.toString() ?? '';
-    }
+    setPlace({
+      placeId: found.placeId,
+      latitude: found.coordinates?.latitude.toString() ?? '',
+      longitude: found.coordinates?.longitude.toString() ?? '',
+    });
+    setOnMap(found.coordinates !== null);
   }
 
   return (
     <>
-      <input
-        type="hidden"
-        ref={placeRef}
-        name={`${namePrefix}placeId`}
-        defaultValue={defaults?.placeId ?? ''}
-      />
-      <input type="hidden" ref={latitudeRef} name={`${namePrefix}latitude`} defaultValue="" />
-      <input type="hidden" ref={longitudeRef} name={`${namePrefix}longitude`} defaultValue="" />
+      <input type="hidden" ref={placeRef} name={`${namePrefix}placeId`} value={place.placeId} />
+      <input type="hidden" name={`${namePrefix}latitude`} value={place.latitude} />
+      <input type="hidden" name={`${namePrefix}longitude`} value={place.longitude} />
       {placesEnabled ? (
         <div className={SEARCH_SPAN[layout]}>
           <AddressSearch id={`${idPrefix}addressSearch`} onFound={fill} />
+          {mapStatus ? (
+            <p
+              data-testid="map-status"
+              aria-live="polite"
+              className={cn(
+                'mt-3 flex items-start gap-2 rounded-xl p-3 text-sm',
+                onMap ? 'bg-success-soft' : 'bg-warning-soft text-[oklch(0.38_0.09_65)]',
+              )}
+            >
+              {onMap ? (
+                <MapPinCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+              ) : (
+                <MapPinOff className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              )}
+              <span>{onMap ? mapStatus.onMapText : mapStatus.offMapText}</span>
+            </p>
+          ) : null}
         </div>
       ) : null}
       <Field
@@ -133,7 +182,7 @@ export function AddressFields({
           {...controlProps(id('addressLine1'), err('addressLine1'))}
           name={name('addressLine1')}
           defaultValue={value('addressLine1')}
-          onChange={clearPlace}
+          onChange={onStreetChange}
           autoComplete="address-line1"
           required
         />

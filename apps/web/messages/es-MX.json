@@ -134,7 +134,13 @@
     "errorReference": "Referencia: {digest}",
     "forbiddenTitle": "Sin acceso a esta sección",
     "forbiddenBody": "Tu rol no permite ver esta sección. Si la necesitas, pídele acceso a la persona propietaria de la florería.",
-    "planRequired": "Esta función no está incluida en el plan de tu florería."
+    "planRequired": "Esta función no está incluida en el plan de tu florería.",
+    "staleVersion": {
+      "title": "Hay una versión nueva de Gardelia",
+      "body": "Gardelia se actualizó mientras tenías esta página abierta. Recarga la página para seguir; lo que no se guardó hay que escribirlo otra vez.",
+      "reload": "Recargar la página",
+      "toast": "Gardelia se actualizó: recarga la página y vuelve a intentarlo."
+    }
   },
   "landing": {
     "eyebrow": "Para florerías de México",
@@ -473,7 +479,9 @@
       "goToPayment": "Formas de pago",
       "notPublished": "Tu tienda todavía no está publicada: los pedidos llegarán cuando la publiques.",
       "save": "Guardar pedidos en línea"
-    }
+    },
+    "offMap": "Quien busca su dirección todavía no encuentra tu tienda, porque tu tienda principal no está en el mapa. Solo te encuentra quien busca tu ciudad.",
+    "offMapAction": "Elegir la dirección en el mapa"
   },
   "publicStore": {
     "demoNotice": "Florería de demostración: los productos y precios son de prueba.",
@@ -972,7 +980,9 @@
       "tierLimit": "Llegaste al máximo de {max} tarifas.",
       "tierAdded": "Tarifa agregada.",
       "tierRemoved": "Tarifa quitada."
-    }
+    },
+    "locationOnMap": "Tu tienda está en el mapa: quien busca su dirección la encuentra y las distancias se miden desde aquí.",
+    "locationOffMap": "Tu tienda no está en el mapa: elige la dirección en las sugerencias. Si no, quien busca por dirección no la encuentra y el costo por distancia no se calcula."
   },
   "team": {
     "title": "Equipo",

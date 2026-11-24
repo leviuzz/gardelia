@@ -20,6 +20,7 @@ import {
   setStoreImage,
   updateCatalogItem,
   updateOnlineStore,
+  updatePrimaryLocation,
   updateTenantProfile,
   type CatalogItemDto,
 } from '../src/index';
@@ -151,6 +152,34 @@ describe('impostazioni della tienda', () => {
       updateOnlineStore(shop.staff, { description: 'x', paymentMethods: [] }),
     ).rejects.toBeInstanceOf(ForbiddenError);
     await expect(setOnlineStorePublished(shop.staff, true)).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it('dice se la sede è sulla mappa (chi cerca per indirizzo trova la tienda solo così)', async () => {
+    const other = await createTestShop('Florería Sin Mapa');
+    expect((await getOnlineStoreSettings(other.owner)).onMap).toBe(false);
+    // Indirizzo scritto a mano: nessuna posizione.
+    const typed = {
+      addressLine1: 'Rancho Santa Mónica 3',
+      city: 'Aguascalientes',
+      region: 'AGU',
+      postalCode: '20286',
+      deliveryRadiusKm: '',
+    };
+    await updatePrimaryLocation(other.owner, {
+      ...typed,
+      placeId: '',
+      latitude: '',
+      longitude: '',
+    });
+    expect((await getOnlineStoreSettings(other.owner)).onMap).toBe(false);
+    // Scelto dai suggerimenti di Google: place ID e coordinate.
+    await updatePrimaryLocation(other.owner, {
+      ...typed,
+      placeId: 'ChIJ_rancho_santa_monica',
+      latitude: '21.9180',
+      longitude: '-102.3240',
+    });
+    expect((await getOnlineStoreSettings(other.owner)).onMap).toBe(true);
   });
 
   it('si pubblica solo con il telefono e almeno un prodotto visibile', async () => {

@@ -558,11 +558,40 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**La tienda sulla mappa (24/11, aggiunta ad ADR-059):** il founder non trovava la sua fioreria cercando
+il proprio indirizzo. Le cause erano due:
+
+- la sede era senza posizione di Google: scelta la colonia, la via scritta a mano toglieva il punto;
+- un difetto vero: React riscriveva i campi nascosti del punto a ogni nuovo disegno del form, quindi il
+  punto scelto poteva sparire prima dell'invio, anche nel pedido del cliente fra un passo e l'altro (costo
+  per distanza perso).
+
+Ora:
+
+- il punto sta nello stato del componente;
+- la via che Google non ha dato si scrive senza perderlo;
+- il form della sede dice se la tienda è sulla mappa;
+- "Mi tienda en línea" avvisa quando non lo è.
+
+Verifiche: test del componente con Google simulato (fallisce con il codice di prima), test d'integrazione
+del servizio, prova nel browser con Google simulato fino al database e alla scomparsa dell'avviso.
+
+**Pagina rimasta alla versione precedente (24/11):** il founder, cambiando l'indirizzo della tienda su
+staging con la pagina aperta da prima di un rilascio, ha visto "Algo salió mal" (l'azione del form non
+esisteva più sul server, `UnrecognizedActionError`) con un "Reintentar" inutile. Ora i confini d'errore
+riconoscono il caso (anche i pezzi di JavaScript spariti dopo un rilascio) e mostrano "Hay una versión
+nueva de Gardelia" con "Recargar la página"; i form con `useToastActionState` restano com'erano, con un
+avviso che offre di ricaricare. Testi nelle tre lingue. Verifiche: lint ✅ · typecheck ✅ · test unitari
+nuovi ✅ · E2E nuovo (risposta del server dopo un rilascio simulata, due form) ✅ · controllo a 320 px. In
+produzione si aggiunge la Skew Protection di Vercel (piano Pro, `docs/ROADMAP.md`).
+
 **Chiave di Google e ricognizione (24/11):** il founder ha creato la chiave di Google Cloud
 (`GOOGLE_MAPS_API_KEY`, solo nelle variabili di Vercel): "Buscar dirección", costo per distanza e ruta per
 vicinanza sono attivi dove c'è la chiave. Ricontrollati staging e i rami delle altre chat: nessun lavoro non
 rilasciato. `docs/V1_SCOPE.md` riallineato al codice (consegne, etichette e politica di sostituzione del
-catalogo, email degli ordini online erano già fatti).
+catalogo, email degli ordini online erano già fatti). In `docs/ROADMAP.md` la nuova sezione "Prima della produzione":
+le quattro cose per la sicurezza (verifica in due passaggi, sessioni attive, aggiornamenti e avvisi,
+revisione esterna) e la lista di infrastruttura, prodotto e regole per il primo rilascio su `prod`.
 
 **Scarico dell'inventario dagli ordini (fatto il 23/11, ADR-071):** quando un ordine diventa "Listo" per la
 prima volta i suoi materiali escono dall'inventario (`consumeStockTx`, stessa transazione): prodotti venduti
