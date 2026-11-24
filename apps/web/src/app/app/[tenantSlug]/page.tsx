@@ -4,7 +4,6 @@ import {
   Check,
   FileText,
   Flower2,
-  Sparkles,
   TriangleExclamationPoint,
   Users,
 } from 'lucide-react';
@@ -277,18 +276,6 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
           </Card>
 
           <InventoryAlertsCard ctx={ctx} />
-
-          <Card className="border-dashed bg-transparent shadow-none">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Sparkles className="size-4 text-accent-foreground" aria-hidden="true" />
-                {t('dashboard.comingSoonTitle')}
-              </CardTitle>
-              <CardDescription className="leading-relaxed">
-                {t('dashboard.comingSoonBody')}
-              </CardDescription>
-            </CardHeader>
-          </Card>
         </div>
 
         {data.recentActivity ? (

@@ -558,6 +558,51 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Sicurezza del conto (24/11, ADR-077):** voce 1 della V1 e primi due punti di sicurezza della
+roadmap. La pagina "Seguridad de la cuenta" (`/seguridad`) è per tutti e ci si arriva dal menu della
+persona e da "Mi cuenta".
+
+- **Verifica in due passaggi:** si attiva con password, QR o chiave, primo codice e 10 codici di
+  respaldo da copiare o scaricare. All'accesso con password segue il passo del codice (o un codice
+  di respaldo), con "Confiar en este dispositivo" per 30 giorni. Si possono rigenerare i codici o
+  disattivarla.
+- **Obbligo per i titolari:** chi ha una password ed è titolare di una fioreria vera (scelta del
+  founder: dopo 14 giorni) vede un avviso nel pannello con la data. Passata la scadenza la fioreria
+  non si apre finché non la attiva. Chi entra solo con Google e le fiorerie demo non hanno obblighi.
+- **Dispositivi collegati:** elenco con browser e sistema, chiusura di uno o di tutti gli altri.
+- **Registro:** eventi `security.*` con il solo ID.
+- **Pulizia nel pannello:** tolta la card "Próximamente en Gardelia", che diceva ancora "in sviluppo"
+  ordini, pagamenti e consegne, ormai fatti.
+
+Nuova dipendenza `uqr` (QR, senza dipendenze, versione fissa). Supporto: l'operazione di piattaforma
+`reset-two-factor` toglie la verifica a chi ha perso telefono e codici (dopo aver verificato chi è).
+Verifiche: lint ✅ · format ✅ · typecheck ✅ · test 957/957 ✅ (dominio: obbligo e scadenza, codice,
+dispositivi; integrazione: titolare con password, demo e manager esclusi, sessioni solo della persona,
+eventi, reset di piattaforma) · migrazioni = schema ✅ · build ✅ · E2E 100/100 ✅ su database nuovo (2
+nuovi: attivazione con QR e primo codice, codici di respaldo, accesso con codice sbagliato e con
+codice di respaldo, codice di respaldo già usato, chiusura dell'altro dispositivo; fioreria che non si
+apre dopo 14 giorni) · controllo a 320 px di avviso, attivazione e passo del codice.
+
+**Dati della fioreria (24/11, ADR-076):** chiesti dal founder dalla voce 2 della V1. Prima di
+cominciare: allineamento a staging, con Floral Care (ADR-075) dell'altra chat.
+
+- **Vigencia de las cotizaciones:** la card "Cotizaciones" in Ajustes, da 1 a 90 giorni. Il valore
+  esisteva già nel database ma non si poteva cambiare.
+- **Orario di apertura:** quante fasce servono per giorno (scelta del founder), con interruttore
+  "Abierto" e "Agregar horario"; un giorno che si apre propone le fasce del giorno prima. Si vede nella
+  tienda en línea e nella cotización stampata. Se un giorno chiuso accetta ancora consegne, la pagina
+  avvisa.
+- **Logo e intestazione:** il logo si carica anche da "Perfil de la florería" (è quello della tienda).
+  La cotización stampata e la comanda hanno logo, indirizzo, telefono ed email; la cotización anche
+  l'orario. Le pagine dei link pubblici mostrano il logo.
+- **IVA:** non fatta. Le domande per il contador sono in ADR-076 (O-06).
+
+Verifiche: lint ✅ · format ✅ · typecheck ✅ · test 948/948 ✅ (dominio: vigencia, fasce, orario in poche
+righe; integrazione: permessi, sostituzione, audit, tienda en línea, intestazione, logo dei link solo con
+link attivo, isolamento A↔B) · migrazioni = schema ✅ · build ✅ · E2E 98/98 ✅ su database nuovo (1 nuovo:
+vigencia, lunes con due fasce, errore di sovrapposizione, logo da Ajustes, cotización stampata con logo,
+indirizzo e orario) · controllo a 320 px del form (le due ore su una riga) e della stampa.
+
 **Eliminar florería (24/11, ADR-074):** chiesto dal founder; la cancellazione definitiva dopo 30
 giorni è una sua scelta (eccezione voluta alla regola "solo archiviare"). In "Ajustes" il titolare trova
 la "Zona de peligro" e la pagina "Eliminar florería", che dice cosa succede e quando; si conferma

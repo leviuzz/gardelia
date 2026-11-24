@@ -63,7 +63,8 @@
     "builder_color_required": "Scegli il colore dell’incarto o del complemento.",
     "invalid_time_window": "Indica l’ora di inizio e quella di fine, in ordine.",
     "payment_exceeds_balance": "L’importo supera quanto resta da incassare.",
-    "tenant_deletion_name_mismatch": "Il nome non corrisponde a quello della fioreria."
+    "tenant_deletion_name_mismatch": "Il nome non corrisponde a quello della fioreria.",
+    "opening_hours_overlap": "Questa fascia si sovrappone a un'altra dello stesso giorno: uniscile in una sola."
   },
   "errors": {
     "validation": "Controlla i campi evidenziati.",
@@ -124,7 +125,8 @@
       "delivery_fee_tier_exists": "Hai già una tariffa per quella distanza.",
       "delivery_fee_tier_limit": "Hai raggiunto il massimo di tariffe.",
       "order_inventory_shortage": "In inventario non basta per questo ordine. Apri o ricarica la scheda dell’ordine per vedere cosa manca e confermare che è pronto.",
-      "tenant_deletion_open_orders": "Ci sono ordini in corso: consegnali o annullali prima di eliminare la fioreria."
+      "tenant_deletion_open_orders": "Ci sono ordini in corso: consegnali o annullali prima di eliminare la fioreria.",
+      "session_is_current": "Per chiudere la sessione di questo dispositivo usa «Esci» nel menu."
     },
     "pageNotFoundTitle": "Pagina non trovata",
     "pageNotFoundBody": "La pagina non esiste o non hai accesso.",
@@ -265,7 +267,12 @@
       "INVALID_EMAIL": "Inserisci un indirizzo email valido.",
       "FAILED_TO_CREATE_SESSION": "Non siamo riusciti ad avviare la tua sessione. Se il problema persiste, contatta l’assistenza.",
       "TOO_MANY_REQUESTS": "Troppi tentativi. Aspetta un minuto e riprova.",
-      "generic": "Non siamo riusciti a completare l’operazione. Riprova."
+      "generic": "Non siamo riusciti a completare l’operazione. Riprova.",
+      "INVALID_PASSWORD": "Password errata.",
+      "INVALID_CODE": "Codice errato. Controlla che l'ora del telefono sia giusta e riprova.",
+      "INVALID_BACKUP_CODE": "Questo codice di riserva non è valido o è già stato usato.",
+      "INVALID_TWO_FACTOR_COOKIE": "È passato troppo tempo. Accedi di nuovo.",
+      "ACCOUNT_TEMPORARILY_LOCKED": "Troppi codici errati. Aspetta 15 minuti e riprova."
     },
     "verifyInvalidTitle": "Non siamo riusciti a confermare la tua email",
     "verifiedTitle": "Email confermata",
@@ -454,7 +461,7 @@
     "imagesTitle": "Logo e copertina",
     "imagesSubtitle": "Così riconoscono la tua fioreria sulla pagina e quando condividi il link.",
     "logo": "Logo",
-    "logoHint": "Meglio quadrato; si vede piccolo accanto al nome.",
+    "logoHint": "Meglio quadrato. Si vede accanto al nome nel negozio online e nell'intestazione di preventivi e ordini stampati.",
     "cover": "Foto di copertina",
     "coverHint": "Orizzontale: il tuo negozio, i tuoi fiori o la tua composizione migliore.",
     "logoFile": "File del logo",
@@ -550,7 +557,10 @@
     "orderHow": "Scegli online, la fioreria conferma e la paghi direttamente.",
     "orderOnline": "Ordina online",
     "feeByDistance": "Consegna in base alla distanza: {tiers}.",
-    "feeTier": "fino a {km} km {fee}"
+    "feeTier": "fino a {km} km {fee}",
+    "hoursTitle": "Orari di apertura",
+    "hoursClosed": "Chiuso",
+    "hoursDays": "Da {first} a {last}"
   },
   "timezones": {
     "America/Mexico_City": "Ora del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -613,8 +623,6 @@
     "catalogOk": "Il tuo catalogo è completo.",
     "recentActivity": "Attività recenti",
     "noActivity": "Non c’è ancora nessuna attività registrata.",
-    "comingSoonTitle": "Prossimamente su Gardelia",
-    "comingSoonBody": "Ordini, pagamenti e consegne con calendario sono in fase di sviluppo. Non compariranno qui finché non funzioneranno davvero.",
     "upcomingOccasions": "Prossime ricorrenze",
     "noUpcomingOccasions": "Nessuna ricorrenza nei prossimi 30 giorni.",
     "contactNow": "Contatta",
@@ -968,7 +976,7 @@
     "title": "Impostazioni",
     "subtitle": "Dati della tua fioreria e del negozio principale.",
     "profileTitle": "Profilo della fioreria",
-    "profileSubtitle": "Nome, contatti e fuso orario.",
+    "profileSubtitle": "Nome, logo, contatti e fuso orario.",
     "legalTitle": "Dati fiscali",
     "legalSubtitle": "Solo chi è titolare può modificarli. La fatturazione elettronica (CFDI) non è ancora disponibile.",
     "legalReadOnly": "Solo chi è titolare può modificare questi dati.",
@@ -1028,6 +1036,27 @@
       "confirmBody": "Per evitare errori, scrivi il nome della fioreria così come compare.",
       "confirmLabel": "Nome della fioreria: {name}",
       "submit": "Elimina fioreria"
+    },
+    "quotes": {
+      "title": "Preventivi",
+      "subtitle": "Per quanto tempo valgono i preventivi nuovi.",
+      "validityLabel": "Validità (giorni)",
+      "validityHint": "I preventivi nuovi scadono dopo questi giorni dalla creazione (da 1 a {max}). In ogni preventivo puoi cambiare la data.",
+      "saved": "Validità salvata"
+    },
+    "hours": {
+      "title": "Orari di apertura",
+      "subtitle": "Quando è aperto il tuo negozio. Si vede nel negozio online e nei preventivi stampati. Puoi mettere più fasce in un giorno, per esempio se chiudi a pranzo.",
+      "open": "Aperto",
+      "closed": "Chiuso",
+      "openDay": "Aperto il {day}",
+      "from": "{day}, fascia {n}: dalle",
+      "to": "{day}, fascia {n}: alle",
+      "removeRange": "Togli la fascia {n} del {day}",
+      "addRange": "Aggiungi fascia",
+      "addRangeFor": "Aggiungi fascia il {day}",
+      "saved": "Orari salvati",
+      "deliveryMismatch": "Il negozio è chiuso in questi giorni, ma nelle Consegne accetti consegne e ritiri: {days}. Se quei giorni non lavori, segnali come chiusi nelle Consegne."
     }
   },
   "team": {
@@ -3697,6 +3726,108 @@
       "unassigned": "{count} non assegnate",
       "orderHint": "Consegne e visite insieme, per fascia. Tocca una tappa per i dettagli.",
       "done": "{count, plural, one {# tappa fatta} other {# tappe fatte}}"
+    }
+  },
+  "letterhead": {
+    "logoAlt": "Logo di {name}",
+    "postalCode": "CAP {code}",
+    "phone": "Tel. {phone}",
+    "hours": "Orari",
+    "closed": "Chiuso",
+    "days": "Da {first} a {last}"
+  },
+  "security": {
+    "title": "Sicurezza dell'account",
+    "subtitle": "Proteggi l'accesso di {email}.",
+    "back": "Indietro",
+    "menu": "Sicurezza dell'account",
+    "linkBody": "Verifica in due passaggi e dispositivi collegati.",
+    "banner": "Attiva la verifica in due passaggi entro il {date}: è obbligatoria per chi è titolare di una fioreria.",
+    "bannerAction": "Attivala",
+    "blocked": "Per entrare nella tua fioreria attiva la verifica in due passaggi. È obbligatoria per chi è titolare: protegge i dati della tua attività e dei tuoi clienti.",
+    "signOut": "Esci",
+    "twoFactor": {
+      "title": "Verifica in due passaggi",
+      "subtitle": "Oltre alla password, quando entri ti chiediamo un codice da un'app sul telefono (Google Authenticator, Microsoft Authenticator o un'altra).",
+      "googleOnly": "Entri con Google: la verifica in due passaggi si imposta nel tuo account Google.",
+      "statusOn": "Attiva",
+      "onBody": "Quando entri con la password ti chiediamo il codice dell'app.",
+      "statusOff": "Disattivata",
+      "offBody": "Oggi per entrare basta la password.",
+      "requiredBy": "È obbligatoria per i titolari: attivala entro il {date}. Dopo, la tua fioreria non si apre finché non la attivi.",
+      "enable": "Attiva la verifica in due passaggi",
+      "newCodes": "Nuovi codici di riserva",
+      "disable": "Disattiva",
+      "disabled": "Verifica in due passaggi disattivata",
+      "cancel": "Annulla",
+      "codeFormat": "Scrivi le 6 cifre dell'app.",
+      "passwordLabel": "La tua password",
+      "passwordHint": {
+        "enable": "Per confermare che sei tu.",
+        "codes": "I codici precedenti smetteranno di funzionare.",
+        "disable": "Quando entri ti chiederemo solo la password."
+      },
+      "passwordSubmit": {
+        "enable": "Continua",
+        "codes": "Genera i codici",
+        "disable": "Disattiva"
+      },
+      "disableRequiredWarning": "Per i titolari è obbligatoria: se la disattivi, la tua fioreria non si apre finché non la riattivi.",
+      "scan": {
+        "step1": "1. Apri l'app di autenticazione e inquadra il codice.",
+        "step2": "2. Scrivi il codice di 6 cifre che ti mostra.",
+        "qrLabel": "Codice QR per l'app di autenticazione",
+        "manual": "Non riesci a inquadrarlo? Scrivi questa chiave nell'app:",
+        "codeLabel": "Codice dell'app",
+        "codeHint": "Cambia ogni 30 secondi.",
+        "submit": "Attiva"
+      },
+      "codes": {
+        "enabled": "Fatto: la verifica in due passaggi è attiva.",
+        "regenerated": "Nuovi codici di riserva: i precedenti non valgono più.",
+        "body": "Conserva questi codici in un posto sicuro. Se perdi il telefono, ognuno ti fa entrare una volta.",
+        "copy": "Copia",
+        "download": "Scarica",
+        "copied": "Codici copiati",
+        "copyFailed": "Non è stato possibile copiarli: annotali o scaricali.",
+        "fileTitle": "Gardelia: codici di riserva (ognuno vale una volta)",
+        "fileName": "gardelia-codici-di-riserva.txt",
+        "savedCheck": "Ho salvato i codici in un posto sicuro",
+        "done": "Fatto"
+      }
+    },
+    "challenge": {
+      "title": "Verifica in due passaggi",
+      "subtitle": "Scrivi il codice dell'app di autenticazione.",
+      "codeLabel": "Codice di 6 cifre",
+      "codeHint": "Lo vedi nell'app (Google Authenticator o un'altra).",
+      "codeFormat": "Scrivi le 6 cifre dell'app.",
+      "backupLabel": "Codice di riserva",
+      "backupHint": "Ogni codice vale una sola volta.",
+      "backupRequired": "Scrivi uno dei tuoi codici di riserva.",
+      "trustDevice": "Considera affidabile questo dispositivo per {days} giorni",
+      "submit": "Entra",
+      "useBackup": "Non ho il telefono: usa un codice di riserva",
+      "useApp": "Usa il codice dell'app",
+      "expired": "È passato troppo tempo. Scrivi di nuovo email e password.",
+      "backToLogin": "Torna all'accesso"
+    },
+    "sessions": {
+      "title": "Dispositivi collegati",
+      "subtitle": "Dove è aperto il tuo account. Se non ne riconosci uno, o hai perso il telefono del negozio, chiudi la sua sessione.",
+      "device": "{browser} su {os}",
+      "unknownDevice": "Dispositivo sconosciuto",
+      "current": "Questo dispositivo",
+      "since": "Dal {date}",
+      "lastSeen": "ultimo uso il {date}",
+      "revoke": "Esci",
+      "revokeNamed": "Chiudi la sessione di {device}",
+      "revokeOthers": "Esci dagli altri dispositivi",
+      "revokeOthersTitle": "Uscire dagli altri dispositivi?",
+      "revokeOthersBody": "Resta collegato solo questo dispositivo. Sugli altri bisognerà entrare di nuovo.",
+      "revoked": "Sessione chiusa",
+      "othersRevoked": "Sessioni chiuse sugli altri dispositivi",
+      "note": "Sull'altro dispositivo la sessione finisce entro pochi minuti."
     }
   }
 }

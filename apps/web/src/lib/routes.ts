@@ -230,6 +230,19 @@ export const accountRoutes = {
   deleted: '/cuenta-eliminada',
 } as const;
 
+/** Sicurezza del conto (ADR-077): vale per tutti, fioristi e chi compra. */
+export const securityRoutes = {
+  /**
+   * Verifica in due passaggi e dispositivi collegati. `requerida`: si arriva perché la verifica è
+   * obbligatoria e la scadenza è passata; `volver`: dove tornare (percorso interno).
+   */
+  home: (query?: { readonly requerida?: boolean; readonly volver?: string }) =>
+    withQuery('/seguridad', query),
+  /** Secondo passaggio dell'accesso: il codice dell'app o un codice di respaldo. */
+  verify: (next?: string) =>
+    withQuery('/verificacion', { next: next === '/app' ? undefined : next }),
+} as const;
+
 /** Documenti legali (bozze finché non li rivede un avvocato, ADR-068). */
 export const legalRoutes = {
   privacy: '/privacidad',

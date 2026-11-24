@@ -1,10 +1,10 @@
 import 'server-only';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getLocale } from 'next-intl/server';
 import { cache } from 'react';
-import { resolveTenantContext, type TenantContext } from '@floral/core';
+import { getTwoFactorRequirement, resolveTenantContext, type TenantContext } from '@floral/core';
 import { getRequestMeta } from './request-meta';
-import { tenantRoutes } from './routes';
+import { securityRoutes, tenantRoutes } from './routes';
 import { requireUser } from './session';
 
 /**
@@ -22,5 +22,13 @@ export const getTenantContext = cache(async (slug: string): Promise<TenantContex
     locale: await getLocale(),
   });
   if (!ctx) notFound();
+  // Verifica in due passaggi obbligatoria per i titolari (ADR-077): passata la scadenza, nessuna
+  // pagina né azione della fioreria finché non la attivano.
+  if (ctx.role === 'OWNER' && (await getTwoFactorStatus(user.id)).blocking) {
+    redirect(securityRoutes.home({ requerida: true, volver: tenantRoutes(slug).home }));
+  }
   return ctx;
 });
+
+/** Stato della verifica in due passaggi della persona, una volta per richiesta. */
+export const getTwoFactorStatus = cache((userId: string) => getTwoFactorRequirement(userId));

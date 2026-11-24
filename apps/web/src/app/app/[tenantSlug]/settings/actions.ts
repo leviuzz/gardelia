@@ -22,10 +22,13 @@ import {
   updateDeliverySettings,
   updateOnlineOrderSettings,
   updateOnlineStore,
+  updateOpeningHours,
   updatePrimaryLocation,
+  updateQuoteSettings,
   updateTenantLegal,
   updateTenantProfile,
 } from '@floral/core';
+import { OPENING_HOURS_FORM_KEYS } from '@floral/domain';
 import type { ActionState } from '@/lib/action-state';
 import { serverEnv } from '@/lib/env';
 import { formDataToObject } from '@/lib/form-data';
@@ -41,6 +44,32 @@ export async function updateProfileAction(
     await updateTenantProfile(ctx, formDataToObject(formData));
     // Il nome della fioreria compare in tutte le pagine (menu, intestazioni).
     return { revalidate: section(routes.home), success: 'settings.saved' };
+  });
+}
+
+export async function updateOpeningHoursAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await updateOpeningHours(ctx, formDataToObject(formData, OPENING_HOURS_FORM_KEYS));
+    // L'orario si vede anche nella tienda en línea e nelle cotizaciones.
+    return {
+      revalidate: [routes.settings.general, section(routes.quotes.list())],
+      success: 'settings.hours.saved',
+    };
+  });
+}
+
+export async function updateQuoteSettingsAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await updateQuoteSettings(ctx, formDataToObject(formData));
+    return { revalidate: routes.settings.general, success: 'settings.quotes.saved' };
   });
 }
 
@@ -261,7 +290,8 @@ export async function uploadStoreImageAction(
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
     await setStoreImage(ctx, kind, await uploadedBytes(formData));
-    return { revalidate: routes.settings.store };
+    // Il logo si cambia anche da Ajustes e va nelle stampe.
+    return { revalidate: [routes.settings.store, routes.settings.general] };
   });
 }
 
@@ -273,6 +303,9 @@ export async function removeStoreImageAction(
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
     await removeStoreImage(ctx, kind);
-    return { revalidate: routes.settings.store, success: 'store.imageRemoved' };
+    return {
+      revalidate: [routes.settings.store, routes.settings.general],
+      success: 'store.imageRemoved',
+    };
   });
 }

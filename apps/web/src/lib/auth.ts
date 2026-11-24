@@ -1,19 +1,21 @@
 import 'server-only';
 import { betterAuth } from 'better-auth';
-import { APIError } from 'better-auth/api';
+import { APIError, createAuthMiddleware, isAPIError } from 'better-auth/api';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { nextCookies } from 'better-auth/next-js';
+import { twoFactor } from 'better-auth/plugins';
 import {
   deleteAccountEmail,
   getBuyerAccountDeletionBlockers,
   getMailer,
   logger,
   passwordResetEmail,
+  recordAccountSecurityEvent,
   recordBuyerAccountDeleted,
   verificationEmail,
 } from '@floral/core';
 import { getDb } from '@floral/db';
-import { BRAND, newId } from '@floral/domain';
+import { AUDIT_ACTIONS, BRAND, TWO_FACTOR_POLICY, newId } from '@floral/domain';
 import { googleCredentials, serverEnv } from './env';
 import { accountRoutes } from './routes';
 
@@ -163,7 +165,41 @@ function createAuth() {
         },
       },
     },
-    plugins: [nextCookies()],
+    // Eventi di sicurezza del conto (ADR-077): solo le operazioni riuscite, solo ID.
+    hooks: {
+      after: createAuthMiddleware(async (ctx) => {
+        if (isAPIError(ctx.context.returned)) return;
+        const userId = ctx.context.session?.user.id;
+        if (!userId) return;
+        // Con una sessione già aperta "verify-totp" conferma l'attivazione; all'accesso la
+        // sessione ancora non c'è (solo il cookie del secondo passaggio).
+        const action =
+          ctx.path === '/two-factor/verify-totp'
+            ? AUDIT_ACTIONS.securityTwoFactorEnabled
+            : ctx.path === '/two-factor/disable'
+              ? AUDIT_ACTIONS.securityTwoFactorDisabled
+              : ctx.path === '/two-factor/generate-backup-codes'
+                ? AUDIT_ACTIONS.securityBackupCodesRegenerated
+                : null;
+        if (!action) return;
+        try {
+          await recordAccountSecurityEvent(userId, action);
+        } catch (error) {
+          logger.error({ err: error, userId }, 'evento di sicurezza del conto non registrato');
+        }
+      }),
+    },
+    plugins: [
+      // Verifica in due passaggi (ADR-077): app di autenticazione e codici di riserva. Vale per
+      // l'accesso con email e password; con Google la protegge l'account Google.
+      twoFactor({
+        issuer: BRAND.productName,
+        backupCodeOptions: { amount: TWO_FACTOR_POLICY.backupCodes },
+        trustDeviceMaxAge: TWO_FACTOR_POLICY.trustDeviceDays * 24 * 60 * 60,
+      }),
+      // Deve restare l'ultimo: scrive i cookie anche dalle server action.
+      nextCookies(),
+    ],
   });
 }
 

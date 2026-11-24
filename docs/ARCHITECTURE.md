@@ -152,6 +152,12 @@ principi a livello di servizi e ruoli (TEN-01).
   obbligatoriamente verificata da Google; collegamento a un account esistente solo se l'email è
   verificata da entrambe le parti; niente foto del profilo; token del provider cifrati. Negli E2E
   Google è simulato nel server di test (`e2e/support/google-oauth-mock.mjs`).
+- **Verifica in due passaggi (ADR-077):** plugin `twoFactor` di Better Auth (app di autenticazione e
+  10 codici di respaldo, dispositivo di fiducia per 30 giorni; limite di 3 tentativi ogni 10 secondi
+  e blocco del conto dopo 10 codici sbagliati). Il passo `/verificacion` arriva dopo la password;
+  Google non lo chiede. Obbligatoria per i titolari con password di una fioreria vera dopo 14
+  giorni: `getTenantContext` manda a `/seguridad` le pagine e le azioni della fioreria. Le sessioni
+  si chiudono da `/seguridad` (cancellate nel DB, solo quelle della persona).
 - **Autorizzazione (nostro dominio):** `Membership(role: OWNER|MANAGER|STAFF, status)` + matrice
   `PERMISSIONS`. Il controllo avviene nei servizi; la UI nasconde soltanto ciò che non è consentito.
 - **Inviti:** token casuale da 32 byte (solo l'hash SHA-256 nel DB), validità 7 giorni, legato all'email
@@ -161,7 +167,7 @@ principi a livello di servizi e ruoli (TEN-01).
 
 | Area       | Modelli                                                               | Stato                                                       |
 | ---------- | --------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Identità   | User, Session, Account, Verification, RateLimit                       | completo                                                    |
+| Identità   | User, Session, Account, Verification, RateLimit, TwoFactor            | completo; verifica in due passaggi (ADR-077)                |
 | Tenancy    | Tenant, Location, Membership, Invitation, AuditLog                    | completo                                                    |
 | Catalogo   | CanonicalFlower, CatalogItem, BouquetRecipe, BouquetRecipeLine        | completo; foto con scontorno automatico (ADR-029, ADR-033)  |
 | CRM        | Customer, CustomerAddress, CustomerOccasion, CustomerImport           | completo; import da CSV con bozza e anteprima (ADR-070)     |

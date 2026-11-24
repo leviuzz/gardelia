@@ -73,6 +73,11 @@ export default async function PublicOrderPage({
   return (
     <PublicShell
       shopName={order.shop.name}
+      logoSrc={
+        order.shop.logoId
+          ? `/pedido/${encodeURIComponent(token)}/logo?v=${order.shop.logoId}`
+          : null
+      }
       footer={footer}
       legal={order.online ? <LegalLinks audience="buyer" locale={locale} /> : null}
       contact={

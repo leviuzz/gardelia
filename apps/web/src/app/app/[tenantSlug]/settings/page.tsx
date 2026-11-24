@@ -1,4 +1,4 @@
-import { ChevronRight, Gem, MapPinOff, Sprout, Store, Trash2 } from 'lucide-react';
+import { ChevronRight, Gem, Info, MapPinOff, Sprout, Store, Trash2 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -6,6 +6,8 @@ import {
   getBuilderSettings,
   getDeliverySettings,
   getEntitlements,
+  getLetterhead,
+  getOpeningHours,
   getPlacesProvider,
   getTenantSettings,
   hasPermission,
@@ -14,8 +16,11 @@ import {
   DELIVERY_LIMITS,
   MX_REGIONS,
   MX_TIMEZONES,
+  QUOTE_LIMITS,
   TENANT_DELETION,
   WEEKDAYS_FROM_MONDAY,
+  closedButDelivering,
+  formatTimeOfDay,
   isCurrencyCode,
   minorToDecimalString,
 } from '@floral/domain';
@@ -32,18 +37,30 @@ import {
   addDeliveryWindowAction,
   removeDeliveryFeeTierAction,
   removeDeliveryWindowAction,
+  removeStoreImageAction,
   updateBuilderSettingsAction,
   updateDeliverySettingsAction,
   updateLegalAction,
   updateLocationAction,
+  updateOpeningHoursAction,
   updateProfileAction,
+  updateQuoteSettingsAction,
+  uploadStoreImageAction,
 } from './actions';
 import {
   DeliveryDefaultsForm,
   DeliveryFeeTiersEditor,
   DeliveryWindowsEditor,
 } from './delivery-forms';
-import { BuilderSettingsForm, LegalForm, LocationForm, ProfileForm } from './settings-forms';
+import {
+  BuilderSettingsForm,
+  LegalForm,
+  LocationForm,
+  ProfileForm,
+  QuoteSettingsForm,
+} from './settings-forms';
+import { OpeningHoursForm } from './opening-hours-form';
+import { StoreImageField } from './store/store-forms';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('settings');
@@ -63,7 +80,11 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
   const builder = (await getEntitlements(ctx)).bouquetBuilder
     ? await getBuilderSettings(ctx)
     : null;
-  const delivery = await getDeliverySettings(ctx);
+  const [delivery, hours, letterhead] = await Promise.all([
+    getDeliverySettings(ctx),
+    getOpeningHours(ctx),
+    getLetterhead(ctx),
+  ]);
   const format = await getFormatter();
   // 22/11/2026 è una domenica (0): da lì si ricavano i nomi dei giorni nella lingua di chi guarda.
   const weekdays = WEEKDAYS_FROM_MONDAY.map((value) => {
@@ -73,6 +94,10 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
     });
     return { value, label: name.charAt(0).toLocaleUpperCase() + name.slice(1) };
   });
+  // Tienda chiusa ma con consegne e ritiri quel giorno: due impostazioni diverse, si avvisa.
+  const closedButOpenForOrders = closedButDelivering(hours.days, delivery.closedWeekdays).map(
+    (weekday) => weekdays.find((day) => day.value === weekday)?.label ?? String(weekday),
+  );
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -142,6 +167,16 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
               <dd className="font-medium">{tenant.currency}</dd>
             </div>
           </dl>
+          <StoreImageField
+            kind="LOGO"
+            imageSrc={
+              letterhead.logoId
+                ? tenantRoutes(slug).settings.storeImage('LOGO', letterhead.logoId)
+                : null
+            }
+            upload={uploadStoreImageAction.bind(null, slug, 'LOGO')}
+            removeAction={removeStoreImageAction.bind(null, slug, 'LOGO')}
+          />
           <ProfileForm
             action={updateProfileAction.bind(null, slug)}
             timezones={MX_TIMEZONES.map((id) => ({ id, label: t(`timezones.${id}`) }))}
@@ -177,6 +212,38 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
               deliveryRadiusKm: location?.deliveryRadiusKm?.toString() ?? '',
               placeId: location?.placeId ?? '',
             }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card id="hours" className="scroll-mt-24">
+        <CardHeader>
+          <CardTitle>{t('settings.hours.title')}</CardTitle>
+          <CardDescription>{t('settings.hours.subtitle')}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          {closedButOpenForOrders.length > 0 ? (
+            <Alert variant="info" data-testid="hours-delivery-mismatch">
+              <Info aria-hidden="true" />
+              <AlertDescription>
+                {t('settings.hours.deliveryMismatch', {
+                  days: closedButOpenForOrders.join(', '),
+                })}
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          <OpeningHoursForm
+            action={updateOpeningHoursAction.bind(null, slug)}
+            days={weekdays.map(({ value, label }) => ({
+              weekday: value,
+              label,
+              ranges: (hours.days.find((day) => day.weekday === value)?.ranges ?? []).map(
+                (range) => ({
+                  start: formatTimeOfDay(range.start),
+                  end: formatTimeOfDay(range.end),
+                }),
+              ),
+            }))}
           />
         </CardContent>
       </Card>
@@ -246,6 +313,20 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
               }))}
             />
           </section>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('settings.quotes.title')}</CardTitle>
+          <CardDescription>{t('settings.quotes.subtitle')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <QuoteSettingsForm
+            action={updateQuoteSettingsAction.bind(null, slug)}
+            validityDays={tenant.quoteValidityDays}
+            maxDays={QUOTE_LIMITS.validityDaysMax}
+          />
         </CardContent>
       </Card>
 

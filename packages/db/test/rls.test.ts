@@ -30,6 +30,8 @@ const TABLES_WITHOUT_RLS = new Set([
   'User',
   'Session',
   'Account',
+  // Segreti della verifica in due passaggi, cifrati da Better Auth (ADR-077).
+  'TwoFactor',
   'Verification',
   'RateLimit',
   '_prisma_migrations',

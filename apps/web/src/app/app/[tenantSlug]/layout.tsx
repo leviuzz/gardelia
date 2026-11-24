@@ -1,6 +1,6 @@
-import { TriangleExclamationPoint } from 'lucide-react';
+import { ShieldCheck, TriangleExclamationPoint } from 'lucide-react';
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getFormatter, getTranslations } from 'next-intl/server';
 import { getAddressSearchSettings, hasPermission, listUserTenants } from '@floral/core';
 import { BRAND } from '@floral/domain';
 import { BottomNav, SidebarNav, type NavItem } from '@/components/app-shell/app-nav';
@@ -8,19 +8,22 @@ import { TenantSwitcher } from '@/components/app-shell/tenant-switcher';
 import { PlacesConfigProvider } from '@/components/form/address-search';
 import { UserMenu } from '@/components/app-shell/user-menu';
 import { LogoMark } from '@/components/brand/logo';
-import { tenantRoutes } from '@/lib/routes';
+import { securityRoutes, tenantRoutes } from '@/lib/routes';
 import { requireUser } from '@/lib/session';
-import { getTenantContext } from '@/lib/tenant';
+import { getTenantContext, getTwoFactorStatus } from '@/lib/tenant';
 
 export default async function TenantLayout({ children, params }: LayoutProps<'/app/[tenantSlug]'>) {
   const { tenantSlug } = await params;
   const ctx = await getTenantContext(tenantSlug);
   const user = await requireUser();
-  const [shops, addressSearch] = await Promise.all([
+  const [shops, addressSearch, twoFactor] = await Promise.all([
     listUserTenants(user.id),
     getAddressSearchSettings(ctx),
+    // Solo i titolari hanno l'obbligo (ADR-077): gli altri non pagano la query.
+    ctx.role === 'OWNER' ? getTwoFactorStatus(user.id) : null,
   ]);
   const t = await getTranslations();
+  const format = await getFormatter();
 
   const routes = tenantRoutes(ctx.tenantSlug);
   const items: NavItem[] = [
@@ -129,6 +132,26 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
           <div className="flex items-center gap-2 border-b bg-warning-soft px-4 py-2 text-sm text-[oklch(0.38_0.09_65)] lg:px-10 print:hidden">
             <TriangleExclamationPoint className="size-4 shrink-0" aria-hidden="true" />
             <span>{t('common.demoBanner')}</span>
+          </div>
+        ) : null}
+
+        {twoFactor?.deadline && !twoFactor.blocking ? (
+          <div
+            className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b bg-info-soft px-4 py-2 text-sm text-[oklch(0.35_0.07_245)] lg:px-10 print:hidden"
+            data-testid="two-factor-banner"
+          >
+            <ShieldCheck className="size-4 shrink-0" aria-hidden="true" />
+            <span className="min-w-0 flex-1">
+              {t('security.banner', {
+                date: format.dateTime(twoFactor.deadline, { dateStyle: 'long' }),
+              })}
+            </span>
+            <Link
+              href={securityRoutes.home({ volver: routes.home })}
+              className="font-medium underline underline-offset-2"
+            >
+              {t('security.bannerAction')}
+            </Link>
           </div>
         ) : null}
 
