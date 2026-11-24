@@ -1,7 +1,7 @@
 # Ambiente online di prova su Vercel — guida passo passo
 
-Per il founder. Risultato: Gardelia online su un indirizzo di prova (`https://staging.gardelia.co`,
-prima `https://gardelia-staging.vercel.app`: sezione 12), da provare dal telefono, con il Diseñador e l'AI vera. Costo: **0 USD al mese** di piattaforma con i
+Per il founder. Risultato: Gardelia online su un indirizzo di prova (`https://staging.gardelia.co`
+dal 24/11/2026, prima `https://gardelia-staging.vercel.app`: sezione 12), da provare dal telefono, con il Diseñador e l'AI vera. Costo: **0 USD al mese** di piattaforma con i
 piani gratuiti, più l'AI a consumo (pochi dollari di prove). Decisioni: `docs/DECISIONS.md`
 (P-03, O-04), piano: `docs/PLATFORM_PLAN.md`.
 
@@ -354,8 +354,10 @@ I due SPF non si toccano: quello di Email Routing sta su `gardelia.co`, quello d
    Vercel, **Proxy status: DNS only** (nuvola grigia). Con la nuvola arancione Vercel non riesce a
    fare il certificato e le richieste passano da due proxy.
 3. Torna su Vercel e aspetta **Valid Configuration** (pochi minuti).
-4. Sempre in **Domains**, su `gardelia-staging.vercel.app` → **Edit** → rimando a
-   `staging.gardelia.co` (308). Così i vecchi link portano al nuovo indirizzo.
+4. Sempre in **Domains**, fai rimandare a `staging.gardelia.co` i vecchi indirizzi, così i vecchi
+   link portano al nuovo. Vercel non accetta le catene di rimandi, quindi prima
+   `gardelia.vercel.app` (**Edit → Redirect to Another Domain → 307** → `staging.gardelia.co`), poi
+   `gardelia-staging.vercel.app` allo stesso modo.
 
 ### Passo 4 — Variabili e nuovo deploy
 

@@ -1985,7 +1985,7 @@ Avviato dal founder ("si vai col punto 1": i resti degli ordini della lista per 
     apartado al primo cambio (righe, giorno, stato); se non cambiano, a "Listo" scaricano come
     prima. La ricerca fra gli apartados trova quelli degli ordini anche per il nome del cliente.
 
-### ADR-073 — Il dominio gardelia.co: indirizzi ed email — PROPOSTO (24/11/2026)
+### ADR-073 — Il dominio gardelia.co: indirizzi ed email — ADOTTATO (24/11/2026)
 
 Il founder ha comprato `gardelia.co` su Cloudflare e ha chiesto di aggiornare tutto quello che serve
 ("aggiorna tutto quello che devo aggiornare. mail ecc"). Passi per lui in `docs/DEPLOY_VERCEL.md` §12.
@@ -2005,6 +2005,12 @@ Il founder ha comprato `gardelia.co` su Cloudflare e ha chiesto di aggiornare tu
   `EMAIL_FROM`. La funzione che svuota la coda AI segue il dominio di produzione del progetto,
   quello che Vercel indica.
 - **Sicurezza:** verifica in due passaggi sull'account Cloudflare e rinnovo automatico del dominio.
+- **Fatto dal founder il 24/11/2026:**
+  - Resend verificato con la configurazione automatica su Cloudflare;
+  - DMARC con il DMARC Management di Cloudflare (`p=none`, rapporti su Cloudflare);
+  - `staging.gardelia.co` attivo su Vercel; `gardelia.vercel.app` e `gardelia-staging.vercel.app`
+    rimandano lì;
+  - variabili `APP_URL`, `BETTER_AUTH_URL` ed `EMAIL_FROM` aggiornate.
 
 ## 3. Proposte da approvare
 

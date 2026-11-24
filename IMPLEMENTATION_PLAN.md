@@ -565,8 +565,9 @@ scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 - bozze legali con `gardelia.co`, `soporte@` e `privacidad@`;
 - esempio di `EMAIL_FROM`.
 
-Il codice non cambia: tutto passa da `APP_URL` ed `EMAIL_FROM`. Restano al founder i passi su
-Cloudflare, Resend e Vercel.
+Il codice non cambia: tutto passa da `APP_URL` ed `EMAIL_FROM`. Fatto dal founder lo stesso giorno:
+Resend verificato, DMARC attivo, **`https://staging.gardelia.co` online**, con i vecchi indirizzi
+`vercel.app` che rimandano lì.
 
 **"Tienda en línea" nell'elenco del catalogo (24/11, chiesto dal founder):** una colonna con
 l'interruttore per mostrare o togliere un prodotto dalla tienda senza aprirne la scheda. Su telefono è
