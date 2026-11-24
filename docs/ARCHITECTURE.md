@@ -319,6 +319,12 @@ movimenti del cliente (`CarePayment`) distribuiti sui cargos (`CarePaymentAlloca
 nelle due FK): bloccano i cargos in ordine di id, rileggono il saldo e non toccano contratti né
 visite; lo storno è un movimento di segno opposto, unico per movimento. Lo stato di un cargo
 (vencido compreso) si calcola in lettura; le pestañas di "Cobros" filtrano sul saldo salvato.
+Blocco 3b (`care-collections.ts`, `care-adjustments.ts`): un incasso alla visita è un `CarePayment`
+PENDING con la visita e l'importo segnato, senza distribuzioni; "Confirmar" blocca il movimento e
+poi i cargos (come uno storno) e lo distribuisce sui più vecchi. Un ajuste è una riga di
+`CareChargeAdjustment` che l'emissione, con il contratto bloccato, mette una volta nel cargo come
+riga ADJUSTMENT. Una visita extra gratis può puntare alla visita mancata che recupera
+(`recoveryOfVisitId`, stesso contratto, una sola valida).
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per

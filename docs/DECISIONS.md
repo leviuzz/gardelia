@@ -2461,8 +2461,8 @@ Avviato dal founder ("fai la 4": il punto Catalogo dei resti della V1). Scelte d
 ### ADR-082 — Floral Care, blocco 3: cargos e pagamenti dei contratti — ADOTTATO (24/11/2026)
 
 Blocco 3 del piano approvato (`docs/FLORAL_CARE_PLAN.md` §3 e §7), chiesto dal founder ("ok vai col
-blocco 3") e diviso in due rilasci: 3a (questo) e 3b ("Cobré en la visita" per lo staff, "Por
-recuperar", "Ajuste para el próximo cargo"). Il founder ha deciso il 24/11:
+blocco 3", poi "vai col 3b") e diviso in due rilasci: 3a e 3b ("Cobré en la visita" per lo staff,
+"Por recuperar", "Ajuste para el próximo cargo"). Il founder ha deciso il 24/11:
 
 1. scadenza con i **"Días para pagar"** scelti da ogni fioreria (Ajustes → Floral Care, 10 di
    default);
@@ -2547,9 +2547,34 @@ recuperar", "Ajuste para el próximo cargo"). Il founder ha deciso il 24/11:
   e devoluciones con importo negativo, i cargos toccati da ogni pagamento), così lo storico dei
   soldi resta anche dopo aver eliminato la fioreria. I Reportes (ADR-080) mostrano ancora i ricavi
   stimati dei contratti: usare i cargos e i pagamenti veri è da decidere.
-- **Non fatto (3a):** "Cobré en la visita" (por registrar), "Por recuperar" e gli ajustes (3b);
-  pagamenti online dei contratti (fuori dal perimetro, §9 del piano); factura e IVA (O-06, da
-  validare con il contador).
+- **Blocco 3b (fatto il 24/11):**
+  - **"Cobré en la visita"** (`care-collections.ts`, decisione 4): chi fa la visita, in corso o
+    fatta, segna quanto gli ha dato il cliente, come e una nota. Il movimento resta "Por
+    registrar" (PENDING, con la visita e l'importo segnato in `collectedMinor`): non tocca i
+    cargos, lo vedono Cobros, l'estado de cuenta (fuori dal saldo) e il pannello. Uno alla volta
+    per visita (indice unico parziale), e la chiave del modulo rende un doppio tocco uno solo.
+    Chi gestisce i soldi lo conferma, anche per meno di quanto segnato e mai di più: diventa un
+    pagamento distribuito sui cargos più vecchi del cliente; se il cliente non ha ancora cargos
+    per quell'importo (un anticipo) resta "por registrar" finché nasce il cargo. Oppure lo
+    rifiuta con il motivo, che vede chi l'ha segnato. Ordine dei blocchi: il movimento, poi i suoi
+    cargos, come uno storno.
+  - **"Por recuperar"** (decisione 2): una visita del calendario "No se pudo" per il cliente, in
+    un contratto con «Se agenda otra visita», resta cobrada e ha una visita extra di recupero
+    sempre "Sin costo", legata nel database (stesso contratto; una sola valida alla volta: se si
+    cancella o non si fa, la visita torna "Por recuperar"). "Agendar recuperación" sta nella
+    pagina della visita mancata; l'Agenda le conta e le elenca ("Visitas por recuperar").
+  - **"Ajuste para el próximo cargo"** (`care-adjustments.ts`): chi gestisce i soldi aggiunge un
+    importo a favore o a carico del cliente con il motivo, che diventa la riga "Ajuste: …" del
+    primo cargo che nasce (una volta sola, chiave unica sulla riga). Prima si può togliere
+    ("Quitar", resta nello storico); dopo no, si corregge con un altro ajuste. Solo su un contratto
+    confermato, attivo o in pausa; un contratto finito con un ajuste in attesa ha comunque il suo
+    cargo finale (la funzione dei contratti da cobrar lo guarda). Al massimo 20 in attesa.
+  - **Dati:** migrazione M5 (`CareVisit.recoveryOfVisitId`, `CarePayment.collectedMinor`, la
+    tabella `CareChargeAdjustment` con RLS, `CareChargeLine.adjustmentId`, il ramo ADJUSTMENT nel
+    CHECK delle righe). Nel registro importi e forma, mai la nota, il motivo del rifiuto o quello
+    dell'ajuste.
+- **Non fatto:** pagamenti online dei contratti (fuori dal perimetro, §9 del piano); factura e IVA
+  (O-06, da validare con il contador); i Reportes con i cargos veri (da decidere).
 
 ## 3. Proposte da approvare
 

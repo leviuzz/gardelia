@@ -1144,8 +1144,40 @@ Verifiche locali:
 - controllo a 320 px di pannello, Cobros, cargo, dialogo del pagamento, estado de cuenta, contratto,
   elenco e impostazioni: nessuno sbordo.
 
-Prossimo: il blocco 3b ("Cobré en la visita" per lo staff, "Por recuperar", "Ajuste para el
-próximo cargo").
+**Floral Care, blocco 3b (fatto il 24/11, ADR-082):** "vai col 3b" del founder, con le sue
+decisioni del 24/11 (il cliente che non apre paga la visita e il recupero è gratis; lo staff segna
+gli incassi "por registrar").
+
+- **"Cobré en la visita":** chi fa la visita (in corso o fatta) segna importo, forma e nota. Resta
+  "Por registrar": uno alla volta per visita, senza toccare i cargos, visibile in Cobros, nel
+  pannello e nell'estado de cuenta (fuori dal saldo). Chi gestisce lo conferma, anche per meno
+  (sui cargos più vecchi del cliente), o lo rifiuta con il motivo, che lo staff vede nella visita.
+- **"Por recuperar":** la visita "No se pudo" per il cliente, con «Se agenda otra visita», resta
+  cobrada e si recupera con una visita extra "Sin costo" legata ("Agendar recuperación" nella
+  visita; "Recuperada el …" e "Recuperación de la visita del …"); l'Agenda le conta e le elenca.
+- **"Ajuste para el próximo cargo":** a favore o a carico del cliente, con il motivo; entra una volta
+  nel cargo dopo come "Ajuste: motivo"; prima si può togliere.
+- Migrazione M5; i test E2E del catalogo cercano il cliente del seed per nome.
+
+Verifiche locali:
+
+- lint ✅ · format ✅ · typecheck ✅ · migrazioni = schema ✅;
+- test 1116/1116 ✅: 4 nuovi di dominio (ajustes nel cargo e saldo che passa avanti, regola "Por
+  recuperar", moduli) e 9 d'integrazione (incasso alla visita una volta per visita e per modulo,
+  conferma per meno sui cargos più vecchi e mai di più, due conferme insieme, rifiuto con il motivo,
+  isolamento A↔B con evento, ajustes nel cargo dopo e tolti prima, permessi e contratto chiuso,
+  recupero gratis una volta e mai cobrato, niente recupero con «Cuenta como hecha» o se la fioreria
+  non è andata);
+- build ✅ · E2E: esecuzione completa 110/111. Il fallito (blocco 1) cercava il messaggio «Tarifas
+  guardadas», che è anche nella descrizione del simulatore («…con tus tarifas guardadas»): ora lo
+  cerca esatto. Floral Care rilanciato 6/6 ✅, compreso il nuovo «cobro en la visita y ajustes»
+  (lo staff segna dal telefono, la proprietaria conferma per meno, un ajuste si aggiunge e si
+  toglie);
+- controllo a 320 px di visita (staff, prima e dopo la conferma), dialoghi dell'incasso, della
+  conferma e dell'ajuste, Cobros con "Por registrar", contratto con gli ajustes e "Visitas por
+  recuperar": nessuno sbordo.
+
+Prossimo: il blocco 4 di `docs/FLORAL_CARE_PLAN.md` (blocchi, vacanze e cambi di massa).
 
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
@@ -1161,8 +1193,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 3. Inventario: fatto (blocchi 1–4, ADR-060…063), con lo scarico (ADR-071) e gli apartados
    (ADR-072) dagli ordini.
 4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
-5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078) e 3a (ADR-082) fatti;
-   3b e blocchi 4–7 in `docs/FLORAL_CARE_PLAN.md`.
+5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078) e 3 (ADR-082) fatti;
+   blocchi 4–7 in `docs/FLORAL_CARE_PLAN.md`.
 6. Report: fatti (ADR-080); restano i P1 dello spec (funnel, retention, profitto per ramo).
    Catalogo completo (ADR-081): fatto; manca la revisione dell'elenco dei fiori da un fiorista.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.
