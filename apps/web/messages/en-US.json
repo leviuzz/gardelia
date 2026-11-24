@@ -3396,7 +3396,10 @@
       "instructionsHint": "For whoever is on site: your customer will see it.",
       "added": "Plants added",
       "updated": "Plants saved",
-      "removed": "Plants removed"
+      "removed": "Plants removed",
+      "seasonal": "Seasonal",
+      "seasonalHint": "Not part of the contract price (you charge it in the seasonal quote) and archived when the pickup visit ends.",
+      "seasonalBadge": "Seasonal"
     },
     "scheduleDialog": {
       "open": "Change schedule",
@@ -3518,7 +3521,8 @@
       "rescheduleEmptyBody": "No visits to reschedule.",
       "wasOn": "Was on {date}",
       "reschedule": "Reschedule",
-      "report": "See report"
+      "report": "See report",
+      "freeTime": "At another time · no seats"
     },
     "visit": {
       "title": "Visit",
@@ -3628,7 +3632,9 @@
       "reportDemo": "Visit closed (demo shop: no email to the customer).",
       "notDoneNote": "What happened? Your customer will see it in the report (optional)",
       "reportSend": "Email the report",
-      "reportRetry": "Retry the email"
+      "reportRetry": "Retry the email",
+      "seasonal": "Seasonal",
+      "archiveSeasonal": "{count, plural, one {Archive the seasonal plant: the change ends} other {Archive the # seasonal plants: the change ends}}"
     },
     "report": {
       "title": "Visit report",
@@ -3693,23 +3699,41 @@
       },
       "submit": "Send note",
       "created": "Note sent",
-      "resolve": "Handled",
-      "resolved": "Note handled",
+      "resolve": "Resolve",
+      "resolved": "Notice resolved",
       "resolution": "Note: {note}",
       "statuses": {
         "OPEN": "Open",
-        "RESOLVED": "Handled"
+        "RESOLVED": "Resolved"
       },
       "alert": "{count, plural, one {There is # team note} other {There are # team notes}}",
       "alertLink": "See notes",
       "viewsLabel": "Notes",
       "views": {
         "open": "Open",
-        "resolved": "Handled"
+        "resolved": "Resolved"
       },
       "emptyTitle": "No open notes",
-      "emptyResolved": "No handled notes yet",
-      "emptyBody": "When someone on the team leaves a note on a visit, it shows up here."
+      "emptyResolved": "No resolved notices yet",
+      "emptyBody": "When someone on the team leaves a note on a visit, it shows up here.",
+      "choices": {
+        "FREE_VISIT": "Replace at no cost",
+        "NEXT_VISIT": "At the next visit",
+        "QUOTED": "Quote",
+        "NOT_REPLACED": "Not replaced",
+        "HANDLED": "Handled"
+      },
+      "suggested": "Your dead plant rule suggests: {choice}",
+      "resolutions": {
+        "HANDLED": "Handled",
+        "FREE_VISIT": "Replaced at no cost",
+        "NEXT_VISIT": "At the next visit",
+        "QUOTED": "Quoted",
+        "NOT_REPLACED": "Not replaced"
+      },
+      "seeQuote": "See {number}",
+      "seeVisit": "See the visit on {date}",
+      "seeVisitNoDate": "See the visit"
     },
     "route": {
       "title": "Day route",
@@ -3730,6 +3754,57 @@
       "unassigned": "{count} unassigned",
       "orderHint": "Deliveries and visits together, by time window. Tap a stop for the details.",
       "done": "{count, plural, one {# stop done} other {# stops done}}"
+    },
+    "extra": {
+      "badge": "Extra · {kind}",
+      "kinds": {
+        "EXTRA": "Extra work",
+        "REPLACEMENT": "Replacement",
+        "SEASONAL_INSTALL": "Seasonal install",
+        "SEASONAL_PICKUP": "Seasonal pickup"
+      },
+      "open": "Extra visit",
+      "title": "Schedule an extra visit",
+      "body": "A visit outside the contract calendar: extra work, a replacement or the seasonal change. We work out the cost with your rates.",
+      "replacementTitle": "Replacement at no cost",
+      "replacementBody": "Schedule the visit to replace the plant, at no cost for the customer. Saving it resolves the notice.",
+      "kind": "What for",
+      "when": "When",
+      "inSlot": "In a visit time slot",
+      "atTime": "At another time",
+      "noOptions": "No time slots with room in the next 21 days: schedule it at another time.",
+      "slot": "Time slot",
+      "chooseSlot": "Choose a time slot",
+      "date": "Day",
+      "atTimeHint": "At another time it takes no seats in your slots and customers cannot choose it.",
+      "start": "From",
+      "end": "To",
+      "fee": "Cost",
+      "feeVisit": "Visit fee: {price}",
+      "fees": {
+        "VISIT_FEE": "Visit fee",
+        "FREE": "No cost",
+        "QUOTE": "In the quote"
+      },
+      "noQuotes": "Create a quote from this contract first.",
+      "quote": "Quote",
+      "note": "Note for whoever does it",
+      "noteHint": "What needs doing (200 characters max).",
+      "assignee": "Who does it",
+      "nobody": "Unassigned",
+      "submit": "Schedule visit",
+      "created": "Extra visit scheduled",
+      "quoteButton": "Quote"
+    },
+    "seasonal": {
+      "title": "Seasonal change",
+      "step1": "Create the quote for the change: plants, install and pickup.",
+      "step2": "Add the plants with the “Seasonal” box: they do not change the contract price. {count, plural, =0 {None yet.} one {There is # seasonal plant.} other {There are # seasonal plants.}}",
+      "step3": "Schedule the install and the pickup with the “In the quote” cost. When the pickup ends, the seasonal plants are archived.",
+      "quote": "Quote the seasonal change",
+      "install": "Schedule the install",
+      "pickup": "Schedule the pickup",
+      "quotesTitle": "Contract quotes"
     }
   },
   "letterhead": {

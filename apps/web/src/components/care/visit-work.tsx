@@ -20,6 +20,7 @@ import {
 import { ActionButton } from '@/components/form/action-button';
 import { Field, controlProps } from '@/components/form/field';
 import { SubmitButton } from '@/components/form/submit-button';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -139,6 +140,8 @@ export interface PlantItemView {
   readonly condition: CarePlantCondition | null;
   readonly affected: number | null;
   readonly note: string | null;
+  /** Pianta del cambio di stagione (ADR-078). */
+  readonly seasonal?: boolean;
 }
 
 const CONDITION_STYLE: Record<CarePlantCondition, string> = {
@@ -168,6 +171,11 @@ export function PlantChecklistItem({
       <div className="min-w-0 space-y-0.5">
         <p className="font-medium break-words">
           <span className="tabular-nums">{plant.quantity}</span> × {plant.name}
+          {plant.seasonal ? (
+            <Badge variant="accent" className="ml-2 align-middle">
+              {t('seasonal')}
+            </Badge>
+          ) : null}
         </p>
         {plant.details ? <p className="text-xs text-muted-foreground">{plant.details}</p> : null}
         {plant.instructions ? (
@@ -487,7 +495,8 @@ function ReportCheckbox({
 
 /**
  * "Terminar visita": riepilogo, la casella del resoconto per email e, se ci sono materiali, quella
- * per registrarli anche se manca giacenza. Se mancano piante da segnare, il server lo dice.
+ * per registrarli anche se manca giacenza. Al ritiro del cambio di stagione, la casella (attiva)
+ * per archiviare le piante di temporada. Se mancano piante da segnare, il server lo dice.
  */
 export function FinishVisitDialog({
   action,
@@ -496,6 +505,7 @@ export function FinishVisitDialog({
   unmarked,
   hasMaterials,
   channel,
+  seasonalPlants = null,
 }: {
   readonly action: Action;
   readonly allOkAction: Action;
@@ -505,6 +515,8 @@ export function FinishVisitDialog({
   readonly unmarked: number;
   readonly hasMaterials: boolean;
   readonly channel: ReportChannelView;
+  /** Visita di ritiro: quante piante di temporada ci sono ancora (null se non è un ritiro). */
+  readonly seasonalPlants?: number | null;
 }) {
   const t = useTranslations('care.visitWork');
   const tc = useTranslations('common');
@@ -543,6 +555,21 @@ export function FinishVisitDialog({
                 className="mt-0.5"
               />
               <span>{t('confirmShortage')}</span>
+            </label>
+          ) : null}
+          {seasonalPlants ? (
+            <label
+              htmlFor="finish-archive-seasonal"
+              className="flex cursor-pointer items-start gap-2.5 text-sm"
+            >
+              <Checkbox
+                id="finish-archive-seasonal"
+                name="archiveSeasonal"
+                value="on"
+                defaultChecked
+                className="mt-0.5"
+              />
+              <span>{t('archiveSeasonal', { count: seasonalPlants })}</span>
             </label>
           ) : null}
           <DialogFooter>

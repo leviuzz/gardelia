@@ -22,7 +22,7 @@ import {
   type TenantContext,
 } from '@floral/core';
 import { addDays, parseIsoDate, todayInTimeZone, toIsoDate } from '@floral/domain';
-import { AgendaTabs, VisitStatusBadge } from '@/components/care/care-ui';
+import { AgendaTabs, ExtraVisitBadge, VisitStatusBadge } from '@/components/care/care-ui';
 import { CareUpsell } from '@/components/care/care-upsell';
 import { OrderStatusBadge } from '@/components/common/status-badges';
 import { ActionButton } from '@/components/form/action-button';
@@ -162,7 +162,10 @@ export default async function AgendaDayPage({
             </p>
           ) : (
             care.groups.map((group) => (
-              <div key={group.slotId ?? 'none'} className="space-y-2">
+              <div
+                key={group.slotId ?? `time-${group.start ?? ''}-${group.end ?? ''}`}
+                className="space-y-2"
+              >
                 <h3 className="flex flex-wrap items-baseline justify-between gap-2 text-sm font-medium">
                   <span className="tabular-nums">
                     {group.start && group.end
@@ -170,9 +173,11 @@ export default async function AgendaDayPage({
                       : t('care.agenda.noTime')}
                   </span>
                   <span className="text-xs font-normal text-muted-foreground">
-                    {group.capacity === null
-                      ? t('care.agenda.slotArchived')
-                      : t('care.agenda.seats', { used: group.used, capacity: group.capacity })}
+                    {group.slotId === null
+                      ? t('care.agenda.freeTime')
+                      : group.capacity === null
+                        ? t('care.agenda.slotArchived')
+                        : t('care.agenda.seats', { used: group.used, capacity: group.capacity })}
                   </span>
                 </h3>
                 {group.visits.length === 0 ? (
@@ -199,7 +204,10 @@ export default async function AgendaDayPage({
                                 : ''}
                             </p>
                           </div>
-                          <VisitStatusBadge status={visit.status} />
+                          <span className="flex flex-wrap justify-end gap-1">
+                            {visit.extra ? <ExtraVisitBadge kind={visit.extra.kind} /> : null}
+                            <VisitStatusBadge status={visit.status} />
+                          </span>
                         </div>
                         {visit.addressLine ? (
                           <p className="flex items-start gap-2 text-sm">

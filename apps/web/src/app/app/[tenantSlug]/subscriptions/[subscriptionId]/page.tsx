@@ -3,28 +3,43 @@ import {
   ArrowLeft,
   CalendarClock,
   CheckCircle2,
+  FileText,
   Leaf,
   Pencil,
   Plus,
+  Sprout,
   Trash2,
 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import type { ReactNode } from 'react';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import {
   NotFoundError,
   PlanRequiredError,
   getCareContract,
   getCareContractForm,
+  getCareExtraVisitOptions,
   hasPermission,
   listCanonicalFlowers,
+  listCareAssignees,
+  listCareContractQuotes,
   type CareContractDetailDto,
+  type CareContractQuoteDto,
   type CareVisitSummaryDto,
   type TenantContext,
 } from '@floral/core';
-import { CARE_LIMITS, addDays, todayInTimeZone, toIsoDate } from '@floral/domain';
-import { ContractStatusBadge, VisitStatusBadge } from '@/components/care/care-ui';
+import {
+  CARE_EXTRA_KINDS,
+  CARE_LIMITS,
+  addDays,
+  suggestedCareExtraFee,
+  todayInTimeZone,
+  toIsoDate,
+  type CareExtraKind,
+} from '@floral/domain';
+import { ContractStatusBadge, ExtraVisitBadge, VisitStatusBadge } from '@/components/care/care-ui';
 import { CareUpsell } from '@/components/care/care-upsell';
 import {
   CareDetailsDialog,
@@ -33,7 +48,10 @@ import {
   CareRepriceDialog,
   CareScheduleDialog,
 } from '@/components/care/contract-forms';
+import { ExtraVisitDialog } from '@/components/care/extra-forms';
 import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
+import { QuoteStatusBadge } from '@/components/common/status-badges';
+import { ActionButton } from '@/components/form/action-button';
 import { Forbidden } from '@/components/forbidden';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -47,6 +65,8 @@ import {
   addCarePlantAction,
   changeCareScheduleAction,
   confirmCareContractAction,
+  createCareExtraVisitAction,
+  createCareQuoteAction,
   discardCareContractAction,
   endCareContractAction,
   removeCarePlantAction,
@@ -90,7 +110,11 @@ export default async function CareContractPage({
   searchParams,
 }: PageProps<'/app/[tenantSlug]/subscriptions/[subscriptionId]'>) {
   const { tenantSlug, subscriptionId } = await params;
-  const created = (await searchParams).created === '1';
+  const query = await searchParams;
+  const created = query.created === '1';
+  // Da un avviso di pianta morta: "Reposición sin costo" apre il modulo della visita extra.
+  const fromFollowUp = typeof query.followUp === 'string' ? query.followUp : null;
+  const openExtra = typeof query.extra === 'string' ? query.extra : null;
   const ctx = await getTenantContext(tenantSlug);
   if (!hasPermission(ctx, 'subscriptions:read')) return <Forbidden />;
   const t = await getTranslations();
@@ -142,6 +166,18 @@ export default async function CareContractPage({
   const form = canWrite ? await getCareContractForm(ctx, contract.customer.id) : null;
   const options = form ? await contractFormOptions(form) : null;
   const today = todayInTimeZone(ctx.timezone);
+  const canExtra = canWrite && contract.status === 'ACTIVE';
+  const canQuote = canWrite && isActive && hasPermission(ctx, 'quotes:write');
+  const [extraOptions, assignees, contractQuotes] = await Promise.all([
+    canExtra ? getCareExtraVisitOptions(ctx, contract.id) : Promise.resolve(null),
+    canExtra ? listCareAssignees(ctx) : Promise.resolve([]),
+    isDraft
+      ? Promise.resolve([] as readonly CareContractQuoteDto[])
+      : listCareContractQuotes(ctx, contract.id),
+  ]);
+  const seasonalPlants = contract.plants
+    .filter((plant) => plant.seasonal)
+    .reduce((total, plant) => total + plant.quantity, 0);
   const priceLabel = (minor: number) => money(minor, currency);
   const monthLabel = (monthly: { minMinor: number; maxMinor: number }) =>
     monthly.minMinor === monthly.maxMinor
@@ -150,6 +186,52 @@ export default async function CareContractPage({
           min: priceLabel(monthly.minMinor),
           max: priceLabel(monthly.maxMinor),
         });
+
+  const extraDialog = (
+    kind: CareExtraKind,
+    options: {
+      readonly idPrefix: string;
+      readonly trigger?: ReactNode;
+      readonly open?: boolean;
+      readonly followUpId?: string | null;
+    },
+  ) =>
+    extraOptions ? (
+      <ExtraVisitDialog
+        action={createCareExtraVisitAction.bind(null, slug, contract.id)}
+        idPrefix={options.idPrefix}
+        options={extraOptions.options.map((option) => ({
+          value: `${option.date}_${option.slotId}`,
+          label: t('care.visit.option', {
+            date: day(option.date),
+            start: option.start,
+            end: option.end,
+            count: option.free,
+          }),
+        }))}
+        quotes={extraOptions.quotes.map((quote) => ({
+          id: quote.id,
+          label: quote.title ? `${quote.numberLabel} · ${quote.title}` : quote.numberLabel,
+        }))}
+        assignees={assignees}
+        visitFeeLabel={priceLabel(extraOptions.visitFeeMinor)}
+        dates={{ first: extraOptions.firstDate, last: extraOptions.lastDate }}
+        defaults={{
+          kind,
+          fee: options.followUpId
+            ? 'FREE'
+            : suggestedCareExtraFee(
+                kind,
+                extraOptions.deadPlantPolicy,
+                extraOptions.quotes.length > 0,
+              ),
+          followUpId: options.followUpId ?? null,
+        }}
+        defaultOpen={options.open ?? false}
+        trigger={options.trigger}
+      />
+    ) : null;
+  const openKind = CARE_EXTRA_KINDS.find((kind) => kind === openExtra) ?? null;
 
   const visitRow = (visit: CareVisitSummaryDto) => (
     <li key={visit.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
@@ -167,6 +249,12 @@ export default async function CareContractPage({
         {visit.assigneeName ? (
           <p className="text-xs text-muted-foreground">
             {t('care.contract.assignee', { name: visit.assigneeName })}
+          </p>
+        ) : null}
+        {/* Sotto la data: due etichette lunghe accanto allo stato non stanno in 320 px. */}
+        {visit.extraKind ? (
+          <p className="mt-1">
+            <ExtraVisitBadge kind={visit.extraKind} />
           </p>
         ) : null}
       </div>
@@ -355,6 +443,21 @@ export default async function CareContractPage({
               notes: contract.notes ?? '',
             }}
           />
+          {extraDialog(openKind ?? 'EXTRA', {
+            idPrefix: 'extra-main',
+            open: openKind !== null,
+            followUpId: openKind === 'REPLACEMENT' ? fromFollowUp : null,
+          })}
+          {canQuote ? (
+            <ActionButton
+              action={createCareQuoteAction.bind(null, slug, contract.id, 'EXTRA', null)}
+              variant="secondary"
+              className="w-full sm:w-auto"
+            >
+              <FileText />
+              {t('care.extra.quoteButton')}
+            </ActionButton>
+          ) : null}
           <CareEndDialog
             action={endCareContractAction.bind(null, slug, contract.id)}
             upcomingVisits={contract.upcomingCount}
@@ -389,6 +492,7 @@ export default async function CareContractPage({
                     light: '',
                     watering: '',
                     instructions: '',
+                    seasonal: false,
                   }}
                   trigger={
                     <Button size="sm" variant="secondary">
@@ -411,6 +515,11 @@ export default async function CareContractPage({
                       <div className="min-w-0 space-y-0.5">
                         <p className="font-medium break-words">
                           <span className="tabular-nums">{plant.quantity}</span> × {plant.name}
+                          {plant.seasonal ? (
+                            <Badge variant="accent" className="ml-2 align-middle">
+                              {t('care.plants.seasonalBadge')}
+                            </Badge>
+                          ) : null}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {[
@@ -443,6 +552,7 @@ export default async function CareContractPage({
                               light: plant.light ?? '',
                               watering: plant.watering ?? '',
                               instructions: plant.instructions ?? '',
+                              seasonal: plant.seasonal,
                             }}
                             trigger={
                               <Button
@@ -514,6 +624,94 @@ export default async function CareContractPage({
         </div>
 
         <div className="min-w-0 space-y-6">
+          {isActive && (canWrite || contractQuotes.length > 0) ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sprout className="size-5 text-primary" aria-hidden="true" />
+                  {t('care.seasonal.title')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 text-sm">
+                {canWrite ? (
+                  <>
+                    <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
+                      <li>{t('care.seasonal.step1')}</li>
+                      <li>{t('care.seasonal.step2', { count: seasonalPlants })}</li>
+                      <li>{t('care.seasonal.step3')}</li>
+                    </ol>
+                    <div className="flex flex-col gap-2">
+                      {canQuote ? (
+                        <ActionButton
+                          action={createCareQuoteAction.bind(
+                            null,
+                            slug,
+                            contract.id,
+                            'SEASONAL',
+                            null,
+                          )}
+                          variant="secondary"
+                          className="w-full"
+                        >
+                          <FileText />
+                          {t('care.seasonal.quote')}
+                        </ActionButton>
+                      ) : null}
+                      {extraDialog('SEASONAL_INSTALL', {
+                        idPrefix: 'extra-install',
+                        trigger: (
+                          <Button variant="outline" className="w-full">
+                            {t('care.seasonal.install')}
+                          </Button>
+                        ),
+                      })}
+                      {extraDialog('SEASONAL_PICKUP', {
+                        idPrefix: 'extra-pickup',
+                        trigger: (
+                          <Button variant="outline" className="w-full">
+                            {t('care.seasonal.pickup')}
+                          </Button>
+                        ),
+                      })}
+                    </div>
+                  </>
+                ) : null}
+                {contractQuotes.length > 0 ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-medium">{t('care.seasonal.quotesTitle')}</h3>
+                    <ul className="divide-y rounded-xl border">
+                      {contractQuotes.map((quote) => (
+                        <li
+                          key={quote.id}
+                          className="flex items-center justify-between gap-3 px-3 py-2"
+                        >
+                          <Link
+                            href={routes.quotes.detail(quote.id)}
+                            className="min-w-0 hover:underline"
+                          >
+                            <span className="block font-medium tabular-nums">
+                              {quote.numberLabel}
+                            </span>
+                            {quote.title ? (
+                              <span className="block truncate text-xs text-muted-foreground">
+                                {quote.title}
+                              </span>
+                            ) : null}
+                          </Link>
+                          <span className="flex shrink-0 flex-col items-end gap-1">
+                            <QuoteStatusBadge status={quote.status} />
+                            <span className="text-xs tabular-nums">
+                              {money(quote.totalMinor, quote.currency)}
+                            </span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
           <Card>
             <CardHeader>
               <CardTitle>{t('care.contract.priceTitle')}</CardTitle>

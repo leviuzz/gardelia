@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import type { CareVisitStatus, CustomerSubscriptionStatus } from '@floral/domain';
+import type { CareExtraKind, CareVisitStatus, CustomerSubscriptionStatus } from '@floral/domain';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import type { TenantRoutes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
@@ -35,6 +35,12 @@ export function VisitStatusBadge({ status }: { readonly status: CareVisitStatus 
 }
 
 /** Le viste dell'Agenda (ADR-075): il giorno, il mese, le visite da riprogrammare. */
+/** Visita extra (ADR-078): "Extra · Reposición", nell'Agenda, nella scheda e nel contratto. */
+export function ExtraVisitBadge({ kind }: { readonly kind: CareExtraKind }) {
+  const t = useTranslations('care.extra');
+  return <Badge variant="accent">{t('badge', { kind: t(`kinds.${kind}`) })}</Badge>;
+}
+
 export function AgendaTabs({
   routes,
   current,

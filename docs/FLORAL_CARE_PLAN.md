@@ -1,7 +1,7 @@
 # Floral Care, consegne periodiche e Asistente de plantas — piano
 
-Piano approvato dal founder il 24/11/2026 (risposte nel §2). Il blocco 1 è fatto (ADR-075), il
-blocco 2 è diviso in 2a (fatto, ADR-078) e 2b; i blocchi seguenti seguono quest'ordine. Le etichette DECISO / PROPOSTO / DA VALIDARE valgono come nella
+Piano approvato dal founder il 24/11/2026 (risposte nel §2). I blocchi 1 (ADR-075) e 2 (2a e 2b,
+ADR-078) sono fatti; i blocchi seguenti seguono quest'ordine. Le etichette DECISO / PROPOSTO / DA VALIDARE valgono come nella
 spec: una proposta non diventa decisione senza il founder.
 
 ## Contesto
@@ -361,9 +361,9 @@ rilascio su staging) e lascia qualcosa di usabile.
      "No se pudo"; resoconto per email (tabella d'uscita con nuovi tentativi) e con link firmato;
      cancellazione delle foto 30 giorni dopo la fine del contratto; ruta del día con consegne e
      visite; Agenda nella barra in basso.
-   - **2b:** visita extra (in un orario o a un'ora libera, con il costo calcolato dal server),
-     reposición delle piante morte (sin costo, cotización o no se repone) e cambio di stagione con
-     la cotización legata al contratto.
+   - **2b (fatto, ADR-078):** visita extra (in un orario o a un'ora libera, con il costo calcolato
+     dal server), reposición delle piante morte (sin costo, alla prossima visita, cotización o no se
+     repone) e cambio di stagione con la cotización legata al contratto.
 3. **Cargos e pagamenti.**
    - Cargo del mese, proporzione del primo mese, crediti ed extra sul mese dopo.
    - Pagamenti e storni, "en retraso".

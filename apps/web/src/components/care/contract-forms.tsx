@@ -390,6 +390,8 @@ export interface CarePlantDefaults {
   readonly light: PlantLight | '';
   readonly watering: string;
   readonly instructions: string;
+  /** Pianta del cambio di stagione (ADR-078). */
+  readonly seasonal: boolean;
 }
 
 /** Una riga di piante della diagnosi, anche un gruppo ("12 potos en jardinera"). */
@@ -420,7 +422,7 @@ export function CarePlantDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent closeLabel={tc('close')}>
+      <DialogContent closeLabel={tc('close')} className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{t('dialogBody')}</DialogDescription>
@@ -537,6 +539,18 @@ export function CarePlantDialog({
               defaultValue={defaults.instructions}
             />
           </Field>
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border px-3 py-2.5 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+            <Checkbox
+              name="seasonal"
+              value="on"
+              defaultChecked={defaults.seasonal}
+              className="mt-0.5"
+            />
+            <span>
+              <span className="font-medium">{t('seasonal')}</span>
+              <span className="block text-xs text-muted-foreground">{t('seasonalHint')}</span>
+            </span>
+          </label>
           <DialogFooter>
             <DialogClose asChild>
               <Button type="button" variant="ghost">

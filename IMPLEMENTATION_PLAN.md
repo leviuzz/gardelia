@@ -995,7 +995,27 @@ Verifiche locali, dopo l'unione con staging (verifica in due passaggi, dati dell
 - controllo a 320 px delle pagine nuove (visita in tutti gli stati, ruta, avvisi, resoconto
   pubblico).
 
-Prossimo: il blocco 2b (visita extra, piante morte, cambio di stagione con cotización).
+**Floral Care, blocco 2b (fatto il 24/11, ADR-078):** il resto del blocco 2.
+
+- **Visita extra** dal contratto (chi gestisce): lavoro extra, reposición, installazione o ritiro di
+  stagione, in un orario di visita (conta i posti) o a un'ora libera (scelta del founder: niente
+  posti, i clienti non la scelgono). Costo dal server: tariffa per visita del contratto con il
+  viaggio, "Sin costo" o "En la cotización". Si sposta anche a un'ora libera; il nuovo calendario
+  la lascia, la fine del contratto la cancella; nell'Agenda ha l'etichetta "Extra".
+- **Piante morte e altri avvisi:** si risolvono una volta sola. Una pianta morta: "Reposición sin
+  costo" (apre il modulo della visita extra nel contratto), "En la próxima visita", "Cotizar", "No
+  se repone"; gli altri: "Atendido" o "Cotizar". La regola della fioreria mette in evidenza la
+  scelta suggerita.
+- **Cotización dal contratto:** "Cotizar" crea la bozza legata al contratto, con il titolo nella
+  lingua del mercato, e apre l'editor. Lo staff no.
+- **Cambio di stagione:** piante "De temporada" fuori dal prezzo; la scheda del contratto guida
+  cotización, piante, installazione e ritiro, e mostra le cotizaciones del contratto; alla fine del
+  ritiro le piante di temporada si archiviano (casella attiva).
+- I due dialoghi lunghi (visita extra, piante) ora scorrono dentro lo schermo. Lo stesso manca nel
+  dialogo condiviso: da sistemare per tutti (`components/ui/dialog.tsx`).
+
+Prossimo: il blocco 3 di `docs/FLORAL_CARE_PLAN.md` (cargos e pagamenti), con le regole del
+contratto copiate alla firma.
 
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
@@ -1011,8 +1031,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 3. Inventario: fatto (blocchi 1–4, ADR-060…063), con lo scarico (ADR-071) e gli apartados
    (ADR-072) dagli ordini.
 4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
-5. Abbonamenti dei clienti e Floral Care: blocco 1 (ADR-075) e 2a (ADR-078) fatti; 2b e
-   blocchi 3–7 in `docs/FLORAL_CARE_PLAN.md`.
+5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075) e 2 (ADR-078) fatti; blocchi 3–7 in
+   `docs/FLORAL_CARE_PLAN.md`.
 6. Report.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.
 8. Abbonamento a pagamento sui livelli Esencial e Profesional (D-23; Stripe in modalità di prova) e

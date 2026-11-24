@@ -27,8 +27,17 @@ import {
   type CareVisitSheetDto,
   type TenantContext,
 } from '@floral/core';
-import { CARE_EMAIL_RETRY, getMarket, mapsPlaceUrl, whatsappLink } from '@floral/domain';
-import { VisitStatusBadge } from '@/components/care/care-ui';
+import {
+  CARE_EMAIL_RETRY,
+  CARE_LIMITS,
+  addDays,
+  getMarket,
+  mapsPlaceUrl,
+  todayInTimeZone,
+  toIsoDate,
+  whatsappLink,
+} from '@floral/domain';
+import { ExtraVisitBadge, VisitStatusBadge } from '@/components/care/care-ui';
 import { CareUpsell } from '@/components/care/care-upsell';
 import { VisitAssignForm, VisitCancelDialog, VisitMoveForm } from '@/components/care/visit-forms';
 import { VisitPhotos } from '@/components/care/visit-photos';
@@ -52,7 +61,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { serverEnv } from '@/lib/env';
-import { phoneForInput } from '@/lib/format';
+import { money, phoneForInput } from '@/lib/format';
 import { calendarDate } from '@/lib/quote-ui';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
@@ -65,7 +74,6 @@ import {
   markCareVisitNotDoneAction,
   moveCareVisitAction,
   removeCareVisitPhotoAction,
-  resolveCareFollowUpAction,
   revokeCareVisitLinkAction,
   saveCareVisitNoteAction,
   sendCareVisitReportAction,
@@ -114,6 +122,7 @@ export default async function CareVisitPage({
   const format = await getFormatter();
   const slug = ctx.tenantSlug;
   const routes = tenantRoutes(slug);
+  const today = todayInTimeZone(ctx.timezone);
   const sheet = await loadSheet(ctx, visitId);
   if (!sheet) {
     return (
@@ -200,6 +209,7 @@ export default async function CareVisitPage({
           }
           description={
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {visit.extra ? <ExtraVisitBadge kind={visit.extra.kind} /> : null}
               <VisitStatusBadge status={visit.status} />
               <span className="first-letter:uppercase">
                 {visit.date
@@ -212,6 +222,17 @@ export default async function CareVisitPage({
             </span>
           }
         />
+        {visit.extra ? (
+          <p className="rounded-xl bg-muted/60 px-3 py-2 text-sm">
+            {t(`care.extra.fees.${visit.extra.fee}`)}
+            {visit.extra.fee === 'VISIT_FEE' && hasPermission(ctx, 'subscriptions:write')
+              ? ` · ${money(visit.extra.feeMinor, ctx.currency)}`
+              : ''}
+            {visit.extra.note ? (
+              <span className="block break-words text-muted-foreground">{visit.extra.note}</span>
+            ) : null}
+          </p>
+        ) : null}
         {working ? (
           <p className="text-sm text-muted-foreground">
             {sheet.startedAt
@@ -366,6 +387,7 @@ export default async function CareVisitPage({
                       condition: plant.condition,
                       affected: plant.affected,
                       note: plant.note,
+                      seasonal: plant.seasonal,
                     }}
                   />
                 ))}
@@ -466,13 +488,14 @@ export default async function CareVisitPage({
                       ) : null}
                     </div>
                     {followUp.status === 'OPEN' && sheet.can.resolveFollowUps ? (
-                      <ActionButton
-                        action={resolveCareFollowUpAction.bind(null, slug, followUp.id)}
-                        variant="secondary"
-                        size="sm"
-                      >
-                        {t('care.followUps.resolve')}
-                      </ActionButton>
+                      // Le scelte (reposición, cotización…) stanno nella pagina degli avvisi.
+                      <Button asChild variant="secondary" size="sm">
+                        <Link href={routes.agenda.followUps()}>{t('care.followUps.resolve')}</Link>
+                      </Button>
+                    ) : followUp.resolution ? (
+                      <Badge variant="muted">
+                        {t(`care.followUps.resolutions.${followUp.resolution}`)}
+                      </Badge>
                     ) : (
                       <Badge variant={followUp.status === 'OPEN' ? 'warning' : 'muted'}>
                         {t(`care.followUps.statuses.${followUp.status}`)}
@@ -501,6 +524,7 @@ export default async function CareVisitPage({
             unmarked={sheet.progress.plants - sheet.progress.plantsMarked}
             hasMaterials={sheet.materials.length > 0}
             channel={channel}
+            seasonalPlants={sheet.seasonalPickup?.plants ?? null}
           />
           {visit.canMarkNotDone ? (
             <NotDoneDialog
@@ -671,6 +695,14 @@ export default async function CareVisitPage({
             <p className="text-sm text-muted-foreground">{t('care.visit.moveHint')}</p>
             <VisitMoveForm
               action={moveCareVisitAction.bind(null, slug, visit.id)}
+              freeTime={
+                moveOptions.freeTime
+                  ? {
+                      first: toIsoDate(today),
+                      last: toIsoDate(addDays(today, CARE_LIMITS.moveDaysMax)),
+                    }
+                  : null
+              }
               options={moveOptions.options.map((option) => ({
                 value: `${option.date}_${option.slotId}`,
                 label: t('care.visit.option', {

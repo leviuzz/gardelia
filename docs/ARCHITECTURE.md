@@ -288,6 +288,15 @@ resoconto (`services/care-report.ts`) è un solo DTO per la pagina interna, quel
 mette insieme consegne e visite; l'ordine è una funzione pura del dominio (`orderRouteStops`),
 usata anche dalla ruta dei Pedidos.
 
+Visite extra e cambio di stagione (ADR-078, blocco 2b, `services/care-extras.ts`): una visita extra
+in un orario passa da `SlotBook` come le altre; a un'ora libera ha giorno e ore senza fascia (il
+CHECK lo permette solo alle extra) e non entra nel conto dei posti. Il costo si calcola con la
+tariffa salvata nel contratto (`careExtraFeeMinor`). "Cotizar" usa `insertDraftQuote` con il
+contratto e un titolo nella lingua del mercato. Un avviso si risolve con `resolveCareFollowUpTx`
+nella stessa transazione della visita extra o della cotización: `updateMany` sulla riga ancora
+aperta, quindi due risoluzioni insieme non passano entrambe. `openVisitsFrom` dice se includere le
+extra: il cambio di calendario no, la fine del contratto sì.
+
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per
 l'attribuzione delle fee future.

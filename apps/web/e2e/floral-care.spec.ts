@@ -6,8 +6,9 @@ import { expect, test, type Page } from '@playwright/test';
  * calcola il server) e trova la visita nell'Agenda; spostarla chiede "Sí, avisé al cliente".
  * Blocco 2 (ADR-078): lo staff fa la visita di oggi dal telefono (servizi, piante, foto, nota,
  * avviso) e la termina; il cliente apre il resoconto senza account; la proprietaria vede l'avviso
- * e la visita nella ruta. Alla fine il contratto finisce e l'orario si archivia, così le
- * esecuzioni non si sommano.
+ * e la visita nella ruta. Blocco 2b: una visita extra a un'ora libera, una pianta di stagione, la
+ * cotización del cambio legata al contratto e il ritiro "en la cotización". Alla fine il
+ * contratto finisce e l'orario si archivia, così le esecuzioni non si sommano.
  */
 const SHOP = '/app/las-camelias';
 
@@ -313,7 +314,7 @@ test.describe('Floral Care: la visita dal telefono', () => {
     await page.goto(`${SHOP}/agenda/follow-ups`);
     const followUp = page.getByRole('listitem').filter({ hasText: request });
     await followUp.getByRole('button', { name: 'Atendido' }).click();
-    await expect(page.getByText('Aviso atendido')).toBeVisible();
+    await expect(page.getByText('Aviso resuelto')).toBeVisible();
     await page.goto(`${SHOP}/agenda/route`);
     await expect(page.getByRole('heading', { level: 1, name: 'Ruta del día' })).toBeVisible();
     await page.getByText(/paradas? hechas?/).click();
@@ -321,6 +322,86 @@ test.describe('Floral Care: la visita dal telefono', () => {
 
     await cleanUp(page, contractUrl, today, slotLabel);
     await owner.close();
+  });
+});
+
+test.describe('Floral Care: visite extra e cambio di stagione', () => {
+  test.use({ storageState: 'e2e/.auth/owner.json' });
+
+  test('visita extra a un’ora libera, pianta di stagione, cotización del cambio e ritiro', async ({
+    page,
+  }) => {
+    const stamp = Date.now();
+    const today = dayInShop(0);
+    const later = dayInShop(2);
+    await saveOffer(page);
+    const slotLabel = await addSlot(page, today);
+    await newCustomerWithAddress(page, `Oficinas Temporada ${stamp}`);
+    await page.getByRole('link', { name: 'Nuevo contrato' }).click();
+    await page.getByRole('radio', { name: /Cada semana/ }).check();
+    await page.getByRole('checkbox', { name: slotLabel }).check();
+    await page.getByRole('textbox', { name: 'Primer día' }).fill(today);
+    await page.getByRole('button', { name: 'Crear borrador' }).click();
+    await expect(page).toHaveURL(/\/subscriptions\/[0-9a-f-]{36}\?created=1$/);
+    const contractUrl = page.url().replace('?created=1', '');
+    for (const [name, quantity, seasonal] of [
+      ['Potos', '2', false],
+      ['Nochebuena', '4', true],
+    ] as const) {
+      await page.getByRole('button', { name: 'Agregar plantas' }).click();
+      const plants = page.getByRole('dialog');
+      await plants.getByLabel('Nombre').fill(name);
+      await plants.getByLabel('Cantidad').fill(quantity);
+      await plants.getByRole('radio', { name: 'Mediana' }).check();
+      if (seasonal) await plants.getByRole('checkbox', { name: /De temporada/ }).check();
+      await plants.getByRole('button', { name: 'Agregar plantas' }).click();
+      await expect(page.getByText(`${quantity} × ${name}`)).toBeVisible();
+    }
+    await expect(page.getByText('Temporada', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Confirmar contrato' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Confirmar', exact: true }).click();
+    await expect(page.getByText(/Contrato confirmado: \d+ visitas agendadas\./)).toBeVisible();
+
+    // Una visita extra fuori dagli orari: non occupa posti e il costo lo dice il server.
+    await page.getByRole('button', { name: 'Visita extra' }).click();
+    const extra = page.getByRole('dialog');
+    await expect(extra.getByRole('heading', { name: 'Agendar una visita extra' })).toBeVisible();
+    await extra.getByRole('radio', { name: 'A otra hora' }).check();
+    await extra.getByRole('textbox', { name: 'Día', exact: true }).fill(later);
+    await extra.getByRole('textbox', { name: 'Desde', exact: true }).fill('17:15');
+    await extra.getByRole('textbox', { name: 'Hasta', exact: true }).fill('18:00');
+    await extra.getByRole('radio', { name: 'Sin costo' }).check();
+    await extra.getByLabel('Nota para quien la hace').fill('Revisar el riego de la terraza');
+    await extra.getByRole('button', { name: 'Agendar visita' }).click();
+    await expect(page.getByText('Visita extra agendada')).toBeVisible();
+    await expect(page.getByText('Extra · Trabajo extra').first()).toBeVisible();
+
+    await page.goto(`${SHOP}/agenda?date=${later}`);
+    await expect(page.getByText('A otra hora · sin lugares')).toBeVisible();
+    const card = page.getByRole('article').filter({ hasText: `Oficinas Temporada ${stamp}` });
+    await expect(card.getByText('Extra · Trabajo extra')).toBeVisible();
+
+    // Il cambio di stagione: la cotización nasce dal contratto, poi il ritiro "en la cotización".
+    await page.goto(contractUrl);
+    await page.getByRole('button', { name: 'Cotizar el cambio de temporada' }).click();
+    await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
+    await expect(page.getByRole('textbox', { name: 'Título' })).toHaveValue(
+      /^Cambio de temporada · SUS-\d+$/,
+    );
+    await page.goto(contractUrl);
+    await expect(page.getByText('Cotizaciones del contrato')).toBeVisible();
+    await page.getByRole('button', { name: 'Agendar el retiro' }).click();
+    const pickup = page.getByRole('dialog');
+    await expect(pickup.getByRole('radio', { name: 'En la cotización' })).toBeChecked();
+    await pickup.getByRole('radio', { name: 'A otra hora' }).check();
+    await pickup.getByRole('textbox', { name: 'Día', exact: true }).fill(today);
+    await pickup.getByRole('textbox', { name: 'Desde', exact: true }).fill('21:00');
+    await pickup.getByRole('textbox', { name: 'Hasta', exact: true }).fill('21:45');
+    await pickup.getByRole('button', { name: 'Agendar visita' }).click();
+    await expect(page.getByText('Visita extra agendada')).toBeVisible();
+    await expect(page.getByText('Extra · Retiro de temporada').first()).toBeVisible();
+
+    await cleanUp(page, contractUrl, today, slotLabel);
   });
 });
 
