@@ -230,6 +230,10 @@ export const AUDIT_ACTIONS = {
   carePaymentRejected: 'care.payment_rejected',
   careAdjustmentAdded: 'care.adjustment_added',
   careAdjustmentRemoved: 'care.adjustment_removed',
+  /** Blocco 4 (ADR-083): giorni bloccati, visite spostate o cancellate insieme, persona cambiata. */
+  careBlockCreated: 'care.block_created',
+  careBlockRemoved: 'care.block_removed',
+  careVisitsReassigned: 'care.visits_reassigned',
   /**
    * Contratti con i clienti (CustomerSubscription): `customer_subscription.*`, da non confondere con
    * `subscription.assigned`, il piano della fioreria su Gardelia.

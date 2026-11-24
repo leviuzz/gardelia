@@ -15,6 +15,7 @@ export * from './floral-care';
 export * from './floral-care-visit';
 export * from './floral-care-extras';
 export * from './floral-care-charges';
+export * from './floral-care-blocks';
 export * from './i18n';
 export * from './ids';
 export * from './inventory';

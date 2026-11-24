@@ -173,6 +173,13 @@ export type ConflictReason =
   | 'care_payment_not_pending'
   | 'care_adjustment_in_charge'
   | 'care_visit_already_recovered'
+  /**
+   * Blocco 4 (ADR-083): le visite toccate sono cambiate dopo l'anteprima (si rivede), troppe
+   * visite in un blocco solo, troppi blocchi attivi.
+   */
+  | 'care_block_changed'
+  | 'care_block_too_many_visits'
+  | 'care_block_limit'
   /** "Eliminar florería" con ordini ancora da consegnare o ritirare (ADR-074). */
   | 'tenant_deletion_open_orders'
   | 'session_is_current';

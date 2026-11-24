@@ -1160,7 +1160,7 @@ export async function changeCareSchedule(
       before.seats === after.seats &&
       before.slotIds.join(',') === after.slotIds.join(',') &&
       (!notStarted || compareDates(contractStart, from) === 0);
-    if (same) return { cancelled: 0, scheduled: 0, toReschedule: 0 };
+    if (same) return { cancelled: 0, scheduled: 0, toReschedule: 0, cancelledByBlock: 0 };
     // Le visite extra restano: sono state fissate a parte (ADR-078).
     const where = openVisitsFrom(ctx.tenantId, subscription.id, from, { includeExtra: false });
     const touched = await tx.careVisit.count({ where });

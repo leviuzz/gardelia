@@ -7,6 +7,7 @@
 import type {
   AcquisitionSource,
   Availability,
+  CareBlockAction,
   CareChargeLineKind,
   CareCreditReason,
   CareFrequency,
@@ -189,6 +190,11 @@ export const LABELS = {
     NOT_DONE: 'No pudimos ir',
     CUSTOMER: 'El cliente avisó a tiempo',
   } satisfies Record<CareCreditReason, string>,
+  careBlockAction: {
+    MOVE: 'Se mueven a otro día',
+    CANCEL: 'Se cancelan sin cobrar',
+  } satisfies Record<CareBlockAction, string>,
+  careBlockWholeDay: 'Todo el día',
   carePaymentKind: {
     PAYMENT: 'Pago',
     REVERSAL: 'Anulación',

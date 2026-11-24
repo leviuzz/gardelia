@@ -275,11 +275,12 @@ export async function createCareExtraVisit(
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     await requireEntitlement(ctx, 'floralCare', tx);
     if (!(await lockSubscription(tx, ctx.tenantId, subscriptionId))) return null;
-    // Ordine dei blocchi: contratto, fasce (solo in un orario), visita.
-    const book =
-      placement.placement === 'SLOT'
-        ? await openSlotBook(tx, ctx.tenantId, { from: placement.date, until: placement.date })
-        : null;
+    // Ordine dei blocchi: contratto, fasce, visita. Anche per un'ora libera, così un blocco di
+    // giorni (ADR-083) creato nello stesso momento si mette in fila.
+    const book = await openSlotBook(tx, ctx.tenantId, {
+      from: placement.date,
+      until: placement.date,
+    });
     const contract = await loadContract(tx, ctx, subscriptionId);
     if (!contract) return null;
     if (contract.status !== 'ACTIVE') throw new ConflictError('care_contract_not_editable');
@@ -292,16 +293,20 @@ export async function createCareExtraVisit(
     }
     let target: { slotId: string | null; startMinutes: number; endMinutes: number };
     if (placement.placement === 'SLOT') {
-      const slot = book?.slot(placement.slotId);
-      if (!book || !slot?.active) throw new ValidationError({ slotId: 'invalid_option' });
+      const slot = book.slot(placement.slotId);
+      if (!slot?.active) throw new ValidationError({ slotId: 'invalid_option' });
       if (slot.weekday !== dayOfWeek(placement.date)) {
         throw new ValidationError({ slotId: 'care_slot_weekday' });
+      }
+      if (book.blockFor(slot.id, placement.date)) {
+        throw new ValidationError({ slotId: 'care_day_blocked' });
       }
       if (book.free(slot.id, placement.date) < contract.seats) {
         throw new ConflictError('care_slot_full');
       }
       target = { slotId: slot.id, startMinutes: slot.startMinutes, endMinutes: slot.endMinutes };
     } else {
+      if (book.dayBlock(placement.date)) throw new ValidationError({ date: 'care_day_blocked' });
       target = {
         slotId: null,
         startMinutes: placement.startMinutes,

@@ -48,7 +48,8 @@ import {
   type PlantSize,
   type SaleUnit,
 } from '@floral/domain';
-import { careVisitReportEmail } from '../care-email';
+import { careBlockNoticeEmail, careVisitReportEmail } from '../care-email';
+import { loadBlockNoticeTx } from './care-block-notice';
 import { notFound, recordAudit } from '../audit';
 import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
@@ -1244,7 +1245,7 @@ export async function deliverCareEmail(
       };
       const email = await tx.careEmail.findFirst({
         where: { tenantId, id: emailId },
-        select: { visitId: true },
+        select: { visitId: true, blockId: true, subscriptionId: true },
       });
       const tenant = await tx.tenant.findFirst({
         where: { id: tenantId },
@@ -1259,6 +1260,33 @@ export async function deliverCareEmail(
         },
       });
       if (!tenant || !careEmailsAllowed(tenant)) return fail('not_allowed');
+      const locale = resolveLocale(getMarket(tenant.marketCountry).defaultLocale);
+      const shop = {
+        name: tenant.displayName,
+        contactEmail: tenant.contactEmail,
+        contactPhone: tenant.contactPhone,
+      };
+      // L'avviso di un blocco di giorni (ADR-083): i cambi del contratto, senza link.
+      if (email?.blockId) {
+        const notice = await loadBlockNoticeTx(tx, tenantId, email.blockId, email.subscriptionId);
+        const noticeTo = careReportRecipient({
+          requested: true,
+          allowed: true,
+          customerEmail: notice?.customerEmail ?? null,
+        });
+        if (!notice || !noticeTo) return fail('no_email');
+        return {
+          kind: 'ready' as const,
+          message: careBlockNoticeEmail({
+            locale,
+            to: noticeTo,
+            customerName: notice.customerName,
+            shop,
+            place: notice.place,
+            changes: notice.changes,
+          }),
+        };
+      }
       if (!email?.visitId) return fail('no_visit');
       const visit = await tx.careVisit.findFirst({
         where: { tenantId, id: email.visitId },
@@ -1290,14 +1318,10 @@ export async function deliverCareEmail(
       return {
         kind: 'ready' as const,
         message: careVisitReportEmail({
-          locale: resolveLocale(getMarket(tenant.marketCountry).defaultLocale),
+          locale,
           to,
           customerName: customer.displayName,
-          shop: {
-            name: tenant.displayName,
-            contactEmail: tenant.contactEmail,
-            contactPhone: tenant.contactPhone,
-          },
+          shop,
           report,
           reportUrl: publicLinkUrl(mail.appUrl, 'CARE_VISIT', token),
         }),
@@ -1310,7 +1334,7 @@ export async function deliverCareEmail(
     await mail.mailer.send(prepared.message);
   } catch (error) {
     sent = false;
-    logger.error({ err: error, emailId }, 'resoconto di Floral Care non inviato');
+    logger.error({ err: error, emailId }, 'email di Floral Care non inviata');
   }
   await withTenantContext(getDb(), { tenantId, userId: context.userId }, (tx) =>
     tx.careEmail.updateMany({

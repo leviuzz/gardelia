@@ -39,15 +39,17 @@ export interface CareGenerationResult {
   readonly scheduled: number;
   /** Visite create senza posto nel mese: "Por reprogramar". */
   readonly toReschedule: number;
+  /** Visite di giorni bloccati con «Cancelar» (ADR-083): nascono cancellate dalla fioreria. */
+  readonly cancelledByBlock: number;
 }
 
-const NOTHING: CareGenerationResult = { scheduled: 0, toReschedule: 0 };
+const NOTHING: CareGenerationResult = { scheduled: 0, toReschedule: 0, cancelledByBlock: 0 };
 
 /**
  * I giorni in cui ogni contratto ha già una visita del calendario (per non metterne due). Le visite
  * extra non contano: una reposición non sposta la visita del mese (ADR-078).
  */
-async function busyDays(
+export async function busyDays(
   tx: TransactionClient,
   tenantId: string,
   subscriptionIds: readonly string[],
@@ -78,7 +80,9 @@ async function busyDays(
  * Crea le visite del contratto fino a 60 giorni da oggi (o fino all'ultimo giorno del contratto),
  * dal giorno dopo l'ultima già creata. Ogni data va nella sua fascia; se è piena, `SlotBook.place`
  * cerca un altro posto nella stessa settimana e nello stesso mese, altrimenti la visita nasce "Por
- * reprogramar". Idempotente: una visita è unica per contratto, versione e data originale.
+ * reprogramar". In un giorno bloccato (ADR-083) segue la scelta del blocco: con «Mover» il giorno
+ * libero più vicino del mese (`placeInMonth`), con «Cancelar» nasce cancellata dalla fioreria (non
+ * si paga). Idempotente: una visita è unica per contratto, versione e data originale.
  */
 export async function extendCareVisitsTx(
   tx: TransactionClient,
@@ -159,6 +163,7 @@ export async function extendCareVisitsTx(
 
   let scheduled = 0;
   let toReschedule = 0;
+  let cancelledByBlock = 0;
   if (pending.length > 0) {
     const book = await openSlotBook(tx, tenantId, { from, until });
     const avoid =
@@ -166,12 +171,7 @@ export async function extendCareVisitsTx(
       new Set<string>();
     const rows: Prisma.CareVisitCreateManyInput[] = [];
     for (const date of pending) {
-      const placement = book.place({
-        date,
-        preferredSlotId: slotByWeekday.get(dayOfWeek(date) as Weekday) ?? null,
-        seats: subscription.seats,
-        bounds: { from, until: end, avoid },
-      });
+      const preferredSlotId = slotByWeekday.get(dayOfWeek(date) as Weekday) ?? null;
       const base = {
         tenantId,
         subscriptionId,
@@ -180,6 +180,31 @@ export async function extendCareVisitsTx(
         seats: subscription.seats,
         createdById: scopeUserId(scope),
       };
+      const block = book.blockFor(preferredSlotId, date);
+      if (block?.action === 'CANCEL') {
+        // Il giorno è bloccato con «Cancelar»: la visita resta come riga, tolta dalla fioreria.
+        const slot = preferredSlotId ? book.slot(preferredSlotId) : undefined;
+        cancelledByBlock += 1;
+        rows.push({
+          ...base,
+          status: 'CANCELLED',
+          cancelReason: 'SHOP',
+          outcomeNote: block.label,
+          scheduledDate: dbDate(date),
+          slotId: slot?.id ?? null,
+          startMinutes: slot?.startMinutes ?? null,
+          endMinutes: slot?.endMinutes ?? null,
+          closedById: scopeUserId(scope),
+        });
+        continue;
+      }
+      const placementInput = {
+        date,
+        preferredSlotId,
+        seats: subscription.seats,
+        bounds: { from, until: end, avoid },
+      };
+      const placement = block ? book.placeInMonth(placementInput) : book.place(placementInput);
       if (placement) {
         book.take(placement.slot.id, placement.date, subscription.seats);
         avoid.add(toIsoDate(placement.date));
@@ -204,7 +229,7 @@ export async function extendCareVisitsTx(
     where: { id: subscriptionId, tenantId },
     data: { generatedUntil: dbDate(until) },
   });
-  if (scheduled + toReschedule > 0) {
+  if (scheduled + toReschedule + cancelledByBlock > 0) {
     await recordScopeAudit(tx, scope, {
       action: AUDIT_ACTIONS.careVisitsGenerated,
       entityType: 'CustomerSubscription',
@@ -215,10 +240,11 @@ export async function extendCareVisitsTx(
         until: toIsoDate(until),
         scheduled,
         toReschedule,
+        ...(cancelledByBlock > 0 ? { cancelledByBlock } : {}),
       },
     });
   }
-  return { scheduled, toReschedule };
+  return { scheduled, toReschedule, cancelledByBlock };
 }
 
 /**

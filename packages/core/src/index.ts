@@ -289,6 +289,26 @@ export {
 } from './services/care-collections';
 export { addCareChargeAdjustment, removeCareChargeAdjustment } from './services/care-adjustments';
 export {
+  createCareBlock,
+  getCareBlock,
+  listCareBlocks,
+  previewCareBlock,
+  reassignCareVisits,
+  removeCareBlock,
+  sendCareBlockNotice,
+  type CareBlockChangeDto,
+  type CareBlockContractDto,
+  type CareBlockCounts,
+  type CareBlockCreateResult,
+  type CareBlockDetailDto,
+  type CareBlockPreviewDto,
+  type CareBlockSlotDto,
+  type CareBlockSummaryDto,
+  type CareBlocksDto,
+  type CareBlockWhenDto,
+  type CarePeakDaySuggestionDto,
+} from './services/care-blocks';
+export {
   getCustomerCareStatement,
   type CareStatementChargeDto,
   type CareStatementDto,

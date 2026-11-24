@@ -397,7 +397,11 @@ describe('contratto: dalla bozza alla conferma', () => {
       from: today(),
       until: horizon(),
     });
-    expect(generated).toEqual({ scheduled: expected.length, toReschedule: 0 });
+    expect(generated).toEqual({
+      scheduled: expected.length,
+      toReschedule: 0,
+      cancelledByBlock: 0,
+    });
     const contract = await getCareContract(shop.owner, contractId);
     expect(contract).toMatchObject({
       status: 'ACTIVE',
@@ -472,6 +476,7 @@ describe('contratto: dalla bozza alla conferma', () => {
       cancelled: before.length,
       scheduled: expected.length,
       toReschedule: 0,
+      cancelledByBlock: 0,
     });
     const after = await visitsOf(shop.tenant.tenantId, contractId);
     expect(after.filter((visit) => visit.status === 'CANCELLED')).toHaveLength(before.length);
