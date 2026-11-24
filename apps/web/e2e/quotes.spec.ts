@@ -12,7 +12,7 @@ test.describe('cotizaciones (propietario)', () => {
   test.use({ storageState: 'e2e/.auth/owner.json' });
 
   test('dal cliente al preventivo inviato, con totali calcolati sul server', async ({ page }) => {
-    await page.goto('/app/las-camelias/customers');
+    await page.goto('/app/las-camelias/customers?q=Hotel%20Casa%20Fuentes');
     await page.getByRole('link', { name: /Hotel Casa Fuentes/ }).click();
     await page.getByRole('link', { name: 'Nueva cotización' }).click();
     await expect(page.getByText('Cotización para Hotel Casa Fuentes')).toBeVisible();

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { saveSimpleDesign } from './support/builder';
+import { pickQuoteCustomer } from './support/customers';
 
 test.describe('Bouquet Builder (fioreria demo, Plus in pilota)', () => {
   test.use({ storageState: 'e2e/.auth/owner.json' });
@@ -50,7 +51,7 @@ test.describe('Bouquet Builder (fioreria demo, Plus in pilota)', () => {
     await expect(page.getByRole('heading', { name: 'Tu diseño está listo' })).toBeVisible();
     await page.getByRole('link', { name: 'Crear cotización' }).click();
     await expect(page.getByText(`Cotización del diseño «${name}»`)).toBeVisible();
-    await page.getByRole('button', { name: 'Cotización para Hotel Casa Fuentes' }).click();
+    await pickQuoteCustomer(page, 'Hotel Casa Fuentes');
     await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
 
     // Il server ha ricalcolato lo stesso totale e salvato la distinta esatta.
@@ -103,7 +104,7 @@ test.describe('carta e nastro con colore (ADR-030)', () => {
 
     await page.getByRole('button', { name: /Listo/ }).click();
     await page.getByRole('link', { name: 'Crear cotización' }).click();
-    await page.getByRole('button', { name: 'Cotización para Hotel Casa Fuentes' }).click();
+    await pickQuoteCustomer(page, 'Hotel Casa Fuentes');
     await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
     await expect(
       page.getByText(
@@ -186,7 +187,7 @@ test.describe('foto vera del ramo (ADR-052)', () => {
     // Con la foto si va avanti ("Continuar", non "Saltar") e la cotización la mostra.
     await page.getByRole('button', { name: 'Continuar' }).click();
     await page.getByRole('link', { name: 'Crear cotización' }).click();
-    await page.getByRole('button', { name: 'Cotización para Hotel Casa Fuentes' }).click();
+    await pickQuoteCustomer(page, 'Hotel Casa Fuentes');
     await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
     await expect(page.getByText('Foto de un ramo hecho por la florería.')).toBeVisible();
     await expect(page.getByText('Número de flores verificado')).toHaveCount(0);
@@ -219,7 +220,7 @@ test.describe('eliminare un disegno (ADR-051)', () => {
     const quotedUrl = page.url().replace(/\?saved=1$/, '');
     await page.getByRole('button', { name: 'Saltar este paso' }).click();
     await page.getByRole('link', { name: 'Crear cotización' }).click();
-    await page.getByRole('button', { name: 'Cotización para Hotel Casa Fuentes' }).click();
+    await pickQuoteCustomer(page, 'Hotel Casa Fuentes');
     await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
     await page.goto(quotedUrl);
     await page.getByRole('button', { name: 'Eliminar' }).click();

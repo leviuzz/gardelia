@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { pickOrderCustomer } from './support/customers';
 
 /** Ruta del día e repartidor (ADR-058). */
 test.describe('ruta del día (propietaria)', () => {
@@ -14,7 +15,7 @@ test.describe('ruta del día (propietaria)', () => {
     const iso = date.toISOString().slice(0, 10);
 
     await page.goto('/app/las-camelias/orders/new');
-    await page.getByRole('button', { name: 'Pedido para Hotel Casa Fuentes' }).click();
+    await pickOrderCustomer(page, 'Hotel Casa Fuentes');
     await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
     const addForm = page
       .locator('form')
