@@ -1198,7 +1198,35 @@ fioreria vuota) · build ✅ · E2E Floral Care e Reportes 11/11 ✅ (nuovi cont
 contratto, cancellazione in tempo "no se cobra", card dei Reportes) · controllo a 320 px di
 Reportes, impostazioni, contratto e finestra della cancellazione: nessuno sbordo.
 
-Prossimo: il blocco 4 di `docs/FLORAL_CARE_PLAN.md` (blocchi, vacanze e cambi di massa).
+**Floral Care, blocco 4 (fatto il 24/11, ADR-083):** "passa al blocco 4" del founder.
+
+- **Agenda → Bloqueos:** "Bloquear días" (dal–al, tutto il giorno o un orario, un nome) con la
+  scelta per le visite già fissate: «Moverlas a otro día» (il giorno libero più vicino dello
+  stesso mese, da domani; senza posto "Por reprogramar") o «Cancelarlas sin cobrar» (come tolte
+  dalla fioreria: credito nel cargo dopo se erano già cobrate).
+- **Anteprima:** "Ver visitas afectadas" elenca i clienti toccati, contratto per contratto, con la
+  data nuova e chi non ha l'email. "Guardar bloqueo" vuole "Sí, avisé al cliente" e rifà lo stesso
+  piano: se nel frattempo è cambiato qualcosa chiede di rivedere.
+- **Email facoltativa:** una per contratto, nella lingua del mercato, dalla coda delle email di
+  Floral Care (il lavoro giornaliero riprova); "Enviar aviso" e "Reintentar" nella pagina del blocco.
+- **Nessuna prenotazione nei giorni bloccati** (generazione, spostamenti, visite extra); le visite
+  che nascono dopo seguono la scelta del blocco. "Quitar bloqueo" libera i giorni.
+- **Giorni di punta proposti** (Messico: 14 feb, 10 mayo, 1–2 nov, 12 dic) con "Bloquear";
+  "Alguien no puede ir" passa le visite di una persona a un'altra senza avviso.
+- **Agenda:** riquadro del giorno bloccato, orario segnato, giorni bloccati nel mese. Esportazione:
+  `floral_care_bloqueos.csv`. Migrazione `care_blocks`.
+
+Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · migrazioni = schema ✅ · test 1149/1149 ✅
+(nuovi: 13 di dominio su modulo, giorni toccati, posto nel mese, impronta e giorni di punta; 12
+d'integrazione su «Mover» con l'avviso e l'email, giorni chiusi a spostamenti e visite extra,
+"Quitar", «Cancelar» con il credito, visite generate dopo, impronta cambiata, date, permessi,
+isolamento A↔B con evento, blocco e spostamento insieme, "Enviar aviso", cambio di persona) · build
+✅ · E2E Floral Care 10/10 ✅ con il nuovo «días bloqueados» · controllo a 320 px di Bloqueos,
+anteprima, pagina del blocco e mese: nessuno sbordo (la barra delle schede dell'Agenda scorre).
+Il test di concorrenza nella suite completa ha trovato uno stallo possibile (le righe nuove puntano
+ai contratti): ora il blocco tiene prima i contratti toccati, poi le fasce, poi le visite.
+
+Prossimo: il blocco 5 di `docs/FLORAL_CARE_PLAN.md` (la pagina del cliente).
 
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
@@ -1214,8 +1242,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 3. Inventario: fatto (blocchi 1–4, ADR-060…063), con lo scarico (ADR-071) e gli apartados
    (ADR-072) dagli ordini.
 4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
-5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078) e 3 (ADR-082) fatti;
-   blocchi 4–7 in `docs/FLORAL_CARE_PLAN.md`.
+5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078), 3 (ADR-082) e 4
+   (ADR-083) fatti; blocchi 5–7 in `docs/FLORAL_CARE_PLAN.md`.
 6. Report: fatti (ADR-080); restano i P1 dello spec (funnel, retention, profitto per ramo).
    Catalogo completo (ADR-081): fatto; manca la revisione dell'elenco dei fiori da un fiorista.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.

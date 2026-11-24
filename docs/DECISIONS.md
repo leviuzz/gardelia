@@ -2602,6 +2602,77 @@ blocco 3", poi "vai col 3b") e diviso in due rilasci: 3a e 3b ("Cobré en la vis
 - **Non fatto:** pagamenti online dei contratti (fuori dal perimetro, §9 del piano); factura e IVA
   (O-06, da validare con il contador).
 
+### ADR-083 — Floral Care, blocco 4: giorni bloccati, vacanze e cambi di massa — ADOTTATO (24/11/2026)
+
+Blocco 4 del piano approvato (`docs/FLORAL_CARE_PLAN.md` §7), chiesto dal founder ("passa al
+blocco 4"): blocchi di giorni o fasce, giorni di punta proposti, elenco dei clienti toccati,
+spostamento o credito di tutte le visite insieme, email facoltativa, casella obbligatoria.
+
+- **Il blocco** (`CareBlock`, Agenda → Bloqueos, chi gestisce): dal–al (da oggi, entro un anno, al
+  massimo 92 giorni), tutto il giorno o un orario solo, un nome che vede solo la squadra, e cosa
+  fare delle visite già fissate:
+  - **«Moverlas a otro día»**: il giorno libero più vicino dello stesso mese, prima o dopo, da
+    domani, dentro il contratto e mai due visite dello stesso contratto lo stesso giorno
+    (`pickCareSlotInMonth`, `SlotBook.placeInMonth`). Prima un'altra fascia lo stesso giorno, se il
+    blocco è di un orario solo. Senza posto nel mese: "Por reprogramar". La regola "stesso mese"
+    è quella del piano (§3); la ricerca va oltre la settimana perché una settimana di vacanze
+    altrimenti lascerebbe tutto da riprogrammare;
+  - **«Cancelarlas sin cobrar»**: come se le togliesse la fioreria (motivo SHOP, il nome del blocco
+    come nota): non si pagano, e se erano già in un cargo il credito va nel cargo dopo (ADR-082).
+- **Mai più una prenotazione in un giorno bloccato:** il libro delle fasce (`openSlotBook`) legge i
+  blocchi attivi e dà 0 posti a una fascia bloccata; un blocco di tutto il giorno chiude anche le
+  ore libere delle visite extra. Vale per la generazione, lo spostamento a mano, le visite extra,
+  il cambio di una fascia (e poi il cliente dal portale). Lo spostamento e la visita extra a
+  un'ora libera adesso bloccano anche loro le fasce, così si mettono in fila dietro un blocco che
+  nasce nello stesso momento.
+- **Le visite che nasceranno dopo** in quei giorni seguono la stessa scelta: la generazione le crea
+  già spostate (giorno libero più vicino del mese) o già cancellate dalla fioreria. Non c'è avviso:
+  non erano ancora fissate.
+- **Anteprima e impronta:** "Ver visitas afectadas" calcola sul server il piano (contratto per
+  contratto, dove va ogni visita, chi non ha l'email). "Guardar bloqueo" rifà lo stesso piano con
+  le fasce bloccate e le visite bloccate in ordine di id; se l'impronta (`careBlockPlanFingerprint`)
+  è diversa, perché qualcuno ha preso un posto o spostato una visita, chiede di rivedere
+  (`care_block_changed`): ai clienti si dicono le date giuste. Con visite toccate serve "Sí, avisé
+  al cliente".
+- **Email facoltativa** (casella attiva di default, PROPOSTO): una per contratto toccato, nella
+  tabella d'uscita di Floral Care (`CareEmail` con `blockId`, tipo `BLOCK_NOTICE`, unica per
+  blocco e contratto). Nella lingua del mercato: le visite del contratto con la data nuova, "te
+  avisaremos la nueva fecha" o "cancelada, no se cobra", la sede, i contatti della fioreria.
+  Partono dopo il commit con un tetto di 8 secondi; quelle che restano o falliscono le riprova il
+  lavoro giornaliero (come i resoconti). Dalla pagina del blocco: "Enviar aviso" (se all'inizio non
+  era chiesto) e "Reintentar". Mai in una fioreria demo.
+- **Ordine dei blocchi:** come chi cambia le visite di un contratto (ADR-075): i contratti toccati
+  in ordine di id, poi le fasce, poi le visite in ordine di id. Le righe nuove (visite cambiate,
+  avvisi) puntano ai contratti con una chiave esterna, che chiede un blocco leggero sul contratto:
+  senza tenerlo già, uno spostamento che ha il contratto e aspetta le fasce si fermava con il blocco
+  (trovato dal test di concorrenza nella suite completa). Una visita nata nel frattempo in un altro
+  contratto fa rivedere il piano. Provato insieme a uno spostamento (nessuno stallo).
+- **"Quitar bloqueo":** il blocco non vale più (resta nello storico, `removedAt`); le visite già
+  spostate o cancellate restano come sono.
+- **Giorni di punta (PROPOSTO dal piano, confermato come proposta):** 14 febbraio, 10 maggio, 1–2
+  novembre e 12 dicembre per il Messico (`CARE_PEAK_DAYS`; l'Italia ha date diverse e si scrive
+  quando il mercato si apre). Si propongono nella pagina dei blocchi con "Bloquear", che apre il
+  modulo già compilato; mai bloccati da soli. Spariscono quando un blocco di tutto il giorno li
+  copre.
+- **"Alguien no puede ir"** (persona malata): le visite programmate di una persona in quei giorni
+  passano a un'altra o a nessuno. Cambia solo chi va, non l'ora: niente avviso (decisione del
+  founder del 24/11, ADR-075).
+- **Agenda:** il giorno bloccato ha il riquadro "Día bloqueado: …" (o l'orario), l'orario bloccato
+  il segno "Bloqueado"; il mese segna i giorni bloccati.
+- **Solo Floral Care (PROPOSTO):** i pedidos e la tienda en línea restano con i giorni di chiusura
+  della settimana (ADR-055); date chiuse anche per le consegne sono un passo a parte, se il founder
+  lo vuole.
+- **Dati:** migrazione `care_blocks` con soli enum nuovi (`CareBlockAction`, `CareBlockOutcome`)
+  più il valore `BLOCK_NOTICE` di `CareEmailKind` (non usato nella stessa migrazione); tabelle
+  `CareBlock` e `CareBlockVisit` (le visite cambiate quando il blocco è nato: l'elenco dei clienti
+  e il testo dell'email) con RLS, FK composite (la visita è dello stesso contratto) e CHECK; nel
+  registro date, scelta e conteggi, mai il nome del blocco né i clienti. Un blocco di un'altra
+  fioreria dà 404 e l'evento di sicurezza.
+- **Esportazione dei dati (ADR-079):** lo ZIP aggiunge `floral_care_bloqueos.csv` (date, orario,
+  nome, scelta, visite cambiate, creato e tolto).
+- **Non fatto:** il cliente che vede i giorni bloccati nel suo portale (blocco 5); date chiuse per
+  i pedidos; scegliere visita per visita dentro un blocco (si cambia a mano dopo, dalla visita).
+
 ## 3. Proposte da approvare
 
 | ID   | Proposta                                                                                                                                                                               | Motivazione                                                                                                                                  | Quando serve                 |
