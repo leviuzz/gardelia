@@ -4,9 +4,13 @@
  */
 import type { Prisma, TransactionClient } from '@floral/db';
 import {
+  CARE_CHARGE_LIMITS,
   CARE_LIVE_RECOVERY_STATUSES,
   canShareCareVisit,
+  careCancellationCharged,
+  careFreeCancelUntil,
   careVisitRecoverable,
+  careVisitStartAt,
   compareDates,
   formatSubscriptionNumber,
   formatTimeOfDay,
@@ -36,6 +40,7 @@ export const agendaSelect = {
   extraNote: true,
   outcomeNote: true,
   cancelReason: true,
+  cancelCharged: true,
   notDoneCause: true,
   assignedMembershipId: true,
   assignedTo: { select: { user: { select: { name: true } } } },
@@ -52,6 +57,7 @@ export const agendaSelect = {
       number: true,
       status: true,
       missedVisitPolicy: true,
+      lateCancelHours: true,
       customer: { select: { displayName: true } },
       customerAddress: { select: { addressLine1: true, neighborhood: true } },
     },
@@ -123,7 +129,9 @@ export function toAgendaVisit(
     plantCount: plants.get(row.subscriptionId) ?? 0,
     outcomeNote: row.outcomeNote,
     cancelReason: row.cancelReason,
+    cancelCharged: row.cancelCharged,
     notDoneCause: row.notDoneCause,
+    lateCancel: lateCancelOf(ctx, row, date),
     // Come l'elenco "Por recuperar": si recupera solo in un contratto attivo (una visita di
     // recupero già fissata resta visibile anche dopo).
     recovery:
@@ -152,6 +160,27 @@ export function toAgendaVisit(
   };
 }
 
+/**
+ * Cancelación del cliente (ADR-082) per chi può cancellare: le ore del contratto, fino a quando
+ * il cliente cancella senza pagare e se adesso si pagherebbe. Solo per le visite del calendario
+ * ancora da fare (una extra si cobra solo se fatta).
+ */
+function lateCancelOf(
+  ctx: TenantContext,
+  row: AgendaRow,
+  date: CalendarDate | null,
+): CareAgendaVisitDto['lateCancel'] {
+  if (row.isExtra || (row.status !== 'SCHEDULED' && row.status !== 'TO_RESCHEDULE')) return null;
+  const hours = row.subscription.lateCancelHours ?? CARE_CHARGE_LIMITS.lateCancelHoursDefault;
+  const visitStart = careVisitStartAt(date, row.startMinutes, ctx.timezone);
+  const freeUntil = careFreeCancelUntil(visitStart, hours);
+  return {
+    hours,
+    freeUntil: freeUntil ? freeUntil.toISOString() : null,
+    chargedNow: careCancellationCharged({ visitStart, lateCancelHours: hours, now: new Date() }),
+  };
+}
+
 /** Blocca la visita fino alla fine della transazione e la rilegge con il suo contratto. */
 export async function lockCareVisit(tx: TransactionClient, ctx: TenantContext, visitId: string) {
   const rows = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "CareVisit"
@@ -161,7 +190,14 @@ export async function lockCareVisit(tx: TransactionClient, ctx: TenantContext, v
     where: { tenantId: ctx.tenantId, id: visitId },
     include: {
       subscription: {
-        select: { number: true, startDate: true, endDate: true, status: true, customerId: true },
+        select: {
+          number: true,
+          startDate: true,
+          endDate: true,
+          status: true,
+          customerId: true,
+          lateCancelHours: true,
+        },
       },
     },
   });

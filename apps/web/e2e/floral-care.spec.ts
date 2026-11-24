@@ -499,6 +499,31 @@ test.describe('Floral Care: cargos y pagos', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Cobros' })).toBeVisible();
     await expect(page.getByRole('link').filter({ hasText: customerName })).toHaveCount(2);
 
+    // La regola del contratto e il cliente che cancella in tempo (ADR-082): la visita della
+    // settimana prossima manca di più di 12 ore, quindi non si paga.
+    await page.goto(contracts[0]!);
+    await expect(
+      page.getByText('Si el cliente cancela con menos de 12 horas de aviso, la visita se cobra.'),
+    ).toBeVisible();
+    const number = (await page.getByRole('heading', { level: 1 }).textContent())?.match(
+      /SUS-\d+/,
+    )?.[0];
+    expect(number).toBeTruthy();
+    await page.goto(`${SHOP}/agenda?date=${dayInShop(7)}`);
+    await page
+      .getByRole('article')
+      .filter({ hasText: number ?? 'SUS' })
+      .getByRole('link', { name: 'Detalles' })
+      .click();
+    await page.getByRole('button', { name: 'Cancelar visita' }).click();
+    const cancel = page.getByRole('dialog');
+    await cancel.getByRole('radio', { name: /La pidió el cliente/ }).check();
+    await expect(cancel.getByText(/no se cobra si avisa antes del/)).toBeVisible();
+    await expect(cancel.getByRole('checkbox', { name: /No cobrar esta vez/ })).toHaveCount(0);
+    await cancel.getByRole('checkbox', { name: 'Sí, avisé al cliente' }).check();
+    await cancel.getByRole('button', { name: 'Cancelar visita' }).click();
+    await expect(page.getByText('La pidió el cliente · no se cobra')).toBeVisible();
+
     await page.goto(contracts[0]!);
     await page.getByRole('button', { name: 'Terminar contrato' }).click();
     const end = page.getByRole('dialog');

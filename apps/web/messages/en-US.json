@@ -3214,7 +3214,9 @@
       "termsHint": "You write them: Gardelia doesn’t add conditions. Your customer will see them.",
       "saved": "Rates saved",
       "paymentDueDays": "Days to pay a charge",
-      "paymentDueDaysHint": "From the 1st of the month (or from when the charge is created). Empty = 10."
+      "paymentDueDaysHint": "From the 1st of the month (or from when the charge is created). Empty = 10.",
+      "lateCancelHours": "If the customer cancels with less than (hours)",
+      "lateCancelHoursHint": "…notice, the visit is charged. Earlier, it isn't. 0 = never charged. Empty = 12. Applies to contracts you confirm from now on."
     },
     "simulator": {
       "title": "Simulator",
@@ -3675,7 +3677,14 @@
       "notDoneCauseHints": {
         "CUSTOMER": "The visit is charged, as the contract rule says.",
         "SHOP": "The visit is taken off the next charge."
-      }
+      },
+      "lateCancelCharged": "If your customer is cancelling now, the visit is charged: it's less than {hours, plural, one {# hour} other {# hours}} away (the contract rule).",
+      "lateCancelFreeUntil": "If your customer is cancelling, it isn't charged when they tell you before {time}; after that, it is.",
+      "lateCancelFree": "If your customer is cancelling, it isn't charged.",
+      "noCharge": "Don't charge this time",
+      "noChargeHint": "For example, if they told you in time and you're recording it late.",
+      "cancelCharged": "charged",
+      "cancelNotCharged": "not charged"
     },
     "visitWork": {
       "start": "Start visit",
@@ -3996,7 +4005,8 @@
         "SHOP": "removed by the shop",
         "SCHEDULE_CHANGE": "schedule change",
         "CONTRACT_END": "contract ended",
-        "NOT_DONE": "we couldn’t go"
+        "NOT_DONE": "we couldn’t go",
+        "CUSTOMER": "the customer cancelled in time"
       },
       "total": "Total",
       "paid": "Paid",
@@ -4068,7 +4078,9 @@
       "deadPlant": {
         "INCLUDED": "If a plant dies, the replacement is included.",
         "QUOTE": "If a plant dies, the replacement is quoted separately."
-      }
+      },
+      "lateCancel": "If the customer cancels with less than {hours, plural, one {# hour} other {# hours}} notice, the visit is charged.",
+      "lateCancelNever": "If the customer cancels a visit, it isn't charged."
     },
     "statement": {
       "title": "Account statement",
@@ -4333,12 +4345,17 @@
       "orders": "{count, plural, =0 {No orders to deliver} one {# order to deliver} other {# orders to deliver}}",
       "visits": "{count, plural, =0 {No Floral Care visits} one {# Floral Care visit} other {# Floral Care visits}}"
     },
-    "recurring": {
-      "none": "Floral Care: no active contracts.",
-      "exact": "Floral Care: {amount} a month ({count, plural, one {# active contract} other {# active contracts}}).",
-      "range": "Floral Care: between {min} and {max} a month ({count, plural, one {# active contract} other {# active contracts}})."
-    },
-    "footnote": "Amounts are those of your orders; the IVA breakdown is not available yet."
+    "footnote": "Amounts are those of your orders; the IVA breakdown is not available yet.",
+    "care": {
+      "title": "Floral Care",
+      "subtitle": "The real charges and payments of your contracts. {count, plural, =0 {You have no active contracts today.} one {You have # active contract today.} other {You have # active contracts today.}}",
+      "none": "No charges or payments in {period}.",
+      "charged": "{count, plural, one {# charge for the period} other {# charges for the period}}",
+      "collected": "Collected in the period",
+      "open": "Still to collect from those charges",
+      "overdue": "{count, plural, one {# overdue charge} other {# overdue charges}}: {amount}",
+      "toCharges": "See Billing"
+    }
   },
   "duration": {
     "hours": "{hours} h",

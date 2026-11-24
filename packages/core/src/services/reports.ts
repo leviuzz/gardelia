@@ -1,15 +1,15 @@
 /**
  * Reportes [BI-01] (ADR-080): vendite del periodo, confronto con il periodo prima, prodotti più
- * venduti, margine dove i costi ci sono, mermas, ricavi ricorrenti stimati di Floral Care e il
- * lavoro dei prossimi 7 giorni. Solo chi gestisce (`reports:read`). Regole pure in
- * `@floral/domain` (reports); qui le letture, tutte nel contesto della fioreria.
+ * venduti, margine dove i costi ci sono, mermas, i soldi veri di Floral Care (cargos e pagamenti,
+ * decisione del founder del 24/11: non più la stima, ADR-082) e il lavoro dei prossimi 7 giorni.
+ * Solo chi gestisce (`reports:read`). Regole pure in `@floral/domain` (reports); qui le letture,
+ * tutte nel contesto della fioreria.
  */
 import { getDb, withTenantContext } from '@floral/db';
 import {
   addDays,
   bucketOf,
   changePercent,
-  estimateCareMonth,
   marginSummary,
   reportBuckets,
   reportPeriod,
@@ -23,7 +23,7 @@ import {
   type ReportPeriod,
   type SalesSummary,
 } from '@floral/domain';
-import { requirePermission } from '../authorization';
+import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { getEntitlements } from './billing';
 import { dateToParts, partsToDate } from './quote-internals';
@@ -62,11 +62,23 @@ export interface SalesReportDto {
       readonly costMinor: number | null;
     }[];
   } | null;
-  /** null se il piano non include Floral Care. */
-  readonly recurring: {
+  /**
+   * Floral Care con i cargos e i pagamenti veri (ADR-082). null se il piano non include Floral
+   * Care o se chi guarda non gestisce i soldi (`subscriptions:payments`).
+   */
+  readonly care: {
+    /** Contratti attivi oggi. */
     readonly contracts: number;
-    readonly minMinor: number;
-    readonly maxMinor: number;
+    /** I cargos dei mesi del periodo: quanti e quanto (un cargo a favore del cliente sottrae). */
+    readonly charges: number;
+    readonly chargedMinor: number;
+    /** Pagamenti registrati con data nel periodo; anulaciones e devoluciones sottraggono. */
+    readonly collectedMinor: number;
+    /** Quanto manca oggi da pagare dei cargos del periodo. */
+    readonly openMinor: number;
+    /** Vencido oggi, di tutti i cargos (anche dei mesi prima). */
+    readonly overdueMinor: number;
+    readonly overdueCount: number;
   } | null;
   readonly upcoming: {
     readonly from: string;
@@ -193,22 +205,48 @@ export async function getSalesReport(
           ORDER BY "cost" DESC, "quantity" DESC`
       : null;
 
-    const care = entitlements.floralCare
-      ? await Promise.all([
-          tx.customerSubscription.findMany({
-            where: { tenantId, kind: 'CARE', status: 'ACTIVE' },
-            select: { perVisitMinor: true, frequency: true, _count: { select: { slots: true } } },
-          }),
-          tx.careVisit.count({
-            where: {
-              tenantId,
-              status: 'SCHEDULED',
-              scheduledDate: range(today, upcomingTo),
-            },
-          }),
-        ])
+    const visits = entitlements.floralCare
+      ? await tx.careVisit.count({
+          where: { tenantId, status: 'SCHEDULED', scheduledDate: range(today, upcomingTo) },
+        })
       : null;
-    return { orders, previous, toDeliver, payments, upcomingOrders, lines, items, waste, care };
+    // I soldi di Floral Care solo per chi li gestisce (ADR-082), come in Cobros.
+    const care =
+      entitlements.floralCare && hasPermission(ctx, 'subscriptions:payments')
+        ? await Promise.all([
+            tx.customerSubscription.count({ where: { tenantId, kind: 'CARE', status: 'ACTIVE' } }),
+            tx.careCharge.aggregate({
+              where: { tenantId, period: range(period.from, period.to) },
+              _count: { _all: true },
+              _sum: { totalMinor: true },
+            }),
+            tx.careCharge.aggregate({
+              where: { tenantId, period: range(period.from, period.to), balanceMinor: { gt: 0 } },
+              _sum: { balanceMinor: true },
+            }),
+            tx.careCharge.aggregate({
+              where: { tenantId, balanceMinor: { gt: 0 }, dueDate: { lt: partsToDate(today) } },
+              _count: { _all: true },
+              _sum: { balanceMinor: true },
+            }),
+            tx.carePayment.aggregate({
+              where: { tenantId, status: 'RECORDED', paidOn: range(period.from, period.to) },
+              _sum: { amountMinor: true },
+            }),
+          ])
+        : null;
+    return {
+      orders,
+      previous,
+      toDeliver,
+      payments,
+      upcomingOrders,
+      lines,
+      items,
+      waste,
+      visits,
+      care,
+    };
   });
 
   const salesOrders = data.orders.map((order) => ({
@@ -275,29 +313,22 @@ export async function getSalesReport(
           })),
         }
       : null,
-    recurring: data.care
-      ? data.care[0].reduce(
-          (acc, contract) => {
-            if (!contract.frequency) return acc;
-            const month = estimateCareMonth(
-              contract.perVisitMinor,
-              contract.frequency,
-              Math.max(1, contract._count.slots),
-            );
-            return {
-              contracts: acc.contracts + 1,
-              minMinor: acc.minMinor + month.minMinor,
-              maxMinor: acc.maxMinor + month.maxMinor,
-            };
-          },
-          { contracts: 0, minMinor: 0, maxMinor: 0 },
-        )
+    care: data.care
+      ? {
+          contracts: data.care[0],
+          charges: data.care[1]._count._all,
+          chargedMinor: data.care[1]._sum.totalMinor ?? 0,
+          collectedMinor: data.care[4]._sum.amountMinor ?? 0,
+          openMinor: data.care[2]._sum.balanceMinor ?? 0,
+          overdueMinor: data.care[3]._sum.balanceMinor ?? 0,
+          overdueCount: data.care[3]._count._all,
+        }
       : null,
     upcoming: {
       from: toIsoDate(today),
       to: toIsoDate(addDays(upcomingTo, -1)),
       orders: data.upcomingOrders,
-      visits: data.care ? data.care[1] : null,
+      visits: data.visits,
     },
   };
 }

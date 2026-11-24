@@ -64,6 +64,8 @@ export interface CareOfferDefaults {
   readonly deadPlantPolicy: string;
   /** "Días para pagar" un cargo (ADR-082). */
   readonly paymentDueDays: string;
+  /** Cancelación del cliente: ore di preavviso sotto le quali si paga (ADR-082). */
+  readonly lateCancelHours: string;
   readonly termsText: string;
 }
 
@@ -242,6 +244,24 @@ export function CareOfferForm({
             min={CARE_CHARGE_LIMITS.dueDaysMin}
             max={CARE_CHARGE_LIMITS.dueDaysMax}
             defaultValue={defaults.paymentDueDays}
+            className="sm:max-w-40"
+          />
+        </Field>
+
+        <Field
+          id="care-late-cancel"
+          label={t('lateCancelHours')}
+          hint={t('lateCancelHoursHint')}
+          error={err('lateCancelHours')}
+        >
+          <Input
+            {...controlProps('care-late-cancel', err('lateCancelHours'), true)}
+            name="lateCancelHours"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={CARE_CHARGE_LIMITS.lateCancelHoursMax}
+            defaultValue={defaults.lateCancelHours}
             className="sm:max-w-40"
           />
         </Field>

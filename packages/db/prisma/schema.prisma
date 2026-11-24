@@ -2018,6 +2018,8 @@ enum CareCreditReason {
   SCHEDULE_CHANGE
   CONTRACT_END
   NOT_DONE
+  /// Il cliente l'ha cancellata in tempo (ADR-082).
+  CUSTOMER
 }
 
 /// Movimento di soldi del cliente: pagamento, storno ("Anular") o devolución.
@@ -2051,6 +2053,8 @@ model CareSettings {
   deadPlantPolicy    CareDeadPlantPolicy   @default(QUOTE)
   /// "Días para pagar" un cargo (ADR-082), da 1 a 90.
   paymentDueDays     Int                   @default(10)
+  /// Cancelación del cliente (ADR-082): si paga con meno di queste ore di preavviso; 0 = mai.
+  lateCancelHours    Int                   @default(12)
   /// Termini della fioreria, scritti da lei (Gardelia non inventa condizioni).
   termsText          String?
   createdAt          DateTime              @default(now())
@@ -2164,6 +2168,8 @@ model CustomerSubscription {
   /// Regole della fioreria copiate alla conferma (ADR-082): valgono per tutto il contratto.
   missedVisitPolicy    CareMissedVisitPolicy?
   deadPlantPolicy      CareDeadPlantPolicy?
+  /// Ore di preavviso per cancellare senza pagare, copiate alla conferma (ADR-082).
+  lateCancelHours      Int?
   acquisitionSource    AcquisitionSource          @default(MERCHANT_DIRECT)
   /// Chi ha confermato il contratto: da lui viene il permesso dei lavori automatici.
   confirmedById        String?                    @db.Uuid
@@ -2288,6 +2294,8 @@ model CareVisit {
   finishedAt           DateTime?
   /// Perché si è cancellata: serve ai cargos (una visita tolta dalla fioreria è un credito).
   cancelReason         CareVisitCancelReason?
+  /// Cancellata dal cliente: true se si paga (meno preavviso del limite del contratto, ADR-082).
+  cancelCharged        Boolean?
   /// "No se pudo": il cliente non ha aperto o la fioreria non è potuta andare (ADR-082).
   notDoneCause         CareNotDoneCause?
   /// Hecha o no realizada: la nota che il cliente legge nel resoconto. Cancellata: il perché.

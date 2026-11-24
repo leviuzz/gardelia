@@ -23,6 +23,7 @@
  * (O-06).
  */
 import { z } from 'zod';
+import { zonedDateTime } from './ai';
 import {
   addDays,
   addMonths,
@@ -71,6 +72,13 @@ export const CARE_CHARGE_LIMITS = {
   rejectReason: 300,
   /** Ajustes in attesa per contratto: oltre è un errore, non un uso normale. */
   pendingAdjustments: 20,
+  /**
+   * Cancelación del cliente (decisione del founder del 24/11): si paga se arriva con meno di
+   * queste ore di preavviso. La fioreria le sceglie, da 0 (mai) a 168 (una settimana); 12 se non
+   * le sceglie.
+   */
+  lateCancelHoursMax: 168,
+  lateCancelHoursDefault: 12,
 } as const;
 
 /** Numero del cargo: CAR-0001 (per fioreria). */
@@ -111,6 +119,8 @@ export const CARE_CREDIT_REASONS = [
   'SCHEDULE_CHANGE',
   'CONTRACT_END',
   'NOT_DONE',
+  /** Il cliente l'ha cancellata in tempo (o la fioreria non la cobra, "No cobrar esta vez"). */
+  'CUSTOMER',
 ] as const;
 export type CareCreditReason = (typeof CARE_CREDIT_REASONS)[number];
 
@@ -226,6 +236,8 @@ export interface CareBillableVisit {
   readonly isExtra: boolean;
   readonly status: CareVisitStatus;
   readonly cancelReason: CareVisitCancelReason | null;
+  /** Solo per una cancellata dal cliente: true se si paga (meno preavviso del limite). */
+  readonly cancelCharged: boolean | null;
   /** Solo per "No se pudo"; null (visite del blocco 2) vale "el cliente no abrió". */
   readonly notDoneCause: CareNotDoneCause | null;
   readonly scheduledDate: CalendarDate | null;
@@ -252,12 +264,15 @@ export function isCareVisitFinal(status: CareVisitStatus): boolean {
 /**
  * Una visita del calendario è dovuta? Sì se è programmata (anche se nessuno l'ha chiusa), in
  * corso, fatta, "No se pudo" perché il cliente non ha aperto (decisione del founder del 24/11: si
- * paga anche se poi si recupera) o cancellata dal cliente (PROPOSTO, come la visita mancata). No se
- * è "Por reprogramar", se l'ha tolta la fioreria o se la fioreria non è potuta andare.
+ * paga anche se poi si recupera) o cancellata dal cliente con meno preavviso del limite della
+ * fioreria (decisione del founder del 24/11, `careCancellationCharged`). No se è "Por
+ * reprogramar", se l'ha tolta la fioreria, se la fioreria non è potuta andare o se il cliente l'ha
+ * cancellata in tempo.
  */
 export function careVisitOwed(visit: {
   readonly status: CareVisitStatus;
   readonly cancelReason: CareVisitCancelReason | null;
+  readonly cancelCharged: boolean | null;
   readonly notDoneCause: CareNotDoneCause | null;
 }): boolean {
   switch (visit.status) {
@@ -268,10 +283,44 @@ export function careVisitOwed(visit: {
     case 'NOT_DONE':
       return visit.notDoneCause !== 'SHOP';
     case 'CANCELLED':
-      return visit.cancelReason === 'CUSTOMER';
+      return visit.cancelReason === 'CUSTOMER' && visit.cancelCharged === true;
     case 'TO_RESCHEDULE':
       return false;
   }
+}
+
+/**
+ * Si paga una visita che il cliente cancella adesso? Sì se all'inizio della visita mancano meno
+ * delle ore di preavviso del contratto (anche quando l'ora è già passata). Mai con 0 ore, né per
+ * una visita senza giorno e ora ("Por reprogramar"). La fioreria può comunque non cobrarla
+ * ("No cobrar esta vez", PROPOSTO): per un avviso arrivato in tempo e registrato tardi.
+ */
+export function careCancellationCharged(input: {
+  readonly visitStart: Date | null;
+  readonly lateCancelHours: number;
+  readonly now: Date;
+}): boolean {
+  if (input.lateCancelHours <= 0 || !input.visitStart) return false;
+  return input.visitStart.getTime() - input.now.getTime() < input.lateCancelHours * 3_600_000;
+}
+
+/** L'inizio di una visita, giorno e ora nel fuso della fioreria; null senza giorno o senza ora. */
+export function careVisitStartAt(
+  date: CalendarDate | null,
+  startMinutes: number | null,
+  timeZone: string,
+): Date | null {
+  if (!date || startMinutes === null) return null;
+  return zonedDateTime(date, startMinutes, timeZone);
+}
+
+/**
+ * Fino a quando il cliente può cancellare senza pagare: l'inizio della visita meno le ore del
+ * contratto. Null se non si paga mai (0 ore) o se la visita non ha giorno e ora.
+ */
+export function careFreeCancelUntil(visitStart: Date | null, lateCancelHours: number): Date | null {
+  if (lateCancelHours <= 0 || !visitStart) return null;
+  return new Date(visitStart.getTime() - lateCancelHours * 3_600_000);
 }
 
 /** Quanto si cobra una visita extra: la tariffa per visita, solo se fatta; il resto non si cobra. */
@@ -293,6 +342,7 @@ export function careCreditReason(visit: {
   if (visit.status === 'NOT_DONE') return 'NOT_DONE';
   if (visit.cancelReason === 'SCHEDULE_CHANGE') return 'SCHEDULE_CHANGE';
   if (visit.cancelReason === 'CONTRACT_END') return 'CONTRACT_END';
+  if (visit.cancelReason === 'CUSTOMER') return 'CUSTOMER';
   return 'SHOP';
 }
 
@@ -775,6 +825,12 @@ export const careDueDaysField = optionalInteger({
   min: CARE_CHARGE_LIMITS.dueDaysMin,
   max: CARE_CHARGE_LIMITS.dueDaysMax,
 }).transform((value) => value ?? CARE_CHARGE_LIMITS.dueDaysDefault);
+
+/** Ore di preavviso per cancellare senza pagare: vuoto = 12, 0 = non si paga mai. */
+export const careLateCancelHoursField = optionalInteger({
+  min: 0,
+  max: CARE_CHARGE_LIMITS.lateCancelHoursMax,
+}).transform((value) => value ?? CARE_CHARGE_LIMITS.lateCancelHoursDefault);
 
 /** "No se pudo": perché. Vuoto vale "El cliente no abrió", la scelta proposta. */
 export const careNotDoneCauseField = z.preprocess(

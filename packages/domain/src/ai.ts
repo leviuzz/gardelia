@@ -77,6 +77,20 @@ export function zonedStartOfDay(year: number, month: number, day: number, timeZo
   return new Date(guess - zoneOffsetMs(first, timeZone));
 }
 
+/**
+ * Istante UTC di un'ora locale (minuti dalla mezzanotte) di una data nel fuso indicato: per
+ * esempio l'inizio di una visita di Floral Care (ADR-082).
+ */
+export function zonedDateTime(
+  date: { readonly year: number; readonly month: number; readonly day: number },
+  minutes: number,
+  timeZone: string,
+): Date {
+  const guess = Date.UTC(date.year, date.month - 1, date.day, 0, minutes);
+  const first = guess - zoneOffsetMs(guess, timeZone);
+  return new Date(guess - zoneOffsetMs(first, timeZone));
+}
+
 export interface QuotaPeriod {
   /** Inizio (incluso) e fine (esclusa) del mese corrente della fioreria. */
   readonly start: Date;

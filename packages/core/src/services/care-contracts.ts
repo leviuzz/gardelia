@@ -11,6 +11,7 @@
 import { getDb, withTenantContext, type Prisma, type TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
+  CARE_CHARGE_LIMITS,
   CARE_LIMITS,
   CARE_PAGE_SIZE,
   addDays,
@@ -202,6 +203,8 @@ export interface CareContractDetailDto {
   readonly rules: {
     readonly missedVisitPolicy: MissedVisitPolicy;
     readonly deadPlantPolicy: DeadPlantPolicy;
+    /** Cancelación del cliente: si paga con meno di queste ore di preavviso; 0 = mai. */
+    readonly lateCancelHours: number;
   } | null;
   /** Chi guarda vede e registra i soldi (cargos, pagamenti). */
   readonly canPayments: boolean;
@@ -1006,6 +1009,7 @@ export async function confirmCareContract(
         // cambiarle senza toccare quello che ha firmato con il cliente.
         missedVisitPolicy: settings.missedVisitPolicy,
         deadPlantPolicy: settings.deadPlantPolicy,
+        lateCancelHours: settings.lateCancelHours,
       },
     });
     const scope = memberScope(ctx);
@@ -1558,6 +1562,8 @@ export async function getCareContract(
         ? {
             missedVisitPolicy: subscription.missedVisitPolicy,
             deadPlantPolicy: subscription.deadPlantPolicy,
+            lateCancelHours:
+              subscription.lateCancelHours ?? CARE_CHARGE_LIMITS.lateCancelHoursDefault,
           }
         : null,
     canPayments: hasPermission(ctx, 'subscriptions:payments') && confirmed,

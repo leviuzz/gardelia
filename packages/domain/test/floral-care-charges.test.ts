@@ -14,7 +14,11 @@ import {
   carePaymentSchema,
   careSettingsSchema,
   careVisitCollectionSchema,
+  careCancellationCharged,
+  careFreeCancelUntil,
+  careLateCancelHoursField,
   careVisitOwed,
+  careVisitStartAt,
   careVisitRecoverable,
   formatCareChargeNumber,
   isCareChargeOpen,
@@ -41,6 +45,7 @@ function visit(
     isExtra: false,
     status: 'SCHEDULED',
     cancelReason: null,
+    cancelCharged: null,
     notDoneCause: null,
     scheduledDate: d(date),
     originalDate: d(date),
@@ -72,21 +77,32 @@ function errors(result: { success: boolean; error?: unknown }) {
 }
 
 describe('cargos: visita dovuta', () => {
-  it('si pagano le programmate, le fatte, il cliente che non apre e la cancellazione del cliente', () => {
-    const owed = (input: Partial<Parameters<typeof careVisitOwed>[0]>) =>
-      careVisitOwed({ status: 'SCHEDULED', cancelReason: null, notDoneCause: null, ...input });
+  const owed = (input: Partial<Parameters<typeof careVisitOwed>[0]>) =>
+    careVisitOwed({
+      status: 'SCHEDULED',
+      cancelReason: null,
+      cancelCharged: null,
+      notDoneCause: null,
+      ...input,
+    });
+
+  it('si pagano le programmate, le fatte, il cliente che non apre e la cancellazione tardiva', () => {
     expect(owed({ status: 'SCHEDULED' })).toBe(true);
     expect(owed({ status: 'IN_PROGRESS' })).toBe(true);
     expect(owed({ status: 'DONE' })).toBe(true);
     expect(owed({ status: 'NOT_DONE', notDoneCause: 'CUSTOMER' })).toBe(true);
     // Le visite "No se pudo" del blocco 2 non hanno la causa: valgono come il cliente che non apre.
     expect(owed({ status: 'NOT_DONE', notDoneCause: null })).toBe(true);
-    expect(owed({ status: 'CANCELLED', cancelReason: 'CUSTOMER' })).toBe(true);
+    expect(owed({ status: 'CANCELLED', cancelReason: 'CUSTOMER', cancelCharged: true })).toBe(true);
+  });
+
+  it('il cliente che cancella in tempo non paga', () => {
+    expect(owed({ status: 'CANCELLED', cancelReason: 'CUSTOMER', cancelCharged: false })).toBe(
+      false,
+    );
   });
 
   it('non si pagano quelle tolte dalla fioreria né "Por reprogramar"', () => {
-    const owed = (input: Partial<Parameters<typeof careVisitOwed>[0]>) =>
-      careVisitOwed({ status: 'SCHEDULED', cancelReason: null, notDoneCause: null, ...input });
     expect(owed({ status: 'NOT_DONE', notDoneCause: 'SHOP' })).toBe(false);
     expect(owed({ status: 'TO_RESCHEDULE' })).toBe(false);
     for (const reason of ['SHOP', 'SCHEDULE_CHANGE', 'CONTRACT_END'] as const) {
@@ -260,7 +276,7 @@ describe('cargos: le righe del mese', () => {
     expect(january.billing).toEqual([{ visitId: pending.id, billedMinor: 49_000, stable: true }]);
   });
 
-  it('crediti per la fioreria, niente per il cliente che non apre o cancella', () => {
+  it('crediti per la fioreria, niente per il cliente che non apre o cancella tardi', () => {
     const shopCancel = visit({
       date: '2026-11-10',
       status: 'CANCELLED',
@@ -283,6 +299,7 @@ describe('cargos: le righe del mese', () => {
       date: '2026-11-13',
       status: 'CANCELLED',
       cancelReason: 'CUSTOMER',
+      cancelCharged: true,
       billedMinor: 49_000,
     });
     const result = plan({
@@ -306,6 +323,23 @@ describe('cargos: le righe del mese', () => {
     // Le quattro visite chiuse sono sistemate per sempre.
     const stable = result.billing.filter((row) => row.stable).map((row) => row.visitId);
     expect(stable).toEqual([shopCancel.id, shopNotDone.id, customerNotDone.id, customerCancel.id]);
+  });
+
+  it('credito per il cliente che cancella in tempo, con il suo motivo', () => {
+    const inTime = visit({
+      date: '2026-11-13',
+      status: 'CANCELLED',
+      cancelReason: 'CUSTOMER',
+      cancelCharged: false,
+      billedMinor: 49_000,
+    });
+    const result = plan({ visits: [inTime, visit({ date: '2026-12-02' })] });
+    expect(
+      result.lines.map((row) => [row.kind, row.visitId, row.creditReason, row.amountMinor]),
+    ).toEqual([
+      ['VISITS', null, null, 49_000],
+      ['VISIT_CREDIT', inTime.id, 'CUSTOMER', -49_000],
+    ]);
   });
 
   it('una visita nata dopo il cargo del suo mese si cobra il mese dopo, al prezzo di quel mese', () => {
@@ -649,5 +683,53 @@ describe('cargos: blocco 3b', () => {
     expect(
       errors(adjustment.safeParse({ direction: 'DEBIT', amount: '1', reason: 'x'.repeat(121) })),
     ).toMatchObject({ reason: 'too_long' });
+  });
+});
+
+describe('cargos: cancelación del cliente', () => {
+  const start = new Date('2026-12-08T15:00:00.000Z');
+  const hoursBefore = (hours: number) => new Date(start.getTime() - hours * 3_600_000);
+
+  it('si paga con meno ore di preavviso del limite, anche a visita passata', () => {
+    const charged = (now: Date, lateCancelHours = 12) =>
+      careCancellationCharged({ visitStart: start, lateCancelHours, now });
+    expect(charged(hoursBefore(13))).toBe(false);
+    expect(charged(hoursBefore(12))).toBe(false);
+    expect(charged(hoursBefore(11.5))).toBe(true);
+    expect(charged(hoursBefore(-2))).toBe(true);
+    expect(charged(hoursBefore(30), 48)).toBe(true);
+  });
+
+  it('con 0 ore o senza giorno e ora non si paga mai', () => {
+    expect(
+      careCancellationCharged({ visitStart: start, lateCancelHours: 0, now: hoursBefore(1) }),
+    ).toBe(false);
+    expect(
+      careCancellationCharged({ visitStart: null, lateCancelHours: 12, now: hoursBefore(1) }),
+    ).toBe(false);
+    expect(careFreeCancelUntil(start, 0)).toBeNull();
+    expect(careFreeCancelUntil(null, 12)).toBeNull();
+    expect(careFreeCancelUntil(start, 12)?.toISOString()).toBe('2026-12-08T03:00:00.000Z');
+  });
+
+  it("l'inizio della visita è nel fuso della fioreria", () => {
+    // 9:00 a Città del Messico (UTC−6, senza ora legale) sono le 15:00 UTC.
+    expect(careVisitStartAt(d('2026-12-08'), 9 * 60, 'America/Mexico_City')?.toISOString()).toBe(
+      '2026-12-08T15:00:00.000Z',
+    );
+    // Tijuana ha l'ora legale: a luglio è UTC−7.
+    expect(careVisitStartAt(d('2026-07-08'), 9 * 60, 'America/Tijuana')?.toISOString()).toBe(
+      '2026-07-08T16:00:00.000Z',
+    );
+    expect(careVisitStartAt(null, 9 * 60, 'America/Mexico_City')).toBeNull();
+    expect(careVisitStartAt(d('2026-12-08'), null, 'America/Mexico_City')).toBeNull();
+  });
+
+  it('il limite della fioreria: vuoto = 12, da 0 a 168', () => {
+    expect(careLateCancelHoursField.parse('')).toBe(12);
+    expect(careLateCancelHoursField.parse('0')).toBe(0);
+    expect(careLateCancelHoursField.parse('168')).toBe(168);
+    expect(careLateCancelHoursField.safeParse('169').success).toBe(false);
+    expect(careLateCancelHoursField.safeParse('-1').success).toBe(false);
   });
 });

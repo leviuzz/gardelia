@@ -8,11 +8,14 @@
 import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
+  CARE_CHARGE_LIMITS,
   CARE_LIMITS,
   CARE_LIVE_RECOVERY_STATUSES,
   CARE_VISIT_HOLDING_STATUSES,
   addDays,
+  careCancellationCharged,
   careVisitCancelSchema,
+  careVisitStartAt,
   careVisitMoveSchema,
   compareDates,
   dayOfWeek,
@@ -85,8 +88,20 @@ export interface CareAgendaVisitDto {
   readonly plantCount: number;
   readonly outcomeNote: string | null;
   readonly cancelReason: CareVisitCancelReason | null;
+  /** Cancellata dal cliente: si paga (true) o no (false); null negli altri casi (ADR-082). */
+  readonly cancelCharged: boolean | null;
   /** "No se pudo": il cliente non ha aperto o la fioreria non è potuta andare (ADR-082). */
   readonly notDoneCause: CareNotDoneCause | null;
+  /**
+   * Cancelación del cliente (ADR-082): le ore del contratto, fino a quando cancella senza pagare
+   * (istante ISO; null se non si paga mai o la visita non ha giorno e ora) e se adesso si
+   * pagherebbe. null per le visite extra e per quelle già chiuse.
+   */
+  readonly lateCancel: {
+    readonly hours: number;
+    readonly freeUntil: string | null;
+    readonly chargedNow: boolean;
+  } | null;
   /**
    * Blocco 3b: una visita mancata per il cliente in un contratto con «Se agenda otra visita».
    * `visitId` è la sua visita di recupero ancora valida ("Recuperada el …"); senza, è "Por
@@ -561,11 +576,28 @@ export async function cancelCareVisit(
     if (!input.customerNotified) {
       throw new ValidationError({ customerNotified: 'care_notice_required' });
     }
+    // Il cliente: si paga solo con meno preavviso del limite del contratto (decisione del founder
+    // del 24/11), salvo "No cobrar esta vez". Una visita extra si cobra solo se fatta (ADR-082).
+    const late =
+      input.reason === 'CUSTOMER' && !visit.isExtra
+        ? careCancellationCharged({
+            visitStart: careVisitStartAt(
+              dateToParts(visit.scheduledDate),
+              visit.startMinutes,
+              ctx.timezone,
+            ),
+            lateCancelHours:
+              visit.subscription.lateCancelHours ?? CARE_CHARGE_LIMITS.lateCancelHoursDefault,
+            now: new Date(),
+          })
+        : false;
+    const cancelCharged = input.reason === 'CUSTOMER' ? late && !input.noCharge : null;
     await tx.careVisit.update({
       where: { id: visit.id, tenantId: ctx.tenantId },
       data: {
         status: 'CANCELLED',
         cancelReason: input.reason,
+        cancelCharged,
         outcomeNote: input.note,
         closedById: ctx.userId,
       },
@@ -578,6 +610,9 @@ export async function cancelCareVisit(
         number: formatSubscriptionNumber(visit.subscription.number),
         date: isoOf(visit.scheduledDate),
         reason: input.reason,
+        ...(cancelCharged === null
+          ? {}
+          : { charged: cancelCharged, waived: late && !cancelCharged }),
         customerNotified: true,
       },
     });

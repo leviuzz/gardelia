@@ -324,7 +324,10 @@ PENDING con la visita e l'importo segnato, senza distribuzioni; "Confirmar" bloc
 poi i cargos (come uno storno) e lo distribuisce sui più vecchi. Un ajuste è una riga di
 `CareChargeAdjustment` che l'emissione, con il contratto bloccato, mette una volta nel cargo come
 riga ADJUSTMENT. Una visita extra gratis può puntare alla visita mancata che recupera
-(`recoveryOfVisitId`, stesso contratto, una sola valida).
+(`recoveryOfVisitId`, stesso contratto, una sola valida). La cancellazione del cliente decide se si
+paga quando avviene (`careCancellationCharged`: l'inizio della visita nel fuso della fioreria meno
+le ore copiate nel contratto) e lo salva nella visita (`cancelCharged`): l'emissione non guarda mai
+l'orologio.
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per

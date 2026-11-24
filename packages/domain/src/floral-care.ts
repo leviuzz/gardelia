@@ -18,7 +18,7 @@ import {
   type Weekday,
 } from './delivery';
 import type { MarketCountry } from './markets';
-import { careDueDaysField } from './floral-care-charges';
+import { careDueDaysField, careLateCancelHoursField } from './floral-care-charges';
 import { MAX_AMOUNT_MINOR, type CurrencyCode } from './money';
 import { optionalUuidField, parseTimeInput } from './order';
 import type { Coordinates } from './places';
@@ -290,6 +290,8 @@ export function careSettingsSchema(currency: CurrencyCode) {
     deadPlantPolicy: enumField(DEAD_PLANT_POLICIES),
     /** "Días para pagar" un cargo (ADR-082): vuoto = 10. */
     paymentDueDays: careDueDaysField,
+    /** Cancelación del cliente: si paga con meno di queste ore di preavviso (vuoto = 12, 0 = mai). */
+    lateCancelHours: careLateCancelHoursField,
     /** I termini della fioreria, scritti da lei: Gardelia non inventa condizioni. */
     termsText: optionalText(CARE_LIMITS.termsText),
   });
@@ -502,6 +504,11 @@ export type CareVisitMoveInput = z.infer<typeof careVisitMoveSchema>;
 export const careVisitCancelSchema = z.object({
   reason: enumField(CARE_MANUAL_CANCEL_REASONS),
   note: optionalText(CARE_LIMITS.notes),
+  /**
+   * Cancellata dal cliente con meno preavviso del limite: "No cobrar esta vez" (PROPOSTO), per un
+   * avviso arrivato in tempo e registrato tardi. Negli altri casi non cambia nulla.
+   */
+  noCharge: checkboxField(),
   ...careNoticeSchema.shape,
 });
 export type CareVisitCancelInput = z.infer<typeof careVisitCancelSchema>;

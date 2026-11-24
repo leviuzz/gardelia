@@ -152,11 +152,26 @@ export function VisitMoveForm({
 }
 
 /** Cancellare la visita: chi la toglie, perché, e l'avviso al cliente. */
-export function VisitCancelDialog({ action }: { readonly action: Action }) {
+/** Cancelación del cliente (ADR-082): cosa succede adesso, testo già formattato dalla pagina. */
+export interface LateCancelView {
+  readonly message: string;
+  /** Adesso si pagherebbe: c'è "No cobrar esta vez". */
+  readonly chargedNow: boolean;
+}
+
+export function VisitCancelDialog({
+  action,
+  lateCancel,
+}: {
+  readonly action: Action;
+  /** null per le visite extra (si cobrano solo se fatte). */
+  readonly lateCancel: LateCancelView | null;
+}) {
   const t = useTranslations('care.visit');
   const tr = useTranslations('care.cancelReasons');
   const tc = useTranslations('common');
   const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState<string>(CARE_MANUAL_CANCEL_REASONS[0]);
   const [state, formAction] = useToastActionState(action, () => setOpen(false));
   const err = (field: string) => fieldError(state, field);
   return (
@@ -175,25 +190,40 @@ export function VisitCancelDialog({ action }: { readonly action: Action }) {
         <form action={formAction} onSubmit={preserveOnSubmit(formAction)} className="grid gap-4">
           <fieldset className="grid gap-2">
             <legend className="text-sm font-medium">{t('cancelWho')}</legend>
-            {CARE_MANUAL_CANCEL_REASONS.map((reason, index) => (
-              <label key={reason} className={choice}>
+            {CARE_MANUAL_CANCEL_REASONS.map((option, index) => (
+              <label key={option} className={choice}>
                 <input
                   type="radio"
                   name="reason"
-                  value={reason}
+                  value={option}
                   defaultChecked={index === 0}
+                  onChange={() => setReason(option)}
                   className="mt-0.5 size-4 accent-primary"
                 />
                 <span>
-                  <span className="block font-medium">{tr(reason)}</span>
+                  <span className="block font-medium">{tr(option)}</span>
                   <span className="block text-xs text-muted-foreground">
-                    {t(`cancelHints.${reason}`)}
+                    {t(`cancelHints.${option}`)}
                   </span>
                 </span>
               </label>
             ))}
             {err('reason') ? <p className="text-sm text-destructive">{err('reason')}</p> : null}
           </fieldset>
+          {reason === 'CUSTOMER' && lateCancel ? (
+            <div className="grid gap-2 rounded-xl bg-muted px-3 py-2.5 text-sm">
+              <p>{lateCancel.message}</p>
+              {lateCancel.chargedNow ? (
+                <label className="flex cursor-pointer items-start gap-2.5">
+                  <input type="checkbox" name="noCharge" className="mt-0.5 size-4 accent-primary" />
+                  <span>
+                    <span className="block font-medium">{t('noCharge')}</span>
+                    <span className="block text-xs text-muted-foreground">{t('noChargeHint')}</span>
+                  </span>
+                </label>
+              ) : null}
+            </div>
+          ) : null}
           <Field id="cancel-note" label={t('cancelNote')} error={err('note')}>
             <Textarea
               {...controlProps('cancel-note', err('note'))}

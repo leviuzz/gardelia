@@ -906,6 +906,11 @@ export default async function CareContractPage({
                 <ul className="list-disc space-y-1 pl-5">
                   <li>{t(`care.rules.missed.${contract.rules.missedVisitPolicy}`)}</li>
                   <li>{t(`care.rules.deadPlant.${contract.rules.deadPlantPolicy}`)}</li>
+                  <li>
+                    {contract.rules.lateCancelHours > 0
+                      ? t('care.rules.lateCancel', { hours: contract.rules.lateCancelHours })
+                      : t('care.rules.lateCancelNever')}
+                  </li>
                 </ul>
                 <p className="text-xs text-muted-foreground">{t('care.rules.subtitle')}</p>
               </CardContent>

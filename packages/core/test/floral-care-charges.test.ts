@@ -40,6 +40,7 @@ import {
   getCareVisit,
   getCustomerCareStatement,
   getCustomerTimeline,
+  getSalesReport,
   listCareCharges,
   listCareContracts,
   listCareVisitCollections,
@@ -334,7 +335,11 @@ describe('cargos: emissione', () => {
       }),
     ]);
     const contract = await getCareContract(shop.owner, kit.subscriptionId);
-    expect(contract.rules).toEqual({ missedVisitPolicy: 'COUNTS', deadPlantPolicy: 'QUOTE' });
+    expect(contract.rules).toEqual({
+      missedVisitPolicy: 'COUNTS',
+      deadPlantPolicy: 'QUOTE',
+      lateCancelHours: 12,
+    });
     expect(contract.canPayments).toBe(true);
     const billed = await withSystemContext(db, { reason: 'test: visite cobrate' }, (tx) =>
       tx.careVisitBilling.findMany({ where: { visit: { subscriptionId: kit.subscriptionId } } }),
@@ -392,28 +397,81 @@ describe('cargos: emissione', () => {
 });
 
 describe('cargos: le variazioni vanno sul cargo del mese dopo', () => {
-  it('credito se la fioreria toglie la visita o non può andare; niente se è il cliente', async () => {
+  it('"No cobrar esta vez": la cancelación tardía del cliente non si paga se la fioreria lo dice', async () => {
+    const kit = await newContract(shop.owner, 'Oficina Perdonada');
+    const before = await getCareVisit(shop.manager, kit.visits[0]!.id);
+    // La prima visita è di oggi: con 12 ore di limite, adesso si pagherebbe.
+    expect(before.lateCancel?.hours).toBe(12);
+    expect(before.lateCancel?.chargedNow).toBe(true);
+    expect(before.lateCancel?.freeUntil).not.toBeNull();
+    await cancelCareVisit(shop.manager, kit.visits[0]!.id, {
+      reason: 'CUSTOMER',
+      noCharge: 'on',
+      customerNotified: 'on',
+    });
+    const after = await getCareVisit(shop.manager, kit.visits[0]!.id);
+    expect(after.cancelCharged).toBe(false);
+    expect(after.lateCancel).toBeNull();
+    const audit = await withSystemContext(db, { reason: 'test: registro' }, (tx) =>
+      tx.auditLog.findFirstOrThrow({
+        where: { entityId: kit.visits[0]!.id, action: 'care.visit_cancelled' },
+      }),
+    );
+    expect(audit.metadata).toMatchObject({ reason: 'CUSTOMER', charged: false, waived: true });
+
+    const next = monthsAhead(1);
+    await issueOn(shop.owner, kit.subscriptionId, next);
+    const credit = ((await chargeIn(kit.subscriptionId, next))?.lines ?? []).filter(
+      (line) => line.kind === 'VISIT_CREDIT',
+    );
+    expect(credit.map((line) => [line.visitId, line.creditReason])).toEqual([
+      [kit.visits[0]!.id, 'CUSTOMER'],
+    ]);
+  });
+
+  it('credito se la fioreria toglie la visita o non può andare, o se il cliente avvisa in tempo', async () => {
     const notDoneShop = await newContract(shop.owner, 'Oficina No Pudimos');
     const notDoneCustomer = await newContract(shop.owner, 'Oficina Cerrada');
     const cancelledShop = await newContract(shop.owner, 'Oficina Cancelada Florería');
     const cancelledCustomer = await newContract(shop.owner, 'Oficina Cancelada Cliente');
+    const cancelledInTime = await newContract(shop.owner, 'Oficina Avisó a Tiempo');
+    // Il limite copiato nel contratto è quello della fioreria (12 ore); con 0 non si paga mai.
+    await setLateCancelHours(cancelledInTime.subscriptionId, 0);
     await markCareVisitNotDone(shop.staff, notDoneShop.visits[0]!.id, { cause: 'SHOP' }, deps);
     await markCareVisitNotDone(shop.staff, notDoneCustomer.visits[0]!.id, {}, deps);
     await cancelCareVisit(shop.manager, cancelledShop.visits[0]!.id, {
       reason: 'SHOP',
+      noCharge: 'on',
       customerNotified: 'on',
     });
+    // La prima visita è di oggi: mancano meno di 12 ore, si paga.
     await cancelCareVisit(shop.manager, cancelledCustomer.visits[0]!.id, {
       reason: 'CUSTOMER',
       customerNotified: 'on',
     });
-    const cause = await withSystemContext(db, { reason: 'test: causa' }, (tx) =>
-      tx.careVisit.findUniqueOrThrow({ where: { id: notDoneCustomer.visits[0]!.id } }),
-    );
-    expect(cause.notDoneCause).toBe('CUSTOMER');
+    await cancelCareVisit(shop.manager, cancelledInTime.visits[0]!.id, {
+      reason: 'CUSTOMER',
+      customerNotified: 'on',
+    });
+    const row = (id: string) =>
+      withSystemContext(db, { reason: 'test: causa' }, (tx) =>
+        tx.careVisit.findUniqueOrThrow({ where: { id } }),
+      );
+    expect((await row(notDoneCustomer.visits[0]!.id)).notDoneCause).toBe('CUSTOMER');
+    expect((await row(cancelledShop.visits[0]!.id)).cancelCharged).toBeNull();
+    expect((await row(cancelledCustomer.visits[0]!.id)).cancelCharged).toBe(true);
+    expect((await row(cancelledInTime.visits[0]!.id)).cancelCharged).toBe(false);
+    const contract = await getCareContract(shop.owner, cancelledCustomer.subscriptionId);
+    expect(contract.rules?.lateCancelHours).toBe(12);
 
     const next = monthsAhead(1);
-    for (const kit of [notDoneShop, notDoneCustomer, cancelledShop, cancelledCustomer]) {
+    for (const kit of [
+      notDoneShop,
+      notDoneCustomer,
+      cancelledShop,
+      cancelledCustomer,
+      cancelledInTime,
+    ]) {
       await issueOn(shop.owner, kit.subscriptionId, next);
     }
     const credits = async (kit: Kit) =>
@@ -428,6 +486,9 @@ describe('cargos: le variazioni vanno sul cargo del mese dopo', () => {
     ]);
     expect(await credits(notDoneCustomer)).toEqual([]);
     expect(await credits(cancelledCustomer)).toEqual([]);
+    expect(await credits(cancelledInTime)).toEqual([
+      [cancelledInTime.visits[0]!.id, 'CUSTOMER', -cancelledInTime.perVisitMinor],
+    ]);
     // Il cargo del mese dopo ha le sue visite al prezzo del contratto.
     const charge = await chargeIn(notDoneCustomer.subscriptionId, next);
     const nextVisits = await liveVisitsIn(notDoneCustomer.subscriptionId, next);
@@ -885,6 +946,16 @@ describe('cronologia, pannello ed elenco', () => {
 // -----------------------------------------------------------------------------
 
 /** Un contratto con «Se agenda otra visita»: la regola si copia alla conferma, qui la si cambia. */
+/** Il limite della cancelación del cliente copiato nel contratto (ADR-082). */
+async function setLateCancelHours(subscriptionId: string, hours: number): Promise<void> {
+  await withSystemContext(db, { reason: 'test: limite della cancellazione' }, (tx) =>
+    tx.customerSubscription.update({
+      where: { id: subscriptionId },
+      data: { lateCancelHours: hours },
+    }),
+  );
+}
+
 async function useRecoverPolicy(subscriptionId: string): Promise<void> {
   await withSystemContext(db, { reason: 'test: regola del contratto' }, (tx) =>
     tx.customerSubscription.update({
@@ -1230,5 +1301,54 @@ describe('blocco 3b: "Por recuperar"', () => {
     await useRecoverPolicy(shopFault.subscriptionId);
     await markCareVisitNotDone(shop.staff, shopFault.visits[0]!.id, { cause: 'SHOP' }, deps);
     expect((await getCareVisit(shop.owner, shopFault.visits[0]!.id)).recovery).toBeNull();
+  });
+});
+
+describe('Reportes con i cargos veri (ADR-082)', () => {
+  it('cargos del mese, cobrado, da incassare e vencido; solo la propria fioreria (A↔B)', async () => {
+    const solo = await createTestShop('Florería Reporte Cobros');
+    const empty = await createTestShop('Florería Reporte Vacía');
+    await setUpOffer(solo.owner);
+    const kit = await newContract(solo.owner, 'Hotel Reporte');
+    const [charge] = await chargesOf(kit.subscriptionId);
+    expect(charge).toBeDefined();
+    await recordCareChargePayment(solo.owner, kit.subscriptionId, charge!.id, paid(10_000));
+
+    const report = await getSalesReport(solo.owner);
+    expect(report.care).toEqual({
+      contracts: 1,
+      charges: 1,
+      chargedMinor: charge!.totalMinor,
+      collectedMinor: 10_000,
+      openMinor: charge!.totalMinor - 10_000,
+      overdueMinor: 0,
+      overdueCount: 0,
+    });
+    // Il gerente gestisce i soldi e li vede; un'altra fioreria non vede nulla di questa.
+    expect((await getSalesReport(solo.manager)).care?.charges).toBe(1);
+    expect((await getSalesReport(empty.owner)).care).toEqual({
+      contracts: 0,
+      charges: 0,
+      chargedMinor: 0,
+      collectedMinor: 0,
+      openMinor: 0,
+      overdueMinor: 0,
+      overdueCount: 0,
+    });
+
+    // Scaduto (dal primo del mese, se oggi non è il primo): entra nel vencido di oggi.
+    if (today().day > 1) {
+      await withSystemContext(db, { reason: 'test: cargo scaduto' }, (tx) =>
+        tx.careCharge.update({
+          where: { id: charge!.id },
+          data: { issuedOn: charge!.period, dueDate: charge!.period },
+        }),
+      );
+      const overdue = await getSalesReport(solo.owner);
+      expect(overdue.care).toMatchObject({
+        overdueCount: 1,
+        overdueMinor: charge!.totalMinor - 10_000,
+      });
+    }
   });
 });

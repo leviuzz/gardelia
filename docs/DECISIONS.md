@@ -2395,9 +2395,9 @@ mostra vendite, margini e costi.
   - Senza nessun costo non c'è margine, ma l'invito a completare il catalogo.
 - **Mermas:** dall'inventario, come il riepilogo del mese (ADR-063), con il costo dove c'è. Solo
   con l'inventario nel piano.
-- **Floral Care:** ricavi ricorrenti stimati al mese dei contratti attivi (`estimateCareMonth`, da–a
-  quando le visite settimanali variano). I cargos e pagamenti veri di Floral Care sono dell'altra
-  linea di lavoro (blocco 3 di `docs/FLORAL_CARE_PLAN.md`).
+- **Floral Care:** ~~ricavi ricorrenti stimati al mese dei contratti attivi~~. Dal 24/11
+  (decisione del founder, ADR-082) i cargos e i pagamenti veri del periodo: quanto si è cobrado,
+  quanto manca e il vencido di oggi, solo per chi gestisce i soldi.
 - **Próximos 7 días:** pedidos da consegnare e visite programmate, con i link al calendario e
   all'Agenda.
 - **IVA:** gli importi sono quelli dei pedidos, senza scorporo (O-06, ADR-076); la pagina lo dice.
@@ -2528,12 +2528,18 @@ blocco 3", poi "vai col 3b") e diviso in due rilasci: 3a e 3b ("Cobré en la vis
   (cliente che non apre, piante morte): valgono per tutto il contratto, e i suggerimenti delle
   piante morte (2b) usano queste. Per i contratti già confermati la migrazione ha copiato quelle
   di oggi.
-- **PROPOSTO (si cambia facilmente):**
-  - una visita cancellata dal cliente si paga, come quella mancata;
+- **DECISO dal founder il 24/11 (risposte alle proposte del 3a e del 3b):**
+  - una visita cancellata dal cliente **si paga solo se arriva con meno ore di preavviso del limite
+    scelto dalla fioreria** ("entro un orario che decide il fiorista, tipo 12 ore"): vedi sotto,
+    "Cancelación del cliente";
   - i soldi (cargos, pagamenti, estado de cuenta, riquadro, etichetta "Vencido", voci della
-    cronologia) li vede solo chi ha `subscriptions:payments` (proprietario e gerente);
-  - emettere, leggere e cobrar i cargos dei contratti firmati non chiede il piano: un cambio di
-    piano non ferma i contratti e la fioreria deve poter cobrar.
+    cronologia, la card dei Reportes) li vede solo chi ha `subscriptions:payments` (proprietario e
+    gerente); lo staff vede solo gli incassi che ha segnato lui;
+  - un incasso confermato quando il cliente non ha ancora cargos per quell'importo resta "por
+    registrar" finché nasce il cargo;
+  - i Reportes usano i cargos e i pagamenti veri di Floral Care, non più la stima (vedi sotto).
+- **PROPOSTO (si cambia facilmente):** emettere, leggere e cobrar i cargos dei contratti firmati
+  non chiede il piano: un cambio di piano non ferma i contratti e la fioreria deve poter cobrar.
 - **Dati:** migrazione M4 con soli enum nuovi (`CareChargeLineKind`, `CareCreditReason`,
   `CarePaymentKind`, `CarePaymentStatus`, `CareNotDoneCause`), le tabelle `CareCharge`,
   `CareChargeLine`, `CareVisitBilling`, `CarePayment`, `CarePaymentAllocation` con RLS e vincoli,
@@ -2573,8 +2579,28 @@ blocco 3", poi "vai col 3b") e diviso in due rilasci: 3a e 3b ("Cobré en la vis
     tabella `CareChargeAdjustment` con RLS, `CareChargeLine.adjustmentId`, il ramo ADJUSTMENT nel
     CHECK delle righe). Nel registro importi e forma, mai la nota, il motivo del rifiuto o quello
     dell'ajuste.
+- **Cancelación del cliente con orario limite (24/11, decisione del founder):**
+  - Ajustes → Floral Care: "Si el cliente cancela con menos de [12] horas" (da 0, mai, a 168, una
+    settimana; vuoto = 12). Il limite si copia nel contratto alla conferma, come le altre regole;
+    la migrazione ha dato ai contratti già confermati quello di oggi della fioreria;
+  - "Cancelar visita" → "La pidió el cliente": il server confronta l'ora d'inizio della visita
+    (giorno e ora nel fuso della fioreria) con adesso. Con meno ore del limite la visita resta
+    dovuta (si paga); prima del limite non lo è e, se era già nel cargo, il cargo dopo ha il credito
+    "el cliente avisó a tiempo" (nuovo motivo `CUSTOMER`). Il risultato si salva nella visita
+    (`cancelCharged`, con un CHECK: c'è solo per le cancellate dal cliente), così non cambia più;
+  - la finestra lo dice prima di salvare ("no se cobra si avisa antes del …" oppure "se cobra"); con
+    una cancellazione tardiva c'è "No cobrar esta vez" (**PROPOSTO**: per un avviso arrivato in
+    tempo e registrato tardi), che il registro segna (`waived`);
+  - una visita extra cancellata dal cliente non si paga comunque: le extra si cobrano solo fatte;
+  - le visite cancellate dal cliente prima di questa regola restano pagate (come la regola
+    PROPOSTA del 3a), così i cargos già emessi non cambiano.
+- **Reportes con i soldi veri (24/11, decisione del founder; aggiorna ADR-080):** la card "Floral
+  Care" del periodo mostra i cargos dei mesi del periodo (quanti e quanto), il cobrado (pagamenti
+  registrati con data nel periodo, meno anulaciones e devoluciones), quanto manca di quei cargos e
+  il vencido di oggi con il link a Cobros. Solo per chi gestisce i soldi; la stima dei contratti
+  attivi (`estimateCareMonth`) resta solo nel simulatore delle tariffe.
 - **Non fatto:** pagamenti online dei contratti (fuori dal perimetro, §9 del piano); factura e IVA
-  (O-06, da validare con il contador); i Reportes con i cargos veri (da decidere).
+  (O-06, da validare con il contador).
 
 ## 3. Proposte da approvare
 
