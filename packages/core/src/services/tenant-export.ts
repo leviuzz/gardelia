@@ -9,12 +9,15 @@ import { getDb, withTenantContext } from '@floral/db';
 import {
   AUDIT_ACTIONS,
   MX_REGIONS,
+  careChargeStatus,
+  formatCareChargeNumber,
   formatOrderNumber,
   formatQuoteNumber,
   formatSubscriptionNumber,
   formatTimeOfDay,
   minorToDecimalString,
   toCsv,
+  todayInTimeZone,
   type CsvColumn,
 } from '@floral/domain';
 import { recordAudit } from '../audit';
@@ -22,6 +25,7 @@ import { requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { LABELS, NO, YES, readme } from '../export/labels-es';
 import { logger } from '../logger';
+import { requiredParts } from './care-internals';
 
 export interface TenantExportFile {
   /** "gardelia-las-camelias-2026-11-24.zip". */
@@ -97,6 +101,9 @@ export async function exportTenantData(
       contracts,
       visits,
       plants,
+      charges,
+      chargeLines,
+      carePayments,
     ] = await Promise.all([
       tx.customer.findMany({ where, orderBy: { createdAt: 'asc' } }),
       tx.customerAddress.findMany({ where, orderBy: { createdAt: 'asc' } }),
@@ -132,6 +139,13 @@ export async function exportTenantData(
       tx.customerSubscription.findMany({ where, orderBy: { number: 'asc' } }),
       tx.careVisit.findMany({ where, orderBy: [{ scheduledDate: 'asc' }] }),
       tx.carePlant.findMany({ where, orderBy: [{ subscriptionId: 'asc' }, { sortOrder: 'asc' }] }),
+      tx.careCharge.findMany({ where, orderBy: { number: 'asc' } }),
+      tx.careChargeLine.findMany({ where, orderBy: [{ chargeId: 'asc' }, { position: 'asc' }] }),
+      tx.carePayment.findMany({
+        where,
+        orderBy: { createdAt: 'asc' },
+        include: { allocations: { select: { chargeId: true, amountMinor: true } } },
+      }),
     ]);
     return {
       customers,
@@ -151,6 +165,9 @@ export async function exportTenantData(
       contracts,
       visits,
       plants,
+      charges,
+      chargeLines,
+      carePayments,
     };
   });
 
@@ -162,6 +179,10 @@ export async function exportTenantData(
     data.contracts.map((row) => [row.id, formatSubscriptionNumber(row.number)]),
   );
   const stockItem = new Map(data.stock.map((row) => [row.id, row.catalogItemId]));
+  const chargeNumber = new Map(
+    data.charges.map((row) => [row.id, formatCareChargeNumber(row.number)]),
+  );
+  const today = todayInTimeZone(ctx.timezone);
 
   type Customer = (typeof data.customers)[number];
   type Address = (typeof data.addresses)[number];
@@ -180,6 +201,9 @@ export async function exportTenantData(
   type Contract = (typeof data.contracts)[number];
   type Visit = (typeof data.visits)[number];
   type Plant = (typeof data.plants)[number];
+  type Charge = (typeof data.charges)[number];
+  type ChargeLine = (typeof data.chargeLines)[number];
+  type CarePaymentRow = (typeof data.carePayments)[number];
 
   const sections: Section[] = [
     section<Customer>(
@@ -485,6 +509,91 @@ export async function exportTenantData(
         { header: 'Estado', value: (r) => LABELS.record[r.status] },
       ],
       data.plants,
+    ),
+    // Cargos e pagamenti di Floral Care (ADR-081): lo stato si calcola nel giorno della fioreria,
+    // come in "Cobros".
+    section<Charge>(
+      'floral_care_cargos.csv',
+      'cargos mensuales de Floral Care',
+      [
+        { header: 'Número', value: (r) => formatCareChargeNumber(r.number) },
+        { header: 'id', value: (r) => r.id },
+        { header: 'Contrato', value: (r) => contractNumber.get(r.subscriptionId) },
+        { header: 'cliente_id', value: (r) => r.customerId },
+        { header: 'Cliente', value: (r) => customerName.get(r.customerId) },
+        { header: 'Mes', value: (r) => day(r.period)?.slice(0, 7) ?? null },
+        { header: 'Emitido', value: (r) => day(r.issuedOn) },
+        { header: 'Vence', value: (r) => day(r.dueDate) },
+        { header: 'Precio por visita', value: (r) => money(r.unitPriceMinor), numeric: true },
+        { header: 'Total', value: (r) => money(r.totalMinor), numeric: true },
+        { header: 'Pagado', value: (r) => money(r.paidMinor), numeric: true },
+        { header: 'Saldo', value: (r) => money(r.balanceMinor), numeric: true },
+        {
+          header: 'Estado',
+          value: (r) =>
+            LABELS.chargeStatus[
+              careChargeStatus({
+                totalMinor: r.totalMinor,
+                paidMinor: r.paidMinor,
+                dueDate: requiredParts(r.dueDate),
+                today,
+              })
+            ],
+        },
+        { header: 'Cargo final', value: (r) => yesNo(r.final) },
+        { header: 'Moneda', value: (r) => r.currency },
+      ],
+      data.charges,
+    ),
+    section<ChargeLine>(
+      'floral_care_cargos_conceptos.csv',
+      'conceptos de cada cargo de Floral Care',
+      [
+        { header: 'Cargo', value: (r) => chargeNumber.get(r.chargeId) },
+        { header: 'Concepto', value: (r) => LABELS.chargeLineKind[r.kind] },
+        { header: 'Descripción', value: (r) => r.label },
+        { header: 'Fecha de la visita', value: (r) => day(r.visitDate) },
+        {
+          header: 'Motivo',
+          value: (r) => (r.creditReason ? LABELS.creditReason[r.creditReason] : null),
+        },
+        {
+          header: 'Cargo de origen',
+          value: (r) => (r.sourceChargeId ? chargeNumber.get(r.sourceChargeId) : null),
+        },
+        { header: 'Cantidad', value: (r) => r.quantity, numeric: true },
+        { header: 'Precio unitario', value: (r) => money(r.unitPriceMinor), numeric: true },
+        { header: 'Importe', value: (r) => money(r.amountMinor), numeric: true },
+      ],
+      data.chargeLines,
+    ),
+    section<CarePaymentRow>(
+      'floral_care_pagos.csv',
+      'pagos de Floral Care (las anulaciones y devoluciones con importe negativo)',
+      [
+        { header: 'id', value: (r) => r.id },
+        { header: 'Tipo', value: (r) => LABELS.carePaymentKind[r.kind] },
+        { header: 'Estado', value: (r) => LABELS.carePaymentStatus[r.status] },
+        { header: 'cliente_id', value: (r) => r.customerId },
+        { header: 'Cliente', value: (r) => customerName.get(r.customerId) },
+        { header: 'Fecha', value: (r) => day(r.paidOn) },
+        { header: 'Forma de pago', value: (r) => LABELS.method[r.method] },
+        // L'importo è già con il segno: le anulaciones e le devoluciones restano negative.
+        { header: 'Importe', value: (r) => money(r.amountMinor), numeric: true },
+        { header: 'Moneda', value: (r) => r.currency },
+        {
+          header: 'Cargos',
+          value: (r) =>
+            r.allocations
+              .map((a) => `${chargeNumber.get(a.chargeId) ?? a.chargeId}: ${money(a.amountMinor)}`)
+              .join('; ') || null,
+        },
+        { header: 'Anula el pago', value: (r) => r.reversedPaymentId },
+        { header: 'Referencia', value: (r) => r.reference },
+        { header: 'Nota', value: (r) => r.note },
+        { header: 'Registrado', value: (r) => dateTime(r.createdAt) },
+      ],
+      data.carePayments,
     ),
   ];
 

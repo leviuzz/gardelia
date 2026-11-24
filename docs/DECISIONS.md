@@ -2349,7 +2349,8 @@ fioreria (ADR-074): prima di eliminarla, i dati si portano via.
   - pedidos, loro concetti e pagamenti (le anulaciones con importo negativo);
   - inventario, movimenti e fornitori;
   - squadra;
-  - Floral Care (contratti, visite, piante).
+  - Floral Care (contratti, visite, piante; dal blocco 3 anche cargos, loro righe e pagamenti,
+    ADR-081).
 
   Le colonne `id` collegano i file. Non contiene foto, immagini del Diseñador e registro di
   attività: il LEEME lo dice.
@@ -2490,6 +2491,11 @@ recuperar", "Ajuste para el próximo cargo"). Il founder ha deciso il 24/11:
   `CareSettings.paymentDueDays`. `CarePayment` ha già stato e visita per il 3b.
 - **Dialoghi:** il dialogo condiviso scorre da solo negli schermi bassi (anche i moduli di
   pagamento si vedono interi a 320 px); tolte le due eccezioni del 2b.
+- **Esportazione dei dati (ADR-079):** lo ZIP aggiunge `floral_care_cargos.csv` (con lo stato nel
+  giorno della fioreria), `floral_care_cargos_conceptos.csv` e `floral_care_pagos.csv` (anulaciones
+  e devoluciones con importo negativo, i cargos toccati da ogni pagamento), così lo storico dei
+  soldi resta anche dopo aver eliminato la fioreria. I Reportes (ADR-080) mostrano ancora i ricavi
+  stimati dei contratti: usare i cargos e i pagamenti veri è da decidere.
 - **Non fatto (3a):** "Cobré en la visita" (por registrar), "Por recuperar" e gli ajustes (3b);
   pagamenti online dei contratti (fuori dal perimetro, §9 del piano); factura e IVA (O-06, da
   validare con il contador).

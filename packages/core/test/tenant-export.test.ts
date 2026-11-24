@@ -1,16 +1,25 @@
 import { strFromU8, unzipSync } from 'fflate';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { disconnectDb, getDb, withTenantContext } from '@floral/db';
-import { parseCsv, todayInTimeZone } from '@floral/domain';
+import { dayOfWeek, parseCsv, todayInTimeZone } from '@floral/domain';
 import {
   ForbiddenError,
+  addCarePlant,
   addCatalogItemToOrder,
+  addCustomerAddress,
+  confirmCareContract,
   confirmDraftOrder,
+  createCareContract,
+  createCareSlot,
   createCatalogItem,
   createCustomer,
   createDraftOrder,
   exportTenantData,
+  getCareSettings,
+  recordCareChargePayment,
   recordOrderPayment,
+  updateCareSettings,
+  updatePrimaryLocation,
 } from '../src/index';
 import { createTestShop, itemInput, type TestShop } from '../src/testing';
 
@@ -22,6 +31,11 @@ import { createTestShop, itemInput, type TestShop } from '../src/testing';
 const db = getDb();
 let shop: TestShop;
 let other: TestShop;
+
+function todayIso(): string {
+  const today = todayInTimeZone('America/Mexico_City');
+  return new Date(Date.UTC(today.year, today.month - 1, today.day)).toISOString().slice(0, 10);
+}
 
 function tomorrow(): string {
   const today = todayInTimeZone('America/Mexico_City');
@@ -87,6 +101,83 @@ beforeAll(async () => {
   });
   await recordOrderPayment(shop.owner, id, { amount: '100', method: 'CASH', kind: 'DEPOSIT' });
 
+  // Un contratto di Floral Care per lo stesso cliente: il cargo del mese nasce alla conferma
+  // (ADR-081) e si paga in parte.
+  await updatePrimaryLocation(shop.owner, {
+    addressLine1: 'Av. Madero 1',
+    city: 'Aguascalientes',
+    region: 'AGU',
+    postalCode: '20000',
+    deliveryRadiusKm: '15',
+    placeId: `ChIJ_export_${shop.tenant.slug}`,
+    latitude: '21.8818',
+    longitude: '-102.2916',
+  });
+  await updateCareSettings(shop.owner, {
+    visitFee: '450',
+    careFeeSmall: '10',
+    careFeeMedium: '20',
+    careFeeLarge: '40',
+    frequencies: ['WEEKLY'],
+    maxDistanceKm: '',
+    minNoticeHours: '24',
+    missedVisitPolicy: 'COUNTS',
+    deadPlantPolicy: 'QUOTE',
+    paymentDueDays: '10',
+    termsText: '',
+  });
+  const slot = await createCareSlot(shop.owner, {
+    weekday: String(dayOfWeek(todayInTimeZone(shop.owner.timezone))),
+    start: '00:20',
+    end: '00:40',
+    capacity: '2',
+  });
+  const place = await addCustomerAddress(shop.owner, customer.id, {
+    label: 'Oficina',
+    recipientName: '',
+    recipientPhone: '',
+    addressLine1: 'Av. Universidad 100',
+    addressLine2: '',
+    neighborhood: 'Centro',
+    city: 'Aguascalientes',
+    region: 'AGU',
+    postalCode: '20000',
+    deliveryNotes: '',
+    placeId: `ChIJ_export_place_${shop.tenant.slug}`,
+    latitude: '21.9',
+    longitude: '-102.2916',
+  });
+  const watering = (await getCareSettings(shop.owner)).services
+    .filter((service) => service.presetKey === 'watering')
+    .map((service) => service.id);
+  const contract = await createCareContract(shop.owner, customer.id, {
+    customerAddressId: place.id,
+    frequency: 'WEEKLY',
+    slotIds: [slot.id],
+    startDate: todayIso(),
+    seats: '',
+    serviceIds: watering,
+    contactName: 'Recepción',
+    contactPhone: '',
+    accessNotes: '',
+    notes: '',
+    outOfRangeConfirmed: '',
+  });
+  await addCarePlant(shop.owner, contract.id, { name: 'Potos', quantity: '12', size: 'MEDIUM' });
+  await confirmCareContract(shop.owner, contract.id);
+  const charge = await withTenantContext(db, shop.owner, (tx) =>
+    tx.careCharge.findFirstOrThrow({
+      where: { tenantId: shop.owner.tenantId, subscriptionId: contract.id },
+    }),
+  );
+  await recordCareChargePayment(shop.owner, contract.id, charge.id, {
+    amount: '100',
+    method: 'TRANSFER',
+    paidOn: '',
+    reference: 'SPEI 4821',
+    note: '',
+  });
+
   await createCustomer(other.owner, customerInput('Cliente de la otra florería', null));
 });
 
@@ -115,7 +206,10 @@ describe('esportazione dei dati della fioreria', () => {
         'direcciones.csv',
         'equipo.csv',
         'fechas_especiales.csv',
+        'floral_care_cargos.csv',
+        'floral_care_cargos_conceptos.csv',
         'floral_care_contratos.csv',
+        'floral_care_pagos.csv',
         'floral_care_plantas.csv',
         'floral_care_visitas.csv',
         'inventario.csv',
@@ -176,6 +270,34 @@ describe('esportazione dei dati della fioreria', () => {
         .map((row) => row.Rol)
         .sort(),
     ).toEqual(['Equipo', 'Gerente', 'Propietario'].sort());
+
+    // Floral Care: il cargo del mese, le sue righe e il pagamento (ADR-081).
+    const [charge] = table('floral_care_cargos.csv');
+    expect(charge).toMatchObject({
+      Número: 'CAR-0001',
+      Contrato: 'SUS-0001',
+      cliente_id: customer!.id,
+      Cliente: '\'=HYPERLINK("http://malo","clic")',
+      Pagado: '100.00',
+      Estado: 'Pago parcial',
+      'Cargo final': 'no',
+      Moneda: 'MXN',
+    });
+    expect(Number(charge!.Saldo)).toBeCloseTo(Number(charge!.Total) - 100, 2);
+    expect(table('floral_care_cargos_conceptos.csv')).toEqual([
+      expect.objectContaining({ Cargo: 'CAR-0001', Concepto: 'Visitas del mes' }),
+    ]);
+    expect(table('floral_care_pagos.csv')).toEqual([
+      expect.objectContaining({
+        Tipo: 'Pago',
+        Estado: 'Registrado',
+        cliente_id: customer!.id,
+        'Forma de pago': 'Transferencia',
+        Importe: '100.00',
+        Cargos: 'CAR-0001: 100.00',
+        Referencia: 'SPEI 4821',
+      }),
+    ]);
   });
 
   it("nessun dato di un'altra fioreria (A↔B) e nel registro solo i conteggi", async () => {
@@ -198,6 +320,10 @@ describe('esportazione dei dati della fioreria', () => {
     );
     expect(audit?.actorUserId).toBe(shop.owner.userId);
     expect(JSON.stringify(audit?.metadata)).not.toContain('HYPERLINK');
-    expect(audit?.metadata).toMatchObject({ files: { 'clientes.csv': 1, 'pedidos.csv': 1 } });
+    expect(audit?.metadata).toMatchObject({
+      files: { 'clientes.csv': 1, 'pedidos.csv': 1, 'floral_care_pagos.csv': 1 },
+    });
+    // Nel registro niente referencia del pagamento.
+    expect(JSON.stringify(audit?.metadata)).not.toContain('SPEI');
   });
 });

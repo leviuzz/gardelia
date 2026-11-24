@@ -1093,6 +1093,9 @@ le sedi; lo staff segna gli incassi "por registrar"). Diviso in 3a (questo) e 3b
 - **Regole copiate nel contratto** alla conferma (cliente che non apre, piante morte); i contratti
   già confermati hanno preso quelle di oggi con la migrazione.
 - Il dialogo condiviso ora scorre da solo negli schermi bassi (chiusa la nota del 2b).
+- **Unione con staging:** nel frattempo l'altra linea di lavoro ha portato su staging l'esportazione
+  dei dati (ADR-079) e i Reportes (ADR-080), quindi l'ADR dei cargos è diventato ADR-081. Lo ZIP
+  dell'esportazione ora contiene anche cargos, loro righe e pagamenti di Floral Care.
 
 Verifiche locali:
 
