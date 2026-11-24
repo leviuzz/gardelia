@@ -1014,6 +1014,22 @@ Verifiche locali, dopo l'unione con staging (verifica in due passaggi, dati dell
 - I due dialoghi lunghi (visita extra, piante) ora scorrono dentro lo schermo. Lo stesso manca nel
   dialogo condiviso: da sistemare per tutti (`components/ui/dialog.tsx`).
 
+Verifiche locali:
+
+- lint ✅ · format ✅ · typecheck ✅ · migrazioni = schema ✅ · build ✅;
+- test 1014/1014 ✅: 19 nuovi del 2b, 11 di dominio (moduli della visita extra e dello spostamento
+  a un'ora libera, costo per tipo, scelte e suggerimento degli avvisi, casella di temporada) e 8
+  d'integrazione (posti in un orario e no a un'ora libera, Agenda per ora, calendario nuovo e fine
+  del contratto, cotización del contratto e permessi, piante morte risolte una volta sola, piante di
+  temporada fuori dal prezzo e archiviate al ritiro, isolamento A↔B);
+- E2E 102 ✅: il nuovo "visite extra e cambio di stagione" (visita extra a un'ora libera nella
+  Agenda, pianta di temporada, cotización dal contratto con il titolo, ritiro "en la cotización").
+  Nel giro completo 101/102: il test del 2a non trovava posto per l'orario casuale (uno uguale
+  rimasto da un'esecuzione interrotta); l'aiutante ora salta gli orari esistenti e lo spec di
+  Floral Care passa due volte di fila;
+- controllo a 320 px di contratto, dialogo della visita extra, avvisi e Agenda (la riga di una
+  visita extra nel contratto sbordava di 6 px: corretta).
+
 Prossimo: il blocco 3 di `docs/FLORAL_CARE_PLAN.md` (cargos e pagamenti), con le regole del
 contratto copiate alla firma.
 

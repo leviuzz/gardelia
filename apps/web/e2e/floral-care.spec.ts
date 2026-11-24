@@ -39,19 +39,27 @@ function weekdayName(iso: string): string {
 const hhmm = (minutes: number) =>
   `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 
-/** Un orario per il giorno della settimana di `day`, a un quarto d'ora a caso (5:00–18:45). */
+/**
+ * Un orario per il giorno della settimana di `day`, a un quarto d'ora a caso (5:00–18:45). Un
+ * orario uguale già nell'elenco (di un altro test o di un'esecuzione interrotta) si salta: il
+ * server lo rifiuterebbe ("Ya tienes un horario igual").
+ */
 async function addSlot(page: Page, day: string): Promise<string> {
-  const start = 300 + Math.floor(Math.random() * 56) * 15;
-  const label = `${weekdayName(day)} · ${hhmm(start)}–${hhmm(start + 60)}`;
   const form = page.locator('form').filter({ hasText: 'Nuevo horario' });
-  await form.getByLabel('Día').selectOption({ label: weekdayName(day) });
-  await form.getByLabel('Desde').fill(hhmm(start));
-  await form.getByLabel('Hasta').fill(hhmm(start + 60));
-  await form.getByLabel('Visitas a la vez').fill('2');
-  await form.getByRole('button', { name: 'Agregar horario' }).click();
-  await expect(page.getByText('Horario agregado')).toBeVisible();
-  await expect(page.getByText(label)).toBeVisible();
-  return label;
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const start = 300 + Math.floor(Math.random() * 56) * 15;
+    const label = `${weekdayName(day)} · ${hhmm(start)}–${hhmm(start + 60)}`;
+    if ((await page.getByText(label).count()) > 0) continue;
+    await form.getByLabel('Día').selectOption({ label: weekdayName(day) });
+    await form.getByLabel('Desde').fill(hhmm(start));
+    await form.getByLabel('Hasta').fill(hhmm(start + 60));
+    await form.getByLabel('Visitas a la vez').fill('2');
+    await form.getByRole('button', { name: 'Agregar horario' }).click();
+    await expect(page.getByText('Horario agregado')).toBeVisible();
+    await expect(page.getByText(label)).toBeVisible();
+    return label;
+  }
+  throw new Error(`Nessun orario libero il ${day}`);
 }
 
 /** Cliente con la dirección del lugar delle piante, dalla sua scheda. */
