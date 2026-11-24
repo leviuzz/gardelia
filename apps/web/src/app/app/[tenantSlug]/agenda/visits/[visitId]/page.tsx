@@ -1,4 +1,15 @@
-import { ArrowLeft, KeyRound, MapPin, Phone, UserRound } from 'lucide-react';
+import {
+  ArrowLeft,
+  CircleAlert,
+  KeyRound,
+  MailCheck,
+  MapPin,
+  MessageCircle,
+  Navigation,
+  Phone,
+  Play,
+  UserRound,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -6,42 +17,69 @@ import { getFormatter, getTranslations } from 'next-intl/server';
 import {
   NotFoundError,
   PlanRequiredError,
-  getCareContract,
-  getCareVisit,
   getCareVisitMoveOptions,
+  getCareVisitSheet,
+  getPublicLink,
   hasPermission,
   listCareAssignees,
-  type CareAgendaVisitDto,
+  listCareMaterialOptions,
+  publicLinkUrl,
+  type CareVisitSheetDto,
   type TenantContext,
 } from '@floral/core';
+import { CARE_EMAIL_RETRY, getMarket, mapsPlaceUrl, whatsappLink } from '@floral/domain';
 import { VisitStatusBadge } from '@/components/care/care-ui';
 import { CareUpsell } from '@/components/care/care-upsell';
+import { VisitAssignForm, VisitCancelDialog, VisitMoveForm } from '@/components/care/visit-forms';
+import { VisitPhotos } from '@/components/care/visit-photos';
+import { VisitReportView } from '@/components/care/visit-report';
 import {
-  VisitAssignForm,
-  VisitCancelDialog,
-  VisitMoveForm,
-  VisitOutcomeDialog,
-} from '@/components/care/visit-forms';
+  AllPlantsOkButton,
+  FinishVisitDialog,
+  FollowUpForm,
+  MaterialsEditor,
+  NotDoneDialog,
+  PlantChecklistItem,
+  SendReportButton,
+  ServiceChecklistItem,
+  VisitNoteForm,
+} from '@/components/care/visit-work';
+import { ShareLinkPanel } from '@/components/common/share-link-card';
+import { ActionButton } from '@/components/form/action-button';
 import { Forbidden } from '@/components/forbidden';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { serverEnv } from '@/lib/env';
 import { phoneForInput } from '@/lib/format';
 import { calendarDate } from '@/lib/quote-ui';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
+  addCareFollowUpAction,
   assignCareVisitAction,
   cancelCareVisitAction,
-  completeCareVisitAction,
+  finishCareVisitAction,
+  markAllCarePlantsOkAction,
   markCareVisitNotDoneAction,
   moveCareVisitAction,
+  removeCareVisitPhotoAction,
+  resolveCareFollowUpAction,
+  revokeCareVisitLinkAction,
+  saveCareVisitNoteAction,
+  sendCareVisitReportAction,
+  setCareMaterialAction,
+  setCarePlantResultAction,
+  setCareServiceResultAction,
+  shareCareVisitLinkAction,
+  startCareVisitAction,
+  uploadCareVisitPhotoAction,
 } from '../../actions';
 
-async function loadVisit(ctx: TenantContext, visitId: string): Promise<CareAgendaVisitDto | null> {
+async function loadSheet(ctx: TenantContext, visitId: string): Promise<CareVisitSheetDto | null> {
   try {
-    return await getCareVisit(ctx, visitId);
+    return await getCareVisitSheet(ctx, visitId);
   } catch (error) {
     if (error instanceof NotFoundError) notFound();
     if (error instanceof PlanRequiredError) return null;
@@ -56,14 +94,15 @@ export async function generateMetadata({
   const ctx = await getTenantContext(tenantSlug);
   const t = await getTranslations('care.visit');
   if (!hasPermission(ctx, 'subscriptions:read')) return { title: t('title') };
-  const visit = await loadVisit(ctx, visitId);
-  return { title: visit ? `${t('title')} · ${visit.numberLabel}` : t('title') };
+  const sheet = await loadSheet(ctx, visitId);
+  return { title: sheet ? `${t('title')} · ${sheet.visit.numberLabel}` : t('title') };
 }
 
 /**
- * Una visita di Floral Care (ADR-075): dove, chi la fa, le piante con le loro indicazioni e
- * l'accesso alla sede. "Hecha" o "No se pudo" per tutta la squadra; spostare, cancellare e
- * assegnare per chi gestisce (spostare e cancellare con "Sí, avisé al cliente").
+ * Una visita di Floral Care (ADR-075, ADR-076). Programmata: "Empezar visita" o "No se pudo".
+ * In corso: la visita dal telefono (servizi, piante, foto, materiali, nota, avvisi) e "Terminar".
+ * Chiusa: il resoconto con il suo link e l'email al cliente. Chi gestisce sposta, assegna e
+ * cancella (spostare e cancellare con "Sí, avisé al cliente").
  */
 export default async function CareVisitPage({
   params,
@@ -75,19 +114,29 @@ export default async function CareVisitPage({
   const format = await getFormatter();
   const slug = ctx.tenantSlug;
   const routes = tenantRoutes(slug);
-  const visit = await loadVisit(ctx, visitId);
-  if (!visit) {
+  const sheet = await loadSheet(ctx, visitId);
+  if (!sheet) {
     return (
       <div className="mx-auto max-w-3xl space-y-6">
         <CareUpsell ctx={ctx} />
       </div>
     );
   }
-  const contract = await getCareContract(ctx, visit.subscriptionId);
-  const canManage = visit.canManage;
-  const [moveOptions, assignees] = canManage
-    ? await Promise.all([getCareVisitMoveOptions(ctx, visit.id), listCareAssignees(ctx)])
-    : [null, null];
+  const { visit } = sheet;
+  const env = serverEnv();
+  const [moveOptions, assignees, materialOptions, link] = await Promise.all([
+    visit.canManage ? getCareVisitMoveOptions(ctx, visit.id) : Promise.resolve(null),
+    visit.canManage ? listCareAssignees(ctx) : Promise.resolve(null),
+    sheet.can.work && sheet.inventoryEnabled
+      ? listCareMaterialOptions(ctx, visit.id)
+      : Promise.resolve([]),
+    sheet.can.share
+      ? getPublicLink(ctx, env.BETTER_AUTH_SECRET, { kind: 'CARE_VISIT', id: visit.id })
+      : Promise.resolve(null),
+  ]);
+  const shopLocale = getMarket(ctx.country).defaultLocale;
+  const tShop = await getTranslations({ locale: shopLocale });
+
   const day = (iso: string) =>
     format.dateTime(calendarDate(iso), {
       weekday: 'long',
@@ -103,6 +152,23 @@ export default async function CareVisitPage({
       timeZone: 'UTC',
     });
   const label = `${visit.numberLabel} · ${visit.customerName}`;
+  const working = visit.status === 'IN_PROGRESS';
+  const closed = sheet.report !== null;
+  const channel = { emailsAllowed: sheet.emailsAllowed, customerHasEmail: sheet.customerHasEmail };
+  const progress = t('care.visitWork.progress', {
+    servicesDone: sheet.progress.servicesDone,
+    services: sheet.progress.services,
+    plantsMarked: sheet.progress.plantsMarked,
+    plants: sheet.progress.plants,
+    photos: sheet.progress.photos,
+  });
+  const phone = sheet.place.contactPhone ?? sheet.place.customerPhone;
+  const activePlants = sheet.plants.filter((plant) => !plant.removed);
+  const plantDetails = (plant: (typeof sheet.plants)[number]) =>
+    [t(`care.offer.sizes.${plant.size}`), plant.speciesName, plant.location, plant.watering]
+      .filter(Boolean)
+      .join(' · ');
+  const publicUrl = link ? publicLinkUrl(env.APP_URL, 'CARE_VISIT', link.token) : null;
   const back = visit.date ? (
     <Button asChild variant="ghost" size="sm" className="-ml-2">
       <Link href={routes.agenda.day({ date: visit.date })}>
@@ -125,7 +191,10 @@ export default async function CareVisitPage({
         {back}
         <PageHeader
           title={
-            <Link href={routes.subscriptions.detail(contract.id)} className="hover:underline">
+            <Link
+              href={routes.subscriptions.detail(visit.subscriptionId)}
+              className="hover:underline"
+            >
               {label}
             </Link>
           }
@@ -143,28 +212,44 @@ export default async function CareVisitPage({
             </span>
           }
         />
+        {working ? (
+          <p className="text-sm text-muted-foreground">
+            {sheet.startedAt
+              ? t('care.visitWork.startedAt', {
+                  time: format.dateTime(sheet.startedAt, {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: ctx.timezone,
+                  }),
+                  name: sheet.startedBy ?? '',
+                })
+              : null}{' '}
+            · {progress}
+          </p>
+        ) : null}
       </div>
 
-      {visit.canClose ? (
+      {visit.canStart || (visit.canMarkNotDone && !working) ? (
         <div className="flex flex-col gap-2 sm:flex-row">
-          <VisitOutcomeDialog
-            action={completeCareVisitAction.bind(null, slug, visit.id)}
-            outcome="DONE"
-            idPrefix="visit-done"
-            label={label}
-          />
-          <VisitOutcomeDialog
-            action={markCareVisitNotDoneAction.bind(null, slug, visit.id)}
-            outcome="NOT_DONE"
-            idPrefix="visit-not-done"
-            label={label}
-          />
+          {visit.canStart ? (
+            <ActionButton
+              action={startCareVisitAction.bind(null, slug, visit.id)}
+              size="lg"
+              icon={<Play />}
+              className="w-full sm:w-auto"
+            >
+              {t('care.visitWork.start')}
+            </ActionButton>
+          ) : null}
+          {visit.canMarkNotDone && !working ? (
+            <NotDoneDialog
+              action={markCareVisitNotDoneAction.bind(null, slug, visit.id)}
+              label={label}
+              note={visit.outcomeNote}
+              channel={channel}
+            />
+          ) : null}
         </div>
-      ) : null}
-      {visit.outcomeNote ? (
-        <p className="rounded-2xl border bg-card p-4 text-sm whitespace-pre-line">
-          {visit.outcomeNote}
-        </p>
       ) : null}
 
       <Card>
@@ -172,37 +257,29 @@ export default async function CareVisitPage({
           <CardTitle>{t('care.visit.siteTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3 text-sm">
-          {contract.address ? (
+          {sheet.place.address ? (
             <p className="flex items-start gap-2">
               <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <span>
-                {contract.address.label ? (
-                  <span className="block font-medium">{contract.address.label}</span>
-                ) : null}
-                {contract.address.line}, {contract.address.city}
-              </span>
+              <span className="min-w-0 break-words">{sheet.place.address}</span>
             </p>
           ) : null}
-          {contract.contactName || contract.contactPhone ? (
+          {sheet.place.contactName || phone ? (
             <p className="flex items-start gap-2">
               <Phone className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <span>
-                {[
-                  contract.contactName,
-                  contract.contactPhone ? phoneForInput(contract.contactPhone) : null,
-                ]
+                {[sheet.place.contactName, phone ? phoneForInput(phone) : null]
                   .filter(Boolean)
                   .join(' · ')}
               </span>
             </p>
           ) : null}
-          {contract.accessNotes ? (
+          {sheet.place.accessNotes ? (
             <p className="flex items-start gap-2">
               <KeyRound
                 className="mt-0.5 size-4 shrink-0 text-muted-foreground"
                 aria-hidden="true"
               />
-              <span className="whitespace-pre-line">{contract.accessNotes}</span>
+              <span className="whitespace-pre-line">{sheet.place.accessNotes}</span>
             </p>
           ) : null}
           {visit.assignee ? (
@@ -211,53 +288,377 @@ export default async function CareVisitPage({
               {t('care.contract.assignee', { name: visit.assignee.name })}
             </p>
           ) : null}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('care.plants.title', { count: contract.plantCount })}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {contract.plants.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t('care.plants.empty')}</p>
-          ) : (
-            <ul className="divide-y rounded-xl border text-sm">
-              {contract.plants.map((plant) => (
-                <li key={plant.id} className="space-y-0.5 px-4 py-3">
-                  <p className="font-medium break-words">
-                    <span className="tabular-nums">{plant.quantity}</span> × {plant.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {[
-                      t(`care.offer.sizes.${plant.size}`),
-                      plant.speciesName,
-                      plant.location,
-                      plant.watering,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </p>
-                  {plant.instructions ? (
-                    <p className="text-xs whitespace-pre-line">{plant.instructions}</p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-          {contract.services.length > 0 ? (
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              {contract.services.map((service) => (
-                <Badge key={service.serviceId} variant="muted">
-                  {service.name}
-                </Badge>
-              ))}
+          {sheet.place.address || phone ? (
+            <div className="flex flex-wrap gap-2">
+              {sheet.place.address ? (
+                <Button asChild variant="outline" size="sm">
+                  <a
+                    href={mapsPlaceUrl(sheet.place.address)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Navigation />
+                    {t('care.visitWork.go')}
+                  </a>
+                </Button>
+              ) : null}
+              {phone ? (
+                <Button asChild variant="outline" size="sm">
+                  <a href={`tel:${phone}`}>
+                    <Phone />
+                    {t('care.visitWork.call')}
+                  </a>
+                </Button>
+              ) : null}
             </div>
           ) : null}
         </CardContent>
       </Card>
 
-      {canManage && moveOptions ? (
+      {working ? (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('care.visitWork.servicesTitle')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {sheet.checklist.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('care.visitWork.servicesEmpty')}</p>
+              ) : (
+                <ul className="divide-y rounded-xl border text-sm">
+                  {sheet.checklist.map((item) => (
+                    <ServiceChecklistItem
+                      key={item.serviceId}
+                      action={setCareServiceResultAction.bind(null, slug, visit.id)}
+                      item={item}
+                      disabled={item.removed}
+                    />
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+              <CardTitle>
+                {t('care.visitWork.plantsTitle', {
+                  marked: sheet.progress.plantsMarked,
+                  total: sheet.progress.plants,
+                })}
+              </CardTitle>
+              {sheet.progress.plantsMarked < sheet.progress.plants ? (
+                <AllPlantsOkButton action={markAllCarePlantsOkAction.bind(null, slug, visit.id)} />
+              ) : null}
+            </CardHeader>
+            <CardContent>
+              <ul className="divide-y rounded-xl border text-sm">
+                {activePlants.map((plant) => (
+                  <PlantChecklistItem
+                    key={plant.plantId}
+                    action={setCarePlantResultAction.bind(null, slug, visit.id)}
+                    plant={{
+                      plantId: plant.plantId,
+                      name: plant.name,
+                      quantity: plant.quantity,
+                      details: plantDetails(plant),
+                      instructions: plant.instructions,
+                      condition: plant.condition,
+                      affected: plant.affected,
+                      note: plant.note,
+                    }}
+                  />
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </>
+      ) : null}
+
+      {working || sheet.photos.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('care.visitWork.photosTitle')}</CardTitle>
+            {working ? <CardDescription>{t('care.visitWork.photosHint')}</CardDescription> : null}
+          </CardHeader>
+          <CardContent>
+            <VisitPhotos
+              upload={working ? uploadCareVisitPhotoAction.bind(null, slug, visit.id) : null}
+              limit={sheet.photoLimit}
+              plants={activePlants.map((plant) => ({ plantId: plant.plantId, name: plant.name }))}
+              photos={sheet.photos.map((photo) => ({
+                id: photo.id,
+                plantName:
+                  sheet.plants.find((plant) => plant.plantId === photo.plantId)?.name ?? null,
+                thumbUrl: routes.agenda.visitPhoto(visit.id, photo.id, { thumb: true }),
+                fullUrl: routes.agenda.visitPhoto(visit.id, photo.id),
+                removeAction: sheet.can.removePhotos
+                  ? removeCareVisitPhotoAction.bind(null, slug, visit.id, photo.id)
+                  : null,
+              }))}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {working && sheet.inventoryEnabled ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('care.visitWork.materialsTitle')}</CardTitle>
+            <CardDescription>{t('care.visitWork.materialsHint')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <MaterialsEditor
+              action={setCareMaterialAction.bind(null, slug, visit.id)}
+              materials={sheet.materials}
+              options={materialOptions.map((option) => ({
+                catalogItemId: option.catalogItemId,
+                label: t('care.visitWork.materialOption', {
+                  name: option.name,
+                  count: option.onHand,
+                }),
+              }))}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {working ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('care.visitWork.noteTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <VisitNoteForm
+              action={saveCareVisitNoteAction.bind(null, slug, visit.id)}
+              note={visit.outcomeNote}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {working || sheet.followUps.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('care.followUps.visitTitle')}</CardTitle>
+            {working ? <CardDescription>{t('care.followUps.visitHint')}</CardDescription> : null}
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            {sheet.followUps.length > 0 ? (
+              <ul className="divide-y rounded-xl border text-sm">
+                {sheet.followUps.map((followUp) => (
+                  <li
+                    key={followUp.id}
+                    className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
+                  >
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="font-medium">
+                        {t(`care.followUps.kinds.${followUp.kind}`)}
+                        {followUp.plantName ? ` · ${followUp.plantName}` : ''}
+                      </p>
+                      {followUp.note ? (
+                        <p className="break-words text-muted-foreground">{followUp.note}</p>
+                      ) : null}
+                      {followUp.resolutionNote ? (
+                        <p className="text-xs break-words text-muted-foreground">
+                          {t('care.followUps.resolution', { note: followUp.resolutionNote })}
+                        </p>
+                      ) : null}
+                    </div>
+                    {followUp.status === 'OPEN' && sheet.can.resolveFollowUps ? (
+                      <ActionButton
+                        action={resolveCareFollowUpAction.bind(null, slug, followUp.id)}
+                        variant="secondary"
+                        size="sm"
+                      >
+                        {t('care.followUps.resolve')}
+                      </ActionButton>
+                    ) : (
+                      <Badge variant={followUp.status === 'OPEN' ? 'warning' : 'muted'}>
+                        {t(`care.followUps.statuses.${followUp.status}`)}
+                      </Badge>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {working ? (
+              <FollowUpForm
+                action={addCareFollowUpAction.bind(null, slug, visit.id)}
+                plants={activePlants.map((plant) => ({ plantId: plant.plantId, name: plant.name }))}
+              />
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {working ? (
+        <div className="flex flex-col gap-2 sm:flex-row-reverse sm:justify-start">
+          <FinishVisitDialog
+            action={finishCareVisitAction.bind(null, slug, visit.id)}
+            allOkAction={markAllCarePlantsOkAction.bind(null, slug, visit.id)}
+            summary={progress}
+            unmarked={sheet.progress.plants - sheet.progress.plantsMarked}
+            hasMaterials={sheet.materials.length > 0}
+            channel={channel}
+          />
+          {visit.canMarkNotDone ? (
+            <NotDoneDialog
+              action={markCareVisitNotDoneAction.bind(null, slug, visit.id)}
+              label={label}
+              note={visit.outcomeNote}
+              channel={channel}
+            />
+          ) : null}
+        </div>
+      ) : null}
+
+      {closed && sheet.report ? (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('care.report.title')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <VisitReportView
+                report={sheet.report}
+                locale={ctx.locale}
+                photoSrc={(photoId, thumb) =>
+                  routes.agenda.visitPhoto(visit.id, photoId, { thumb })
+                }
+              />
+            </CardContent>
+          </Card>
+
+          {sheet.can.share ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('care.report.shareTitle')}</CardTitle>
+                <CardDescription>{t('care.report.shareHint')}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ShareLinkPanel
+                  shareAction={shareCareVisitLinkAction.bind(null, slug, visit.id)}
+                  revokeAction={revokeCareVisitLinkAction.bind(null, slug, visit.id)}
+                  unavailableHint={null}
+                  manage={sheet.can.manageLink}
+                  link={
+                    link && publicUrl
+                      ? {
+                          url: publicUrl,
+                          expiresLabel: t('shareLink.expires', {
+                            date: format.dateTime(link.expiresAt, {
+                              dateStyle: 'long',
+                              timeZone: ctx.timezone,
+                            }),
+                          }),
+                          whatsappHref: phone
+                            ? whatsappLink(
+                                phone,
+                                tShop('care.report.whatsapp', {
+                                  shop: ctx.tenantName,
+                                  url: publicUrl,
+                                }),
+                              )
+                            : null,
+                        }
+                      : null
+                  }
+                />
+              </CardContent>
+            </Card>
+          ) : null}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('care.report.emailTitle')}</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 text-sm">
+              {sheet.email?.status === 'SENT' && sheet.email.sentAt ? (
+                <p className="flex items-center gap-2">
+                  <MailCheck className="size-4 text-success" aria-hidden="true" />
+                  {t('care.report.emailSent', {
+                    date: format.dateTime(sheet.email.sentAt, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                      timeZone: ctx.timezone,
+                    }),
+                  })}
+                </p>
+              ) : sheet.email &&
+                (sheet.email.status === 'PENDING' || sheet.email.status === 'SENDING') ? (
+                <p>{t('care.report.emailPending')}</p>
+              ) : sheet.email?.status === 'FAILED' ? (
+                <p className="flex items-start gap-2 text-destructive">
+                  <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                  {t('care.report.emailFailed')}
+                </p>
+              ) : !sheet.emailsAllowed ? (
+                <p className="text-muted-foreground">{t('care.visitWork.reportDemoHint')}</p>
+              ) : !sheet.customerHasEmail ? (
+                <p className="text-muted-foreground">{t('care.visitWork.reportNoEmailHint')}</p>
+              ) : (
+                <p className="text-muted-foreground">{t('care.report.emailNotSent')}</p>
+              )}
+              {sheet.can.sendReport &&
+              sheet.emailsAllowed &&
+              sheet.customerHasEmail &&
+              (!sheet.email ||
+                (sheet.email.status === 'FAILED' &&
+                  sheet.email.attempts < CARE_EMAIL_RETRY.maxAttempts)) ? (
+                <SendReportButton
+                  action={sendCareVisitReportAction.bind(null, slug, visit.id)}
+                  retry={sheet.email !== null}
+                />
+              ) : null}
+              {phone && publicUrl ? (
+                <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <MessageCircle className="size-3.5" aria-hidden="true" />
+                  {t('care.report.whatsappHint')}
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
+        </>
+      ) : null}
+
+      {!working && !closed ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('care.plants.title', { count: visit.plantCount })}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activePlants.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t('care.plants.empty')}</p>
+            ) : (
+              <ul className="divide-y rounded-xl border text-sm">
+                {activePlants.map((plant) => (
+                  <li key={plant.plantId} className="space-y-0.5 px-4 py-3">
+                    <p className="font-medium break-words">
+                      <span className="tabular-nums">{plant.quantity}</span> × {plant.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{plantDetails(plant)}</p>
+                    {plant.instructions ? (
+                      <p className="text-xs whitespace-pre-line">{plant.instructions}</p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {sheet.checklist.length > 0 ? (
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {sheet.checklist.map((service) => (
+                  <Badge key={service.serviceId} variant="muted">
+                    {service.name}
+                  </Badge>
+                ))}
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {visit.canManage && moveOptions ? (
         <Card>
           <CardHeader>
             <CardTitle>
@@ -284,7 +685,7 @@ export default async function CareVisitPage({
         </Card>
       ) : null}
 
-      {canManage && assignees && visit.status === 'SCHEDULED' ? (
+      {visit.canManage && assignees && visit.status === 'SCHEDULED' ? (
         <Card>
           <CardHeader>
             <CardTitle>{t('care.visit.assignTitle')}</CardTitle>
@@ -299,7 +700,7 @@ export default async function CareVisitPage({
         </Card>
       ) : null}
 
-      {canManage ? (
+      {visit.canManage ? (
         <div className="flex justify-end">
           <VisitCancelDialog action={cancelCareVisitAction.bind(null, slug, visit.id)} />
         </div>

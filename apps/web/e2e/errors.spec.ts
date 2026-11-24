@@ -103,6 +103,8 @@ test('i lavori giornalieri rispondono solo con il segreto e dicono cosa hanno fa
     onlineOrdersExpired: expect.any(Number),
     careVisitsCreated: expect.any(Number),
     careContractsEnded: expect.any(Number),
+    carePhotosDeleted: expect.any(Number),
+    careEmailsSent: expect.any(Number),
     tenantsPurged: expect.any(Number),
     promos: { tenants: expect.any(Number), sent: expect.any(Number), failed: expect.any(Number) },
   });

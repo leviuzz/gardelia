@@ -2,7 +2,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  Flag,
   MapPin,
+  Play,
   Sprout,
   Store,
   Truck,
@@ -22,15 +24,16 @@ import {
 import { addDays, parseIsoDate, todayInTimeZone, toIsoDate } from '@floral/domain';
 import { AgendaTabs, VisitStatusBadge } from '@/components/care/care-ui';
 import { CareUpsell } from '@/components/care/care-upsell';
-import { VisitOutcomeDialog } from '@/components/care/visit-forms';
 import { OrderStatusBadge } from '@/components/common/status-badges';
+import { ActionButton } from '@/components/form/action-button';
 import { PageHeader } from '@/components/page-header';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { calendarDate } from '@/lib/quote-ui';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
-import { completeCareVisitAction, markCareVisitNotDoneAction } from './actions';
+import { startCareVisitAction } from './actions';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('care.agenda');
@@ -51,9 +54,10 @@ async function loadCareDay(ctx: TenantContext, date: string | undefined) {
 }
 
 /**
- * Agenda dei lavori (ADR-075): il giorno con le visite di Floral Care per fascia (con i posti) e i
- * pedidos che escono. Dalla visita: "Hecha" o "No se pudo"; spostare, cancellare e assegnare
- * stanno nella pagina della visita. Il calendario delle date dei clienti resta a parte.
+ * Agenda dei lavori (ADR-075, ADR-076): il giorno con le visite di Floral Care per fascia (con i
+ * posti) e i pedidos che escono. Dalla visita: "Empezar" o "Continuar" (la visita dal telefono è
+ * nella sua pagina, con "No se pudo", spostare, cancellare e assegnare). Chi gestisce vede gli
+ * avvisi della squadra ancora aperti. Il calendario delle date dei clienti resta a parte.
  */
 export default async function AgendaDayPage({
   params,
@@ -120,6 +124,18 @@ export default async function AgendaDayPage({
           </Button>
         </form>
       </div>
+
+      {care && care.openFollowUps > 0 && hasPermission(ctx, 'subscriptions:write') ? (
+        <Alert variant="warning">
+          <Flag aria-hidden="true" />
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+            <span>{t('care.followUps.alert', { count: care.openFollowUps })}</span>
+            <Button asChild size="sm" variant="outline">
+              <Link href={routes.agenda.followUps()}>{t('care.followUps.alertLink')}</Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <p className="text-sm text-muted-foreground" aria-live="polite">
         {[
@@ -201,27 +217,26 @@ export default async function AgendaDayPage({
                           </p>
                         ) : null}
                         <div className="flex flex-wrap gap-2">
-                          {visit.canClose ? (
-                            <>
-                              <VisitOutcomeDialog
-                                action={completeCareVisitAction.bind(null, slug, visit.id)}
-                                outcome="DONE"
-                                idPrefix={`done-${visit.id}`}
-                                label={label}
-                                compact
-                              />
-                              <VisitOutcomeDialog
-                                action={markCareVisitNotDoneAction.bind(null, slug, visit.id)}
-                                outcome="NOT_DONE"
-                                idPrefix={`notdone-${visit.id}`}
-                                label={label}
-                                compact
-                              />
-                            </>
+                          {visit.canStart ? (
+                            <ActionButton
+                              action={startCareVisitAction.bind(null, slug, visit.id)}
+                              size="sm"
+                              icon={<Play />}
+                              aria-label={t('care.visitWork.startLabel', { label })}
+                            >
+                              {t('care.visitWork.start')}
+                            </ActionButton>
+                          ) : null}
+                          {visit.canContinue ? (
+                            <Button asChild size="sm">
+                              <Link href={routes.agenda.visit(visit.id)}>
+                                {t('care.visitWork.continue')}
+                              </Link>
+                            </Button>
                           ) : null}
                           <Button asChild size="sm" variant="ghost">
                             <Link href={routes.agenda.visit(visit.id)}>
-                              {t('care.agenda.details')}
+                              {visit.hasReport ? t('care.agenda.report') : t('care.agenda.details')}
                             </Link>
                           </Button>
                         </div>

@@ -28,6 +28,7 @@ export function ShareLinkPanel({
   shareAction,
   revokeAction,
   unavailableHint,
+  manage = true,
 }: {
   readonly link: ShareLinkView | null;
   /** Crea (o, con `renew=1`, rinnova) il link. */
@@ -35,6 +36,8 @@ export function ShareLinkPanel({
   readonly revokeAction: Action;
   /** Perché non si può ancora condividere (es. preventivo in bozza); null se si può. */
   readonly unavailableHint: string | null;
+  /** Rinnovare e disattivare (false: chi può solo copiarlo e mandarlo, es. il resoconto di una visita). */
+  readonly manage?: boolean;
 }) {
   const t = useTranslations('shareLink');
 
@@ -82,31 +85,35 @@ export function ShareLinkPanel({
             </a>
           </Button>
         ) : null}
-        <ConfirmActionDialog
-          action={shareAction}
-          fields={{ renew: '1' }}
-          confirmVariant="default"
-          trigger={
-            <Button variant="ghost">
-              <RefreshCw />
-              {t('renew')}
-            </Button>
-          }
-          title={t('renewTitle')}
-          description={t('renewBody')}
-          confirmLabel={t('renewConfirm')}
-        />
-        <ConfirmActionDialog
-          action={revokeAction}
-          trigger={
-            <Button variant="ghost" className="text-destructive hover:text-destructive">
-              {t('revoke')}
-            </Button>
-          }
-          title={t('revokeTitle')}
-          description={t('revokeBody')}
-          confirmLabel={t('revokeConfirm')}
-        />
+        {manage ? (
+          <ConfirmActionDialog
+            action={shareAction}
+            fields={{ renew: '1' }}
+            confirmVariant="default"
+            trigger={
+              <Button variant="ghost">
+                <RefreshCw />
+                {t('renew')}
+              </Button>
+            }
+            title={t('renewTitle')}
+            description={t('renewBody')}
+            confirmLabel={t('renewConfirm')}
+          />
+        ) : null}
+        {manage ? (
+          <ConfirmActionDialog
+            action={revokeAction}
+            trigger={
+              <Button variant="ghost" className="text-destructive hover:text-destructive">
+                {t('revoke')}
+              </Button>
+            }
+            title={t('revokeTitle')}
+            description={t('revokeBody')}
+            confirmLabel={t('revokeConfirm')}
+          />
+        ) : null}
       </div>
     </div>
   );
