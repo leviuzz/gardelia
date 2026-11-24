@@ -10,6 +10,7 @@ export * from './customer-import';
 export * from './customer-timeline';
 export * from './delivery';
 export * from './exact-preview';
+export * from './floral-care';
 export * from './i18n';
 export * from './ids';
 export * from './inventory';

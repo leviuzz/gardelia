@@ -112,6 +112,31 @@ export type ConflictReason =
   | 'order_needs_acceptance'
   /** "Listo": i materiali dell'ordine non bastano nell'inventario (ADR-071). */
   | 'order_inventory_shortage'
+  /** Floral Care (ADR-075): l'offerta non è ancora salvata. */
+  | 'care_not_configured'
+  /** Servizi, fasce e fasce di distanza: troppi, o uguali a uno che c'è già. */
+  | 'care_service_limit'
+  | 'care_service_exists'
+  | 'care_slot_limit'
+  | 'care_slot_exists'
+  /** Il giorno di una fascia con contratti o visite non si cambia: se ne crea un'altra. */
+  | 'care_slot_in_use'
+  | 'care_travel_tier_exists'
+  | 'care_travel_tier_limit'
+  /** Il contratto non è nello stato giusto per questo passo (bozza, attivo, finito). */
+  | 'care_contract_not_editable'
+  /** Cliente archiviato: niente contratti nuovi. */
+  | 'care_customer_archived'
+  /** Conferma: servono piante, e fasce e frequenza ancora offerte. */
+  | 'care_no_plants'
+  | 'care_schedule_outdated'
+  /** Sede oltre il raggio: il fiorista deve dire che va lo stesso. */
+  | 'care_out_of_range'
+  | 'care_plant_limit'
+  /** Visite: fascia senza posto, visita già chiusa, visita di un giorno che non è arrivato. */
+  | 'care_slot_full'
+  | 'care_visit_closed'
+  | 'care_visit_future'
   /** "Eliminar florería" con ordini ancora da consegnare o ritirare (ADR-074). */
   | 'tenant_deletion_open_orders';
 

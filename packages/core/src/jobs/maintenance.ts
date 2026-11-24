@@ -5,8 +5,9 @@
  * (`app_purge_place_coordinates`, regole di Google Places, ADR-059); chiude le bozze di import di
  * clienti dimenticate da più di un giorno e ne cancella il file (`app_close_stale_customer_imports`,
  * ADR-070); annulla gli ordini online che nessuna fioreria ha accettato in tempo e lo scrive a chi
- * compra (ADR-067). Le pagine mostrano già lo stato effettivo calcolato in lettura: questo lavoro
- * rende il dato salvato coerente (filtri, report, esportazioni).
+ * compra (ADR-067); allunga le visite di Floral Care e chiude i contratti finiti (ADR-075). Le pagine
+ * mostrano già lo stato effettivo calcolato in lettura: questo lavoro rende il dato salvato coerente
+ * (filtri, report, esportazioni).
  *
  * La chiamano Vercel Cron (una volta al giorno alle 9 del Messico, `/api/internal/maintenance`,
  * insieme alla promo delle date speciali) e, fuori da Vercel, il ciclo nel processo del server. È
@@ -19,6 +20,7 @@ import { purgeDeletedTenants } from '../services/tenant-deletion';
 import type { OrderMailDeps } from '../order-mail';
 import { refreshStoreCoordinates } from '../public-directory';
 import { closeStaleCustomerImports } from '../services/customer-import';
+import { runCareMaintenance } from './care';
 
 export interface MaintenanceResult {
   readonly quotesExpired: number;
@@ -31,6 +33,9 @@ export interface MaintenanceResult {
   readonly customerImportsClosed: number;
   /** Ordini online annullati perché nessuno li ha accettati in tempo. */
   readonly onlineOrdersExpired: number;
+  /** Floral Care (ADR-075): visite nuove (con posto o da riprogrammare) e contratti chiusi. */
+  readonly careVisitsCreated: number;
+  readonly careContractsEnded: number;
   /** Fiorerie cancellate davvero, 30 giorni dopo "Eliminar florería" (ADR-074). */
   readonly tenantsPurged: number;
 }
@@ -56,6 +61,7 @@ export async function runDailyMaintenance(
   const purge = purged[0];
   const customerImportsClosed = await closeStaleCustomerImports();
   const onlineOrdersExpired = await expireUnacceptedOrders(mail);
+  const care = await runCareMaintenance();
   const tenantsPurged = await purgeDeletedTenants();
   const result: MaintenanceResult = {
     quotesExpired: row?.quotes_expired ?? 0,
@@ -68,6 +74,8 @@ export async function runDailyMaintenance(
     storePlacesRefreshed,
     customerImportsClosed,
     onlineOrdersExpired,
+    careVisitsCreated: care.visitsScheduled + care.visitsToReschedule,
+    careContractsEnded: care.contractsEnded,
     tenantsPurged,
   };
   logger.info(result, 'manutenzione giornaliera completata');

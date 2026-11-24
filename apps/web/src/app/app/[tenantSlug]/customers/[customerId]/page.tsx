@@ -14,17 +14,21 @@ import { notFound } from 'next/navigation';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import {
   NotFoundError,
-  getCustomer,
+  PlanRequiredError,
   canRedeemPromoDiscounts,
+  getCustomer,
   hasPermission,
+  listCustomerCareContracts,
   listCustomerOrders,
   listCustomerPromoDiscounts,
   listCustomerQuotes,
+  type CareContractListItemDto,
   type CustomerDetailDto,
   type TenantContext,
 } from '@floral/core';
 import { MX_REGIONS, whatsappLink } from '@floral/domain';
 import { AddressBook } from '@/components/addresses/address-book';
+import { ContractStatusBadge } from '@/components/care/care-ui';
 import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import { OrderStatusBadge, QuoteStatusBadge } from '@/components/common/status-badges';
 import { ArchiveControl } from '@/components/archive-control';
@@ -70,6 +74,19 @@ export async function generateMetadata({
   return { title: customer.displayName };
 }
 
+async function loadCareContracts(
+  ctx: TenantContext,
+  customerId: string,
+): Promise<readonly CareContractListItemDto[] | null> {
+  if (!hasPermission(ctx, 'subscriptions:read')) return null;
+  try {
+    return await listCustomerCareContracts(ctx, customerId);
+  } catch (error) {
+    if (error instanceof PlanRequiredError) return null;
+    throw error;
+  }
+}
+
 const REGION_NAMES = new Map<string, string>(
   MX_REGIONS.map((region) => [region.code, region.name]),
 );
@@ -83,6 +100,9 @@ export default async function CustomerPage({
   const customer = await loadCustomer(ctx, customerId);
   const quotes = await listCustomerQuotes(ctx, customer.id);
   const orders = await listCustomerOrders(ctx, customer.id);
+  // Floral Care (ADR-075): i contratti del cliente (null = funzione non nel piano).
+  const careContracts = await loadCareContracts(ctx, customer.id);
+  const canCare = hasPermission(ctx, 'subscriptions:write') && customer.status === 'ACTIVE';
   // Sconti della promo ricevuti dal cliente (ADR-048): quando scrive con un codice, si vede qui.
   const discounts = await listCustomerPromoDiscounts(ctx, customer.id);
   const canRedeem = canRedeemPromoDiscounts(ctx);
@@ -315,6 +335,45 @@ export default async function CustomerPage({
               ) : null}
             </CardContent>
           </Card>
+          {careContracts ? (
+            <Card>
+              <CardHeader className="flex flex-row items-start justify-between gap-3">
+                <CardTitle>{t('care.customerCard.title')}</CardTitle>
+                {canCare ? (
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={routes.subscriptions.new(customer.id)}>
+                      <Plus />
+                      {t('care.customerCard.new')}
+                    </Link>
+                  </Button>
+                ) : null}
+              </CardHeader>
+              <CardContent>
+                {careContracts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t('care.customerCard.empty')}</p>
+                ) : (
+                  <ul className="-mx-2 divide-y">
+                    {careContracts.map((contract) => (
+                      <li key={contract.id}>
+                        <Link
+                          href={routes.subscriptions.detail(contract.id)}
+                          className="flex flex-wrap items-center gap-3 rounded-lg px-2 py-2.5 text-sm transition-colors hover:bg-muted/40"
+                        >
+                          <span className="font-medium tabular-nums">{contract.numberLabel}</span>
+                          <ContractStatusBadge status={contract.status} />
+                          <span className="ml-auto text-xs text-muted-foreground">
+                            {contract.frequency
+                              ? t(`care.offer.frequencyNames.${contract.frequency}`)
+                              : null}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
           <Card>
             <CardHeader>
               <CardTitle>{t('customers.addresses.title')}</CardTitle>

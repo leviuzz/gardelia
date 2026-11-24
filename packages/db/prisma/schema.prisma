@@ -232,44 +232,53 @@ model Tenant {
   createdAt               DateTime     @default(now())
   updatedAt               DateTime     @updatedAt
 
-  locations         Location[]
-  memberships       Membership[]
-  invitations       Invitation[]
-  catalogItems      CatalogItem[]
-  recipes           BouquetRecipe[]
-  recipeLines       BouquetRecipeLine[]
-  inventoryItems    InventoryItem[]
-  inventoryEntries  InventoryEntry[]
-  inventoryMoves    InventoryMovement[]
-  suppliers         Supplier[]
-  inventoryHolds    InventoryReservation[]
-  inventoryHoldRows InventoryReservationLine[]
-  customers         Customer[]
-  customerAddresses CustomerAddress[]
-  customerOccasions CustomerOccasion[]
-  customerImports   CustomerImport[]
-  quotes            Quote[]
-  quoteLines        QuoteLine[]
-  orders            Order[]
-  deliveryWindows   DeliveryWindow[]
-  deliveryFeeTiers  DeliveryFeeTier[]
-  orderLines        OrderLine[]
-  orderPayments     OrderPayment[]
-  orderEvents       OrderStatusEvent[]
-  counters          TenantCounter[]
-  aiJobs            AiJob[]
-  auditLogs         AuditLog[]
-  subscription      TenantSubscription?
-  builderConfigs    BouquetConfiguration[]
-  bouquetPhotos     BouquetPhoto[]
-  builderLines      BouquetConfigurationLine[]
-  aiCreditGrants    AiCreditGrant[]
-  catalogPhotos     CatalogItemPhoto[]
-  styleReferences   StyleReferencePhoto[]
-  promoEmails       OccasionPromoEmail[]
-  publicLinks       PublicLink[]
-  orderPhotos       OrderPhoto[]
-  onlineStore       OnlineStore?
+  locations            Location[]
+  memberships          Membership[]
+  invitations          Invitation[]
+  catalogItems         CatalogItem[]
+  recipes              BouquetRecipe[]
+  recipeLines          BouquetRecipeLine[]
+  inventoryItems       InventoryItem[]
+  inventoryEntries     InventoryEntry[]
+  inventoryMoves       InventoryMovement[]
+  suppliers            Supplier[]
+  inventoryHolds       InventoryReservation[]
+  inventoryHoldRows    InventoryReservationLine[]
+  customers            Customer[]
+  customerAddresses    CustomerAddress[]
+  customerOccasions    CustomerOccasion[]
+  customerImports      CustomerImport[]
+  quotes               Quote[]
+  quoteLines           QuoteLine[]
+  orders               Order[]
+  deliveryWindows      DeliveryWindow[]
+  deliveryFeeTiers     DeliveryFeeTier[]
+  orderLines           OrderLine[]
+  orderPayments        OrderPayment[]
+  orderEvents          OrderStatusEvent[]
+  counters             TenantCounter[]
+  aiJobs               AiJob[]
+  auditLogs            AuditLog[]
+  subscription         TenantSubscription?
+  builderConfigs       BouquetConfiguration[]
+  bouquetPhotos        BouquetPhoto[]
+  builderLines         BouquetConfigurationLine[]
+  aiCreditGrants       AiCreditGrant[]
+  catalogPhotos        CatalogItemPhoto[]
+  styleReferences      StyleReferencePhoto[]
+  promoEmails          OccasionPromoEmail[]
+  publicLinks          PublicLink[]
+  orderPhotos          OrderPhoto[]
+  onlineStore          OnlineStore?
+  careSettings         CareSettings?
+  careTravelTiers      CareTravelTier[]
+  careServices         CareService[]
+  careSlots            CareSlot[]
+  subscriptions        CustomerSubscription[]
+  subscriptionSlots    CustomerSubscriptionSlot[]
+  subscriptionServices CustomerSubscriptionService[]
+  carePlants           CarePlant[]
+  careVisits           CareVisit[]
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -331,11 +340,13 @@ model Membership {
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
-  tenant         Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user           User    @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade)
-  invitedBy      User?   @relation("MembershipInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user           User        @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy      User?       @relation("MembershipInviter", fields: [invitedById], references: [id], onDelete: SetNull)
   /// Ordini da consegnare assegnati a questo membro (repartidor, ADR-058).
   assignedOrders Order[]
+  /// Visite di Floral Care assegnate a questo membro (ADR-075).
+  careVisits     CareVisit[]
 
   @@unique([tenantId, userId])
   @@unique([tenantId, id])
@@ -421,6 +432,7 @@ model CanonicalFlower {
   updatedAt      DateTime          @updatedAt
 
   catalogItems CatalogItem[]
+  carePlants   CarePlant[]
 }
 
 enum CatalogItemType {
@@ -814,12 +826,13 @@ model Customer {
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
-  tenant      Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  quotes      Quote[]
-  orders      Order[]
-  addresses   CustomerAddress[]
-  occasions   CustomerOccasion[]
-  promoEmails OccasionPromoEmail[]
+  tenant        Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quotes        Quote[]
+  orders        Order[]
+  addresses     CustomerAddress[]
+  occasions     CustomerOccasion[]
+  promoEmails   OccasionPromoEmail[]
+  subscriptions CustomerSubscription[]
 
   @@unique([tenantId, id])
   @@index([tenantId, status])
@@ -855,9 +868,11 @@ model CustomerAddress {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customer Customer @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Cascade)
-  orders   Order[]
+  tenant        Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer      Customer               @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Cascade)
+  orders        Order[]
+  /// Sedi dei contratti di Floral Care (ADR-075).
+  subscriptions CustomerSubscription[]
 
   @@unique([tenantId, id])
   @@index([tenantId, customerId])
@@ -1752,4 +1767,328 @@ model OrderPhoto {
 
   @@unique([tenantId, id])
   @@index([tenantId, orderId, status])
+}
+
+// -----------------------------------------------------------------------------
+// Floral Care e suscripciones dei clienti (ADR-075)
+// -----------------------------------------------------------------------------
+
+enum CareFrequency {
+  MONTHLY_1
+  MONTHLY_2
+  WEEKLY
+}
+
+enum CareMissedVisitPolicy {
+  COUNTS
+  RECOVER
+}
+
+enum CareDeadPlantPolicy {
+  INCLUDED
+  QUOTE
+}
+
+enum CareServicePricing {
+  INCLUDED
+  EXTRA
+}
+
+enum CareServiceUnit {
+  PER_VISIT
+  PER_PLANT
+  ONE_TIME
+}
+
+enum PlantSize {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+enum PlantLight {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+/// Tipo di suscripción: cura delle piante (visite) o consegne periodiche (ordini, dopo).
+enum CustomerSubscriptionKind {
+  CARE
+  DELIVERY
+}
+
+/// Stato di un contratto con un cliente. Diverso da `SubscriptionStatus`, che è l'abbonamento della
+/// fioreria a Gardelia.
+enum CustomerSubscriptionStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ENDED
+  CANCELLED
+}
+
+enum CareVisitStatus {
+  SCHEDULED
+  IN_PROGRESS
+  DONE
+  NOT_DONE
+  CANCELLED
+  TO_RESCHEDULE
+}
+
+/// Perché una visita è cancellata: cambio di calendario o fine del contratto (sostituita o non più
+/// dovuta), la fioreria non può andare, il cliente l'ha chiesta.
+enum CareVisitCancelReason {
+  SCHEDULE_CHANGE
+  CONTRACT_END
+  SHOP
+  CUSTOMER
+}
+
+/// Offerta di Floral Care della fioreria: una riga per fioreria, creata la prima volta che la
+/// salva. I prezzi sono in unità minime nella valuta della fioreria.
+model CareSettings {
+  tenantId           String                @id @db.Uuid
+  visitFeeMinor      Int
+  careFeeSmallMinor  Int                   @default(0)
+  careFeeMediumMinor Int                   @default(0)
+  careFeeLargeMinor  Int                   @default(0)
+  frequencies        CareFrequency[]
+  /// Raggio in km dal negozio; NULL = senza limite.
+  maxDistanceKm      Int?
+  minNoticeHours     Int                   @default(24)
+  missedVisitPolicy  CareMissedVisitPolicy @default(COUNTS)
+  deadPlantPolicy    CareDeadPlantPolicy   @default(QUOTE)
+  /// Termini della fioreria, scritti da lei (Gardelia non inventa condizioni).
+  termsText          String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+/// Sovrapprezzo per uscita secondo la distanza in linea retta dal negozio.
+model CareTravelTier {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  tenantId  String   @db.Uuid
+  maxMeters Int
+  feeMinor  Int
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, maxMeters])
+  @@index([tenantId])
+}
+
+/// Servizio di Floral Care: della lista nostra (`presetKey`) o scritto dal fiorista.
+model CareService {
+  id          String             @id @default(uuid(7)) @db.Uuid
+  tenantId    String             @db.Uuid
+  presetKey   String?
+  name        String
+  description String?
+  pricing     CareServicePricing
+  unit        CareServiceUnit    @default(PER_VISIT)
+  /// 0 per i servizi inclusi nella tariffa per uscita.
+  priceMinor  Int                @default(0)
+  status      RecordStatus       @default(ACTIVE)
+  sortOrder   Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  tenant        Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscriptions CustomerSubscriptionService[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, presetKey])
+  @@index([tenantId, status])
+}
+
+/// Fascia di uscita: un giorno della settimana, da–a (minuti nel fuso della fioreria) e quante
+/// visite ci stanno. Si archivia, non si cancella: le visite passate la citano.
+model CareSlot {
+  id           String       @id @default(uuid(7)) @db.Uuid
+  tenantId     String       @db.Uuid
+  /// 0 = domenica … 6 = sabato.
+  weekday      Int
+  startMinutes Int
+  endMinutes   Int
+  capacity     Int
+  status       RecordStatus @default(ACTIVE)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  tenant        Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscriptions CustomerSubscriptionSlot[]
+  visits        CareVisit[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, weekday])
+}
+
+/// Suscripción di un cliente: per ora contratti di Floral Care (`CARE`). Il prezzo è copiato alla
+/// conferma (versione del prezzo); le visite seguono la versione del calendario.
+model CustomerSubscription {
+  id                   String                     @id @default(uuid(7)) @db.Uuid
+  tenantId             String                     @db.Uuid
+  /// Numero progressivo per tenant (SUS-0001).
+  number               Int
+  customerId           String                     @db.Uuid
+  kind                 CustomerSubscriptionKind
+  status               CustomerSubscriptionStatus @default(DRAFT)
+  /// Sede del contratto (indirizzo del cliente).
+  customerAddressId    String?                    @db.Uuid
+  frequency            CareFrequency?
+  /// Posti che occupa ogni visita in una fascia (un contratto grande ne prende più d'uno).
+  seats                Int                        @default(1)
+  startDate            DateTime                   @db.Date
+  endDate              DateTime?                  @db.Date
+  scheduleVersion      Int                        @default(1)
+  priceVersion         Int                        @default(1)
+  currency             String
+  visitFeeMinor        Int                        @default(0)
+  careFeeSmallMinor    Int                        @default(0)
+  careFeeMediumMinor   Int                        @default(0)
+  careFeeLargeMinor    Int                        @default(0)
+  travelSurchargeMinor Int                        @default(0)
+  /// Totale di una visita e degli extra una tantum, calcolati dal server alla conferma.
+  perVisitMinor        Int                        @default(0)
+  oneTimeMinor         Int                        @default(0)
+  /// Distanza dal negozio salvata alla conferma (le coordinate del cliente scadono dopo 30 giorni).
+  distanceMeters       Int?
+  outOfRange           Boolean                    @default(false)
+  contactName          String?
+  contactPhone         String?
+  accessNotes          String?
+  notes                String?
+  /// Fin dove sono state create le visite (calendario della fioreria).
+  generatedUntil       DateTime?                  @db.Date
+  acquisitionSource    AcquisitionSource          @default(MERCHANT_DIRECT)
+  /// Chi ha confermato il contratto: da lui viene il permesso dei lavori automatici.
+  confirmedById        String?                    @db.Uuid
+  confirmedAt          DateTime?
+  endedAt              DateTime?
+  createdById          String?                    @db.Uuid
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+
+  tenant          Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer        Customer                      @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
+  customerAddress CustomerAddress?              @relation(fields: [tenantId, customerAddressId], references: [tenantId, id], onDelete: Restrict)
+  slots           CustomerSubscriptionSlot[]
+  services        CustomerSubscriptionService[]
+  plants          CarePlant[]
+  visits          CareVisit[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, number])
+  @@index([tenantId, status])
+  @@index([tenantId, customerId])
+}
+
+/// Le fasce scelte per il calendario del contratto (una per le mensili, una per giorno per quella
+/// settimanale).
+model CustomerSubscriptionSlot {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  tenantId       String   @db.Uuid
+  subscriptionId String   @db.Uuid
+  slotId         String   @db.Uuid
+  createdAt      DateTime @default(now())
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
+  slot         CareSlot             @relation(fields: [tenantId, slotId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, subscriptionId, slotId])
+  @@index([tenantId, slotId])
+}
+
+/// Servizi del contratto, con nome e prezzo copiati.
+model CustomerSubscriptionService {
+  id             String             @id @default(uuid(7)) @db.Uuid
+  tenantId       String             @db.Uuid
+  subscriptionId String             @db.Uuid
+  serviceId      String             @db.Uuid
+  name           String
+  pricing        CareServicePricing
+  unit           CareServiceUnit
+  priceMinor     Int
+  createdAt      DateTime           @default(now())
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
+  service      CareService          @relation(fields: [tenantId, serviceId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, subscriptionId, serviceId])
+}
+
+/// Piante della sede del contratto (anche a gruppi: "12 potos en jardinera").
+model CarePlant {
+  id                String       @id @default(uuid(7)) @db.Uuid
+  tenantId          String       @db.Uuid
+  subscriptionId    String       @db.Uuid
+  name              String
+  canonicalFlowerId String?      @db.Uuid
+  quantity          Int
+  size              PlantSize
+  location          String?
+  light             PlantLight?
+  watering          String?
+  /// Istruzioni per chi sta sul posto (le vede il cliente).
+  instructions      String?
+  status            RecordStatus @default(ACTIVE)
+  sortOrder         Int          @default(0)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
+  species      CanonicalFlower?     @relation(fields: [canonicalFlowerId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, subscriptionId])
+}
+
+/// Visita di Floral Care. Unica per contratto, versione del calendario e data originale (indice
+/// parziale nel SQL, salvo le visite extra); le cancellate restano come righe.
+model CareVisit {
+  id                   String          @id @default(uuid(7)) @db.Uuid
+  tenantId             String          @db.Uuid
+  subscriptionId       String          @db.Uuid
+  scheduleVersion      Int
+  originalDate         DateTime        @db.Date
+  /// NULL solo per "Por reprogramar" (o una visita così cancellata).
+  scheduledDate        DateTime?       @db.Date
+  slotId               String?         @db.Uuid
+  startMinutes         Int?
+  endMinutes           Int?
+  seats                Int             @default(1)
+  status               CareVisitStatus @default(SCHEDULED)
+  isExtra              Boolean         @default(false)
+  assignedMembershipId String?         @db.Uuid
+  startedAt            DateTime?
+  finishedAt           DateTime?
+  /// Perché si è cancellata: serve ai cargos (una visita tolta dalla fioreria è un credito).
+  cancelReason         CareVisitCancelReason?
+  /// Perché non si è fatta o perché si è cancellata (testo della fioreria).
+  outcomeNote          String?
+  closedById           String?         @db.Uuid
+  createdById          String?         @db.Uuid
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
+  slot         CareSlot?            @relation(fields: [tenantId, slotId], references: [tenantId, id], onDelete: Restrict)
+  assignedTo   Membership?          @relation(fields: [tenantId, assignedMembershipId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, scheduledDate])
+  @@index([tenantId, slotId, scheduledDate])
+  @@index([tenantId, subscriptionId])
 }

@@ -876,6 +876,46 @@ Verifiche locali:
 
 Resta: il preventivo per email al cliente (V1_SCOPE riga 13).
 
+**Floral Care, blocco 1 (fatto il 24/11, ADR-075):** la visione del founder ("l'offerta floral
+care deve essere configurabile… pensala bene nel profondo") è diventata un piano in sette blocchi,
+approvato e salvato in `docs/FLORAL_CARE_PLAN.md`. Il blocco 1:
+
+- **Ajustes → Floral Care:**
+  - tariffa per visita, cura per pianta secondo la misura, frequenze offerte, zona di servizio,
+    aviso minimo, regole (cliente che non apre, pianta morta) e i termini scritti dalla fioreria;
+  - un simulatore del canone con le tariffe salvate;
+  - orari di visita per giorno con i posti; servizi, con la nostra lista più quelli del fiorista;
+  - cargo per distanza.
+- **Contratti (Floral Care nel menu):**
+  - si crea dalla scheda del cliente: sede, frequenza e orari, primo giorno, servizi, dati
+    pratici della sede;
+  - si aggiungono le piante della diagnosi, anche a gruppi;
+  - "Confirmar": il server calcola e salva il prezzo, poi agenda le visite dei prossimi 60 giorni;
+  - dopo: cambio di calendario, servizi e dati, prezzo aggiornato, fine.
+- **Agenda (nuova voce):** il giorno con le visite per orario (posti occupati) e i pedidos, il
+  mese, le visite da riprogrammare, la pagina della visita ("Hecha", "No se pudo", sposta,
+  cancella, assegna).
+- **"Sí, avisé al cliente":** il server lo chiede su ogni cambio che tocca visite già fissate.
+- **Capienza:** un solo percorso per prenotare. Con l'orario pieno la visita va in un altro
+  orario della stessa settimana e mese, altrimenti resta "Por reprogramar". Due conferme insieme
+  non superano mai la capienza (test).
+- **Manutenzione:** allunga le visite e chiude i contratti finiti come lavoro senza utente
+  (`JobScope`, registro con attore nullo e nome del lavoro). Un test vieta i `TenantContext` finti.
+
+Verifiche locali:
+
+- lint ✅ · format ✅ · typecheck ✅ · build ✅;
+- test 933/933 ✅ (con l'eliminazione delle fiorerie dell'altra sessione): 43 nuovi, 18 di dominio,
+  24 d'integrazione (isolamento fra fiorerie, due conferme insieme sulla capienza, lavori senza
+  utente, cancellazione definitiva di una fioreria con contratti e visite) e 1 di convenzioni;
+- E2E 97/97 ✅, con i 2 nuovi di Floral Care (offerta, orario, contratto con piante, conferma,
+  visita nell'Agenda, spostamento con la casella; il banco vede ma non cambia); controllo a 320 px
+  di tutte le pagine nuove (Ajustes → Floral Care sbordava di 3 px: corretto).
+
+**Da decidere col founder:** su mobile "Agenda" e "Floral Care" stanno in "Más" (la barra in
+basso ha cinque voci, ADR-054): l'Agenda può prendere il posto di un'altra voce. Prossimo: il
+blocco 2 di `docs/FLORAL_CARE_PLAN.md` (la visita dal telefono con checklist e foto).
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci
@@ -890,7 +930,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 3. Inventario: fatto (blocchi 1–4, ADR-060…063), con lo scarico (ADR-071) e gli apartados
    (ADR-072) dagli ordini.
 4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
-5. Abbonamenti dei clienti e Floral Care.
+5. Abbonamenti dei clienti e Floral Care: blocco 1 fatto (ADR-075); blocchi 2–7 in
+   `docs/FLORAL_CARE_PLAN.md`.
 6. Report.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.
 8. Abbonamento a pagamento sui livelli Esencial e Profesional (D-23; Stripe in modalità di prova) e

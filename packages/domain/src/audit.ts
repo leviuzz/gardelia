@@ -171,6 +171,38 @@ export const AUDIT_ACTIONS = {
   platformBuyerAccountDeleted: 'platform.buyer_account_deleted',
   /** Persona aggiunta al team dall'amministratore della piattaforma (ADR-050). */
   memberAddedByPlatform: 'member.added_by_platform',
+  /** Floral Care (ADR-075): offerta, servizi, fasce, contratti, piante e visite. */
+  careSettingsUpdated: 'care.settings_updated',
+  careServiceCreated: 'care.service_created',
+  careServiceUpdated: 'care.service_updated',
+  careServiceArchived: 'care.service_archived',
+  careTravelTierAdded: 'care.travel_tier_added',
+  careTravelTierRemoved: 'care.travel_tier_removed',
+  careSlotCreated: 'care.slot_created',
+  careSlotUpdated: 'care.slot_updated',
+  careSlotArchived: 'care.slot_archived',
+  carePlantAdded: 'care.plant_added',
+  carePlantUpdated: 'care.plant_updated',
+  carePlantRemoved: 'care.plant_removed',
+  careVisitsGenerated: 'care.visits_generated',
+  careVisitDone: 'care.visit_done',
+  careVisitNotDone: 'care.visit_not_done',
+  careVisitAssigned: 'care.visit_assigned',
+  careVisitMoved: 'care.visit_moved',
+  careVisitCancelled: 'care.visit_cancelled',
+  /**
+   * Contratti con i clienti (CustomerSubscription): `customer_subscription.*`, da non confondere con
+   * `subscription.assigned`, il piano della fioreria su Gardelia.
+   */
+  subscriptionCreated: 'customer_subscription.created',
+  subscriptionUpdated: 'customer_subscription.updated',
+  subscriptionConfirmed: 'customer_subscription.confirmed',
+  subscriptionScheduleChanged: 'customer_subscription.schedule_changed',
+  subscriptionEnded: 'customer_subscription.ended',
+  /** Prezzo ricalcolato su piante, servizi e tariffe attuali (nuova versione del prezzo). */
+  subscriptionRepriced: 'customer_subscription.repriced',
+  /** Bozza mai confermata messa da parte. */
+  subscriptionDiscarded: 'customer_subscription.discarded',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

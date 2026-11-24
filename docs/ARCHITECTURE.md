@@ -49,9 +49,10 @@ apps/web/
                               conferme, badge, colori, list/ per le pagine elenco)
   src/app/                    route (auth), onboarding, app/[tenantSlug]/…, invite, api
   e2e/                        Playwright + pozzo SMTP
-packages/core/src/            context, authorization, audit, mailer, email-templates, services/*,
-                              ai/ (provider, coda, archivio), media/ (validazione immagini, sharp),
-                              jobs/ (manutenzione giornaliera: scadenze)
+packages/core/src/            context, scope (lavori senza utente), authorization, audit, mailer,
+                              email-templates, services/*, ai/ (provider, coda, archivio),
+                              media/ (validazione immagini, sharp),
+                              jobs/ (manutenzione giornaliera: scadenze, visite di Floral Care)
 packages/db/prisma/           schema.prisma, migrations/ (SQL con RLS), seed.ts, seed-data.ts
 packages/db/src/              client, tenancy (contesti RLS), errors, testing
 packages/db/scripts/          provisioning ruoli/database per sviluppo e CI
@@ -127,6 +128,9 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
   cancella la riga `Tenant`: i dati della fioreria seguono in cascata, registro compreso. Resta
   l'evento di piattaforma `platform.tenant_purged`. `app_buyer_orders()` dice se la fioreria è
   attiva: "Mis pedidos" nasconde quelle in eliminazione.
+- **Lavori di Floral Care** (ADR-075): `app_care_contracts_to_extend(giorni, n)` e
+  `app_care_contracts_to_close(n)` (SECURITY DEFINER) danno alla manutenzione solo gli ID dei
+  contratti da allungare o chiudere; il lavoro avviene poi nel contesto della fioreria, senza utente.
 - Vincoli aggiuntivi nel SQL: CHECK su importi/quantità/valute/slug, indici univoci parziali
   (una sede primaria per tenant, un invito pendente per email).
 
@@ -244,6 +248,22 @@ scrive un registro `USE` con quanto si è usato davvero; per gli ordini `reserve
 (`bouquetsPossible`, `bouquetMaterialCost`) dalla ricetta e dal disponibile; "Registrar ramos
 hechos" scrive un registro `USE` con la ricetta × N; il riepilogo del mese somma i movimenti non
 annullati nel calendario della fioreria.
+
+Floral Care (ADR-075): la fioreria imposta l'offerta (tariffa per uscita, care per misura della
+pianta, servizi, sovrapprezzo per distanza) e le fasce di uscita con la capienza (`CareSlot`). Il
+contratto (`CustomerSubscription`) nasce in borrador dalla scheda del cliente; alla conferma il
+server calcola il prezzo (`priceContractNow`, copiato nel contratto) e crea le visite per 60
+giorni. Ogni prenotazione passa da `SlotBook` (`services/care-booking.ts`): blocca le fasce della
+fioreria in ordine di id (dopo il contratto, prima delle visite) e conta i posti delle visite vive;
+con la fascia piena prova un'altra fascia dello stesso giorno, poi il giorno più vicino della stessa
+settimana e dello stesso mese, altrimenti la visita resta "Por reprogramar". Ogni cambio che tocca
+visite già fissate chiede `customerNotified` ("Sí, avisé al cliente"). La manutenzione allunga le
+visite e chiude i contratti finiti un contratto per transazione, in
+`withTenantContext({ tenantId, userId: null })`, con un `JobScope` (`core/src/scope.ts`) che solo
+`loadJobScope` costruisce rileggendo la fioreria attiva. Le funzioni `…Tx` condivise fra servizi e
+lavori ricevono uno `WriteScope` (membro o lavoro); il registro di un lavoro ha attore nullo e il
+nome del lavoro (`recordJobAudit`). Un test delle convenzioni vieta `as TenantContext` fuori da
+`context.ts`.
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per

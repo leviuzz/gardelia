@@ -1,4 +1,4 @@
-import { ChevronRight, Gem, MapPinOff, Store, Trash2 } from 'lucide-react';
+import { ChevronRight, Gem, MapPinOff, Sprout, Store, Trash2 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -95,6 +95,21 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
           <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
         </Link>
       ) : null}
+
+      {/* Floral Care (ADR-075): tariffe, servizi e fasce di uscita della cura delle piante. */}
+      <Link
+        href={tenantRoutes(slug).settings.care}
+        className="flex items-center gap-4 rounded-2xl border bg-card p-4 transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
+          <Sprout className="size-5" aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">{t('care.settings.link')}</span>
+          <span className="block text-sm text-muted-foreground">{t('care.settings.linkBody')}</span>
+        </span>
+        <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
+      </Link>
 
       {/* "Mi tienda en línea" (ADR-065): la pagina pubblica con i prodotti. */}
       <Link
