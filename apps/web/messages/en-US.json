@@ -121,7 +121,8 @@
       "order_date_passed": "This order’s date has passed: change it with the customer before accepting it.",
       "order_needs_acceptance": "This online order is confirmed with “Accept order”, which notifies the customer.",
       "delivery_fee_tier_exists": "You already have a rate for that distance.",
-      "delivery_fee_tier_limit": "You reached the maximum number of rates."
+      "delivery_fee_tier_limit": "You reached the maximum number of rates.",
+      "order_inventory_shortage": "There isn’t enough stock for this order. Open or reload the order page to see what’s missing and confirm it’s ready."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -1577,7 +1578,11 @@
       "historyStep": "“{from}” → “{to}”",
       "print": "Print",
       "whatsapp": "Send on WhatsApp",
-      "saved": "Delivery and card saved"
+      "saved": "Delivery and card saved",
+      "forwardShortage": "Mark ready anyway",
+      "shortage": "There isn’t enough stock for this order:",
+      "shortageItem": "{name}: {missing} short",
+      "shortageConfirm": "If you mark it ready, it’s deducted anyway and the stock goes below zero until you record the purchase or a count."
     },
     "form": {
       "title": "Turn into order",
@@ -1783,6 +1788,19 @@
       "buyerNotes": "Customer comments",
       "askManager": "Only owners and managers can accept or decline online orders.",
       "stepsAfter": "First accept or decline it above; then you track its progress here."
+    },
+    "inventory": {
+      "title": "Inventory",
+      "pending": "When you mark it ready, these materials are deducted from inventory.",
+      "consumed": "The materials were deducted from inventory on {date}.",
+      "reversed": "The materials were deducted on {date}; the movement was then reversed in Inventory.",
+      "consumedHint": "If they weren’t used after all (for example, because the order was cancelled), the owner or the manager can reverse the movement in Inventory: its note has the order number.",
+      "reversedHint": "This order won’t deduct them again. If they were used, record it in Inventory.",
+      "missing": "{quantity} short",
+      "available": "Available: {quantity}",
+      "movements": "See inventory movements",
+      "reservedHint": "Some of these products are reserved. If a reservation is for this order, release it when you mark the order ready: the order already deducts its materials.",
+      "reservations": "See reservations"
     }
   },
   "plans": {

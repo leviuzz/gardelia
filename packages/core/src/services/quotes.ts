@@ -49,7 +49,7 @@ import {
   recalculateTotals,
 } from './quote-internals';
 import { readStoredImage } from '../media/stored-files';
-import { catalogLineDraft, customLineDraft, lineRowData } from './line-internals';
+import { catalogLineDraft, customLineDraft, lineRowData, recipeForDisplay } from './line-internals';
 
 // -----------------------------------------------------------------------------
 // DTO
@@ -318,7 +318,7 @@ export async function getQuote(ctx: TenantContext, quoteId: string): Promise<Quo
       availability:
         snapshot?.item?.availability ??
         worstAvailability((snapshot?.components ?? []).map((component) => component.availability)),
-      recipe: snapshot?.recipe ?? null,
+      recipe: recipeForDisplay(snapshot?.recipe),
       // La foto vera del ramo (ADR-052) ha la precedenza sull'anteprima AI.
       image: line.bouquetPhoto
         ? { source: 'photo', verified: false, simulated: false }

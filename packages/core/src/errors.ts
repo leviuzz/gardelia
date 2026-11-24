@@ -107,7 +107,9 @@ export type ConflictReason =
   | 'order_not_pending'
   | 'order_date_passed'
   /** Un ordine "Por aceptar" si conferma solo con "Aceptar pedido" (che lo scrive al cliente). */
-  | 'order_needs_acceptance';
+  | 'order_needs_acceptance'
+  /** "Listo": i materiali dell'ordine non bastano nell'inventario (ADR-071). */
+  | 'order_inventory_shortage';
 
 export class ConflictError extends AppError {
   readonly code = 'conflict' as const;

@@ -17,6 +17,7 @@ import {
   type DeliveryFeeTier,
   type FulfillmentMode,
   type OrderStatus,
+  type SaleUnit,
 } from '@floral/domain';
 import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import { RadioCard } from '@/components/form/radio-card';
@@ -482,7 +483,16 @@ export function FulfillmentForm({
 }
 
 /** Pulsante di un form con più invii: l'attesa compare solo sul pulsante premuto. */
-function StepButton({ status, back }: { readonly status: OrderStatus; readonly back: boolean }) {
+function StepButton({
+  status,
+  back,
+  shortage = false,
+}: {
+  readonly status: OrderStatus;
+  readonly back: boolean;
+  /** "Listo" con la merce che non basta: il testo dice che si conferma lo stesso. */
+  readonly shortage?: boolean;
+}) {
   const t = useTranslations('orders.detail');
   const { pending, data } = useFormStatus();
   const mine = pending && data?.get('status') === status;
@@ -501,31 +511,78 @@ function StepButton({ status, back }: { readonly status: OrderStatus; readonly b
       ) : back ? (
         <Undo2 aria-hidden="true" />
       ) : null}
-      {back ? t(`back.${status as 'CONFIRMED'}`) : t(`forward.${status as 'READY'}`)}
+      {back
+        ? t(`back.${status as 'CONFIRMED'}`)
+        : shortage
+          ? t('forwardShortage')
+          : t(`forward.${status as 'READY'}`)}
     </Button>
   );
 }
 
-/** Passi consentiti (calcolati dal servizio, che li riverifica), avanti prima e correzioni dopo. */
+/** Un prodotto per cui la merce dell'inventario non basta per l'ordine (ADR-071). */
+export interface StepShortage {
+  readonly catalogItemId: string;
+  readonly name: string;
+  readonly saleUnit: SaleUnit;
+  readonly missing: number;
+}
+
+/**
+ * Passi consentiti (calcolati dal servizio, che li riverifica), avanti prima e correzioni dopo.
+ * Se per "Listo" la merce non basta (`shortages`, solo sulla scheda dell'ordine), l'avviso dice cosa
+ * manca e premere "Listo" conferma lo scarico lo stesso, come negli usi dell'inventario (ADR-060).
+ */
 export function OrderStepActions({
   action,
   current,
   steps,
+  shortages = [],
 }: {
   readonly action: Action;
   readonly current: OrderStatus;
   readonly steps: readonly OrderStatus[];
+  readonly shortages?: readonly StepShortage[];
 }) {
   const t = useTranslations('orders.detail');
+  const tInventory = useTranslations('inventory');
   const [, formAction] = useToastActionState(action);
   if (steps.length === 0) return <p className="text-sm text-muted-foreground">{t('noSteps')}</p>;
   const ordered = [...steps].sort(
     (a, b) => Number(isBackStep(current, a)) - Number(isBackStep(current, b)),
   );
+  const shortage = shortages.length > 0 && steps.includes('READY');
   return (
     <form action={formAction} className="grid gap-2">
+      {shortage ? (
+        <>
+          <Alert variant="warning" data-testid="order-shortage">
+            <TriangleExclamationPoint aria-hidden="true" />
+            <AlertDescription>
+              <p>{t('shortage')}</p>
+              <ul className="mt-1 list-disc pl-5">
+                {shortages.map((line) => (
+                  <li key={line.catalogItemId}>
+                    {t('shortageItem', {
+                      name: line.name,
+                      missing: tInventory('quantity', { unit: line.saleUnit, count: line.missing }),
+                    })}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1">{t('shortageConfirm')}</p>
+            </AlertDescription>
+          </Alert>
+          <input type="hidden" name="confirmShortage" value="on" />
+        </>
+      ) : null}
       {ordered.map((status) => (
-        <StepButton key={status} status={status} back={isBackStep(current, status)} />
+        <StepButton
+          key={status}
+          status={status}
+          back={isBackStep(current, status)}
+          shortage={shortage && status === 'READY'}
+        />
       ))}
     </form>
   );

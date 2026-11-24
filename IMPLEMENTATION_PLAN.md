@@ -558,6 +558,20 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Scarico dell'inventario dagli ordini (fatto il 23/11, ADR-071):** quando un ordine diventa "Listo" per la
+prima volta i suoi materiali escono dall'inventario (`consumeStockTx`, stessa transazione): prodotti venduti
+come tali, ricetta concordata dei ramos (lo snapshot della riga ora porta l'ID degli ingredienti; per le righe
+vecchie la ricetta attuale) e componenti dei disegni. Registro di uso con il numero dell'ordine, legato
+all'ordine (`Order.inventoryEntryId`): niente secondo scarico. Se la merce non basta la scheda lo dice e il
+pulsante diventa "Marcar listo aunque falte"; da Hoy salen e Ruta il passo si ferma con il messaggio di aprire
+l'ordine. Riquadro "Inventario" nella scheda: cosa uscirà e cosa manca, poi quando è uscito, e l'avviso se una
+parte è apartada (da liberare se è per l'ordine). Senza il piano nulla cambia. Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test 839/839 ✅ (10 nuovi
+d'integrazione: scarico unico, conferma, ricette vecchie, disegni, apartados, anulación, due clic insieme,
+piano Basic, isolamento A↔B) · migrazioni = schema ✅ · build ✅ · E2E 88/88 ✅ su database nuovo (1 nuovo: dal fiore
+controllato all'ordine "Listo" con la conferma e al movimento); controllo visivo a 320 e 1280 px. Prossimi: apartados creati
+dagli ordini confermati; chi compra che annulla da solo un ordine in attesa; esportazione e cancellazione per le
+fiorerie.
+
 **Costo di consegna per distanza (fatto il 23/11, ADR-069):** in Ajustes → Entregas fino a 8 fasce "hasta X km
 → $Y", con l'avviso se manca Google o la posizione della tienda. Distanza in linea retta dalla tienda
 all'indirizzo (coordinate di Google, mai scadute); regola unica nel dominio (fascia, fuori zona, o costo
