@@ -908,9 +908,9 @@ Verifiche locali:
 - test 933/933 ✅ (con l'eliminazione delle fiorerie dell'altra sessione): 43 nuovi, 18 di dominio,
   24 d'integrazione (isolamento fra fiorerie, due conferme insieme sulla capienza, lavori senza
   utente, cancellazione definitiva di una fioreria con contratti e visite) e 1 di convenzioni;
-- E2E Floral Care 2/2 ✅ (offerta, orario, contratto con piante, conferma, visita nell'Agenda,
-  spostamento con la casella; il banco vede ma non cambia); controllo a 320 px di tutte le pagine
-  nuove (Ajustes → Floral Care sbordava di 3 px: corretto).
+- E2E 97/97 ✅, con i 2 nuovi di Floral Care (offerta, orario, contratto con piante, conferma,
+  visita nell'Agenda, spostamento con la casella; il banco vede ma non cambia); controllo a 320 px
+  di tutte le pagine nuove (Ajustes → Floral Care sbordava di 3 px: corretto).
 
 **Da decidere col founder:** su mobile "Agenda" e "Floral Care" stanno in "Más" (la barra in
 basso ha cinque voci, ADR-054): l'Agenda può prendere il posto di un'altra voce. Prossimo: il
