@@ -134,7 +134,13 @@
     "errorReference": "Riferimento: {digest}",
     "forbiddenTitle": "Nessun accesso a questa sezione",
     "forbiddenBody": "Il tuo ruolo non permette di vedere questa sezione. Se ti serve, chiedi l’accesso a chi è titolare della fioreria.",
-    "planRequired": "Questa funzione non è inclusa nel piano della tua fioreria."
+    "planRequired": "Questa funzione non è inclusa nel piano della tua fioreria.",
+    "staleVersion": {
+      "title": "C’è una nuova versione di Gardelia",
+      "body": "Gardelia si è aggiornata mentre avevi questa pagina aperta. Ricarica la pagina per continuare; quello che non è stato salvato va riscritto.",
+      "reload": "Ricarica la pagina",
+      "toast": "Gardelia si è aggiornata: ricarica la pagina e riprova."
+    }
   },
   "landing": {
     "eyebrow": "Per le fiorerie del Messico",

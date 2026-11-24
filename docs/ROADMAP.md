@@ -100,6 +100,9 @@ dipendenze nella CI. Mancano quattro cose:
   - test di fumo dopo il deploy;
   - rollback in pochi secondi;
   - lavori giornalieri con Vercel Cron.
+- **Versioni sfasate:** la Skew Protection di Vercel (solo piano Pro) fa proseguire sulla versione
+  vecchia chi ha la pagina aperta durante un rilascio. Se capita lo stesso, l'app spiega che c'è
+  una versione nuova e offre di ricaricare (fatto il 24/11).
 - **Monitoraggio:**
   - controllo che il sito risponda, con un avviso se è giù;
   - log conservati;

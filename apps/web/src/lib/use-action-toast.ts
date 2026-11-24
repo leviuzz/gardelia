@@ -1,8 +1,10 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useActionState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { idleState, type ActionState } from './action-state';
+import { isStaleVersionError, reloadPage } from './stale-version';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -75,10 +77,24 @@ export function useActionToast(state: ActionState): void {
  * prima del commit, i suoi campi non ci sono più e gli errori diventano un toast.
  */
 export function useToastActionState(action: Action, onSuccess?: () => void) {
+  const t = useTranslations('errors.staleVersion');
   // Risultato con errori per campo arrivato dal server e non ancora disegnato da React.
   const awaitingCommit = useRef<ActionState | null>(null);
   const actionState = useActionState(async (prev: ActionState, formData: FormData) => {
-    const result = await action(prev, formData);
+    let result: ActionState;
+    try {
+      result = await action(prev, formData);
+    } catch (error) {
+      // Pagina aperta prima di un rilascio: il form resta com'è e un avviso, che non sparisce da
+      // solo, offre di ricaricare. Gli altri errori vanno al confine d'errore come sempre.
+      if (!isStaleVersionError(error)) throw error;
+      toast.error(t('toast'), {
+        id: 'stale-version',
+        duration: Infinity,
+        action: { label: t('reload'), onClick: reloadPage },
+      });
+      return prev;
+    }
     // Un risultato più recente sostituisce quello in attesa (i suoi errori non valgono più).
     awaitingCommit.current = hasFieldErrors(result) ? result : null;
     notifyResult(result);

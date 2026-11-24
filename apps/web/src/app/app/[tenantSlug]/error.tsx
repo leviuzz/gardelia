@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { startTransition } from 'react';
+import { StaleVersionNotice } from '@/components/common/stale-version-notice';
 import { Button } from '@/components/ui/button';
 import { tenantRoutes } from '@/lib/routes';
+import { isStaleVersionError } from '@/lib/stale-version';
 
 /**
  * Errore in una pagina della fioreria: il confine è DENTRO il layout, quindi menu, selettore della
@@ -23,6 +25,9 @@ export default function TenantError({
   const t = useTranslations('errors');
   const router = useRouter();
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
+
+  // Pagina aperta prima di un rilascio: non è un guasto, basta ricaricare (il menu resta).
+  if (isStaleVersionError(error)) return <StaleVersionNotice />;
 
   function retry() {
     // Gli errori dei Server Component si risolvono solo chiedendo di nuovo la pagina al server.

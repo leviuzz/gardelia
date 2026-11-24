@@ -134,7 +134,13 @@
     "errorReference": "Referencia: {digest}",
     "forbiddenTitle": "Sin acceso a esta sección",
     "forbiddenBody": "Tu rol no permite ver esta sección. Si la necesitas, pídele acceso a la persona propietaria de la florería.",
-    "planRequired": "Esta función no está incluida en el plan de tu florería."
+    "planRequired": "Esta función no está incluida en el plan de tu florería.",
+    "staleVersion": {
+      "title": "Hay una versión nueva de Gardelia",
+      "body": "Gardelia se actualizó mientras tenías esta página abierta. Recarga la página para seguir; lo que no se guardó hay que escribirlo otra vez.",
+      "reload": "Recargar la página",
+      "toast": "Gardelia se actualizó: recarga la página y vuelve a intentarlo."
+    }
   },
   "landing": {
     "eyebrow": "Para florerías de México",

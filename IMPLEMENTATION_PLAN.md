@@ -558,6 +558,15 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Pagina rimasta alla versione precedente (24/11):** il founder, cambiando l'indirizzo della tienda su
+staging con la pagina aperta da prima di un rilascio, ha visto "Algo salió mal" (l'azione del form non
+esisteva più sul server, `UnrecognizedActionError`) con un "Reintentar" inutile. Ora i confini d'errore
+riconoscono il caso (anche i pezzi di JavaScript spariti dopo un rilascio) e mostrano "Hay una versión
+nueva de Gardelia" con "Recargar la página"; i form con `useToastActionState` restano com'erano, con un
+avviso che offre di ricaricare. Testi nelle tre lingue. Verifiche: lint ✅ · typecheck ✅ · test unitari
+nuovi ✅ · E2E nuovo (risposta del server dopo un rilascio simulata, due form) ✅ · controllo a 320 px. In
+produzione si aggiunge la Skew Protection di Vercel (piano Pro, `docs/ROADMAP.md`).
+
 **Chiave di Google e ricognizione (24/11):** il founder ha creato la chiave di Google Cloud
 (`GOOGLE_MAPS_API_KEY`, solo nelle variabili di Vercel): "Buscar dirección", costo per distanza e ruta per
 vicinanza sono attivi dove c'è la chiave. Ricontrollati staging e i rami delle altre chat: nessun lavoro non

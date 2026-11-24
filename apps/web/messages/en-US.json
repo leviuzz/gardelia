@@ -134,7 +134,13 @@
     "errorReference": "Reference: {digest}",
     "forbiddenTitle": "No access to this section",
     "forbiddenBody": "Your role doesn’t let you see this section. If you need it, ask the shop’s owner for access.",
-    "planRequired": "This feature isn’t included in your shop’s plan."
+    "planRequired": "This feature isn’t included in your shop’s plan.",
+    "staleVersion": {
+      "title": "There’s a new version of Gardelia",
+      "body": "Gardelia was updated while this page was open. Reload the page to continue; anything that wasn’t saved needs to be entered again.",
+      "reload": "Reload the page",
+      "toast": "Gardelia was updated: reload the page and try again."
+    }
   },
   "landing": {
     "eyebrow": "For flower shops in Mexico",
