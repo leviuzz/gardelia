@@ -569,7 +569,15 @@ scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 - mermas con il costo;
 - ricavi ricorrenti stimati di Floral Care e i prossimi 7 giorni (pedidos e visite).
 
-Verifiche: VERIFICHE_REPORTES
+Verifiche: lint ✅ · format ✅ · typecheck ✅ · test 1032/1032 ✅
+(dominio: periodo, vendite, prodotti, margine con la quota coperta; integrazione: permessi, pedidos
+consegnati, annullati e da consegnare, confronto, cobrado, sconto ripartito, anno, mermas, isolamento A↔B)
+· build ✅ · E2E 106/106 ✅ su database nuovo (2 nuovi: mese, mese prima e anno; staff senza accesso)
+· controllo a 320 e 1280 px.
+
+Il test E2E delle lingue ha trovato un difetto vero: con "Reportes" il menu laterale non stava più in
+uno schermo da 720 px e il pulsante del conto (lingua, sicurezza, uscita) finiva fuori, senza modo di
+arrivarci. Ora il menu scorre da solo e il conto resta sempre in fondo, visibile.
 
 **Esportazione dei dati della fioreria (24/11, ADR-079):** la card "Datos de tu florería" in Ajustes
 (solo il titolare) scarica uno ZIP con un LEEME e un CSV per area:
