@@ -22,6 +22,8 @@ export const PERMISSIONS = {
   'tenant:legal:update': OWNER_ONLY,
   /** "Eliminar florería" e "Recuperar" (ADR-074). */
   'tenant:delete': OWNER_ONLY,
+  /** Scaricare tutti i dati della fioreria (ADR-079): clienti compresi, solo il titolare. */
+  'tenant:export': OWNER_ONLY,
   /** Vedere il piano della fioreria e cosa include. */
   'billing:read': MANAGEMENT,
   /** Gestire piano SaaS, addon e pagamenti (sprint billing). */
@@ -36,6 +38,8 @@ export const PERMISSIONS = {
   'catalog:write': MANAGEMENT,
   /** Vedere costi, distinta con costi e margini. */
   'catalog:costs:read': MANAGEMENT,
+  /** Reportes (ADR-080): vendite, margini e costi, quindi solo chi gestisce. */
+  'reports:read': MANAGEMENT,
   'customers:read': ALL,
   'customers:write': MANAGEMENT,
   'quotes:read': ALL,

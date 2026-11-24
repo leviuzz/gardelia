@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 24 novembre 2026 (Floral Care, cargos e pagamenti, ADR-081; la visita dal telefono e le visite extra, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 24 novembre 2026 (Floral Care, cargos e pagamenti, ADR-081; reportes, ADR-080; esportazione dei dati, ADR-079; Floral Care, la visita dal telefono e le visite extra, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -2333,6 +2333,78 @@ di Clientes; una visita extra si fissa in un orario di visita oppure a un'ora li
   coerente con la cotización o la visita che l'hanno chiusa.
 - **Non fatto (2b):** il cliente che chiede una visita extra dal portale (blocco 5); i cargos delle
   visite extra (blocco 3); il collegamento inverso dalla cotización al contratto nell'editor.
+
+### ADR-079 — Esportazione dei dati della fioreria — ADOTTATO (24/11/2026)
+
+Voce 15 di `docs/V1_SCOPE.md`, chiesta dal founder ("fai la 1"). Completa l'eliminazione della
+fioreria (ADR-074): prima di eliminarla, i dati si portano via.
+
+- **Chi e dove:** solo il titolare (`tenant:export`, OWNER): contiene i dati personali di tutti i
+  clienti. Card "Datos de tu florería" in Ajustes e promemoria nella pagina "Eliminar florería".
+  La rotta `/app/<slug>/settings/export` risponde 404 a chi non può, come le immagini private.
+- **Cosa:** uno ZIP con un `LEEME.txt` e un CSV per area:
+  - clienti, indirizzi e date speciali;
+  - catalogo e ricette;
+  - cotizaciones e loro concetti;
+  - pedidos, loro concetti e pagamenti (le anulaciones con importo negativo);
+  - inventario, movimenti e fornitori;
+  - squadra;
+  - Floral Care (contratti, visite, piante).
+
+  Le colonne `id` collegano i file. Non contiene foto, immagini del Diseñador e registro di
+  attività: il LEEME lo dice.
+
+- **Formato:**
+  - CSV UTF-8 con BOM e righe CRLF (Excel e Google Sheets li aprono con gli accenti giusti);
+  - importi con il punto decimale;
+  - date nel fuso della fioreria;
+  - stati e tipi con le parole dell'app, nella lingua del mercato (es-MX, come le email ai clienti).
+- **Sicurezza:**
+  - i testi che cominciano con `=`, `+`, `-`, `@` si fanno precedere da un apostrofo, così Excel
+    non li esegue come formule (CSV injection, es. un cliente chiamato `=HYPERLINK(…)`);
+  - importi, quantità e telefoni (formato controllato dal server) restano numeri;
+  - tutto si legge nel contesto della fioreria con la RLS;
+  - nel registro (`tenant.data_exported`) solo i conteggi per file, mai i dati.
+- **Tecnica:** ZIP fatto in memoria con `fflate` (nuova dipendenza di `core`, senza dipendenze,
+  versione fissa). Per le fiorerie della V1 bastano pochi MB; con archivi molto grandi servirà
+  generarlo in background e mandarlo per email.
+
+### ADR-080 — Reportes: vendite, prodotti, margine dichiarato, mermas e prossimi giorni — ADOTTATO (24/11/2026)
+
+Voce 11 di `docs/V1_SCOPE.md` (BI-01 P0 dello spec), chiesta dal founder ("fai la 1 e poi la 2").
+Nuova pagina "Reportes" nel menu, solo per chi gestisce (`reports:read`: owner e manager), perché
+mostra vendite, margini e costi.
+
+- **Periodo:** il mese, con frecce avanti e indietro, oppure l'anno; mai il futuro. Ogni numero
+  principale si confronta con il periodo prima (mese prima o anno prima).
+- **Ventas:**
+  - pedidos consegnati o ritirati con il giorno di consegna nel periodo: il totale del pedido, con
+    consegna e sconto;
+  - ordini e ticket medio;
+  - a parte, quanto c'è ancora "por entregar" fra i pedidos confermati del periodo;
+  - grafico per giorno o per mese: una sola serie, barre sottili, tooltip e tabella per chi usa un
+    lettore di schermo.
+- **Cobrado:** i pagamenti registrati con data nel periodo; le anulaciones sottraggono.
+- **Lo más vendido:** i 10 prodotti per importo, antes de descuentos. I disegni del Diseñador
+  contano insieme, i concetti liberi per descrizione.
+- **Margen bruto:** solo sulle righe con il costo (spec 5.8: "se mancano i costi non mostrare margini
+  apparentemente accurati").
+  - Lo sconto del pedido si ripartisce sulle righe; la consegna non entra.
+  - La pagina dice sempre su che quota delle vendite è calcolato e quante righe non hanno costo.
+  - Senza nessun costo non c'è margine, ma l'invito a completare il catalogo.
+- **Mermas:** dall'inventario, come il riepilogo del mese (ADR-063), con il costo dove c'è. Solo
+  con l'inventario nel piano.
+- **Floral Care:** ricavi ricorrenti stimati al mese dei contratti attivi (`estimateCareMonth`, da–a
+  quando le visite settimanali variano). I cargos e pagamenti veri di Floral Care sono dell'altra
+  linea di lavoro (blocco 3 di `docs/FLORAL_CARE_PLAN.md`).
+- **Próximos 7 días:** pedidos da consegnare e visite programmate, con i link al calendario e
+  all'Agenda.
+- **IVA:** gli importi sono quelli dei pedidos, senza scorporo (O-06, ADR-076); la pagina lo dice.
+- **Non fatto (P1 dello spec):**
+  - funnel cotización → pedido, retention, valore dei clienti;
+  - profitto per ramo;
+  - confronto fra sedi;
+  - export dei report (i dati grezzi ci sono già, ADR-079).
 
 ### ADR-081 — Floral Care, blocco 3: cargos e pagamenti dei contratti — ADOTTATO (24/11/2026)
 

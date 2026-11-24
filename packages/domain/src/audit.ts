@@ -42,6 +42,8 @@ export const AUDIT_ACTIONS = {
   /** Eliminazione programmata e annullata (ADR-074). */
   tenantDeletionRequested: 'tenant.deletion_requested',
   tenantDeletionCancelled: 'tenant.deletion_cancelled',
+  /** Dati della fioreria scaricati dal titolare (ADR-079): solo i conteggi nei metadati. */
+  tenantDataExported: 'tenant.data_exported',
   locationUpdated: 'location.updated',
   deliverySettingsUpdated: 'delivery_settings.updated',
   deliveryWindowAdded: 'delivery_window.added',

@@ -1,4 +1,4 @@
-import { ChevronRight, Gem, Info, MapPinOff, Sprout, Store, Trash2 } from 'lucide-react';
+import { ChevronRight, Download, Gem, Info, MapPinOff, Sprout, Store, Trash2 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -365,6 +365,28 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
           />
         </CardContent>
       </Card>
+
+      {/* I dati della fioreria in uno ZIP di CSV (ADR-079): solo il titolare. */}
+      {hasPermission(ctx, 'tenant:export') ? (
+        <Card id="data" className="scroll-mt-24" data-testid="export-data">
+          <CardHeader>
+            <CardTitle>{t('settings.export.title')}</CardTitle>
+            <CardDescription>{t('settings.export.subtitle')}</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-2">
+            <div>
+              <Button asChild variant="outline">
+                {/* File generato dal server: si scarica, non si apre come pagina. */}
+                <a href={tenantRoutes(slug).settings.exportData} download>
+                  <Download />
+                  {t('settings.export.download')}
+                </a>
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">{t('settings.export.hint')}</p>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Zona di pericolo: solo il titolare elimina la fioreria (ADR-074). */}
       {hasPermission(ctx, 'tenant:delete') ? (

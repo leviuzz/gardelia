@@ -558,6 +558,43 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Reportes (24/11, ADR-080):** nuova voce "Reportes" nel menu, per owner e manager. Mostra il mese
+(frecce avanti e indietro) o l'anno, con il confronto sul periodo prima:
+
+- vendite, pedidos consegnati, ticket medio, cobrado e quanto resta da consegnare;
+- grafico per giorno o per mese;
+- i 10 prodotti più venduti;
+- margine lordo solo sulle righe con il costo, con lo sconto ripartito, dicendo su che quota delle
+  vendite è calcolato;
+- mermas con il costo;
+- ricavi ricorrenti stimati di Floral Care e i prossimi 7 giorni (pedidos e visite).
+
+Verifiche: lint ✅ · format ✅ · typecheck ✅ · test 1032/1032 ✅
+(dominio: periodo, vendite, prodotti, margine con la quota coperta; integrazione: permessi, pedidos
+consegnati, annullati e da consegnare, confronto, cobrado, sconto ripartito, anno, mermas, isolamento A↔B)
+· build ✅ · E2E 106/106 ✅ su database nuovo (2 nuovi: mese, mese prima e anno; staff senza accesso)
+· controllo a 320 e 1280 px.
+
+Il test E2E delle lingue ha trovato un difetto vero: con "Reportes" il menu laterale non stava più in
+uno schermo da 720 px e il pulsante del conto (lingua, sicurezza, uscita) finiva fuori, senza modo di
+arrivarci. Ora il menu scorre da solo e il conto resta sempre in fondo, visibile.
+
+**Esportazione dei dati della fioreria (24/11, ADR-079):** la card "Datos de tu florería" in Ajustes
+(solo il titolare) scarica uno ZIP con un LEEME e un CSV per area:
+
+- clienti, indirizzi e date speciali;
+- catalogo e ricette;
+- cotizaciones e pedidos con i loro concetti e i pagamenti;
+- inventario, movimenti e fornitori;
+- squadra e Floral Care.
+
+I file si aprono con Excel e gli accenti giusti; i nomi dei clienti non diventano formule. Gli
+stati usano le parole dell'app e le date sono nel fuso della fioreria. La pagina "Eliminar florería"
+ricorda di scaricarli prima. Verifiche: lint ✅ · format ✅ · typecheck ✅ · test 1019/1019 ✅ (dominio: CSV con virgolette, BOM e
+protezione dalle formule; integrazione: solo il titolare, contenuto dei file riletti dallo ZIP, isolamento
+A↔B, registro senza PII) · build ✅ · E2E 104/104 ✅ su database nuovo (2 nuovi: il titolare scarica lo
+ZIP, lo staff non vede la card e la rotta risponde 404).
+
 **Sicurezza del conto (24/11, ADR-077):** voce 1 della V1 e primi due punti di sicurezza della
 roadmap. La pagina "Seguridad de la cuenta" (`/seguridad`) è per tutti e ci si arriva dal menu della
 persona e da "Mi cuenta".
@@ -1095,12 +1132,12 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
 5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078) e 3a (ADR-081) fatti;
    3b e blocchi 4–7 in `docs/FLORAL_CARE_PLAN.md`.
-6. Report.
+6. Report: fatti (ADR-080); restano i P1 dello spec (funnel, retention, profitto per ramo).
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.
 8. Abbonamento a pagamento sui livelli Esencial e Profesional (D-23; Stripe in modalità di prova) e
    pannello della piattaforma.
-9. Privacy nell'app: pagine e diritti di chi compra fatti (ADR-068), eliminazione della fioreria fatta
-   (ADR-074); mancano esportazione dei dati della fioreria, consensi se l'avvocato li chiede, testi definitivi.
+9. Privacy nell'app: pagine e diritti di chi compra fatti (ADR-068), eliminazione (ADR-074) ed
+   esportazione dei dati della fioreria (ADR-079) fatte; mancano consensi se l'avvocato li chiede e testi definitivi.
 10. Rifinitura generale; Diseñador con foto vere (contenitori, dimensione del ramo, copertina,
     "usa l'originale"); prova da ~100 immagini → prezzi dei pacchetti (ADR-024); prova con i tester.
     Contador: IVA e fatturazione (O-06, O-02). Poi il lancio.

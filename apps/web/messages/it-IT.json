@@ -588,7 +588,8 @@
     "promotions": "Promozioni",
     "orders": "Ordini",
     "agenda": "Agenda",
-    "care": "Floral Care"
+    "care": "Floral Care",
+    "reports": "Report"
   },
   "roles": {
     "OWNER": "Titolare",
@@ -637,7 +638,8 @@
       "updated": "{actor} ha aggiornato i dati della fioreria",
       "promo_updated": "{actor} ha cambiato la promozione delle date speciali",
       "deletion_requested": "{actor} ha programmato l’eliminazione della fioreria",
-      "deletion_cancelled": "{actor} ha recuperato la fioreria"
+      "deletion_cancelled": "{actor} ha recuperato la fioreria",
+      "data_exported": "{actor} ha scaricato i dati della fioreria"
     },
     "location": {
       "updated": "{actor} ha aggiornato l’indirizzo del negozio"
@@ -1035,7 +1037,8 @@
       "confirmTitle": "Conferma l’eliminazione",
       "confirmBody": "Per evitare errori, scrivi il nome della fioreria così come compare.",
       "confirmLabel": "Nome della fioreria: {name}",
-      "submit": "Elimina fioreria"
+      "submit": "Elimina fioreria",
+      "exportFirst": "Prima di eliminarla, <link>scarica i dati della tua fioreria</link>: dopo la cancellazione definitiva non si possono più recuperare."
     },
     "quotes": {
       "title": "Preventivi",
@@ -1057,6 +1060,12 @@
       "addRangeFor": "Aggiungi fascia il {day}",
       "saved": "Orari salvati",
       "deliveryMismatch": "Il negozio è chiuso in questi giorni, ma nelle Consegne accetti consegne e ritiri: {days}. Se quei giorni non lavori, segnali come chiusi nelle Consegne."
+    },
+    "export": {
+      "title": "Dati della tua fioreria",
+      "subtitle": "Scarica clienti, ordini, preventivi, pagamenti, catalogo, inventario, squadra e Floral Care in file che si aprono con Excel o Google Sheets.",
+      "download": "Scarica i dati (ZIP)",
+      "hint": "Un file per area, con un LEEME che spiega ognuno. Non include le foto. Scaricarli non cancella nulla."
     }
   },
   "team": {
@@ -4106,5 +4115,71 @@
       "othersRevoked": "Sessioni chiuse sugli altri dispositivi",
       "note": "Sull'altro dispositivo la sessione finisce entro pochi minuti."
     }
+  },
+  "reports": {
+    "title": "Report",
+    "subtitle": "Come va la tua fioreria: vendite, prodotti, margine e cosa arriva.",
+    "periodNav": "Periodo",
+    "previous": "Periodo precedente: {period}",
+    "next": "Periodo successivo",
+    "viewBy": "Vedi per",
+    "month": "Mese",
+    "year": "Anno",
+    "vsPrevious": "vs. {period}",
+    "kpi": {
+      "sales": "Vendite",
+      "orders": "Ordini consegnati",
+      "average": "Scontrino medio",
+      "collected": "Incassato",
+      "collectedHint": "Pagamenti registrati con data nel periodo.",
+      "toDeliver": "Più {amount} in {count, plural, one {# ordine} other {# ordini}} da consegnare"
+    },
+    "chart": {
+      "byDay": "Vendite per giorno",
+      "byMonth": "Vendite per mese",
+      "subtitle": "Ordini consegnati o ritirati, per data di consegna.",
+      "caption": "Vendite di {period}",
+      "dayColumn": "Giorno",
+      "monthColumn": "Mese"
+    },
+    "empty": "Ancora nessun ordine consegnato in questo periodo.",
+    "top": {
+      "title": "I più venduti",
+      "subtitle": "Per importo, prima degli sconti.",
+      "empty": "Nessuna vendita in questo periodo.",
+      "builder": "Disegni del Diseñador",
+      "quantity": "{count, plural, one {# unità} other {# unità}}"
+    },
+    "margin": {
+      "title": "Margine lordo",
+      "subtitle": "Vendite dei prodotti meno il loro costo.",
+      "noSales": "Nessuna vendita in questo periodo.",
+      "noCosts": "Per vedere il margine, aggiungi il costo dei tuoi prodotti.",
+      "toCatalog": "Vai al catalogo",
+      "percent": "{percent}%",
+      "partial": "Calcolato solo sul {percent}% delle vendite di prodotti ({covered} di {total}): {count, plural, one {# voce non ha costo e non conta} other {# voci non hanno costo e non contano}}.",
+      "complete": "Costo del venduto: {cost}.",
+      "note": "Non include la consegna. Gli sconti si ripartiscono fra i prodotti dell'ordine."
+    },
+    "waste": {
+      "title": "Scarti",
+      "subtitle": "Quello che si è buttato nel periodo, con il suo costo.",
+      "none": "Nessuno scarto registrato in questo periodo.",
+      "noCost": "senza costo",
+      "partial": "Alcuni scarti non hanno costo: il totale può essere maggiore.",
+      "toInventory": "Vai all'inventario"
+    },
+    "upcoming": {
+      "title": "Prossimi 7 giorni",
+      "subtitle": "Dal {from} al {to}.",
+      "orders": "{count, plural, =0 {Nessun ordine da consegnare} one {# ordine da consegnare} other {# ordini da consegnare}}",
+      "visits": "{count, plural, =0 {Nessuna visita di Floral Care} one {# visita di Floral Care} other {# visite di Floral Care}}"
+    },
+    "recurring": {
+      "none": "Floral Care: nessun contratto attivo.",
+      "exact": "Floral Care: {amount} al mese ({count, plural, one {# contratto attivo} other {# contratti attivi}}).",
+      "range": "Floral Care: fra {min} e {max} al mese ({count, plural, one {# contratto attivo} other {# contratti attivi}})."
+    },
+    "footnote": "Gli importi sono quelli dei tuoi ordini; lo scorporo dell'IVA non è ancora disponibile."
   }
 }

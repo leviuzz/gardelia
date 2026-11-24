@@ -60,6 +60,9 @@ export function tenantRoutes(slug: string) {
       photo: (photoId: string, size: CatalogPhotoSize = 'full') =>
         sized(`${catalog}/photos/${segment(photoId)}`, size),
     },
+    /** Reportes (ADR-080): `mes` = AAAA-MM oppure `ano` = AAAA; senza = il mese di oggi. */
+    reports: (query?: { readonly mes?: string; readonly ano?: string }) =>
+      withQuery(`${home}/reports`, query),
     /** Calendario delle date speciali dei clienti (`view`: month, week, day, agenda). */
     calendar: (query?: { readonly view?: string; readonly date?: string }) =>
       withQuery(`${home}/calendar`, query),
@@ -212,6 +215,8 @@ export function tenantRoutes(slug: string) {
       care: `${settings}/floral-care`,
       /** "Eliminar florería" (ADR-074), solo per il titolare. */
       deleteShop: `${settings}/delete`,
+      /** ZIP con i dati della fioreria (ADR-079), solo per il titolare. */
+      exportData: `${settings}/export`,
       /** Anteprima di logo o copertina nelle impostazioni (`v` = ID attuale, contro la cache). */
       storeImage: (kind: 'LOGO' | 'COVER', imageId: string) =>
         withQuery(`${settings}/store/image/${kind === 'LOGO' ? 'logo' : 'cover'}`, { v: imageId }),
