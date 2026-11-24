@@ -39,3 +39,5 @@ export * from './team';
 export * from './tenant';
 export * from './tenant-deletion';
 export * from './validation';
+export * from './two-factor';
+export * from './user-agent';

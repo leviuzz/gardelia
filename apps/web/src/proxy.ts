@@ -10,7 +10,7 @@ import { NextResponse, type NextRequest } from 'next/server';
  * Il punto 3 NON è un controllo di sicurezza: la verifica autorevole di sessione e
  * membership avviene lato server in ogni pagina/server action (lib/session.ts, lib/tenant.ts).
  */
-const PROTECTED_PREFIXES = ['/app', '/onboarding'];
+const PROTECTED_PREFIXES = ['/app', '/onboarding', '/seguridad'];
 
 function buildCsp(nonce: string): string {
   const isDev = process.env.NODE_ENV === 'development';

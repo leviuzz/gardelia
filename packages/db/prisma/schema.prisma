@@ -38,20 +38,23 @@ enum UserStatus {
 }
 
 model User {
-  id            String       @id @default(uuid(7)) @db.Uuid
-  name          String
-  email         String       @unique
-  emailVerified Boolean      @default(false)
-  image         String?
+  id               String       @id @default(uuid(7)) @db.Uuid
+  name             String
+  email            String       @unique
+  emailVerified    Boolean      @default(false)
+  image            String?
   /// Lingua preferita dell'interfaccia (BCP 47), es. "es-MX".
-  locale        String       @default("es-MX")
+  locale           String       @default("es-MX")
   /// Ruolo di piattaforma: MAI impostabile dall'utente in fase di registrazione.
-  platformRole  PlatformRole @default(NONE)
-  status        UserStatus   @default(ACTIVE)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  platformRole     PlatformRole @default(NONE)
+  status           UserStatus   @default(ACTIVE)
+  /// Verifica in due passaggi attiva (Better Auth, ADR-077).
+  twoFactorEnabled Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   sessions           Session[]
+  twoFactors         TwoFactor[]
   accounts           Account[]
   memberships        Membership[]  @relation("MembershipUser")
   invitedMemberships Membership[]  @relation("MembershipInviter")
@@ -73,6 +76,25 @@ model Session {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// Verifica in due passaggi (Better Auth, ADR-077): segreto dell'app di autenticazione e codici di
+/// riserva, cifrati da Better Auth con BETTER_AUTH_SECRET; tentativi falliti e blocco temporaneo.
+/// Tabella di identità: senza RLS, come Session e Account (la libreria la legge prima del contesto).
+model TwoFactor {
+  id                      String    @id @default(uuid(7)) @db.Uuid
+  secret                  String
+  backupCodes             String
+  userId                  String    @db.Uuid
+  /// Falso finché la persona non conferma il primo codice.
+  verified                Boolean   @default(true)
+  failedVerificationCount Int       @default(0)
+  lockedUntil             DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Una sola configurazione per persona (Better Auth la aggiorna, non ne aggiunge).
+  @@unique([userId])
 }
 
 model Account {

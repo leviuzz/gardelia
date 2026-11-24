@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { authClient, authErrorKey } from '@/lib/auth-client';
+import { securityRoutes } from '@/lib/routes';
 import { useHydrated } from '@/lib/use-hydrated';
 
 export function LoginForm({ next, defaultEmail }: { next: string; defaultEmail: string }) {
@@ -37,6 +38,11 @@ export function LoginForm({ next, defaultEmail }: { next: string; defaultEmail: 
         const key = authErrorKey(result.error);
         if (key === 'EMAIL_NOT_VERIFIED') setNotice(t('errors.EMAIL_NOT_VERIFIED'));
         else setError(t(`errors.${key}`));
+        return;
+      }
+      // Verifica in due passaggi (ADR-077): la password va bene, manca il codice.
+      if (result.data && 'twoFactorRedirect' in result.data && result.data.twoFactorRedirect) {
+        router.push(securityRoutes.verify(next));
         return;
       }
       router.replace(next);

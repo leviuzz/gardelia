@@ -205,6 +205,7 @@ export * from './services/public-links';
 export * from './services/quotes';
 export * from './services/recipes';
 export * from './services/team';
+export * from './services/account-security';
 export * from './services/letterhead';
 export * from './services/opening-hours';
 export * from './services/tenants';

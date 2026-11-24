@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 24 novembre 2026 (vigencia, orario e logo nelle stampe, ADR-076; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 24 novembre 2026 (sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -2180,6 +2180,56 @@ di apertura, validità predefinita dei preventivi, IVA"). Prima di cominciare: a
   Con le risposte si aggiunge un `taxMode` per fioreria (oggi sempre `PRICES_FINAL`), con le colonne
   `tax` già presenti nel preventivo e il CHECK `total = subtotal − discount + tax`.
 
+### ADR-077 — Sicurezza del conto: verifica in due passaggi e dispositivi collegati — ADOTTATO (24/11/2026)
+
+Voce 1 di `docs/V1_SCOPE.md` e primi due punti "a prova di bomba" di `docs/ROADMAP.md`, chiesti
+dal founder. Scelta sua: **obbligatoria per i titolari dopo 14 giorni** (tra "subito", "dopo 14
+giorni" e "facoltativa"). Realizza P-09.
+
+- **Pagina "Seguridad de la cuenta" (`/seguridad`):** per tutti, fioristi e chi compra, fuori dalla
+  fioreria perché riguarda la persona e non il negozio. Ci si arriva dal menu della persona, da "Mi
+  cuenta", dall'avviso nel pannello o dall'obbligo.
+- **Verifica in due passaggi con Better Auth (plugin `twoFactor`):**
+  - **Come si attiva:** password, poi QR (disegnato nel browser con `uqr`, nessun server o URL vede
+    la chiave) o la chiave a mano, poi il primo codice. Alla fine 10 codici di respaldo da copiare
+    o scaricare, ognuno vale una volta.
+  - **All'accesso con email e password:** il passo `/verificacion` chiede il codice dell'app o un
+    codice di respaldo. "Confiar en este dispositivo" vale 30 giorni.
+  - **Protezioni di Better Auth:** limite ai tentativi (3 ogni 10 secondi su `/two-factor/*`), blocco
+    del conto dopo 10 codici sbagliati per 15 minuti. Il segreto e i codici sono cifrati con
+    `BETTER_AUTH_SECRET`.
+  - **Chiamate dal browser:** attivazione, codice, nuovi codici e disattivazione passano da
+    `/api/auth` (con il rate limiting), non da server action.
+- **Chi deve attivarla:**
+  - **Obbligatoria per:** chi ha una password ed è titolare di una fioreria vera (non demo) e attiva.
+    Chi entra solo con Google è protetto dal suo account Google e non ha obblighi. Manager e staff
+    possono attivarla, senza obbligo.
+  - **Avviso:** nel pannello, con la data.
+  - **Scadenza:** 14 giorni dall'ultima modifica della membership di titolare più vecchia. Così chi
+    diventa titolare dopo essere stato manager ha i suoi 14 giorni.
+  - **Dopo la scadenza:** `getTenantContext` manda a `/seguridad?requerida=1` qualsiasi pagina o
+    azione di una fioreria. Si può solo attivarla o uscire.
+  - **Disattivarla:** è possibile (es. telefono nuovo), con un avviso se è obbligatoria.
+- **Dispositivi collegati:**
+  - Elenco delle sessioni aperte, con browser e sistema riconosciuti dal user agent, inizio e ultimo
+    uso.
+  - "Cerrar sesión" su un altro dispositivo e "Cerrar sesión en los demás dispositivos".
+  - Le sessioni si cancellano nel database, solo fra quelle della persona e mai quella in uso.
+    L'endpoint di Better Auth chiederebbe una sessione "fresca" di meno di un giorno.
+  - Il dispositivo chiuso esce entro 5 minuti (cache della sessione nel cookie): la pagina lo dice.
+- **Registro:** eventi di piattaforma `security.*` con il solo ID della persona: verifica attivata o
+  tolta, codici rigenerati, una o tutte le altre sessioni chiuse. Mai codici né segreti.
+- **Database:** `User.twoFactorEnabled` e la tabella `TwoFactor` (una per persona). È una tabella di
+  identità di Better Auth, **senza RLS** come `Session` e `Account`, perché la libreria la legge
+  prima che esista un contesto. Il segreto vi è cifrato. Il test RLS la elenca fra le eccezioni
+  motivate.
+- **Supporto:** chi perde telefono e codici di respaldo non entra più con la password.
+  L'operazione di piattaforma `reset-two-factor` (CLI e workflow "Operazioni di piattaforma", solo
+  amministratore, con audit `platform.two_factor_reset`) toglie la verifica e chiude tutte le sue
+  sessioni, dopo che il founder ha verificato chi è (guida in `docs/DEPLOY_VERCEL.md`).
+- **Non fatto:** avvisi via email (verifica tolta, nuovo dispositivo) con Sentry e gli altri avvisi
+  (punto 3 della lista in `docs/ROADMAP.md`); chiavi di accesso (passkey).
+
 ## 3. Proposte da approvare
 
 | ID   | Proposta                                                                                                                                                                               | Motivazione                                                                                                                                  | Quando serve                 |
@@ -2192,7 +2242,7 @@ di apertura, validità predefinita dei preventivi, IVA"). Prima di cominciare: a
 | P-06 | Prezzi di catalogo intesi **IVA inclusa**, aliquota configurabile per tenant                                                                                                           | Prassi consumer in Messico; da validare con un contador                                                                                      | Sprint 1 (preventivi)        |
 | P-07 | Provider email transazionale con dominio verificato (SPF/DKIM/DMARC)                                                                                                                   | Recapito affidabile di verifiche e inviti                                                                                                    | Prima del pilota             |
 | P-08 | Numerazione preventivi/ordini per tenant con contatore transazionale (`COT-0001`)                                                                                                      | Numeri leggibili e senza buchi per il fiorista                                                                                               | Sprint 1                     |
-| P-09 | 2FA (TOTP) per OWNER (il login con Google è adottato: ADR-036)                                                                                                                         | Meno attrito; più sicurezza per chi gestisce dati fiscali                                                                                    | Sprint 4                     |
+| P-09 | ✅ **ADOTTATA** (founder, 24/11/2026) — 2FA (TOTP) per OWNER, obbligatoria dopo 14 giorni: ADR-077 (il login con Google è adottato: ADR-036)                                           | Meno attrito; più sicurezza per chi gestisce dati fiscali                                                                                    | Sprint 4                     |
 
 ---
 
