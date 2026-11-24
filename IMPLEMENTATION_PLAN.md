@@ -1118,8 +1118,9 @@ le sedi; lo staff segna gli incassi "por registrar"). Diviso in 3a (questo) e 3b
   già confermati hanno preso quelle di oggi con la migrazione.
 - Il dialogo condiviso ora scorre da solo negli schermi bassi (chiusa la nota del 2b).
 - **Unione con staging:** nel frattempo l'altra linea di lavoro ha portato su staging l'esportazione
-  dei dati (ADR-079) e i Reportes (ADR-080), quindi l'ADR dei cargos è diventato ADR-082. Lo ZIP
-  dell'esportazione ora contiene anche cargos, loro righe e pagamenti di Floral Care.
+  dei dati (ADR-079), i Reportes (ADR-080) e il catalogo completo (ADR-081), quindi l'ADR dei
+  cargos è diventato ADR-082. Lo ZIP dell'esportazione ora contiene anche cargos, loro righe e
+  pagamenti di Floral Care.
 
 Verifiche locali:
 
@@ -1137,8 +1138,9 @@ Verifiche locali:
   ne aveva 186. Ora quei test cercano il cliente per nome (`e2e/support/customers.ts`). Gli 8 file
   rilanciati: 28/28 ✅; cotizaciones e link pubblici ripetuti 3 volte: 24/24 ✅. Floral Care 5/5 ✅,
   compreso il nuovo "cargos y pagos";
-- dopo l'unione con staging: lint ✅ · format ✅ · typecheck ✅ · test 1074/1074 ✅ (con reports ed
-  esportazione; nello ZIP anche cargos, righe e pagamenti) · build ✅ · E2E 107/107 ✅;
+- dopo l'unione con staging (reports ed esportazione): lint ✅ · format ✅ · typecheck ✅ · test
+  1074/1074 ✅ (nello ZIP anche cargos, righe e pagamenti) · build ✅ · E2E 107/107 ✅; dopo quella
+  del catalogo completo: lint ✅ · format ✅ · typecheck ✅ · test 1103/1103 ✅, E2E nella CI;
 - controllo a 320 px di pannello, Cobros, cargo, dialogo del pagamento, estado de cuenta, contratto,
   elenco e impostazioni: nessuno sbordo.
 
