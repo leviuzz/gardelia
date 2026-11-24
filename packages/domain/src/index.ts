@@ -33,6 +33,7 @@ export * from './promotions';
 export * from './public-link';
 export * from './opening-hours';
 export * from './quote';
+export * from './reports';
 export * from './recipe';
 export * from './route';
 export * from './sketch';

@@ -269,5 +269,6 @@ export * from './services/team';
 export * from './services/account-security';
 export * from './services/letterhead';
 export * from './services/opening-hours';
+export * from './services/reports';
 export * from './services/tenant-export';
 export * from './services/tenants';

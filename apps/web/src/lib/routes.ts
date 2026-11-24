@@ -60,6 +60,9 @@ export function tenantRoutes(slug: string) {
       photo: (photoId: string, size: CatalogPhotoSize = 'full') =>
         sized(`${catalog}/photos/${segment(photoId)}`, size),
     },
+    /** Reportes (ADR-080): `mes` = AAAA-MM oppure `ano` = AAAA; senza = il mese di oggi. */
+    reports: (query?: { readonly mes?: string; readonly ano?: string }) =>
+      withQuery(`${home}/reports`, query),
     /** Calendario delle date speciali dei clienti (`view`: month, week, day, agenda). */
     calendar: (query?: { readonly view?: string; readonly date?: string }) =>
       withQuery(`${home}/calendar`, query),

@@ -38,6 +38,8 @@ export const PERMISSIONS = {
   'catalog:write': MANAGEMENT,
   /** Vedere costi, distinta con costi e margini. */
   'catalog:costs:read': MANAGEMENT,
+  /** Reportes (ADR-080): vendite, margini e costi, quindi solo chi gestisce. */
+  'reports:read': MANAGEMENT,
   'customers:read': ALL,
   'customers:write': MANAGEMENT,
   'quotes:read': ALL,

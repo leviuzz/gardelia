@@ -75,6 +75,17 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
       icon: 'inventory',
       secondary: true,
     },
+    // Reportes (ADR-080): vendite e margini, solo per chi gestisce.
+    ...(hasPermission(ctx, 'reports:read')
+      ? [
+          {
+            href: routes.reports(),
+            label: t('nav.reports'),
+            icon: 'reports' as const,
+            secondary: true,
+          },
+        ]
+      : []),
     // Sezioni d'uso occasionale: su mobile finiscono nel menu "Más".
     ...(hasPermission(ctx, 'members:read')
       ? [
