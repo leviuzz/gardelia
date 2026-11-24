@@ -63,7 +63,8 @@
     "builder_color_required": "Elige el color del empaque o del complemento.",
     "invalid_time_window": "Indica la hora de inicio y la de fin, en orden.",
     "payment_exceeds_balance": "El importe es mayor que lo que falta por cobrar.",
-    "tenant_deletion_name_mismatch": "El nombre no coincide con el de la florería."
+    "tenant_deletion_name_mismatch": "El nombre no coincide con el de la florería.",
+    "opening_hours_overlap": "Este horario se cruza con otro del mismo día: júntalos en uno solo."
   },
   "errors": {
     "validation": "Revisa los campos marcados.",
@@ -454,7 +455,7 @@
     "imagesTitle": "Logo y portada",
     "imagesSubtitle": "Así reconocen tu florería en la página y cuando compartes el enlace.",
     "logo": "Logo",
-    "logoHint": "De preferencia cuadrado; se ve pequeño junto al nombre.",
+    "logoHint": "De preferencia cuadrado. Se ve junto al nombre en tu tienda en línea y en el encabezado de cotizaciones y pedidos impresos.",
     "cover": "Foto de portada",
     "coverHint": "Horizontal: tu tienda, tus flores o tu mejor arreglo.",
     "logoFile": "Archivo del logo",
@@ -550,7 +551,10 @@
     "orderHow": "Eliges en línea, la florería confirma y le pagas directo.",
     "orderOnline": "Pedir en línea",
     "feeByDistance": "Envío según la distancia: {tiers}.",
-    "feeTier": "hasta {km} km {fee}"
+    "feeTier": "hasta {km} km {fee}",
+    "hoursTitle": "Horario de atención",
+    "hoursClosed": "Cerrado",
+    "hoursDays": "{first} a {last}"
   },
   "timezones": {
     "America/Mexico_City": "Tiempo del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -968,7 +972,7 @@
     "title": "Ajustes",
     "subtitle": "Datos de tu florería y de la tienda principal.",
     "profileTitle": "Perfil de la florería",
-    "profileSubtitle": "Nombre, contacto y zona horaria.",
+    "profileSubtitle": "Nombre, logo, contacto y zona horaria.",
     "legalTitle": "Datos fiscales",
     "legalSubtitle": "Solo la persona propietaria puede modificarlos. La facturación electrónica (CFDI) aún no está disponible.",
     "legalReadOnly": "Solo la persona propietaria puede modificar estos datos.",
@@ -1028,6 +1032,27 @@
       "confirmBody": "Para evitar errores, escribe el nombre de la florería tal como aparece.",
       "confirmLabel": "Nombre de la florería: {name}",
       "submit": "Eliminar florería"
+    },
+    "quotes": {
+      "title": "Cotizaciones",
+      "subtitle": "Cuánto tiempo valen las cotizaciones nuevas.",
+      "validityLabel": "Vigencia (días)",
+      "validityHint": "Las cotizaciones nuevas vencen estos días después de crearse (de 1 a {max}). En cada cotización puedes cambiar la fecha.",
+      "saved": "Vigencia guardada"
+    },
+    "hours": {
+      "title": "Horario de atención",
+      "subtitle": "Cuándo está abierta tu tienda. Se ve en tu tienda en línea y en las cotizaciones impresas. Puedes poner varios horarios en un día, por ejemplo si cierras a mediodía.",
+      "open": "Abierto",
+      "closed": "Cerrado",
+      "openDay": "Abierto el {day}",
+      "from": "{day}, horario {n}: desde",
+      "to": "{day}, horario {n}: hasta",
+      "removeRange": "Quitar el horario {n} del {day}",
+      "addRange": "Agregar horario",
+      "addRangeFor": "Agregar horario el {day}",
+      "saved": "Horario guardado",
+      "deliveryMismatch": "Tu tienda cierra estos días, pero en Entregas aceptas entregas y recogidas: {days}. Si no trabajas esos días, márcalos como cerrados en Entregas."
     }
   },
   "team": {
@@ -3512,5 +3537,13 @@
       "option": "{date} · {start}–{end} · {count, plural, one {# lugar} other {# lugares}}",
       "assignTitle": "Quién va"
     }
+  },
+  "letterhead": {
+    "logoAlt": "Logo de {name}",
+    "postalCode": "C.P. {code}",
+    "phone": "Tel. {phone}",
+    "hours": "Horario",
+    "closed": "Cerrado",
+    "days": "{first} a {last}"
   }
 }

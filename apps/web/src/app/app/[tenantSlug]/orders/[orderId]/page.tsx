@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { cache } from 'react';
 import {
+  getLetterhead,
   NotFoundError,
   getCustomer,
   getOrder,
@@ -28,6 +29,7 @@ import {
   todayInTimeZone,
   whatsappLink,
 } from '@floral/domain';
+import { PrintLetterhead } from '@/components/common/print-letterhead';
 import { PrivateImage } from '@/components/common/private-image';
 import { ShareLinkPanel } from '@/components/common/share-link-card';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status-badges';
@@ -133,9 +135,10 @@ export default async function OrderPage({
 
   // Messaggio al cliente: sempre nella lingua del mercato della fioreria (ADR-042).
   const shopLocale = getMarket(ctx.country).defaultLocale;
-  const [tShop, formatShop] = await Promise.all([
+  const [tShop, formatShop, letterhead] = await Promise.all([
     getTranslations({ locale: shopLocale }),
     getFormatter({ locale: shopLocale }),
+    getLetterhead(ctx),
   ]);
   const shopDate = formatShop.dateTime(calendarDate(scheduledDate), {
     weekday: 'long',
@@ -265,8 +268,16 @@ export default async function OrderPage({
       />
 
       {/* Comanda: intestazione visibile solo in stampa. */}
-      <div className="hidden space-y-1 border-b pb-4 print:block">
-        <p className="font-display text-2xl font-semibold">{ctx.tenantName}</p>
+      <div className="hidden space-y-3 border-b pb-4 print:block">
+        <PrintLetterhead
+          letterhead={letterhead}
+          logoSrc={
+            letterhead.logoId
+              ? tenantRoutes(slug).settings.storeImage('LOGO', letterhead.logoId)
+              : null
+          }
+          locale={shopLocale}
+        />
         <p className="text-lg font-medium">
           {order.numberLabel} · {t(`orders.modes.${order.fulfillmentMode}`)}
         </p>

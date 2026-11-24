@@ -46,6 +46,11 @@ export default async function PublicQuotePage({ params }: PageProps<'/cotizacion
   return (
     <PublicShell
       shopName={quote.shop.name}
+      logoSrc={
+        quote.shop.logoId
+          ? `/cotizacion/${encodeURIComponent(token)}/logo?v=${quote.shop.logoId}`
+          : null
+      }
       footer={footer}
       contact={
         quote.shop.phone

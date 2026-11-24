@@ -558,6 +558,26 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Dati della fioreria (24/11, ADR-076):** chiesti dal founder dalla voce 2 della V1. Prima di
+cominciare: allineamento a staging, con Floral Care (ADR-075) dell'altra chat.
+
+- **Vigencia de las cotizaciones:** la card "Cotizaciones" in Ajustes, da 1 a 90 giorni. Il valore
+  esisteva già nel database ma non si poteva cambiare.
+- **Orario di apertura:** quante fasce servono per giorno (scelta del founder), con interruttore
+  "Abierto" e "Agregar horario"; un giorno che si apre propone le fasce del giorno prima. Si vede nella
+  tienda en línea e nella cotización stampata. Se un giorno chiuso accetta ancora consegne, la pagina
+  avvisa.
+- **Logo e intestazione:** il logo si carica anche da "Perfil de la florería" (è quello della tienda).
+  La cotización stampata e la comanda hanno logo, indirizzo, telefono ed email; la cotización anche
+  l'orario. Le pagine dei link pubblici mostrano il logo.
+- **IVA:** non fatta. Le domande per il contador sono in ADR-076 (O-06).
+
+Verifiche: lint ✅ · format ✅ · typecheck ✅ · test 948/948 ✅ (dominio: vigencia, fasce, orario in poche
+righe; integrazione: permessi, sostituzione, audit, tienda en línea, intestazione, logo dei link solo con
+link attivo, isolamento A↔B) · migrazioni = schema ✅ · build ✅ · E2E 98/98 ✅ su database nuovo (1 nuovo:
+vigencia, lunes con due fasce, errore di sovrapposizione, logo da Ajustes, cotización stampata con logo,
+indirizzo e orario) · controllo a 320 px del form (le due ore su una riga) e della stampa.
+
 **Eliminar florería (24/11, ADR-074):** chiesto dal founder; la cancellazione definitiva dopo 30
 giorni è una sua scelta (eccezione voluta alla regola "solo archiviare"). In "Ajustes" il titolare trova
 la "Zona de peligro" e la pagina "Eliminar florería", che dice cosa succede e quando; si conferma

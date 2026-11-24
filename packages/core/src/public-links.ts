@@ -63,6 +63,8 @@ export interface PublicShopDto {
   /** Lingua del mercato della fioreria: la pagina parla come i messaggi al cliente (ADR-042). */
   readonly locale: SupportedLocale;
   readonly timezone: string;
+  /** ID del logo della fioreria (per l'URL dell'immagine del link), o null. */
+  readonly logoId: string | null;
 }
 
 interface LinkScope {
@@ -101,6 +103,7 @@ async function withActiveLink<T>(
         marketCountry: true,
         timezone: true,
         locations: { where: { isPrimary: true }, select: { phone: true }, take: 1 },
+        onlineStore: { select: { logoId: true } },
       },
     });
     if (!tenant) return null;
@@ -113,6 +116,7 @@ async function withActiveLink<T>(
         phone: tenant.contactPhone ?? tenant.locations[0]?.phone ?? null,
         locale: resolveLocale(getMarket(tenant.marketCountry).defaultLocale),
         timezone: tenant.timezone,
+        logoId: tenant.onlineStore?.logoId ?? null,
       },
     });
   });
@@ -487,6 +491,28 @@ export async function getPublicLineImage(
     );
   } catch (error) {
     // File mancante nell'archivio (già registrato): per il cliente l'immagine semplicemente non c'è.
+    if (error instanceof NotFoundError) return null;
+    throw error;
+  }
+}
+
+/** Logo della fioreria del link (lo stesso della tienda en línea); null se non c'è. */
+export async function getPublicShopLogo(
+  secret: string,
+  token: unknown,
+  kind: PublicLinkKind,
+): Promise<StoredImage | null> {
+  const key = await withActiveLink(secret, token, kind, async (tx, scope) => {
+    const store = await tx.onlineStore.findUnique({
+      where: { tenantId: scope.tenantId },
+      select: { logoKey: true },
+    });
+    return store?.logoKey ?? null;
+  });
+  if (!key) return null;
+  try {
+    return await readStoredImage(key, 'image/jpeg', 'OnlineStore');
+  } catch (error) {
     if (error instanceof NotFoundError) return null;
     throw error;
   }

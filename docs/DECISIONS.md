@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 24 novembre 2026 (eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 24 novembre 2026 (vigencia, orario e logo nelle stampe, ADR-076; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -2132,6 +2132,54 @@ Avviato dal founder con la visione del 24/11 ("l'offerta floral care deve essere
   - 6: Asistente de plantas, con le ricariche pagate a Gardelia. Cambia D-26 solo per le consultas;
   - 7: consegne periodiche.
 
+### ADR-076 — Dati della fioreria: vigencia, orario di apertura, logo nelle stampe — ADOTTATO (24/11/2026)
+
+Voce 2 di `docs/V1_SCOPE.md`, chiesta dal founder ("fai queste: … logo su preventivi e stampe, orari
+di apertura, validità predefinita dei preventivi, IVA"). Prima di cominciare: allineamento a staging
+(Floral Care, ADR-075, di un'altra chat) e verifica di cosa esisteva già.
+
+- **Vigencia de las cotizaciones:** il valore c'era già (`Tenant.quoteValidityDays`, 7 giorni, CHECK
+  1–90) ma non si cambiava. Ora è la card "Cotizaciones" in Ajustes (owner e manager), con audit.
+  Vale per le cotizaciones nuove; in ognuna la data si cambia a mano come prima.
+- **Orario di apertura:** scelta del founder del 24/11/2026: **"tutte le fasce, nessun limite"** per
+  giorno. Tabella `OpeningHoursRange` legata alla sede principale (lo spec chiede orari per sede),
+  con RLS, FK composite e CHECK (giorno 0–6, `start < end` nello stesso giorno). Giorno senza fasce
+  = chiuso; nessuna fascia nella settimana = orario non indicato (non si mostra). Il form manda la
+  settimana intera e il servizio sostituisce tutte le fasce in una transazione, con la sede
+  bloccata. Limite tecnico di 12 fasce al giorno, solo contro i form manomessi. Fasce sovrapposte o
+  che si toccano: errore sulla fascia. Resta separato dai giorni di chiusura delle consegne
+  (ADR-055): una fioreria può consegnare la domenica con la tienda chiusa. Quando i due non
+  coincidono, la pagina lo segnala.
+- **Dove si vede l'orario:** nella tienda en línea ("Horario de atención") e nell'intestazione della
+  cotización stampata. Si scrive in poche righe: i giorni consecutivi con le stesse fasce sono uniti
+  ("Lunes a viernes 09:00–14:00, 16:00–20:00 · Sábado 10:00–14:00 · Domingo cerrado").
+- **Logo nelle stampe:** un solo logo per fioreria, lo stesso di "Mi tienda en línea" (ADR-065), che
+  ora si carica anche dalla card "Perfil de la florería" in Ajustes.
+  - Si vede nell'intestazione della cotización stampata o in PDF e della comanda dell'ordine. Lì ci
+    sono anche indirizzo, telefono ed email; nella cotización pure l'orario.
+  - Si vede anche nelle pagine dei link pubblici di cotización e pedido, servito da
+    `/cotizacion|pedido/<token>/logo` solo finché il link è attivo, come le altre immagini del link.
+  - L'intestazione va al cliente: è nella lingua del mercato (ADR-042), anche se chi stampa usa
+    l'app in italiano.
+  - La tarjeta e la Producción del día restano senza logo: la prima va nel ramo, la seconda è un
+    foglio di lavoro.
+- **IVA:** **non implementata**, perché servono le regole del contador (O-06, CLAUDE.md §2). I
+  preventivi restano `PRICES_FINAL` (ADR-020): prezzi finali al cliente, senza scorporo, e la UI lo
+  dice. Domande per il contador:
+  1. I prezzi di catalogo dei fioristi si intendono IVA inclusa? Con clienti privati il preventivo
+     deve dire "IVA incluida"?
+  2. Aliquota: 16% generale. Una fioreria in zona di frontiera (8%) come si distingue?
+  3. I fiori recisi e le piante non lavorati possono essere a tasa 0% (LIVA art. 2-A)? E i ramos
+     composti (prodotto lavorato più servizio) al 16%? Come si dividono in una riga?
+  4. Il costo di consegna ha la stessa aliquota del prodotto?
+  5. Con le aziende che chiedono il desglose e il CFDI (che la fioreria emette con il suo PAC), il
+     preventivo deve mostrare subtotale, IVA e totale? Cambia qualcosa con il regime della fioreria
+     (per esempio RESICO)?
+  6. Lo sconto si applica prima dell'IVA? Si arrotonda per riga o sul totale?
+
+  Con le risposte si aggiunge un `taxMode` per fioreria (oggi sempre `PRICES_FINAL`), con le colonne
+  `tax` già presenti nel preventivo e il CHECK `total = subtotal − discount + tax`.
+
 ## 3. Proposte da approvare
 
 | ID   | Proposta                                                                                                                                                                               | Motivazione                                                                                                                                  | Quando serve                 |
@@ -2157,7 +2205,7 @@ Avviato dal founder con la visione del 24/11 ("l'offerta floral care deve essere
 | O-03 | Nome commerciale e dominio: il founder propone **Gardelia** (22/11/2026); **dominio `gardelia.co` comprato dal founder su Cloudflare (24/11/2026, uso in ADR-073)**. DA VALIDARE: ricerca marchi (IMPI in Messico, classi 9, 35 e 42; EUIPO per l'Italia); nome già in uso nell'app dal 22/11/2026 su richiesta del founder (`packages/domain/src/brand.ts`: Gardelia, Gardelia Network, Gardelia Studio; nomi dei servizi online in inglese, `gardelia-staging`); la verifica di marchio e dominio resta da fare prima del lancio | Founder            | Prima dell'ambiente online di prova                |
 | O-04 | ✅ **RISOLTA** (22/11/2026): Vercel + Neon, Stati Uniti est; budget fino a **20 USD/mese** finché lo usa solo il founder. Proposta: Vercel Hobby gratuito finché è solo lui, Pro con i tester o prima di far pagare; piani gratuiti di Neon, R2, Resend, Sentry; più l'AI a consumo (`docs/PLATFORM_PLAN.md` §3)                                                                                                                                                                                                                   | Founder            | —                                                  |
 | O-05 | Modello di costo AI deciso (ADR-024: extra senza scadenza, tetto 50 USD/mese). Proposti il 23/11/2026 (D-23): quote 15 e 30 per livello, pacchetti 169 / 299 / 549 MXN, utenti inclusi 2 / 3 / 5 con utente extra a 99 MXN, sede extra a 300 MXN. Restano: conferma dopo la prova da ~100 immagini e la prova gratuita (O-12)                                                                                                                                                                                                      | Founder            | Billing, Builder                                   |
-| O-06 | Trattamento fiscale nei preventivi (IVA inclusa/esclusa, aliquota zona di frontiera, ricevute)                                                                                                                                                                                                                                                                                                                                                                                                                                     | Contador           | Preventivi con imposte                             |
+| O-06 | Trattamento fiscale nei preventivi (IVA inclusa/esclusa, aliquota zona di frontiera, ricevute); domande concrete in ADR-076                                                                                                                                                                                                                                                                                                                                                                                                        | Contador           | Preventivi con imposte                             |
 | O-07 | Términos y condiciones e Aviso de privacidad (LFPDPPP 2025): **bozze scritte** su richiesta del founder (`docs/legal/`, 22/11/2026), da far revisionare a un avvocato messicano prima del lancio                                                                                                                                                                                                                                                                                                                                   | Legale             | Lancio commerciale                                 |
 | O-08 | Conferma della matrice ruoli: lo STAFF non vede costi; il MANAGER invita solo STAFF e non modifica dati fiscali; lo STAFF compone nel Builder ma non crea preventivi né clienti                                                                                                                                                                                                                                                                                                                                                    | Founder            | — (default già implementato)                       |
 | O-09 | Chi mantiene la tassonomia canonica dei fiori e con quale copertura                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Founder            | Builder, Network                                   |
