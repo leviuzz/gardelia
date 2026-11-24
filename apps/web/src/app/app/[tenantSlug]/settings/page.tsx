@@ -138,7 +138,8 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
         </CardContent>
       </Card>
 
-      <Card>
+      {/* Ancora per il link della tienda en línea ("la tua sede non è sulla mappa"). */}
+      <Card id="location" className="scroll-mt-24">
         <CardHeader>
           <CardTitle>{t('settings.locationTitle')}</CardTitle>
           <CardDescription>{t('settings.locationSubtitle')}</CardDescription>
@@ -146,6 +147,7 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
         <CardContent>
           <LocationForm
             action={updateLocationAction.bind(null, slug)}
+            onMap={delivery.origin !== null}
             regions={MX_REGIONS.map(({ code, name }) => ({ code, name }))}
             defaults={{
               addressLine1: location?.addressLine1 ?? '',

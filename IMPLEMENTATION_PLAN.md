@@ -558,6 +558,24 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**La tienda sulla mappa (24/11, aggiunta ad ADR-059):** il founder non trovava la sua fioreria cercando
+il proprio indirizzo. Le cause erano due:
+
+- la sede era senza posizione di Google: scelta la colonia, la via scritta a mano toglieva il punto;
+- un difetto vero: React riscriveva i campi nascosti del punto a ogni nuovo disegno del form, quindi il
+  punto scelto poteva sparire prima dell'invio, anche nel pedido del cliente fra un passo e l'altro (costo
+  per distanza perso).
+
+Ora:
+
+- il punto sta nello stato del componente;
+- la via che Google non ha dato si scrive senza perderlo;
+- il form della sede dice se la tienda è sulla mappa;
+- "Mi tienda en línea" avvisa quando non lo è.
+
+Verifiche: test del componente con Google simulato (fallisce con il codice di prima), test d'integrazione
+del servizio, prova nel browser con Google simulato fino al database e alla scomparsa dell'avviso.
+
 **Pagina rimasta alla versione precedente (24/11):** il founder, cambiando l'indirizzo della tienda su
 staging con la pagina aperta da prima di un rilascio, ha visto "Algo salió mal" (l'azione del form non
 esisteva più sul server, `UnrecognizedActionError`) con un "Reintentar" inutile. Ora i confini d'errore

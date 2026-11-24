@@ -8,6 +8,7 @@ import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
   ONLINE_ITEM_TYPES,
+  freshCoordinates,
   isStoreImageKind,
   newId,
   onlineOrderSettingsSchema,
@@ -46,10 +47,15 @@ export interface OnlineStoreSettingsDto {
   readonly ordersBlockers: readonly OnlineOrdersBlocker[];
   /** Ordini online in attesa di risposta. */
   readonly pendingOrders: number;
+  /**
+   * La sede principale ha la posizione di Google ancora valida: chi cerca per indirizzo trova la
+   * tienda e le distanze si misurano da lì (ADR-066, ADR-069). Senza, la trova solo chi cerca la città.
+   */
+  readonly onMap: boolean;
 }
 
 async function readState(tx: TransactionClient, ctx: TenantContext) {
-  const [store, onlineItems, tenant, pendingOrders] = await Promise.all([
+  const [store, onlineItems, tenant, pendingOrders, location] = await Promise.all([
     tx.onlineStore.findUnique({ where: { tenantId: ctx.tenantId } }),
     tx.catalogItem.count({
       where: {
@@ -64,13 +70,23 @@ async function readState(tx: TransactionClient, ctx: TenantContext) {
       select: { contactPhone: true },
     }),
     tx.order.count({ where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE' } }),
+    tx.location.findFirst({
+      where: { tenantId: ctx.tenantId, isPrimary: true },
+      select: { latitude: true, longitude: true, coordinatesAt: true },
+    }),
   ]);
-  return { store, onlineItems, contactPhone: tenant.contactPhone, pendingOrders };
+  return {
+    store,
+    onlineItems,
+    contactPhone: tenant.contactPhone,
+    pendingOrders,
+    onMap: location !== null && freshCoordinates(location, new Date()) !== null,
+  };
 }
 
 export async function getOnlineStoreSettings(ctx: TenantContext): Promise<OnlineStoreSettingsDto> {
   requirePermission(ctx, 'tenant:read');
-  const { store, onlineItems, contactPhone, pendingOrders } = await withTenantContext(
+  const { store, onlineItems, contactPhone, pendingOrders, onMap } = await withTenantContext(
     getDb(),
     ctx,
     (tx) => readState(tx, ctx),
@@ -90,6 +106,7 @@ export async function getOnlineStoreSettings(ctx: TenantContext): Promise<Online
     minLeadDays: store?.minLeadDays ?? 1,
     ordersBlockers: onlineOrdersBlockers({ paymentMethods, contactPhone }),
     pendingOrders,
+    onMap,
   };
 }
 

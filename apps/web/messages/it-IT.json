@@ -474,7 +474,9 @@
       "goToPayment": "Forme di pagamento",
       "notPublished": "Il tuo negozio non è ancora pubblicato: gli ordini arriveranno quando lo pubblichi.",
       "save": "Salva ordini online"
-    }
+    },
+    "offMap": "Chi cerca il proprio indirizzo non trova ancora la tua tienda, perché il negozio principale non è sulla mappa. Ti trova solo chi cerca la tua città.",
+    "offMapAction": "Scegli l’indirizzo sulla mappa"
   },
   "publicStore": {
     "demoNotice": "Fioreria di prova: prodotti e prezzi sono di esempio.",
@@ -972,7 +974,9 @@
       "tierLimit": "Hai raggiunto il massimo di {max} tariffe.",
       "tierAdded": "Tariffa aggiunta.",
       "tierRemoved": "Tariffa tolta."
-    }
+    },
+    "locationOnMap": "Il tuo negozio è sulla mappa: chi cerca il proprio indirizzo lo trova e le distanze si misurano da qui.",
+    "locationOffMap": "Il tuo negozio non è sulla mappa: scegli l’indirizzo tra i suggerimenti. Altrimenti chi cerca per indirizzo non lo trova e il costo per distanza non si calcola."
   },
   "team": {
     "title": "Team",
