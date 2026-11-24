@@ -193,6 +193,13 @@ export function tenantRoutes(slug: string) {
       /** Avvisi della squadra per chi gestisce (reposición, extra, altro). */
       followUps: (query?: { readonly view?: 'resolved' }) =>
         withQuery(`${agenda}/follow-ups`, query),
+      /** Blocco 4 (ADR-083): i giorni bloccati, il cambio di persona e i giorni di punta. */
+      blocks: `${agenda}/blocks`,
+      /** "Bloquear días": il modulo e l'anteprima (`preview=1` con i campi nella query). */
+      newBlock: (query?: QueryValues) => withQuery(`${agenda}/blocks/new`, query),
+      /** Un blocco: le visite che ha spostato o cancellato e gli avvisi (`created=1` appena fatto). */
+      block: (blockId: string, query?: QueryValues) =>
+        withQuery(`${agenda}/blocks/${segment(blockId)}`, query),
     },
     builder: {
       list: (query?: QueryValues) => withQuery(builder, query),

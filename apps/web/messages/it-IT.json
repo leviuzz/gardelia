@@ -3151,7 +3151,10 @@
       "payment_confirmed": "{actor} ha confermato un incasso della visita su {number}",
       "payment_rejected": "{actor} ha rifiutato un incasso della visita di {number}",
       "adjustment_added": "{actor} ha aggiunto una rettifica per il prossimo addebito di {number}",
-      "adjustment_removed": "{actor} ha tolto una rettifica di {number}"
+      "adjustment_removed": "{actor} ha tolto una rettifica di {number}",
+      "block_created": "{actor} ha bloccato giorni di Floral Care",
+      "block_removed": "{actor} ha tolto un blocco di Floral Care",
+      "visits_reassigned": "{actor} ha cambiato chi fa varie visite"
     },
     "notice": {
       "label": "Sì, ho avvisato il cliente"
@@ -3335,7 +3338,13 @@
       "paid_on_future": "La data del pagamento non può essere dopo oggi.",
       "refund_exceeds_credit": "Il rimborso non può superare il saldo a favore del cliente.",
       "confirm_exceeds_collected": "Non può essere più di quanto segnato nella visita.",
-      "too_many_adjustments": "Questo contratto ha già molte rettifiche in attesa."
+      "too_many_adjustments": "Questo contratto ha già molte rettifiche in attesa.",
+      "block_range": "L'ultimo giorno non può venire prima del primo.",
+      "block_too_long": "Un blocco dura al massimo 92 giorni.",
+      "block_past": "Scegli un giorno da oggi in poi.",
+      "block_too_far": "Puoi bloccare fino a un anno da oggi.",
+      "day_blocked": "Quel giorno (o orario) è bloccato.",
+      "reassign_same": "Scegli un'altra persona."
     },
     "conflict": {
       "not_configured": "Prima salva le tariffe di Floral Care (Impostazioni → Floral Care).",
@@ -3371,7 +3380,10 @@
       "collection_pending": "In questa visita c’è già un incasso da registrare.",
       "payment_not_pending": "Questo incasso è già stato confermato o rifiutato.",
       "adjustment_in_charge": "Questa rettifica è già in un addebito: correggila con un’altra rettifica.",
-      "visit_already_recovered": "Questa visita ha già la sua visita di recupero."
+      "visit_already_recovered": "Questa visita ha già la sua visita di recupero.",
+      "block_changed": "Le visite di quei giorni sono cambiate mentre controllavi. Rivedi le visite toccate prima di salvare.",
+      "block_too_many_visits": "Sono troppe visite per un blocco solo: dividilo in periodi più brevi.",
+      "block_limit": "Hai troppi blocchi attivi: togline qualcuno che non serve più."
     },
     "contracts": {
       "title": "Floral Care",
@@ -3598,7 +3610,8 @@
         "month": "Mese",
         "reschedule": "Da riprogrammare ({count})",
         "route": "Giro",
-        "rescheduleShort": "Da riprogrammare"
+        "rescheduleShort": "Da riprogrammare",
+        "blocks": "Blocchi"
       },
       "previous": "Giorno prima",
       "next": "Giorno dopo",
@@ -4182,6 +4195,103 @@
       "emptyTitle": "Non ci sono visite da recuperare",
       "emptyBody": "Compaiono qui quando il cliente non apre e il contratto dice «Si fissa un’altra visita».",
       "missedOn": "Non è stato possibile il {date}"
+    },
+    "blocks": {
+      "title": "Giorni bloccati",
+      "subtitle": "Vacanze, giorni di molto lavoro o un orario che non puoi coprire: lì non si fissano visite.",
+      "new": "Blocca giorni",
+      "newSubtitle": "Scegli i giorni e cosa fare con le visite già fissate. Prima di salvare vedi a quali clienti cambia qualcosa.",
+      "back": "Torna ai giorni bloccati",
+      "detailTitle": "Blocco",
+      "from": "Dal",
+      "until": "Al",
+      "slot": "Orario",
+      "slotHint": "Tutto il giorno blocca anche le visite extra a un'ora libera.",
+      "wholeDay": "Tutto il giorno",
+      "slotOnly": "Solo dalle {start} alle {end}",
+      "label": "Nome",
+      "labelHint": "Per esempio «Vacanze» o «10 maggio». Lo vede solo la tua squadra.",
+      "whatToDo": "Cosa facciamo con le visite di quei giorni?",
+      "actions": {
+        "MOVE": "Spostarle a un altro giorno",
+        "CANCEL": "Annullarle senza farle pagare"
+      },
+      "actionHints": {
+        "MOVE": "Al giorno libero più vicino dello stesso mese, da domani. Quelle che non ci stanno restano «Da riprogrammare».",
+        "CANCEL": "Come se le togliessi tu: non si pagano (se erano già in un addebito, si scalano nel prossimo)."
+      },
+      "previewSubmit": "Vedi le visite toccate",
+      "previewTitle": "Clienti toccati",
+      "previewNone": "Non ci sono visite fissate in quei giorni. Puoi salvare il blocco.",
+      "previewSummary": "{contracts, plural, one {# contratto} other {# contratti}}: {moved, plural, =0 {} one {# visita cambia giorno} other {# visite cambiano giorno}}{toReschedule, plural, =0 {} one { · # resta da riprogrammare} other { · # restano da riprogrammare}}{cancelled, plural, =0 {} one { · # si annulla} other { · # si annullano}}.",
+      "overlapping": "Ci sono già blocchi in quei giorni: {labels}.",
+      "movedTo": "passa a {when}",
+      "toReschedule": "da riprogrammare (nessun posto nel mese)",
+      "cancelledNotCharged": "si annulla, non si paga",
+      "noEmail": "Senza email",
+      "futureNote": {
+        "MOVE": "Le visite che non sono ancora fissate in quei giorni andranno in un altro giorno del mese.",
+        "CANCEL": "Le visite che non sono ancora fissate in quei giorni nasceranno annullate e non si pagano."
+      },
+      "sendEmail": "Manda un'email a ogni cliente con i suoi cambi",
+      "sendEmailHint": "{count, plural, one {Arriva a # cliente.} other {Arriva a # clienti.}}",
+      "sendEmailHintMissing": "{count, plural, one {Arriva a # cliente.} other {Arriva a # clienti.}} {missing, plural, one {# non ha l'email: avvisalo tu.} other {# non hanno l'email: avvisali tu.}}",
+      "emailUnavailable": "Questa fioreria non manda email ai clienti (è dimostrativa o non attiva): avvisali tu.",
+      "noticeHint": "{count, plural, one {Cambia # visita già fissata.} other {Cambiano # visite già fissate.}}",
+      "save": "Salva il blocco",
+      "created": "Blocco salvato. {moved, plural, =0 {} one {# visita ha cambiato giorno.} other {# visite hanno cambiato giorno.}} {toReschedule, plural, =0 {} one {# è da riprogrammare.} other {# sono da riprogrammare.}} {cancelled, plural, =0 {} one {# è stata annullata.} other {# sono state annullate.}}",
+      "createdNone": "Blocco salvato. Non c'erano visite in quei giorni.",
+      "affectedTitle": "Visite cambiate",
+      "affectedSubtitle": "{count, plural, one {# contratto} other {# contratti}}. Apri una visita per cambiarla a mano.",
+      "affectedNone": "Nessuna visita è cambiata quando è nato il blocco.",
+      "emailNotSent": "Nessuna email mandata",
+      "emailStatus": {
+        "PENDING": "Email in arrivo",
+        "SENDING": "Invio dell'email",
+        "SENT": "Email mandata",
+        "FAILED": "L'email non è partita"
+      },
+      "noticeSend": "Manda l'avviso",
+      "noticeRetry": "Riprova",
+      "noticeFor": "Avviso per {name}",
+      "noticeSent": "Avviso mandato",
+      "noticeFailed": "L'avviso non è partito: riprova più tardi.",
+      "remove": "Togli il blocco",
+      "removeTitle": "Togliere il blocco?",
+      "removeBody": "Quei giorni tornano liberi. Le visite già spostate restano dove sono.",
+      "removeConfirm": "Togli",
+      "removed": "Blocco tolto",
+      "removedBadge": "Tolto",
+      "removedNote": "Questo blocco non vale più: quei giorni sono liberi.",
+      "range": "dal {from} al {to}",
+      "changesCount": "{count, plural, one {# visita cambiata} other {# visite cambiate}}",
+      "current": "Di oggi e prossimi",
+      "past": "Passati o tolti ({count})",
+      "emptyTitle": "Nessun giorno bloccato",
+      "emptyBody": "Blocca le tue vacanze o i giorni di molto lavoro: i tuoi clienti non avranno visite in quei giorni.",
+      "peakTitle": "Giorni di molto lavoro",
+      "peakSubtitle": "Ti suggeriamo di non fissare visite in questi giorni. Bloccali con un tocco e guarda a chi cambia.",
+      "peakBlock": "Blocca",
+      "peakDays": {
+        "valentine": "San Valentino",
+        "mothers": "Festa della mamma (Messico)",
+        "deadDays": "Giorno dei Morti",
+        "guadalupe": "Giorno della Virgen de Guadalupe"
+      },
+      "reassignTitle": "Qualcuno non può andare",
+      "reassignSubtitle": "Passa le sue visite di quei giorni a un'altra persona. Cambia solo chi va, non l'ora: non serve avvisare il cliente.",
+      "reassignFrom": "Chi non può andare",
+      "reassignTo": "Chi va al suo posto",
+      "reassignChoose": "Scegli una persona",
+      "reassignSubmit": "Cambia persona",
+      "reassigned": "{count, plural, =0 {Non c'erano visite di quella persona in quei giorni.} one {# visita ha cambiato persona.} other {# visite hanno cambiato persona.}}",
+      "agendaDay": "Giorno bloccato: {label}",
+      "agendaSlot": "Orario {start}–{end} bloccato: {label}",
+      "agendaLink": "Vedi i blocchi",
+      "blockedBadge": "Bloccato",
+      "monthDay": "Bloccato",
+      "monthSlot": "Un orario",
+      "legend": "Giorno bloccato"
     }
   },
   "letterhead": {

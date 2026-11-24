@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Sprout, Store, Truck } from 'lucide-react';
+import { CalendarOff, ChevronLeft, ChevronRight, Sprout, Store, Truck } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getLocale, getTranslations } from 'next-intl/server';
@@ -77,6 +77,8 @@ export default async function AgendaMonthPage({
     86_400_000;
   const cells = Math.ceil((leading + total) / 7) * 7;
   const visitsBy = new Map((care?.days ?? []).map((day) => [day.date, day.visits]));
+  // Giorni bloccati (ADR-083): tutto il giorno o un orario solo.
+  const blockedBy = new Map((care?.blockedDays ?? []).map((day) => [day.date, day.wholeDay]));
   const ordersBy = new Map((orders?.days ?? []).map((day) => [day.date, day]));
   const title = format.dateTime(new Date(Date.UTC(target.year, target.month - 1, 15)), {
     month: 'long',
@@ -140,6 +142,7 @@ export default async function AgendaMonthPage({
             const iso = toIsoDate({ year: target.year, month: target.month, day: dayNumber });
             const visits = visitsBy.get(iso) ?? 0;
             const counts = ordersBy.get(iso);
+            const blocked = blockedBy.get(iso);
             const label = format.dateTime(new Date(`${iso}T12:00:00Z`), {
               weekday: 'long',
               day: 'numeric',
@@ -159,6 +162,7 @@ export default async function AgendaMonthPage({
                   className={cn(
                     'flex h-full flex-col gap-1 p-1.5 text-xs transition-colors hover:bg-muted/50 sm:p-2',
                     iso === today && 'bg-secondary/60',
+                    blocked === true && 'bg-info-soft/60',
                   )}
                 >
                   <span
@@ -169,6 +173,14 @@ export default async function AgendaMonthPage({
                   >
                     {dayNumber}
                   </span>
+                  {blocked !== undefined ? (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <CalendarOff className="size-3.5" aria-hidden="true" />
+                      <span className="sr-only sm:not-sr-only">
+                        {blocked ? t('care.blocks.monthDay') : t('care.blocks.monthSlot')}
+                      </span>
+                    </span>
+                  ) : null}
                   {visits > 0 ? (
                     <span
                       className="flex items-center gap-1 font-medium text-primary"
@@ -200,6 +212,10 @@ export default async function AgendaMonthPage({
         <span className="flex items-center gap-1">
           <Sprout className="size-3.5" aria-hidden="true" />
           {t('care.agenda.legendVisits')}
+        </span>
+        <span className="flex items-center gap-1">
+          <CalendarOff className="size-3.5" aria-hidden="true" />
+          {t('care.blocks.legend')}
         </span>
         <span className="flex items-center gap-1">
           <Truck className="size-3.5" aria-hidden="true" />
