@@ -122,8 +122,11 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
           </span>
         </Link>
         <TenantSwitcher current={current} shops={shops} />
-        <SidebarNav items={items} label={t('nav.mainNavigation')} />
-        <div className="mt-auto border-t border-sidebar-border pt-3">
+        {/* Su schermi bassi il menu scorre: il conto (lingua, sicurezza, uscita) resta sempre in vista. */}
+        <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
+          <SidebarNav items={items} label={t('nav.mainNavigation')} />
+        </div>
+        <div className="border-t border-sidebar-border pt-3">
           <UserMenu name={user.name} email={user.email} roleLabel={roleLabel} />
         </div>
       </aside>
