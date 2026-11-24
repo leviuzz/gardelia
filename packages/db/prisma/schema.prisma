@@ -2578,6 +2578,8 @@ model CareChargeLine {
 
   @@unique([tenantId, id])
   @@unique([tenantId, chargeId, position])
+  /// Ogni emissione cerca le righe del contratto per tipo (servizi "una sola vez", saldi a favore).
+  @@index([tenantId, subscriptionId, kind])
   @@index([tenantId, visitId])
   @@index([tenantId, sourceChargeId])
 }

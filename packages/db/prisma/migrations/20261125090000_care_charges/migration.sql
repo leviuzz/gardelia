@@ -160,6 +160,9 @@ CREATE UNIQUE INDEX "CareCharge_tenantId_number_key" ON "CareCharge"("tenantId",
 CREATE UNIQUE INDEX "CareCharge_tenantId_subscriptionId_period_key" ON "CareCharge"("tenantId", "subscriptionId", "period");
 
 -- CreateIndex
+CREATE INDEX "CareChargeLine_tenantId_subscriptionId_kind_idx" ON "CareChargeLine"("tenantId", "subscriptionId", "kind");
+
+-- CreateIndex
 CREATE INDEX "CareChargeLine_tenantId_visitId_idx" ON "CareChargeLine"("tenantId", "visitId");
 
 -- CreateIndex
