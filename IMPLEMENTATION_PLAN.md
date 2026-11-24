@@ -804,6 +804,32 @@ abbonamento); controllo a 320 px. In locale i test degli ordini scadevano perch�
 dai test precedenti spingono "Hotel Casa Fuentes" fuori dalla prima pagina: archiviati, ripassano
 (in CI il database è nuovo a ogni giro).
 
+**Resti degli ordini (fatto il 24/11, ADR-072):** tre pezzi chiesti dal founder ("si vai col
+punto 1").
+
+- **Chi compra annulla da solo** un ordine online ancora "Por aceptar": pulsante "Cancelar pedido"
+  in "Mi cuenta", con conferma. Email a chi compra e alla fioreria; dopo l'accettazione non si può
+  più.
+- **Conferma per email al cliente degli ordini del banco:** casella "Enviar la confirmación del
+  pedido a …" (già spuntata) quando si crea l'ordine dal preventivo o si conferma un borrador.
+  L'email ha il riepilogo e il link "Ver mi pedido". Il modulo dice quando il cliente non ha email
+  o la fioreria è demo (lì non parte mai nulla).
+- **Apartados dagli ordini confermati:** i materiali dell'ordine restano messi da parte e il
+  disponibile scende, ma solo negli ultimi 7 giorni prima della consegna (PROPOSTO: un ordine di
+  San Valentino preso a gennaio non blocca le rose di oggi). L'apartado segue righe e giorno
+  dell'ordine; a "Listo" i materiali escono da lì con un solo movimento; se l'ordine si annulla la
+  merce si libera. Fra gli apartados si vede di quale ordine è, senza i pulsanti manuali.
+
+Verifiche locali:
+
+- lint ✅ · format ✅ · typecheck ✅ · build ✅;
+- test 866/866 ✅: 22 nuovi, 6 di dominio e 16 d'integrazione, con isolamento fra fiorerie;
+- E2E 88/88 ✅: 3 aggiornati (annullamento da "Mi cuenta", avviso demo nel modulo, apartado
+  dell'ordine nell'inventario). In locale gli ordini "di oggi" lasciati dai giri precedenti spingono
+  quello nuovo alla seconda pagina, come i clienti: spostati indietro, ripassano.
+
+Resta: il preventivo per email al cliente (V1_SCOPE riga 13).
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci
@@ -815,8 +841,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
    e ordine; aggiungere un disegno del Diseñador a un preventivo in bozza. Poi il marketplace per i
    clienti (D-26, deciso il 23/11: registrazione obbligatoria, pagamento diretto alla fioreria) e la
    ruta del día gratuita (D-27). Blocchi A1–C5 in `docs/ORDERS_MARKETPLACE_PLAN.md`; si parte da A1.
-3. Inventario: fatto (blocchi 1–4, ADR-060…063); restano consumo e apartados dagli ordini, che
-   collega la sessione degli ordini con le funzioni già pronte.
+3. Inventario: fatto (blocchi 1–4, ADR-060…063), con lo scarico (ADR-071) e gli apartados
+   (ADR-072) dagli ordini.
 4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
 5. Abbonamenti dei clienti e Floral Care.
 6. Report.

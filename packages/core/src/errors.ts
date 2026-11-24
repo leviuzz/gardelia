@@ -90,6 +90,8 @@ export type ConflictReason =
   | 'inventory_no_real_cost'
   /** Apartado già usato o liberato (ADR-062). */
   | 'inventory_reservation_closed'
+  /** Apartado di un ordine (ADR-072): lo usa e lo libera l'ordine, non la scheda dell'apartado. */
+  | 'inventory_reservation_order'
   /** "Registrar ramos hechos" su un ramo senza ricetta (ADR-063). */
   | 'inventory_bouquet_without_recipe'
   /** Import di clienti da CSV (ADR-070): bozza già importata o annullata; niente di nuovo da importare. */

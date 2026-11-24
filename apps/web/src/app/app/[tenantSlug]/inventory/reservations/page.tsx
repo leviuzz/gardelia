@@ -76,7 +76,10 @@ export default async function ReservationsPage({
   function when(reservation: ReservationSummaryDto): string {
     switch (reservation.state) {
       case 'ACTIVE':
-        return t('reservations.expiresOn', { date: day(reservation.expiresOn) });
+        // Apartado di un ordine lontano (ADR-072): c'è, ma comincia a tenere più avanti.
+        return reservation.scheduled && reservation.holdsFrom
+          ? t('reservations.holdsFrom', { date: day(reservation.holdsFrom) })
+          : t('reservations.expiresOn', { date: day(reservation.expiresOn) });
       case 'EXPIRED':
         return t('reservations.expiredOn', { date: day(reservation.expiresOn) });
       case 'USED':
@@ -166,6 +169,11 @@ export default async function ReservationsPage({
               >
                 <div className="min-w-0 space-y-1">
                   <p className="truncate font-medium">{reservation.label}</p>
+                  {reservation.order ? (
+                    <p className="truncate text-xs text-muted-foreground">
+                      {t('reservations.forOrder', { name: reservation.order.customerName })}
+                    </p>
+                  ) : null}
                   <p className="text-xs text-muted-foreground">{linesSummary(reservation)}</p>
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2 sm:flex-col sm:items-end sm:gap-1">

@@ -11,6 +11,7 @@ import {
 } from '@floral/core';
 import { MX_REGIONS } from '@floral/domain';
 import { DeleteAccountButton } from '@/components/account/delete-account';
+import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import { AddressBook } from '@/components/addresses/address-book';
 import { SignOutButton } from '@/components/auth/sign-out-button';
 import { PlacesConfigProvider } from '@/components/form/address-search';
@@ -26,6 +27,7 @@ import { accountRoutes, buyerRoutes, legalRoutes, publicStoreRoutes } from '@/li
 import {
   addBuyerAddressAction,
   archiveBuyerAddressAction,
+  cancelBuyerOrderAction,
   updateBuyerAddressAction,
   updateBuyerProfileAction,
 } from './actions';
@@ -118,6 +120,22 @@ export default async function AccountPage() {
                       aria-hidden="true"
                     />
                   </Link>
+                  {/* Ancora da accettare: chi l'ha fatto può annullarlo da qui. */}
+                  {order.status === 'PENDING_ACCEPTANCE' ? (
+                    <div className="px-4 pb-3">
+                      <ConfirmActionDialog
+                        action={cancelBuyerOrderAction.bind(null, order.orderId)}
+                        trigger={
+                          <Button variant="outline" size="sm">
+                            {t('account.orders.cancel')}
+                          </Button>
+                        }
+                        title={t('account.orders.cancelTitle', { number: order.numberLabel })}
+                        description={t('account.orders.cancelBody', { shop: order.shopName })}
+                        confirmLabel={t('account.orders.cancelConfirm')}
+                      />
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>

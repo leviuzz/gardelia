@@ -27,6 +27,7 @@ import { INGREDIENT_TYPES, type Availability, type CatalogItemType } from './cat
 import { optionalPhoneField } from './customer';
 import type { MarketCountry } from './markets';
 import type { CurrencyCode } from './money';
+import type { OrderStatus } from './order';
 import { parseDateInput } from './quote';
 import {
   checkboxField,
@@ -462,6 +463,56 @@ export function reservationState(
 ): ReservationState {
   if (status !== 'ACTIVE') return status;
   return compareDates(expiresOn, today) < 0 ? 'EXPIRED' : 'ACTIVE';
+}
+
+/**
+ * Un apartado con `holdsFrom` (quelli degli ordini, ADR-072) tiene merce solo da quel giorno: prima
+ * c'è, ma non toglie nulla dal disponibile.
+ */
+export function reservationHolds(
+  holdsFrom: CalendarDate | null,
+  expiresOn: CalendarDate,
+  today: CalendarDate,
+): boolean {
+  if (compareDates(expiresOn, today) < 0) return false;
+  return holdsFrom === null || compareDates(holdsFrom, today) <= 0;
+}
+
+// -----------------------------------------------------------------------------
+// Apartados degli ordini confermati (ADR-072)
+// -----------------------------------------------------------------------------
+
+/**
+ * Giorni prima della consegna da cui l'apartado di un ordine tiene la merce. Un ordine preso con
+ * settimane o mesi di anticipo (San Valentino a gennaio) non blocca la merce fresca di oggi: si
+ * compra per lui più avanti. PROPOSTO (ADR-072), da validare con le fiorerie di prova.
+ */
+export const ORDER_HOLD_DAYS = 7;
+
+/** Stati in cui un ordine ha già un impegno ma i materiali non sono ancora usciti. */
+const HOLDING_ORDER_STATUSES: readonly OrderStatus[] = ['CONFIRMED', 'IN_PREPARATION'];
+
+/**
+ * Le date dell'apartado di un ordine, o null se l'ordine non deve tenere merce: non è confermato
+ * (borrador, da accettare, annullato), i materiali sono già usciti ("Listo"), non ha giorno o il
+ * giorno è passato. Vale dai `ORDER_HOLD_DAYS` giorni prima fino al giorno della consegna incluso.
+ */
+export function orderHoldWindow(
+  order: {
+    readonly status: OrderStatus;
+    readonly scheduledDate: CalendarDate | null;
+    /** I materiali sono già usciti dall'inventario (ADR-071). */
+    readonly consumed: boolean;
+  },
+  today: CalendarDate,
+): { readonly holdsFrom: CalendarDate; readonly expiresOn: CalendarDate } | null {
+  if (order.consumed || order.scheduledDate === null) return null;
+  if (!HOLDING_ORDER_STATUSES.includes(order.status)) return null;
+  if (compareDates(order.scheduledDate, today) < 0) return null;
+  return {
+    holdsFrom: addDays(order.scheduledDate, -ORDER_HOLD_DAYS),
+    expiresOn: order.scheduledDate,
+  };
 }
 
 /** Giorni che restano (0 = scade oggi, negativo = vencido da tanti giorni). */

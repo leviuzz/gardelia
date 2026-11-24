@@ -310,7 +310,7 @@ export function onlineOrderCancelledEmail(input: {
   to: string;
   name: string;
   facts: OnlineOrderEmailFacts;
-  kind: 'rejected' | 'cancelled' | 'expired';
+  kind: 'rejected' | 'cancelled' | 'expired' | 'withdrawn';
   reason: string | null;
   url: string;
   searchUrl: string;
@@ -330,13 +330,18 @@ export function onlineOrderCancelledEmail(input: {
             `${facts.shopName} no confirmó a tiempo tu pedido ${facts.numberLabel} (${modeLine(facts)}), así que lo cancelamos.`,
             'No tienes que pagar nada. Puedes buscar otra florería que entregue en tu zona.',
           ]
-        : [
-            `${facts.shopName} canceló tu pedido ${facts.numberLabel} (${modeLine(facts)}).`,
-            ...reason,
-            'Si ya pagaste, ponte en contacto con la florería para la devolución.',
-          ];
+        : input.kind === 'withdrawn'
+          ? [
+              `Cancelaste tu pedido ${facts.numberLabel} en ${facts.shopName} (${modeLine(facts)}).`,
+              'No tienes que pagar nada. Ya le avisamos a la florería.',
+            ]
+          : [
+              `${facts.shopName} canceló tu pedido ${facts.numberLabel} (${modeLine(facts)}).`,
+              ...reason,
+              'Si ya pagaste, ponte en contacto con la florería para la devolución.',
+            ];
   const action =
-    input.kind === 'cancelled'
+    input.kind === 'cancelled' || input.kind === 'withdrawn'
       ? { label: 'Ver mi pedido', url: input.url }
       : { label: 'Buscar otra florería', url: input.searchUrl };
   const body = plainAndHtml(
@@ -352,9 +357,73 @@ export function onlineOrderCancelledEmail(input: {
     subject:
       input.kind === 'rejected'
         ? `${facts.shopName} no puede atender tu pedido ${facts.numberLabel}`
-        : `Tu pedido ${facts.numberLabel} fue cancelado`,
+        : input.kind === 'withdrawn'
+          ? `Cancelaste tu pedido ${facts.numberLabel}`
+          : `Tu pedido ${facts.numberLabel} fue cancelado`,
     fromName: facts.shopName,
     ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+    ...body,
+  };
+}
+
+/**
+ * Al cliente di un ordine del banco (ADR-072), quando la fioreria lo conferma e ha spuntato
+ * "Enviar la confirmación": riepilogo e link per seguire l'ordine. Il pagamento si accorda con la
+ * fioreria (alla conferma non c'è ancora nessun pagamento registrato), quindi qui c'è solo il totale.
+ */
+export function counterOrderConfirmedEmail(input: {
+  to: string;
+  name: string;
+  facts: OnlineOrderEmailFacts;
+  url: string;
+  replyTo: string | null;
+}): EmailMessage {
+  const { facts } = input;
+  const body = plainAndHtml(
+    `Hola ${input.name}:`,
+    [
+      `${facts.shopName} confirmó tu pedido ${facts.numberLabel}: ${modeLine(facts)}. Total: ${facts.totalLabel}.`,
+      'Con el enlace puedes ver tu pedido y en qué paso va.',
+      input.replyTo
+        ? 'Si algo no está bien, responde a este correo y le llega a la florería.'
+        : 'Si algo no está bien, ponte en contacto con la florería.',
+    ],
+    { label: 'Ver mi pedido', url: input.url },
+    `Recibiste este correo porque hiciste un pedido en ${facts.shopName}.`,
+    'Tu pedido está confirmado',
+  );
+  return {
+    to: input.to,
+    category: 'counter_order_confirmed',
+    subject: `${facts.shopName} confirmó tu pedido ${facts.numberLabel}`,
+    fromName: facts.shopName,
+    ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+    ...body,
+  };
+}
+
+/** A propietari e gerenti: chi compra ha annullato un ordine online prima che lo accettassero. */
+export function onlineOrderWithdrawnEmail(input: {
+  to: string;
+  buyerName: string;
+  facts: OnlineOrderEmailFacts;
+  url: string;
+}): EmailMessage {
+  const { facts } = input;
+  const body = plainAndHtml(
+    'Hola:',
+    [
+      `${input.buyerName} canceló el pedido ${facts.numberLabel} (${modeLine(facts)}) antes de que lo aceptaras.`,
+      'No tienes que hacer nada: el pedido queda cancelado.',
+    ],
+    { label: 'Ver el pedido', url: input.url },
+    `Recibes este correo porque eres propietario/a o gerente de ${facts.shopName}.`,
+    'Pedido cancelado por el cliente',
+  );
+  return {
+    to: input.to,
+    category: 'online_order_withdrawn',
+    subject: `${input.buyerName} canceló el pedido ${facts.numberLabel}`,
     ...body,
   };
 }

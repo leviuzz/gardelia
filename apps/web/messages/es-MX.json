@@ -340,7 +340,12 @@
         "PICKED_UP": "Recogido",
         "CANCELLED": "Cancelado",
         "DRAFT": "Borrador"
-      }
+      },
+      "cancel": "Cancelar pedido",
+      "cancelTitle": "¿Cancelar el pedido {number}?",
+      "cancelBody": "{shop} todavía no lo aceptó: se cancela y no tienes que pagar nada. Le avisamos a la florería.",
+      "cancelConfirm": "Sí, cancelar el pedido",
+      "cancelled": "Pedido cancelado."
     },
     "privacy": {
       "title": "Tus datos y tu privacidad",
@@ -707,7 +712,8 @@
       "receiver_recorded": "{actor} anotó quién recibió {number}",
       "placed_online": "{actor} hizo el pedido {number} desde la tienda en línea",
       "accepted": "{actor} aceptó el pedido en línea {number}",
-      "expired": "El pedido en línea {number} se canceló porque nadie lo aceptó a tiempo"
+      "expired": "El pedido en línea {number} se canceló porque nadie lo aceptó a tiempo",
+      "cancelled_by_buyer": "{actor} canceló su pedido {number}"
     },
     "delivery_settings": {
       "updated": "{actor} cambió los ajustes de entrega"
@@ -1627,7 +1633,11 @@
       "distanceButton": "Calcular por distancia",
       "distanceFee": "A {km} km en línea recta: {fee}.",
       "distanceOutOfZone": "A {km} km en línea recta: más lejos que tu última tarifa ({max} km). Escribe el costo a mano.",
-      "distanceUnknown": "No sabemos dónde está esta dirección: elígela con «Buscar dirección» para medir la distancia."
+      "distanceUnknown": "No sabemos dónde está esta dirección: elígela con «Buscar dirección» para medir la distancia.",
+      "notifyCustomer": "Enviar la confirmación del pedido a {email}",
+      "notifyCustomerHint": "Le llega el resumen del pedido y un enlace para seguirlo.",
+      "notifyCustomerNoEmail": "El cliente no tiene correo: puedes compartirle el enlace del pedido por WhatsApp.",
+      "notifyCustomerDemo": "Florería de demostración: la confirmación no se envía por correo."
     },
     "whatsapp": {
       "greeting": "Hola {name}, te confirmamos tu pedido {number} de {shop}.",
@@ -1674,7 +1684,8 @@
       "stepCustomer": "Cliente",
       "changeLines": "Cambiar productos",
       "linesCount": "{count, plural, one {# producto} other {# productos}}",
-      "continueHint": "Cuando tengas los productos, continúa con la entrega."
+      "continueHint": "Cuando tengas los productos, continúa con la entrega.",
+      "confirmedNotified": "Pedido confirmado. Le enviamos la confirmación al cliente."
     },
     "customerCard": {
       "title": "Pedidos",
@@ -1809,8 +1820,10 @@
       "missing": "Faltan {quantity}",
       "available": "Disponibles: {quantity}",
       "movements": "Ver movimientos del inventario",
-      "reservedHint": "Parte de estos productos está apartada. Si un apartado es para este pedido, libéralo cuando lo marques como listo: el pedido ya descuenta sus materiales.",
-      "reservations": "Ver apartados"
+      "reservedHint": "Parte de estos productos está apartada para otros pedidos o eventos. Si hiciste a mano un apartado para este pedido, libéralo: el pedido ya aparta y descuenta sus materiales.",
+      "reservations": "Ver apartados",
+      "held": "Apartados para este pedido hasta el {date}: no se ofrecen como disponibles para otros ramos.",
+      "heldFrom": "Se apartan para este pedido desde el {date}, {days} días antes de la entrega; hasta entonces siguen disponibles."
     }
   },
   "plans": {
@@ -2603,7 +2616,8 @@
       "entry_already_reversed": "Este movimiento ya se anuló.",
       "no_real_cost": "Este producto todavía no tiene un costo real: registra una compra.",
       "reservation_closed": "Este apartado ya se usó o se liberó. Recarga la página.",
-      "bouquet_without_recipe": "Este ramo no tiene receta: agrégale los ingredientes en el catálogo."
+      "bouquet_without_recipe": "Este ramo no tiene receta: agrégale los ingredientes en el catálogo.",
+      "reservation_order": "Este apartado es de un pedido: se usa y se libera desde el pedido."
     },
     "activity": {
       "tracking_started": "{units, plural, one {{actor} empezó a controlar {name} en el inventario} other {{actor} empezó a controlar # productos en el inventario}}",
@@ -2623,7 +2637,8 @@
       "reservation_extended": "{actor} extendió un apartado",
       "reservation_released": "{actor} liberó un apartado",
       "reservation_used": "{actor} usó un apartado",
-      "bouquets_made": "{units, plural, one {{actor} registró # ramo hecho de {name}} other {{actor} registró # ramos hechos de {name}}}"
+      "bouquets_made": "{units, plural, one {{actor} registró # ramo hecho de {name}} other {{actor} registró # ramos hechos de {name}}}",
+      "reservation_updated": "{actor} actualizó el apartado de un pedido"
     },
     "purchases": {
       "title": "Compras",
@@ -2778,7 +2793,10 @@
         "releasedNotice": "Este apartado se liberó: la mercancía volvió a estar disponible.",
         "movementsLink": "Ver movimientos",
         "usedLine": "Usado: {quantity}",
-        "forThisLine": "Hay para este apartado: {quantity}"
+        "forThisLine": "Hay para este apartado: {quantity}",
+        "orderNotice": "Es el apartado del pedido {number} de {name}: sigue los cambios del pedido, se usa cuando el pedido queda listo y se libera si se cancela. Se maneja desde el pedido.",
+        "orderClosed": "Era el apartado del pedido {number} de {name}.",
+        "orderLink": "Ver pedido"
       },
       "actions": {
         "use": "Usar",
@@ -2804,7 +2822,9 @@
         "empty": "Nada apartado de este producto.",
         "entry": "{quantity} para {label}",
         "new": "Apartar"
-      }
+      },
+      "holdsFrom": "Aparta desde el {date}",
+      "forOrder": "Pedido de {name}"
     },
     "alerts": {
       "title": "Inventario",

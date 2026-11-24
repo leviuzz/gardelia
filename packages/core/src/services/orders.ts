@@ -22,6 +22,7 @@ import {
   canCancelOrder,
   canStepOrder,
   catalogQuoteLineSchema,
+  counterConfirmationRecipient,
   customQuoteLineSchema,
   deliveryAddressSchema,
   diffFields,
@@ -36,6 +37,7 @@ import {
   nextStoredPlace,
   orderBalanceMinor,
   orderCancelSchema,
+  orderConfirmationNoticeSchema,
   orderDiscountSchema,
   orderFulfillmentSchema,
   orderListFiltersSchema,
@@ -64,11 +66,20 @@ import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { logger } from '../logger';
+import type { EmailMessage } from '../mailer';
 import { readStoredImage } from '../media/stored-files';
-import { buyerOrderMail, sendOrderMails, type OrderMailDeps } from '../order-mail';
+import {
+  buyerOrderMail,
+  counterOrderConfirmationMail,
+  sendOrderMails,
+  type OrderMailDeps,
+} from '../order-mail';
 import { requireEntitlement } from './billing';
 import { consumeStockTx } from './inventory';
+import { consumeReservationTx, releaseReservationTx } from './inventory-reservations';
 import { orderStockRequest } from './order-inventory';
+import { activeOrderReservationId, syncOrderReservationTx } from './order-reservation';
+import { ensureOrderPublicLinkTx } from './public-links';
 import {
   catalogLineDraft,
   configurationLineDraft,
@@ -725,19 +736,71 @@ async function lockOrder(tx: TransactionClient, ctx: TenantContext, orderId: str
   return tx.order.findFirst({ where: { id: orderId, tenantId: ctx.tenantId } });
 }
 
+/** "Enviar la confirmación" spuntata nel form di conferma (ADR-072); assente = no. */
+function confirmationRequested(rawInput: unknown): boolean {
+  return orderConfirmationNoticeSchema.safeParse(rawInput).data?.notifyCustomer === true;
+}
+
+/**
+ * A chi va la conferma per email di un ordine del banco (ADR-072), o null: la casella, la fioreria
+ * LIVE (ADR-016) e l'email del cliente. Si legge prima dell'audit, che ricorda se è partita.
+ */
+async function confirmationRecipientTx(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  order: { readonly customerId: string; readonly placedOnline: boolean },
+  requested: boolean,
+): Promise<{ readonly email: string; readonly name: string } | null> {
+  if (!requested || ctx.mode !== 'LIVE') return null;
+  const customer = await tx.customer.findFirst({
+    where: { id: order.customerId, tenantId: ctx.tenantId },
+    select: { email: true, displayName: true },
+  });
+  const email = counterConfirmationRecipient({
+    requested,
+    tenantMode: ctx.mode,
+    placedOnline: order.placedOnline,
+    customerEmail: customer?.email ?? null,
+  });
+  return email && customer ? { email, name: customer.displayName } : null;
+}
+
+/** L'email di conferma con il link per seguire l'ordine (quello attivo o uno nuovo). */
+async function confirmationMailTx(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  order: { readonly id: string; readonly number: number },
+  recipient: { readonly email: string; readonly name: string },
+  mail: OrderMailDeps,
+): Promise<EmailMessage> {
+  const linkId = await ensureOrderPublicLinkTx(tx, ctx, order);
+  return counterOrderConfirmationMail(
+    tx,
+    ctx.tenantId,
+    order.id,
+    { to: recipient.email, name: recipient.name, linkId },
+    mail,
+  );
+}
+
 // -----------------------------------------------------------------------------
 // Scrittura
 // -----------------------------------------------------------------------------
 
-/** "Convertir en pedido": un preventivo ACCETTATO diventa un ordine confermato. */
+/**
+ * "Convertir en pedido": un preventivo ACCETTATO diventa un ordine confermato. Con "Enviar la
+ * confirmación" il cliente riceve l'email con il link per seguirlo (`mail`, facoltativo nei test).
+ */
 export async function createOrderFromQuote(
   ctx: TenantContext,
   quoteId: string,
   rawInput: unknown,
-): Promise<{ id: string; number: number }> {
+  mail: OrderMailDeps | null = null,
+): Promise<{ id: string; number: number; customerNotified: boolean }> {
   requirePermission(ctx, 'orders:write');
   if (!isUuid(quoteId)) throw new NotFoundError('Quote');
   const input = parseFulfillment(ctx, rawInput);
+  const requested = confirmationRequested(rawInput);
 
   const result = await withTenantContext(getDb(), ctx, async (tx) => {
     const quote = await lockQuote(tx, ctx, quoteId);
@@ -817,6 +880,16 @@ export async function createOrderFromQuote(
         createdById: ctx.userId,
       },
     });
+    // I materiali dell'ordine si mettono da parte (ADR-072).
+    await syncOrderReservationTx(tx, ctx, order.id);
+    const recipient = mail
+      ? await confirmationRecipientTx(
+          tx,
+          ctx,
+          { customerId: quote.customerId, placedOnline: false },
+          requested,
+        )
+      : null;
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.orderCreated,
       entityType: 'Order',
@@ -825,12 +898,16 @@ export async function createOrderFromQuote(
         number: formatOrderNumber(number),
         quoteNumber: formatQuoteNumber(quote.number),
         mode: input.fulfillmentMode,
+        ...(recipient ? { customerNotified: true } : {}),
       },
     });
-    return { id: order.id, number };
+    const message =
+      recipient && mail ? await confirmationMailTx(tx, ctx, order, recipient, mail) : null;
+    return { id: order.id, number, message };
   });
   if (!result) return notFound(ctx, 'Quote', quoteId);
-  return result;
+  if (mail && result.message) await sendOrderMails(mail.mailer, [result.message]);
+  return { id: result.id, number: result.number, customerNotified: result.message !== null };
 }
 
 /** Cambia consegna, destinatario, tarjeta e costo di consegna finché l'ordine non è uscito. */
@@ -878,6 +955,8 @@ export async function updateOrderFulfillment(
       paymentStatus: orderPaymentStatus(order.paidMinor, totals.totalMinor),
     };
     await tx.order.update({ where: { id: order.id }, data: changes });
+    // Nuovo giorno: l'apartado dei materiali lo segue (ADR-072).
+    await syncOrderReservationTx(tx, ctx, order.id);
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.orderUpdated,
       entityType: 'Order',
@@ -954,6 +1033,9 @@ export async function changeOrderStatus(
         createdById: ctx.userId,
       },
     });
+    // L'apartado segue lo stato (ADR-072): un ordine confermato prima di questa versione lo prende
+    // qui, uno tornato indietro da "Listo" senza scarico lo riprende.
+    await syncOrderReservationTx(tx, ctx, order.id);
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.orderStatusChanged,
       entityType: 'Order',
@@ -968,7 +1050,9 @@ export async function changeOrderStatus(
 
 /**
  * Scarica i materiali dell'ordine (prodotti, ricette dei ramos, componenti dei disegni) con un registro
- * di uso che porta il numero dell'ordine. Restituisce il registro, o null se niente si controlla.
+ * di uso che porta il numero dell'ordine. Con l'apartado dell'ordine (ADR-072) si usa quello: la sua
+ * merce è dell'ordine e l'apartado si chiude; le quantità sono comunque quelle attuali dell'ordine.
+ * Restituisce il registro, o null se niente si controlla.
  */
 async function consumeOrderMaterials(
   tx: TransactionClient,
@@ -977,22 +1061,30 @@ async function consumeOrderMaterials(
   confirmShortage: boolean,
 ): Promise<string | null> {
   const lines = await orderStockRequest(tx, ctx.tenantId, order.id);
-  if (lines.length === 0) return null;
+  const reservationId = await activeOrderReservationId(tx, ctx, order.id);
+  if (lines.length === 0) {
+    if (reservationId) await releaseReservationTx(tx, ctx, reservationId);
+    return null;
+  }
   try {
-    const result = await consumeStockTx(tx, ctx, {
-      lines,
-      note: formatOrderNumber(order.number),
-      confirmShortage,
-    });
+    const result = reservationId
+      ? await consumeReservationTx(tx, ctx, reservationId, { lines, confirmShortage })
+      : await consumeStockTx(tx, ctx, {
+          lines,
+          note: formatOrderNumber(order.number),
+          confirmShortage,
+        });
     return result.entryId;
   } catch (error) {
     if (error instanceof ConflictError && error.reason === 'inventory_insufficient_stock') {
       throw new ConflictError('order_inventory_shortage');
     }
     // Quantità fuori dai limiti dell'inventario (un ordine enorme): l'ordine va avanti lo stesso e
-    // il materiale si registra a mano. Non deve mai bloccare il lavoro del banco.
+    // il materiale si registra a mano. Non deve mai bloccare il lavoro del banco. L'errore nasce
+    // prima di scrivere: l'apartado, se c'era, si libera.
     if (error instanceof ValidationError) {
       logger.warn({ orderId: order.id }, "materiali dell'ordine non scaricati: fuori dai limiti");
+      if (reservationId) await releaseReservationTx(tx, ctx, reservationId);
       return null;
     }
     throw error;
@@ -1023,6 +1115,8 @@ export async function cancelOrder(
       where: { id: order.id },
       data: { status: 'CANCELLED', statusChangedAt: new Date(), cancelReason: reason },
     });
+    // La merce messa da parte per l'ordine torna disponibile (ADR-072).
+    await syncOrderReservationTx(tx, ctx, order.id);
     await tx.orderStatusEvent.create({
       data: {
         tenantId: ctx.tenantId,
@@ -1069,6 +1163,7 @@ export async function acceptOnlineOrder(
       where: { id: order.id },
       data: { status: 'CONFIRMED', statusChangedAt: new Date() },
     });
+    await syncOrderReservationTx(tx, ctx, order.id);
     await tx.orderStatusEvent.create({
       data: {
         tenantId: ctx.tenantId,
@@ -1411,6 +1506,7 @@ async function insertOrderLine(
     });
   }
   await recalculateOrderTotals(tx, ctx, order);
+  await syncOrderReservationTx(tx, ctx, order.id);
   await recordAudit(tx, ctx, {
     action: AUDIT_ACTIONS.orderLineAdded,
     entityType: 'Order',
@@ -1491,6 +1587,7 @@ export async function updateOrderLineQuantity(
       data: { quantity, lineTotalMinor: quantity * line.unitPriceMinor },
     });
     await recalculateOrderTotals(tx, ctx, order);
+    await syncOrderReservationTx(tx, ctx, order.id);
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.orderLineUpdated,
       entityType: 'Order',
@@ -1523,6 +1620,7 @@ export async function removeOrderLine(
     }
     await tx.orderLine.delete({ where: { id: line.id } });
     await recalculateOrderTotals(tx, ctx, order);
+    await syncOrderReservationTx(tx, ctx, order.id);
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.orderLineRemoved,
       entityType: 'Order',
@@ -1566,18 +1664,23 @@ export async function updateOrderDiscount(
   if (!found) await notFound(ctx, 'Order', orderId);
 }
 
-/** Il borrador diventa un ordine confermato con i dati di consegna e la tarjeta. */
+/**
+ * Il borrador diventa un ordine confermato con i dati di consegna e la tarjeta. Con "Enviar la
+ * confirmación" il cliente riceve l'email con il link per seguirlo (`mail`, facoltativo nei test).
+ */
 export async function confirmDraftOrder(
   ctx: TenantContext,
   orderId: string,
   rawInput: unknown,
-): Promise<void> {
+  mail: OrderMailDeps | null = null,
+): Promise<{ customerNotified: boolean }> {
   requirePermission(ctx, 'orders:write');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
   const input = parseFulfillment(ctx, rawInput);
+  const requested = confirmationRequested(rawInput);
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await lockOrder(tx, ctx, orderId);
-    if (!order) return false;
+    if (!order) return null;
     if (order.status !== 'DRAFT') throw new ConflictError('invalid_status_transition');
     const lines = await tx.orderLine.count({ where: { tenantId: ctx.tenantId, orderId } });
     if (lines === 0) throw new ConflictError('order_empty');
@@ -1608,15 +1711,25 @@ export async function confirmDraftOrder(
         createdById: ctx.userId,
       },
     });
+    await syncOrderReservationTx(tx, ctx, order.id);
+    const recipient = mail ? await confirmationRecipientTx(tx, ctx, order, requested) : null;
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.orderConfirmed,
       entityType: 'Order',
       entityId: order.id,
-      metadata: { number: formatOrderNumber(order.number), mode: input.fulfillmentMode },
+      metadata: {
+        number: formatOrderNumber(order.number),
+        mode: input.fulfillmentMode,
+        ...(recipient ? { customerNotified: true } : {}),
+      },
     });
-    return true;
+    const message =
+      recipient && mail ? await confirmationMailTx(tx, ctx, order, recipient, mail) : null;
+    return { message };
   });
-  if (!found) await notFound(ctx, 'Order', orderId);
+  if (!found) return notFound(ctx, 'Order', orderId);
+  if (mail && found.message) await sendOrderMails(mail.mailer, [found.message]);
+  return { customerNotified: found.message !== null };
 }
 
 /**

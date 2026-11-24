@@ -19,6 +19,7 @@ import {
   MARKETPLACE_DATE_ERRORS,
   MARKETPLACE_EXPIRED_REASON,
   MARKETPLACE_ORDER_LIMITS,
+  MARKETPLACE_WITHDRAWN_REASON,
   addDays,
   deliveryAddressSchema,
   earliestMarketplaceDate,
@@ -58,6 +59,7 @@ import {
   buyerOrderMail,
   newOrderMailsForShop,
   sendOrderMails,
+  withdrawnOrderMailsForShop,
   type OrderMailDeps,
 } from './order-mail';
 import { createPublicLinkToken, publicLinkUrl } from './public-links';
@@ -688,6 +690,80 @@ export async function listBuyerOrders(
         )
       : null,
   }));
+}
+
+/**
+ * "Cancelar pedido" da "Mis pedidos": chi l'ha fatto annulla un ordine online ancora "Por aceptar".
+ * L'ordine si cerca solo fra quelli della persona (`app_buyer_orders`, utente dal contesto: nessun
+ * ID di fioreria dal browser); poi, nella fioreria, proprietario e stato si ricontrollano sotto
+ * lock. Email di conferma a chi compra e avviso a proprietari e gerenti, dopo il commit.
+ */
+export async function cancelMarketplaceOrder(
+  buyer: BuyerContext,
+  orderId: string,
+  deps: OrderMailDeps | null,
+  options: { readonly request?: RequestMeta } = {},
+): Promise<void> {
+  assertBuyer(buyer);
+  if (!isUuid(orderId)) throw new NotFoundError('Order');
+  const owned = await withUserContext(
+    getDb(),
+    buyer.userId,
+    (tx) =>
+      tx.$queryRaw<{ tenant_id: string }[]>`
+      SELECT tenant_id FROM app_buyer_orders() WHERE order_id = ${orderId}::uuid`,
+  );
+  const tenantId = owned[0]?.tenant_id;
+  if (!tenantId) throw new NotFoundError('Order');
+
+  const mails = await withTenantContext(getDb(), { tenantId, userId: buyer.userId }, async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${orderId}::uuid
+        AND "tenantId" = ${tenantId}::uuid FOR UPDATE`;
+    const order = await tx.order.findFirst({ where: { tenantId, id: orderId } });
+    if (!order || order.buyerUserId !== buyer.userId) throw new NotFoundError('Order');
+    // Accettato (o già chiuso): da qui in poi l'ordine lo cambia solo la fioreria.
+    if (order.status !== 'PENDING_ACCEPTANCE') throw new ConflictError('order_not_pending');
+    await tx.order.update({
+      where: { id: order.id },
+      data: {
+        status: 'CANCELLED',
+        statusChangedAt: new Date(),
+        cancelReason: MARKETPLACE_WITHDRAWN_REASON,
+      },
+    });
+    await tx.orderStatusEvent.create({
+      data: {
+        tenantId,
+        orderId: order.id,
+        fromStatus: order.status,
+        toStatus: 'CANCELLED',
+        note: MARKETPLACE_WITHDRAWN_REASON,
+      },
+    });
+    await tx.auditLog.create({
+      data: {
+        tenantId,
+        actorUserId: buyer.userId,
+        action: AUDIT_ACTIONS.orderCancelledByBuyer,
+        entityType: 'Order',
+        entityId: order.id,
+        metadata: { number: formatOrderNumber(order.number) },
+        requestId: options.request?.requestId ?? null,
+        ipAddress: options.request?.ipAddress ?? null,
+      },
+    });
+    if (!deps) return [];
+    const user = await tx.user.findUnique({
+      where: { id: buyer.userId },
+      select: { name: true },
+    });
+    return [
+      await buyerOrderMail(tx, tenantId, order.id, 'withdrawn', deps),
+      ...(await withdrawnOrderMailsForShop(tx, tenantId, order.id, user?.name ?? '', deps)),
+    ].filter((mail) => mail !== null);
+  });
+  logger.info({ tenantId, orderId }, 'ordine online annullato da chi compra');
+  if (deps) await sendOrderMails(deps.mailer, mails);
 }
 
 // -----------------------------------------------------------------------------

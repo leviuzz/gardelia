@@ -68,7 +68,8 @@ function single(value: string | string[] | undefined): string | undefined {
 
 /**
  * Scheda di un apartado (ADR-062): per chi, fino a quando, le righe con quanto c'è oggi per
- * questo apartado, e le azioni: Usar (quanto si è usato davvero), Extender, Liberar.
+ * questo apartado, e le azioni: Usar (quanto si è usato davvero), Extender, Liberar. Quello di un
+ * ordine (ADR-072) lo governa l'ordine: niente azioni, solo il link all'ordine.
  */
 export default async function ReservationPage({
   params,
@@ -102,7 +103,9 @@ export default async function ReservationPage({
 
   const created = single((await searchParams).created) === '1';
   const open = reservation.status === 'ACTIVE';
-  const canAct = open && reservation.canWrite;
+  // L'apartado di un ordine (ADR-072) lo usa e lo libera l'ordine: qui niente azioni.
+  const fromOrder = reservation.order;
+  const canAct = open && reservation.canWrite && !fromOrder;
   const range = reservationExpiryRange(todayInTimeZone(ctx.timezone));
   const expiry = {
     min: toIsoDate(range.min),
@@ -116,6 +119,9 @@ export default async function ReservationPage({
   const showUsed = reservation.status === 'USED';
 
   const facts = [
+    reservation.scheduled && reservation.holdsFrom
+      ? t('reservations.holdsFrom', { date: day(reservation.holdsFrom) })
+      : null,
     reservation.state === 'EXPIRED'
       ? t('reservations.expiredOn', { date: day(reservation.expiresOn) })
       : open
@@ -156,7 +162,24 @@ export default async function ReservationPage({
           <AlertDescription>{t('reservations.detail.created')}</AlertDescription>
         </Alert>
       ) : null}
-      {reservation.state === 'EXPIRED' ? (
+      {fromOrder ? (
+        <Alert variant="info">
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+            <span>
+              {t(open ? 'reservations.detail.orderNotice' : 'reservations.detail.orderClosed', {
+                number: fromOrder.numberLabel,
+                name: fromOrder.customerName,
+              })}
+            </span>
+            <Button asChild size="sm" variant="outline">
+              <Link href={routes.orders.detail(fromOrder.id)}>
+                {t('reservations.detail.orderLink')}
+              </Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {reservation.state === 'EXPIRED' && !fromOrder ? (
         <Alert variant="warning">
           <AlertDescription>{t('reservations.detail.expiredNotice')}</AlertDescription>
         </Alert>

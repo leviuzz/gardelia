@@ -209,6 +209,20 @@ export function shopToday(ctx: TenantContext): Date {
  * cioè con la scadenza da oggi in poi nel calendario della fioreria. Un apartado vencido non tiene
  * più merce, senza bisogno di job. `excludeReservationId`: senza l'apartado che si sta usando.
  */
+/**
+ * Gli apartados che tolgono merce dal disponibile oggi: attivi, non vencidos e già cominciati
+ * (`holdsFrom`, per quelli degli ordini: ADR-072).
+ */
+export function holdingReservationWhere(ctx: TenantContext) {
+  const today = shopToday(ctx);
+  return {
+    tenantId: ctx.tenantId,
+    status: 'ACTIVE' as const,
+    expiresOn: { gte: today },
+    OR: [{ holdsFrom: null }, { holdsFrom: { lte: today } }],
+  };
+}
+
 export async function reservedQuantities(
   tx: TransactionClient,
   ctx: TenantContext,
@@ -226,9 +240,7 @@ export async function reservedQuantities(
         ? { inventoryItemId: { in: [...options.inventoryItemIds] } }
         : {}),
       reservation: {
-        tenantId: ctx.tenantId,
-        status: 'ACTIVE',
-        expiresOn: { gte: shopToday(ctx) },
+        ...holdingReservationWhere(ctx),
         ...(options.excludeReservationId ? { id: { not: options.excludeReservationId } } : {}),
       },
     },

@@ -108,6 +108,8 @@ export const AUDIT_ACTIONS = {
   orderPlacedOnline: 'order.placed_online',
   orderAccepted: 'order.accepted',
   orderExpired: 'order.expired',
+  /** Chi compra annulla da "Mis pedidos" un ordine online ancora da accettare. */
+  orderCancelledByBuyer: 'order.cancelled_by_buyer',
   orderPaymentRecorded: 'order.payment_recorded',
   orderPaymentReversed: 'order.payment_reversed',
   subscriptionAssigned: 'subscription.assigned',
@@ -139,6 +141,8 @@ export const AUDIT_ACTIONS = {
   inventoryReservationExtended: 'inventory.reservation_extended',
   inventoryReservationReleased: 'inventory.reservation_released',
   inventoryReservationUsed: 'inventory.reservation_used',
+  /** Un ordine confermato ha cambiato righe o giorno: il suo apartado lo segue (ADR-072). */
+  inventoryReservationUpdated: 'inventory.reservation_updated',
   /** "Registrar ramos hechos" (ADR-063): la ricetta × N esce dall'inventario. */
   inventoryBouquetsMade: 'inventory.bouquets_made',
   builderConfigurationCreated: 'builder.configuration_created',

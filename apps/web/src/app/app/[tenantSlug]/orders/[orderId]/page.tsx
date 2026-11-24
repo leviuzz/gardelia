@@ -19,6 +19,7 @@ import {
 import {
   MARKETPLACE_ORDER_LIMITS,
   MX_REGIONS,
+  ORDER_HOLD_DAYS,
   PHOTO_LIMITS,
   canShareOrder,
   isOrderFinal,
@@ -121,6 +122,8 @@ export default async function OrderPage({
       year: 'numeric',
       timeZone: 'UTC',
     });
+  const day = (value: string) =>
+    format.dateTime(calendarDate(value), { day: 'numeric', month: 'long', timeZone: 'UTC' });
   const window =
     order.windowStart && order.windowEnd
       ? t('orders.window', { start: order.windowStart, end: order.windowEnd })
@@ -732,8 +735,19 @@ export default async function OrderPage({
                       : t('orders.inventory.consumedHint')}
                   </p>
                 )}
+                {inventory.hold ? (
+                  // L'apartado dell'ordine (ADR-072): da quando tiene la merce.
+                  <p className="text-muted-foreground" data-testid="order-inventory-hold">
+                    {inventory.hold.started || !inventory.hold.holdsFrom
+                      ? t('orders.inventory.held', { date: day(inventory.hold.expiresOn) })
+                      : t('orders.inventory.heldFrom', {
+                          date: day(inventory.hold.holdsFrom),
+                          days: ORDER_HOLD_DAYS,
+                        })}
+                  </p>
+                ) : null}
                 {inventory.lines.some((line) => line.reserved > 0) ? (
-                  // Un apartado fatto a mano per questo ordine va liberato: l'ordine scarica già.
+                  // Un apartado fatto a mano per questo ordine va liberato: l'ordine aparta già.
                   <p className="rounded-xl bg-muted p-3">
                     {t('orders.inventory.reservedHint')}{' '}
                     <Link
