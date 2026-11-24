@@ -134,7 +134,17 @@ export interface CareAgendaSlotGroup {
   /** Posti della fascia; null se la fascia è archiviata. */
   readonly capacity: number | null;
   readonly used: number;
+  /** Il nome del blocco che toglie questa fascia quel giorno (ADR-083), o null. */
+  readonly blockedBy: string | null;
   readonly visits: readonly CareAgendaVisitDto[];
+}
+
+/** Un blocco di giorni attivo in quel giorno (ADR-083). */
+export interface CareAgendaBlockDto {
+  readonly id: string;
+  readonly label: string;
+  /** null = tutto il giorno; altrimenti l'orario tolto. */
+  readonly slot: { readonly start: string; readonly end: string } | null;
 }
 
 export interface CareAgendaDayDto {
@@ -149,6 +159,8 @@ export interface CareAgendaDayDto {
   readonly toRecover: number;
   /** Avvisi della squadra ancora aperti (reposición, extra, altro), per chi gestisce. */
   readonly openFollowUps: number;
+  /** I blocchi di giorni attivi quel giorno (ADR-083). */
+  readonly blocks: readonly CareAgendaBlockDto[];
 }
 
 export interface CareAgendaMonthDto {
@@ -157,6 +169,8 @@ export interface CareAgendaMonthDto {
   /** Solo i giorni con visite. */
   readonly days: readonly { readonly date: string; readonly visits: number }[];
   readonly toReschedule: number;
+  /** I giorni con un blocco attivo (ADR-083): tutto il giorno o solo un orario. */
+  readonly blockedDays: readonly { readonly date: string; readonly wholeDay: boolean }[];
 }
 
 export interface CareMoveOptionDto {
@@ -212,7 +226,7 @@ export async function getCareAgendaDay(
   const today = todayInTimeZone(ctx.timezone);
   return withTenantContext(getDb(), ctx, async (tx) => {
     await requireEntitlement(ctx, 'floralCare', tx);
-    const [rows, slots, toReschedule, toRecover, openFollowUps] = await Promise.all([
+    const [rows, slots, toReschedule, toRecover, openFollowUps, blocks] = await Promise.all([
       tx.careVisit.findMany({
         where: {
           tenantId: ctx.tenantId,
@@ -229,7 +243,25 @@ export async function getCareAgendaDay(
       tx.careVisit.count({ where: { tenantId: ctx.tenantId, status: 'TO_RESCHEDULE' } }),
       tx.careVisit.count({ where: toRecoverWhere(ctx.tenantId) }),
       countOpenCareFollowUpsTx(tx, ctx.tenantId),
+      tx.careBlock.findMany({
+        where: {
+          tenantId: ctx.tenantId,
+          removedAt: null,
+          startDate: { lte: dbDate(day) },
+          endDate: { gte: dbDate(day) },
+        },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          label: true,
+          slotId: true,
+          slot: { select: { startMinutes: true, endMinutes: true } },
+        },
+      }),
     ]);
+    // Il nome del primo blocco che toglie la fascia quel giorno (tutto il giorno o proprio lei).
+    const blockedBy = (slotId: string | null) =>
+      blocks.find((block) => block.slotId === null || block.slotId === slotId)?.label ?? null;
     const plants = await plantCounts(
       tx,
       ctx.tenantId,
@@ -243,6 +275,7 @@ export async function getCareAgendaDay(
         end: formatTimeOfDay(slot.endMinutes),
         capacity: slot.capacity,
         used: 0,
+        blockedBy: blockedBy(slot.id),
         visits: [],
       });
     }
@@ -257,6 +290,7 @@ export async function getCareAgendaDay(
           end: row.endMinutes === null ? null : formatTimeOfDay(row.endMinutes),
           capacity: null,
           used: 0,
+          blockedBy: row.slotId ? blockedBy(row.slotId) : blockedBy(null),
           visits: [],
         };
         groups.set(key, group);
@@ -277,6 +311,16 @@ export async function getCareAgendaDay(
       toReschedule,
       toRecover,
       openFollowUps,
+      blocks: blocks.map((block) => ({
+        id: block.id,
+        label: block.label,
+        slot: block.slot
+          ? {
+              start: formatTimeOfDay(block.slot.startMinutes),
+              end: formatTimeOfDay(block.slot.endMinutes),
+            }
+          : null,
+      })),
     };
   });
 }
@@ -295,21 +339,39 @@ export async function getCareAgendaMonth(
   const target = valid ? { year, month } : { year: today.year, month: today.month };
   return withTenantContext(getDb(), ctx, async (tx) => {
     await requireEntitlement(ctx, 'floralCare', tx);
-    const [grouped, toReschedule] = await Promise.all([
+    const first = { ...target, day: 1 };
+    const last = { ...target, day: daysInMonth(target.year, target.month) };
+    const [grouped, toReschedule, blocks] = await Promise.all([
       tx.careVisit.groupBy({
         by: ['scheduledDate'],
         where: {
           tenantId: ctx.tenantId,
           status: { in: [...CARE_VISIT_HOLDING_STATUSES] },
-          scheduledDate: {
-            gte: dbDate({ ...target, day: 1 }),
-            lte: dbDate({ ...target, day: daysInMonth(target.year, target.month) }),
-          },
+          scheduledDate: { gte: dbDate(first), lte: dbDate(last) },
         },
         _count: { _all: true },
       }),
       tx.careVisit.count({ where: { tenantId: ctx.tenantId, status: 'TO_RESCHEDULE' } }),
+      tx.careBlock.findMany({
+        where: {
+          tenantId: ctx.tenantId,
+          removedAt: null,
+          startDate: { lte: dbDate(last) },
+          endDate: { gte: dbDate(first) },
+        },
+        select: { startDate: true, endDate: true, slotId: true },
+      }),
     ]);
+    // Ogni giorno del mese con un blocco: tutto il giorno vince su un orario solo.
+    const blockedDays = new Map<string, boolean>();
+    for (const block of blocks) {
+      const start = laterDate(requiredParts(block.startDate), first);
+      const end = earlierDate(requiredParts(block.endDate), last);
+      for (let day = start; compareDates(day, end) <= 0; day = addDays(day, 1)) {
+        const key = toIsoDate(day);
+        blockedDays.set(key, (blockedDays.get(key) ?? false) || block.slotId === null);
+      }
+    }
     return {
       year: target.year,
       month: target.month,
@@ -318,6 +380,9 @@ export async function getCareAgendaMonth(
         .map((row) => ({ date: isoOf(row.scheduledDate) ?? '', visits: row._count._all }))
         .sort((a, b) => a.date.localeCompare(b.date)),
       toReschedule,
+      blockedDays: [...blockedDays]
+        .map(([date, wholeDay]) => ({ date, wholeDay }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
     };
   });
 }
@@ -471,10 +536,8 @@ export async function moveCareVisit(
     });
     if (!first) return false;
     await lockSubscription(tx, ctx.tenantId, first.subscriptionId);
-    const book =
-      input.placement === 'SLOT'
-        ? await openSlotBook(tx, ctx.tenantId, { from: input.date, until: input.date })
-        : null;
+    // Anche per un'ora libera: le fasce bloccate tengono fermi i blocchi di giorni (ADR-083).
+    const book = await openSlotBook(tx, ctx.tenantId, { from: input.date, until: input.date });
     const visit = await lockVisit(tx, ctx, visitId);
     if (!visit) return false;
     if (visit.status !== 'SCHEDULED' && visit.status !== 'TO_RESCHEDULE') {
@@ -497,6 +560,7 @@ export async function moveCareVisit(
     if (input.placement === 'TIME') {
       // Solo le visite extra hanno l'ora libera: le altre stanno negli orari di visita.
       if (!visit.isExtra) throw new ValidationError({ placement: 'invalid_option' });
+      if (book.dayBlock(input.date)) throw new ValidationError({ date: 'care_day_blocked' });
       if (
         sameDay &&
         visit.slotId === null &&
@@ -507,12 +571,15 @@ export async function moveCareVisit(
       }
       target = { slotId: null, startMinutes: input.startMinutes, endMinutes: input.endMinutes };
     } else {
-      const slot = book?.slot(input.slotId);
-      if (!book || !slot?.active) throw new ValidationError({ slotId: 'invalid_option' });
+      const slot = book.slot(input.slotId);
+      if (!slot?.active) throw new ValidationError({ slotId: 'invalid_option' });
       if (slot.weekday !== dayOfWeek(input.date)) {
         throw new ValidationError({ slotId: 'care_slot_weekday' });
       }
       if (sameDay && visit.slotId === slot.id) return true;
+      if (book.blockFor(slot.id, input.date)) {
+        throw new ValidationError({ slotId: 'care_day_blocked' });
+      }
       if (book.free(slot.id, input.date) < visit.seats) throw new ConflictError('care_slot_full');
       target = { slotId: slot.id, startMinutes: slot.startMinutes, endMinutes: slot.endMinutes };
     }

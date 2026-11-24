@@ -1,4 +1,5 @@
 import {
+  CalendarOff,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -29,6 +30,7 @@ import { OrderStatusBadge } from '@/components/common/status-badges';
 import { ActionButton } from '@/components/form/action-button';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { calendarDate } from '@/lib/quote-ui';
@@ -126,6 +128,29 @@ export default async function AgendaDayPage({
         </form>
       </div>
 
+      {care && care.blocks.length > 0 ? (
+        <Alert variant="info" data-testid="agenda-blocked">
+          <CalendarOff aria-hidden="true" />
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+            <span>
+              {care.blocks
+                .map((block) =>
+                  block.slot
+                    ? t('care.blocks.agendaSlot', {
+                        label: block.label,
+                        start: block.slot.start,
+                        end: block.slot.end,
+                      })
+                    : t('care.blocks.agendaDay', { label: block.label }),
+                )
+                .join(' · ')}
+            </span>
+            <Button asChild size="sm" variant="outline">
+              <Link href={routes.agenda.blocks}>{t('care.blocks.agendaLink')}</Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
       {care && care.openFollowUps > 0 && hasPermission(ctx, 'subscriptions:write') ? (
         <Alert variant="warning">
           <Flag aria-hidden="true" />
@@ -184,7 +209,10 @@ export default async function AgendaDayPage({
                       ? t('orders.window', { start: group.start, end: group.end })
                       : t('care.agenda.noTime')}
                   </span>
-                  <span className="text-xs font-normal text-muted-foreground">
+                  <span className="flex flex-wrap items-center gap-2 text-xs font-normal text-muted-foreground">
+                    {group.blockedBy ? (
+                      <Badge variant="info">{t('care.blocks.blockedBadge')}</Badge>
+                    ) : null}
                     {group.slotId === null
                       ? t('care.agenda.freeTime')
                       : group.capacity === null

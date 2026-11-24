@@ -3151,7 +3151,10 @@
       "payment_confirmed": "{actor} confirmed a visit payment on {number}",
       "payment_rejected": "{actor} rejected a visit payment for {number}",
       "adjustment_added": "{actor} added an adjustment for the next charge of {number}",
-      "adjustment_removed": "{actor} removed an adjustment from {number}"
+      "adjustment_removed": "{actor} removed an adjustment from {number}",
+      "block_created": "{actor} blocked Floral Care days",
+      "block_removed": "{actor} removed a Floral Care block",
+      "visits_reassigned": "{actor} changed who does several visits"
     },
     "notice": {
       "label": "Yes, I let the customer know"
@@ -3335,7 +3338,13 @@
       "paid_on_future": "The payment date can’t be after today.",
       "refund_exceeds_credit": "The refund can’t be more than the customer’s credit.",
       "confirm_exceeds_collected": "It can’t be more than what was noted at the visit.",
-      "too_many_adjustments": "This contract already has many pending adjustments."
+      "too_many_adjustments": "This contract already has many pending adjustments.",
+      "block_range": "The last day can't be before the first.",
+      "block_too_long": "A block lasts at most 92 days.",
+      "block_past": "Choose a day from today on.",
+      "block_too_far": "You can block up to a year from today.",
+      "day_blocked": "That day (or slot) is blocked.",
+      "reassign_same": "Choose someone else."
     },
     "conflict": {
       "not_configured": "Save your Floral Care rates first (Settings → Floral Care).",
@@ -3371,7 +3380,10 @@
       "collection_pending": "This visit already has a payment waiting to be recorded.",
       "payment_not_pending": "This payment was already confirmed or rejected.",
       "adjustment_in_charge": "This adjustment is already on a charge: fix it with another adjustment.",
-      "visit_already_recovered": "This visit already has its make-up visit."
+      "visit_already_recovered": "This visit already has its make-up visit.",
+      "block_changed": "The visits on those days changed while you were reviewing. Check the affected visits again before saving.",
+      "block_too_many_visits": "Too many visits for one block: split it into shorter periods.",
+      "block_limit": "You have too many active blocks: remove one you no longer need."
     },
     "contracts": {
       "title": "Floral Care",
@@ -3598,7 +3610,8 @@
         "month": "Month",
         "reschedule": "To reschedule ({count})",
         "route": "Route",
-        "rescheduleShort": "To reschedule"
+        "rescheduleShort": "To reschedule",
+        "blocks": "Blocked days"
       },
       "previous": "Previous day",
       "next": "Next day",
@@ -4182,6 +4195,103 @@
       "emptyTitle": "No visits to make up",
       "emptyBody": "They show up here when the customer doesn’t open and the contract says “Another visit is scheduled”.",
       "missedOn": "Couldn’t be done on {date}"
+    },
+    "blocks": {
+      "title": "Blocked days",
+      "subtitle": "Vacations, busy days or a time slot you can't cover: no visits are booked there.",
+      "new": "Block days",
+      "newSubtitle": "Choose the days and what happens to visits already booked. Before saving you see which customers are affected.",
+      "back": "Back to blocked days",
+      "detailTitle": "Blocked days",
+      "from": "From",
+      "until": "Until",
+      "slot": "Time slot",
+      "slotHint": "The whole day also blocks extra visits at a free time.",
+      "wholeDay": "Whole day",
+      "slotOnly": "Only {start}–{end}",
+      "label": "Name",
+      "labelHint": "For example “Vacation” or “May 10”. Only your team sees it.",
+      "whatToDo": "What happens to the visits on those days?",
+      "actions": {
+        "MOVE": "Move them to another day",
+        "CANCEL": "Cancel them without charging"
+      },
+      "actionHints": {
+        "MOVE": "To the nearest free day in the same month, from tomorrow. Those that don't fit stay “To reschedule”.",
+        "CANCEL": "As if you removed them: they aren't charged (if already on a charge, they're credited on the next one)."
+      },
+      "previewSubmit": "See affected visits",
+      "previewTitle": "Affected customers",
+      "previewNone": "No visits are booked on those days. You can save the block.",
+      "previewSummary": "{contracts, plural, one {# contract} other {# contracts}}: {moved, plural, =0 {} one {# visit moves} other {# visits move}}{toReschedule, plural, =0 {} one { · # to reschedule} other { · # to reschedule}}{cancelled, plural, =0 {} one { · # cancelled} other { · # cancelled}}.",
+      "overlapping": "There are already blocks on those days: {labels}.",
+      "movedTo": "moves to {when}",
+      "toReschedule": "to reschedule (no room that month)",
+      "cancelledNotCharged": "cancelled, not charged",
+      "noEmail": "No email",
+      "futureNote": {
+        "MOVE": "Visits not yet booked on those days will be booked on another day of the month.",
+        "CANCEL": "Visits not yet booked on those days will be created as cancelled and aren't charged."
+      },
+      "sendEmail": "Email each customer their changes",
+      "sendEmailHint": "{count, plural, one {Goes to # customer.} other {Goes to # customers.}}",
+      "sendEmailHintMissing": "{count, plural, one {Goes to # customer.} other {Goes to # customers.}} {missing, plural, one {# has no email: let them know yourself.} other {# have no email: let them know yourself.}}",
+      "emailUnavailable": "This shop doesn't email customers (it's a demo or not active): let them know yourself.",
+      "noticeHint": "{count, plural, one {# booked visit changes.} other {# booked visits change.}}",
+      "save": "Save block",
+      "created": "Block saved. {moved, plural, =0 {} one {# visit moved.} other {# visits moved.}} {toReschedule, plural, =0 {} one {# to reschedule.} other {# to reschedule.}} {cancelled, plural, =0 {} one {# cancelled.} other {# cancelled.}}",
+      "createdNone": "Block saved. There were no visits on those days.",
+      "affectedTitle": "Visits that changed",
+      "affectedSubtitle": "{count, plural, one {# contract} other {# contracts}}. Open a visit to change it by hand.",
+      "affectedNone": "No visits changed when the block was created.",
+      "emailNotSent": "No email sent",
+      "emailStatus": {
+        "PENDING": "Email on its way",
+        "SENDING": "Sending the email",
+        "SENT": "Email sent",
+        "FAILED": "The email didn't go out"
+      },
+      "noticeSend": "Send notice",
+      "noticeRetry": "Retry",
+      "noticeFor": "Notice for {name}",
+      "noticeSent": "Notice sent",
+      "noticeFailed": "The notice didn't go out: try again later.",
+      "remove": "Remove block",
+      "removeTitle": "Remove the block?",
+      "removeBody": "Those days are free again. Visits already moved stay where they are.",
+      "removeConfirm": "Remove",
+      "removed": "Block removed",
+      "removedBadge": "Removed",
+      "removedNote": "This block no longer applies: those days are free.",
+      "range": "{from} to {to}",
+      "changesCount": "{count, plural, one {# visit changed} other {# visits changed}}",
+      "current": "Today and upcoming",
+      "past": "Past or removed ({count})",
+      "emptyTitle": "No blocked days",
+      "emptyBody": "Block your vacation or busy days: your customers won't have visits on those days.",
+      "peakTitle": "Busy days",
+      "peakSubtitle": "We suggest not booking visits on these days. Block them in one tap and check who's affected.",
+      "peakBlock": "Block",
+      "peakDays": {
+        "valentine": "Valentine's Day",
+        "mothers": "Mother's Day (Mexico)",
+        "deadDays": "Day of the Dead",
+        "guadalupe": "Our Lady of Guadalupe Day"
+      },
+      "reassignTitle": "Someone can't go",
+      "reassignSubtitle": "Give their visits on those days to someone else. Only who goes changes, not the time: no need to tell the customer.",
+      "reassignFrom": "Who can't go",
+      "reassignTo": "Who goes instead",
+      "reassignChoose": "Choose a person",
+      "reassignSubmit": "Change person",
+      "reassigned": "{count, plural, =0 {That person had no visits on those days.} one {# visit changed person.} other {# visits changed person.}}",
+      "agendaDay": "Blocked day: {label}",
+      "agendaSlot": "Slot {start}–{end} blocked: {label}",
+      "agendaLink": "See blocked days",
+      "blockedBadge": "Blocked",
+      "monthDay": "Blocked",
+      "monthSlot": "One slot",
+      "legend": "Blocked day"
     }
   },
   "letterhead": {

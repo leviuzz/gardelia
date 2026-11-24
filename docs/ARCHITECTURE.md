@@ -328,6 +328,14 @@ riga ADJUSTMENT. Una visita extra gratis può puntare alla visita mancata che re
 paga quando avviene (`careCancellationCharged`: l'inizio della visita nel fuso della fioreria meno
 le ore copiate nel contratto) e lo salva nella visita (`cancelCharged`): l'emissione non guarda mai
 l'orologio.
+Giorni bloccati (ADR-083, `services/care-blocks.ts`): `openSlotBook` legge i blocchi attivi e il
+libro dà 0 posti a una fascia bloccata (un blocco di tutto il giorno chiude anche le ore libere),
+così nessuna prenotazione ci entra. Un blocco nuovo si salva bloccando i contratti toccati (in ordine di id:
+le righe nuove li referenziano), poi le fasce, poi le visite in ordine di id, e rifà il piano
+dell'anteprima (`placeInMonth`, il giorno libero più
+vicino del mese): se l'impronta è cambiata chiede di rivedere. Le visite cambiate restano in
+`CareBlockVisit` (elenco e testo dell'avviso); l'avviso è una riga di `CareEmail` con `blockId`,
+mandata dopo il commit o dal lavoro giornaliero. La generazione segue la scelta del blocco.
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per

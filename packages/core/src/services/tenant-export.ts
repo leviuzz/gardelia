@@ -104,6 +104,7 @@ export async function exportTenantData(
       charges,
       chargeLines,
       carePayments,
+      careBlocks,
     ] = await Promise.all([
       tx.customer.findMany({ where, orderBy: { createdAt: 'asc' } }),
       tx.customerAddress.findMany({ where, orderBy: { createdAt: 'asc' } }),
@@ -146,6 +147,14 @@ export async function exportTenantData(
         orderBy: { createdAt: 'asc' },
         include: { allocations: { select: { chargeId: true, amountMinor: true } } },
       }),
+      tx.careBlock.findMany({
+        where,
+        orderBy: [{ startDate: 'asc' }, { createdAt: 'asc' }],
+        include: {
+          slot: { select: { weekday: true, startMinutes: true, endMinutes: true } },
+          _count: { select: { changes: true } },
+        },
+      }),
     ]);
     return {
       customers,
@@ -168,6 +177,7 @@ export async function exportTenantData(
       charges,
       chargeLines,
       carePayments,
+      careBlocks,
     };
   });
 
@@ -205,6 +215,7 @@ export async function exportTenantData(
   type Charge = (typeof data.charges)[number];
   type ChargeLine = (typeof data.chargeLines)[number];
   type CarePaymentRow = (typeof data.carePayments)[number];
+  type CareBlockRow = (typeof data.careBlocks)[number];
 
   const sections: Section[] = [
     section<Customer>(
@@ -608,6 +619,28 @@ export async function exportTenantData(
         { header: 'Registrado', value: (r) => dateTime(r.createdAt) },
       ],
       data.carePayments,
+    ),
+    section<CareBlockRow>(
+      'floral_care_bloqueos.csv',
+      'días bloqueados de Floral Care',
+      [
+        { header: 'id', value: (r) => r.id },
+        { header: 'Nombre', value: (r) => r.label },
+        { header: 'Desde', value: (r) => day(r.startDate) },
+        { header: 'Hasta', value: (r) => day(r.endDate) },
+        {
+          header: 'Horario',
+          value: (r) =>
+            r.slot
+              ? `${formatTimeOfDay(r.slot.startMinutes)}–${formatTimeOfDay(r.slot.endMinutes)}`
+              : LABELS.careBlockWholeDay,
+        },
+        { header: 'Visitas', value: (r) => LABELS.careBlockAction[r.action] },
+        { header: 'Visitas cambiadas', value: (r) => String(r._count.changes), numeric: true },
+        { header: 'Creado', value: (r) => dateTime(r.createdAt) },
+        { header: 'Quitado', value: (r) => dateTime(r.removedAt) },
+      ],
+      data.careBlocks,
     ),
   ];
 

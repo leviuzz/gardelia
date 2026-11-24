@@ -1,11 +1,14 @@
 /**
- * Email del resoconto di una visita di Floral Care (ADR-078): la fioreria scrive al suo cliente,
+ * Email di Floral Care al cliente della fioreria. Il resoconto di una visita (ADR-078) e l'avviso
+ * delle visite spostate o cancellate da un blocco di giorni (ADR-083).
+ *
+ * Resoconto: la fioreria scrive al suo cliente,
  * nella lingua del mercato della fioreria (ADR-042), cosa si è fatto e come stanno le piante, con
  * il pulsante per il resoconto completo con le foto (link pubblico, ADR-056). Niente immagini
  * nell'email. Testo semplice + HTML minimale con stili inline; ogni valore dinamico passa
  * dall'escape HTML.
  */
-import { type CarePlantTally, type SupportedLocale } from '@floral/domain';
+import { type CareBlockOutcome, type CarePlantTally, type SupportedLocale } from '@floral/domain';
 import type { EmailMessage } from './mailer';
 import type { CareVisitReportDto } from './services/care-report';
 
@@ -227,6 +230,145 @@ ${report.note ? paragraph(`<strong>${escapeHtml(copy.note)}:</strong> ${escapeHt
     to: input.to,
     category: 'care_visit_report',
     subject: copy.subject(date, input.shop.name),
+    text: lines.join('\n'),
+    html,
+    fromName: input.shop.name,
+    ...(input.shop.contactEmail ? { replyTo: input.shop.contactEmail } : {}),
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Avviso dei cambi di un blocco di giorni (blocco 4, ADR-083)
+// -----------------------------------------------------------------------------
+
+export interface CareBlockNoticeChange {
+  readonly outcome: CareBlockOutcome;
+  readonly from: {
+    readonly date: string;
+    readonly start: string | null;
+    readonly end: string | null;
+  };
+  readonly to: { readonly date: string; readonly start: string; readonly end: string } | null;
+}
+
+export interface CareBlockNoticeEmailInput {
+  readonly locale: SupportedLocale;
+  readonly to: string;
+  readonly customerName: string;
+  readonly shop: {
+    readonly name: string;
+    readonly contactEmail: string | null;
+    readonly contactPhone: string | null;
+  };
+  /** La sede del contratto (indirizzo), se c'è: un cliente con più sedi capisce quale. */
+  readonly place: string | null;
+  readonly changes: readonly CareBlockNoticeChange[];
+}
+
+interface BlockNoticeCopy {
+  readonly subject: (shop: string) => string;
+  readonly intro: (shop: string) => string;
+  readonly place: (address: string) => string;
+  readonly moved: (from: string, to: string) => string;
+  readonly toReschedule: (from: string) => string;
+  readonly cancelled: (from: string) => string;
+  readonly questions: string;
+}
+
+const BLOCK_NOTICE_COPY: Readonly<Record<SupportedLocale, BlockNoticeCopy>> = {
+  'es-MX': {
+    subject: (shop) => `Cambios en tus visitas de cuidado de plantas · ${shop}`,
+    intro: (shop) => `${shop} no podrá visitar tus plantas en estos días. Así quedan tus visitas:`,
+    place: (address) => `Lugar: ${address}.`,
+    moved: (from, to) => `${from}: pasa al ${to}.`,
+    toReschedule: (from) => `${from}: te avisaremos la nueva fecha.`,
+    cancelled: (from) => `${from}: cancelada, no se cobra.`,
+    questions: 'Si algo no te funciona, escríbenos o llámanos.',
+  },
+  'it-IT': {
+    subject: (shop) => `Cambi nelle visite di cura delle piante · ${shop}`,
+    intro: (shop) => `${shop} non potrà curare le tue piante in questi giorni. Ecco le tue visite:`,
+    place: (address) => `Luogo: ${address}.`,
+    moved: (from, to) => `${from}: passa a ${to}.`,
+    toReschedule: (from) => `${from}: ti diremo la nuova data.`,
+    cancelled: (from) => `${from}: annullata, non si paga.`,
+    questions: 'Se qualcosa non ti va bene, scrivici o chiamaci.',
+  },
+  'en-US': {
+    subject: (shop) => `Changes to your plant care visits · ${shop}`,
+    intro: (shop) => `${shop} can’t visit your plants on these days. Here are your visits now:`,
+    place: (address) => `Place: ${address}.`,
+    moved: (from, to) => `${from}: moved to ${to}.`,
+    toReschedule: (from) => `${from}: we’ll let you know the new date.`,
+    cancelled: (from) => `${from}: cancelled, not charged.`,
+    questions: 'If something doesn’t work for you, write or call us.',
+  },
+};
+
+function slotLabel(
+  locale: SupportedLocale,
+  when: { readonly date: string; readonly start: string | null; readonly end: string | null },
+): string {
+  const day = capitalize(dayLabel(locale, when.date));
+  return when.start && when.end ? `${day}, ${when.start}–${when.end}` : day;
+}
+
+/** Email al cliente con le visite di un contratto spostate o cancellate da un blocco di giorni. */
+export function careBlockNoticeEmail(input: CareBlockNoticeEmailInput): EmailMessage {
+  const copy = BLOCK_NOTICE_COPY[input.locale];
+  const shared = COPY[input.locale];
+  const items = input.changes.map((change) => {
+    const from = slotLabel(input.locale, change.from);
+    if (change.outcome === 'MOVED' && change.to) {
+      return copy.moved(
+        from,
+        slotLabel(input.locale, change.to).replace(/^./, (c) => c.toLowerCase()),
+      );
+    }
+    return change.outcome === 'CANCELLED' ? copy.cancelled(from) : copy.toReschedule(from);
+  });
+  const contacts = [input.shop.contactPhone, input.shop.contactEmail].filter(
+    (value): value is string => Boolean(value),
+  );
+  const lines = [
+    shared.greeting(input.customerName),
+    '',
+    copy.intro(input.shop.name),
+    ...(input.place ? [copy.place(input.place)] : []),
+    '',
+    ...items.map((item) => `- ${item}`),
+    '',
+    copy.questions,
+    '',
+    input.shop.name,
+    ...contacts,
+    '',
+    '—',
+    shared.reason(input.shop.name),
+  ];
+  const paragraph = (content: string) =>
+    `<p style="margin:0 0 16px;line-height:1.6;color:#2f3b33">${content}</p>`;
+  const html = `<!doctype html><html lang="${input.locale}"><body style="margin:0;padding:16px 12px;background:#f6f4ef;font-family:Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px">
+<tr><td style="padding:28px 24px">
+<p style="margin:0 0 24px;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#3f6b4f">${escapeHtml(input.shop.name)}</p>
+${paragraph(escapeHtml(shared.greeting(input.customerName)))}
+${paragraph(escapeHtml(copy.intro(input.shop.name)) + (input.place ? `<br>${escapeHtml(copy.place(input.place))}` : ''))}
+<ul style="margin:0 0 16px;padding-left:20px;line-height:1.6;color:#2f3b33">${items
+    .map((item) => `<li>${escapeHtml(item)}</li>`)
+    .join('')}</ul>
+${paragraph(escapeHtml(copy.questions))}
+<p style="margin:24px 0 0;line-height:1.6;color:#2f3b33"><strong>${escapeHtml(input.shop.name)}</strong>${
+    contacts.length > 0 ? `<br>${escapeHtml(contacts.join(' · '))}` : ''
+  }</p>
+<hr style="margin:24px 0;border:none;border-top:1px solid #e6e2d8">
+<p style="margin:0;font-size:12px;color:#8a918b">${escapeHtml(shared.reason(input.shop.name))}</p>
+</td></tr></table></body></html>`;
+
+  return {
+    to: input.to,
+    category: 'care_block_notice',
+    subject: copy.subject(input.shop.name),
     text: lines.join('\n'),
     html,
     fromName: input.shop.name,

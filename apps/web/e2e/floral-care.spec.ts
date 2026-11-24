@@ -48,8 +48,11 @@ const hhmm = (minutes: number) =>
  */
 async function addSlot(page: Page, day: string): Promise<string> {
   const form = page.locator('form').filter({ hasText: 'Nuevo horario' });
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    const start = 300 + Math.floor(Math.random() * 56) * 15;
+  // Tutti i quarti d'ora in ordine casuale: un database locale usato a lungo ne ha già tanti.
+  const starts = Array.from({ length: 56 }, (_, index) => 300 + index * 15).sort(
+    () => Math.random() - 0.5,
+  );
+  for (const start of starts) {
     const label = `${weekdayName(day)} · ${hhmm(start)}–${hhmm(start + 60)}`;
     if ((await page.getByText(label).count()) > 0) continue;
     await form.getByLabel('Día').selectOption({ label: weekdayName(day) });
@@ -632,6 +635,100 @@ test.describe('Floral Care: cobro en la visita y ajustes', () => {
 
     await cleanUp(page, contractUrl, today, slotLabel);
     await owner.close();
+  });
+});
+
+test.describe('Floral Care: días bloqueados', () => {
+  test.use({ storageState: 'e2e/.auth/owner.json' });
+
+  test('si blocca un giorno con una visita: anteprima del cliente, avviso, Agenda e "Quitar"', async ({
+    page,
+  }) => {
+    const stamp = Date.now();
+    const day = dayInShop(2);
+    const label = `Vacaciones E2E ${stamp}`;
+    const customerName = `Hotel Bloqueo ${stamp}`;
+    await saveOffer(page);
+    const slotLabel = await addSlot(page, day);
+    // Un altro orario il giorno dopo: lì la visita si può spostare.
+    const otherSlot = await addSlot(page, dayInShop(3));
+    await newCustomerWithAddress(page, customerName);
+    await page.getByRole('link', { name: 'Nuevo contrato' }).click();
+    await page.getByRole('radio', { name: /Cada semana/ }).check();
+    await page.getByRole('checkbox', { name: slotLabel }).check();
+    await page.getByRole('textbox', { name: 'Primer día' }).fill(day);
+    await page.getByRole('button', { name: 'Crear borrador' }).click();
+    await expect(page).toHaveURL(/\/subscriptions\/[0-9a-f-]{36}\?created=1$/);
+    const contractUrl = page.url().replace('?created=1', '');
+    await page.getByRole('button', { name: 'Agregar plantas' }).click();
+    const plants = page.getByRole('dialog');
+    await plants.getByLabel('Nombre').fill('Potos');
+    await plants.getByLabel('Cantidad').fill('2');
+    await plants.getByRole('radio', { name: 'Mediana' }).check();
+    await plants.getByRole('button', { name: 'Agregar plantas' }).click();
+    await expect(page.getByText('2 × Potos')).toBeVisible();
+    await page.getByRole('button', { name: 'Confirmar contrato' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Confirmar', exact: true }).click();
+    await expect(page.getByText(/Contrato confirmado: \d+ visitas agendadas\./)).toBeVisible();
+
+    // Agenda → Bloqueos → "Bloquear días": prima l'anteprima con i clienti toccati.
+    await page.goto(`${SHOP}/agenda`);
+    await page.getByRole('link', { name: 'Bloqueos' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Días bloqueados' })).toBeVisible();
+    await page.getByRole('link', { name: 'Bloquear días' }).first().click();
+    // Si aspetta la pagina nuova: anche "Alguien no puede ir" ha "Desde" e "Hasta".
+    await expect(page.getByRole('heading', { level: 1, name: 'Bloquear días' })).toBeVisible();
+    await page.getByRole('textbox', { name: 'Desde', exact: true }).fill(day);
+    await page.getByRole('textbox', { name: 'Hasta', exact: true }).fill(day);
+    await page.getByRole('textbox', { name: 'Nombre', exact: true }).fill(label);
+    await page.getByRole('radio', { name: /Moverlas a otro día/ }).check();
+    await page.getByRole('button', { name: 'Ver visitas afectadas' }).click();
+    const preview = page.getByTestId('block-preview');
+    await expect(preview.getByRole('heading', { name: 'Clientes afectados' })).toBeVisible();
+    const affected = preview.getByTestId('block-affected').locator('li').filter({
+      hasText: customerName,
+    });
+    await expect(affected.first()).toBeVisible();
+    await expect(affected.first().getByText(/pasa al|por reprogramar/)).toBeVisible();
+
+    // Senza "Sí, avisé al cliente" non si salva.
+    await preview.getByRole('button', { name: 'Guardar bloqueo' }).click();
+    await expect(
+      page.getByText('Marca «Sí, avisé al cliente» para guardar este cambio.'),
+    ).toBeVisible();
+    await preview.getByRole('checkbox', { name: 'Sí, avisé al cliente' }).check();
+    await preview.getByRole('button', { name: 'Guardar bloqueo' }).click();
+    await expect(page).toHaveURL(/\/agenda\/blocks\/[0-9a-f-]{36}\?created=1$/);
+    await expect(page.getByRole('heading', { level: 1, name: label })).toBeVisible();
+    await expect(page.getByText(/^Bloqueo guardado\./)).toBeVisible();
+    await expect(
+      page.getByTestId('block-contracts').locator('li').filter({ hasText: customerName }).first(),
+    ).toBeVisible();
+
+    // L'Agenda di quel giorno lo dice.
+    await page.goto(`${SHOP}/agenda?date=${day}`);
+    await expect(page.getByTestId('agenda-blocked')).toContainText(`Día bloqueado: ${label}`);
+
+    // "Quitar bloqueo": il giorno torna libero.
+    await page.goto(`${SHOP}/agenda/blocks`);
+    await page
+      .getByRole('link', { name: new RegExp(label) })
+      .first()
+      .click();
+    await page.getByRole('button', { name: 'Quitar bloqueo' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Quitar', exact: true }).click();
+    await expect(page.getByText('Bloqueo quitado')).toBeVisible();
+    await page.goto(`${SHOP}/agenda?date=${day}`);
+    await expect(page.getByTestId('agenda-blocked')).toHaveCount(0);
+
+    await cleanUp(page, contractUrl, day, slotLabel);
+    await page.goto(`${SHOP}/settings/floral-care`);
+    await page.getByRole('button', { name: `Archivar ${otherSlot}` }).click();
+    const archive = page.getByRole('dialog');
+    const notice = archive.getByRole('checkbox', { name: 'Sí, avisé al cliente' });
+    if ((await notice.count()) > 0) await notice.check();
+    await archive.getByRole('button', { name: 'Archivar', exact: true }).click();
+    await expect(page.getByText(/Horario archivado\./)).toBeVisible();
   });
 });
 

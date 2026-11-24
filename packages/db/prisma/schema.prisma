@@ -314,6 +314,8 @@ model Tenant {
   carePayments         CarePayment[]
   careAllocations      CarePaymentAllocation[]
   careAdjustments      CareChargeAdjustment[]
+  careBlocks           CareBlock[]
+  careBlockVisits      CareBlockVisit[]
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -1983,6 +1985,8 @@ enum CareExtraFee {
 /// Email di Floral Care al cliente (tabella d'uscita).
 enum CareEmailKind {
   VISIT_REPORT
+  /// Blocco 4 (ADR-083): le visite spostate o cancellate da un blocco di giorni.
+  BLOCK_NOTICE
 }
 
 enum CareEmailStatus {
@@ -2121,6 +2125,7 @@ model CareSlot {
   tenant        Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   subscriptions CustomerSubscriptionSlot[]
   visits        CareVisit[]
+  blocks        CareBlock[]
 
   @@unique([tenantId, id])
   @@index([tenantId, weekday])
@@ -2192,6 +2197,7 @@ model CustomerSubscription {
   quotes          Quote[]
   charges         CareCharge[]
   adjustments     CareChargeAdjustment[]
+  blockChanges    CareBlockVisit[]
 
   @@unique([tenantId, id])
   /// Per le FK dei cargos: il cargo è dello stesso cliente del contratto.
@@ -2338,6 +2344,8 @@ model CareVisit {
   payments          CarePayment[]
   recoveryOf        CareVisit?               @relation("CareVisitRecovery", fields: [tenantId, subscriptionId, recoveryOfVisitId], references: [tenantId, subscriptionId, id], onDelete: Restrict)
   recoveries        CareVisit[]              @relation("CareVisitRecovery")
+  /// Blocco 4 (ADR-083): i blocchi che l'hanno spostata o cancellata.
+  blockChanges      CareBlockVisit[]
 
   @@unique([tenantId, id])
   /// Per la FK della visita di recupero: è dello stesso contratto della visita mancata.
@@ -2502,6 +2510,8 @@ model CareEmail {
   kind           CareEmailKind
   subscriptionId String          @db.Uuid
   visitId        String?         @db.Uuid
+  /// Blocco 4 (ADR-083): l'avviso dei cambi di un blocco, uno per contratto (senza visita).
+  blockId        String?         @db.Uuid
   status         CareEmailStatus @default(PENDING)
   attempts       Int             @default(0)
   sentAt         DateTime?
@@ -2514,9 +2524,11 @@ model CareEmail {
   tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
   visit        CareVisit?           @relation(fields: [tenantId, visitId], references: [tenantId, id], onDelete: Restrict)
+  block        CareBlock?           @relation(fields: [tenantId, blockId], references: [tenantId, id], onDelete: Restrict)
 
   @@unique([tenantId, id])
   @@unique([tenantId, visitId, kind])
+  @@index([tenantId, blockId])
 }
 
 /// Cargo del mese di un contratto di Floral Care (ADR-082): nasce dalle visite del mese (più le
@@ -2639,6 +2651,77 @@ model CareChargeAdjustment {
   /// Per la FK delle righe: l'ajuste è dello stesso contratto del cargo.
   @@unique([tenantId, subscriptionId, id])
   @@index([tenantId, subscriptionId])
+}
+
+/// Blocco 4 (ADR-083): cosa succede alle visite dei giorni bloccati.
+enum CareBlockAction {
+  /// Al giorno libero più vicino dello stesso mese (senza posto: "Por reprogramar").
+  MOVE
+  /// Cancellate come se le togliesse la fioreria (credito nel cargo dopo).
+  CANCEL
+}
+
+/// Cosa è successo a una visita toccata da un blocco.
+enum CareBlockOutcome {
+  MOVED
+  TO_RESCHEDULE
+  CANCELLED
+}
+
+/// Giorni bloccati di Floral Care (blocco 4, ADR-083): vacanze, giorni di punta, un orario tolto.
+/// Lì non si prenota più niente; le visite che nasceranno in quei giorni seguono `action`. Non si
+/// cancella: "Quitar" lo segna tolto e le visite già spostate restano dove sono.
+model CareBlock {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  tenantId    String          @db.Uuid
+  startDate   DateTime        @db.Date
+  endDate     DateTime        @db.Date
+  /// NULL = tutte le fasce (anche le visite extra a un'ora libera).
+  slotId      String?         @db.Uuid
+  /// Il nome che sceglie la fioreria ("Vacaciones"): non lo vedono i clienti.
+  label       String
+  action      CareBlockAction
+  createdById String?         @db.Uuid
+  createdAt   DateTime        @default(now())
+  removedAt   DateTime?
+  removedById String?         @db.Uuid
+
+  tenant  Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slot    CareSlot?        @relation(fields: [tenantId, slotId], references: [tenantId, id], onDelete: Restrict)
+  changes CareBlockVisit[]
+  emails  CareEmail[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, endDate])
+}
+
+/// Una visita che un blocco ha spostato o cancellato quando è nato: l'elenco dei clienti toccati
+/// e il testo dell'email. La visita è dello stesso contratto (FK composita).
+model CareBlockVisit {
+  id               String           @id @default(uuid(7)) @db.Uuid
+  tenantId         String           @db.Uuid
+  blockId          String           @db.Uuid
+  visitId          String           @db.Uuid
+  subscriptionId   String           @db.Uuid
+  outcome          CareBlockOutcome
+  fromDate         DateTime         @db.Date
+  fromStartMinutes Int?
+  fromEndMinutes   Int?
+  /// Solo per MOVED: il giorno e l'orario nuovi.
+  toDate           DateTime?        @db.Date
+  toStartMinutes   Int?
+  toEndMinutes     Int?
+  createdAt        DateTime         @default(now())
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  block        CareBlock            @relation(fields: [tenantId, blockId], references: [tenantId, id], onDelete: Restrict)
+  visit        CareVisit            @relation(fields: [tenantId, subscriptionId, visitId], references: [tenantId, subscriptionId, id], onDelete: Restrict)
+  subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, blockId, visitId])
+  @@index([tenantId, blockId, subscriptionId])
+  @@index([tenantId, subscriptionId, visitId])
 }
 
 /// Quanto è cobrado adesso per una visita (ADR-082). La scrive solo l'emissione dei cargos, in una

@@ -47,7 +47,7 @@ export function AgendaTabs({
   toReschedule,
 }: {
   readonly routes: TenantRoutes;
-  readonly current: 'day' | 'route' | 'month' | 'reschedule';
+  readonly current: 'day' | 'route' | 'month' | 'reschedule' | 'blocks';
   /** Visite da riprogrammare; null se la pagina non le conta (si mostra solo l'etichetta). */
   readonly toReschedule: number | null;
 }) {
@@ -62,6 +62,7 @@ export function AgendaTabs({
       label:
         toReschedule === null ? t('rescheduleShort') : t('reschedule', { count: toReschedule }),
     },
+    { key: 'blocks', href: routes.agenda.blocks, label: t('blocks') },
   ] as const;
   return (
     <nav

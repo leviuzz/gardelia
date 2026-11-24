@@ -1,7 +1,7 @@
 # Floral Care, consegne periodiche e Asistente de plantas — piano
 
-Piano approvato dal founder il 24/11/2026 (risposte nel §2). I blocchi 1 (ADR-075) e 2 (2a e 2b,
-ADR-078) sono fatti; i blocchi seguenti seguono quest'ordine. Le etichette DECISO / PROPOSTO / DA VALIDARE valgono come nella
+Piano approvato dal founder il 24/11/2026 (risposte nel §2). I blocchi 1 (ADR-075), 2 (2a e 2b,
+ADR-078), 3 (3a e 3b, ADR-082) e 4 (ADR-083) sono fatti; i blocchi seguenti seguono quest'ordine. Le etichette DECISO / PROPOSTO / DA VALIDARE valgono come nella
 spec: una proposta non diventa decisione senza il founder.
 
 ## Contesto
@@ -382,10 +382,14 @@ rilascio su staging) e lascia qualcosa di usabile.
    - **Dopo il 3b (fatto, ADR-082, risposte del founder del 24/11):** la cancellazione del cliente
      si paga solo dentro l'orario limite della fioreria; i Reportes usano i cargos e i pagamenti
      veri.
-4. **Blocchi, vacanze e cambi di massa.**
+4. **Blocchi, vacanze e cambi di massa (fatto, ADR-083).**
    - Blocchi di giorni o fasce, giorni di punta proposti.
    - Elenco dei clienti toccati, spostamento o credito di tutte le visite insieme, email
      facoltativa, casella obbligatoria.
+   - Fatto così: Agenda → Bloqueos; «Mover» al giorno libero più vicino dello stesso mese o
+     «Cancelar» senza cobrar; anteprima con l'impronta del piano; le visite che nascono dopo
+     seguono la scelta; "Quitar"; "Alguien no puede ir" per dare le visite di una persona a
+     un'altra.
 5. **Pagina del cliente.**
    - Invito e collegamenti, regola RLS restrittiva.
    - Mi Floral Care, "Cambiar fecha", messaggi con foto e riassunto per il fiorista.
