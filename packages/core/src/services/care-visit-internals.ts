@@ -124,16 +124,20 @@ export function toAgendaVisit(
     outcomeNote: row.outcomeNote,
     cancelReason: row.cancelReason,
     notDoneCause: row.notDoneCause,
-    recovery: careVisitRecoverable(row, row.subscription.missedVisitPolicy)
-      ? {
-          visitId: live?.id ?? null,
-          date: live ? dayOf(live) : null,
-          canSchedule:
-            live === null &&
-            row.subscription.status === 'ACTIVE' &&
-            hasPermission(ctx, 'subscriptions:write'),
-        }
-      : null,
+    // Come l'elenco "Por recuperar": si recupera solo in un contratto attivo (una visita di
+    // recupero già fissata resta visibile anche dopo).
+    recovery:
+      careVisitRecoverable(row, row.subscription.missedVisitPolicy) &&
+      (live !== null || row.subscription.status === 'ACTIVE')
+        ? {
+            visitId: live?.id ?? null,
+            date: live ? dayOf(live) : null,
+            canSchedule:
+              live === null &&
+              row.subscription.status === 'ACTIVE' &&
+              hasPermission(ctx, 'subscriptions:write'),
+          }
+        : null,
     recoveryOf:
       row.recoveryOfVisitId && row.recoveryOf
         ? { visitId: row.recoveryOfVisitId, date: dayOf(row.recoveryOf) }

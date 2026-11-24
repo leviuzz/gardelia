@@ -103,7 +103,7 @@ async function saveOffer(page: Page) {
   await page.locator('#care-careFeeMedium').fill('20');
   await page.getByRole('checkbox', { name: /Cada semana/ }).check();
   await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-  await expect(page.getByText('Tarifas guardadas')).toBeVisible();
+  await expect(page.getByText('Tarifas guardadas', { exact: true })).toBeVisible();
 }
 
 test.describe('Floral Care (propietaria)', () => {
