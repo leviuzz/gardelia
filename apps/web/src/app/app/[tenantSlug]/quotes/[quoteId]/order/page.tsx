@@ -90,6 +90,7 @@ export default async function QuoteToOrderPage({
               closedWeekdays={delivery.closedWeekdays}
               distance={delivery.distance}
               addresses={savedAddressOptions(customer.addresses)}
+              customerNotice={{ email: customer.email, demo: ctx.mode === 'DEMO' }}
               defaults={{
                 fulfillmentMode: 'DELIVERY',
                 scheduledDate: today,

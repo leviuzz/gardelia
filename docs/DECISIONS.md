@@ -1919,9 +1919,71 @@ dagli ordini").
   movimento annullato resta legato all'ordine, che non scarica di nuovo e lo dice.
 - **Permessi:** chi può far avanzare l'ordine (anche lo staff) fa uscire i materiali con quel passo:
   i permessi dell'inventario non servono, come previsto da `consumeStockTx`.
-- **Non fatto:** apartados creati dagli ordini confermati (`reserveStockTx` /
-  `consumeReservationTx`), scarico parziale o diverso dalla ricetta, restituzione automatica
-  all'annullamento.
+- **Non fatto:** scarico parziale o diverso dalla ricetta, restituzione automatica
+  all'annullamento. Gli apartados creati dagli ordini confermati sono in ADR-072.
+
+### ADR-072 — Resti degli ordini: annullamento di chi compra, conferma al cliente del banco, apartados dagli ordini — ADOTTATO (24/11/2026)
+
+Avviato dal founder ("si vai col punto 1": i resti degli ordini della lista per la V1).
+
+- **Chi compra annulla da solo** un ordine online ancora "Por aceptar" (ADR-067), da "Mi cuenta",
+  con conferma:
+  - solo i propri e solo prima dell'accettazione: dopo risponde `order_not_pending` (un ordine
+    accettato si annulla parlando con la fioreria); l'ordine di un altro conto risponde 404;
+  - l'ordine diventa "Cancelado" con un motivo fisso nella lingua del mercato
+    (`MARKETPLACE_WITHDRAWN_REASON`) e la riga nella cronologia; nell'audit l'attore è chi compra
+    (`order.cancelled_by_buyer`), senza dati personali;
+  - email a chi compra ("Cancelaste tu pedido") e a proprietari e manager ("canceló el pedido"),
+    inviate dopo il commit: un SMTP giù non blocca l'annullamento;
+  - la fioreria dell'ordine si trova con `app_buyer_orders()` (RLS per persona, ADR-064), poi
+    tutto avviene nel contesto di quella fioreria con la riga bloccata (`FOR UPDATE`): due clic
+    insieme non annullano due volte.
+- **Conferma per email al cliente degli ordini del banco:**
+  - quando un ordine del banco diventa confermato ("Convertir en pedido" o "Confirmar pedido" di un
+    borrador) il modulo mostra la casella "Enviar la confirmación del pedido a …", già spuntata;
+  - se il cliente non ha email il modulo lo dice (e suggerisce il link per WhatsApp); da una
+    fioreria demo non parte mai nulla (ADR-016) e il modulo lo dice;
+  - l'email è in es-MX, con il nome della fioreria come mittente e la risposta alla sua email di
+    contatto: numero, ritiro o consegna con giorno e fascia, totale e il link "Ver mi pedido",
+    quello di "Compartir enlace" se è attivo, altrimenti uno nuovo (audit `public_link.created`);
+  - niente istruzioni di pagamento: alla conferma non c'è ancora nessun pagamento registrato e al
+    banco spesso si paga in negozio;
+  - l'audit della conferma ricorda `customerNotified: true` (senza l'indirizzo); l'invio avviene
+    dopo il commit. Regola pura `counterConfirmationRecipient`; senza la casella (test, script)
+    non parte nulla;
+  - non fatto: il preventivo per email e il reinvio della conferma.
+- **Apartados dagli ordini confermati** (il "non fatto" di ADR-071, con le funzioni di ADR-062):
+  - un ordine confermato o in preparazione con prodotti controllati ha un apartado con i suoi
+    materiali, gli stessi che usciranno a "Listo". Si chiama con il numero dell'ordine (niente dati
+    del cliente nell'inventario) ed è legato all'ordine: `Order.inventoryReservationId`, FK
+    composita, unico, RESTRICT;
+  - **tiene la merce solo negli ultimi 7 giorni prima della consegna** (`ORDER_HOLD_DAYS`):
+    PROPOSTO, da validare con le fiorerie di prova. Nuova colonna `InventoryReservation.holdsFrom`
+    (CHECK: non dopo `expiresOn`); il disponibile conta solo gli apartados già cominciati. Così un
+    ordine preso con settimane o mesi di anticipo (San Valentino a gennaio) non blocca la merce
+    fresca di oggi. Vale fino al giorno della consegna incluso;
+  - il servizio degli ordini lo tiene allineato (`syncOrderReservationTx`) nella stessa
+    transazione di ogni cambio: conferma (banco, preventivo, accettazione online), righe e quantità,
+    giorno. Si aggiorna sul posto (audit `inventory.reservation_updated`) invece di chiuderne uno e
+    aprirne un altro;
+  - a "Listo" i materiali escono **dall'apartado** (`consumeReservationTx`, con le quantità attuali
+    dell'ordine): un solo movimento, con il numero dell'ordine nella nota come prima; l'apartado
+    diventa "Usado";
+  - annullare l'ordine libera la merce. Non tiene nulla neanche un ordine senza più prodotti
+    controllati o con il giorno passato;
+  - un ordine non si blocca mai per l'inventario: se la merce non basta l'apartado si fa lo stesso
+    (disponibile sotto zero, avvisi, "Faltan" nella scheda dell'ordine); fuori dai limiti
+    dell'inventario l'ordine va avanti senza apartado e il server lo scrive nel log;
+  - nella scheda "Inventario" dell'ordine la sua merce è sua (il disponibile non conta il suo
+    apartado) e una riga dice da quando o fino a quando è apartada;
+  - fra gli apartados, quello di un ordine dice di quale ordine e cliente è, con il link. Usar,
+    Extender e Liberar non valgono per lui (`inventory_reservation_order`): lo governa l'ordine. La
+    scheda "Vencidos" e gli avvisi del pannello contano solo quelli fatti a mano: un ordine in
+    ritardo lo chiude l'ordine stesso;
+  - un apartado fatto a mano per un ordine prima di questa versione va liberato: la scheda
+    dell'ordine lo ricorda. Gli ordini confermati prima di questa versione prendono il loro
+    apartado al primo cambio (righe, giorno, stato); se non cambiano, a "Listo" scaricano come
+    prima. La ricerca fra gli apartados trova quelli degli ordini anche per il nome del cliente.
 
 ## 3. Proposte da approvare
 

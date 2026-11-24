@@ -163,6 +163,10 @@ export function marketplaceDateProblem(
 export const MARKETPLACE_EXPIRED_REASON =
   'La florería no respondió a tiempo: el pedido se canceló automáticamente.';
 
+/** Motivo scritto sugli ordini online che chi compra annulla prima dell'accettazione. */
+export const MARKETPLACE_WITHDRAWN_REASON =
+  'El cliente canceló el pedido antes de que la florería lo aceptara.';
+
 /**
  * Un ordine online ancora da accettare si annulla da solo quando è fermo da `acceptDays` giorni o
  * quando il suo giorno è già passato (ricontrollo del servizio sulla scelta della manutenzione).

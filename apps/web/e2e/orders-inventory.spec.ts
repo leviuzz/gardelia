@@ -4,7 +4,8 @@ import { createProduct } from './support/catalog';
 /**
  * Scarico dell'inventario dagli ordini (ADR-071): la scheda dell'ordine dice cosa uscirà
  * dall'inventario e cosa manca; "Listo" con la merce che non basta chiede di confermarlo nel
- * pulsante stesso, poi scarica una volta sola con il numero dell'ordine nei movimenti.
+ * pulsante stesso, poi scarica una volta sola con il numero dell'ordine nei movimenti. Da ADR-072
+ * l'ordine confermato aparta i suoi materiali, e "Listo" usa quell'apartado.
  */
 
 const SHOP = '/app/las-camelias';
@@ -54,6 +55,24 @@ test('"Listo" scarica i materiali dell\'ordine, con la conferma se non bastano',
   ).toBeVisible();
   await expect(inventory.getByRole('listitem').filter({ hasText: name })).toContainText('8 tallos');
   await expect(inventory.getByText('Faltan 3 tallos')).toBeVisible();
+
+  // L'ordine confermato aparta i suoi materiali (ADR-072): la scheda lo dice, e fra gli apartados
+  // quello dell'ordine si riconosce e non ha le azioni manuali (lo governa l'ordine).
+  await expect(page.getByTestId('order-inventory-hold')).toContainText(
+    'Apartados para este pedido hasta el',
+  );
+  await page.goto(`${SHOP}/inventory/reservations?q=${number}`);
+  const row = page.getByRole('link').filter({ hasText: number! });
+  await expect(row).toContainText('Pedido de Hotel Casa Fuentes');
+  await row.click();
+  await expect(
+    page.getByText(`Es el apartado del pedido ${number} de Hotel Casa Fuentes`),
+  ).toBeVisible();
+  for (const action of ['Usar', 'Extender', 'Liberar']) {
+    await expect(page.getByRole('button', { name: action, exact: true })).toHaveCount(0);
+  }
+  await page.getByRole('link', { name: 'Ver pedido' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(number!);
 
   await page.getByRole('button', { name: 'Empezar a preparar' }).click();
   await expect(page.getByText('Pedido marcado como «En preparación»')).toBeVisible();

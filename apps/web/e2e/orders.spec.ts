@@ -33,6 +33,11 @@ test.describe('pedidos (propietaria)', () => {
     await expect(
       page.getByRole('heading', { level: 1, name: 'Convertir en pedido' }),
     ).toBeVisible();
+    // Fioreria demo (ADR-016): la conferma per email al cliente non parte, e il modulo lo dice.
+    await expect(
+      page.getByText('Florería de demostración: la confirmación no se envía por correo.'),
+    ).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: /Enviar la confirmación/ })).toHaveCount(0);
     await page.getByLabel('Desde').fill('10:00');
     await page.getByLabel('Hasta').fill('09:00');
     await page.getByRole('textbox', { name: 'Calle y número' }).fill('Av. Universidad 940');

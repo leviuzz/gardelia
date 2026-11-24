@@ -4,6 +4,7 @@ import {
   areOrderLinesEditable,
   canCancelOrder,
   canStepOrder,
+  counterConfirmationRecipient,
   deliveryAddressSchema,
   formatOrderNumber,
   formatTimeOfDay,
@@ -11,6 +12,7 @@ import {
   isOrderEditable,
   orderDiscountSchema,
   orderFulfillmentSchema,
+  orderConfirmationNoticeSchema,
   orderListFiltersSchema,
   orderPaymentSchema,
   orderPaymentStatus,
@@ -232,5 +234,32 @@ describe('pagamenti e filtri', () => {
       status: null,
       unpaid: false,
     });
+  });
+});
+
+describe('conferma al cliente di un ordine del banco (ADR-072)', () => {
+  const base = {
+    requested: true,
+    tenantMode: 'LIVE' as const,
+    placedOnline: false,
+    customerEmail: ' ana@example.com ',
+  };
+
+  it('va all’email del cliente quando chi conferma la chiede', () => {
+    expect(counterConfirmationRecipient(base)).toBe('ana@example.com');
+  });
+
+  it('non parte senza la casella, dalle demo, per gli ordini online o senza email', () => {
+    expect(counterConfirmationRecipient({ ...base, requested: false })).toBeNull();
+    expect(counterConfirmationRecipient({ ...base, tenantMode: 'DEMO' })).toBeNull();
+    expect(counterConfirmationRecipient({ ...base, placedOnline: true })).toBeNull();
+    expect(counterConfirmationRecipient({ ...base, customerEmail: null })).toBeNull();
+    expect(counterConfirmationRecipient({ ...base, customerEmail: '  ' })).toBeNull();
+  });
+
+  it('la casella vale solo se spuntata', () => {
+    expect(orderConfirmationNoticeSchema.parse({ notifyCustomer: 'on' }).notifyCustomer).toBe(true);
+    expect(orderConfirmationNoticeSchema.parse({}).notifyCustomer).toBe(false);
+    expect(orderConfirmationNoticeSchema.parse({ notifyCustomer: '' }).notifyCustomer).toBe(false);
   });
 });

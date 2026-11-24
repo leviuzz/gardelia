@@ -60,6 +60,7 @@ export {
   type PlacesProvider,
 } from './places';
 export {
+  cancelMarketplaceOrder,
   expireUnacceptedOrders,
   getCheckoutForm,
   listBuyerOrders,

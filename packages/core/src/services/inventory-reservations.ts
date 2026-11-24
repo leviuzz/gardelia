@@ -20,6 +20,8 @@ import {
   INVENTORY_PAGE_SIZE,
   RESERVATION_LIMITS,
   compareDates,
+  daysBetween,
+  formatOrderNumber,
   isUuid,
   reservationDaysLeft,
   reservationExpiryRange,
@@ -102,6 +104,19 @@ export interface ReservationSummaryDto {
   readonly note: string | null;
   /** "AAAA-MM-GG": ultimo giorno in cui vale. */
   readonly expiresOn: string;
+  /**
+   * "AAAA-MM-GG" da cui toglie merce dal disponibile; null = da subito. Gli apartados degli ordini
+   * tengono solo negli ultimi giorni prima della consegna (ADR-072).
+   */
+  readonly holdsFrom: string | null;
+  /** Comincia più avanti: per ora non toglie merce. */
+  readonly scheduled: boolean;
+  /** L'ordine che lo governa (ADR-072): si usa e si libera solo dall'ordine. */
+  readonly order: {
+    readonly id: string;
+    readonly numberLabel: string;
+    readonly customerName: string;
+  } | null;
   readonly status: ReservationStatus;
   readonly state: ReservationState;
   /** Giorni alla scadenza: 0 = scade oggi, negativo = vencido. */
@@ -157,12 +172,14 @@ const reservationSelect = {
   label: true,
   note: true,
   expiresOn: true,
+  holdsFrom: true,
   status: true,
   usedEntryId: true,
   createdById: true,
   closedById: true,
   createdAt: true,
   closedAt: true,
+  order: { select: { id: true, number: true, customer: { select: { displayName: true } } } },
   lines: {
     select: lineSelect,
     orderBy: [{ item: { catalogItem: { name: 'asc' } } }, { id: 'asc' }],
@@ -187,11 +204,21 @@ function toLineDto(line: LineRow): ReservationLineDto {
 
 function toSummaryDto(row: ReservationRow, today: CalendarDate): ReservationSummaryDto {
   const expiresOn = fromDateColumn(row.expiresOn);
+  const holdsFrom = row.holdsFrom ? fromDateColumn(row.holdsFrom) : null;
   return {
     id: row.id,
     label: row.label,
     note: row.note,
     expiresOn: toIsoDate(expiresOn),
+    holdsFrom: holdsFrom ? toIsoDate(holdsFrom) : null,
+    scheduled: row.status === 'ACTIVE' && holdsFrom !== null && compareDates(holdsFrom, today) > 0,
+    order: row.order
+      ? {
+          id: row.order.id,
+          numberLabel: formatOrderNumber(row.order.number),
+          customerName: row.order.customer.displayName,
+        }
+      : null,
     status: row.status,
     state: reservationState(row.status, expiresOn, today),
     daysLeft: reservationDaysLeft(expiresOn, today),
@@ -206,7 +233,8 @@ function viewWhere(view: ReservationView, today: Date): Prisma.InventoryReservat
     case 'current':
       return { status: 'ACTIVE', expiresOn: { gte: today } };
     case 'expired':
-      return { status: 'ACTIVE', expiresOn: { lt: today } };
+      // Un ordine in ritardo lo chiude l'ordine stesso (ADR-072): qui solo quelli fatti a mano.
+      return { status: 'ACTIVE', expiresOn: { lt: today }, order: { is: null } };
     case 'closed':
       return { status: { in: ['USED', 'RELEASED'] } };
   }
@@ -223,7 +251,7 @@ function viewOrder(view: ReservationView): Prisma.InventoryReservationOrderByWit
   }
 }
 
-/** Apartados: vigentes (dal primo che scade), vencidos o cerrados, con ricerca per "Para". */
+/** Apartados: vigentes (dal primo che scade), vencidos o cerrados, con ricerca per "Para" o cliente. */
 export async function listReservations(
   ctx: TenantContext,
   rawFilters: unknown,
@@ -246,7 +274,19 @@ export async function listReservations(
     const where: Prisma.InventoryReservationWhereInput = {
       tenantId: ctx.tenantId,
       ...viewWhere(filters.view, todayDate),
-      ...(filters.q ? { label: { contains: filters.q, mode: 'insensitive' } } : {}),
+      // "Para", o il cliente dell'ordine per gli apartados degli ordini (si chiamano col numero).
+      ...(filters.q
+        ? {
+            OR: [
+              { label: { contains: filters.q, mode: 'insensitive' } },
+              {
+                order: {
+                  is: { customer: { displayName: { contains: filters.q, mode: 'insensitive' } } },
+                },
+              },
+            ],
+          }
+        : {}),
     };
     const total = filters.q ? await tx.inventoryReservation.count({ where }) : counts[filters.view];
     const pageCount = Math.max(1, Math.ceil(total / INVENTORY_PAGE_SIZE));
@@ -332,6 +372,7 @@ async function writeReservation(
     readonly label: string;
     readonly note: string | null;
     readonly expiresOn: CalendarDate;
+    readonly holdsFrom?: CalendarDate | null;
     readonly lines: readonly HoldLine[];
     readonly confirmShortage: boolean;
   },
@@ -352,6 +393,7 @@ async function writeReservation(
       label: input.label,
       note: input.note,
       expiresOn: toDateColumn(input.expiresOn),
+      holdsFrom: input.holdsFrom ? toDateColumn(input.holdsFrom) : null,
       createdById: ctx.userId,
     },
     select: { id: true },
@@ -396,6 +438,12 @@ async function lockReservation(
 
 function requireActive(row: ReservationRow): void {
   if (row.status !== 'ACTIVE') throw new ConflictError('inventory_reservation_closed');
+}
+
+/** Le azioni della scheda (Usar, Extender, Liberar) valgono solo per gli apartados fatti a mano. */
+function requireManual(row: ReservationRow): void {
+  requireActive(row);
+  if (row.order) throw new ConflictError('inventory_reservation_order');
 }
 
 async function closeAsReleased(
@@ -563,7 +611,7 @@ export async function extendReservation(
     await requireEntitlement(ctx, 'inventory', tx);
     const row = await lockReservation(tx, ctx, reservationId);
     if (!row) return false;
-    requireActive(row);
+    requireManual(row);
     const from = toIsoDate(fromDateColumn(row.expiresOn));
     const to = toIsoDate(input.expiresOn);
     if (from === to) return true;
@@ -590,7 +638,7 @@ export async function releaseReservation(ctx: TenantContext, reservationId: stri
     await requireEntitlement(ctx, 'inventory', tx);
     const row = await lockReservation(tx, ctx, reservationId);
     if (!row) return false;
-    requireActive(row);
+    requireManual(row);
     await closeAsReleased(tx, ctx, row);
     return true;
   });
@@ -613,7 +661,7 @@ export async function consumeReservation(
     await requireEntitlement(ctx, 'inventory', tx);
     const row = await lockReservation(tx, ctx, reservationId);
     if (!row) return null;
-    requireActive(row);
+    requireManual(row);
     const byLine = new Map(row.lines.map((line) => [line.id, line]));
     const quantities = new Map<string, number>();
     for (const used of input.lines) {
@@ -641,6 +689,11 @@ export interface ReserveStockInput {
   readonly note?: string | null;
   /** Ultimo giorno in cui vale (da oggi a 90 giorni, nel calendario della fioreria). */
   readonly expiresOn: CalendarDate;
+  /**
+   * Da quando toglie merce (es. pochi giorni prima della consegna di un ordine, ADR-072). Con
+   * questa data la scadenza può essere più in là di 90 giorni: conta la durata, al massimo 90.
+   */
+  readonly holdsFrom?: CalendarDate | null;
   readonly lines: readonly StockRequestLine[];
   /** Apartar anche se la merce disponibile non basta. */
   readonly confirmShortage: boolean;
@@ -668,12 +721,15 @@ export async function reserveStockTx(
   if (label === '') throw new ValidationError({ label: 'required' });
   if (label.length > RESERVATION_LIMITS.label) throw new ValidationError({ label: 'too_long' });
   const range = reservationExpiryRange(todayOf(ctx));
+  const holdsFrom = input.holdsFrom ?? null;
   if (compareDates(input.expiresOn, range.min) < 0) {
     throw new ValidationError({ expiresOn: 'inventory_expiry_past' });
   }
-  if (compareDates(input.expiresOn, range.max) > 0) {
-    throw new ValidationError({ expiresOn: 'inventory_expiry_too_far' });
-  }
+  const tooLong = holdsFrom
+    ? compareDates(holdsFrom, input.expiresOn) > 0 ||
+      daysBetween(holdsFrom, input.expiresOn) > RESERVATION_LIMITS.maxDays
+    : compareDates(input.expiresOn, range.max) > 0;
+  if (tooLong) throw new ValidationError({ expiresOn: 'inventory_expiry_too_far' });
   if (requested.size === 0 || !(await getEntitlements(ctx, tx)).inventory) {
     return { reservationId: null, lines: checkLines(requested, new Map()).lines };
   }
@@ -698,6 +754,7 @@ export async function reserveStockTx(
     label,
     note,
     expiresOn: input.expiresOn,
+    holdsFrom,
     lines,
     confirmShortage: input.confirmShortage,
   });
@@ -755,4 +812,94 @@ export async function releaseReservationTx(
   if (row.status !== 'ACTIVE') return false;
   await closeAsReleased(tx, ctx, row);
   return true;
+}
+
+/**
+ * L'ordine è cambiato (righe o giorno, ADR-072): l'apartado si aggiorna sul posto con le nuove
+ * quantità per prodotto e le nuove date, invece di chiuderne uno e aprirne un altro. Senza più
+ * prodotti controllati (o senza il piano) si libera. Nella transazione di chi chiama, che ha già
+ * bloccato l'ordine; non controlla i permessi dell'inventario. Non chiede conferme per la merce che
+ * manca: un ordine non si blocca mai per l'inventario (si vede nel disponibile e negli avvisi).
+ */
+export async function updateReservationHoldTx(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  reservationId: string,
+  input: {
+    readonly lines: readonly StockRequestLine[];
+    readonly expiresOn: CalendarDate;
+    readonly holdsFrom: CalendarDate | null;
+  },
+): Promise<'unchanged' | 'updated' | 'released'> {
+  if (!isUuid(reservationId)) throw new NotFoundError('InventoryReservation');
+  const requested = aggregateRequest(input.lines);
+  const row = await lockReservation(tx, ctx, reservationId);
+  if (!row) throw new NotFoundError('InventoryReservation');
+  requireActive(row);
+  const enabled = requested.size > 0 && (await getEntitlements(ctx, tx)).inventory;
+  const locked = enabled
+    ? await lockInventoryItems(tx, ctx, { catalogItemIds: [...requested.keys()] })
+    : new Map<string, LockedInventoryItem>();
+  /** Quantità voluta per prodotto dell'inventario (solo quelli ancora controllati). */
+  const wanted = new Map<string, number>();
+  for (const item of locked.values()) {
+    const quantity = requested.get(item.catalogItemId);
+    if (item.status === 'ACTIVE' && quantity) wanted.set(item.id, quantity);
+  }
+  if (wanted.size === 0) {
+    await closeAsReleased(tx, ctx, row);
+    return 'released';
+  }
+
+  let changed = false;
+  const expiresOn = toDateColumn(input.expiresOn);
+  const holdsFrom = input.holdsFrom ? toDateColumn(input.holdsFrom) : null;
+  if (
+    row.expiresOn.getTime() !== expiresOn.getTime() ||
+    (row.holdsFrom?.getTime() ?? null) !== (holdsFrom?.getTime() ?? null)
+  ) {
+    await tx.inventoryReservation.update({
+      where: { id: row.id, tenantId: ctx.tenantId },
+      data: { expiresOn, holdsFrom },
+    });
+    changed = true;
+  }
+  const current = new Map(row.lines.map((line) => [line.inventoryItemId, line]));
+  for (const [inventoryItemId, quantity] of wanted) {
+    const line = current.get(inventoryItemId);
+    if (!line) {
+      await tx.inventoryReservationLine.create({
+        data: { tenantId: ctx.tenantId, reservationId: row.id, inventoryItemId, quantity },
+      });
+      changed = true;
+    } else if (line.quantity !== quantity) {
+      await tx.inventoryReservationLine.update({
+        where: { id: line.id, tenantId: ctx.tenantId },
+        data: { quantity },
+      });
+      changed = true;
+    }
+  }
+  // Un prodotto tolto dall'ordine: la riga dell'apartado (merce tenuta, non un movimento) sparisce,
+  // come la riga dell'ordine da cui veniva.
+  const removed = row.lines.filter((line) => !wanted.has(line.inventoryItemId));
+  if (removed.length > 0) {
+    await tx.inventoryReservationLine.deleteMany({
+      where: { tenantId: ctx.tenantId, id: { in: removed.map((line) => line.id) } },
+    });
+    changed = true;
+  }
+  if (!changed) return 'unchanged';
+  // Nei metadati niente "Para" né nota (ADR-062).
+  await recordAudit(tx, ctx, {
+    action: AUDIT_ACTIONS.inventoryReservationUpdated,
+    entityType: 'InventoryReservation',
+    entityId: row.id,
+    metadata: {
+      lines: wanted.size,
+      units: [...wanted.values()].reduce((total, quantity) => total + quantity, 0),
+      expiresOn: toIsoDate(input.expiresOn),
+    },
+  });
+  return 'updated';
 }

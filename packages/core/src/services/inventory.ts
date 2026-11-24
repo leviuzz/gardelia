@@ -51,10 +51,10 @@ import { getEntitlements, requireEntitlement } from './billing';
 import {
   aggregateRequest,
   checkLines,
+  holdingReservationWhere,
   lockInventoryItems,
   missingFor,
   reservedQuantities,
-  shopToday,
   writeInventoryEntry,
   type LockedInventoryItem,
   type MovementLine,
@@ -295,11 +295,7 @@ export async function getInventoryItem(
       where: {
         tenantId: ctx.tenantId,
         inventoryItemId: row.id,
-        reservation: {
-          tenantId: ctx.tenantId,
-          status: 'ACTIVE',
-          expiresOn: { gte: shopToday(ctx) },
-        },
+        reservation: holdingReservationWhere(ctx),
       },
       select: {
         quantity: true,
@@ -978,6 +974,8 @@ export async function checkStockTx(
   tx: TransactionClient,
   ctx: TenantContext,
   lines: readonly StockRequestLine[],
+  /** L'apartado di chi chiede (es. quello dell'ordine, ADR-072): la sua merce è sua. */
+  options: { readonly excludeReservationId?: string | null } = {},
 ): Promise<StockCheckResult> {
   const requested = aggregateRequest(lines);
   if (requested.size === 0 || !(await getEntitlements(ctx, tx)).inventory) {
@@ -993,6 +991,7 @@ export async function checkStockTx(
   });
   const reserved = await reservedQuantities(tx, ctx, {
     inventoryItemIds: items.map((item) => item.id),
+    ...(options.excludeReservationId ? { excludeReservationId: options.excludeReservationId } : {}),
   });
   return checkLines(requested, new Map(items.map((item) => [item.catalogItemId, item])), reserved);
 }

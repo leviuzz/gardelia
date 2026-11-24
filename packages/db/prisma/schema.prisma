@@ -673,6 +673,9 @@ model InventoryReservation {
   note        String?
   /// Ultimo giorno in cui vale, nel calendario della fioreria.
   expiresOn   DateTime                   @db.Date
+  /// Da quando toglie merce dal disponibile; NULL = da subito. Gli apartados degli ordini tengono
+  /// solo negli ultimi giorni prima della consegna (ADR-072). CHECK: non dopo la scadenza.
+  holdsFrom   DateTime?                  @db.Date
   status      InventoryReservationStatus @default(ACTIVE)
   /// Solo per USED: il registro di uso (nessuno se non restava nulla da registrare).
   usedEntryId String?                    @db.Uuid
@@ -685,6 +688,8 @@ model InventoryReservation {
   tenant    Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   usedEntry InventoryEntry?            @relation(fields: [tenantId, usedEntryId], references: [tenantId, id], onDelete: Restrict)
   lines     InventoryReservationLine[]
+  /// Ordine che lo tiene (ADR-072): un apartado di un ordine si usa e si libera solo dall'ordine.
+  order     Order?
 
   @@unique([tenantId, id])
   @@unique([tenantId, usedEntryId])
@@ -1478,98 +1483,103 @@ enum OrderPaymentKind {
 }
 
 model Order {
-  id                    String             @id @default(uuid(7)) @db.Uuid
-  tenantId              String             @db.Uuid
+  id                     String             @id @default(uuid(7)) @db.Uuid
+  tenantId               String             @db.Uuid
   /// Numero progressivo per tenant (PED-0001), assegnato dal servizio.
-  number                Int
-  customerId            String             @db.Uuid
+  number                 Int
+  customerId             String             @db.Uuid
   /// Preventivo da cui è nato l'ordine (al massimo un ordine per preventivo).
-  quoteId               String?            @db.Uuid
-  status                OrderStatus        @default(CONFIRMED)
-  statusChangedAt       DateTime           @default(now())
-  currency              String             @db.Char(3)
-  fulfillmentMode       FulfillmentMode
+  quoteId                String?            @db.Uuid
+  status                 OrderStatus        @default(CONFIRMED)
+  statusChangedAt        DateTime           @default(now())
+  currency               String             @db.Char(3)
+  fulfillmentMode        FulfillmentMode
   /// Giorno di consegna o ritiro, nel calendario del tenant (NULL solo per i borradores).
-  scheduledDate         DateTime?          @db.Date
+  scheduledDate          DateTime?          @db.Date
   /// Fascia oraria in minuti dalla mezzanotte (fuso del tenant); entrambi NULL = in giornata.
-  windowStartMinutes    Int?
-  windowEndMinutes      Int?
+  windowStartMinutes     Int?
+  windowEndMinutes       Int?
   /// Indirizzo del cliente da cui è stato copiato quello di consegna (facoltativo).
-  customerAddressId     String?            @db.Uuid
+  customerAddressId      String?            @db.Uuid
   /// Indirizzo di consegna COPIATO nell'ordine: cambiare la rubrica non cambia gli ordini.
-  deliveryAddressLine1  String?
-  deliveryAddressLine2  String?
-  deliveryNeighborhood  String?
-  deliveryCity          String?
-  deliveryRegion        String?
-  deliveryPostalCode    String?
-  deliveryCountryCode   String?            @db.Char(2)
+  deliveryAddressLine1   String?
+  deliveryAddressLine2   String?
+  deliveryNeighborhood   String?
+  deliveryCity           String?
+  deliveryRegion         String?
+  deliveryPostalCode     String?
+  deliveryCountryCode    String?            @db.Char(2)
   /// Google Places (ADR-059): ID del luogo (si conserva) e coordinate, cache di 30 giorni.
-  deliveryPlaceId       String?
-  deliveryLatitude      Float?
-  deliveryLongitude     Float?
-  deliveryCoordinatesAt DateTime?
+  deliveryPlaceId        String?
+  deliveryLatitude       Float?
+  deliveryLongitude      Float?
+  deliveryCoordinatesAt  DateTime?
   /// Referencias / entre calles / istruzioni per chi consegna ("llamar antes", "es sorpresa").
-  deliveryNotes         String?
-  recipientName         String?
+  deliveryNotes          String?
+  recipientName          String?
   /// Formato E.164.
-  recipientPhone        String?
+  recipientPhone         String?
   /// Tarjeta: messaggio per chi riceve il ramo.
-  cardMessage           String?
-  cardSignature         String?
-  cardAnonymous         Boolean            @default(false)
+  cardMessage            String?
+  cardSignature          String?
+  cardAnonymous          Boolean            @default(false)
   /// Note interne della fioreria.
-  notes                 String?
-  subtotalMinor         Int
-  discountMinor         Int                @default(0)
-  deliveryFeeMinor      Int                @default(0)
-  taxMinor              Int                @default(0)
-  totalMinor            Int
+  notes                  String?
+  subtotalMinor          Int
+  discountMinor          Int                @default(0)
+  deliveryFeeMinor       Int                @default(0)
+  taxMinor               Int                @default(0)
+  totalMinor             Int
   /// Somma dei pagamenti registrati (storni compresi), mantenuta dal servizio.
-  paidMinor             Int                @default(0)
-  paymentStatus         OrderPaymentStatus @default(UNPAID)
-  acquisitionSource     AcquisitionSource  @default(MERCHANT_DIRECT)
-  cancelReason          String?
+  paidMinor              Int                @default(0)
+  paymentStatus          OrderPaymentStatus @default(UNPAID)
+  acquisitionSource      AcquisitionSource  @default(MERCHANT_DIRECT)
+  cancelReason           String?
   /// Chi porta l'ordine (repartidor): un membro della fioreria, ADR-058.
-  assignedMembershipId  String?            @db.Uuid
+  assignedMembershipId   String?            @db.Uuid
   /// Chi ha ricevuto il ramo alla consegna o al ritiro (prova di consegna, ADR-058).
-  handoverName          String?
+  handoverName           String?
   /// Ordine fatto da chi compra dalla pagina pubblica della fioreria (ADR-067).
-  placedOnline          Boolean            @default(false)
+  placedOnline           Boolean            @default(false)
   /// Chi l'ha fatto (conto cliente del marketplace); NULL se ha cancellato il conto.
-  buyerUserId           String?            @db.Uuid
+  buyerUserId            String?            @db.Uuid
   /// Commenti di chi compra per la fioreria ("colores pastel", "sin lirios").
-  buyerNotes            String?
+  buyerNotes             String?
   /// Registro d'inventario con cui si sono scaricati i materiali quando l'ordine è diventato
   /// "Listo" (ADR-071); NULL finché non si scarica (o se niente si controlla).
-  inventoryEntryId      String?            @db.Uuid
-  createdById           String?            @db.Uuid
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
+  inventoryEntryId       String?            @db.Uuid
+  /// Apartado con i materiali dell'ordine confermato (ADR-072): lo tiene allineato il servizio degli
+  /// ordini, si usa a "Listo" e si libera all'annullamento. L'ultimo, anche se ormai chiuso.
+  inventoryReservationId String?            @db.Uuid
+  createdById            String?            @db.Uuid
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
 
-  tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customer        Customer           @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
-  quote           Quote?             @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Restrict)
-  assignedTo      Membership?        @relation(fields: [tenantId, assignedMembershipId], references: [tenantId, id], onDelete: Restrict)
-  customerAddress CustomerAddress?   @relation(fields: [tenantId, customerAddressId], references: [tenantId, id], onDelete: Restrict)
-  inventoryEntry  InventoryEntry?    @relation(fields: [tenantId, inventoryEntryId], references: [tenantId, id], onDelete: Restrict)
-  lines           OrderLine[]
-  payments        OrderPayment[]
-  events          OrderStatusEvent[]
-  publicLinks     PublicLink[]
-  photos          OrderPhoto[]
+  tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer             Customer              @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
+  quote                Quote?                @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Restrict)
+  assignedTo           Membership?           @relation(fields: [tenantId, assignedMembershipId], references: [tenantId, id], onDelete: Restrict)
+  customerAddress      CustomerAddress?      @relation(fields: [tenantId, customerAddressId], references: [tenantId, id], onDelete: Restrict)
+  inventoryEntry       InventoryEntry?       @relation(fields: [tenantId, inventoryEntryId], references: [tenantId, id], onDelete: Restrict)
+  inventoryReservation InventoryReservation? @relation(fields: [tenantId, inventoryReservationId], references: [tenantId, id], onDelete: Restrict)
+  lines                OrderLine[]
+  payments             OrderPayment[]
+  events               OrderStatusEvent[]
+  publicLinks          PublicLink[]
+  photos               OrderPhoto[]
 
   buyer User? @relation("BuyerOrders", fields: [buyerUserId], references: [id], onDelete: SetNull)
 
   @@unique([tenantId, id])
   @@unique([tenantId, number])
   @@unique([tenantId, quoteId])
+  @@unique([tenantId, inventoryEntryId])
+  @@unique([tenantId, inventoryReservationId])
   @@index([buyerUserId])
   @@index([tenantId, status])
   @@index([tenantId, scheduledDate])
   @@index([tenantId, customerId])
   @@index([tenantId, assignedMembershipId])
-  @@unique([tenantId, inventoryEntryId])
 }
 
 /// Righe dell'ordine: stesse regole e snapshot delle righe del preventivo (`QuoteLineKind`).

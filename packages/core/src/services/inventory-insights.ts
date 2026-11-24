@@ -119,7 +119,8 @@ export async function getInventoryAlerts(ctx: TenantContext): Promise<InventoryA
       (a, b) =>
         (a.status === b.status ? 0 : a.status === 'OUT' ? -1 : 1) || a.name.localeCompare(b.name),
     );
-    const open = { tenantId: ctx.tenantId, status: 'ACTIVE' } as const;
+    // Gli apartados degli ordini li governa l'ordine (ADR-072): niente avvisi qui.
+    const open = { tenantId: ctx.tenantId, status: 'ACTIVE', order: { is: null } } as const;
     return {
       low: flagged.filter((item) => item.status === 'LOW').length,
       out: flagged.filter((item) => item.status === 'OUT').length,

@@ -1,6 +1,7 @@
 /**
  * Email degli ordini fatti dalla tienda en línea (ADR-067): a chi compra (ricevuto, accettato,
- * annullato) e alla fioreria (nuovo ordine). I dati si raccolgono DENTRO la transazione che cambia
+ * annullato) e alla fioreria (nuovo ordine). In più la conferma al cliente degli ordini del banco
+ * (ADR-072). I dati si raccolgono DENTRO la transazione che cambia
  * l'ordine; l'invio avviene DOPO il commit e non fa mai fallire l'operazione (un SMTP giù non
  * annulla un ordine): l'errore finisce nel log.
  *
@@ -18,10 +19,12 @@ import {
   type StorePaymentMethod,
 } from '@floral/domain';
 import {
+  counterOrderConfirmedEmail,
   newOnlineOrderEmail,
   onlineOrderAcceptedEmail,
   onlineOrderCancelledEmail,
   onlineOrderReceivedEmail,
+  onlineOrderWithdrawnEmail,
   type OnlineOrderEmailFacts,
 } from './email-templates';
 import { logger } from './logger';
@@ -123,7 +126,8 @@ async function trackingUrl(
   );
 }
 
-export type BuyerOrderMailKind = 'received' | 'accepted' | 'rejected' | 'cancelled' | 'expired';
+export type BuyerOrderMailKind =
+  'received' | 'accepted' | 'rejected' | 'cancelled' | 'expired' | 'withdrawn';
 
 /**
  * L'email per chi ha fatto l'ordine online, o null se non c'è nessuno a cui scrivere (ordine del
@@ -173,13 +177,45 @@ export async function buyerOrderMail(
     case 'rejected':
     case 'cancelled':
     case 'expired':
+    case 'withdrawn':
       return onlineOrderCancelledEmail({
         ...common,
         kind,
-        reason: kind === 'expired' ? null : order.cancelReason,
+        reason: kind === 'expired' || kind === 'withdrawn' ? null : order.cancelReason,
         searchUrl: deps.links.search,
       });
   }
+}
+
+/**
+ * La conferma per il cliente di un ordine del banco (ADR-072), con il link di tracciamento già
+ * pronto (`linkId`, attivo). Da chiamare dentro la transazione del tenant, DOPO la conferma.
+ */
+export async function counterOrderConfirmationMail(
+  tx: TransactionClient,
+  tenantId: string,
+  orderId: string,
+  input: { readonly to: string; readonly name: string; readonly linkId: string },
+  deps: OrderMailDeps,
+): Promise<EmailMessage> {
+  const [order, tenant] = await Promise.all([
+    tx.order.findFirstOrThrow({ where: { tenantId, id: orderId } }),
+    tx.tenant.findUniqueOrThrow({
+      where: { id: tenantId },
+      select: { displayName: true, contactEmail: true },
+    }),
+  ]);
+  return counterOrderConfirmedEmail({
+    to: input.to,
+    name: input.name,
+    facts: orderFacts(tenant.displayName, order),
+    url: publicLinkUrl(
+      deps.appUrl,
+      'ORDER',
+      createPublicLinkToken(deps.secret, { tenantId, linkId: input.linkId }),
+    ),
+    replyTo: tenant.contactEmail,
+  });
 }
 
 /** Le email per propietari e gerenti attivi della fioreria: un ordine online da guardare. */
@@ -212,5 +248,31 @@ export async function newOrderMailsForShop(
       acceptDays: MARKETPLACE_ORDER_LIMITS.acceptDays,
       url,
     }),
+  );
+}
+
+/** Le email per propietari e gerenti attivi: chi compra ha annullato l'ordine ancora da accettare. */
+export async function withdrawnOrderMailsForShop(
+  tx: TransactionClient,
+  tenantId: string,
+  orderId: string,
+  buyerName: string,
+  deps: OrderMailDeps,
+): Promise<EmailMessage[]> {
+  const [order, tenant, members] = await Promise.all([
+    tx.order.findFirstOrThrow({ where: { tenantId, id: orderId } }),
+    tx.tenant.findUniqueOrThrow({
+      where: { id: tenantId },
+      select: { displayName: true, slug: true },
+    }),
+    tx.membership.findMany({
+      where: { tenantId, status: 'ACTIVE', role: { in: ['OWNER', 'MANAGER'] } },
+      select: { user: { select: { email: true } } },
+    }),
+  ]);
+  const facts = orderFacts(tenant.displayName, order);
+  const url = deps.links.order(tenant.slug, order.id);
+  return members.map((member) =>
+    onlineOrderWithdrawnEmail({ to: member.user.email, buyerName, facts, url }),
   );
 }

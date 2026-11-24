@@ -41,7 +41,12 @@ export async function createOrderFromQuoteAction(
   formData: FormData,
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
-    const { id } = await createOrderFromQuote(ctx, quoteId, formDataToObject(formData));
+    const { id } = await createOrderFromQuote(
+      ctx,
+      quoteId,
+      formDataToObject(formData),
+      orderMailDeps(),
+    );
     return {
       revalidate: [section(routes.orders.list()), routes.quotes.detail(quoteId)],
       redirectTo: routes.orders.detail(id),
@@ -221,8 +226,16 @@ export async function confirmDraftOrderAction(
   formData: FormData,
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
-    await confirmDraftOrder(ctx, orderId, formDataToObject(formData));
-    return { revalidate: section(routes.orders.list()), success: 'orders.draft.confirmed' };
+    const { customerNotified } = await confirmDraftOrder(
+      ctx,
+      orderId,
+      formDataToObject(formData),
+      orderMailDeps(),
+    );
+    return {
+      revalidate: section(routes.orders.list()),
+      success: customerNotified ? 'orders.draft.confirmedNotified' : 'orders.draft.confirmed',
+    };
   });
 }
 
