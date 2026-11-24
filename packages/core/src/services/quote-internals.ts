@@ -87,12 +87,15 @@ export async function recalculateTotals(
 
 /**
  * Crea un preventivo in bozza per un cliente ATTIVO del tenant (numero progressivo nella
- * stessa transazione). Restituisce null se il cliente non esiste nel tenant.
+ * stessa transazione). Restituisce null se il cliente non esiste nel tenant. `from`: il contratto
+ * di Floral Care da cui nasce e il titolo proposto (ADR-078); chi chiama ha già controllato che il
+ * contratto sia della fioreria e di quel cliente.
  */
 export async function insertDraftQuote(
   tx: TransactionClient,
   ctx: TenantContext,
   customerId: string,
+  from: { readonly subscriptionId?: string; readonly title?: string } = {},
 ): Promise<{ id: string; number: number } | null> {
   const customer = await tx.customer.findFirst({
     where: { id: customerId, tenantId: ctx.tenantId, status: 'ACTIVE' },
@@ -114,6 +117,8 @@ export async function insertDraftQuote(
       validUntil,
       // L'origine del cliente si propaga al preventivo (attribuzione delle fee future).
       acquisitionSource: customer.acquisitionSource,
+      subscriptionId: from.subscriptionId ?? null,
+      title: from.title ?? null,
       createdById: ctx.userId,
       statusChangedAt: new Date(),
     },

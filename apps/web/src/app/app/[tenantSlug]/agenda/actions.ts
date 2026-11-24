@@ -279,15 +279,19 @@ export async function revokeCareVisitLinkAction(
   });
 }
 
-/** "Atendido": chi gestisce chiude un avviso della squadra. */
+/**
+ * Chi gestisce risolve un avviso senza creare nulla: "Atendido", "En la próxima visita" o "No se
+ * repone" (`resolution` legata con .bind(): la ricontrolla il servizio).
+ */
 export async function resolveCareFollowUpAction(
   slug: string,
   followUpId: string,
+  resolution: string,
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
-    await resolveCareFollowUp(ctx, followUpId, formDataToObject(formData));
+    await resolveCareFollowUp(ctx, followUpId, { ...formDataToObject(formData), resolution });
     return {
       revalidate: [section(routes.agenda.day()), section(routes.subscriptions.list())],
       success: 'care.followUps.resolved',
@@ -299,7 +303,10 @@ export async function resolveCareFollowUpAction(
 // Chi gestisce: spostare, cancellare, assegnare (blocco 1)
 // -----------------------------------------------------------------------------
 
-/** Il modulo manda una scelta "AAAA-MM-GG_idFascia": qui si separa, il servizio ricontrolla tutto. */
+/**
+ * In un orario il modulo manda una scelta "AAAA-MM-GG_idFascia" (qui si separa); una visita extra
+ * può andare anche a un'ora libera (giorno, inizio e fine). Il servizio ricontrolla tutto.
+ */
 export async function moveCareVisitAction(
   slug: string,
   visitId: string,
@@ -308,9 +315,13 @@ export async function moveCareVisitAction(
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
     const input = formDataToObject(formData);
+    if (input.placement === 'TIME') {
+      await moveCareVisit(ctx, visitId, input);
+      return { revalidate: visitSections(routes), success: 'care.visit.moved' };
+    }
     const option = typeof input.option === 'string' ? input.option : '';
     const [date = '', slotId = ''] = option.split('_');
-    await moveCareVisit(ctx, visitId, { ...input, date, slotId });
+    await moveCareVisit(ctx, visitId, { ...input, placement: 'SLOT', date, slotId });
     return { revalidate: visitSections(routes), success: 'care.visit.moved' };
   });
 }

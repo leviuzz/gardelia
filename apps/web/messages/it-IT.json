@@ -3056,8 +3056,11 @@
       "visit_started": "{actor} ha iniziato una visita di {number}",
       "visit_photo_removed": "{actor} ha tolto una foto da una visita di {number}",
       "follow_up_created": "{actor} ha lasciato un avviso in una visita di {number}",
-      "follow_up_resolved": "{actor} ha gestito un avviso di {number}",
-      "photos_deleted": "Sono state cancellate le foto di {number}, 30 giorni dopo la fine del contratto"
+      "follow_up_resolved": "{actor} ha risolto un avviso di {number}",
+      "photos_deleted": "Sono state cancellate le foto di {number}, 30 giorni dopo la fine del contratto",
+      "extra_visit_created": "{actor} ha fissato una visita extra di {number}",
+      "quote_created": "{actor} ha creato una cotización da {number}",
+      "seasonal_plants_archived": "{actor} ha archiviato le piante di stagione di {number}"
     },
     "notice": {
       "label": "Sì, ho avvisato il cliente"
@@ -3259,7 +3262,8 @@
       "material_limit": "Hai raggiunto il massimo di materiali per questa visita.",
       "follow_up_limit": "Hai raggiunto il massimo di avvisi per questa visita.",
       "photo_locked": "La visita è chiusa: solo chi gestisce può togliere la foto.",
-      "email_not_retryable": "Questo resoconto è già stato mandato o non si può più rimandare. Condividi il link."
+      "email_not_retryable": "Questo resoconto è già stato mandato o non si può più rimandare. Condividi il link.",
+      "follow_up_resolved": "Questo avviso è già stato risolto. Ricarica la pagina."
     },
     "contracts": {
       "title": "Floral Care",
@@ -3392,7 +3396,10 @@
       "instructionsHint": "Per chi sta sul posto: le vedrà il cliente.",
       "added": "Piante aggiunte",
       "updated": "Piante salvate",
-      "removed": "Piante tolte"
+      "removed": "Piante tolte",
+      "seasonal": "Di stagione",
+      "seasonalHint": "Non entra nel prezzo del contratto (la fai pagare con la cotización del cambio) e si archivia alla fine della visita di ritiro.",
+      "seasonalBadge": "Stagione"
     },
     "scheduleDialog": {
       "open": "Cambia calendario",
@@ -3514,7 +3521,8 @@
       "rescheduleEmptyBody": "Non ci sono visite da riprogrammare.",
       "wasOn": "Era il {date}",
       "reschedule": "Riprogramma",
-      "report": "Vedi resoconto"
+      "report": "Vedi resoconto",
+      "freeTime": "A un’altra ora · senza posti"
     },
     "visit": {
       "title": "Visita",
@@ -3624,7 +3632,9 @@
       "reportDemo": "Visita chiusa (fioreria di prova: nessuna email al cliente).",
       "notDoneNote": "Cosa è successo? Il cliente lo vedrà nel resoconto (facoltativo)",
       "reportSend": "Manda resoconto per email",
-      "reportRetry": "Riprova l’email"
+      "reportRetry": "Riprova l’email",
+      "seasonal": "Stagione",
+      "archiveSeasonal": "{count, plural, one {Archivia la pianta di stagione: il cambio finisce} other {Archivia le # piante di stagione: il cambio finisce}}"
     },
     "report": {
       "title": "Resoconto della visita",
@@ -3689,23 +3699,41 @@
       },
       "submit": "Avvisa",
       "created": "Avviso mandato",
-      "resolve": "Gestito",
-      "resolved": "Avviso gestito",
+      "resolve": "Risolvi",
+      "resolved": "Avviso risolto",
       "resolution": "Nota: {note}",
       "statuses": {
         "OPEN": "Aperto",
-        "RESOLVED": "Gestito"
+        "RESOLVED": "Risolto"
       },
       "alert": "{count, plural, one {C’è # avviso della squadra} other {Ci sono # avvisi della squadra}}",
       "alertLink": "Vedi avvisi",
       "viewsLabel": "Avvisi",
       "views": {
         "open": "Aperti",
-        "resolved": "Gestiti"
+        "resolved": "Risolti"
       },
       "emptyTitle": "Nessun avviso aperto",
-      "emptyResolved": "Ancora nessun avviso gestito",
-      "emptyBody": "Quando qualcuno della squadra lascia un avviso in una visita, compare qui."
+      "emptyResolved": "Non ci sono ancora avvisi risolti",
+      "emptyBody": "Quando qualcuno della squadra lascia un avviso in una visita, compare qui.",
+      "choices": {
+        "FREE_VISIT": "Sostituzione senza costo",
+        "NEXT_VISIT": "Alla prossima visita",
+        "QUOTED": "Fai una cotización",
+        "NOT_REPLACED": "Non si sostituisce",
+        "HANDLED": "Fatto"
+      },
+      "suggested": "La tua regola per le piante morte suggerisce: {choice}",
+      "resolutions": {
+        "HANDLED": "Fatto",
+        "FREE_VISIT": "Sostituzione senza costo",
+        "NEXT_VISIT": "Alla prossima visita",
+        "QUOTED": "Con cotización",
+        "NOT_REPLACED": "Non si sostituisce"
+      },
+      "seeQuote": "Vedi {number}",
+      "seeVisit": "Vedi la visita del {date}",
+      "seeVisitNoDate": "Vedi la visita"
     },
     "route": {
       "title": "Giro del giorno",
@@ -3726,6 +3754,57 @@
       "unassigned": "{count} non assegnate",
       "orderHint": "Consegne e visite insieme, per fascia. Tocca una tappa per i dettagli.",
       "done": "{count, plural, one {# tappa fatta} other {# tappe fatte}}"
+    },
+    "extra": {
+      "badge": "Extra · {kind}",
+      "kinds": {
+        "EXTRA": "Lavoro extra",
+        "REPLACEMENT": "Sostituzione",
+        "SEASONAL_INSTALL": "Allestimento di stagione",
+        "SEASONAL_PICKUP": "Ritiro di stagione"
+      },
+      "open": "Visita extra",
+      "title": "Fissa una visita extra",
+      "body": "Una visita fuori dal calendario del contratto: un lavoro extra, una sostituzione o il cambio di stagione. Il costo lo calcoliamo con le tue tariffe.",
+      "replacementTitle": "Sostituzione senza costo",
+      "replacementBody": "Fissa la visita per sostituire la pianta, senza costo per il cliente. Salvandola, l’avviso risulta risolto.",
+      "kind": "Per cosa",
+      "when": "Quando",
+      "inSlot": "In un orario di visita",
+      "atTime": "A un’altra ora",
+      "noOptions": "Non ci sono orari con posto nei prossimi 21 giorni: fissala a un’altra ora.",
+      "slot": "Orario",
+      "chooseSlot": "Scegli un orario",
+      "date": "Giorno",
+      "atTimeHint": "A un’altra ora non occupa posti nei tuoi orari e i clienti non possono sceglierla.",
+      "start": "Dalle",
+      "end": "Alle",
+      "fee": "Costo",
+      "feeVisit": "Tariffa per visita: {price}",
+      "fees": {
+        "VISIT_FEE": "Tariffa per visita",
+        "FREE": "Senza costo",
+        "QUOTE": "Nella cotización"
+      },
+      "noQuotes": "Prima crea una cotización da questo contratto.",
+      "quote": "Cotización",
+      "note": "Nota per chi la fa",
+      "noteHint": "Cosa c’è da fare (massimo 200 caratteri).",
+      "assignee": "Chi la fa",
+      "nobody": "Non assegnata",
+      "submit": "Fissa la visita",
+      "created": "Visita extra fissata",
+      "quoteButton": "Fai una cotización"
+    },
+    "seasonal": {
+      "title": "Cambio di stagione",
+      "step1": "Crea la cotización del cambio: piante, allestimento e ritiro.",
+      "step2": "Aggiungi le piante con la casella «Di stagione»: non cambiano il prezzo del contratto. {count, plural, =0 {Non ce n’è ancora nessuna.} one {C’è # pianta di stagione.} other {Ci sono # piante di stagione.}}",
+      "step3": "Fissa allestimento e ritiro con il costo «Nella cotización». Alla fine del ritiro, le piante di stagione si archiviano.",
+      "quote": "Fai la cotización del cambio di stagione",
+      "install": "Fissa l’allestimento",
+      "pickup": "Fissa il ritiro",
+      "quotesTitle": "Cotizaciones del contratto"
     }
   },
   "letterhead": {

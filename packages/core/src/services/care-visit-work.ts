@@ -117,6 +117,8 @@ export interface CareVisitPlantDto {
   readonly note: string | null;
   /** Tolta dal contratto dopo che è stata segnata in questa visita. */
   readonly removed: boolean;
+  /** Pianta del cambio di stagione (ADR-078). */
+  readonly seasonal: boolean;
 }
 
 export interface CareVisitPhotoDto {
@@ -153,8 +155,14 @@ export interface CareVisitSheetDto {
     readonly accessNotes: string | null;
     readonly notes: string | null;
   };
+  /** I servizi del contratto (una visita extra non ha la checklist: fa il suo lavoro). */
   readonly checklist: readonly CareChecklistItemDto[];
   readonly plants: readonly CareVisitPlantDto[];
+  /**
+   * Visita di ritiro del cambio di stagione: alla fine si archiviano le piante di temporada
+   * (casella attiva). `plants`: quante sono ancora nel contratto.
+   */
+  readonly seasonalPickup: { readonly plants: number } | null;
   readonly photos: readonly CareVisitPhotoDto[];
   readonly photoLimit: number;
   readonly materials: readonly CareVisitMaterialDto[];
@@ -331,7 +339,9 @@ export async function getCareVisitSheet(
   const visit = toAgendaVisit(ctx, found.row, found.counts, today);
   const working = canWorkOnCareVisit(visit.status);
   const serviceResult = new Map(found.serviceResults.map((result) => [result.serviceId, result]));
-  const contractServices = careChecklist(found.subscription.services, found.oneTimeDone);
+  const contractServices = found.row.isExtra
+    ? []
+    : careChecklist(found.subscription.services, found.oneTimeDone);
   const checklist: CareChecklistItemDto[] = contractServices.map((service) => ({
     serviceId: service.serviceId,
     name: service.name,
@@ -382,6 +392,7 @@ export async function getCareVisitSheet(
       affected: result?.affected ?? null,
       note: result?.note ?? null,
       removed: false,
+      seasonal: plant.seasonal,
     };
   });
   const activePlants = new Set(plants.map((plant) => plant.plantId));
@@ -401,6 +412,7 @@ export async function getCareVisitSheet(
       affected: result.affected,
       note: result.note,
       removed: true,
+      seasonal: false,
     });
   }
   const address = found.subscription.customerAddress;
@@ -425,6 +437,14 @@ export async function getCareVisitSheet(
     },
     checklist,
     plants,
+    seasonalPickup:
+      found.row.extraKind === 'SEASONAL_PICKUP'
+        ? {
+            plants: found.plants
+              .filter((plant) => plant.seasonal)
+              .reduce((total, plant) => total + plant.quantity, 0),
+          }
+        : null,
     photos: found.photos,
     photoLimit: CARE_VISIT_LIMITS.photos,
     materials: found.materials.map((material) => ({
@@ -434,7 +454,7 @@ export async function getCareVisitSheet(
       saleUnit: material.catalogItem.saleUnit,
     })),
     inventoryEnabled: found.inventory,
-    followUps: found.followUps.map(toFollowUpDto),
+    followUps: found.followUps.map((row) => toFollowUpDto(row, null)),
     report: found.report,
     email: found.email,
     customerHasEmail: Boolean(found.subscription.customer.email?.trim()),
@@ -1014,6 +1034,27 @@ export async function finishCareVisit(
         inventoryEntryId,
       },
     });
+    // Ritiro del cambio di stagione: le piante di temporada escono dal contratto (casella attiva,
+    // ADR-078). Il resoconto le mostra lo stesso: le righe della visita ne copiano nome e quantità.
+    if (visit.extraKind === 'SEASONAL_PICKUP' && input.archiveSeasonal) {
+      const archived = await tx.carePlant.updateMany({
+        where: {
+          tenantId: ctx.tenantId,
+          subscriptionId: visit.subscriptionId,
+          status: 'ACTIVE',
+          seasonal: true,
+        },
+        data: { status: 'ARCHIVED' },
+      });
+      if (archived.count > 0) {
+        await recordAudit(tx, ctx, {
+          action: AUDIT_ACTIONS.careSeasonalPlantsArchived,
+          entityType: 'CustomerSubscription',
+          entityId: visit.subscriptionId,
+          metadata: { number, visitId: visit.id, plants: archived.count },
+        });
+      }
+    }
     await ensureCareVisitPublicLinkTx(tx, ctx, {
       id: visit.id,
       number: visit.subscription.number,

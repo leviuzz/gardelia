@@ -151,6 +151,8 @@ export type ConflictReason =
   | 'care_photo_locked'
   /** "Reintentar": l'email è già partita, o ha finito i tentativi, o non c'è niente da mandare. */
   | 'care_email_not_retryable'
+  /** L'avviso è già stato risolto (da qualcun altro, o in un altro modo). */
+  | 'care_follow_up_resolved'
   /** "Eliminar florería" con ordini ancora da consegnare o ritirare (ADR-074). */
   | 'tenant_deletion_open_orders'
   | 'session_is_current';

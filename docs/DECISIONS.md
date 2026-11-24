@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 24 novembre 2026 (Floral Care, la visita dal telefono, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 24 novembre 2026 (Floral Care, la visita dal telefono e le visite extra, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -2233,7 +2233,7 @@ giorni" e "facoltativa"). Realizza P-09.
 - **Non fatto:** avvisi via email (verifica tolta, nuovo dispositivo) con Sentry e gli altri avvisi
   (punto 3 della lista in `docs/ROADMAP.md`); chiavi di accesso (passkey).
 
-### ADR-078 — Floral Care, blocco 2a: la visita dal telefono, il resoconto e la ruta — ADOTTATO (24/11/2026)
+### ADR-078 — Floral Care, blocco 2: la visita dal telefono, il resoconto, la ruta, le visite extra e il cambio di stagione — ADOTTATO (24/11/2026)
 
 Blocco 2 del piano approvato (`docs/FLORAL_CARE_PLAN.md`), chiesto dal founder ("ok vai col
 blocco 2") e diviso in due rilasci: 2a (questo) e 2b (visita extra, piante morte, cambio di
@@ -2296,8 +2296,43 @@ di Clientes; una visita extra si fissa in un orario di visita oppure a un'ora li
 - **PROPOSTO (si cambia facilmente):** il resoconto va all'email del cliente del CRM (più
   destinatari col blocco 5); anche "No se pudo" avvisa il cliente, con la casella attiva; di chi è
   venuto si mostra il nome; 20 foto per visita.
-- **Non fatto:** modo offline vero (le foto si possono caricare dopo dalla galleria); riaprire una
-  visita chiusa; 2b (visita extra, piante morte, cambio di stagione); cargos (blocco 3).
+- **Non fatto (2a):** modo offline vero (le foto si possono caricare dopo dalla galleria); riaprire
+  una visita chiusa; cargos (blocco 3).
+
+**Blocco 2b (24/11/2026): visite extra, piante morte, cambio di stagione.**
+
+- **Visita extra** (`care-extras.ts`, chi gestisce): lavoro extra, reposición, installazione o
+  ritiro di stagione.
+  - In un orario di visita conta i posti del contratto; a un'ora libera (DECISO dal founder) non li
+    tocca e i clienti non la potranno scegliere dal loro portale (blocco 5).
+  - Il costo lo calcola il server: la tariffa per visita firmata nel contratto con il suo
+    sovrapprezzo per distanza, "Sin costo", oppure "En la cotización" di una cotización del
+    contratto. Si salva con la visita per i cargos del blocco 3.
+  - È una visita nuova: non chiede "Sí, avisé al cliente"; spostarla o cancellarla sì. Solo una
+    visita extra va a un'ora libera; non ha la checklist dei servizi del contratto.
+- **Correzioni al blocco 1:** un nuovo calendario non tocca le visite extra, la fine del contratto
+  sì; una extra non conta come giorno già occupato dal contratto; l'Agenda raggruppa per ora le
+  visite senza fascia.
+- **Cotización dal contratto** (`Quote.subscriptionId`): "Cotizar" crea la bozza per il cliente del
+  contratto, con un titolo nella lingua del mercato ("Cambio de temporada · SUS-0003"), e apre
+  l'editor delle cotizaciones. Vuole anche il permesso delle cotizaciones: lo staff no (O-08).
+- **Piante morte:** l'avviso si risolve una volta sola. Una pianta morta: "Reposición sin costo"
+  (una visita extra a costo 0), "En la próxima visita", "Cotizar" o "No se repone"; gli altri
+  avvisi: "Atendido" o "Cotizar". La regola della fioreria sulle piante morte (incluse o con
+  cotización) mette in evidenza la scelta suggerita: è solo un suggerimento, la userà il blocco 3.
+  Lo stato resta `RESOLVED` con una colonna `resolution` che dice come (il piano proponeva un nuovo
+  stato: non serve); gli "Atendido" del 2a diventano `HANDLED`.
+- **Cambio di stagione:**
+  - piante con la casella "De temporada": fuori dal prezzo del contratto, la paga la cotización;
+  - alla fine della visita di ritiro si archiviano, con una casella attiva di default;
+  - niente si rinnova da solo. La scheda "Cambio de temporada" del contratto guida i tre passi
+    (cotización, piante, installazione e ritiro) e mostra le cotizaciones del contratto.
+- **Dati:** migrazione M3 con soli enum nuovi (`CareExtraKind`, `CareExtraFee`,
+  `CareFollowUpResolution`), le colonne e i vincoli: giorno senza fascia solo per una visita extra;
+  tipo e costo solo per le extra; "en la cotización" sempre con la sua cotización; la risoluzione
+  coerente con la cotización o la visita che l'hanno chiusa.
+- **Non fatto (2b):** il cliente che chiede una visita extra dal portale (blocco 5); i cargos delle
+  visite extra (blocco 3); il collegamento inverso dalla cotización al contratto nell'editor.
 
 ## 3. Proposte da approvare
 

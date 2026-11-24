@@ -10,6 +10,8 @@ import {
   changeCareSchedule,
   confirmCareContract,
   createCareContract,
+  createCareExtraVisit,
+  createCareQuote,
   discardCareContract,
   endCareContract,
   removeCarePlant,
@@ -218,6 +220,65 @@ export async function removeCarePlantAction(
     return {
       revalidate: routes.subscriptions.detail(subscriptionId),
       success: 'care.plants.removed',
+    };
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Visite extra e cotizaciones dal contratto (ADR-078, blocco 2b)
+// -----------------------------------------------------------------------------
+
+/**
+ * "Visita extra": in un orario il modulo manda una scelta "AAAA-MM-GG_idFascia" (qui si separa),
+ * a un'ora libera giorno, inizio e fine. Il servizio ricontrolla tutto e calcola il costo.
+ */
+export async function createCareExtraVisitAction(
+  slug: string,
+  subscriptionId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const input = formDataToObject(formData);
+    const placement = input.placement === 'TIME' ? 'TIME' : 'SLOT';
+    const option = typeof input.option === 'string' ? input.option : '';
+    const [date = '', slotId = ''] = option.split('_');
+    await createCareExtraVisit(
+      ctx,
+      subscriptionId,
+      placement === 'SLOT' ? { ...input, placement, date, slotId } : { ...input, placement },
+    );
+    return {
+      revalidate: [...careSections(routes), routes.agenda.followUps()],
+      success: 'care.extra.created',
+    };
+  });
+}
+
+/**
+ * "Cotizar" dal contratto (o da un avviso): la cotización nasce in bozza, legata al contratto, e
+ * si apre nell'editor. `purpose` e `followUpId` arrivano dal client: li ricontrolla il servizio.
+ */
+export async function createCareQuoteAction(
+  slug: string,
+  subscriptionId: string,
+  purpose: string,
+  followUpId: string | null,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const quote = await createCareQuote(ctx, subscriptionId, {
+      purpose,
+      followUpId: followUpId ?? '',
+    });
+    return {
+      revalidate: [
+        section(routes.subscriptions.list()),
+        section(routes.quotes.list()),
+        routes.agenda.followUps(),
+      ],
+      redirectTo: routes.quotes.detail(quote.id),
     };
   });
 }

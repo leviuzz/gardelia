@@ -995,7 +995,43 @@ Verifiche locali, dopo l'unione con staging (verifica in due passaggi, dati dell
 - controllo a 320 px delle pagine nuove (visita in tutti gli stati, ruta, avvisi, resoconto
   pubblico).
 
-Prossimo: il blocco 2b (visita extra, piante morte, cambio di stagione con cotización).
+**Floral Care, blocco 2b (fatto il 24/11, ADR-078):** il resto del blocco 2.
+
+- **Visita extra** dal contratto (chi gestisce): lavoro extra, reposición, installazione o ritiro di
+  stagione, in un orario di visita (conta i posti) o a un'ora libera (scelta del founder: niente
+  posti, i clienti non la scelgono). Costo dal server: tariffa per visita del contratto con il
+  viaggio, "Sin costo" o "En la cotización". Si sposta anche a un'ora libera; il nuovo calendario
+  la lascia, la fine del contratto la cancella; nell'Agenda ha l'etichetta "Extra".
+- **Piante morte e altri avvisi:** si risolvono una volta sola. Una pianta morta: "Reposición sin
+  costo" (apre il modulo della visita extra nel contratto), "En la próxima visita", "Cotizar", "No
+  se repone"; gli altri: "Atendido" o "Cotizar". La regola della fioreria mette in evidenza la
+  scelta suggerita.
+- **Cotización dal contratto:** "Cotizar" crea la bozza legata al contratto, con il titolo nella
+  lingua del mercato, e apre l'editor. Lo staff no.
+- **Cambio di stagione:** piante "De temporada" fuori dal prezzo; la scheda del contratto guida
+  cotización, piante, installazione e ritiro, e mostra le cotizaciones del contratto; alla fine del
+  ritiro le piante di temporada si archiviano (casella attiva).
+- I due dialoghi lunghi (visita extra, piante) ora scorrono dentro lo schermo. Lo stesso manca nel
+  dialogo condiviso: da sistemare per tutti (`components/ui/dialog.tsx`).
+
+Verifiche locali:
+
+- lint ✅ · format ✅ · typecheck ✅ · migrazioni = schema ✅ · build ✅;
+- test 1014/1014 ✅: 19 nuovi del 2b, 11 di dominio (moduli della visita extra e dello spostamento
+  a un'ora libera, costo per tipo, scelte e suggerimento degli avvisi, casella di temporada) e 8
+  d'integrazione (posti in un orario e no a un'ora libera, Agenda per ora, calendario nuovo e fine
+  del contratto, cotización del contratto e permessi, piante morte risolte una volta sola, piante di
+  temporada fuori dal prezzo e archiviate al ritiro, isolamento A↔B);
+- E2E 102 ✅: il nuovo "visite extra e cambio di stagione" (visita extra a un'ora libera nella
+  Agenda, pianta di temporada, cotización dal contratto con il titolo, ritiro "en la cotización").
+  Nel giro completo 101/102: il test del 2a non trovava posto per l'orario casuale (uno uguale
+  rimasto da un'esecuzione interrotta); l'aiutante ora salta gli orari esistenti e lo spec di
+  Floral Care passa due volte di fila;
+- controllo a 320 px di contratto, dialogo della visita extra, avvisi e Agenda (la riga di una
+  visita extra nel contratto sbordava di 6 px: corretta).
+
+Prossimo: il blocco 3 di `docs/FLORAL_CARE_PLAN.md` (cargos e pagamenti), con le regole del
+contratto copiate alla firma.
 
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
@@ -1011,8 +1047,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 3. Inventario: fatto (blocchi 1–4, ADR-060…063), con lo scarico (ADR-071) e gli apartados
    (ADR-072) dagli ordini.
 4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
-5. Abbonamenti dei clienti e Floral Care: blocco 1 (ADR-075) e 2a (ADR-078) fatti; 2b e
-   blocchi 3–7 in `docs/FLORAL_CARE_PLAN.md`.
+5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075) e 2 (ADR-078) fatti; blocchi 3–7 in
+   `docs/FLORAL_CARE_PLAN.md`.
 6. Report.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.
 8. Abbonamento a pagamento sui livelli Esencial e Profesional (D-23; Stripe in modalità di prova) e

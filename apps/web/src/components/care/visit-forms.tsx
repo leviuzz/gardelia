@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { NativeSelect, Textarea } from '@/components/ui/input';
+import { Input, NativeSelect, Textarea } from '@/components/ui/input';
 import { fieldError, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 import { useToastActionState } from '@/lib/use-action-toast';
@@ -35,33 +35,114 @@ export interface MoveOptionView {
   readonly label: string;
 }
 
-/** Spostare la visita: una delle fasce con posto, con la casella dell'avviso. */
+/**
+ * Spostare la visita: una delle fasce con posto, con la casella dell'avviso. Una visita extra può
+ * andare anche a un'ora libera (`freeTime`: i giorni possibili), che non tocca i posti (ADR-078).
+ */
 export function VisitMoveForm({
   action,
   options,
+  freeTime = null,
 }: {
   readonly action: Action;
   readonly options: readonly MoveOptionView[];
+  readonly freeTime?: { readonly first: string; readonly last: string } | null;
 }) {
   const t = useTranslations('care.visit');
+  const te = useTranslations('care.extra');
   const [state, formAction] = useToastActionState(action);
+  const [placement, setPlacement] = useState<'SLOT' | 'TIME'>(
+    options.length > 0 || !freeTime ? 'SLOT' : 'TIME',
+  );
   const optionError =
     fieldError(state, 'date') ?? fieldError(state, 'slotId') ?? fieldError(state, 'option');
-  if (options.length === 0) {
+  if (options.length === 0 && !freeTime) {
     return <p className="text-sm text-muted-foreground">{t('noOptions')}</p>;
   }
   return (
     <form action={formAction} onSubmit={preserveOnSubmit(formAction)} className="grid gap-4">
-      <Field id="move-option" label={t('moveTo')} error={optionError} required>
-        <NativeSelect {...controlProps('move-option', optionError)} name="option" required>
-          <option value="">{t('chooseOption')}</option>
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </NativeSelect>
-      </Field>
+      {freeTime ? (
+        <fieldset className="grid gap-2">
+          <legend className="text-sm font-medium">{te('when')}</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className={choice}>
+              <input
+                type="radio"
+                name="placement"
+                value="SLOT"
+                checked={placement === 'SLOT'}
+                onChange={() => setPlacement('SLOT')}
+                disabled={options.length === 0}
+                className="mt-0.5 size-4 accent-primary"
+              />
+              <span>{te('inSlot')}</span>
+            </label>
+            <label className={choice}>
+              <input
+                type="radio"
+                name="placement"
+                value="TIME"
+                checked={placement === 'TIME'}
+                onChange={() => setPlacement('TIME')}
+                className="mt-0.5 size-4 accent-primary"
+              />
+              <span>{te('atTime')}</span>
+            </label>
+          </div>
+        </fieldset>
+      ) : null}
+      {placement === 'SLOT' ? (
+        <Field id="move-option" label={t('moveTo')} error={optionError} required>
+          <NativeSelect {...controlProps('move-option', optionError)} name="option" required>
+            <option value="">{t('chooseOption')}</option>
+            {options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
+      ) : freeTime ? (
+        <div className="grid gap-3">
+          <Field
+            id="move-date"
+            label={te('date')}
+            hint={te('atTimeHint')}
+            error={fieldError(state, 'date')}
+            required
+          >
+            <Input
+              {...controlProps('move-date', fieldError(state, 'date'), true)}
+              type="date"
+              name="date"
+              min={freeTime.first}
+              max={freeTime.last}
+              defaultValue={freeTime.first}
+              required
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field id="move-start" label={te('start')} error={fieldError(state, 'start')} required>
+              <Input
+                {...controlProps('move-start', fieldError(state, 'start'))}
+                type="time"
+                name="start"
+                step={300}
+                required
+              />
+            </Field>
+            <Field id="move-end" label={te('end')} error={fieldError(state, 'end')} required>
+              <Input
+                {...controlProps('move-end', fieldError(state, 'end'))}
+                type="time"
+                name="end"
+                step={300}
+                required
+              />
+            </Field>
+          </div>
+        </div>
+      ) : null}
       <CustomerNoticeCheckbox id="move-notice" error={fieldError(state, 'customerNotified')} />
       <div>
         <SubmitButton className="w-full sm:w-auto">{t('moveSubmit')}</SubmitButton>
