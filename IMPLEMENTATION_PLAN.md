@@ -957,9 +957,45 @@ Verifiche locali:
   visita nell'Agenda, spostamento con la casella; il banco vede ma non cambia); controllo a 320 px
   di tutte le pagine nuove (Ajustes → Floral Care sbordava di 3 px: corretto).
 
-**Da decidere col founder:** su mobile "Agenda" e "Floral Care" stanno in "Más" (la barra in
-basso ha cinque voci, ADR-054): l'Agenda può prendere il posto di un'altra voce. Prossimo: il
-blocco 2 di `docs/FLORAL_CARE_PLAN.md` (la visita dal telefono con checklist e foto).
+**Floral Care, blocco 2a (fatto il 24/11, ADR-078):** "ok vai col blocco 2" del founder, diviso in
+due rilasci. Il founder ha deciso l'Agenda nella barra in basso al posto di Clientes e la visita
+extra in un orario o a un'ora libera (per il 2b). Il 2a:
+
+- **La visita dal telefono** (anche lo staff): "Empezar visita", poi servizi della checklist
+  ("Hecho" / "No se hizo"), stato di ogni pianta con "Todas bien", foto una alla volta dalla
+  fotocamera o dalla galleria (al massimo 20, un nuovo tentativo non crea doppioni), materiali che
+  escono dall'inventario solo a "Terminar", nota per il cliente, avvisi per chi gestisce. "Terminar"
+  chiede lo stato di ogni pianta e la conferma se manca giacenza; "No se pudo" con la nota.
+- **Resoconto:** nella pagina della visita, per email al cliente (tabella d'uscita, "Reintentar" e
+  nuovi tentativi della manutenzione; mai dalla fioreria demo) e con il link `/visita/<token>`
+  (60 giorni, stampabile, con il logo), senza prezzi né materiali.
+- **Avvisi del equipo:** reposición (anche automatica per una pianta morta), extra, altro; chi
+  gestisce li segna "Atendido". L'Agenda li conta.
+- **Foto cancellate** 30 giorni dopo la fine del contratto (la manutenzione, prima i file poi la
+  riga; errore nel log dopo 7 giorni di ritardo), subito se tolte; anche con l'eliminazione di una
+  fioreria.
+- **Ruta del día con le visite:** scheda "Ruta" dell'Agenda con consegne e visite in un solo giro,
+  per fascia e vicinanza (la stessa regola, ora nel dominio, ordina la ruta dei Pedidos).
+- **Barra in basso:** Inicio, Pedidos, Cotizaciones, Agenda, Más (Clientes in "Más").
+- **Cronologia del cliente:** le visite hechas e no realizadas.
+
+Verifiche locali, dopo l'unione con staging (verifica in due passaggi, dati della fioreria):
+
+- lint ✅ · format ✅ · typecheck ✅ · migrazioni = schema ✅ · build ✅;
+- test 995/995 ✅: 38 nuovi del 2a, 16 di dominio (checklist, conteggio delle piante, data di
+  cancellazione delle foto anche a cavallo di mese e anno, `careEmailsAllowed`, ordine della ruta,
+  schemi) e 22 d'integrazione (avvio e passi, foto con doppioni e limite, due "Terminar" insieme =
+  un registro d'inventario e un'email, email fallita e nuovi tentativi, link pubblico, permessi,
+  isolamento A↔B, cancellazione delle foto con storage che fallisce, eliminazione di una fioreria);
+- E2E 101/101 ✅, con il nuovo "la visita dal telefono" (staff su un telefono 360×740: Empezar,
+  servizi, Todas bien e un Problema, foto, nota, Terminar; il link pubblico senza sessione con la
+  foto; la proprietaria vede l'avviso e la visita nella Ruta). In locale il test dei 14 giorni
+  della verifica in due passaggi vuole `DATABASE_URL` nell'ambiente, come in CI: da solo con la
+  variabile è verde;
+- controllo a 320 px delle pagine nuove (visita in tutti gli stati, ruta, avvisi, resoconto
+  pubblico).
+
+Prossimo: il blocco 2b (visita extra, piante morte, cambio di stagione con cotización).
 
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
@@ -975,8 +1011,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 3. Inventario: fatto (blocchi 1–4, ADR-060…063), con lo scarico (ADR-071) e gli apartados
    (ADR-072) dagli ordini.
 4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
-5. Abbonamenti dei clienti e Floral Care: blocco 1 fatto (ADR-075); blocchi 2–7 in
-   `docs/FLORAL_CARE_PLAN.md`.
+5. Abbonamenti dei clienti e Floral Care: blocco 1 (ADR-075) e 2a (ADR-078) fatti; 2b e
+   blocchi 3–7 in `docs/FLORAL_CARE_PLAN.md`.
 6. Report.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.
 8. Abbonamento a pagamento sui livelli Esencial e Profesional (D-23; Stripe in modalità di prova) e

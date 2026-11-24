@@ -64,8 +64,9 @@ La logica di business sta in `domain`/`core`, **mai** nelle pagine o nelle serve
 - **Audit:** modifiche critiche → `recordAudit(tx, ctx, …)` nella stessa transazione, con diff (`diffFields`). Niente PII o dati fiscali in chiaro nei metadati.
 - **Log:** `logger` di `@floral/core` (pino, JSON). Logga ID, non email; nessun token/password.
 - **Archiviazione:** nessuna cancellazione fisica di dati commerciali; si usa `status: ARCHIVED`.
-  Unica eccezione voluta dal founder: un disegno del Diseñador mai usato in un preventivo si può
-  eliminare con le sue foto (ADR-051).
+  Eccezioni volute dal founder: un disegno del Diseñador mai usato in un preventivo si può
+  eliminare con le sue foto (ADR-051); le foto delle visite di Floral Care si cancellano 30 giorni
+  dopo la fine del contratto, e subito se tolte, mentre testi e stati della visita restano (ADR-078).
 - **Migrazioni:** `pnpm db:migrate` (crea + applica); vincoli CHECK, policy e indici parziali vanno nel SQL della migrazione (Prisma li ignora nel diff). Non modificare migrazioni già applicate in ambienti condivisi.
 
 ## 6. Comandi
