@@ -21,6 +21,7 @@ import { ArchiveControl } from '@/components/archive-control';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { kickAiDrainWhileWaiting } from '@/lib/ai-kick';
+import { aiCreditsWhatsappLink } from '@/lib/platform-contact';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
@@ -151,6 +152,9 @@ export default async function DesignPage({
             : null,
           designName: design.name,
           productName: BRAND.productName,
+          creditsLink: aiCreditsWhatsappLink(
+            t('plans.creditsWhatsappText', { shop: ctx.tenantName }),
+          ),
           requestAction: requestPreviewAction.bind(null, ctx.tenantSlug, design.id),
           anotherAction: requestAnotherPreviewAction.bind(null, ctx.tenantSlug, design.id),
         }

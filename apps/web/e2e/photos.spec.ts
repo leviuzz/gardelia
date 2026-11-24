@@ -154,14 +154,14 @@ test.describe('Mis ramos', () => {
   });
 });
 
-test.describe('Mis ramos (fioreria Basic)', () => {
+test.describe('Mis ramos (fioreria senza abbonamento)', () => {
   test.use({ storageState: 'e2e/.auth/other-owner.json' });
 
-  test('senza Plus si vede l’invito all’upgrade', async ({ page }) => {
+  test('fase di prova (D-29): Mis ramos si usa anche senza abbonamento', async ({ page }) => {
     await page.goto('/app/flores-del-valle/builder/references');
+    await expect(page.getByRole('button', { name: 'Subir fotos' })).toBeVisible();
     await expect(
       page.getByRole('heading', { name: 'El diseñador de ramos está incluido en Gardelia Plus' }),
-    ).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Subir fotos' })).toHaveCount(0);
+    ).toHaveCount(0);
   });
 });

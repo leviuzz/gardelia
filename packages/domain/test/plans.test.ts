@@ -5,6 +5,8 @@ import {
   isSubscriptionStatus,
   parseEntitlements,
   subscriptionGrantsAccess,
+  PLAN_FEATURES_ENFORCED,
+  effectiveEntitlements,
 } from '../src/plans';
 
 describe('entitlements dei piani', () => {
@@ -65,5 +67,25 @@ describe('stato dell’abbonamento', () => {
     expect(isPlanCode('plus')).toBe(false);
     expect(isSubscriptionStatus('PILOT')).toBe(true);
     expect(isSubscriptionStatus('PAST_DUE')).toBe(false);
+  });
+});
+
+describe('fase di prova (D-29)', () => {
+  const basic = { bouquetBuilder: false, inventory: false, aiPreviewsPerMonth: 0 };
+
+  it('con i piani spenti ogni fioreria ha tutte le funzioni, non immagini in più', () => {
+    expect(PLAN_FEATURES_ENFORCED).toBe(false);
+    expect(effectiveEntitlements(basic)).toEqual({
+      bouquetBuilder: true,
+      inventory: true,
+      aiPreviewsPerMonth: 0,
+    });
+    expect(effectiveEntitlements({ ...basic, aiPreviewsPerMonth: 25 })).toMatchObject({
+      aiPreviewsPerMonth: 25,
+    });
+  });
+
+  it('con i piani accesi conta solo il piano', () => {
+    expect(effectiveEntitlements(basic, true)).toEqual(basic);
   });
 });

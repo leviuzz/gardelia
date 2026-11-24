@@ -55,6 +55,9 @@ negozio e un "Base" debole.
 
 - **AI:** ~0,11 USD (~2 MXN) per anteprima esatta riuscita (0,09 al primo tentativo, 0,18 con il
   secondo; ADR-034). Lo scontorno delle foto costa 0,002 USD (ADR-033), trascurabile.
+  **Dato del founder (24/11/2026):** in fattura un'immagine gli costa circa **0,25 €**, più del
+  doppio della stima (contano anche tentativi e controlli): va riconciliato con la prova da ~100
+  immagini. Nella fase di prova (D-29) le anteprime si vendono a parte, con crediti.
 - **Stripe Italia**, finché fattura una partita IVA italiana (O-02): 3,15% + 0,25 € per carta
   internazionale, 2% di cambio, ~0,7% per gli abbonamenti (non confermato). In tutto circa il 6,8%
   dell'importo con IVA più 0,25 € a fattura.

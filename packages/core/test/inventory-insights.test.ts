@@ -11,7 +11,6 @@ import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
-  PlanRequiredError,
   addRecipeLine,
   createCatalogItem,
   createReservation,
@@ -267,17 +266,18 @@ describe('avvisi e riepilogo del mese', () => {
 });
 
 describe('piano, ruoli e isolamento', () => {
-  it('senza il piano: nessun riquadro, nessun registro', async () => {
+  it('fase di prova (D-29): anche senza abbonamento ci sono avvisi e ramos', async () => {
     const basic = await createTestShop('Florería Basic Ramos');
     const bouquet = await createCatalogItem(
       basic.owner,
       itemInput({ name: 'Ramo', type: 'BOUQUET', saleUnit: 'PIECE', variety: null }),
     );
-    expect(await getInventoryAlerts(basic.owner)).toBeNull();
+    expect(await getInventoryAlerts(basic.owner)).toMatchObject({ out: 0, low: 0 });
+    // Senza ricetta il ramo non ha riquadro e non si registra (ADR-063): non dipende dal piano.
     expect(await getBouquetInventory(basic.owner, bouquet.id)).toBeNull();
-    await expect(
-      recordBouquetsMade(basic.owner, bouquet.id, { count: '1' }),
-    ).rejects.toBeInstanceOf(PlanRequiredError);
+    await expect(recordBouquetsMade(basic.owner, bouquet.id, { count: '1' })).rejects.toMatchObject(
+      { reason: 'inventory_bouquet_without_recipe' },
+    );
   });
 
   it('lo staff non registra ramos; un’altra fioreria non vede né usa il ramo: 404', async () => {

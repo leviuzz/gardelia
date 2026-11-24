@@ -4,7 +4,6 @@ import { createTestUser, type TestUser } from '@floral/db/testing';
 import {
   ForbiddenError,
   NotFoundError,
-  PlanRequiredError,
   ValidationError,
   getEntitlements,
   getTenantPlan,
@@ -43,14 +42,17 @@ afterAll(async () => {
 });
 
 describe('piano predefinito', () => {
-  it('senza abbonamento la fioreria è BASIC e non ha il Builder', async () => {
+  it('fase di prova (D-29): senza abbonamento è BASIC ma ha tutte le funzioni, nessuna immagine', async () => {
     const shop = await createTestShop();
     const plan = await getTenantPlan(shop.owner);
-    expect(plan).toMatchObject({ planCode: 'BASIC', subscription: null });
-    expect(plan.entitlements.bouquetBuilder).toBe(false);
-    await expect(requireEntitlement(shop.owner, 'bouquetBuilder')).rejects.toBeInstanceOf(
-      PlanRequiredError,
-    );
+    expect(plan).toMatchObject({
+      planCode: 'BASIC',
+      subscription: null,
+      allFeaturesIncluded: true,
+      entitlements: { bouquetBuilder: true, inventory: true, aiPreviewsPerMonth: 0 },
+    });
+    await expect(requireEntitlement(shop.owner, 'bouquetBuilder')).resolves.toBeUndefined();
+    await expect(requireEntitlement(shop.owner, 'inventory')).resolves.toBeUndefined();
   });
 
   it('il piano è visibile a proprietario e manager, non allo staff', async () => {
@@ -58,7 +60,10 @@ describe('piano predefinito', () => {
     await expect(getTenantPlan(shop.manager)).resolves.toMatchObject({ planCode: 'BASIC' });
     await expect(getTenantPlan(shop.staff)).rejects.toBeInstanceOf(ForbiddenError);
     // Gli entitlements servono a tutti i ruoli per mostrare cosa è disponibile.
-    await expect(getEntitlements(shop.staff)).resolves.toMatchObject({ bouquetBuilder: false });
+    await expect(getEntitlements(shop.staff)).resolves.toMatchObject({
+      bouquetBuilder: true,
+      inventory: true,
+    });
   });
 });
 
@@ -86,7 +91,7 @@ describe('assegnazione dalla piattaforma (pilota)', () => {
     expect((await getTenantPlan(shop.owner)).planCode).toBe('BASIC');
   });
 
-  it('PLUS in pilota abilita il Builder, con audit nel tenant e senza effetti sugli altri', async () => {
+  it('PLUS in pilota dà le immagini incluse, con audit nel tenant e senza effetti sugli altri', async () => {
     const shop = await createTestShop();
     const other = await createTestShop();
     const result = await assign(shop, { note: 'Piloto Aguascalientes' });
@@ -95,6 +100,7 @@ describe('assegnazione dalla piattaforma (pilota)', () => {
     const plan = await getTenantPlan(shop.owner);
     expect(plan).toMatchObject({
       planCode: 'PLUS',
+      entitlements: { aiPreviewsPerMonth: 25 },
       subscription: { planCode: 'PLUS', status: 'PILOT', source: 'MANUAL', grantsAccess: true },
     });
     await expect(requireEntitlement(shop.manager, 'bouquetBuilder')).resolves.toBeUndefined();
@@ -111,10 +117,11 @@ describe('assegnazione dalla piattaforma (pilota)', () => {
       via: 'platform-cli',
     });
 
-    expect((await getTenantPlan(other.owner)).planCode).toBe('BASIC');
-    await expect(requireEntitlement(other.owner, 'bouquetBuilder')).rejects.toBeInstanceOf(
-      PlanRequiredError,
-    );
+    // L'altra fioreria resta senza immagini incluse (le funzioni le ha tutte: fase di prova).
+    expect(await getTenantPlan(other.owner)).toMatchObject({
+      planCode: 'BASIC',
+      entitlements: { aiPreviewsPerMonth: 0 },
+    });
   });
 
   it('cancellazione o periodo scaduto riportano al piano predefinito', async () => {
@@ -141,9 +148,8 @@ describe('assegnazione dalla piattaforma (pilota)', () => {
     const expired = await getTenantPlan(shop.owner);
     expect(expired.planCode).toBe('BASIC');
     expect(expired.subscription).toMatchObject({ status: 'ACTIVE', grantsAccess: false });
-    await expect(requireEntitlement(shop.owner, 'bouquetBuilder')).rejects.toBeInstanceOf(
-      PlanRequiredError,
-    );
+    // Si perdono le immagini incluse; le funzioni restano (fase di prova, D-29).
+    expect(expired.entitlements).toMatchObject({ aiPreviewsPerMonth: 0, bouquetBuilder: true });
   });
 
   it('valida piano, stato, scadenza, nota e fioreria', async () => {

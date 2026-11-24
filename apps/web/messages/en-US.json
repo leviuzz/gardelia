@@ -93,7 +93,7 @@
       "builder_configuration_in_use": "This design is in a quote or an order: it can’t be deleted, only archived.",
       "ai_preview_in_progress": "A photo of this design is being generated: wait for it to finish and try again.",
       "ai_unavailable": "AI previews aren’t available right now.",
-      "ai_quota_exhausted": "You don’t have any previews left this month.",
+      "ai_quota_exhausted": "You don’t have any previews left: buy more credits.",
       "ai_budget_reached": "Previews aren’t available right now. Try again later.",
       "cutout_unavailable": "We can’t remove the background right now. Try again later.",
       "cutout_retry_limit": "The background removal service failed several times on this photo: the problem is on our side, not the photo. Try again later by uploading it again.",
@@ -1849,13 +1849,24 @@
     "featureStates": {
       "included": "Included",
       "upgrade": "Available in Plus",
-      "soon": "Coming soon"
+      "soon": "Coming soon",
+      "credits": "With credits"
     },
     "pilotNote": "During the pilot, the {product} team assigns each shop’s plan. Online billing isn’t available yet: no payments are made from here.",
     "settingsLink": "Plan and features",
     "settingsLinkBody": "See your plan and which features it includes.",
     "aiUsage": "AI previews this month: {used} of {limit}",
-    "aiExtra": "{count, plural, one {# extra preview available} other {# extra previews available}} (no expiration)"
+    "aiExtra": "{count, plural, one {# extra preview available} other {# extra previews available}} (no expiration)",
+    "tester": {
+      "label": "Trial phase",
+      "title": "Everything included",
+      "body": "During the trial you have every {product} feature. Only AI previews are paid separately, with credits that don’t expire.",
+      "aiBody": "Realistic images of the bouquet to share with your customer: each preview uses 1 credit."
+    },
+    "credits": "{count, plural, =0 {You have no credits for AI previews.} one {You have # credit left for AI previews.} other {You have # credits left for AI previews.}}",
+    "creditsWhatsapp": "Buy credits on WhatsApp",
+    "creditsWhatsappText": "Hi, I would like to buy credits for the AI previews of {shop}.",
+    "creditsNoContact": "To buy credits, write to the {product} team."
   },
   "builder": {
     "title": "Bouquet designer",
@@ -2048,7 +2059,10 @@
       "anotherBody": "A new photo of the same bouquet is created and 1 credit is used ({remaining} left). Quotes that already have this image keep it.",
       "anotherConfirm": "Generate, uses 1 credit",
       "anotherRequested": "Generating another version…",
-      "anotherFailed": "Another version couldn’t be generated: the previous one stays and no credit was used."
+      "anotherFailed": "Another version couldn’t be generated: the previous one stays and no credit was used.",
+      "credits": "{count, plural, one {# credit left} other {# credits left}}",
+      "creditsEmpty": "You have no credits to generate previews.",
+      "creditsWhatsapp": "Buy credits on WhatsApp"
     },
     "photo": {
       "choose": "How do you want the bouquet photo?",

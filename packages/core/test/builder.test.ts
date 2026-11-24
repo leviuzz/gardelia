@@ -5,7 +5,6 @@ import { createTestUser } from '@floral/db/testing';
 import {
   ForbiddenError,
   NotFoundError,
-  PlanRequiredError,
   MemoryStorage,
   ValidationError,
   addCatalogItemPhoto,
@@ -144,18 +143,19 @@ afterAll(async () => {
 });
 
 describe('piano (BILL-01)', () => {
-  it('una fioreria Basic non usa il Builder', async () => {
+  it('fase di prova (D-29): anche senza abbonamento il Builder si usa', async () => {
     const basic = await createTestShop();
-    await expect(getBuilderCatalog(basic.owner)).rejects.toBeInstanceOf(PlanRequiredError);
+    const flower = await createCatalogItem(basic.owner, itemInput({ name: 'Rosa de prueba' }));
+    await expect(getBuilderCatalog(basic.owner)).resolves.toMatchObject({
+      options: [expect.objectContaining({ id: flower.id })],
+    });
     await expect(
-      saveBouquetConfiguration(basic.owner, design([{ catalogItemId: rose.id, quantity: 3 }])),
-    ).rejects.toBeInstanceOf(PlanRequiredError);
-    await expect(updateBuilderSettings(basic.owner, { laborFee: '10' })).rejects.toBeInstanceOf(
-      PlanRequiredError,
-    );
+      saveBouquetConfiguration(basic.owner, design([{ catalogItemId: flower.id, quantity: 3 }])),
+    ).resolves.toMatchObject({ id: expect.any(String) });
+    await expect(updateBuilderSettings(basic.owner, { laborFee: '10' })).resolves.toBeUndefined();
   });
 
-  it('se il piano decade i disegni restano ma il Builder si blocca', async () => {
+  it('se il piano decade i disegni restano e il Builder resta (fase di prova)', async () => {
     const local = await withPlus(await createTestShop());
     const flower = await createCatalogItem(local.owner, itemInput({ name: 'Girasol' }));
     const { id } = await saveBouquetConfiguration(
@@ -168,9 +168,7 @@ describe('piano (BILL-01)', () => {
       planCode: 'PLUS',
       status: 'CANCELLED',
     });
-    await expect(getBouquetConfiguration(local.owner, id)).rejects.toBeInstanceOf(
-      PlanRequiredError,
-    );
+    await expect(getBouquetConfiguration(local.owner, id)).resolves.toMatchObject({ id });
   });
 });
 

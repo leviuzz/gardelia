@@ -160,6 +160,7 @@ ricomponi `DATABASE_URL`.
    | `CRON_SECRET`                                                            | segreto generato (sezione 6), diverso dagli altri            |
    | `ENABLE_EXPERIMENTAL_COREPACK`                                           | `1` (la build usa la stessa versione di pnpm del repository) |
    | `GOOGLE_MAPS_API_KEY`                                                    | facoltativa, sezione 9 (si può aggiungere anche dopo)        |
+   | `PLATFORM_WHATSAPP`                                                      | facoltativa: il tuo WhatsApp col prefisso, es. `+39 3…`      |
 
    Elenco completo e regole: `docs/CONFIGURATION.md`.
 

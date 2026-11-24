@@ -8,11 +8,15 @@
  *    avviene solo dalla piattaforma (`@floral/core/platform`).
  *  - `requireEntitlement` va chiamato nei servizi delle funzioni a pagamento, DOPO
  *    `requirePermission`: il ruolo decide chi può, il piano decide se la fioreria ce l'ha.
+ *  - Fase di prova (D-29): i piani non limitano le funzioni (`PLAN_FEATURES_ENFORCED`), le
+ *    chiamate restano per quando tornano i livelli; le immagini AI incluse restano del piano.
  */
 import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
 import {
   DEFAULT_PLAN_CODE,
   NO_ENTITLEMENTS,
+  PLAN_FEATURES_ENFORCED,
+  effectiveEntitlements,
   parseEntitlements,
   subscriptionGrantsAccess,
   type FeatureEntitlement,
@@ -38,6 +42,8 @@ export interface TenantPlanDto {
   /** Piano effettivamente applicato adesso. */
   readonly planCode: PlanCode;
   readonly entitlements: PlanEntitlements;
+  /** Fase di prova (D-29): tutte le funzioni incluse, qualunque sia il piano. */
+  readonly allFeaturesIncluded: boolean;
   /** Abbonamento registrato (anche se non più valido); null se mai assegnato. */
   readonly subscription: TenantSubscriptionDto | null;
 }
@@ -66,7 +72,8 @@ async function resolvePlan(
   if (subscription && grantsAccess) {
     return {
       planCode: subscription.plan.code,
-      entitlements: parseEntitlements(subscription.plan.entitlements),
+      entitlements: effectiveEntitlements(parseEntitlements(subscription.plan.entitlements)),
+      allFeaturesIncluded: !PLAN_FEATURES_ENFORCED,
       subscription: subscriptionDto,
     };
   }
@@ -76,7 +83,10 @@ async function resolvePlan(
   });
   return {
     planCode: DEFAULT_PLAN_CODE,
-    entitlements: fallback ? parseEntitlements(fallback.entitlements) : NO_ENTITLEMENTS,
+    entitlements: effectiveEntitlements(
+      fallback ? parseEntitlements(fallback.entitlements) : NO_ENTITLEMENTS,
+    ),
+    allFeaturesIncluded: !PLAN_FEATURES_ENFORCED,
     subscription: subscriptionDto,
   };
 }

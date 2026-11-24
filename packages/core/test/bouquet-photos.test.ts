@@ -7,7 +7,6 @@ import {
   ForbiddenError,
   MemoryStorage,
   NotFoundError,
-  PlanRequiredError,
   ValidationError,
   addBouquetPhoto,
   changeQuoteStatus,
@@ -226,7 +225,7 @@ describe('foto vera del ramo', () => {
     expect(await listStyleReferences(kit.shop.owner)).toHaveLength(1);
   });
 
-  it('disegno archiviato, immagine non valida, piano Basic e altra fioreria: rifiutati', async () => {
+  it('disegno archiviato, immagine non valida e altre fiorerie: rifiutati', async () => {
     const kit = await createKit('Florería Foto A');
     const other = await createKit('Florería Foto B');
     const design = await saveDesign(kit);
@@ -253,10 +252,11 @@ describe('foto vera del ramo', () => {
       addBouquetPhoto(kit.shop.owner, design.id, await photoBytes('#999999'), {}),
     ).rejects.toMatchObject({ reason: 'builder_configuration_archived' });
 
+    // Fase di prova (D-29): anche senza abbonamento non si arriva al disegno di un'altra fioreria.
     const basic = await createTestShop('Florería Foto Basic');
     await expect(
       addBouquetPhoto(basic.owner, design.id, await photoBytes('#999999'), {}),
-    ).rejects.toBeInstanceOf(PlanRequiredError);
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it('el pedido nacido de la cotización conserva la foto verdadera (ADR-054)', async () => {

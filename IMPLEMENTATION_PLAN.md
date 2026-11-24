@@ -752,6 +752,23 @@ intestazioni del modello nelle tre lingue) · build ✅ · E2E 84/84 ✅ (1 nuov
 aggiornato quello dei lavori giornalieri per il nuovo conto); controllo a 320 px.
 Resta per CRM-01: abbonamenti e interventi nella cronologia (con SUB-01 e CARE-01).
 
+**Fase di prova senza piani (fatto il 24/11, D-29):** su decisione del founder, finché la usano poche
+fiorerie tester ogni fioreria ha tutte le funzioni: un solo interruttore nel dominio
+(`PLAN_FEATURES_ENFORCED = false`) accende Diseñador, inventario e il resto per tutti; il codice dei
+piani resta, spento, per i livelli di D-23. Le anteprime con IA si pagano sempre: quelle incluse
+restano del piano assegnato (nessuna in quello predefinito), il resto con i crediti che la
+piattaforma assegna dopo il pagamento (GitHub → Actions → "Operazioni di piattaforma" →
+`grant-ai-credits`, con l'indirizzo della fioreria e il numero di anteprime). La
+pagina del piano dice "Todo incluido" con i crediti rimasti; quando i crediti finiscono, il
+Diseñador e la pagina del piano mostrano "Comprar créditos por WhatsApp" verso il numero in
+`PLATFORM_WHATSAPP` (variabile dell'hosting, mai nel repo). Verifiche locali: lint ✅ · format ✅ ·
+typecheck ✅ · test 844/844 ✅ (5 nuovi: 2 di dominio, 3 sulla configurazione; 13 d'integrazione
+riscritti da "senza Plus è bloccato" a "senza abbonamento funziona", isolamento fra fiorerie
+invariato) · build ✅ · E2E 88/88 ✅ (4 aggiornati: piano, Diseñador, inventario e Mis ramos senza
+abbonamento); controllo a 320 px. In locale i test degli ordini scadevano perché i clienti creati
+dai test precedenti spingono "Hotel Casa Fuentes" fuori dalla prima pagina: archiviati, ripassano
+(in CI il database è nuovo a ogni giro).
+
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
 1. Resto della fase 0: **ambiente online di prova** (configurazione pronta, ADR-038: appena ci

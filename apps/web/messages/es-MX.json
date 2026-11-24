@@ -93,7 +93,7 @@
       "builder_configuration_in_use": "Este diseño está en una cotización o un pedido: no se puede eliminar, solo archivar.",
       "ai_preview_in_progress": "Se está generando una foto de este diseño: espera a que termine y vuelve a intentarlo.",
       "ai_unavailable": "Las vistas previas con IA no están disponibles por ahora.",
-      "ai_quota_exhausted": "Ya no tienes vistas previas disponibles este mes.",
+      "ai_quota_exhausted": "No te quedan vistas previas disponibles: compra más créditos.",
       "ai_budget_reached": "Las vistas previas no están disponibles por ahora. Inténtalo más tarde.",
       "cutout_unavailable": "Por ahora no podemos quitar el fondo. Inténtalo más tarde.",
       "cutout_retry_limit": "El servicio para quitar el fondo falló varias veces con esta foto: el problema es nuestro, no de la foto. Inténtalo más tarde subiéndola de nuevo.",
@@ -1849,13 +1849,24 @@
     "featureStates": {
       "included": "Incluido",
       "upgrade": "Disponible en Plus",
-      "soon": "Próximamente"
+      "soon": "Próximamente",
+      "credits": "Con créditos"
     },
     "pilotNote": "Durante el piloto, el equipo de {product} asigna el plan de cada florería. El cobro en línea todavía no está disponible: desde aquí no se realiza ningún pago.",
     "settingsLink": "Plan y funciones",
     "settingsLinkBody": "Consulta tu plan y qué funciones incluye.",
     "aiUsage": "Vistas previas con IA este mes: {used} de {limit}",
-    "aiExtra": "{count, plural, one {# vista previa extra disponible} other {# vistas previas extra disponibles}} (no caducan)"
+    "aiExtra": "{count, plural, one {# vista previa extra disponible} other {# vistas previas extra disponibles}} (no caducan)",
+    "tester": {
+      "label": "Fase de prueba",
+      "title": "Todo incluido",
+      "body": "Mientras dura la prueba tienes todas las funciones de {product}. Solo las vistas previas con IA se pagan aparte, con créditos que no caducan.",
+      "aiBody": "Imágenes realistas del ramo para compartir con tu cliente: cada vista previa usa 1 crédito."
+    },
+    "credits": "{count, plural, =0 {No tienes créditos para vistas previas con IA.} one {Te queda # crédito para vistas previas con IA.} other {Te quedan # créditos para vistas previas con IA.}}",
+    "creditsWhatsapp": "Comprar créditos por WhatsApp",
+    "creditsWhatsappText": "Hola, quiero comprar créditos para las vistas previas con IA de {shop}.",
+    "creditsNoContact": "Para comprar créditos, escribe al equipo de {product}."
   },
   "builder": {
     "title": "Diseñador de ramos",
@@ -2048,7 +2059,10 @@
       "anotherBody": "Se crea una foto nueva del mismo ramo y se usa 1 crédito (te quedan {remaining}). Las cotizaciones que ya tienen esta imagen la conservan.",
       "anotherConfirm": "Generar, usa 1 crédito",
       "anotherRequested": "Generando otra versión…",
-      "anotherFailed": "No se pudo generar otra versión: sigue la anterior y no se descontó ningún crédito."
+      "anotherFailed": "No se pudo generar otra versión: sigue la anterior y no se descontó ningún crédito.",
+      "credits": "{count, plural, one {Te queda # crédito} other {Te quedan # créditos}}",
+      "creditsEmpty": "No tienes créditos para generar vistas previas.",
+      "creditsWhatsapp": "Comprar créditos por WhatsApp"
     },
     "photo": {
       "choose": "¿Cómo quieres la foto del ramo?",
