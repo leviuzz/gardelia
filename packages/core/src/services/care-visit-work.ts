@@ -640,7 +640,7 @@ export async function setCareVisitServiceResult(
         subscriptionId: visit.subscriptionId,
         serviceId: input.serviceId,
       },
-      select: { serviceId: true, name: true, pricing: true, unit: true },
+      select: { serviceId: true, name: true, pricing: true, unit: true, priceMinor: true },
     });
     if (!service) throw new ValidationError({ serviceId: 'invalid_option' });
     if (input.outcome === null) {
@@ -664,11 +664,18 @@ export async function setCareVisitServiceResult(
         name: service.name,
         pricing: service.pricing,
         unit: service.unit,
+        // Il prezzo del contratto adesso: un servizio "una sola vez" si cobra così (ADR-082).
+        priceMinor: service.priceMinor,
         outcome: input.outcome,
         note: input.note,
         recordedById: ctx.userId,
       },
-      update: { outcome: input.outcome, note: input.note, recordedById: ctx.userId },
+      update: {
+        outcome: input.outcome,
+        note: input.note,
+        priceMinor: service.priceMinor,
+        recordedById: ctx.userId,
+      },
     });
   });
 }
@@ -1123,6 +1130,8 @@ export async function markCareVisitNotDone(
       where: { id: visit.id, tenantId: ctx.tenantId },
       data: {
         status: 'NOT_DONE',
+        // Il cliente non ha aperto (si paga) o la fioreria non è potuta andare (credito, ADR-082).
+        notDoneCause: input.cause,
         startedAt: visit.startedAt ?? now,
         finishedAt: now,
         outcomeNote: input.note,
@@ -1141,6 +1150,7 @@ export async function markCareVisitNotDone(
       metadata: {
         number: formatSubscriptionNumber(visit.subscription.number),
         date: toIsoDate(date),
+        cause: input.cause,
         report: queued.emailId ? 'queued' : queued.outcome,
       },
     });

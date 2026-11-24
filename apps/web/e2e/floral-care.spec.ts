@@ -7,8 +7,10 @@ import { expect, test, type Page } from '@playwright/test';
  * Blocco 2 (ADR-078): lo staff fa la visita di oggi dal telefono (servizi, piante, foto, nota,
  * avviso) e la termina; il cliente apre il resoconto senza account; la proprietaria vede l'avviso
  * e la visita nella ruta. Blocco 2b: una visita extra a un'ora libera, una pianta di stagione, la
- * cotización del cambio legata al contratto e il ritiro "en la cotización". Alla fine il
- * contratto finisce e l'orario si archivia, così le esecuzioni non si sommano.
+ * cotización del cambio legata al contratto e il ritiro "en la cotización". Blocco 3a (ADR-082):
+ * il cargo del mese nasce alla conferma, si paga e si annulla; l'estado de cuenta paga due sedi
+ * con un solo pagamento. Alla fine il contratto finisce e l'orario si archivia, così le
+ * esecuzioni non si sommano.
  */
 const SHOP = '/app/las-camelias';
 
@@ -112,20 +114,10 @@ test.describe('Floral Care (propietaria)', () => {
   }) => {
     const stamp = Date.now();
     const tomorrow = tomorrowInShop();
-    const day = weekdayName(tomorrow);
-    // Un quarto d'ora a caso fra le 5:00 e le 18:45: gli orari delle esecuzioni passate non pesano.
-    const start = 300 + Math.floor(Math.random() * 56) * 15;
-    const slotLabel = `${day} · ${hhmm(start)}–${hhmm(start + 60)}`;
 
     await saveOffer(page);
-    const addSlot = page.locator('form').filter({ hasText: 'Nuevo horario' });
-    await addSlot.getByLabel('Día').selectOption({ label: day });
-    await addSlot.getByLabel('Desde').fill(hhmm(start));
-    await addSlot.getByLabel('Hasta').fill(hhmm(start + 60));
-    await addSlot.getByLabel('Visitas a la vez').fill('2');
-    await addSlot.getByRole('button', { name: 'Agregar horario' }).click();
-    await expect(page.getByText('Horario agregado')).toBeVisible();
-    await expect(page.getByText(slotLabel)).toBeVisible();
+    // Un orario nuovo, diverso da quelli (anche archiviati) delle esecuzioni passate.
+    const slotLabel = await addSlot(page, tomorrow);
 
     // Un cliente con la dirección del lugar con le piante.
     await page.goto(`${SHOP}/customers/new`);
@@ -413,6 +405,111 @@ test.describe('Floral Care: visite extra e cambio di stagione', () => {
   });
 });
 
+test.describe('Floral Care: cargos y pagos', () => {
+  test.use({ storageState: 'e2e/.auth/owner.json' });
+
+  test('il cargo nasce alla conferma, si paga e si annulla; l’estado de cuenta paga due sedi', async ({
+    page,
+  }) => {
+    const stamp = Date.now();
+    const today = dayInShop(0);
+    const customerName = `Corporativo Cobros ${stamp}`;
+    await saveOffer(page);
+    const slotLabel = await addSlot(page, today);
+    await newCustomerWithAddress(page, customerName);
+    const customerUrl = page.url().replace('?created=1', '');
+    await page.getByRole('button', { name: 'Agregar dirección' }).click();
+    await page.getByRole('textbox', { name: 'Calle y número' }).fill('Blvd. Norte 200');
+    await page.getByRole('textbox', { name: 'Código postal' }).fill('20000');
+    await page.getByRole('textbox', { name: 'Municipio o alcaldía' }).fill('Aguascalientes');
+    await page.getByRole('button', { name: 'Agregar dirección' }).click();
+    await expect(page.getByText('Dirección agregada')).toBeVisible();
+
+    // Due sedi dello stesso cliente, ognuna con il suo contratto settimanale da oggi.
+    const contracts: string[] = [];
+    for (const street of ['Av. Universidad 100', 'Blvd. Norte 200']) {
+      await page.goto(customerUrl);
+      await page.getByRole('link', { name: 'Nuevo contrato' }).click();
+      await page.getByRole('radio', { name: new RegExp(street) }).check();
+      await page.getByRole('radio', { name: /Cada semana/ }).check();
+      await page.getByRole('checkbox', { name: slotLabel }).check();
+      await page.getByRole('textbox', { name: 'Primer día' }).fill(today);
+      await page.getByRole('button', { name: 'Crear borrador' }).click();
+      await expect(page).toHaveURL(/\/subscriptions\/[0-9a-f-]{36}\?created=1$/);
+      contracts.push(page.url().replace('?created=1', ''));
+      await page.getByRole('button', { name: 'Agregar plantas' }).click();
+      const plants = page.getByRole('dialog');
+      await plants.getByLabel('Nombre').fill('Potos');
+      await plants.getByLabel('Cantidad').fill('2');
+      await plants.getByRole('radio', { name: 'Mediana' }).check();
+      await plants.getByRole('button', { name: 'Agregar plantas' }).click();
+      await expect(page.getByText('2 × Potos')).toBeVisible();
+      await page.getByRole('button', { name: 'Confirmar contrato' }).click();
+      await page
+        .getByRole('dialog')
+        .getByRole('button', { name: 'Confirmar', exact: true })
+        .click();
+      await expect(page.getByText(/Contrato confirmado: \d+ visitas agendadas\./)).toBeVisible();
+    }
+
+    // Alla conferma nasce il cargo del mese: le visite che restano × 450 + 2 × 20.
+    await expect(page.getByRole('heading', { name: 'Reglas del contrato' })).toBeVisible();
+    await page
+      .getByRole('link', { name: /CAR-\d+/ })
+      .first()
+      .click();
+    await expect(page.getByRole('heading', { level: 1, name: /^Cargo CAR-\d+$/ })).toBeVisible();
+    // Le righe ci sono due volte: sullo schermo e nel documento nascosto per la stampa.
+    await expect(
+      page.getByText(/^\d+ visitas? × \$490\.00$/).filter({ visible: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/^Precios finales, sin impuestos\./).filter({ visible: true }),
+    ).toBeVisible();
+
+    await page.getByRole('button', { name: 'Registrar pago' }).click();
+    const pay = page.getByRole('dialog');
+    await expect(pay.getByRole('heading', { name: 'Registrar pago' })).toBeVisible();
+    await pay.getByLabel('Forma de pago').selectOption('TRANSFER');
+    await pay.getByLabel('Referencia').fill('SPEI 123');
+    await pay.getByRole('button', { name: 'Registrar pago' }).click();
+    await expect(page.getByText('Pago registrado', { exact: true })).toBeVisible();
+    await expect(page.getByText('Pago · Transferencia')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Registrar pago' })).toHaveCount(0);
+
+    // "Anular": resta nello storico e il cargo torna da pagare.
+    await page.getByRole('button', { name: /^Anular el movimiento de/ }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Anular', exact: true }).click();
+    await expect(page.getByText('Movimiento anulado')).toBeVisible();
+    await expect(page.getByText('Anulación · Transferencia')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Registrar pago' })).toBeVisible();
+
+    // Estado de cuenta: un solo pagamento per le due sedi, ai cargos più vecchi.
+    await page.getByRole('link', { name: 'Estado de cuenta' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Estado de cuenta' })).toBeVisible();
+    await expect(page.getByRole('link', { name: /^CAR-\d+$/ })).toHaveCount(2);
+    await page.getByRole('button', { name: 'Registrar pago del cliente' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Registrar pago' }).click();
+    await expect(page.getByText('Pago registrado en 2 cargos')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Registrar pago del cliente' })).toHaveCount(0);
+
+    await page.goto(
+      `${SHOP}/subscriptions/charges?view=paid&q=${encodeURIComponent(customerName)}`,
+    );
+    await expect(page.getByRole('heading', { level: 1, name: 'Cobros' })).toBeVisible();
+    await expect(page.getByRole('link').filter({ hasText: customerName })).toHaveCount(2);
+
+    await page.goto(contracts[0]!);
+    await page.getByRole('button', { name: 'Terminar contrato' }).click();
+    const end = page.getByRole('dialog');
+    await end.getByLabel('Último día de servicio').fill(today);
+    await end.getByRole('checkbox', { name: 'Sí, avisé al cliente' }).check();
+    await end.getByRole('button', { name: 'Terminar contrato' }).click();
+    await expect(page.getByText(/Fin del contrato guardado/)).toBeVisible();
+    await cleanUp(page, contracts[1]!, today, slotLabel);
+  });
+});
+
 test.describe('Floral Care (banco)', () => {
   test.use({ storageState: 'e2e/.auth/staff.json' });
 
@@ -427,5 +524,8 @@ test.describe('Floral Care (banco)', () => {
     await expect(page.getByRole('link', { name: 'Nuevo contrato' })).toHaveCount(0);
     await page.goto(`${SHOP}/settings/floral-care`);
     await expect(page.getByRole('button', { name: 'Guardar', exact: true })).toHaveCount(0);
+    // I soldi dei contratti li vede solo chi li gestisce (ADR-082).
+    await page.goto(`${SHOP}/subscriptions/charges`);
+    await expect(page.getByRole('heading', { name: 'Cobros' })).toHaveCount(0);
   });
 });

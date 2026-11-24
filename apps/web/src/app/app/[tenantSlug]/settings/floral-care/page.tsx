@@ -151,6 +151,7 @@ export default async function CareSettingsPage({
               minNoticeHours: String(settings.minNoticeHours),
               missedVisitPolicy: settings.missedVisitPolicy,
               deadPlantPolicy: settings.deadPlantPolicy,
+              paymentDueDays: String(settings.paymentDueDays),
               termsText: settings.termsText ?? '',
             }}
           />

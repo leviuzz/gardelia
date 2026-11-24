@@ -5,6 +5,7 @@ import {
   MessageCircle,
   Phone,
   Plus,
+  Receipt,
   TriangleExclamationPoint,
   Undo2,
 } from 'lucide-react';
@@ -361,6 +362,9 @@ export default async function CustomerPage({
                         >
                           <span className="font-medium tabular-nums">{contract.numberLabel}</span>
                           <ContractStatusBadge status={contract.status} />
+                          {contract.overdue ? (
+                            <Badge variant="danger">{t('care.contracts.overdue')}</Badge>
+                          ) : null}
                           <span className="ml-auto text-xs text-muted-foreground">
                             {contract.frequency
                               ? t(`care.offer.frequencyNames.${contract.frequency}`)
@@ -371,6 +375,16 @@ export default async function CustomerPage({
                     ))}
                   </ul>
                 )}
+                {/* Estado de cuenta (ADR-082): tutte le sedi, per chi gestisce i soldi. */}
+                {hasPermission(ctx, 'subscriptions:payments') &&
+                careContracts.some((contract) => contract.status !== 'DRAFT') ? (
+                  <Button asChild size="sm" variant="secondary" className="mt-3 w-full">
+                    <Link href={routes.customers.statement(customer.id)}>
+                      <Receipt />
+                      {t('care.statement.link')}
+                    </Link>
+                  </Button>
+                ) : null}
               </CardContent>
             </Card>
           ) : null}

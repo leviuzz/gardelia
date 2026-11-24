@@ -256,6 +256,33 @@ export type {
   CareReportServiceDto,
   CareVisitReportDto,
 } from './services/care-report';
+// Cargos, pagamenti ed estado de cuenta (ADR-082, blocco 3). L'emissione (`…Tx`) resta interna.
+export {
+  getCareCharge,
+  getCareChargesOverview,
+  listCareCharges,
+  listContractCharges,
+  type CareChargeDetailDto,
+  type CareChargeLineDto,
+  type CareChargeListItemDto,
+  type CareChargeListResult,
+  type CareChargePaymentDto,
+  type CareChargeSummaryDto,
+  type CareChargesOverviewDto,
+  type CareContractChargesDto,
+} from './services/care-charges';
+export {
+  recordCareChargePayment,
+  recordCustomerCarePayment,
+  refundCareCharge,
+  reverseCarePayment,
+} from './services/care-payments';
+export {
+  getCustomerCareStatement,
+  type CareStatementChargeDto,
+  type CareStatementDto,
+  type CareStatementPaymentDto,
+} from './services/care-statement';
 export {
   getDayRoute,
   type DayRouteDto,

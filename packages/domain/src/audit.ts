@@ -214,6 +214,14 @@ export const AUDIT_ACTIONS = {
   careQuoteCreated: 'care.quote_created',
   careSeasonalPlantsArchived: 'care.seasonal_plants_archived',
   /**
+   * Cargos e pagamenti dei contratti (ADR-082). Nei metadati numeri e importi, mai la referencia,
+   * la nota o i nomi.
+   */
+  careChargeIssued: 'care.charge_issued',
+  carePaymentRecorded: 'care.payment_recorded',
+  carePaymentReversed: 'care.payment_reversed',
+  carePaymentRefunded: 'care.payment_refunded',
+  /**
    * Contratti con i clienti (CustomerSubscription): `customer_subscription.*`, da non confondere con
    * `subscription.assigned`, il piano della fioreria su Gardelia.
    */

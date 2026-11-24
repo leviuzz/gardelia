@@ -11,6 +11,7 @@ import {
 } from '@floral/core';
 import { CARE_CONTRACT_VIEWS, careContractListFiltersSchema } from '@floral/domain';
 import { ContractStatusBadge } from '@/components/care/care-ui';
+import { CareTabs } from '@/components/care/charge-ui';
 import { CareUpsell } from '@/components/care/care-upsell';
 import { FilterBar } from '@/components/common/list/filter-bar';
 import { ListPagination } from '@/components/common/list/list-pagination';
@@ -105,6 +106,10 @@ export default async function CareContractsPage({
         description={t('care.contracts.subtitle')}
         actions={actions}
       />
+      {/* "Cobros" (ADR-082): solo per chi gestisce i soldi. */}
+      {hasPermission(ctx, 'subscriptions:payments') ? (
+        <CareTabs routes={routes} current="contracts" />
+      ) : null}
 
       <nav aria-label={t('care.contracts.viewsLabel')} className="flex flex-wrap gap-2 text-sm">
         {CARE_CONTRACT_VIEWS.map((view) => (
@@ -183,6 +188,9 @@ export default async function CareContractsPage({
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2 sm:flex-col sm:items-end sm:gap-1">
                   <ContractStatusBadge status={contract.status} />
+                  {contract.overdue ? (
+                    <Badge variant="danger">{t('care.contracts.overdue')}</Badge>
+                  ) : null}
                   {contract.toReschedule > 0 ? (
                     <Badge variant="danger">
                       {t('care.contracts.toReschedule', { count: contract.toReschedule })}

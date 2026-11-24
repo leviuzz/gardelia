@@ -1305,7 +1305,10 @@
       "promoRedeemed": "Ha usato il codice {code}",
       "more": "Mostra altro",
       "careVisitDone": "Visita Floral Care fatta ({number})",
-      "careVisitNotDone": "Visita Floral Care non fatta ({number})"
+      "careVisitNotDone": "Visita Floral Care non fatta ({number})",
+      "careCharge": "Addebito {number} di Floral Care ({month})",
+      "carePayment": "{kind} di {amount} ({method}) · Floral Care",
+      "carePaymentReversed": "Storno di {amount} · Floral Care"
     },
     "filters": {
       "tag": "Filtra per etichetta",
@@ -3139,7 +3142,11 @@
       "photos_deleted": "Sono state cancellate le foto di {number}, 30 giorni dopo la fine del contratto",
       "extra_visit_created": "{actor} ha fissato una visita extra di {number}",
       "quote_created": "{actor} ha creato una cotización da {number}",
-      "seasonal_plants_archived": "{actor} ha archiviato le piante di stagione di {number}"
+      "seasonal_plants_archived": "{actor} ha archiviato le piante di stagione di {number}",
+      "charge_issued": "È stato emesso l’addebito {number}",
+      "payment_recorded": "{actor} ha registrato un pagamento di {number}",
+      "payment_reversed": "{actor} ha annullato un movimento di {number}",
+      "payment_refunded": "{actor} ha registrato un rimborso di {number}"
     },
     "notice": {
       "label": "Sì, ho avvisato il cliente"
@@ -3200,7 +3207,9 @@
       },
       "terms": "I tuoi termini del servizio",
       "termsHint": "Li scrivi tu: Gardelia non aggiunge condizioni. Il cliente li vedrà.",
-      "saved": "Tariffe salvate"
+      "saved": "Tariffe salvate",
+      "paymentDueDays": "Giorni per pagare un addebito",
+      "paymentDueDaysHint": "Dal giorno 1 del mese (o da quando nasce l’addebito). Vuoto = 10."
     },
     "simulator": {
       "title": "Simulatore",
@@ -3314,7 +3323,10 @@
       "slot_weekday": "Quella fascia non è di quel giorno della settimana.",
       "move_out_of_range": "Scegli un giorno fra oggi e i prossimi 90 giorni, dentro il contratto.",
       "end_out_of_range": "Scegli un giorno dall’inizio del contratto fino a un anno da oggi.",
-      "end_before_done": "Ci sono già visite fatte dopo quel giorno: scegline uno dopo."
+      "end_before_done": "Ci sono già visite fatte dopo quel giorno: scegline uno dopo.",
+      "payment_zero": "L’importo deve essere maggiore di 0.",
+      "paid_on_future": "La data del pagamento non può essere dopo oggi.",
+      "refund_exceeds_credit": "Il rimborso non può superare il saldo a favore del cliente."
     },
     "conflict": {
       "not_configured": "Prima salva le tariffe di Floral Care (Impostazioni → Floral Care).",
@@ -3342,7 +3354,10 @@
       "follow_up_limit": "Hai raggiunto il massimo di avvisi per questa visita.",
       "photo_locked": "La visita è chiusa: solo chi gestisce può togliere la foto.",
       "email_not_retryable": "Questo resoconto è già stato mandato o non si può più rimandare. Condividi il link.",
-      "follow_up_resolved": "Questo avviso è già stato risolto. Ricarica la pagina."
+      "follow_up_resolved": "Questo avviso è già stato risolto. Ricarica la pagina.",
+      "payment_not_reversible": "Questo movimento non si può annullare.",
+      "charge_not_in_favor": "Questo addebito non ha più un saldo a favore del cliente.",
+      "charge_too_large": "Gli importi di questo addebito sono troppo alti: controlla il prezzo del contratto."
     },
     "contracts": {
       "title": "Floral Care",
@@ -3381,7 +3396,9 @@
       "priceSame": "Il prezzo era già aggiornato.",
       "scheduleChanged": "{count, plural, =0 {Calendario cambiato.} one {Calendario cambiato: # visita in agenda.} other {Calendario cambiato: # visite in agenda.}}",
       "endedNow": "{count, plural, =0 {Contratto finito.} one {Contratto finito: cancellata # visita.} other {Contratto finito: cancellate # visite.}}",
-      "endScheduled": "{count, plural, =0 {Fine del contratto salvata.} one {Fine del contratto salvata: cancellata # visita.} other {Fine del contratto salvata: cancellate # visite.}}"
+      "endScheduled": "{count, plural, =0 {Fine del contratto salvata.} one {Fine del contratto salvata: cancellata # visita.} other {Fine del contratto salvata: cancellate # visite.}}",
+      "overdue": "Scaduto",
+      "chargesLink": "Incassi"
     },
     "contractStatus": {
       "DRAFT": "Bozza",
@@ -3637,7 +3654,16 @@
       "moveTitle": "Cambia data",
       "moveHint": "Fasce con posto nei prossimi 21 giorni. Il cliente deve sapere la nuova data.",
       "option": "{date} · {start}–{end} · {count, plural, one {# posto} other {# posti}}",
-      "assignTitle": "Chi va"
+      "assignTitle": "Chi va",
+      "notDoneCause": "Cosa è successo?",
+      "notDoneCauses": {
+        "CUSTOMER": "Il cliente non ha aperto",
+        "SHOP": "Non siamo potuti andare"
+      },
+      "notDoneCauseHints": {
+        "CUSTOMER": "La visita si paga, come dice la regola del contratto.",
+        "SHOP": "La visita si scala dal prossimo addebito."
+      }
     },
     "visitWork": {
       "start": "Inizia visita",
@@ -3884,6 +3910,178 @@
       "install": "Fissa l’allestimento",
       "pickup": "Fissa il ritiro",
       "quotesTitle": "Cotizaciones del contratto"
+    },
+    "tabs": {
+      "label": "Floral Care",
+      "contracts": "Contratti",
+      "charges": "Incassi"
+    },
+    "chargeStatus": {
+      "PENDING": "Da pagare",
+      "PARTIAL": "Pagato in parte",
+      "OVERDUE": "Scaduto",
+      "PAID": "Pagato",
+      "NO_BALANCE": "Senza saldo",
+      "IN_FAVOR": "A favore del cliente",
+      "REFUNDED": "Rimborsato"
+    },
+    "charges": {
+      "title": "Incassi",
+      "subtitle": "Gli addebiti dei tuoi contratti di Floral Care: cosa resta da incassare, cosa è scaduto e cosa è pagato.",
+      "viewsLabel": "Stato degli addebiti",
+      "views": {
+        "open": "Da incassare ({count})",
+        "overdue": "Scaduti ({count})",
+        "paid": "Pagati ({count})",
+        "credit": "A favore del cliente ({count})"
+      },
+      "month": "Mese",
+      "allMonths": "Tutti i mesi",
+      "searchPlaceholder": "Cliente o numero dell’addebito",
+      "results": "{count, plural, one {# addebito} other {# addebiti}}",
+      "sums": "Totale {total} · Pagato {paid} · Manca {balance}",
+      "sumsCredit": "A favore dei tuoi clienti: {balance}",
+      "emptyTitle": {
+        "open": "Niente da incassare",
+        "overdue": "Nessun addebito scaduto",
+        "paid": "Ancora nessun addebito pagato",
+        "credit": "Nessun saldo a favore di un cliente"
+      },
+      "emptyBody": {
+        "open": "Alla conferma di un contratto nasce l’addebito del mese in corso; poi Gardelia ne crea uno ogni mese, il giorno 1.",
+        "overdue": "Qui compaiono gli addebiti che hanno passato la scadenza senza essere pagati per intero.",
+        "paid": "Quando registri i pagamenti di un addebito, compare qui.",
+        "credit": "Se alla fine di un contratto devi qualcosa al cliente, l’ultimo addebito resta a suo favore finché non registri il rimborso."
+      },
+      "noResultsTitle": "Nessun addebito corrisponde",
+      "noResultsBody": "Prova con un altro cliente, un altro numero o un altro mese.",
+      "dueOn": "Scade il {date}",
+      "dueWas": "Scaduto il {date}",
+      "balance": "Manca {amount}",
+      "inFavor": "A favore: {amount}"
+    },
+    "charge": {
+      "back": "Torna al contratto",
+      "title": "Addebito {number}",
+      "of": "{month} · {contract}",
+      "issued": "Emesso il {date}",
+      "due": "Scadenza: {date}",
+      "linesTitle": "Dettaglio",
+      "lines": {
+        "VISITS": "{count, plural, one {# visita} other {# visite}} × {price}",
+        "VISIT_DEBIT": "Visita del {date} che non era in un addebito",
+        "VISIT_CREDIT": "Visita del {date}: {reason}",
+        "EXTRA_VISIT": "Visita extra del {date}",
+        "ONE_TIME_SERVICE": "{name} (visita del {date})",
+        "CREDIT_CARRIED_IN": "Saldo a favore dell’addebito {number}",
+        "CREDIT_CARRIED_OUT": "Saldo a favore che passa al prossimo addebito",
+        "CREDIT_CARRIED_OUT_TO": "Saldo a favore passato all’addebito {number}",
+        "ADJUSTMENT": "Rettifica"
+      },
+      "creditReasons": {
+        "TO_RESCHEDULE": "da riprogrammare",
+        "SHOP": "tolta dalla fioreria",
+        "SCHEDULE_CHANGE": "cambio di orario",
+        "CONTRACT_END": "fine del contratto",
+        "NOT_DONE": "non siamo potuti andare"
+      },
+      "total": "Totale",
+      "paid": "Pagato",
+      "balance": "Da pagare",
+      "inFavor": "A favore del cliente",
+      "taxNote": "Prezzi finali, senza imposte. Questo documento non è una fattura.",
+      "finalNote": "Ultimo addebito del contratto: quello che resta a favore del cliente gli si restituisce.",
+      "paymentsTitle": "Pagamenti",
+      "noPayments": "Ancora nessun pagamento per questo addebito.",
+      "print": "Stampa",
+      "printHeader": "Addebito {number}",
+      "printFor": "Per: {name}",
+      "printSite": "Luogo: {address}",
+      "printDate": "Data: {date}",
+      "printFooter": "Prezzi in {currency}.",
+      "statement": "Estratto conto",
+      "contract": "Contratto {number}"
+    },
+    "payment": {
+      "title": "Registra pagamento",
+      "body": "Mancano {balance}: l’importo non può essere più alto.",
+      "statementTitle": "Registra un pagamento del cliente",
+      "statementBody": "Un solo pagamento per tutte le sue sedi: va prima agli addebiti più vecchi. Mancano {balance}.",
+      "amount": "Importo ({currency})",
+      "method": "Metodo di pagamento",
+      "paidOn": "Data del pagamento",
+      "reference": "Riferimento",
+      "referencePlaceholder": "Numero del bonifico, ultime cifre della carta…",
+      "note": "Nota interna",
+      "noteHint": "La vede solo il tuo team.",
+      "submit": "Registra pagamento",
+      "recorded": "Pagamento registrato",
+      "recordedSplit": "{count, plural, one {Pagamento registrato su # addebito} other {Pagamento registrato su # addebiti}}",
+      "refundTitle": "Registra rimborso",
+      "refundBody": "Quello che hai restituito al cliente. A suo favore: {credit}.",
+      "refundSubmit": "Registra rimborso",
+      "refunded": "Rimborso registrato",
+      "reverse": "Annulla",
+      "reverseLabel": "Annulla il movimento di {amount}",
+      "reverseTitle": "Annullare questo movimento?",
+      "reverseBody": "Resta nello storico con il suo storno e il saldo torna com’era.",
+      "reverseSplitBody": "Questo pagamento è stato distribuito su {count} addebiti: si annulla su tutti.",
+      "reverseConfirm": "Annulla",
+      "reversed": "Movimento annullato",
+      "reversedBadge": "Annullato",
+      "kinds": {
+        "PAYMENT": "Pagamento",
+        "REVERSAL": "Storno",
+        "REFUND": "Rimborso"
+      },
+      "split": "Parte di un pagamento di {amount} distribuito su {count} addebiti",
+      "by": "Registrato da {name}"
+    },
+    "contractCharges": {
+      "title": "Addebiti",
+      "empty": "Ancora nessun addebito: il primo nasce il giorno 1 del mese in cui inizia il contratto.",
+      "balance": "Da pagare: {amount}",
+      "overdue": "{count, plural, one {# addebito scaduto} other {# addebiti scaduti}}",
+      "statement": "Estratto conto",
+      "more": "{count, plural, one {# addebito in più} other {# addebiti in più}} nell’estratto conto"
+    },
+    "rules": {
+      "title": "Regole del contratto",
+      "subtitle": "Quelle della tua offerta il giorno della conferma: valgono per tutto il contratto.",
+      "missed": {
+        "COUNTS": "Se il cliente non apre, la visita conta come fatta e si paga.",
+        "RECOVER": "Se il cliente non apre, la visita si paga e se ne fissa un’altra senza costo."
+      },
+      "deadPlant": {
+        "INCLUDED": "Se una pianta muore, la sostituzione è inclusa.",
+        "QUOTE": "Se una pianta muore, la sostituzione si fa con un preventivo a parte."
+      }
+    },
+    "statement": {
+      "title": "Estratto conto",
+      "subtitle": "Floral Care di {name}: tutte le sedi, gli addebiti e i pagamenti.",
+      "back": "Torna al cliente",
+      "link": "Estratto conto",
+      "sitesTitle": "Sedi",
+      "chargesTitle": "Addebiti",
+      "paymentsTitle": "Pagamenti e rimborsi",
+      "noCharges": "Ancora nessun addebito.",
+      "noPayments": "Ancora nessun pagamento.",
+      "open": "Da pagare",
+      "overdue": "Scaduto",
+      "credit": "A favore del cliente",
+      "since": "Da {month}, più gli addebiti ancora aperti.",
+      "printHeader": "Estratto conto",
+      "printDate": "Data: {date}",
+      "printFor": "Cliente: {name}"
+    },
+    "chargesCard": {
+      "title": "Incassi di Floral Care",
+      "open": "Da incassare",
+      "overdue": "Scaduto",
+      "detail": "{count, plural, one {# addebito} other {# addebiti}}",
+      "allPaid": "Tutto incassato.",
+      "link": "Vedi gli incassi"
     }
   },
   "letterhead": {

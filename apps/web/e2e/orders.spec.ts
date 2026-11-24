@@ -1,8 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
+import { pickOrderCustomer } from './support/customers';
 
 /** Cotización aceptada para Hotel Casa Fuentes con un Ramo Clásico ($690.00). */
 async function acceptedQuote(page: Page) {
-  await page.goto('/app/las-camelias/customers');
+  await page.goto('/app/las-camelias/customers?q=Hotel%20Casa%20Fuentes');
   await page.getByRole('link', { name: /Hotel Casa Fuentes/ }).click();
   await page.getByRole('link', { name: 'Nueva cotización' }).click();
   await page.getByRole('button', { name: 'Crear cotización' }).click();
@@ -132,7 +133,7 @@ test.describe('pedido directo (propietaria)', () => {
     await page.goto('/app/las-camelias/orders');
     await page.getByRole('link', { name: 'Nuevo pedido' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Nuevo pedido' })).toBeVisible();
-    await page.getByRole('button', { name: 'Pedido para Hotel Casa Fuentes' }).click();
+    await pickOrderCustomer(page, 'Hotel Casa Fuentes');
 
     // Borrador: prima i prodotti, la consegna si chiede solo quando c'è qualcosa da consegnare.
     await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
@@ -186,7 +187,7 @@ test.describe('pedido directo (propietaria)', () => {
   });
 
   test('un borrador se descarta sin motivo y sale de la lista', async ({ page }) => {
-    await page.goto('/app/las-camelias/customers');
+    await page.goto('/app/las-camelias/customers?q=Hotel%20Casa%20Fuentes');
     await page.getByRole('link', { name: /Hotel Casa Fuentes/ }).click();
     await page.getByRole('link', { name: 'Nuevo pedido' }).click();
     await expect(page.getByText('Pedido para Hotel Casa Fuentes')).toBeVisible();

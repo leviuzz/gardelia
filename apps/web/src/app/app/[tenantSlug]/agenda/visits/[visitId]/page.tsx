@@ -211,6 +211,9 @@ export default async function CareVisitPage({
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
               {visit.extra ? <ExtraVisitBadge kind={visit.extra.kind} /> : null}
               <VisitStatusBadge status={visit.status} />
+              {visit.status === 'NOT_DONE' && visit.notDoneCause ? (
+                <span>{t(`care.visit.notDoneCauses.${visit.notDoneCause}`)}</span>
+              ) : null}
               <span className="first-letter:uppercase">
                 {visit.date
                   ? `${day(visit.date)}${visit.start && visit.end ? ` · ${visit.start}–${visit.end}` : ''}`

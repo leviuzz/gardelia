@@ -105,8 +105,7 @@ export function ExtraVisitDialog({
           </Button>
         )}
       </DialogTrigger>
-      {/* Un modulo lungo: sul telefono (e negli schermi bassi) il dialogo scorre. */}
-      <DialogContent closeLabel={tc('close')} className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+      <DialogContent closeLabel={tc('close')}>
         <DialogHeader>
           <DialogTitle>{fromFollowUp ? t('replacementTitle') : t('title')}</DialogTitle>
           <DialogDescription>{fromFollowUp ? t('replacementBody') : t('body')}</DialogDescription>

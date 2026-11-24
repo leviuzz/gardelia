@@ -34,6 +34,7 @@ export const agendaSelect = {
   extraNote: true,
   outcomeNote: true,
   cancelReason: true,
+  notDoneCause: true,
   assignedMembershipId: true,
   assignedTo: { select: { user: { select: { name: true } } } },
   subscription: {
@@ -107,6 +108,7 @@ export function toAgendaVisit(
     plantCount: plants.get(row.subscriptionId) ?? 0,
     outcomeNote: row.outcomeNote,
     cancelReason: row.cancelReason,
+    notDoneCause: row.notDoneCause,
     canStart: visits && row.status === 'SCHEDULED' && due,
     canContinue: visits && row.status === 'IN_PROGRESS',
     canMarkNotDone: visits && (row.status === 'SCHEDULED' || row.status === 'IN_PROGRESS') && due,

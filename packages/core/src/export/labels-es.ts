@@ -7,7 +7,11 @@
 import type {
   AcquisitionSource,
   Availability,
+  CareChargeLineKind,
+  CareCreditReason,
   CareFrequency,
+  CarePaymentKind,
+  CarePaymentStatus,
   CareVisitStatus,
   CatalogItemType,
   CustomerSubscriptionKind,
@@ -28,6 +32,7 @@ import type {
   RecordStatus,
   SaleUnit,
 } from '@floral/db';
+import type { CareChargeStatus } from '@floral/domain';
 
 export const YES = 'sí';
 export const NO = 'no';
@@ -156,6 +161,43 @@ export const LABELS = {
     PlantSize,
     string
   >,
+  // Cargos e pagamenti di Floral Care (ADR-082), con le parole di "Cobros" e della pagina del cargo.
+  chargeStatus: {
+    PENDING: 'Pendiente',
+    PARTIAL: 'Pago parcial',
+    OVERDUE: 'Vencido',
+    PAID: 'Pagado',
+    NO_BALANCE: 'Sin saldo',
+    IN_FAVOR: 'A favor del cliente',
+    REFUNDED: 'Devuelto',
+  } satisfies Record<CareChargeStatus, string>,
+  chargeLineKind: {
+    VISITS: 'Visitas del mes',
+    VISIT_DEBIT: 'Visita que no estaba en un cargo',
+    VISIT_CREDIT: 'Crédito por una visita',
+    EXTRA_VISIT: 'Visita extra',
+    ONE_TIME_SERVICE: 'Servicio de una sola vez',
+    CREDIT_CARRIED_IN: 'Saldo a favor de un cargo anterior',
+    CREDIT_CARRIED_OUT: 'Saldo a favor que pasa al próximo cargo',
+    ADJUSTMENT: 'Ajuste',
+  } satisfies Record<CareChargeLineKind, string>,
+  creditReason: {
+    TO_RESCHEDULE: 'Por reprogramar',
+    SHOP: 'La quitó la florería',
+    SCHEDULE_CHANGE: 'Cambio de horario',
+    CONTRACT_END: 'Fin del contrato',
+    NOT_DONE: 'No pudimos ir',
+  } satisfies Record<CareCreditReason, string>,
+  carePaymentKind: {
+    PAYMENT: 'Pago',
+    REVERSAL: 'Anulación',
+    REFUND: 'Devolución',
+  } satisfies Record<CarePaymentKind, string>,
+  carePaymentStatus: {
+    RECORDED: 'Registrado',
+    PENDING: 'Por registrar',
+    REJECTED: 'Rechazado',
+  } satisfies Record<CarePaymentStatus, string>,
 } as const;
 
 /** Il file che spiega lo ZIP, in testa all'archivio. */

@@ -1305,7 +1305,10 @@
       "promoRedeemed": "Usó el código {code}",
       "more": "Ver más",
       "careVisitDone": "Visita de Floral Care hecha ({number})",
-      "careVisitNotDone": "Visita de Floral Care no realizada ({number})"
+      "careVisitNotDone": "Visita de Floral Care no realizada ({number})",
+      "careCharge": "Cargo {number} de Floral Care ({month})",
+      "carePayment": "{kind} de {amount} ({method}) · Floral Care",
+      "carePaymentReversed": "Anulación de {amount} · Floral Care"
     },
     "filters": {
       "tag": "Filtrar por etiqueta",
@@ -3139,7 +3142,11 @@
       "photos_deleted": "Se borraron las fotos de {number}, 30 días después del fin del contrato",
       "extra_visit_created": "{actor} agendó una visita extra de {number}",
       "quote_created": "{actor} creó una cotización desde {number}",
-      "seasonal_plants_archived": "{actor} archivó las plantas de temporada de {number}"
+      "seasonal_plants_archived": "{actor} archivó las plantas de temporada de {number}",
+      "charge_issued": "Se emitió el cargo {number}",
+      "payment_recorded": "{actor} registró un pago de {number}",
+      "payment_reversed": "{actor} anuló un movimiento de {number}",
+      "payment_refunded": "{actor} registró una devolución de {number}"
     },
     "notice": {
       "label": "Sí, avisé al cliente"
@@ -3200,7 +3207,9 @@
       },
       "terms": "Tus términos del servicio",
       "termsHint": "Los escribes tú: Gardelia no agrega condiciones. Tu cliente los verá.",
-      "saved": "Tarifas guardadas"
+      "saved": "Tarifas guardadas",
+      "paymentDueDays": "Días para pagar un cargo",
+      "paymentDueDaysHint": "Desde el día 1 del mes (o desde que nace el cargo). Vacío = 10."
     },
     "simulator": {
       "title": "Simulador",
@@ -3314,7 +3323,10 @@
       "slot_weekday": "Ese horario no es de ese día de la semana.",
       "move_out_of_range": "Elige un día entre hoy y los próximos 90 días, dentro del contrato.",
       "end_out_of_range": "Elige un día desde el inicio del contrato y hasta dentro de un año.",
-      "end_before_done": "Ya hay visitas hechas después de ese día: elige un día posterior."
+      "end_before_done": "Ya hay visitas hechas después de ese día: elige un día posterior.",
+      "payment_zero": "El importe debe ser mayor que 0.",
+      "paid_on_future": "La fecha del pago no puede ser posterior a hoy.",
+      "refund_exceeds_credit": "La devolución no puede ser mayor que el saldo a favor del cliente."
     },
     "conflict": {
       "not_configured": "Primero guarda tus tarifas de Floral Care (Ajustes → Floral Care).",
@@ -3342,7 +3354,10 @@
       "follow_up_limit": "Llegaste al máximo de avisos en esta visita.",
       "photo_locked": "La visita ya se cerró: solo quien administra puede quitar la foto.",
       "email_not_retryable": "Este reporte ya se envió o ya no se puede reenviar. Comparte el enlace.",
-      "follow_up_resolved": "Este aviso ya se resolvió. Recarga la página."
+      "follow_up_resolved": "Este aviso ya se resolvió. Recarga la página.",
+      "payment_not_reversible": "Este movimiento no se puede anular.",
+      "charge_not_in_favor": "Este cargo ya no tiene saldo a favor del cliente.",
+      "charge_too_large": "Los importes de este cargo son demasiado altos: revisa el precio del contrato."
     },
     "contracts": {
       "title": "Floral Care",
@@ -3381,7 +3396,9 @@
       "priceSame": "El precio ya estaba al día.",
       "scheduleChanged": "{count, plural, =0 {Calendario cambiado.} one {Calendario cambiado: # visita agendada.} other {Calendario cambiado: # visitas agendadas.}}",
       "endedNow": "{count, plural, =0 {Contrato terminado.} one {Contrato terminado: se canceló # visita.} other {Contrato terminado: se cancelaron # visitas.}}",
-      "endScheduled": "{count, plural, =0 {Fin del contrato guardado.} one {Fin del contrato guardado: se canceló # visita.} other {Fin del contrato guardado: se cancelaron # visitas.}}"
+      "endScheduled": "{count, plural, =0 {Fin del contrato guardado.} one {Fin del contrato guardado: se canceló # visita.} other {Fin del contrato guardado: se cancelaron # visitas.}}",
+      "overdue": "Vencido",
+      "chargesLink": "Cobros"
     },
     "contractStatus": {
       "DRAFT": "Borrador",
@@ -3637,7 +3654,16 @@
       "moveTitle": "Cambiar fecha",
       "moveHint": "Horarios con lugar en los próximos 21 días. Tu cliente debe saber la nueva fecha.",
       "option": "{date} · {start}–{end} · {count, plural, one {# lugar} other {# lugares}}",
-      "assignTitle": "Quién va"
+      "assignTitle": "Quién va",
+      "notDoneCause": "¿Qué pasó?",
+      "notDoneCauses": {
+        "CUSTOMER": "El cliente no abrió",
+        "SHOP": "No pudimos ir"
+      },
+      "notDoneCauseHints": {
+        "CUSTOMER": "La visita se cobra, como dice la regla del contrato.",
+        "SHOP": "La visita se descuenta en el próximo cargo."
+      }
     },
     "visitWork": {
       "start": "Empezar visita",
@@ -3884,6 +3910,178 @@
       "install": "Agendar la instalación",
       "pickup": "Agendar el retiro",
       "quotesTitle": "Cotizaciones del contrato"
+    },
+    "tabs": {
+      "label": "Floral Care",
+      "contracts": "Contratos",
+      "charges": "Cobros"
+    },
+    "chargeStatus": {
+      "PENDING": "Pendiente",
+      "PARTIAL": "Pago parcial",
+      "OVERDUE": "Vencido",
+      "PAID": "Pagado",
+      "NO_BALANCE": "Sin saldo",
+      "IN_FAVOR": "A favor del cliente",
+      "REFUNDED": "Devuelto"
+    },
+    "charges": {
+      "title": "Cobros",
+      "subtitle": "Los cargos de tus contratos de Floral Care: lo que falta por cobrar, lo vencido y lo pagado.",
+      "viewsLabel": "Estado de los cargos",
+      "views": {
+        "open": "Por cobrar ({count})",
+        "overdue": "Vencidos ({count})",
+        "paid": "Pagados ({count})",
+        "credit": "A favor del cliente ({count})"
+      },
+      "month": "Mes",
+      "allMonths": "Todos los meses",
+      "searchPlaceholder": "Cliente o número de cargo",
+      "results": "{count, plural, one {# cargo} other {# cargos}}",
+      "sums": "Total {total} · Pagado {paid} · Falta {balance}",
+      "sumsCredit": "A favor de tus clientes: {balance}",
+      "emptyTitle": {
+        "open": "No hay nada por cobrar",
+        "overdue": "Ningún cargo vencido",
+        "paid": "Todavía no hay cargos pagados",
+        "credit": "Ningún saldo a favor de un cliente"
+      },
+      "emptyBody": {
+        "open": "Al confirmar un contrato nace el cargo del mes en curso; luego Gardelia crea uno cada mes, el día 1.",
+        "overdue": "Aquí aparecen los cargos que pasaron su fecha límite sin pagarse completos.",
+        "paid": "Cuando registres los pagos de un cargo, aparecerá aquí.",
+        "credit": "Si al terminar un contrato le debes algo al cliente, su último cargo queda a su favor hasta que registres la devolución."
+      },
+      "noResultsTitle": "Ningún cargo coincide",
+      "noResultsBody": "Prueba con otro cliente, otro número u otro mes.",
+      "dueOn": "Vence el {date}",
+      "dueWas": "Venció el {date}",
+      "balance": "Falta {amount}",
+      "inFavor": "A favor: {amount}"
+    },
+    "charge": {
+      "back": "Volver al contrato",
+      "title": "Cargo {number}",
+      "of": "{month} · {contract}",
+      "issued": "Emitido el {date}",
+      "due": "Fecha límite: {date}",
+      "linesTitle": "Detalle",
+      "lines": {
+        "VISITS": "{count, plural, one {# visita} other {# visitas}} × {price}",
+        "VISIT_DEBIT": "Visita del {date} que no estaba en un cargo",
+        "VISIT_CREDIT": "Visita del {date}: {reason}",
+        "EXTRA_VISIT": "Visita extra del {date}",
+        "ONE_TIME_SERVICE": "{name} (visita del {date})",
+        "CREDIT_CARRIED_IN": "Saldo a favor del cargo {number}",
+        "CREDIT_CARRIED_OUT": "Saldo a favor que pasa al próximo cargo",
+        "CREDIT_CARRIED_OUT_TO": "Saldo a favor que pasó al cargo {number}",
+        "ADJUSTMENT": "Ajuste"
+      },
+      "creditReasons": {
+        "TO_RESCHEDULE": "por reprogramar",
+        "SHOP": "la quitó la florería",
+        "SCHEDULE_CHANGE": "cambio de horario",
+        "CONTRACT_END": "fin del contrato",
+        "NOT_DONE": "no pudimos ir"
+      },
+      "total": "Total",
+      "paid": "Pagado",
+      "balance": "Falta por pagar",
+      "inFavor": "A favor del cliente",
+      "taxNote": "Precios finales, sin impuestos. Este documento no es una factura.",
+      "finalNote": "Último cargo del contrato: lo que queda a favor del cliente se le devuelve.",
+      "paymentsTitle": "Pagos",
+      "noPayments": "Todavía no hay pagos de este cargo.",
+      "print": "Imprimir",
+      "printHeader": "Cargo {number}",
+      "printFor": "Para: {name}",
+      "printSite": "Lugar: {address}",
+      "printDate": "Fecha: {date}",
+      "printFooter": "Precios en {currency}.",
+      "statement": "Estado de cuenta",
+      "contract": "Contrato {number}"
+    },
+    "payment": {
+      "title": "Registrar pago",
+      "body": "Falta por pagar {balance}: el importe no puede ser mayor.",
+      "statementTitle": "Registrar pago del cliente",
+      "statementBody": "Un solo pago para todas sus sedes: va primero a los cargos más antiguos. Falta por pagar {balance}.",
+      "amount": "Importe ({currency})",
+      "method": "Forma de pago",
+      "paidOn": "Fecha del pago",
+      "reference": "Referencia",
+      "referencePlaceholder": "Folio de transferencia, últimos dígitos de la tarjeta…",
+      "note": "Nota interna",
+      "noteHint": "Solo la ve tu equipo.",
+      "submit": "Registrar pago",
+      "recorded": "Pago registrado",
+      "recordedSplit": "{count, plural, one {Pago registrado en # cargo} other {Pago registrado en # cargos}}",
+      "refundTitle": "Registrar devolución",
+      "refundBody": "Lo que le devolviste al cliente. A su favor: {credit}.",
+      "refundSubmit": "Registrar devolución",
+      "refunded": "Devolución registrada",
+      "reverse": "Anular",
+      "reverseLabel": "Anular el movimiento de {amount}",
+      "reverseTitle": "¿Anular este movimiento?",
+      "reverseBody": "Queda en el historial con su anulación y el saldo vuelve a como estaba.",
+      "reverseSplitBody": "Este pago se repartió en {count} cargos: se anula en todos.",
+      "reverseConfirm": "Anular",
+      "reversed": "Movimiento anulado",
+      "reversedBadge": "Anulado",
+      "kinds": {
+        "PAYMENT": "Pago",
+        "REVERSAL": "Anulación",
+        "REFUND": "Devolución"
+      },
+      "split": "Parte de un pago de {amount} repartido en {count} cargos",
+      "by": "Registró {name}"
+    },
+    "contractCharges": {
+      "title": "Cargos",
+      "empty": "Todavía no hay cargos: el primero nace el día 1 del mes en que empieza el contrato.",
+      "balance": "Falta por pagar: {amount}",
+      "overdue": "{count, plural, one {# cargo vencido} other {# cargos vencidos}}",
+      "statement": "Estado de cuenta",
+      "more": "{count, plural, one {# cargo más} other {# cargos más}} en el estado de cuenta"
+    },
+    "rules": {
+      "title": "Reglas del contrato",
+      "subtitle": "Las de tu oferta el día en que se confirmó: valen para todo el contrato.",
+      "missed": {
+        "COUNTS": "Si el cliente no abre, la visita cuenta como hecha y se cobra.",
+        "RECOVER": "Si el cliente no abre, la visita se cobra y se agenda otra sin costo."
+      },
+      "deadPlant": {
+        "INCLUDED": "Si una planta se muere, el reemplazo va incluido.",
+        "QUOTE": "Si una planta se muere, el reemplazo se cotiza aparte."
+      }
+    },
+    "statement": {
+      "title": "Estado de cuenta",
+      "subtitle": "Floral Care de {name}: todas sus sedes, cargos y pagos.",
+      "back": "Volver al cliente",
+      "link": "Estado de cuenta",
+      "sitesTitle": "Sedes",
+      "chargesTitle": "Cargos",
+      "paymentsTitle": "Pagos y devoluciones",
+      "noCharges": "Todavía no hay cargos.",
+      "noPayments": "Todavía no hay pagos.",
+      "open": "Falta por pagar",
+      "overdue": "Vencido",
+      "credit": "A favor del cliente",
+      "since": "Desde {month}, más los cargos que siguen abiertos.",
+      "printHeader": "Estado de cuenta",
+      "printDate": "Fecha: {date}",
+      "printFor": "Cliente: {name}"
+    },
+    "chargesCard": {
+      "title": "Cobros de Floral Care",
+      "open": "Por cobrar",
+      "overdue": "Vencido",
+      "detail": "{count, plural, one {# cargo} other {# cargos}}",
+      "allPaid": "Todo cobrado.",
+      "link": "Ver cobros"
     }
   },
   "letterhead": {

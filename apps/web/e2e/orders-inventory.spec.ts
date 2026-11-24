@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createProduct } from './support/catalog';
+import { pickOrderCustomer } from './support/customers';
 
 /**
  * Scarico dell'inventario dagli ordini (ADR-071): la scheda dell'ordine dice cosa uscirà
@@ -28,7 +29,7 @@ test('"Listo" scarica i materiali dell\'ordine, con la conferma se non bastano',
 
   // Un ordine con 8 tallos di quel fiore, da ritirare in negozio.
   await page.goto(`${SHOP}/orders/new`);
-  await page.getByRole('button', { name: 'Pedido para Hotel Casa Fuentes' }).click();
+  await pickOrderCustomer(page, 'Hotel Casa Fuentes');
   await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
   const addForm = page
     .locator('form')

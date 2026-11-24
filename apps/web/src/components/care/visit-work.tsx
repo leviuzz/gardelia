@@ -11,6 +11,7 @@ import { useState } from 'react';
 import {
   CARE_FOLLOW_UP_KINDS,
   CARE_LIMITS,
+  CARE_NOT_DONE_CAUSES,
   CARE_PLANT_CONDITIONS,
   CARE_VISIT_LIMITS,
   type CareFollowUpKind,
@@ -588,7 +589,10 @@ export function FinishVisitDialog({
   );
 }
 
-/** "No se pudo": la nota per il cliente (perché) e, se si può, il resoconto per email. */
+/**
+ * "No se pudo": perché (il cliente non ha aperto e la visita si paga, oppure la fioreria non è
+ * potuta andare ed è un credito, ADR-082), la nota per il cliente e, se si può, il resoconto.
+ */
 export function NotDoneDialog({
   action,
   label,
@@ -627,6 +631,32 @@ export function NotDoneDialog({
           <DialogDescription>{t('notDoneBody')}</DialogDescription>
         </DialogHeader>
         <form action={formAction} onSubmit={preserveOnSubmit(formAction)} className="grid gap-4">
+          <fieldset className="grid gap-2">
+            <legend className="text-sm font-medium">{t('notDoneCause')}</legend>
+            {CARE_NOT_DONE_CAUSES.map((cause) => (
+              <label
+                key={cause}
+                className="flex cursor-pointer items-start gap-2.5 rounded-xl border px-3 py-2.5 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+              >
+                <input
+                  type="radio"
+                  name="cause"
+                  value={cause}
+                  defaultChecked={cause === 'CUSTOMER'}
+                  className="mt-0.5 size-4 accent-primary"
+                />
+                <span>
+                  <span className="block font-medium">{t(`notDoneCauses.${cause}`)}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {t(`notDoneCauseHints.${cause}`)}
+                  </span>
+                </span>
+              </label>
+            ))}
+            {fieldError(state, 'cause') ? (
+              <p className="text-sm text-destructive">{fieldError(state, 'cause')}</p>
+            ) : null}
+          </fieldset>
           <Field id="not-done-note" label={tw('notDoneNote')} error={error}>
             <Textarea
               {...controlProps('not-done-note', error)}

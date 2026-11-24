@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { pickOrderCustomer } from './support/customers';
 
 /** Agenda dei pedidos (ADR-057): giorno per fascia con passi rapidi, produzione e mese. */
 test.describe('agenda de pedidos (propietaria)', () => {
@@ -11,7 +12,7 @@ test.describe('agenda de pedidos (propietaria)', () => {
     const iso = date.toISOString().slice(0, 10);
 
     await page.goto('/app/las-camelias/orders/new');
-    await page.getByRole('button', { name: 'Pedido para Hotel Casa Fuentes' }).click();
+    await pickOrderCustomer(page, 'Hotel Casa Fuentes');
     await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
     const addForm = page
       .locator('form')

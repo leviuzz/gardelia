@@ -52,7 +52,7 @@ apps/web/
 packages/core/src/            context, scope (lavori senza utente), authorization, audit, mailer,
                               email-templates, services/*, ai/ (provider, coda, archivio),
                               media/ (validazione immagini, sharp),
-                              jobs/ (manutenzione giornaliera: scadenze, visite di Floral Care)
+                              jobs/ (manutenzione giornaliera: scadenze, cargos e visite di Floral Care)
 packages/db/prisma/           schema.prisma, migrations/ (SQL con RLS), seed.ts, seed-data.ts
 packages/db/src/              client, tenancy (contesti RLS), errors, testing
 packages/db/scripts/          provisioning ruoli/database per sviluppo e CI
@@ -132,7 +132,9 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
   `app_care_contracts_to_close(n)` (SECURITY DEFINER) danno alla manutenzione solo gli ID dei
   contratti da allungare o chiudere; il lavoro avviene poi nel contesto della fioreria, senza utente.
   Allo stesso modo (ADR-078) `app_care_photos_to_purge(giorni, n)` dà i contratti con foto da
-  cancellare e `app_care_emails_due(n)` le email dei resoconti da riprovare.
+  cancellare e `app_care_emails_due(n)` le email dei resoconti da riprovare, e (ADR-082)
+  `app_care_contracts_to_charge(n)` quelli con un mese di cargo da emettere (prima di tutti gli
+  altri lavori di Floral Care, con il suo tetto di tempo).
 - Vincoli aggiuntivi nel SQL: CHECK su importi/quantità/valute/slug, indici univoci parziali
   (una sede primaria per tenant, un invito pendente per email).
 
@@ -305,6 +307,18 @@ contratto e un titolo nella lingua del mercato. Un avviso si risolve con `resolv
 nella stessa transazione della visita extra o della cotización: `updateMany` sulla riga ancora
 aperta, quindi due risoluzioni insieme non passano entrambe. `openVisitsFrom` dice se includere le
 extra: il cambio di calendario no, la fine del contratto sì.
+
+Cargos e pagamenti (ADR-082, `services/care-charges.ts`, `care-payments.ts`, `care-statement.ts`):
+`issueNextCareChargeTx` emette un mese alla volta (alla conferma, al cambio di prezzo e nel lavoro
+giornaliero). Blocca il contratto, legge le visite non ancora sistemate e chiede al dominio
+(`planCareChargeLines`) le righe e cosa cambia per ogni visita; scrive il cargo, le righe e
+`CareVisitBilling` (quanto è cobrado adesso per ogni visita, e se è sistemata), mai `CareVisit`.
+Un cargo è unico per contratto e mese; il totale, il pagato e il saldo sono controllati dai CHECK
+(il pagato resta fra 0 e il totale anche quando il cargo è a favore del cliente). I pagamenti sono
+movimenti del cliente (`CarePayment`) distribuiti sui cargos (`CarePaymentAllocation`, il cliente
+nelle due FK): bloccano i cargos in ordine di id, rileggono il saldo e non toccano contratti né
+visite; lo storno è un movimento di segno opposto, unico per movimento. Lo stato di un cargo
+(vencido compreso) si calcola in lettura; le pestañas di "Cobros" filtrano sul saldo salvato.
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per

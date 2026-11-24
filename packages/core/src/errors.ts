@@ -156,6 +156,13 @@ export type ConflictReason =
   | 'care_email_not_retryable'
   /** L'avviso è già stato risolto (da qualcun altro, o in un altro modo). */
   | 'care_follow_up_resolved'
+  /**
+   * Cargos (ADR-082): un movimento che non si annulla (è uno storno, o è "por registrar"), una
+   * devolución su un cargo che non è a favore del cliente, un cargo con importi fuori misura.
+   */
+  | 'care_payment_not_reversible'
+  | 'care_charge_not_in_favor'
+  | 'care_charge_too_large'
   /** "Eliminar florería" con ordini ancora da consegnare o ritirare (ADR-074). */
   | 'tenant_deletion_open_orders'
   | 'session_is_current';

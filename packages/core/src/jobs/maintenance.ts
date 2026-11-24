@@ -5,8 +5,9 @@
  * (`app_purge_place_coordinates`, regole di Google Places, ADR-059); chiude le bozze di import di
  * clienti dimenticate da più di un giorno e ne cancella il file (`app_close_stale_customer_imports`,
  * ADR-070); annulla gli ordini online che nessuna fioreria ha accettato in tempo e lo scrive a chi
- * compra (ADR-067); allunga le visite di Floral Care, chiude i contratti finiti (ADR-075), ne
- * cancella le foto 30 giorni dopo e riprova i resoconti rimasti indietro (ADR-078). Le pagine
+ * compra (ADR-067); emette i cargos del mese di Floral Care (ADR-082), allunga le visite, chiude
+ * i contratti finiti (ADR-075), ne cancella le foto 30 giorni dopo e riprova i resoconti rimasti
+ * indietro (ADR-078). Le pagine
  * mostrano già lo stato effettivo calcolato in lettura: questo lavoro rende il dato salvato coerente
  * (filtri, report, esportazioni).
  *
@@ -34,6 +35,9 @@ export interface MaintenanceResult {
   readonly customerImportsClosed: number;
   /** Ordini online annullati perché nessuno li ha accettati in tempo. */
   readonly onlineOrdersExpired: number;
+  /** Floral Care (ADR-082): cargos nati e contratti con mesi ancora da emettere. */
+  readonly careChargesIssued: number;
+  readonly careChargesPending: number;
   /** Floral Care (ADR-075): visite nuove (con posto o da riprogrammare) e contratti chiusi. */
   readonly careVisitsCreated: number;
   readonly careContractsEnded: number;
@@ -78,6 +82,8 @@ export async function runDailyMaintenance(
     storePlacesRefreshed,
     customerImportsClosed,
     onlineOrdersExpired,
+    careChargesIssued: care.chargesIssued,
+    careChargesPending: care.chargesPending,
     careVisitsCreated: care.visitsScheduled + care.visitsToReschedule,
     careContractsEnded: care.contractsEnded,
     carePhotosDeleted: care.photosDeleted,

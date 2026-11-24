@@ -8,7 +8,7 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 
 /** Cotización enviada para Hotel Casa Fuentes con un Ramo Clásico ($690.00). */
 async function sentQuote(page: Page) {
-  await page.goto('/app/las-camelias/customers');
+  await page.goto('/app/las-camelias/customers?q=Hotel%20Casa%20Fuentes');
   await page.getByRole('link', { name: /Hotel Casa Fuentes/ }).click();
   await page.getByRole('link', { name: 'Nueva cotización' }).click();
   await page.getByRole('button', { name: 'Crear cotización' }).click();

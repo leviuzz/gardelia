@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { saveSimpleDesign } from './support/builder';
 import { createProduct } from './support/catalog';
+import { pickQuoteCustomer } from './support/customers';
 
 /**
  * Anteprima esatta (ADR-034) con il provider simulato: la foto del fiore si scontorna in locale,
@@ -63,7 +64,7 @@ test.describe('anteprima esatta (provider simulato)', () => {
     // Nella cotización l'immagine resta con la riga, con l'avviso e il download per WhatsApp.
     await page.getByRole('button', { name: 'Continuar' }).click();
     await page.getByRole('link', { name: 'Crear cotización' }).click();
-    await page.getByRole('button', { name: 'Cotización para Hotel Casa Fuentes' }).click();
+    await pickQuoteCustomer(page, 'Hotel Casa Fuentes');
     await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
     const quoteImage = page.getByRole('img', {
       name: `Imagen ilustrativa del ramo «${designName}»`,

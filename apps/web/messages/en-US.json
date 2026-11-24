@@ -1305,7 +1305,10 @@
       "promoRedeemed": "Used the code {code}",
       "more": "Show more",
       "careVisitDone": "Floral Care visit done ({number})",
-      "careVisitNotDone": "Floral Care visit not done ({number})"
+      "careVisitNotDone": "Floral Care visit not done ({number})",
+      "careCharge": "Floral Care charge {number} ({month})",
+      "carePayment": "{kind} of {amount} ({method}) · Floral Care",
+      "carePaymentReversed": "Reversal of {amount} · Floral Care"
     },
     "filters": {
       "tag": "Filter by tag",
@@ -3139,7 +3142,11 @@
       "photos_deleted": "The photos of {number} were deleted, 30 days after the contract ended",
       "extra_visit_created": "{actor} scheduled an extra visit for {number}",
       "quote_created": "{actor} created a quote from {number}",
-      "seasonal_plants_archived": "{actor} archived the seasonal plants of {number}"
+      "seasonal_plants_archived": "{actor} archived the seasonal plants of {number}",
+      "charge_issued": "Charge {number} was issued",
+      "payment_recorded": "{actor} recorded a payment on {number}",
+      "payment_reversed": "{actor} voided an entry on {number}",
+      "payment_refunded": "{actor} recorded a refund on {number}"
     },
     "notice": {
       "label": "Yes, I let the customer know"
@@ -3200,7 +3207,9 @@
       },
       "terms": "Your service terms",
       "termsHint": "You write them: Gardelia doesn’t add conditions. Your customer will see them.",
-      "saved": "Rates saved"
+      "saved": "Rates saved",
+      "paymentDueDays": "Days to pay a charge",
+      "paymentDueDaysHint": "From the 1st of the month (or from when the charge is created). Empty = 10."
     },
     "simulator": {
       "title": "Simulator",
@@ -3314,7 +3323,10 @@
       "slot_weekday": "That time slot isn’t on that weekday.",
       "move_out_of_range": "Choose a day between today and the next 90 days, within the contract.",
       "end_out_of_range": "Choose a day from the start of the contract up to a year from now.",
-      "end_before_done": "There are visits already done after that day: choose a later day."
+      "end_before_done": "There are visits already done after that day: choose a later day.",
+      "payment_zero": "The amount must be greater than 0.",
+      "paid_on_future": "The payment date can’t be after today.",
+      "refund_exceeds_credit": "The refund can’t be more than the customer’s credit."
     },
     "conflict": {
       "not_configured": "Save your Floral Care rates first (Settings → Floral Care).",
@@ -3342,7 +3354,10 @@
       "follow_up_limit": "You reached the maximum number of notes for this visit.",
       "photo_locked": "The visit is closed: only managers can remove the photo.",
       "email_not_retryable": "This report was already sent or can’t be resent. Share the link.",
-      "follow_up_resolved": "This notice was already resolved. Reload the page."
+      "follow_up_resolved": "This notice was already resolved. Reload the page.",
+      "payment_not_reversible": "This entry can’t be voided.",
+      "charge_not_in_favor": "This charge no longer has customer credit.",
+      "charge_too_large": "This charge’s amounts are too high: check the contract price."
     },
     "contracts": {
       "title": "Floral Care",
@@ -3381,7 +3396,9 @@
       "priceSame": "The price was already up to date.",
       "scheduleChanged": "{count, plural, =0 {Schedule changed.} one {Schedule changed: # visit scheduled.} other {Schedule changed: # visits scheduled.}}",
       "endedNow": "{count, plural, =0 {Contract ended.} one {Contract ended: # visit cancelled.} other {Contract ended: # visits cancelled.}}",
-      "endScheduled": "{count, plural, =0 {Contract end saved.} one {Contract end saved: # visit cancelled.} other {Contract end saved: # visits cancelled.}}"
+      "endScheduled": "{count, plural, =0 {Contract end saved.} one {Contract end saved: # visit cancelled.} other {Contract end saved: # visits cancelled.}}",
+      "overdue": "Overdue",
+      "chargesLink": "Billing"
     },
     "contractStatus": {
       "DRAFT": "Draft",
@@ -3637,7 +3654,16 @@
       "moveTitle": "Change date",
       "moveHint": "Time slots with room in the next 21 days. Your customer must know the new date.",
       "option": "{date} · {start}–{end} · {count, plural, one {# seat} other {# seats}}",
-      "assignTitle": "Who goes"
+      "assignTitle": "Who goes",
+      "notDoneCause": "What happened?",
+      "notDoneCauses": {
+        "CUSTOMER": "The customer didn’t open",
+        "SHOP": "We couldn’t go"
+      },
+      "notDoneCauseHints": {
+        "CUSTOMER": "The visit is charged, as the contract rule says.",
+        "SHOP": "The visit is taken off the next charge."
+      }
     },
     "visitWork": {
       "start": "Start visit",
@@ -3884,6 +3910,178 @@
       "install": "Schedule the install",
       "pickup": "Schedule the pickup",
       "quotesTitle": "Contract quotes"
+    },
+    "tabs": {
+      "label": "Floral Care",
+      "contracts": "Contracts",
+      "charges": "Billing"
+    },
+    "chargeStatus": {
+      "PENDING": "Unpaid",
+      "PARTIAL": "Partly paid",
+      "OVERDUE": "Overdue",
+      "PAID": "Paid",
+      "NO_BALANCE": "Nothing due",
+      "IN_FAVOR": "Customer credit",
+      "REFUNDED": "Refunded"
+    },
+    "charges": {
+      "title": "Billing",
+      "subtitle": "The charges of your Floral Care contracts: what’s still due, what’s overdue and what’s paid.",
+      "viewsLabel": "Charge status",
+      "views": {
+        "open": "Due ({count})",
+        "overdue": "Overdue ({count})",
+        "paid": "Paid ({count})",
+        "credit": "Customer credit ({count})"
+      },
+      "month": "Month",
+      "allMonths": "All months",
+      "searchPlaceholder": "Customer or charge number",
+      "results": "{count, plural, one {# charge} other {# charges}}",
+      "sums": "Total {total} · Paid {paid} · Due {balance}",
+      "sumsCredit": "Owed to your customers: {balance}",
+      "emptyTitle": {
+        "open": "Nothing to collect",
+        "overdue": "No overdue charges",
+        "paid": "No paid charges yet",
+        "credit": "No customer credit"
+      },
+      "emptyBody": {
+        "open": "Confirming a contract creates the charge for the current month; then Gardelia creates one every month, on the 1st.",
+        "overdue": "Charges that passed their due date without being fully paid show up here.",
+        "paid": "Once you record a charge’s payments, it shows up here.",
+        "credit": "If you owe a customer something when a contract ends, their last charge stays in their favor until you record the refund."
+      },
+      "noResultsTitle": "No charges match",
+      "noResultsBody": "Try another customer, number or month.",
+      "dueOn": "Due {date}",
+      "dueWas": "Was due {date}",
+      "balance": "{amount} due",
+      "inFavor": "Credit: {amount}"
+    },
+    "charge": {
+      "back": "Back to the contract",
+      "title": "Charge {number}",
+      "of": "{month} · {contract}",
+      "issued": "Issued {date}",
+      "due": "Due date: {date}",
+      "linesTitle": "Details",
+      "lines": {
+        "VISITS": "{count, plural, one {# visit} other {# visits}} × {price}",
+        "VISIT_DEBIT": "Visit on {date} that wasn’t in a charge",
+        "VISIT_CREDIT": "Visit on {date}: {reason}",
+        "EXTRA_VISIT": "Extra visit on {date}",
+        "ONE_TIME_SERVICE": "{name} (visit on {date})",
+        "CREDIT_CARRIED_IN": "Credit from charge {number}",
+        "CREDIT_CARRIED_OUT": "Credit carried to the next charge",
+        "CREDIT_CARRIED_OUT_TO": "Credit carried to charge {number}",
+        "ADJUSTMENT": "Adjustment"
+      },
+      "creditReasons": {
+        "TO_RESCHEDULE": "to reschedule",
+        "SHOP": "removed by the shop",
+        "SCHEDULE_CHANGE": "schedule change",
+        "CONTRACT_END": "contract ended",
+        "NOT_DONE": "we couldn’t go"
+      },
+      "total": "Total",
+      "paid": "Paid",
+      "balance": "Due",
+      "inFavor": "Customer credit",
+      "taxNote": "Final prices, no taxes. This document is not an invoice.",
+      "finalNote": "Last charge of the contract: whatever is in the customer’s favor is refunded.",
+      "paymentsTitle": "Payments",
+      "noPayments": "No payments for this charge yet.",
+      "print": "Print",
+      "printHeader": "Charge {number}",
+      "printFor": "For: {name}",
+      "printSite": "Location: {address}",
+      "printDate": "Date: {date}",
+      "printFooter": "Prices in {currency}.",
+      "statement": "Account statement",
+      "contract": "Contract {number}"
+    },
+    "payment": {
+      "title": "Record payment",
+      "body": "{balance} is due: the amount can’t be higher.",
+      "statementTitle": "Record a customer payment",
+      "statementBody": "One payment for all their locations: it goes to the oldest charges first. {balance} is due.",
+      "amount": "Amount ({currency})",
+      "method": "Payment method",
+      "paidOn": "Payment date",
+      "reference": "Reference",
+      "referencePlaceholder": "Transfer number, last digits of the card…",
+      "note": "Internal note",
+      "noteHint": "Only your team sees it.",
+      "submit": "Record payment",
+      "recorded": "Payment recorded",
+      "recordedSplit": "{count, plural, one {Payment recorded on # charge} other {Payment recorded on # charges}}",
+      "refundTitle": "Record refund",
+      "refundBody": "What you gave back to the customer. Their credit: {credit}.",
+      "refundSubmit": "Record refund",
+      "refunded": "Refund recorded",
+      "reverse": "Void",
+      "reverseLabel": "Void the {amount} entry",
+      "reverseTitle": "Void this entry?",
+      "reverseBody": "It stays in the history with its reversal, and the balance goes back to how it was.",
+      "reverseSplitBody": "This payment was split across {count} charges: it’s voided on all of them.",
+      "reverseConfirm": "Void",
+      "reversed": "Entry voided",
+      "reversedBadge": "Voided",
+      "kinds": {
+        "PAYMENT": "Payment",
+        "REVERSAL": "Reversal",
+        "REFUND": "Refund"
+      },
+      "split": "Part of a {amount} payment split across {count} charges",
+      "by": "Recorded by {name}"
+    },
+    "contractCharges": {
+      "title": "Charges",
+      "empty": "No charges yet: the first one is created on the 1st of the month the contract starts.",
+      "balance": "Due: {amount}",
+      "overdue": "{count, plural, one {# overdue charge} other {# overdue charges}}",
+      "statement": "Account statement",
+      "more": "{count, plural, one {# more charge} other {# more charges}} in the account statement"
+    },
+    "rules": {
+      "title": "Contract rules",
+      "subtitle": "Your offer’s rules on the day it was confirmed: they apply for the whole contract.",
+      "missed": {
+        "COUNTS": "If the customer doesn’t open, the visit counts as done and is charged.",
+        "RECOVER": "If the customer doesn’t open, the visit is charged and another one is scheduled at no cost."
+      },
+      "deadPlant": {
+        "INCLUDED": "If a plant dies, the replacement is included.",
+        "QUOTE": "If a plant dies, the replacement is quoted separately."
+      }
+    },
+    "statement": {
+      "title": "Account statement",
+      "subtitle": "Floral Care for {name}: all their locations, charges and payments.",
+      "back": "Back to the customer",
+      "link": "Account statement",
+      "sitesTitle": "Locations",
+      "chargesTitle": "Charges",
+      "paymentsTitle": "Payments and refunds",
+      "noCharges": "No charges yet.",
+      "noPayments": "No payments yet.",
+      "open": "Due",
+      "overdue": "Overdue",
+      "credit": "Customer credit",
+      "since": "Since {month}, plus the charges that are still open.",
+      "printHeader": "Account statement",
+      "printDate": "Date: {date}",
+      "printFor": "Customer: {name}"
+    },
+    "chargesCard": {
+      "title": "Floral Care billing",
+      "open": "Due",
+      "overdue": "Overdue",
+      "detail": "{count, plural, one {# charge} other {# charges}}",
+      "allPaid": "Everything is collected.",
+      "link": "See billing"
     }
   },
   "letterhead": {

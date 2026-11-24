@@ -44,6 +44,8 @@ import {
   type CareVisitPrice,
   type CareVisitStatus,
   type CustomerSubscriptionStatus,
+  type DeadPlantPolicy,
+  type MissedVisitPolicy,
   type PlantLight,
   type PlantSize,
 } from '@floral/domain';
@@ -55,6 +57,7 @@ import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { memberScope } from '../scope';
 import { requireEntitlement } from './billing';
 import { lockCareSlots } from './care-booking';
+import { catchUpCareChargesTx, overdueCareContractIdsTx } from './care-charges';
 import {
   cancelOpenVisitsTx,
   extendCareVisitsTx,
@@ -195,6 +198,13 @@ export interface CareContractDetailDto {
   };
   readonly canWrite: boolean;
   readonly canVisit: boolean;
+  /** Regole copiate alla conferma (ADR-082); null per le bozze. */
+  readonly rules: {
+    readonly missedVisitPolicy: MissedVisitPolicy;
+    readonly deadPlantPolicy: DeadPlantPolicy;
+  } | null;
+  /** Chi guarda vede e registra i soldi (cargos, pagamenti). */
+  readonly canPayments: boolean;
 }
 
 export interface CareContractListItemDto {
@@ -211,6 +221,8 @@ export interface CareContractListItemDto {
   readonly nextVisit: string | null;
   readonly toReschedule: number;
   readonly plantCount: number;
+  /** Ha un cargo vencido (solo per chi gestisce i soldi, ADR-082). */
+  readonly overdue: boolean;
 }
 
 export interface CareContractListResult {
@@ -990,9 +1002,16 @@ export async function confirmCareContract(
         oneTimeMinor: pricing.price.oneTimeMinor,
         distanceMeters: pricing.distanceMeters,
         outOfRange: pricing.travel.kind === 'out_of_range',
+        // Le regole di oggi valgono per tutto il contratto (ADR-082): poi la fioreria può
+        // cambiarle senza toccare quello che ha firmato con il cliente.
+        missedVisitPolicy: settings.missedVisitPolicy,
+        deadPlantPolicy: settings.deadPlantPolicy,
       },
     });
-    const generated = await extendCareVisitsTx(tx, memberScope(ctx), subscription.id);
+    const scope = memberScope(ctx);
+    const generated = await extendCareVisitsTx(tx, scope, subscription.id);
+    // Il cargo del mese in corso con le visite che restano (se il contratto parte già adesso).
+    const chargesIssued = await catchUpCareChargesTx(tx, scope, subscription.id);
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.subscriptionConfirmed,
       entityType: 'CustomerSubscription',
@@ -1003,6 +1022,7 @@ export async function confirmCareContract(
         oneTimeMinor: pricing.price.oneTimeMinor,
         startDate: toIsoDate(start),
         ...generated,
+        chargesIssued,
       },
     });
     return generated;
@@ -1044,6 +1064,8 @@ export async function repriceCareContract(
       pricing.price.travelSurchargeMinor === subscription.travelSurchargeMinor;
     if (same) return { changed: false };
     requireNotice(1, notified);
+    // Il prezzo nuovo vale dal mese dopo (ADR-082): il mese in corso si emette prima, se manca.
+    await catchUpCareChargesTx(tx, memberScope(ctx), subscription.id);
     await refreshServiceSnapshots(tx, ctx.tenantId, subscriptionId);
     await tx.customerSubscription.update({
       where: { id: subscription.id, tenantId: ctx.tenantId },
@@ -1531,6 +1553,14 @@ export async function getCareContract(
     },
     canWrite: hasPermission(ctx, 'subscriptions:write') && live,
     canVisit: hasPermission(ctx, 'care:visit'),
+    rules:
+      subscription.missedVisitPolicy && subscription.deadPlantPolicy
+        ? {
+            missedVisitPolicy: subscription.missedVisitPolicy,
+            deadPlantPolicy: subscription.deadPlantPolicy,
+          }
+        : null,
+    canPayments: hasPermission(ctx, 'subscriptions:payments') && confirmed,
   };
 }
 
@@ -1569,7 +1599,7 @@ async function toListItems(
 ): Promise<CareContractListItemDto[]> {
   const ids = rows.map((row) => row.id);
   const today = todayInTimeZone(ctx.timezone);
-  const [next, pending, plants] = await Promise.all([
+  const [next, pending, plants, overdue] = await Promise.all([
     tx.careVisit.groupBy({
       by: ['subscriptionId'],
       where: {
@@ -1590,6 +1620,7 @@ async function toListItems(
       where: { tenantId: ctx.tenantId, subscriptionId: { in: ids }, status: 'ACTIVE' },
       _sum: { quantity: true },
     }),
+    overdueCareContractIdsTx(tx, ctx, ids),
   ]);
   const nextBy = new Map(next.map((row) => [row.subscriptionId, isoOf(row._min.scheduledDate)]));
   const pendingBy = new Map(pending.map((row) => [row.subscriptionId, row._count._all]));
@@ -1607,6 +1638,7 @@ async function toListItems(
     nextVisit: nextBy.get(row.id) ?? null,
     toReschedule: pendingBy.get(row.id) ?? 0,
     plantCount: plantsBy.get(row.id) ?? 0,
+    overdue: overdue.has(row.id),
   }));
 }
 
