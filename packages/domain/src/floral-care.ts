@@ -225,7 +225,7 @@ function enumField<const T extends readonly [string, ...string[]]>(values: T) {
 function optionalEnumField<const T extends readonly [string, ...string[]]>(values: T) {
   return z.preprocess(
     toTrimmedString,
-    z.union([z.literal('').transform(() => null), z.enum(values, { error: 'invalid_option' })]),
+    z.union([z.literal('').transform(() => null), z.enum(values)], { error: 'invalid_option' }),
   );
 }
 

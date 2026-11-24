@@ -92,12 +92,15 @@ export {
 } from './public-store';
 export {
   acceptPublicQuote,
+  getPublicCareVisitPhoto,
+  getPublicCareVisitReport,
   getPublicLineImage,
   getPublicOrder,
   getPublicOrderPhoto,
   getPublicQuote,
   publicLinkUrl,
   type AcceptQuoteResult,
+  type PublicCareVisitDto,
   type PublicLineDto,
   type PublicOrderDto,
   type PublicQuoteDto,
@@ -199,6 +202,55 @@ export * from './services/delivery-settings';
 export * from './services/care-settings';
 export * from './services/care-contracts';
 export * from './services/care-visits';
+// La visita dal telefono, le foto, gli avvisi, il resoconto e la ruta del día (ADR-076).
+export {
+  addCareFollowUp,
+  finishCareVisit,
+  getCareVisitSheet,
+  listCareMaterialOptions,
+  markAllCarePlantsOk,
+  markCareVisitNotDone,
+  saveCareVisitNote,
+  sendCareVisitReport,
+  setCareVisitMaterial,
+  setCareVisitPlantResult,
+  setCareVisitServiceResult,
+  startCareVisit,
+  type CareChecklistItemDto,
+  type CareMailDeps,
+  type CareMaterialOptionDto,
+  type CareReportDelivery,
+  type CareVisitCloseResult,
+  type CareVisitEmailDto,
+  type CareVisitMaterialDto,
+  type CareVisitPhotoDto,
+  type CareVisitPlantDto,
+  type CareVisitSheetDto,
+} from './services/care-visit-work';
+export {
+  addCareVisitPhoto,
+  getCareVisitPhotoImage,
+  removeCareVisitPhoto,
+  type CarePhotoUploadResult,
+} from './services/care-photos';
+export {
+  listCareFollowUps,
+  resolveCareFollowUp,
+  type CareFollowUpDto,
+  type CareFollowUpListDto,
+} from './services/care-follow-ups';
+export type {
+  CareReportPhotoDto,
+  CareReportPlantDto,
+  CareReportServiceDto,
+  CareVisitReportDto,
+} from './services/care-report';
+export {
+  getDayRoute,
+  type DayRouteDto,
+  type DayRouteStop,
+  type RouteVisitStopDto,
+} from './services/day-route';
 export { runCareMaintenance, type CareMaintenanceResult } from './jobs/care';
 export * from './services/public-links';
 export * from './services/quotes';

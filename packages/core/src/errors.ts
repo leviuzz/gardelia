@@ -137,6 +137,20 @@ export type ConflictReason =
   | 'care_slot_full'
   | 'care_visit_closed'
   | 'care_visit_future'
+  /** La visita dal telefono (ADR-076): i passi si registrano solo a visita in corso. */
+  | 'care_visit_not_in_progress'
+  /** "Terminar visita": ogni pianta deve avere il suo stato ("Todas bien" lo fa in un tocco). */
+  | 'care_plants_unmarked'
+  /** "Terminar visita": i materiali non bastano nell'inventario (si conferma e si registra). */
+  | 'care_visit_inventory_shortage'
+  /** Troppe foto, materiali o avvisi in una visita. */
+  | 'care_photo_limit'
+  | 'care_material_limit'
+  | 'care_follow_up_limit'
+  /** La foto non si può più togliere da chi fa la visita (visita chiusa: solo chi gestisce). */
+  | 'care_photo_locked'
+  /** "Reintentar": l'email è già partita, o ha finito i tentativi, o non c'è niente da mandare. */
+  | 'care_email_not_retryable'
   /** "Eliminar florería" con ordini ancora da consegnare o ritirare (ADR-074). */
   | 'tenant_deletion_open_orders';
 

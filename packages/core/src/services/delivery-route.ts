@@ -4,7 +4,7 @@
  * indicazioni, cosa incassare). Il percorso su mappa lo apre Google Maps con link pubblici, senza
  * chiave (D-27). Niente costi né note interne.
  */
-import { getDb, withTenantContext } from '@floral/db';
+import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
   MX_REGIONS,
@@ -13,12 +13,14 @@ import {
   formatTimeOfDay,
   isOrderFinal,
   isUuid,
-  nearestNeighborOrder,
   orderBalanceMinor,
+  orderRouteStops,
   parseIsoDate,
   todayInTimeZone,
+  type CalendarDate,
   type Coordinates,
   type OrderStatus,
+  type RouteStopWindow,
 } from '@floral/domain';
 import { notFound, recordAudit } from '../audit';
 import { requirePermission } from '../authorization';
@@ -161,6 +163,119 @@ function oneLine(parts: readonly (string | null | undefined)[]): string {
   return parts.filter((part): part is string => Boolean(part && part.trim())).join(', ');
 }
 
+/** Una consegna del giorno con la sua fascia e le coordinate ancora valide, per ordinarle. */
+export interface DeliveryStopRow {
+  readonly stop: RouteStopDto;
+  readonly window: RouteStopWindow;
+  readonly coordinates: Coordinates | null;
+}
+
+export interface ShopOrigin {
+  /** Indirizzo della fioreria in una riga (partenza del giro), o null. */
+  readonly address: string | null;
+  readonly coordinates: Coordinates | null;
+}
+
+/** La fioreria come partenza del giro: indirizzo e coordinate ancora valide (ADR-059). */
+export async function loadShopOriginTx(
+  tx: TransactionClient,
+  ctx: TenantContext,
+): Promise<ShopOrigin> {
+  const location = await tx.location.findFirst({
+    where: { tenantId: ctx.tenantId, isPrimary: true },
+    select: {
+      addressLine1: true,
+      neighborhood: true,
+      city: true,
+      region: true,
+      postalCode: true,
+      latitude: true,
+      longitude: true,
+      coordinatesAt: true,
+    },
+  });
+  if (!location) return { address: null, coordinates: null };
+  return {
+    address: oneLine([
+      location.addressLine1,
+      location.neighborhood,
+      location.postalCode,
+      location.city,
+      regionName(location.region),
+    ]),
+    coordinates: freshCoordinates(location, new Date()),
+  };
+}
+
+export function regionName(code: string): string {
+  return MX_REGIONS.find((item) => item.code === code)?.name ?? code;
+}
+
+/**
+ * Le consegne a domicilio del giorno (confermate fino a consegnate), con fascia e coordinate.
+ * `mine`: solo quelle assegnate a chi guarda. Permesso già controllato da chi chiama.
+ */
+export async function loadDeliveryStopsTx(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  day: CalendarDate,
+  options: { readonly mine?: boolean } = {},
+): Promise<DeliveryStopRow[]> {
+  const orders = await tx.order.findMany({
+    where: {
+      tenantId: ctx.tenantId,
+      scheduledDate: partsToDate(day),
+      fulfillmentMode: 'DELIVERY',
+      status: { in: [...ON_ROUTE] },
+      ...(options.mine ? { assignedMembershipId: ctx.membershipId } : {}),
+    },
+    include: {
+      customer: { select: { displayName: true, phone: true } },
+      assignedTo: { select: { id: true, user: { select: { name: true } } } },
+    },
+    orderBy: [{ windowStartMinutes: { sort: 'asc', nulls: 'last' } }, { number: 'asc' }],
+  });
+  const now = new Date();
+  return orders.map((order) => ({
+    window: { start: order.windowStartMinutes, end: order.windowEndMinutes },
+    // Coordinate solo se ancora valide (cache di 30 giorni, regole di Google).
+    coordinates: freshCoordinates(
+      {
+        latitude: order.deliveryLatitude,
+        longitude: order.deliveryLongitude,
+        coordinatesAt: order.deliveryCoordinatesAt,
+      },
+      now,
+    ),
+    stop: {
+      id: order.id,
+      numberLabel: formatOrderNumber(order.number),
+      status: order.status,
+      windowStart:
+        order.windowStartMinutes === null ? null : formatTimeOfDay(order.windowStartMinutes),
+      windowEnd: order.windowEndMinutes === null ? null : formatTimeOfDay(order.windowEndMinutes),
+      customerName: order.customer.displayName,
+      customerPhone: order.customer.phone,
+      recipientName: order.recipientName,
+      recipientPhone: order.recipientPhone,
+      address: oneLine([
+        order.deliveryAddressLine1,
+        order.deliveryAddressLine2,
+        order.deliveryNeighborhood,
+        order.deliveryPostalCode,
+        order.deliveryCity,
+        order.deliveryRegion ? regionName(order.deliveryRegion) : null,
+      ]),
+      deliveryNotes: order.deliveryNotes,
+      assigneeName: order.assignedTo?.user.name ?? null,
+      assignedToMe: order.assignedTo?.id === ctx.membershipId,
+      balanceMinor: orderBalanceMinor(order.paidMinor, order.totalMinor),
+      currency: order.currency,
+      nextSteps: allowedOrderSteps(ctx, order.status, order.fulfillmentMode),
+    },
+  }));
+}
+
 /** `mine`: solo le consegne assegnate a chi guarda ("Mis entregas"). */
 export async function getDeliveryRoute(
   ctx: TenantContext,
@@ -170,122 +285,26 @@ export async function getDeliveryRoute(
   requirePermission(ctx, 'orders:read');
   const today = todayInTimeZone(ctx.timezone);
   const day = parseIsoDate(rawDate) ?? today;
-  const region = (code: string) => MX_REGIONS.find((item) => item.code === code)?.name ?? code;
-
-  const { orders, location } = await withTenantContext(getDb(), ctx, async (tx) => {
-    const orders = await tx.order.findMany({
-      where: {
-        tenantId: ctx.tenantId,
-        scheduledDate: partsToDate(day),
-        fulfillmentMode: 'DELIVERY',
-        status: { in: [...ON_ROUTE] },
-        ...(options.mine ? { assignedMembershipId: ctx.membershipId } : {}),
-      },
-      include: {
-        customer: { select: { displayName: true, phone: true } },
-        assignedTo: { select: { id: true, user: { select: { name: true } } } },
-      },
-      orderBy: [{ windowStartMinutes: { sort: 'asc', nulls: 'last' } }, { number: 'asc' }],
-    });
-    const location = await tx.location.findFirst({
-      where: { tenantId: ctx.tenantId, isPrimary: true },
-      select: {
-        addressLine1: true,
-        neighborhood: true,
-        city: true,
-        region: true,
-        postalCode: true,
-        latitude: true,
-        longitude: true,
-        coordinatesAt: true,
-      },
-    });
-    return { orders, location };
-  });
-
-  const now = new Date();
-  // Coordinate solo se ancora valide (cache di 30 giorni, regole di Google).
-  const coordinatesById = new Map<string, Coordinates>();
-  for (const order of orders) {
-    const coordinates = freshCoordinates(
-      {
-        latitude: order.deliveryLatitude,
-        longitude: order.deliveryLongitude,
-        coordinatesAt: order.deliveryCoordinatesAt,
-      },
-      now,
-    );
-    if (coordinates) coordinatesById.set(order.id, coordinates);
-  }
-  const shopCoordinates = location ? freshCoordinates(location, now) : null;
-
-  const all = orders.map((order): RouteStopDto => ({
-    id: order.id,
-    numberLabel: formatOrderNumber(order.number),
-    status: order.status,
-    windowStart:
-      order.windowStartMinutes === null ? null : formatTimeOfDay(order.windowStartMinutes),
-    windowEnd: order.windowEndMinutes === null ? null : formatTimeOfDay(order.windowEndMinutes),
-    customerName: order.customer.displayName,
-    customerPhone: order.customer.phone,
-    recipientName: order.recipientName,
-    recipientPhone: order.recipientPhone,
-    address: oneLine([
-      order.deliveryAddressLine1,
-      order.deliveryAddressLine2,
-      order.deliveryNeighborhood,
-      order.deliveryPostalCode,
-      order.deliveryCity,
-      order.deliveryRegion ? region(order.deliveryRegion) : null,
-    ]),
-    deliveryNotes: order.deliveryNotes,
-    assigneeName: order.assignedTo?.user.name ?? null,
-    assignedToMe: order.assignedTo?.id === ctx.membershipId,
-    balanceMinor: orderBalanceMinor(order.paidMinor, order.totalMinor),
-    currency: order.currency,
-    nextSteps: allowedOrderSteps(ctx, order.status, order.fulfillmentMode),
+  const { rows, origin } = await withTenantContext(getDb(), ctx, async (tx) => ({
+    rows: await loadDeliveryStopsTx(tx, ctx, day, options),
+    origin: await loadShopOriginTx(tx, ctx),
   }));
-
   // Dentro ogni fascia: la più vicina a dove si è (la fioreria, poi l'ultima fermata).
-  const pending = all.filter((stop) => stop.status !== 'DELIVERED');
-  const ordered: RouteStopDto[] = [];
-  let position = shopCoordinates;
-  let orderedByDistance = false;
-  const windowOf = (stop: RouteStopDto) => `${stop.windowStart}-${stop.windowEnd}`;
-  for (let start = 0; start < pending.length;) {
-    const window = windowOf(pending[start]!);
-    let end = start;
-    while (end < pending.length && windowOf(pending[end]!) === window) end += 1;
-    const group = pending.slice(start, end);
-    if (group.filter((stop) => coordinatesById.has(stop.id)).length > 1) orderedByDistance = true;
-    const sorted = nearestNeighborOrder(
-      position,
-      group,
-      (stop) => coordinatesById.get(stop.id) ?? null,
-    );
-    ordered.push(...sorted);
-    const last = [...sorted].reverse().find((stop) => coordinatesById.has(stop.id));
-    if (last) position = coordinatesById.get(last.id) ?? position;
-    start = end;
-  }
-
+  const pending = rows.filter((row) => row.stop.status !== 'DELIVERED');
+  const ordered = orderRouteStops(pending, {
+    origin: origin.coordinates,
+    windowOf: (row) => row.window,
+    coordinatesOf: (row) => row.coordinates,
+  });
   return {
     date: formatDateParts(day) ?? '',
     isToday: formatDateParts(day) === formatDateParts(today),
-    origin: location
-      ? oneLine([
-          location.addressLine1,
-          location.neighborhood,
-          location.postalCode,
-          location.city,
-          region(location.region),
-        ])
-      : null,
-    stops: ordered,
-    orderedByDistance,
-    delivered: all.filter((stop) => stop.status === 'DELIVERED'),
-    unassigned: orders.filter(
-      (order) => order.status !== 'DELIVERED' && order.assignedMembershipId === null,
+    origin: origin.address,
+    stops: ordered.stops.map((row) => row.stop),
+    orderedByDistance: ordered.orderedByDistance,
+    delivered: rows.filter((row) => row.stop.status === 'DELIVERED').map((row) => row.stop),
+    unassigned: rows.filter(
+      (row) => row.stop.status !== 'DELIVERED' && row.stop.assigneeName === null,
     ).length,
   };
 }

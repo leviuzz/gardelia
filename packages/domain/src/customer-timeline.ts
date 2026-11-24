@@ -13,6 +13,7 @@ export const CUSTOMER_TIMELINE_KINDS = [
   'payment',
   'promo_sent',
   'promo_redeemed',
+  'care_visit',
 ] as const;
 export type CustomerTimelineKind = (typeof CUSTOMER_TIMELINE_KINDS)[number];
 

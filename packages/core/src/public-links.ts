@@ -1,5 +1,6 @@
 /**
- * Link pubblici di preventivi e ordini, lato cliente (ADR-056). Il cliente non ha una sessione:
+ * Link pubblici di preventivi, ordini e resoconti delle visite di Floral Care, lato cliente
+ * (ADR-056, ADR-076). Il cliente non ha una sessione:
  * fioreria e link vengono SOLO dal token verificato (firma HMAC, `signed-ids.ts`), il link deve
  * essere attivo e non scaduto, e i dati si leggono nel contesto di quella fioreria (RLS attiva),
  * mai con un contesto di sistema. Si espone solo ciò che il cliente deve vedere: niente costi,
@@ -30,6 +31,7 @@ import type { RequestMeta } from './context';
 import { NotFoundError } from './errors';
 import { logger } from './logger';
 import { readStoredImage, type StoredImage } from './media/stored-files';
+import { loadCareVisitReportTx, type CareVisitReportDto } from './services/care-report';
 import { dateToParts, formatDateParts } from './services/quote-internals';
 import { readIdPair, signIdPair } from './signed-ids';
 
@@ -51,10 +53,16 @@ function readPublicLinkToken(
   return ids ? { tenantId: ids[0], linkId: ids[1] } : null;
 }
 
-/** Indirizzi pubblici: `/cotizacion/<token>` e `/pedido/<token>`. */
+const PUBLIC_PATHS: Readonly<Record<PublicLinkKind, string>> = {
+  QUOTE: 'cotizacion',
+  ORDER: 'pedido',
+  CARE_VISIT: 'visita',
+};
+
+/** Indirizzi pubblici: `/cotizacion/<token>`, `/pedido/<token>` e `/visita/<token>`. */
 export function publicLinkUrl(appUrl: string, kind: PublicLinkKind, token: string): string {
   const base = appUrl.replace(/\/+$/, '');
-  return `${base}/${kind === 'QUOTE' ? 'cotizacion' : 'pedido'}/${token}`;
+  return `${base}/${PUBLIC_PATHS[kind]}/${token}`;
 }
 
 export interface PublicShopDto {
@@ -69,6 +77,7 @@ interface LinkScope {
   readonly tenantId: string;
   readonly quoteId: string | null;
   readonly orderId: string | null;
+  readonly careVisitId: string | null;
   readonly shop: PublicShopDto;
 }
 
@@ -89,7 +98,7 @@ async function withActiveLink<T>(
         revokedAt: null,
         expiresAt: { gt: new Date() },
       },
-      select: { quoteId: true, orderId: true },
+      select: { quoteId: true, orderId: true, careVisitId: true },
     });
     if (!link) return null;
     // Una fioreria archiviata (anche in eliminazione, ADR-074) non mostra più nulla a nessuno.
@@ -108,6 +117,7 @@ async function withActiveLink<T>(
       tenantId: ids.tenantId,
       quoteId: link.quoteId,
       orderId: link.orderId,
+      careVisitId: link.careVisitId,
       shop: {
         name: tenant.displayName,
         phone: tenant.contactPhone ?? tenant.locations[0]?.phone ?? null,
@@ -511,6 +521,69 @@ export async function getPublicOrderPhoto(
       variant === 'thumb' ? photo.thumbKey : photo.storageKey,
       photo.contentType,
       'OrderPhoto',
+    );
+  } catch (error) {
+    if (error instanceof NotFoundError) return null;
+    throw error;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Resoconto di una visita di Floral Care (ADR-076)
+// -----------------------------------------------------------------------------
+
+export interface PublicCareVisitDto {
+  readonly shop: PublicShopDto;
+  /** Senza il nome del cliente: il link si può inoltrare. */
+  readonly report: Omit<CareVisitReportDto, 'customerName'>;
+}
+
+/** Il resoconto della visita del link; null se il link non vale o la visita non è chiusa. */
+export async function getPublicCareVisitReport(
+  secret: string,
+  token: unknown,
+): Promise<PublicCareVisitDto | null> {
+  return withActiveLink(secret, token, 'CARE_VISIT', async (tx, scope) => {
+    if (!scope.careVisitId) return null;
+    const report = await loadCareVisitReportTx(
+      tx,
+      scope.tenantId,
+      scope.careVisitId,
+      scope.shop.timezone,
+    );
+    if (!report) return null;
+    const { customerName: _customerName, ...visible } = report;
+    return { shop: scope.shop, report: visible };
+  });
+}
+
+/** Una foto (o la miniatura) della visita del link; null se non è sua, è stata tolta o cancellata. */
+export async function getPublicCareVisitPhoto(
+  secret: string,
+  token: unknown,
+  photoId: string,
+  variant: 'thumb' | 'full',
+): Promise<StoredImage | null> {
+  if (!isUuid(photoId)) return null;
+  const photo = await withActiveLink(secret, token, 'CARE_VISIT', async (tx, scope) => {
+    if (!scope.careVisitId) return null;
+    return tx.carePhoto.findFirst({
+      where: {
+        tenantId: scope.tenantId,
+        id: photoId,
+        visitId: scope.careVisitId,
+        removedAt: null,
+        deletedAt: null,
+      },
+      select: { storageKey: true, thumbKey: true, contentType: true },
+    });
+  });
+  if (!photo) return null;
+  try {
+    return await readStoredImage(
+      variant === 'thumb' ? photo.thumbKey : photo.storageKey,
+      photo.contentType,
+      'CarePhoto',
     );
   } catch (error) {
     if (error instanceof NotFoundError) return null;
