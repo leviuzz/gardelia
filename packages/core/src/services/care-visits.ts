@@ -3,7 +3,7 @@
  * posti occupati), il mese (quante visite per giorno) e le visite "Por reprogramar". Chi gestisce
  * sposta, cancella o assegna una visita. Spostare o cancellare tocca una visita già fissata: serve
  * "Sí, avisé al cliente"; cambiare solo la persona no. La visita dal telefono (Empezar, passi,
- * Terminar, No se pudo) è in `care-visit-work.ts` (ADR-076).
+ * Terminar, No se pudo) è in `care-visit-work.ts` (ADR-078).
  */
 import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
 import {

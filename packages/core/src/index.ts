@@ -203,7 +203,7 @@ export * from './services/delivery-settings';
 export * from './services/care-settings';
 export * from './services/care-contracts';
 export * from './services/care-visits';
-// La visita dal telefono, le foto, gli avvisi, il resoconto e la ruta del día (ADR-076).
+// La visita dal telefono, le foto, gli avvisi, il resoconto e la ruta del día (ADR-078).
 export {
   addCareFollowUp,
   finishCareVisit,

@@ -1,5 +1,5 @@
 /**
- * Foto delle visite di Floral Care (ADR-076). Chi fa la visita (`care:visit`, anche lo staff) le
+ * Foto delle visite di Floral Care (ADR-078). Chi fa la visita (`care:visit`, anche lo staff) le
  * carica una alla volta mentre è in corso: ridotte e senza dati EXIF (posizione GPS), file privati
  * sotto `tenants/{tenantId}/care-photos/<contratto>-<foto>.jpg`. `uploadKey`: un nuovo tentativo
  * dello stesso file (segnale che va e viene) non crea una seconda foto.

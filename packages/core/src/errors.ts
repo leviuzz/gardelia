@@ -137,7 +137,7 @@ export type ConflictReason =
   | 'care_slot_full'
   | 'care_visit_closed'
   | 'care_visit_future'
-  /** La visita dal telefono (ADR-076): i passi si registrano solo a visita in corso. */
+  /** La visita dal telefono (ADR-078): i passi si registrano solo a visita in corso. */
   | 'care_visit_not_in_progress'
   /** "Terminar visita": ogni pianta deve avere il suo stato ("Todas bien" lo fa in un tocco). */
   | 'care_plants_unmarked'

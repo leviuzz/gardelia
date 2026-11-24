@@ -1,5 +1,5 @@
 /**
- * Floral Care, blocco 2 (ADR-076): la visita dal telefono. Regole pure, senza I/O:
+ * Floral Care, blocco 2 (ADR-078): la visita dal telefono. Regole pure, senza I/O:
  *  - i passi della visita (servizi, piante, foto, materiali, avvisi, nota) e i loro moduli;
  *  - il conteggio delle piante per il resoconto del cliente;
  *  - quando si cancellano le foto: 30 giorni dopo la fine del contratto (decisione del founder);

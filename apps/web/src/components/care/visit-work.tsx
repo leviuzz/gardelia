@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * La visita dal telefono (ADR-076): ogni riga è un piccolo form che salva da sola (sul posto il
+ * La visita dal telefono (ADR-078): ogni riga è un piccolo form che salva da sola (sul posto il
  * segnale può mancare: quello già salvato resta). La pagina si ricarica dal server dopo ogni passo,
  * quindi le righe mostrano sempre lo stato salvato; durante l'invio la riga è in attesa.
  */

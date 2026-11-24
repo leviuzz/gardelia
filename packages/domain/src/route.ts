@@ -70,7 +70,7 @@ function compareNullableMinutes(a: number | null, b: number | null): number {
 }
 
 /**
- * L'ordine del giro del giorno (consegne e visite di Floral Care, ADR-076): per fascia (inizio, poi
+ * L'ordine del giro del giorno (consegne e visite di Floral Care, ADR-078): per fascia (inizio, poi
  * fine; quelle "in giornata" in fondo) e, dentro la stessa fascia, la fermata più vicina a dove si
  * è: la fioreria, poi l'ultima fermata con le coordinate. A parità resta l'ordine ricevuto.
  */

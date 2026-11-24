@@ -717,7 +717,7 @@ model InventoryEntry {
   reservation InventoryReservation?
   /// L'ordine scaricato con questo registro (ADR-071).
   order       Order?
-  /// La visita di Floral Care che ha usato i materiali (ADR-076).
+  /// La visita di Floral Care che ha usato i materiali (ADR-078).
   careVisit   CareVisit?
 
   @@unique([tenantId, id])
@@ -1774,12 +1774,12 @@ model DeliveryWindow {
 enum PublicLinkKind {
   QUOTE
   ORDER
-  /// Resoconto di una visita di Floral Care (ADR-076).
+  /// Resoconto di una visita di Floral Care (ADR-078).
   CARE_VISIT
 }
 
 /// Link pubblico di un preventivo (con accettazione), di un ordine (stato) o del resoconto di una
-/// visita di Floral Care, da mandare al cliente (ADR-056, ADR-076). Il token non si salva: è
+/// visita di Floral Care, da mandare al cliente (ADR-056, ADR-078). Il token non si salva: è
 /// firmato dal server (fioreria + ID del link), quindi il fiorista può ricopiarlo quando vuole.
 /// Scade e si può disattivare; uno solo attivo per documento.
 model PublicLink {
@@ -1907,7 +1907,7 @@ enum CareVisitCancelReason {
   CUSTOMER
 }
 
-/// Stato di una pianta alla visita dal telefono (ADR-076).
+/// Stato di una pianta alla visita dal telefono (ADR-078).
 enum CarePlantCondition {
   OK
   ATTENTION
@@ -2178,7 +2178,7 @@ model CareVisit {
   isExtra              Boolean                @default(false)
   assignedMembershipId String?                @db.Uuid
   startedAt            DateTime?
-  /// Chi ha iniziato la visita dal telefono ("Empezar visita", ADR-076).
+  /// Chi ha iniziato la visita dal telefono ("Empezar visita", ADR-078).
   startedById          String?                @db.Uuid
   finishedAt           DateTime?
   /// Perché si è cancellata: serve ai cargos (una visita tolta dalla fioreria è un credito).
@@ -2186,7 +2186,7 @@ model CareVisit {
   /// Hecha o no realizada: la nota che il cliente legge nel resoconto. Cancellata: il perché.
   outcomeNote          String?
   closedById           String?                @db.Uuid
-  /// Registro d'inventario con i materiali usati, scritto a "Terminar visita" (ADR-076).
+  /// Registro d'inventario con i materiali usati, scritto a "Terminar visita" (ADR-078).
   inventoryEntryId     String?                @db.Uuid
   createdById          String?                @db.Uuid
   createdAt            DateTime               @default(now())
@@ -2212,7 +2212,7 @@ model CareVisit {
   @@index([tenantId, subscriptionId])
 }
 
-/// Un servizio della checklist di una visita (ADR-076). Punta al servizio della fioreria, che non si
+/// Un servizio della checklist di una visita (ADR-078). Punta al servizio della fioreria, che non si
 /// cancella mai (quelli del contratto sì, a ogni modifica), e ne copia nome, prezzo e unità: il
 /// resoconto resta com'era anche se poi il servizio cambia.
 model CareVisitServiceResult {
@@ -2281,7 +2281,7 @@ model CareVisitMaterial {
   @@unique([tenantId, visitId, catalogItemId])
 }
 
-/// Foto di una visita (ADR-076), file privati sotto `tenants/{tenantId}/care-photos/`. Si cancellano
+/// Foto di una visita (ADR-078), file privati sotto `tenants/{tenantId}/care-photos/`. Si cancellano
 /// da R2 30 giorni dopo la fine del contratto, o subito se tolte (eccezione voluta dal founder): la
 /// riga resta con `deletedAt`. `uploadKey`: un nuovo tentativo dello stesso file non la raddoppia.
 model CarePhoto {
@@ -2315,7 +2315,7 @@ model CarePhoto {
   @@index([tenantId, visitId])
 }
 
-/// Avviso della squadra per chi gestisce (ADR-076): una pianta morta da reponer (anche creato da
+/// Avviso della squadra per chi gestisce (ADR-078): una pianta morta da reponer (anche creato da
 /// solo), un lavoro extra chiesto dal cliente, altro. Non si cancella: si segna come atteso.
 model CareFollowUp {
   id             String             @id @default(uuid(7)) @db.Uuid
@@ -2344,7 +2344,7 @@ model CareFollowUp {
   @@index([tenantId, visitId])
 }
 
-/// Tabella d'uscita delle email di Floral Care al cliente (ADR-076): una per visita e tipo, così il
+/// Tabella d'uscita delle email di Floral Care al cliente (ADR-078): una per visita e tipo, così il
 /// resoconto parte una volta sola anche con due "Terminar" o con i nuovi tentativi. Non salva
 /// l'indirizzo: lo rilegge dal cliente al momento di mandare.
 model CareEmail {

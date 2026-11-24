@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Foto della visita dal telefono (ADR-076): "Tomar foto" (fotocamera) o "De la galería", ridotte
+ * Foto della visita dal telefono (ADR-078): "Tomar foto" (fotocamera) o "De la galería", ridotte
  * nel browser e mandate UNA alla volta. Ogni file ha la sua chiave (`uploadKey`): se la rete cade
  * e si riprova, il server riconosce lo stesso file e non crea una seconda foto.
  */

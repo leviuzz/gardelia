@@ -33,7 +33,7 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
     { href: routes.quotes.list(), label: t('nav.quotes'), icon: 'quotes' },
     // L'Agenda dei lavori (visite e consegne, ADR-075): nella barra in basso al posto di Clientes,
     // per chi esce a fare visite e consegne dal telefono (decisione del founder del 24/11/2026,
-    // ADR-076). I contratti di Floral Care su mobile stanno in "Más".
+    // ADR-078). I contratti di Floral Care su mobile stanno in "Más".
     { href: routes.agenda.day(), label: t('nav.agenda'), icon: 'agenda' },
     ...(hasPermission(ctx, 'subscriptions:read')
       ? [

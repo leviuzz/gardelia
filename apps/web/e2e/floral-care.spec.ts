@@ -4,7 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
  * Floral Care (ADR-075, blocco 1): la fiorista prepara l'offerta e un orario di visita, fa un
  * contratto dalla scheda del cliente con le piante della diagnosi, lo conferma (il prezzo lo
  * calcola il server) e trova la visita nell'Agenda; spostarla chiede "Sí, avisé al cliente".
- * Blocco 2 (ADR-076): lo staff fa la visita di oggi dal telefono (servizi, piante, foto, nota,
+ * Blocco 2 (ADR-078): lo staff fa la visita di oggi dal telefono (servizi, piante, foto, nota,
  * avviso) e la termina; il cliente apre il resoconto senza account; la proprietaria vede l'avviso
  * e la visita nella ruta. Alla fine il contratto finisce e l'orario si archivia, così le
  * esecuzioni non si sommano.

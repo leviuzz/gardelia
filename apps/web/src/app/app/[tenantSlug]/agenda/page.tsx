@@ -54,7 +54,7 @@ async function loadCareDay(ctx: TenantContext, date: string | undefined) {
 }
 
 /**
- * Agenda dei lavori (ADR-075, ADR-076): il giorno con le visite di Floral Care per fascia (con i
+ * Agenda dei lavori (ADR-075, ADR-078): il giorno con le visite di Floral Care per fascia (con i
  * posti) e i pedidos che escono. Dalla visita: "Empezar" o "Continuar" (la visita dal telefono è
  * nella sua pagina, con "No se pudo", spostare, cancellare e assegnare). Chi gestisce vede gli
  * avvisi della squadra ancora aperti. Il calendario delle date dei clienti resta a parte.

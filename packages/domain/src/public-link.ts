@@ -1,11 +1,11 @@
 /**
  * Link pubblici di preventivi e ordini (ADR-056) e dei resoconti delle visite di Floral Care
- * (ADR-076): il cliente apre il documento senza account, vede lo stato e accetta il preventivo. Regole pure: durata e documenti che si possono condividere.
+ * (ADR-078): il cliente apre il documento senza account, vede lo stato e accetta il preventivo. Regole pure: durata e documenti che si possono condividere.
  */
 import type { OrderStatus } from './order';
 import type { QuoteStatus } from './quote';
 
-/** `CARE_VISIT`: il resoconto di una visita di Floral Care (ADR-076). */
+/** `CARE_VISIT`: il resoconto di una visita di Floral Care (ADR-078). */
 export const PUBLIC_LINK_KINDS = ['QUOTE', 'ORDER', 'CARE_VISIT'] as const;
 export type PublicLinkKind = (typeof PUBLIC_LINK_KINDS)[number];
 

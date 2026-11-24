@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Server action delle visite di Floral Care nell'Agenda (ADR-075, ADR-076): la visita dal telefono
+ * Server action delle visite di Floral Care nell'Agenda (ADR-075, ADR-078): la visita dal telefono
  * (Empezar, passi, foto, Terminar, No se pudo, resoconto), spostare, cancellare, assegnare, il link
  * del resoconto e gli avvisi per chi gestisce. Il servizio di @floral/core ricontrolla permessi,
  * piano, fioreria, stato della visita, posti nella fascia e la casella "Sí, avisé al cliente".

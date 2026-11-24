@@ -1,5 +1,5 @@
 /**
- * Parti comuni delle visite di Floral Care (ADR-075, ADR-076): la riga dell'Agenda, i permessi di
+ * Parti comuni delle visite di Floral Care (ADR-075, ADR-078): la riga dell'Agenda, i permessi di
  * chi guarda e il blocco della visita. NON esportato da `@floral/core`.
  */
 import type { Prisma, TransactionClient } from '@floral/db';

@@ -79,7 +79,7 @@ export type CustomerTimelineEvent =
     })
   | (TimelineBase & { readonly kind: 'promo_redeemed'; readonly code: string })
   | (TimelineBase & {
-      /** Visita di Floral Care chiusa (ADR-076): hecha o no realizada. */
+      /** Visita di Floral Care chiusa (ADR-078): hecha o no realizada. */
       readonly kind: 'care_visit';
       readonly visitId: string;
       readonly subscriptionId: string;
@@ -276,7 +276,7 @@ export async function getCustomerTimeline(
       });
     }
 
-    // Visite di Floral Care chiuse (ADR-076): per chi vede i contratti, se la fioreria ha il piano.
+    // Visite di Floral Care chiuse (ADR-078): per chi vede i contratti, se la fioreria ha il piano.
     if (canCare && (await getEntitlements(ctx, tx)).floralCare) {
       const visits = await tx.careVisit.findMany({
         where: {

@@ -6,7 +6,7 @@
  * clienti dimenticate da più di un giorno e ne cancella il file (`app_close_stale_customer_imports`,
  * ADR-070); annulla gli ordini online che nessuna fioreria ha accettato in tempo e lo scrive a chi
  * compra (ADR-067); allunga le visite di Floral Care, chiude i contratti finiti (ADR-075), ne
- * cancella le foto 30 giorni dopo e riprova i resoconti rimasti indietro (ADR-076). Le pagine
+ * cancella le foto 30 giorni dopo e riprova i resoconti rimasti indietro (ADR-078). Le pagine
  * mostrano già lo stato effettivo calcolato in lettura: questo lavoro rende il dato salvato coerente
  * (filtri, report, esportazioni).
  *
@@ -37,7 +37,7 @@ export interface MaintenanceResult {
   /** Floral Care (ADR-075): visite nuove (con posto o da riprogrammare) e contratti chiusi. */
   readonly careVisitsCreated: number;
   readonly careContractsEnded: number;
-  /** Floral Care (ADR-076): foto cancellate e resoconti mandati dal lavoro. */
+  /** Floral Care (ADR-078): foto cancellate e resoconti mandati dal lavoro. */
   readonly carePhotosDeleted: number;
   readonly careEmailsSent: number;
   /** Fiorerie cancellate davvero, 30 giorni dopo "Eliminar florería" (ADR-074). */

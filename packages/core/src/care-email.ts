@@ -1,5 +1,5 @@
 /**
- * Email del resoconto di una visita di Floral Care (ADR-076): la fioreria scrive al suo cliente,
+ * Email del resoconto di una visita di Floral Care (ADR-078): la fioreria scrive al suo cliente,
  * nella lingua del mercato della fioreria (ADR-042), cosa si è fatto e come stanno le piante, con
  * il pulsante per il resoconto completo con le foto (link pubblico, ADR-056). Niente immagini
  * nell'email. Testo semplice + HTML minimale con stili inline; ogni valore dinamico passa

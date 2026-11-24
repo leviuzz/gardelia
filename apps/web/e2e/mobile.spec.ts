@@ -9,7 +9,7 @@ test.describe('staff', () => {
     await page.goto('/app/las-camelias');
     const bottomNav = page.getByRole('navigation', { name: 'Navegación principal' }).last();
     await expect(bottomNav).toBeVisible();
-    // Pedidos e Agenda sono nella barra in basso (ADR-054, ADR-076); il Catálogo nel menu "Más".
+    // Pedidos e Agenda sono nella barra in basso (ADR-054, ADR-078); il Catálogo nel menu "Más".
     await expect(bottomNav.getByRole('link', { name: 'Pedidos' })).toBeVisible();
     await expect(bottomNav.getByRole('link', { name: 'Agenda' })).toBeVisible();
     await expect(bottomNav.getByRole('link', { name: 'Clientes' })).toHaveCount(0);

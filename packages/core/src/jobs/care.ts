@@ -1,5 +1,5 @@
 /**
- * Lavori giornalieri di Floral Care (ADR-075, ADR-076), dentro la manutenzione:
+ * Lavori giornalieri di Floral Care (ADR-075, ADR-078), dentro la manutenzione:
  *  - allunga le visite dei contratti attivi che coprono meno di 45 giorni, fino a 60 da oggi;
  *  - chiude i contratti il cui ultimo giorno è passato;
  *  - cancella dallo storage le foto dei contratti finiti da 30 giorni (e quelle tolte i cui file

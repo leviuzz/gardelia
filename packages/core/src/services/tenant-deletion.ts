@@ -220,7 +220,7 @@ export async function purgeDeletedTenants(): Promise<number> {
         }),
         tx.styleReferencePhoto.findMany({ where, select: { storageKey: true, thumbKey: true } }),
         tx.orderPhoto.findMany({ where, select: { storageKey: true, thumbKey: true } }),
-        // Foto delle visite di Floral Care (ADR-076) i cui file ci sono ancora.
+        // Foto delle visite di Floral Care (ADR-078) i cui file ci sono ancora.
         tx.carePhoto.findMany({
           where: { tenantId, deletedAt: null },
           select: { storageKey: true, thumbKey: true },

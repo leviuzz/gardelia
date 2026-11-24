@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 /**
  * Il resoconto di una visita di Floral Care aperto dal cliente con il link della fioreria
- * (ADR-076): cosa si è fatto, come stanno le piante, la nota e le foto, nella lingua del mercato
+ * (ADR-078): cosa si è fatto, come stanno le piante, la nota e le foto, nella lingua del mercato
  * della fioreria. Senza sessione; mai prezzi, materiali né avvisi interni. Si stampa.
  */
 export default async function PublicCareVisitPage({ params }: PageProps<'/visita/[token]'>) {
@@ -27,10 +27,11 @@ export default async function PublicCareVisitPage({ params }: PageProps<'/visita
     return <PublicInvalidLink title={t('invalidTitle')} body={t('invalid')} footer={footer} />;
   }
   const tr = await getTranslations({ locale, namespace: 'care.report' });
-  const base = `/visita/${encodeURIComponent(token)}/foto`;
+  const link = `/visita/${encodeURIComponent(token)}`;
   return (
     <PublicShell
       shopName={data.shop.name}
+      logoSrc={data.shop.logoId ? `${link}/logo?v=${data.shop.logoId}` : null}
       footer={footer}
       contact={
         data.shop.phone
@@ -55,7 +56,7 @@ export default async function PublicCareVisitPage({ params }: PageProps<'/visita
         report={data.report}
         locale={locale}
         photoSrc={(photoId, thumb) =>
-          `${base}/${encodeURIComponent(photoId)}${thumb ? '?size=thumb' : ''}`
+          `${link}/foto/${encodeURIComponent(photoId)}${thumb ? '?size=thumb' : ''}`
         }
       />
     </PublicShell>

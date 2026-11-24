@@ -48,7 +48,7 @@ function single(value: string | string[] | undefined): string | undefined {
 }
 
 /**
- * Ruta del día dell'Agenda (ADR-076): consegne a domicilio e visite di Floral Care in un solo
+ * Ruta del día dell'Agenda (ADR-078): consegne a domicilio e visite di Floral Care in un solo
  * giro, per fascia e (con le coordinate) per vicinanza, con "Ir", "Llamar", WhatsApp e, per le
  * visite, "Empezar" o "Continuar". "Míos": solo le fermate di chi guarda. Le azioni sugli ordini
  * restano nella ruta dei Pedidos.

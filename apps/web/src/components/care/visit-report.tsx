@@ -1,5 +1,5 @@
 /**
- * Il resoconto di una visita di Floral Care (ADR-076): lo stesso nella pagina della visita (lingua
+ * Il resoconto di una visita di Floral Care (ADR-078): lo stesso nella pagina della visita (lingua
  * di chi guarda) e nella pagina pubblica del cliente (lingua del mercato della fioreria). Cosa si è
  * fatto, come stanno le piante, la nota, le foto. Mai prezzi, materiali né avvisi interni.
  */

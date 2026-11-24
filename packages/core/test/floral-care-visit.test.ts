@@ -37,12 +37,14 @@ import {
   getPublicCareVisitPhoto,
   getPublicCareVisitReport,
   getPublicLink,
+  getPublicShopLogo,
   listCareFollowUps,
   listCareMaterialOptions,
   markAllCarePlantsOk,
   markCareVisitNotDone,
   purgeDeletedTenants,
   removeCareVisitPhoto,
+  removeStoreImage,
   requestTenantDeletion,
   resolveCareFollowUp,
   revokePublicLink,
@@ -52,6 +54,7 @@ import {
   setCareVisitPlantResult,
   setCareVisitServiceResult,
   setObjectStorage,
+  setStoreImage,
   startCareVisit,
   startInventoryTracking,
   updateCareSettings,
@@ -65,7 +68,7 @@ import { logger } from '../src/logger';
 import { contextFor, createTestShop, itemInput, type TestShop } from '../src/testing';
 
 /**
- * Floral Care, blocco 2 (ADR-076): la visita dal telefono. Avvio, passi salvati uno per uno, foto
+ * Floral Care, blocco 2 (ADR-078): la visita dal telefono. Avvio, passi salvati uno per uno, foto
  * (anche nuovi tentativi), materiali dall'inventario una volta sola, chiusura due volte, email del
  * resoconto una sola volta (anche con errori e nuovi tentativi), link pubblico, avvisi per chi
  * gestisce, cancellazione delle foto a fine contratto e isolamento fra fiorerie.
@@ -460,6 +463,20 @@ describe('i passi della visita', () => {
     expect(report?.report).toMatchObject({ status: 'DONE', visitedBy: expect.any(String) });
     expect(report?.report.tally).toMatchObject({ total: 13, ok: 13 });
     expect(report?.report).not.toHaveProperty('customerName');
+
+    // Il logo della fioreria accompagna il resoconto come i link di cotizaciones e pedidos.
+    expect(report?.shop.logoId).toBeNull();
+    expect(await getPublicShopLogo(deps.secret, token, 'CARE_VISIT')).toBeNull();
+    const logo = await setStoreImage(live.owner, 'LOGO', await jpeg({ r: 30, g: 120, b: 80 }));
+    try {
+      expect((await getPublicCareVisitReport(deps.secret, token))?.shop.logoId).toBe(logo.id);
+      const image = await getPublicShopLogo(deps.secret, token, 'CARE_VISIT');
+      expect(image?.bytes.length).toBeGreaterThan(0);
+      // Il token di un resoconto non vale come link di un ordine.
+      expect(await getPublicShopLogo(deps.secret, token, 'ORDER')).toBeNull();
+    } finally {
+      await removeStoreImage(live.owner, 'LOGO');
+    }
   });
 });
 

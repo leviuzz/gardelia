@@ -99,7 +99,7 @@ export async function generateMetadata({
 }
 
 /**
- * Una visita di Floral Care (ADR-075, ADR-076). Programmata: "Empezar visita" o "No se pudo".
+ * Una visita di Floral Care (ADR-075, ADR-078). Programmata: "Empezar visita" o "No se pudo".
  * In corso: la visita dal telefono (servizi, piante, foto, materiali, nota, avvisi) e "Terminar".
  * Chiusa: il resoconto con il suo link e l'email al cliente. Chi gestisce sposta, assegna e
  * cancella (spostare e cancellare con "Sí, avisé al cliente").

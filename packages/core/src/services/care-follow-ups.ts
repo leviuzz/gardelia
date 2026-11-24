@@ -1,5 +1,5 @@
 /**
- * Avvisi della squadra per chi gestisce (ADR-076): una pianta morta da reponer (creato anche da
+ * Avvisi della squadra per chi gestisce (ADR-078): una pianta morta da reponer (creato anche da
  * solo a "Terminar visita"), un lavoro extra chiesto dal cliente, altro. Li scrive chi fa la
  * visita (`care:visit`, anche lo staff); li vede tutta la squadra e li segna come attesi solo chi
  * gestisce i contratti. Non si cancellano mai.

@@ -1,4 +1,4 @@
--- Floral Care, blocco 2 (ADR-076), parte 2: i vincoli che usano 'CARE_VISIT' (aggiunto nella
+-- Floral Care, blocco 2 (ADR-078), parte 2: i vincoli che usano 'CARE_VISIT' (aggiunto nella
 -- migrazione precedente, non utilizzabile nella stessa transazione).
 
 -- Un link punta a un solo documento, quello del suo tipo.

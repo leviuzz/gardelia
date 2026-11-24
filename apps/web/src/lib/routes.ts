@@ -165,7 +165,7 @@ export function tenantRoutes(slug: string) {
       day: (query?: { readonly date?: string }) => withQuery(agenda, query),
       month: (query?: { readonly month?: string }) => withQuery(`${agenda}/month`, query),
       toReschedule: `${agenda}/reschedule`,
-      /** Una visita: la visita dal telefono (ADR-076), spostarla, cancellarla, assegnarla. */
+      /** Una visita: la visita dal telefono (ADR-078), spostarla, cancellarla, assegnarla. */
       visit: (visitId: string) => `${agenda}/visits/${segment(visitId)}`,
       /** Una foto della visita (`thumb` = miniatura). */
       visitPhoto: (visitId: string, photoId: string, options?: { readonly thumb?: boolean }) =>

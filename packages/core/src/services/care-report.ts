@@ -1,5 +1,5 @@
 /**
- * Il resoconto di una visita di Floral Care (ADR-076): lo stesso per la pagina della visita, la
+ * Il resoconto di una visita di Floral Care (ADR-078): lo stesso per la pagina della visita, la
  * pagina pubblica del cliente e l'email. Dice cosa si è fatto, come stanno le piante, la nota per
  * il cliente e le foto; mai prezzi, materiali o avvisi interni della squadra.
  *

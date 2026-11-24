@@ -1,5 +1,5 @@
 /**
- * La visita dal telefono (ADR-076, Floral Care blocco 2). Chi la fa (`care:visit`, anche lo staff):
+ * La visita dal telefono (ADR-078, Floral Care blocco 2). Chi la fa (`care:visit`, anche lo staff):
  *  1. "Empezar visita": la visita passa "En curso" (ora e persona);
  *  2. i passi, ognuno salvato subito (sul posto il segnale può mancare): servizi della checklist,
  *     stato delle piante (anche "Todas bien"), materiali, avvisi per chi gestisce, nota per il

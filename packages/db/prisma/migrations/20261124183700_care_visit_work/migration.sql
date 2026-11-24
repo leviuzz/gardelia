@@ -1,4 +1,4 @@
--- Floral Care, blocco 2 (ADR-076): la visita dal telefono. Checklist dei servizi, stato delle
+-- Floral Care, blocco 2 (ADR-078): la visita dal telefono. Checklist dei servizi, stato delle
 -- piante, materiali, foto, avvisi per chi gestisce, email al cliente e link del resoconto.
 -- Il vincolo che usa il nuovo valore 'CARE_VISIT' di PublicLinkKind è nella migrazione
 -- successiva: un valore aggiunto con ALTER TYPE … ADD VALUE non è utilizzabile nella stessa
@@ -263,7 +263,7 @@ ALTER TABLE "CareEmail" ADD CONSTRAINT "CareEmail_tenantId_visitId_fkey" FOREIGN
 
 
 -- =============================================================================
--- Sicurezza e integrità (ADR-076)
+-- Sicurezza e integrità (ADR-078)
 -- =============================================================================
 
 SELECT app_enable_tenant_rls('"CareVisitServiceResult"');

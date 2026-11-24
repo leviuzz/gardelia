@@ -1,6 +1,6 @@
 /**
  * Link pubblici di preventivi, ordini e resoconti delle visite di Floral Care, lato fioreria
- * (ADR-056, ADR-076): crearlo (o ritrovare quello attivo), rinnovarlo e disattivarlo. Il token non si salva: si ricalcola firmando fioreria e ID
+ * (ADR-056, ADR-078): crearlo (o ritrovare quello attivo), rinnovarlo e disattivarlo. Il token non si salva: si ricalcola firmando fioreria e ID
  * del link, quindi il fiorista può ricopiarlo quando vuole. Cosa vede il cliente: `public-links.ts`.
  */
 import { getDb, isUniqueViolation, withTenantContext, type TransactionClient } from '@floral/db';
@@ -206,7 +206,7 @@ export async function ensureOrderPublicLinkTx(
 }
 
 /**
- * Link del resoconto di una visita di Floral Care appena chiusa (ADR-076): lo stesso se è ancora
+ * Link del resoconto di una visita di Floral Care appena chiusa (ADR-078): lo stesso se è ancora
  * attivo, altrimenti uno nuovo. Da chiamare nella transazione che chiude la visita, con la sua riga
  * bloccata e il permesso già controllato (`care:visit`). Restituisce l'ID del link.
  */

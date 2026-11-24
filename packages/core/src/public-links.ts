@@ -1,6 +1,6 @@
 /**
  * Link pubblici di preventivi, ordini e resoconti delle visite di Floral Care, lato cliente
- * (ADR-056, ADR-076). Il cliente non ha una sessione:
+ * (ADR-056, ADR-078). Il cliente non ha una sessione:
  * fioreria e link vengono SOLO dal token verificato (firma HMAC, `signed-ids.ts`), il link deve
  * essere attivo e non scaduto, e i dati si leggono nel contesto di quella fioreria (RLS attiva),
  * mai con un contesto di sistema. Si espone solo ciò che il cliente deve vedere: niente costi,
@@ -555,7 +555,7 @@ export async function getPublicOrderPhoto(
 }
 
 // -----------------------------------------------------------------------------
-// Resoconto di una visita di Floral Care (ADR-076)
+// Resoconto di una visita di Floral Care (ADR-078)
 // -----------------------------------------------------------------------------
 
 export interface PublicCareVisitDto {

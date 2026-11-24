@@ -39,7 +39,7 @@ async function load(
 }
 
 /**
- * Avvisi della squadra (ADR-076): piante morte da reponer, extra chiesti dai clienti, altro, nati
+ * Avvisi della squadra (ADR-078): piante morte da reponer, extra chiesti dai clienti, altro, nati
  * dalle visite. Chi gestisce li segna come attesi; la squadra li vede.
  */
 export default async function CareFollowUpsPage({

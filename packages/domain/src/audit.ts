@@ -198,7 +198,7 @@ export const AUDIT_ACTIONS = {
   careVisitAssigned: 'care.visit_assigned',
   careVisitMoved: 'care.visit_moved',
   careVisitCancelled: 'care.visit_cancelled',
-  /** La visita dal telefono (ADR-076): iniziata, una foto tolta, avvisi per chi gestisce. */
+  /** La visita dal telefono (ADR-078): iniziata, una foto tolta, avvisi per chi gestisce. */
   careVisitStarted: 'care.visit_started',
   careVisitPhotoRemoved: 'care.visit_photo_removed',
   careFollowUpCreated: 'care.follow_up_created',
