@@ -22,10 +22,9 @@ Prodotto, nell'ordine di `docs/V1_SCOPE.md` §5:
 2. Ordini, pagamenti registrati e consegne; link pubblici di preventivo e ordine; **marketplace per
    i clienti** (D-26, deciso dal founder il 23/11/2026): pagine pubbliche, ricerca per indirizzo,
    pagina di ogni fioreria, ordine del cliente registrato, pagamento diretto alla fioreria. Blocchi
-   A1–C5 in `docs/ORDERS_MARKETPLACE_PLAN.md`.
-3. Inventario (blocco 1 fatto: giacenze, movimenti e avvisi, ADR-060; poi compras, apartados e
-   costo dei ramos).
-4. Clienti completi: cronologia, etichette, import CSV.
+   A1–C5 in `docs/ORDERS_MARKETPLACE_PLAN.md` (fatti; restano piccoli resti in `docs/V1_SCOPE.md`).
+3. Inventario (fatto: ADR-060…063, scarico dagli ordini ADR-071).
+4. Clienti completi: cronologia, etichette, import CSV (fatto, ADR-070).
 5. Abbonamenti dei clienti e Floral Care.
 6. Report.
 7. Impostazioni della fioreria ed email ai clienti e al team.
@@ -40,10 +39,91 @@ Fuori dal codice, prima del lancio:
 - commercialista e contador: chi fattura (O-02), IVA (O-06), domande di `docs/BUSINESS_MODEL.md` §6;
 - revisione legale di termini e aviso de privacidad (O-07), compresi i termini per i consumatori del
   marketplace (PROFECO) e la privacy di chi compra; marchio all'IMPI (O-03);
-- chiave di Google Places per gli indirizzi (O-14);
+- ✅ chiave di Google Places per gli indirizzi (O-14, creata il 24/11/2026);
 - fase gratuita: se, quando e come (O-12).
 
 **Traguardo:** V1 completa secondo `docs/V1_SCOPE.md` §3.
+
+## Prima della produzione (passaggio a `prod`)
+
+Il ramo `prod` si aggiorna solo con il via libera del founder (ADR-041). Prima del primo rilascio
+in produzione servono le due liste qui sotto, oltre alla V1 completa. I dettagli tecnici sono in
+`docs/PLATFORM_PLAN.md` e `docs/DEPLOY_VERCEL.md`.
+
+### Sicurezza: "a prova di bomba" (PROPOSTO, 24/11/2026)
+
+Le basi ci sono già. Il login è gestito da Better Auth 1.7.27 senza vulnerabilità note:
+
+- email confermata e password di almeno 10 caratteri;
+- limiti ai tentativi;
+- sessioni con cookie sicuri;
+- Google con PKCE e collegamento solo fra email verificate.
+
+Ci sono anche isolamento fra fiorerie nel database, intestazioni di sicurezza e controllo delle
+dipendenze nella CI. Mancano quattro cose:
+
+1. **Verifica in due passaggi** (codice da un'app di autenticazione, con codici di recupero),
+   obbligatoria per i proprietari e consigliata ai manager (P-09).
+2. **Sessioni attive:** elenco dei dispositivi collegati e "Cerrar sesión en todos los
+   dispositivos", anche per chi perde il telefono del negozio.
+3. **Aggiornamenti e avvisi:**
+   - aggiornamenti automatici delle dipendenze, provati dalla CI prima dell'unione;
+   - scansione dei segreti nel repository;
+   - Sentry con avvisi sugli accessi sospetti (tanti tentativi falliti, nuovo dispositivo del
+     proprietario).
+4. **Revisione di sicurezza esterna** (prova di intrusione) sull'ambiente di prova, con le
+   correzioni fatte prima del lancio.
+
+### Cose da preparare per la produzione
+
+**Infrastruttura:**
+
+- **Progetto Vercel `gardelia-production`:**
+  - dominio definitivo (O-03);
+  - variabili e segreti propri, mai copiati da staging (`BETTER_AUTH_SECRET` nuovo);
+  - piano Pro per l'uso commerciale;
+  - pubblica il ramo `prod`.
+- **Database di produzione** (Neon a pagamento):
+  - backup e ripristino a un momento preciso, con **una prova di ripristino fatta e scritta**;
+  - ruoli separati per le migrazioni e per l'app, che non aggira la RLS (l'app si rifiuta di
+    partire se può);
+  - mai i dati demo.
+- **Archivio delle immagini** (R2) e **chiave di fal.ai** propri della produzione, con un tetto
+  mensile di spesa.
+- **Email:** dominio verificato su Resend (SPF, DKIM, DMARC), così le email arrivano a tutti e non
+  nello spam.
+- **Google:**
+  - chiave di Places della produzione, limitata alle API usate, con quote e avviso di spesa;
+  - client OAuth del login con Google per il dominio vero, con la verifica del marchio (ADR-036).
+- **Rilascio approvato:**
+  - migrazioni prima del deploy, e il deploy usa lo stesso build provato su staging;
+  - test di fumo dopo il deploy;
+  - rollback in pochi secondi;
+  - lavori giornalieri con Vercel Cron.
+- **Monitoraggio:**
+  - controllo che il sito risponda, con un avviso se è giù;
+  - log conservati;
+  - una guida su cosa fare in caso di incidente.
+
+**Prodotto e regole:**
+
+- **Piani:** livelli Esencial e Profesional riaccesi (`PLAN_FEATURES_ENFORCED`, D-23 e D-29) e
+  pagamento con carta in modalità reale, dopo aver deciso chi incassa (O-02).
+- **Testi legali** definitivi dopo l'avvocato (O-07):
+  - via il riquadro "BORRADOR";
+  - nuova versione registrata con ogni ordine;
+  - caselle di consenso se l'avvocato le chiede;
+  - dati della società.
+- **Decisioni del founder sul marketplace:**
+  - giorni per accettare un ordine;
+  - ordini in attesa per cliente;
+  - durata del cookie di attribuzione;
+  - tienda en línea in tutti i livelli o no;
+  - raggio predefinito.
+- Contatto WhatsApp della piattaforma per l'acquisto dei crediti (`PLATFORM_WHATSAPP`) e
+  fatturazione dei crediti con il contador (O-06).
+
+**Traguardo:** le due liste sono complete e il founder dà il via libera al primo rilascio su `prod`.
 
 ## Tappa 1 — Lancio ad Aguascalientes
 

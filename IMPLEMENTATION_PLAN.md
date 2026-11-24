@@ -562,7 +562,9 @@ scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 (`GOOGLE_MAPS_API_KEY`, solo nelle variabili di Vercel): "Buscar dirección", costo per distanza e ruta per
 vicinanza sono attivi dove c'è la chiave. Ricontrollati staging e i rami delle altre chat: nessun lavoro non
 rilasciato. `docs/V1_SCOPE.md` riallineato al codice (consegne, etichette e politica di sostituzione del
-catalogo, email degli ordini online erano già fatti).
+catalogo, email degli ordini online erano già fatti). In `docs/ROADMAP.md` la nuova sezione "Prima della produzione":
+le quattro cose per la sicurezza (verifica in due passaggi, sessioni attive, aggiornamenti e avvisi,
+revisione esterna) e la lista di infrastruttura, prodotto e regole per il primo rilascio su `prod`.
 
 **Scarico dell'inventario dagli ordini (fatto il 23/11, ADR-071):** quando un ordine diventa "Listo" per la
 prima volta i suoi materiali escono dall'inventario (`consumeStockTx`, stessa transazione): prodotti venduti
