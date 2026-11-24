@@ -1,5 +1,5 @@
 /**
- * Floral Care, blocco 3 (ADR-081): cargos e pagamenti dei contratti. Regole pure, senza I/O.
+ * Floral Care, blocco 3 (ADR-082): cargos e pagamenti dei contratti. Regole pure, senza I/O.
  *
  * Una regola sola, per visita (docs/FLORAL_CARE_PLAN.md §3):
  *  - una visita del calendario è DOVUTA se non è "Por reprogramar" e non l'ha tolta la fioreria

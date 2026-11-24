@@ -57,7 +57,7 @@ export async function generateMetadata({
 }
 
 /**
- * Un cargo di Floral Care (ADR-081): le righe (le visite del mese insieme, poi crediti, debiti ed
+ * Un cargo di Floral Care (ADR-082): le righe (le visite del mese insieme, poi crediti, debiti ed
  * extra dei mesi prima), i pagamenti con "Anular", "Registrar pago" o, per il cargo finale a favore
  * del cliente, "Registrar devolución". Si stampa con l'intestazione della fioreria, nella lingua
  * del suo mercato. Lo vede chi gestisce i soldi.

@@ -8,7 +8,7 @@ import { money } from '@/lib/format';
 import { tenantRoutes } from '@/lib/routes';
 
 /**
- * Riquadro "Cobros de Floral Care" del pannello (ADR-081): quanto c'è da cobrar e quanto è
+ * Riquadro "Cobros de Floral Care" del pannello (ADR-082): quanto c'è da cobrar e quanto è
  * vencido, con i link a "Cobros". Solo per chi gestisce i soldi e se la fioreria ha già cargos.
  */
 export async function CareChargesCard({ ctx }: { readonly ctx: TenantContext }) {

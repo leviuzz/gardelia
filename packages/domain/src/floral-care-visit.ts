@@ -326,7 +326,7 @@ export type CareFinishInput = z.infer<typeof careFinishSchema>;
 
 /**
  * "No se pudo": perché (il cliente non ha aperto e la visita si paga, oppure la fioreria non è
- * potuta andare ed è un credito, ADR-081), la nota per il cliente e se mandargli il resoconto.
+ * potuta andare ed è un credito, ADR-082), la nota per il cliente e se mandargli il resoconto.
  */
 export const careNotDoneSchema = z.object({
   cause: careNotDoneCauseField,

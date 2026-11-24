@@ -216,7 +216,7 @@ export async function getCareExtraVisitOptions(
       quotes: hasPermission(ctx, 'quotes:read')
         ? await contractQuotes(tx, ctx, contract.id, OPEN_QUOTE_STATUSES)
         : [],
-      // La regola copiata nel contratto alla conferma (ADR-081); prima c'era solo quella di oggi.
+      // La regola copiata nel contratto alla conferma (ADR-082); prima c'era solo quella di oggi.
       deadPlantPolicy: contract.deadPlantPolicy ?? settings.deadPlantPolicy,
       firstDate: toIsoDate(window.first),
       lastDate: toIsoDate(window.last),

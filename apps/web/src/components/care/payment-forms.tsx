@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Pagamenti di Floral Care (ADR-081): "Registrar pago" su un cargo o sull'estado de cuenta (un
+ * Pagamenti di Floral Care (ADR-082): "Registrar pago" su un cargo o sull'estado de cuenta (un
  * solo pagamento per tutte le sedi), "Registrar devolución" di un saldo a favore, "Anular". Il
  * server ricontrolla tutto: qui solo i campi. La chiave del modulo (`submitKey`) fa sì che lo
  * stesso invio arrivato due volte non raddoppi il pagamento; cambia a ogni apertura riuscita.

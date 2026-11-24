@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 24 novembre 2026 (Floral Care, cargos e pagamenti, ADR-081; reportes, ADR-080; esportazione dei dati, ADR-079; Floral Care, la visita dal telefono e le visite extra, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 24 novembre 2026 (Floral Care, cargos e pagamenti, ADR-082; reportes, ADR-080; esportazione dei dati, ADR-079; Floral Care, la visita dal telefono e le visite extra, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -2350,7 +2350,7 @@ fioreria (ADR-074): prima di eliminarla, i dati si portano via.
   - inventario, movimenti e fornitori;
   - squadra;
   - Floral Care (contratti, visite, piante; dal blocco 3 anche cargos, loro righe e pagamenti,
-    ADR-081).
+    ADR-082).
 
   Le colonne `id` collegano i file. Non contiene foto, immagini del Diseñador e registro di
   attività: il LEEME lo dice.
@@ -2407,7 +2407,7 @@ mostra vendite, margini e costi.
   - confronto fra sedi;
   - export dei report (i dati grezzi ci sono già, ADR-079).
 
-### ADR-081 — Floral Care, blocco 3: cargos e pagamenti dei contratti — ADOTTATO (24/11/2026)
+### ADR-082 — Floral Care, blocco 3: cargos e pagamenti dei contratti — ADOTTATO (24/11/2026)
 
 Blocco 3 del piano approvato (`docs/FLORAL_CARE_PLAN.md` §3 e §7), chiesto dal founder ("ok vai col
 blocco 3") e diviso in due rilasci: 3a (questo) e 3b ("Cobré en la visita" per lo staff, "Por

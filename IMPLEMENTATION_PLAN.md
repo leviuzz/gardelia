@@ -1067,7 +1067,7 @@ Verifiche locali:
 - controllo a 320 px di contratto, dialogo della visita extra, avvisi e Agenda (la riga di una
   visita extra nel contratto sbordava di 6 px: corretta).
 
-**Floral Care, blocco 3a (fatto il 24/11, ADR-081):** "ok vai col blocco 3" del founder, con le
+**Floral Care, blocco 3a (fatto il 24/11, ADR-082):** "ok vai col blocco 3" del founder, con le
 sue quattro decisioni del 24/11 ("Días para pagar" della fioreria, 10 di default; il cliente che
 non apre paga la visita e il recupero è gratis; un solo pagamento sull'estado de cuenta per tutte
 le sedi; lo staff segna gli incassi "por registrar"). Diviso in 3a (questo) e 3b.
@@ -1094,7 +1094,7 @@ le sedi; lo staff segna gli incassi "por registrar"). Diviso in 3a (questo) e 3b
   già confermati hanno preso quelle di oggi con la migrazione.
 - Il dialogo condiviso ora scorre da solo negli schermi bassi (chiusa la nota del 2b).
 - **Unione con staging:** nel frattempo l'altra linea di lavoro ha portato su staging l'esportazione
-  dei dati (ADR-079) e i Reportes (ADR-080), quindi l'ADR dei cargos è diventato ADR-081. Lo ZIP
+  dei dati (ADR-079) e i Reportes (ADR-080), quindi l'ADR dei cargos è diventato ADR-082. Lo ZIP
   dell'esportazione ora contiene anche cargos, loro righe e pagamenti di Floral Care.
 
 Verifiche locali:
@@ -1135,7 +1135,7 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 3. Inventario: fatto (blocchi 1–4, ADR-060…063), con lo scarico (ADR-071) e gli apartados
    (ADR-072) dagli ordini.
 4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
-5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078) e 3a (ADR-081) fatti;
+5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078) e 3a (ADR-082) fatti;
    3b e blocchi 4–7 in `docs/FLORAL_CARE_PLAN.md`.
 6. Report: fatti (ADR-080); restano i P1 dello spec (funnel, retention, profitto per ramo).
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.

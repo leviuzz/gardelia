@@ -1982,14 +1982,14 @@ enum CareEmailStatus {
   FAILED
 }
 
-/// "No se pudo" (ADR-081): il cliente non ha aperto (si paga) o la fioreria non è potuta andare
+/// "No se pudo" (ADR-082): il cliente non ha aperto (si paga) o la fioreria non è potuta andare
 /// (credito).
 enum CareNotDoneCause {
   CUSTOMER
   SHOP
 }
 
-/// Le righe di un cargo (ADR-081).
+/// Le righe di un cargo (ADR-082).
 enum CareChargeLineKind {
   VISITS
   VISIT_DEBIT
@@ -2039,7 +2039,7 @@ model CareSettings {
   minNoticeHours     Int                   @default(24)
   missedVisitPolicy  CareMissedVisitPolicy @default(COUNTS)
   deadPlantPolicy    CareDeadPlantPolicy   @default(QUOTE)
-  /// "Días para pagar" un cargo (ADR-081), da 1 a 90.
+  /// "Días para pagar" un cargo (ADR-082), da 1 a 90.
   paymentDueDays     Int                   @default(10)
   /// Termini della fioreria, scritti da lei (Gardelia non inventa condizioni).
   termsText          String?
@@ -2149,9 +2149,9 @@ model CustomerSubscription {
   notes                String?
   /// Fin dove sono state create le visite (calendario della fioreria).
   generatedUntil       DateTime?                  @db.Date
-  /// L'ultimo mese con il cargo già emesso (primo giorno del mese); NULL = mai (ADR-081).
+  /// L'ultimo mese con il cargo già emesso (primo giorno del mese); NULL = mai (ADR-082).
   chargedThrough       DateTime?                  @db.Date
-  /// Regole della fioreria copiate alla conferma (ADR-081): valgono per tutto il contratto.
+  /// Regole della fioreria copiate alla conferma (ADR-082): valgono per tutto il contratto.
   missedVisitPolicy    CareMissedVisitPolicy?
   deadPlantPolicy      CareDeadPlantPolicy?
   acquisitionSource    AcquisitionSource          @default(MERCHANT_DIRECT)
@@ -2277,7 +2277,7 @@ model CareVisit {
   finishedAt           DateTime?
   /// Perché si è cancellata: serve ai cargos (una visita tolta dalla fioreria è un credito).
   cancelReason         CareVisitCancelReason?
-  /// "No se pudo": il cliente non ha aperto o la fioreria non è potuta andare (ADR-081).
+  /// "No se pudo": il cliente non ha aperto o la fioreria non è potuta andare (ADR-082).
   notDoneCause         CareNotDoneCause?
   /// Hecha o no realizada: la nota che il cliente legge nel resoconto. Cancellata: il perché.
   outcomeNote          String?
@@ -2311,7 +2311,7 @@ model CareVisit {
   resolvedFollowUps CareFollowUp[]           @relation("CareFollowUpExtraVisit")
   emails            CareEmail[]
   publicLinks       PublicLink[]
-  /// Quanto è cobrado adesso per questa visita (ADR-081).
+  /// Quanto è cobrado adesso per questa visita (ADR-082).
   billing           CareVisitBilling?
   chargeLines       CareChargeLine[]
   payments          CarePayment[]
@@ -2337,7 +2337,7 @@ model CareVisitServiceResult {
   unit         CareServiceUnit
   outcome      CareServiceOutcome
   /// Prezzo del servizio nel contratto quando la squadra l'ha segnato: un servizio "una sola vez"
-  /// si cobra a questo prezzo (ADR-081).
+  /// si cobra a questo prezzo (ADR-082).
   priceMinor   Int?
   note         String?
   recordedById String?            @db.Uuid
@@ -2493,7 +2493,7 @@ model CareEmail {
   @@unique([tenantId, visitId, kind])
 }
 
-/// Cargo del mese di un contratto di Floral Care (ADR-081): nasce dalle visite del mese (più le
+/// Cargo del mese di un contratto di Floral Care (ADR-082): nasce dalle visite del mese (più le
 /// variazioni dei mesi prima) e poi non cambia. Uno per contratto e mese. Totale, pagato e saldo
 /// si controllano nel database; lo stato (vencido, pagado…) si calcola in lettura.
 model CareCharge {
@@ -2544,7 +2544,7 @@ model CareCharge {
   @@index([tenantId, dueDate])
 }
 
-/// Una riga di un cargo (ADR-081), con il segno: i crediti sono negativi. Le righe di una visita
+/// Una riga di un cargo (ADR-082), con il segno: i crediti sono negativi. Le righe di una visita
 /// puntano alla visita (e ne copiano il giorno), quella di un servizio "una sola vez" al risultato
 /// della visita e al servizio, con il nome copiato.
 model CareChargeLine {
@@ -2584,7 +2584,7 @@ model CareChargeLine {
   @@index([tenantId, sourceChargeId])
 }
 
-/// Quanto è cobrado adesso per una visita (ADR-081). La scrive solo l'emissione dei cargos, in una
+/// Quanto è cobrado adesso per una visita (ADR-082). La scrive solo l'emissione dei cargos, in una
 /// tabella sua: un cargo non aggiorna mai la visita (il cambio di una fascia aggiorna le visite
 /// senza bloccare il contratto). `stableAt`: la visita è chiusa e già sistemata, non si guarda più.
 model CareVisitBilling {
@@ -2604,7 +2604,7 @@ model CareVisitBilling {
   @@unique([tenantId, visitId])
 }
 
-/// Un movimento di soldi di un cliente per Floral Care (ADR-081), registrato a mano: pagamento,
+/// Un movimento di soldi di un cliente per Floral Care (ADR-082), registrato a mano: pagamento,
 /// storno di un movimento sbagliato ("Anular", di segno opposto, uno per movimento) o devolución di
 /// un saldo a favore. Si distribuisce sui cargos (`CarePaymentAllocation`). Niente si cancella.
 model CarePayment {
@@ -2649,7 +2649,7 @@ model CarePayment {
   @@index([tenantId, status])
 }
 
-/// Quanto di un movimento va su un cargo (ADR-081). Il cliente è nelle due chiavi: un pagamento non
+/// Quanto di un movimento va su un cargo (ADR-082). Il cliente è nelle due chiavi: un pagamento non
 /// tocca mai i cargos di un altro cliente.
 model CarePaymentAllocation {
   id          String   @id @default(uuid(7)) @db.Uuid

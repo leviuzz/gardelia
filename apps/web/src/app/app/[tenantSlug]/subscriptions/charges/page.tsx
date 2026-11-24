@@ -35,7 +35,7 @@ function single(value: string | string[] | undefined): string | undefined {
 const MONTH_CHOICES = 13;
 
 /**
- * "Cobros" di Floral Care (ADR-081): tutti i cargos della fioreria per stato (por cobrar,
+ * "Cobros" di Floral Care (ADR-082): tutti i cargos della fioreria per stato (por cobrar,
  * vencidos, pagados, a favor del cliente) e per mese, con i totali. Per chi gestisce i soldi; non
  * chiede il piano (i contratti firmati si cobran lo stesso).
  */

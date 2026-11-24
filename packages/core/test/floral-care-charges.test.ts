@@ -60,7 +60,7 @@ import { issueNextCareChargeTx } from '../src/services/care-charges';
 import { createTestShop, type TestShop } from '../src/testing';
 
 /**
- * Floral Care, blocco 3a (ADR-081): il cargo del mese (alla conferma e dal lavoro giornaliero),
+ * Floral Care, blocco 3a (ADR-082): il cargo del mese (alla conferma e dal lavoro giornaliero),
  * le variazioni sul cargo del mese dopo, il cargo finale a favore del cliente, il cambio di prezzo,
  * i pagamenti (su un cargo, distribuiti, storni, devoluciones), permessi, isolamento fra fiorerie
  * e concorrenza con le visite. "Il mese dopo" si simula passando il suo primo giorno all'emissione.

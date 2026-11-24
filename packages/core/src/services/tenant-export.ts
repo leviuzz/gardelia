@@ -510,7 +510,7 @@ export async function exportTenantData(
       ],
       data.plants,
     ),
-    // Cargos e pagamenti di Floral Care (ADR-081): lo stato si calcola nel giorno della fioreria,
+    // Cargos e pagamenti di Floral Care (ADR-082): lo stato si calcola nel giorno della fioreria,
     // come in "Cobros".
     section<Charge>(
       'floral_care_cargos.csv',

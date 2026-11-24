@@ -102,7 +102,7 @@ beforeAll(async () => {
   await recordOrderPayment(shop.owner, id, { amount: '100', method: 'CASH', kind: 'DEPOSIT' });
 
   // Un contratto di Floral Care per lo stesso cliente: il cargo del mese nasce alla conferma
-  // (ADR-081) e si paga in parte.
+  // (ADR-082) e si paga in parte.
   await updatePrimaryLocation(shop.owner, {
     addressLine1: 'Av. Madero 1',
     city: 'Aguascalientes',
@@ -271,7 +271,7 @@ describe('esportazione dei dati della fioreria', () => {
         .sort(),
     ).toEqual(['Equipo', 'Gerente', 'Propietario'].sort());
 
-    // Floral Care: il cargo del mese, le sue righe e il pagamento (ADR-081).
+    // Floral Care: il cargo del mese, le sue righe e il pagamento (ADR-082).
     const [charge] = table('floral_care_cargos.csv');
     expect(charge).toMatchObject({
       Número: 'CAR-0001',

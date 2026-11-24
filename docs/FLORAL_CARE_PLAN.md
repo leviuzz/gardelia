@@ -368,7 +368,7 @@ rilascio su staging) e lascia qualcosa di usabile.
    scelti dalla fioreria, 10 di default; il cliente che non apre paga la visita e il recupero è
    gratis; un solo pagamento sull'estado de cuenta per tutte le sedi; lo staff segna gli incassi
    "por registrar").
-   - **3a (fatto, ADR-081):** cargo del mese alla conferma (con le visite che restano) e ogni mese
+   - **3a (fatto, ADR-082):** cargo del mese alla conferma (con le visite che restano) e ogni mese
      dal lavoro giornaliero; crediti, debiti, visite extra e servizi "una sola vez" sul cargo del
      mese dopo; prezzo copiato in ogni cargo; saldo a favore portato avanti e devolución nel cargo
      finale; pagamenti su un cargo o distribuiti sull'estado de cuenta, storni; Cobros con i

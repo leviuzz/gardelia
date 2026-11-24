@@ -5,7 +5,7 @@ import { money } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 /**
- * Le righe di un cargo di Floral Care (ADR-081) con i totali. Serve due volte: sullo schermo nella
+ * Le righe di un cargo di Floral Care (ADR-082) con i totali. Serve due volte: sullo schermo nella
  * lingua di chi guarda e nella stampa per il cliente nella lingua del mercato della fioreria
  * (ADR-042). Le visite del mese stanno in una riga sola ("4 visitas × $490").
  */

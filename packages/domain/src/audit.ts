@@ -212,7 +212,7 @@ export const AUDIT_ACTIONS = {
   careQuoteCreated: 'care.quote_created',
   careSeasonalPlantsArchived: 'care.seasonal_plants_archived',
   /**
-   * Cargos e pagamenti dei contratti (ADR-081). Nei metadati numeri e importi, mai la referencia,
+   * Cargos e pagamenti dei contratti (ADR-082). Nei metadati numeri e importi, mai la referencia,
    * la nota o i nomi.
    */
   careChargeIssued: 'care.charge_issued',

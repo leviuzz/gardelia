@@ -1,5 +1,5 @@
 /**
- * Pagamenti dei contratti di Floral Care (ADR-081, blocco 3a), registrati a mano (D-26):
+ * Pagamenti dei contratti di Floral Care (ADR-082, blocco 3a), registrati a mano (D-26):
  *  - su un cargo ("Registrar pago" nella pagina del cargo), mai oltre il suo saldo;
  *  - sull'estado de cuenta del cliente: un solo pagamento per tutte le sedi, distribuito da solo
  *    sui cargos più vecchi (decisione del founder del 24/11);

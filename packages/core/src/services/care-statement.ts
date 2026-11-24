@@ -1,5 +1,5 @@
 /**
- * Estado de cuenta di Floral Care di un cliente (ADR-081): tutte le sue sedi (contratti), i cargos
+ * Estado de cuenta di Floral Care di un cliente (ADR-082): tutte le sue sedi (contratti), i cargos
  * degli ultimi 12 mesi più tutti quelli ancora aperti o a favore, i movimenti di soldi e i totali
  * (da pagare, vencido, a favore). Da qui un solo pagamento si distribuisce sui cargos più vecchi
  * (`recordCustomerCarePayment`). Vuole `subscriptions:payments`; non chiede il piano.

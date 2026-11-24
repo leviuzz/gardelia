@@ -10,7 +10,7 @@ import { money } from '@/lib/format';
 import { tenantRoutes } from '@/lib/routes';
 
 /**
- * Card "Cargos" della scheda del contratto (ADR-081): gli ultimi sei, con lo stato e quanto manca,
+ * Card "Cargos" della scheda del contratto (ADR-082): gli ultimi sei, con lo stato e quanto manca,
  * e il link all'estado de cuenta del cliente (tutte le sedi). Solo per chi gestisce i soldi.
  */
 export async function ContractChargesCard({

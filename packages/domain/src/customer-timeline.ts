@@ -14,7 +14,7 @@ export const CUSTOMER_TIMELINE_KINDS = [
   'promo_sent',
   'promo_redeemed',
   'care_visit',
-  /** Floral Care, blocco 3 (ADR-081): cargo emesso e movimenti di soldi (solo per chi li gestisce). */
+  /** Floral Care, blocco 3 (ADR-082): cargo emesso e movimenti di soldi (solo per chi li gestisce). */
   'care_charge',
   'care_payment',
 ] as const;

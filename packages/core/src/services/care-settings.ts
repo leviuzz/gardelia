@@ -105,7 +105,7 @@ export interface CareSettingsDto {
   readonly minNoticeHours: number;
   readonly missedVisitPolicy: MissedVisitPolicy;
   readonly deadPlantPolicy: DeadPlantPolicy;
-  /** "Días para pagar" un cargo (ADR-081). */
+  /** "Días para pagar" un cargo (ADR-082). */
   readonly paymentDueDays: number;
   readonly termsText: string | null;
   /** Raggio di consegna della tienda principale: il punto di partenza proposto per il raggio. */

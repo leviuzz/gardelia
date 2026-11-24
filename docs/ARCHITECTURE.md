@@ -132,7 +132,7 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
   `app_care_contracts_to_close(n)` (SECURITY DEFINER) danno alla manutenzione solo gli ID dei
   contratti da allungare o chiudere; il lavoro avviene poi nel contesto della fioreria, senza utente.
   Allo stesso modo (ADR-078) `app_care_photos_to_purge(giorni, n)` dà i contratti con foto da
-  cancellare e `app_care_emails_due(n)` le email dei resoconti da riprovare, e (ADR-081)
+  cancellare e `app_care_emails_due(n)` le email dei resoconti da riprovare, e (ADR-082)
   `app_care_contracts_to_charge(n)` quelli con un mese di cargo da emettere (prima di tutti gli
   altri lavori di Floral Care, con il suo tetto di tempo).
 - Vincoli aggiuntivi nel SQL: CHECK su importi/quantità/valute/slug, indici univoci parziali
@@ -299,7 +299,7 @@ nella stessa transazione della visita extra o della cotización: `updateMany` su
 aperta, quindi due risoluzioni insieme non passano entrambe. `openVisitsFrom` dice se includere le
 extra: il cambio di calendario no, la fine del contratto sì.
 
-Cargos e pagamenti (ADR-081, `services/care-charges.ts`, `care-payments.ts`, `care-statement.ts`):
+Cargos e pagamenti (ADR-082, `services/care-charges.ts`, `care-payments.ts`, `care-statement.ts`):
 `issueNextCareChargeTx` emette un mese alla volta (alla conferma, al cambio di prezzo e nel lavoro
 giornaliero). Blocca il contratto, legge le visite non ancora sistemate e chiede al dominio
 (`planCareChargeLines`) le righe e cosa cambia per ogni visita; scrive il cargo, le righe e

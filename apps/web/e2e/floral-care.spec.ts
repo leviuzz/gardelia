@@ -7,7 +7,7 @@ import { expect, test, type Page } from '@playwright/test';
  * Blocco 2 (ADR-078): lo staff fa la visita di oggi dal telefono (servizi, piante, foto, nota,
  * avviso) e la termina; il cliente apre il resoconto senza account; la proprietaria vede l'avviso
  * e la visita nella ruta. Blocco 2b: una visita extra a un'ora libera, una pianta di stagione, la
- * cotización del cambio legata al contratto e il ritiro "en la cotización". Blocco 3a (ADR-081):
+ * cotización del cambio legata al contratto e il ritiro "en la cotización". Blocco 3a (ADR-082):
  * il cargo del mese nasce alla conferma, si paga e si annulla; l'estado de cuenta paga due sedi
  * con un solo pagamento. Alla fine il contratto finisce e l'orario si archivia, così le
  * esecuzioni non si sommano.
@@ -524,7 +524,7 @@ test.describe('Floral Care (banco)', () => {
     await expect(page.getByRole('link', { name: 'Nuevo contrato' })).toHaveCount(0);
     await page.goto(`${SHOP}/settings/floral-care`);
     await expect(page.getByRole('button', { name: 'Guardar', exact: true })).toHaveCount(0);
-    // I soldi dei contratti li vede solo chi li gestisce (ADR-081).
+    // I soldi dei contratti li vede solo chi li gestisce (ADR-082).
     await page.goto(`${SHOP}/subscriptions/charges`);
     await expect(page.getByRole('heading', { name: 'Cobros' })).toHaveCount(0);
   });

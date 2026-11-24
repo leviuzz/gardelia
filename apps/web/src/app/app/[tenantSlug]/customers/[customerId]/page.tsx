@@ -375,7 +375,7 @@ export default async function CustomerPage({
                     ))}
                   </ul>
                 )}
-                {/* Estado de cuenta (ADR-081): tutte le sedi, per chi gestisce i soldi. */}
+                {/* Estado de cuenta (ADR-082): tutte le sedi, per chi gestisce i soldi. */}
                 {hasPermission(ctx, 'subscriptions:payments') &&
                 careContracts.some((contract) => contract.status !== 'DRAFT') ? (
                   <Button asChild size="sm" variant="secondary" className="mt-3 w-full">

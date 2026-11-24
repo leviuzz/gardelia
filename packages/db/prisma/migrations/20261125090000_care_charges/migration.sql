@@ -1,4 +1,4 @@
--- Floral Care, blocco 3a (ADR-081): cargos e pagamenti dei contratti.
+-- Floral Care, blocco 3a (ADR-082): cargos e pagamenti dei contratti.
 --  - un cargo per contratto e mese (CAR-0001), con le sue righe; il cargo non cambia più;
 --  - per ogni visita quanto è cobrado adesso (`CareVisitBilling`, tabella a parte: un cargo non
 --    aggiorna mai la visita);

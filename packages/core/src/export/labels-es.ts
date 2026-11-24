@@ -161,7 +161,7 @@ export const LABELS = {
     PlantSize,
     string
   >,
-  // Cargos e pagamenti di Floral Care (ADR-081), con le parole di "Cobros" e della pagina del cargo.
+  // Cargos e pagamenti di Floral Care (ADR-082), con le parole di "Cobros" e della pagina del cargo.
   chargeStatus: {
     PENDING: 'Pendiente',
     PARTIAL: 'Pago parcial',
