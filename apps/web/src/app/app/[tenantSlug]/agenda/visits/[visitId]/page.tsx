@@ -1,5 +1,6 @@
 import {
   ArrowLeft,
+  CalendarPlus,
   CircleAlert,
   KeyRound,
   MailCheck,
@@ -17,12 +18,14 @@ import { getFormatter, getTranslations } from 'next-intl/server';
 import {
   NotFoundError,
   PlanRequiredError,
+  getCareExtraVisitOptions,
   getCareVisitMoveOptions,
   getCareVisitSheet,
   getPublicLink,
   hasPermission,
   listCareAssignees,
   listCareMaterialOptions,
+  listCareVisitCollections,
   publicLinkUrl,
   type CareVisitSheetDto,
   type TenantContext,
@@ -38,6 +41,9 @@ import {
   whatsappLink,
 } from '@floral/domain';
 import { ExtraVisitBadge, VisitStatusBadge } from '@/components/care/care-ui';
+import { CollectionStatusBadge } from '@/components/care/charge-ui';
+import { CareCollectionDialog } from '@/components/care/collection-forms';
+import { ExtraVisitDialog } from '@/components/care/extra-forms';
 import { CareUpsell } from '@/components/care/care-upsell';
 import { VisitAssignForm, VisitCancelDialog, VisitMoveForm } from '@/components/care/visit-forms';
 import { VisitPhotos } from '@/components/care/visit-photos';
@@ -82,8 +88,10 @@ import {
   setCareServiceResultAction,
   shareCareVisitLinkAction,
   startCareVisitAction,
+  submitCareVisitCollectionAction,
   uploadCareVisitPhotoAction,
 } from '../../actions';
+import { createCareExtraVisitAction } from '../../../subscriptions/actions';
 
 async function loadSheet(ctx: TenantContext, visitId: string): Promise<CareVisitSheetDto | null> {
   try {
@@ -133,16 +141,30 @@ export default async function CareVisitPage({
   }
   const { visit } = sheet;
   const env = serverEnv();
-  const [moveOptions, assignees, materialOptions, link] = await Promise.all([
-    visit.canManage ? getCareVisitMoveOptions(ctx, visit.id) : Promise.resolve(null),
-    visit.canManage ? listCareAssignees(ctx) : Promise.resolve(null),
-    sheet.can.work && sheet.inventoryEnabled
-      ? listCareMaterialOptions(ctx, visit.id)
-      : Promise.resolve([]),
-    sheet.can.share
-      ? getPublicLink(ctx, env.BETTER_AUTH_SECRET, { kind: 'CARE_VISIT', id: visit.id })
-      : Promise.resolve(null),
-  ]);
+  // Blocco 3b: gli incassi segnati in questa visita e, per una visita da recuperare, il modulo
+  // della visita di recupero.
+  const canCollect = hasPermission(ctx, 'care:visit');
+  const scheduleRecovery = visit.recovery?.canSchedule ?? false;
+  const [moveOptions, assignees, materialOptions, link, collections, recoveryOptions] =
+    await Promise.all([
+      visit.canManage ? getCareVisitMoveOptions(ctx, visit.id) : Promise.resolve(null),
+      visit.canManage ? listCareAssignees(ctx) : Promise.resolve(null),
+      sheet.can.work && sheet.inventoryEnabled
+        ? listCareMaterialOptions(ctx, visit.id)
+        : Promise.resolve([]),
+      sheet.can.share
+        ? getPublicLink(ctx, env.BETTER_AUTH_SECRET, { kind: 'CARE_VISIT', id: visit.id })
+        : Promise.resolve(null),
+      canCollect ? listCareVisitCollections(ctx, visit.id) : Promise.resolve([]),
+      scheduleRecovery
+        ? getCareExtraVisitOptions(ctx, visit.subscriptionId)
+        : Promise.resolve(null),
+    ]);
+  const recoveryAssignees =
+    recoveryOptions === null ? [] : (assignees ?? (await listCareAssignees(ctx)));
+  const collectable = visit.status === 'IN_PROGRESS' || visit.status === 'DONE';
+  const pendingCollection = collections.some((collection) => collection.status === 'PENDING');
+  const price = (minor: number) => money(minor, ctx.currency);
   const shopLocale = getMarket(ctx.country).defaultLocale;
   const tShop = await getTranslations({ locale: shopLocale });
 
@@ -214,6 +236,9 @@ export default async function CareVisitPage({
               {visit.status === 'NOT_DONE' && visit.notDoneCause ? (
                 <span>{t(`care.visit.notDoneCauses.${visit.notDoneCause}`)}</span>
               ) : null}
+              {visit.recovery && !visit.recovery.visitId ? (
+                <Badge variant="warning">{t('care.recovery.toRecover')}</Badge>
+              ) : null}
               <span className="first-letter:uppercase">
                 {visit.date
                   ? `${day(visit.date)}${visit.start && visit.end ? ` · ${visit.start}–${visit.end}` : ''}`
@@ -225,6 +250,65 @@ export default async function CareVisitPage({
             </span>
           }
         />
+        {visit.recoveryOf ? (
+          <p className="text-sm">
+            <Link
+              href={routes.agenda.visit(visit.recoveryOf.visitId)}
+              className="font-medium underline-offset-4 hover:underline"
+            >
+              {t('care.recovery.recoveryOf', { date: shortDay(visit.recoveryOf.date) })}
+            </Link>
+          </p>
+        ) : null}
+        {visit.recovery?.visitId && visit.recovery.date ? (
+          <p className="text-sm">
+            <Link
+              href={routes.agenda.visit(visit.recovery.visitId)}
+              className="font-medium underline-offset-4 hover:underline"
+            >
+              {t('care.recovery.recoveredOn', { date: shortDay(visit.recovery.date) })}
+            </Link>
+          </p>
+        ) : null}
+        {visit.recovery && !visit.recovery.visitId ? (
+          <div className="flex flex-col gap-3 rounded-xl border border-dashed p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-muted-foreground">{t('care.recovery.toRecoverHint')}</p>
+            {recoveryOptions ? (
+              <ExtraVisitDialog
+                action={createCareExtraVisitAction.bind(null, slug, visit.subscriptionId)}
+                idPrefix="recovery"
+                options={recoveryOptions.options.map((option) => ({
+                  value: `${option.date}_${option.slotId}`,
+                  label: t('care.visit.option', {
+                    date: shortDay(option.date),
+                    start: option.start,
+                    end: option.end,
+                    count: option.free,
+                  }),
+                }))}
+                quotes={[]}
+                assignees={recoveryAssignees}
+                visitFeeLabel={price(recoveryOptions.visitFeeMinor)}
+                dates={{ first: recoveryOptions.firstDate, last: recoveryOptions.lastDate }}
+                defaults={{
+                  kind: 'EXTRA',
+                  fee: 'FREE',
+                  followUpId: null,
+                  recovery: {
+                    visitId: visit.id,
+                    dateLabel: shortDay(visit.date ?? visit.originalDate),
+                  },
+                }}
+                trigger={
+                  <Button className="w-full shrink-0 sm:w-auto">
+                    <CalendarPlus />
+                    {t('care.recovery.schedule')}
+                  </Button>
+                }
+              />
+            ) : null}
+          </div>
+        ) : null}
         {visit.extra ? (
           <p className="rounded-xl bg-muted/60 px-3 py-2 text-sm">
             {t(`care.extra.fees.${visit.extra.fee}`)}
@@ -538,6 +622,60 @@ export default async function CareVisitPage({
             />
           ) : null}
         </div>
+      ) : null}
+
+      {canCollect && (collectable || collections.length > 0) ? (
+        <Card>
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+            <CardTitle>{t('care.collection.title')}</CardTitle>
+            {collectable && !pendingCollection ? (
+              <CareCollectionDialog
+                action={submitCareVisitCollectionAction.bind(null, slug, visit.id)}
+                currency={ctx.currency}
+              />
+            ) : null}
+          </CardHeader>
+          {collections.length > 0 ? (
+            <CardContent>
+              <ul className="divide-y rounded-xl border text-sm">
+                {collections.map((collection) => (
+                  <li key={collection.id} className="space-y-1 px-3 py-2.5">
+                    <p className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-medium tabular-nums">
+                        {price(collection.collectedMinor)} ·{' '}
+                        {t(`orders.methods.${collection.method}`)}
+                      </span>
+                      <CollectionStatusBadge status={collection.status} />
+                    </p>
+                    {collection.status === 'RECORDED' &&
+                    collection.amountMinor < collection.collectedMinor ? (
+                      <p className="text-muted-foreground">
+                        {t('care.collection.recordedLess', {
+                          amount: price(collection.amountMinor),
+                        })}
+                      </p>
+                    ) : null}
+                    {collection.status === 'REJECTED' && collection.rejectReason ? (
+                      <p className="break-words text-[oklch(0.45_0.17_27)]">
+                        {t('care.collection.rejectedBecause', {
+                          reason: collection.rejectReason,
+                        })}
+                      </p>
+                    ) : null}
+                    {collection.note ? (
+                      <p className="break-words text-muted-foreground">{collection.note}</p>
+                    ) : null}
+                    {collection.createdByName ? (
+                      <p className="text-xs text-muted-foreground">
+                        {t('care.collection.by', { name: collection.createdByName })}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          ) : null}
+        </Card>
       ) : null}
 
       {closed && sheet.report ? (

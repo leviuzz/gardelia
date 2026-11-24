@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createProduct } from './support/catalog';
+import { pickOrderCustomer } from './support/customers';
 import { runSystemSql } from './support/sql';
 
 /**
@@ -15,7 +16,7 @@ test.use({ storageState: 'e2e/.auth/owner.json' });
 /** Un pedido da ritirare per Hotel Casa Fuentes con un prodotto (etichetta della tendina). */
 async function orderWith(page: Page, optionLabel: string, quantity = '1'): Promise<void> {
   await page.goto(`${SHOP}/orders/new`);
-  await page.getByRole('button', { name: 'Pedido para Hotel Casa Fuentes' }).click();
+  await pickOrderCustomer(page, 'Hotel Casa Fuentes');
   await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
   const addForm = page
     .locator('form')

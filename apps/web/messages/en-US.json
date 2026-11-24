@@ -3146,7 +3146,12 @@
       "charge_issued": "Charge {number} was issued",
       "payment_recorded": "{actor} recorded a payment on {number}",
       "payment_reversed": "{actor} voided an entry on {number}",
-      "payment_refunded": "{actor} recorded a refund on {number}"
+      "payment_refunded": "{actor} recorded a refund on {number}",
+      "payment_submitted": "{actor} noted a payment at a visit for {number}",
+      "payment_confirmed": "{actor} confirmed a visit payment on {number}",
+      "payment_rejected": "{actor} rejected a visit payment for {number}",
+      "adjustment_added": "{actor} added an adjustment for the next charge of {number}",
+      "adjustment_removed": "{actor} removed an adjustment from {number}"
     },
     "notice": {
       "label": "Yes, I let the customer know"
@@ -3326,7 +3331,9 @@
       "end_before_done": "There are visits already done after that day: choose a later day.",
       "payment_zero": "The amount must be greater than 0.",
       "paid_on_future": "The payment date can’t be after today.",
-      "refund_exceeds_credit": "The refund can’t be more than the customer’s credit."
+      "refund_exceeds_credit": "The refund can’t be more than the customer’s credit.",
+      "confirm_exceeds_collected": "It can’t be more than what was noted at the visit.",
+      "too_many_adjustments": "This contract already has many pending adjustments."
     },
     "conflict": {
       "not_configured": "Save your Floral Care rates first (Settings → Floral Care).",
@@ -3357,7 +3364,12 @@
       "follow_up_resolved": "This notice was already resolved. Reload the page.",
       "payment_not_reversible": "This entry can’t be voided.",
       "charge_not_in_favor": "This charge no longer has customer credit.",
-      "charge_too_large": "This charge’s amounts are too high: check the contract price."
+      "charge_too_large": "This charge’s amounts are too high: check the contract price.",
+      "collection_not_open": "You can only note a payment on a visit that is in progress or done.",
+      "collection_pending": "This visit already has a payment waiting to be recorded.",
+      "payment_not_pending": "This payment was already confirmed or rejected.",
+      "adjustment_in_charge": "This adjustment is already on a charge: fix it with another adjustment.",
+      "visit_already_recovered": "This visit already has its make-up visit."
     },
     "contracts": {
       "title": "Floral Care",
@@ -3976,7 +3988,8 @@
         "CREDIT_CARRIED_IN": "Credit from charge {number}",
         "CREDIT_CARRIED_OUT": "Credit carried to the next charge",
         "CREDIT_CARRIED_OUT_TO": "Credit carried to charge {number}",
-        "ADJUSTMENT": "Adjustment"
+        "ADJUSTMENT": "Adjustment",
+        "ADJUSTMENT_WITH": "Adjustment: {reason}"
       },
       "creditReasons": {
         "TO_RESCHEDULE": "to reschedule",
@@ -4073,7 +4086,9 @@
       "since": "Since {month}, plus the charges that are still open.",
       "printHeader": "Account statement",
       "printDate": "Date: {date}",
-      "printFor": "Customer: {name}"
+      "printFor": "Customer: {name}",
+      "pendingTitle": "Pending",
+      "pendingHint": "Payments noted at visits: they don’t count in the balance until they’re confirmed in Cobros."
     },
     "chargesCard": {
       "title": "Floral Care billing",
@@ -4081,7 +4096,80 @@
       "overdue": "Overdue",
       "detail": "{count, plural, one {# charge} other {# charges}}",
       "allPaid": "Everything is collected.",
-      "link": "See billing"
+      "link": "See billing",
+      "pending": "{count, plural, one {# payment pending} other {# payments pending}}"
+    },
+    "collection": {
+      "title": "Payment at the visit",
+      "open": "I collected at the visit",
+      "dialogBody": "Note what the customer gave you. It stays pending until whoever handles payments confirms it.",
+      "noteHint": "For example: in cash, at the front desk.",
+      "submit": "Note payment",
+      "submitted": "Done: the payment is waiting to be recorded",
+      "statuses": {
+        "PENDING": "Pending",
+        "RECORDED": "Recorded",
+        "REJECTED": "Rejected"
+      },
+      "by": "Noted by {name}",
+      "recordedLess": "{amount} was recorded",
+      "rejectedBecause": "Reason: {reason}"
+    },
+    "collections": {
+      "title": "Pending",
+      "subtitle": "Payments noted at visits. Confirm them when the money reaches the till.",
+      "visit": "Visit on {date}",
+      "more": "{count, plural, one {And # more} other {And # more}}",
+      "confirm": "Confirm",
+      "confirmLabel": "Confirm the {amount} payment from {customer}",
+      "confirmTitle": "Confirm payment",
+      "confirmBody": "{amount} was noted. You can record less if less reached the till; it goes to the customer’s oldest charges.",
+      "confirmSubmit": "Confirm payment",
+      "confirmed": "{count, plural, one {Payment recorded on # charge} other {Payment recorded on # charges}}",
+      "reject": "Reject",
+      "rejectLabel": "Reject the {amount} payment from {customer}",
+      "rejectTitle": "Reject payment",
+      "rejectBody": "The payment won’t be recorded. Write the reason: whoever noted it will see it.",
+      "reason": "Reason",
+      "rejectSubmit": "Reject payment",
+      "rejected": "Payment rejected"
+    },
+    "adjustments": {
+      "title": "Adjustments for the next charge",
+      "hint": "To fix a mistake or give a discount. They go once into the next charge.",
+      "add": "Add adjustment",
+      "dialogBody": "The customer will see it on the charge as an “Adjustment” line with the reason.",
+      "direction": "Type of adjustment",
+      "directions": {
+        "CREDIT": "In the customer’s favor (subtracted)",
+        "DEBIT": "Charged to the customer (added)"
+      },
+      "reason": "Reason (the customer sees it)",
+      "reasonPlaceholder": "For example: discount for the visit on the 3rd",
+      "submit": "Add adjustment",
+      "added": "Adjustment added: it goes into the next charge",
+      "remove": "Remove",
+      "removeLabel": "Remove the adjustment “{reason}”",
+      "removeTitle": "Remove the adjustment?",
+      "removeBody": "It won’t go into the next charge. It stays in the history.",
+      "removeConfirm": "Remove adjustment",
+      "removed": "Adjustment removed",
+      "by": "{name} · {date}"
+    },
+    "recovery": {
+      "toRecover": "To make up",
+      "toRecoverHint": "The customer didn’t open and the contract says “Another visit is scheduled”: the visit was already charged and the make-up visit has no cost.",
+      "recoveredOn": "Made up on {date}",
+      "schedule": "Schedule make-up visit",
+      "dialogBody": "No-cost visit to make up for the one on {date}: that one was already charged, as the contract says.",
+      "recoveryOf": "Make-up for the visit on {date}",
+      "alert": "{count, plural, one {There is # visit to make up} other {There are # visits to make up}}",
+      "alertLink": "See visits",
+      "pageTitle": "Visits to make up",
+      "pageSubtitle": "Visits where the customer didn’t open, on contracts with “Another visit is scheduled”. The make-up visit has no cost.",
+      "emptyTitle": "No visits to make up",
+      "emptyBody": "They show up here when the customer doesn’t open and the contract says “Another visit is scheduled”.",
+      "missedOn": "Couldn’t be done on {date}"
     }
   },
   "letterhead": {

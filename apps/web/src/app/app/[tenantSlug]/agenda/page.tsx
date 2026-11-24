@@ -5,6 +5,7 @@ import {
   Flag,
   MapPin,
   Play,
+  RotateCcw,
   Sprout,
   Store,
   Truck,
@@ -132,6 +133,17 @@ export default async function AgendaDayPage({
             <span>{t('care.followUps.alert', { count: care.openFollowUps })}</span>
             <Button asChild size="sm" variant="outline">
               <Link href={routes.agenda.followUps()}>{t('care.followUps.alertLink')}</Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {care && care.toRecover > 0 && hasPermission(ctx, 'subscriptions:write') ? (
+        <Alert variant="warning">
+          <RotateCcw aria-hidden="true" />
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+            <span>{t('care.recovery.alert', { count: care.toRecover })}</span>
+            <Button asChild size="sm" variant="outline">
+              <Link href={routes.agenda.toRecover}>{t('care.recovery.alertLink')}</Link>
             </Button>
           </AlertDescription>
         </Alert>

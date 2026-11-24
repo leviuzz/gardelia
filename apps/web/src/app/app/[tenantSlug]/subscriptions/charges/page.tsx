@@ -2,25 +2,32 @@ import { Receipt } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
-import { hasPermission, listCareCharges } from '@floral/core';
+import { hasPermission, listCareCharges, listPendingCareCollections } from '@floral/core';
 import {
   CARE_CHARGE_VIEWS,
   addCarePeriods,
   carePeriodKey,
   carePeriodOf,
+  minorToDecimalString,
   todayInTimeZone,
 } from '@floral/domain';
 import { CareTabs, ChargeStatusBadge } from '@/components/care/charge-ui';
+import {
+  ConfirmCollectionDialog,
+  RejectCollectionDialog,
+} from '@/components/care/collection-forms';
 import { FilterBar } from '@/components/common/list/filter-bar';
 import { ListPagination } from '@/components/common/list/list-pagination';
 import { ListResults } from '@/components/common/list/list-results';
 import { Forbidden } from '@/components/forbidden';
 import { EmptyState, PageHeader } from '@/components/page-header';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { NativeSelect } from '@/components/ui/input';
 import { money } from '@/lib/format';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { cn } from '@/lib/utils';
+import { confirmCarePaymentAction, rejectCarePaymentAction } from './actions';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('care.charges');
@@ -56,7 +63,10 @@ export default async function CareChargesPage({
     q: single(raw.q),
     page: single(raw.page),
   };
-  const result = await listCareCharges(ctx, query);
+  const [result, pending] = await Promise.all([
+    listCareCharges(ctx, query),
+    listPendingCareCollections(ctx),
+  ]);
   const monthLabel = (iso: string) =>
     format.dateTime(new Date(`${iso}T12:00:00Z`), {
       month: 'long',
@@ -86,6 +96,85 @@ export default async function CareChargesPage({
     <div className="space-y-6">
       <PageHeader title={t('care.charges.title')} description={t('care.charges.subtitle')} />
       <CareTabs routes={routes} current="charges" />
+
+      {pending.items.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {t('care.collections.title')} ({pending.total})
+            </CardTitle>
+            <CardDescription>{t('care.collections.subtitle')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y rounded-xl border">
+              {pending.items.map((collection) => {
+                const amount = price(collection.collectedMinor);
+                return (
+                  <li
+                    key={collection.id}
+                    className="flex flex-col gap-2 px-3 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="font-medium break-words">
+                        <span className="tabular-nums">{amount}</span> ·{' '}
+                        {t(`orders.methods.${collection.method}`)} · {collection.customerName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        <Link
+                          href={routes.agenda.visit(collection.visitId)}
+                          className="underline-offset-4 hover:underline"
+                        >
+                          {collection.visitDate
+                            ? t('care.collections.visit', { date: day(collection.visitDate) })
+                            : collection.contractLabel}
+                        </Link>
+                        {[collection.contractLabel, collection.createdByName]
+                          .filter(Boolean)
+                          .map((part) => ` · ${part}`)
+                          .join('')}
+                      </p>
+                      {collection.note ? (
+                        <p className="text-xs break-words text-muted-foreground">
+                          {collection.note}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <ConfirmCollectionDialog
+                        action={confirmCarePaymentAction.bind(null, ctx.tenantSlug, collection.id)}
+                        idPrefix={`confirm-${collection.id}`}
+                        currency={result.currency}
+                        collectedLabel={amount}
+                        defaultAmount={minorToDecimalString(
+                          collection.collectedMinor,
+                          ctx.currency,
+                        )}
+                        label={t('care.collections.confirmLabel', {
+                          amount,
+                          customer: collection.customerName,
+                        })}
+                      />
+                      <RejectCollectionDialog
+                        action={rejectCarePaymentAction.bind(null, ctx.tenantSlug, collection.id)}
+                        idPrefix={`reject-${collection.id}`}
+                        label={t('care.collections.rejectLabel', {
+                          amount,
+                          customer: collection.customerName,
+                        })}
+                      />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            {pending.total > pending.items.length ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {t('care.collections.more', { count: pending.total - pending.items.length })}
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <nav aria-label={t('care.charges.viewsLabel')} className="flex flex-wrap gap-2 text-sm">
         {CARE_CHARGE_VIEWS.map((view) => (

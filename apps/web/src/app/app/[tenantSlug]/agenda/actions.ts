@@ -26,6 +26,7 @@ import {
   setCareVisitServiceResult,
   sharePublicLink,
   startCareVisit,
+  submitCareVisitCollection,
   type CareReportDelivery,
   type CareVisitCloseResult,
 } from '@floral/core';
@@ -144,6 +145,30 @@ export async function setCareMaterialAction(
     return {
       revalidate: visitPage(routes, visitId),
       success: input.quantity === '0' ? 'care.visitWork.materialRemoved' : undefined,
+    };
+  });
+}
+
+/**
+ * "Cobré en la visita" (ADR-082, blocco 3b): l'incasso resta "por registrar"; dal client arriva
+ * solo quanto ha dato il cliente, come e la nota. Si ricarica la visita, Cobros e il pannello.
+ */
+export async function submitCareVisitCollectionAction(
+  slug: string,
+  visitId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await submitCareVisitCollection(ctx, visitId, formDataToObject(formData));
+    return {
+      revalidate: [
+        visitPage(routes, visitId),
+        section(routes.subscriptions.list()),
+        section(routes.customers.list()),
+        routes.home,
+      ],
+      success: 'care.collection.submitted',
     };
   });
 }

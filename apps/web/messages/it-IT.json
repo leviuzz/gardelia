@@ -3146,7 +3146,12 @@
       "charge_issued": "È stato emesso l’addebito {number}",
       "payment_recorded": "{actor} ha registrato un pagamento di {number}",
       "payment_reversed": "{actor} ha annullato un movimento di {number}",
-      "payment_refunded": "{actor} ha registrato un rimborso di {number}"
+      "payment_refunded": "{actor} ha registrato un rimborso di {number}",
+      "payment_submitted": "{actor} ha segnato un incasso in una visita di {number}",
+      "payment_confirmed": "{actor} ha confermato un incasso della visita su {number}",
+      "payment_rejected": "{actor} ha rifiutato un incasso della visita di {number}",
+      "adjustment_added": "{actor} ha aggiunto una rettifica per il prossimo addebito di {number}",
+      "adjustment_removed": "{actor} ha tolto una rettifica di {number}"
     },
     "notice": {
       "label": "Sì, ho avvisato il cliente"
@@ -3326,7 +3331,9 @@
       "end_before_done": "Ci sono già visite fatte dopo quel giorno: scegline uno dopo.",
       "payment_zero": "L’importo deve essere maggiore di 0.",
       "paid_on_future": "La data del pagamento non può essere dopo oggi.",
-      "refund_exceeds_credit": "Il rimborso non può superare il saldo a favore del cliente."
+      "refund_exceeds_credit": "Il rimborso non può superare il saldo a favore del cliente.",
+      "confirm_exceeds_collected": "Non può essere più di quanto segnato nella visita.",
+      "too_many_adjustments": "Questo contratto ha già molte rettifiche in attesa."
     },
     "conflict": {
       "not_configured": "Prima salva le tariffe di Floral Care (Impostazioni → Floral Care).",
@@ -3357,7 +3364,12 @@
       "follow_up_resolved": "Questo avviso è già stato risolto. Ricarica la pagina.",
       "payment_not_reversible": "Questo movimento non si può annullare.",
       "charge_not_in_favor": "Questo addebito non ha più un saldo a favore del cliente.",
-      "charge_too_large": "Gli importi di questo addebito sono troppo alti: controlla il prezzo del contratto."
+      "charge_too_large": "Gli importi di questo addebito sono troppo alti: controlla il prezzo del contratto.",
+      "collection_not_open": "Puoi segnare un incasso solo in una visita in corso o fatta.",
+      "collection_pending": "In questa visita c’è già un incasso da registrare.",
+      "payment_not_pending": "Questo incasso è già stato confermato o rifiutato.",
+      "adjustment_in_charge": "Questa rettifica è già in un addebito: correggila con un’altra rettifica.",
+      "visit_already_recovered": "Questa visita ha già la sua visita di recupero."
     },
     "contracts": {
       "title": "Floral Care",
@@ -3976,7 +3988,8 @@
         "CREDIT_CARRIED_IN": "Saldo a favore dell’addebito {number}",
         "CREDIT_CARRIED_OUT": "Saldo a favore che passa al prossimo addebito",
         "CREDIT_CARRIED_OUT_TO": "Saldo a favore passato all’addebito {number}",
-        "ADJUSTMENT": "Rettifica"
+        "ADJUSTMENT": "Rettifica",
+        "ADJUSTMENT_WITH": "Rettifica: {reason}"
       },
       "creditReasons": {
         "TO_RESCHEDULE": "da riprogrammare",
@@ -4073,7 +4086,9 @@
       "since": "Da {month}, più gli addebiti ancora aperti.",
       "printHeader": "Estratto conto",
       "printDate": "Data: {date}",
-      "printFor": "Cliente: {name}"
+      "printFor": "Cliente: {name}",
+      "pendingTitle": "Da registrare",
+      "pendingHint": "Incassi segnati nelle visite: non contano nel saldo finché non vengono confermati in Cobros."
     },
     "chargesCard": {
       "title": "Incassi di Floral Care",
@@ -4081,7 +4096,80 @@
       "overdue": "Scaduto",
       "detail": "{count, plural, one {# addebito} other {# addebiti}}",
       "allPaid": "Tutto incassato.",
-      "link": "Vedi gli incassi"
+      "link": "Vedi gli incassi",
+      "pending": "{count, plural, one {# incasso da registrare} other {# incassi da registrare}}"
+    },
+    "collection": {
+      "title": "Incasso nella visita",
+      "open": "Ho incassato nella visita",
+      "dialogBody": "Segna quanto ti ha dato il cliente. Resta da registrare finché chi gestisce gli incassi non lo conferma.",
+      "noteHint": "Per esempio: in contanti, alla reception.",
+      "submit": "Segna incasso",
+      "submitted": "Fatto: l’incasso resta da registrare",
+      "statuses": {
+        "PENDING": "Da registrare",
+        "RECORDED": "Registrato",
+        "REJECTED": "Rifiutato"
+      },
+      "by": "Segnato da {name}",
+      "recordedLess": "Sono stati registrati {amount}",
+      "rejectedBecause": "Motivo: {reason}"
+    },
+    "collections": {
+      "title": "Da registrare",
+      "subtitle": "Incassi segnati nelle visite. Confermali quando i soldi arrivano in cassa.",
+      "visit": "Visita del {date}",
+      "more": "{count, plural, one {E altro #} other {E altri #}}",
+      "confirm": "Conferma",
+      "confirmLabel": "Conferma l’incasso di {amount} di {customer}",
+      "confirmTitle": "Conferma incasso",
+      "confirmBody": "Sono stati segnati {amount}. Puoi registrare meno se in cassa è arrivato meno; va sugli addebiti più vecchi del cliente.",
+      "confirmSubmit": "Conferma incasso",
+      "confirmed": "{count, plural, one {Incasso registrato su # addebito} other {Incasso registrato su # addebiti}}",
+      "reject": "Rifiuta",
+      "rejectLabel": "Rifiuta l’incasso di {amount} di {customer}",
+      "rejectTitle": "Rifiuta incasso",
+      "rejectBody": "L’incasso non si registra. Scrivi il motivo: lo vedrà chi l’ha segnato.",
+      "reason": "Motivo",
+      "rejectSubmit": "Rifiuta incasso",
+      "rejected": "Incasso rifiutato"
+    },
+    "adjustments": {
+      "title": "Rettifiche per il prossimo addebito",
+      "hint": "Per correggere un errore o fare uno sconto. Entrano una volta nel prossimo addebito.",
+      "add": "Aggiungi rettifica",
+      "dialogBody": "Il cliente la vedrà nell’addebito come una riga «Rettifica» con il motivo.",
+      "direction": "Tipo di rettifica",
+      "directions": {
+        "CREDIT": "A favore del cliente (si sottrae)",
+        "DEBIT": "A carico del cliente (si somma)"
+      },
+      "reason": "Motivo (lo vede il cliente)",
+      "reasonPlaceholder": "Per esempio: sconto per la visita del giorno 3",
+      "submit": "Aggiungi rettifica",
+      "added": "Rettifica aggiunta: entra nel prossimo addebito",
+      "remove": "Togli",
+      "removeLabel": "Togli la rettifica «{reason}»",
+      "removeTitle": "Togliere la rettifica?",
+      "removeBody": "Non entrerà nel prossimo addebito. Resta nello storico.",
+      "removeConfirm": "Togli rettifica",
+      "removed": "Rettifica tolta",
+      "by": "{name} · {date}"
+    },
+    "recovery": {
+      "toRecover": "Da recuperare",
+      "toRecoverHint": "Il cliente non ha aperto e il contratto dice «Si fissa un’altra visita»: la visita è già addebitata e il recupero non ha costo.",
+      "recoveredOn": "Recuperata il {date}",
+      "schedule": "Fissa il recupero",
+      "dialogBody": "Visita senza costo per recuperare quella del {date}: quella è già addebitata, come dice il contratto.",
+      "recoveryOf": "Recupero della visita del {date}",
+      "alert": "{count, plural, one {C’è # visita da recuperare} other {Ci sono # visite da recuperare}}",
+      "alertLink": "Vedi visite",
+      "pageTitle": "Visite da recuperare",
+      "pageSubtitle": "Visite in cui il cliente non ha aperto, in contratti con «Si fissa un’altra visita». Il recupero non ha costo.",
+      "emptyTitle": "Non ci sono visite da recuperare",
+      "emptyBody": "Compaiono qui quando il cliente non apre e il contratto dice «Si fissa un’altra visita».",
+      "missedOn": "Non è stato possibile il {date}"
     }
   },
   "letterhead": {
