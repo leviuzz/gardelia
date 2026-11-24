@@ -574,7 +574,13 @@ Gardelia con la revisione di un fiorista).
 - **Elenco dei fiori (O-09 risolta):** foglio `docs/LISTA_FLORES_REVISION.md` per il fiorista,
   generato dall'elenco e controllato da un test.
 
-Verifiche: VERIFICHE_ADR_081
+Verifiche: lint ✅ · format ✅ · typecheck ✅ · test 1061/1061 ✅
+(dominio: proposte e regola del ramo, campi dei servizi e del proveedor, tempo di preparazione;
+integrazione: le tre regole, merce che non basta con l'apartado che segue, Diseñador, dopo "Listo",
+proveedor archiviato e di un'altra fioreria, "Por pedir", avviso di zona, isolamento A↔B; il foglio dei
+fiori aggiornato) · migrazioni = schema ✅ · build ✅ · E2E 109/109 ✅ su database nuovo (3 nuovi:
+proveedor e "Por pedir", servizio nella riga, sostituto con l'ok del cliente) · controllo a 320 e
+1280 px.
 
 **Reportes (24/11, ADR-080):** nuova voce "Reportes" nel menu, per owner e manager. Mostra il mese
 (frecce avanti e indietro) o l'anno, con il confronto sul periodo prima:
