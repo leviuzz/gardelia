@@ -569,7 +569,10 @@ scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
 I file si aprono con Excel e gli accenti giusti; i nomi dei clienti non diventano formule. Gli
 stati usano le parole dell'app e le date sono nel fuso della fioreria. La pagina "Eliminar florería"
-ricorda di scaricarli prima. Verifiche: VERIFICHE_EXPORT
+ricorda di scaricarli prima. Verifiche: lint ✅ · format ✅ · typecheck ✅ · test 1019/1019 ✅ (dominio: CSV con virgolette, BOM e
+protezione dalle formule; integrazione: solo il titolare, contenuto dei file riletti dallo ZIP, isolamento
+A↔B, registro senza PII) · build ✅ · E2E 104/104 ✅ su database nuovo (2 nuovi: il titolare scarica lo
+ZIP, lo staff non vede la card e la rotta risponde 404).
 
 **Sicurezza del conto (24/11, ADR-077):** voce 1 della V1 e primi due punti di sicurezza della
 roadmap. La pagina "Seguridad de la cuenta" (`/seguridad`) è per tutti e ci si arriva dal menu della
