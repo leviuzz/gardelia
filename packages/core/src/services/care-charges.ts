@@ -202,7 +202,7 @@ export async function issueNextCareChargeTx(
     },
   });
 
-  const [pastCharges, carried] = await Promise.all([
+  const [pastCharges, carried, adjustments] = await Promise.all([
     tx.careCharge.findMany({
       where: { tenantId, subscriptionId },
       select: { period: true, unitPriceMinor: true },
@@ -216,6 +216,13 @@ export async function issueNextCareChargeTx(
         charge: { carriedInto: { none: {} } },
       },
       select: { chargeId: true, amountMinor: true },
+    }),
+    // Gli ajustes in attesa (blocco 3b): entrano tutti in questo cargo. Il contratto è bloccato,
+    // quindi nessuno li toglie nel frattempo.
+    tx.careChargeAdjustment.findMany({
+      where: { tenantId, subscriptionId, removedAt: null, lines: { none: {} } },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: { id: true, amountMinor: true, reason: true },
     }),
   ]);
 
@@ -240,6 +247,7 @@ export async function issueNextCareChargeTx(
       }),
     })),
     carriedIn: carried.map((line) => ({ chargeId: line.chargeId, amountMinor: line.amountMinor })),
+    adjustments,
     final,
   });
   if (!plan.ok) throw new ConflictError('care_charge_too_large');
@@ -282,6 +290,7 @@ export async function issueNextCareChargeTx(
         serviceResultId: line.serviceResultId,
         serviceId: line.serviceId,
         sourceChargeId: line.sourceChargeId,
+        adjustmentId: line.adjustmentId,
         creditReason: line.creditReason,
         label: line.label,
         quantity: line.quantity,
@@ -301,6 +310,7 @@ export async function issueNextCareChargeTx(
         totalMinor: plan.totalMinor,
         visits: plan.visitCount,
         lines: plan.lines.length,
+        ...(adjustments.length > 0 ? { adjustments: adjustments.length } : {}),
         final,
       },
     });
@@ -466,6 +476,16 @@ export interface CareChargeDetailDto extends CareChargeSummaryDto {
   readonly canRefund: boolean;
 }
 
+/** Un "Ajuste para el próximo cargo" ancora in attesa (blocco 3b). */
+export interface CareAdjustmentDto {
+  readonly id: string;
+  /** Con il segno: negativo a favore del cliente. */
+  readonly amountMinor: number;
+  readonly reason: string;
+  readonly createdAt: string;
+  readonly createdByName: string | null;
+}
+
 export interface CareContractChargesDto {
   readonly items: readonly CareChargeSummaryDto[];
   readonly total: number;
@@ -473,6 +493,10 @@ export interface CareContractChargesDto {
   readonly balanceMinor: number;
   readonly overdueCount: number;
   readonly currency: string;
+  /** Gli ajustes che entreranno nel prossimo cargo. */
+  readonly adjustments: readonly CareAdjustmentDto[];
+  /** Si può aggiungere un ajuste: il contratto avrà ancora un cargo (attivo o in pausa). */
+  readonly canAdjust: boolean;
 }
 
 export interface CareChargesOverviewDto {
@@ -480,6 +504,8 @@ export interface CareChargesOverviewDto {
   readonly openMinor: number;
   readonly overdueCount: number;
   readonly overdueMinor: number;
+  /** Blocco 3b: incassi segnati alla visita che aspettano chi gestisce. */
+  readonly pendingCollections: number;
   readonly currency: string;
 }
 
@@ -789,11 +815,11 @@ export async function listContractCharges(
   const result = await withTenantContext(getDb(), ctx, async (tx) => {
     const contract = await tx.customerSubscription.findFirst({
       where: { tenantId: ctx.tenantId, id: subscriptionId, kind: 'CARE' },
-      select: { id: true, currency: true },
+      select: { id: true, currency: true, status: true, confirmedAt: true },
     });
     if (!contract) return null;
     const where = { tenantId: ctx.tenantId, subscriptionId };
-    const [rows, total, open, overdueCount] = await Promise.all([
+    const [rows, total, open, overdueCount, adjustments] = await Promise.all([
       tx.careCharge.findMany({
         where,
         orderBy: [{ period: 'desc' }, { number: 'desc' }],
@@ -808,16 +834,39 @@ export async function listContractCharges(
       tx.careCharge.count({
         where: { ...where, balanceMinor: { gt: 0 }, dueDate: { lt: dbDate(today) } },
       }),
+      tx.careChargeAdjustment.findMany({
+        where: { ...where, removedAt: null, lines: { none: {} } },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true, amountMinor: true, reason: true, createdAt: true, createdById: true },
+      }),
     ]);
-    return { contract, rows, total, open, overdueCount };
+    const names = await memberNamesTx(
+      tx,
+      ctx.tenantId,
+      adjustments.flatMap((adjustment) => (adjustment.createdById ? [adjustment.createdById] : [])),
+    );
+    return { contract, rows, total, open, overdueCount, adjustments, names };
   });
   if (!result) return notFound(ctx, 'CustomerSubscription', subscriptionId);
+  const { contract } = result;
   return {
     items: result.rows.map((row) => toCareChargeSummary(row, today)),
     total: result.total,
     balanceMinor: result.open._sum.balanceMinor ?? 0,
     overdueCount: result.overdueCount,
-    currency: result.contract.currency,
+    currency: contract.currency,
+    adjustments: result.adjustments.map((adjustment) => ({
+      id: adjustment.id,
+      amountMinor: adjustment.amountMinor,
+      reason: adjustment.reason,
+      createdAt: adjustment.createdAt.toISOString(),
+      createdByName: adjustment.createdById
+        ? (result.names.get(adjustment.createdById) ?? null)
+        : null,
+    })),
+    canAdjust:
+      contract.confirmedAt !== null &&
+      (contract.status === 'ACTIVE' || contract.status === 'PAUSED'),
   };
 }
 
@@ -831,11 +880,11 @@ export async function getCareChargesOverview(
   if (!hasPermission(ctx, 'subscriptions:payments')) return null;
   const today = todayInTimeZone(ctx.timezone);
   const result = await withTenantContext(getDb(), ctx, async (tx) => {
-    const any = await tx.careCharge.findFirst({
-      where: { tenantId: ctx.tenantId },
-      select: { id: true },
-    });
-    if (!any) return null;
+    const [anyCharge, pendingCollections] = await Promise.all([
+      tx.careCharge.findFirst({ where: { tenantId: ctx.tenantId }, select: { id: true } }),
+      tx.carePayment.count({ where: { tenantId: ctx.tenantId, status: 'PENDING' } }),
+    ]);
+    if (!anyCharge && pendingCollections === 0) return null;
     const [open, overdue] = await Promise.all([
       tx.careCharge.aggregate({
         where: { tenantId: ctx.tenantId, balanceMinor: { gt: 0 } },
@@ -852,7 +901,7 @@ export async function getCareChargesOverview(
         _sum: { balanceMinor: true },
       }),
     ]);
-    return { open, overdue };
+    return { open, overdue, pendingCollections };
   });
   if (!result) return null;
   return {
@@ -860,6 +909,7 @@ export async function getCareChargesOverview(
     openMinor: result.open._sum.balanceMinor ?? 0,
     overdueCount: result.overdue._count._all,
     overdueMinor: result.overdue._sum.balanceMinor ?? 0,
+    pendingCollections: result.pendingCollections,
     currency: ctx.currency,
   };
 }

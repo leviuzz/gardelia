@@ -3146,7 +3146,12 @@
       "charge_issued": "Se emitió el cargo {number}",
       "payment_recorded": "{actor} registró un pago de {number}",
       "payment_reversed": "{actor} anuló un movimiento de {number}",
-      "payment_refunded": "{actor} registró una devolución de {number}"
+      "payment_refunded": "{actor} registró una devolución de {number}",
+      "payment_submitted": "{actor} anotó un cobro en una visita de {number}",
+      "payment_confirmed": "{actor} confirmó un cobro de la visita en {number}",
+      "payment_rejected": "{actor} rechazó un cobro de la visita de {number}",
+      "adjustment_added": "{actor} agregó un ajuste para el próximo cargo de {number}",
+      "adjustment_removed": "{actor} quitó un ajuste de {number}"
     },
     "notice": {
       "label": "Sí, avisé al cliente"
@@ -3326,7 +3331,9 @@
       "end_before_done": "Ya hay visitas hechas después de ese día: elige un día posterior.",
       "payment_zero": "El importe debe ser mayor que 0.",
       "paid_on_future": "La fecha del pago no puede ser posterior a hoy.",
-      "refund_exceeds_credit": "La devolución no puede ser mayor que el saldo a favor del cliente."
+      "refund_exceeds_credit": "La devolución no puede ser mayor que el saldo a favor del cliente.",
+      "confirm_exceeds_collected": "No puede ser más de lo que se anotó en la visita.",
+      "too_many_adjustments": "Este contrato ya tiene muchos ajustes pendientes."
     },
     "conflict": {
       "not_configured": "Primero guarda tus tarifas de Floral Care (Ajustes → Floral Care).",
@@ -3357,7 +3364,12 @@
       "follow_up_resolved": "Este aviso ya se resolvió. Recarga la página.",
       "payment_not_reversible": "Este movimiento no se puede anular.",
       "charge_not_in_favor": "Este cargo ya no tiene saldo a favor del cliente.",
-      "charge_too_large": "Los importes de este cargo son demasiado altos: revisa el precio del contrato."
+      "charge_too_large": "Los importes de este cargo son demasiado altos: revisa el precio del contrato.",
+      "collection_not_open": "Solo puedes anotar un cobro en una visita en curso o hecha.",
+      "collection_pending": "Ya hay un cobro por registrar en esta visita.",
+      "payment_not_pending": "Este cobro ya se confirmó o se rechazó.",
+      "adjustment_in_charge": "Este ajuste ya está en un cargo: corrígelo con otro ajuste.",
+      "visit_already_recovered": "Esta visita ya tiene su visita de recuperación."
     },
     "contracts": {
       "title": "Floral Care",
@@ -3976,7 +3988,8 @@
         "CREDIT_CARRIED_IN": "Saldo a favor del cargo {number}",
         "CREDIT_CARRIED_OUT": "Saldo a favor que pasa al próximo cargo",
         "CREDIT_CARRIED_OUT_TO": "Saldo a favor que pasó al cargo {number}",
-        "ADJUSTMENT": "Ajuste"
+        "ADJUSTMENT": "Ajuste",
+        "ADJUSTMENT_WITH": "Ajuste: {reason}"
       },
       "creditReasons": {
         "TO_RESCHEDULE": "por reprogramar",
@@ -4073,7 +4086,9 @@
       "since": "Desde {month}, más los cargos que siguen abiertos.",
       "printHeader": "Estado de cuenta",
       "printDate": "Fecha: {date}",
-      "printFor": "Cliente: {name}"
+      "printFor": "Cliente: {name}",
+      "pendingTitle": "Por registrar",
+      "pendingHint": "Cobros anotados en las visitas: no cuentan en el saldo hasta que se confirmen en Cobros."
     },
     "chargesCard": {
       "title": "Cobros de Floral Care",
@@ -4081,7 +4096,80 @@
       "overdue": "Vencido",
       "detail": "{count, plural, one {# cargo} other {# cargos}}",
       "allPaid": "Todo cobrado.",
-      "link": "Ver cobros"
+      "link": "Ver cobros",
+      "pending": "{count, plural, one {# cobro por registrar} other {# cobros por registrar}}"
+    },
+    "collection": {
+      "title": "Cobro en la visita",
+      "open": "Cobré en la visita",
+      "dialogBody": "Anota lo que te dio el cliente. Queda por registrar hasta que quien lleva los cobros lo confirme.",
+      "noteHint": "Por ejemplo: en efectivo, en recepción.",
+      "submit": "Anotar cobro",
+      "submitted": "Listo: el cobro queda por registrar",
+      "statuses": {
+        "PENDING": "Por registrar",
+        "RECORDED": "Registrado",
+        "REJECTED": "Rechazado"
+      },
+      "by": "Anotó {name}",
+      "recordedLess": "Se registraron {amount}",
+      "rejectedBecause": "Motivo: {reason}"
+    },
+    "collections": {
+      "title": "Por registrar",
+      "subtitle": "Cobros anotados en las visitas. Confírmalos cuando el dinero llegue a la caja.",
+      "visit": "Visita del {date}",
+      "more": "{count, plural, one {Y # más} other {Y # más}}",
+      "confirm": "Confirmar",
+      "confirmLabel": "Confirmar el cobro de {amount} de {customer}",
+      "confirmTitle": "Confirmar cobro",
+      "confirmBody": "Se anotaron {amount}. Puedes registrar menos si llegó menos a la caja; se aplica a los cargos más antiguos del cliente.",
+      "confirmSubmit": "Confirmar cobro",
+      "confirmed": "{count, plural, one {Cobro registrado en # cargo} other {Cobro registrado en # cargos}}",
+      "reject": "Rechazar",
+      "rejectLabel": "Rechazar el cobro de {amount} de {customer}",
+      "rejectTitle": "Rechazar cobro",
+      "rejectBody": "El cobro no se registra. Escribe el motivo: lo verá quien lo anotó.",
+      "reason": "Motivo",
+      "rejectSubmit": "Rechazar cobro",
+      "rejected": "Cobro rechazado"
+    },
+    "adjustments": {
+      "title": "Ajustes para el próximo cargo",
+      "hint": "Para corregir un error o hacer un descuento. Entran una vez en el próximo cargo.",
+      "add": "Agregar ajuste",
+      "dialogBody": "El cliente lo verá en el cargo como una línea «Ajuste» con el motivo.",
+      "direction": "Tipo de ajuste",
+      "directions": {
+        "CREDIT": "A favor del cliente (se resta)",
+        "DEBIT": "A cargo del cliente (se suma)"
+      },
+      "reason": "Motivo (lo ve el cliente)",
+      "reasonPlaceholder": "Por ejemplo: descuento por la visita del día 3",
+      "submit": "Agregar ajuste",
+      "added": "Ajuste agregado: entra en el próximo cargo",
+      "remove": "Quitar",
+      "removeLabel": "Quitar el ajuste «{reason}»",
+      "removeTitle": "¿Quitar el ajuste?",
+      "removeBody": "No entrará en el próximo cargo. Queda en el historial.",
+      "removeConfirm": "Quitar ajuste",
+      "removed": "Ajuste quitado",
+      "by": "{name} · {date}"
+    },
+    "recovery": {
+      "toRecover": "Por recuperar",
+      "toRecoverHint": "El cliente no abrió y el contrato dice «Se agenda otra visita»: la visita ya se cobró y la recuperación no tiene costo.",
+      "recoveredOn": "Recuperada el {date}",
+      "schedule": "Agendar recuperación",
+      "dialogBody": "Visita sin costo para recuperar la del {date}: esa ya se cobró, como dice el contrato.",
+      "recoveryOf": "Recuperación de la visita del {date}",
+      "alert": "{count, plural, one {Hay # visita por recuperar} other {Hay # visitas por recuperar}}",
+      "alertLink": "Ver visitas",
+      "pageTitle": "Visitas por recuperar",
+      "pageSubtitle": "Visitas en las que el cliente no abrió, en contratos con «Se agenda otra visita». La recuperación no tiene costo.",
+      "emptyTitle": "No hay visitas por recuperar",
+      "emptyBody": "Aparecen aquí cuando el cliente no abre y el contrato dice «Se agenda otra visita».",
+      "missedOn": "No se pudo el {date}"
     }
   },
   "letterhead": {

@@ -178,6 +178,8 @@ export function tenantRoutes(slug: string) {
       day: (query?: { readonly date?: string }) => withQuery(agenda, query),
       month: (query?: { readonly month?: string }) => withQuery(`${agenda}/month`, query),
       toReschedule: `${agenda}/reschedule`,
+      /** Visite mancate per il cliente da recuperare con una visita gratis (ADR-082, blocco 3b). */
+      toRecover: `${agenda}/recover`,
       /** Una visita: la visita dal telefono (ADR-078), spostarla, cancellarla, assegnarla. */
       visit: (visitId: string) => `${agenda}/visits/${segment(visitId)}`,
       /** Una foto della visita (`thumb` = miniatura). */

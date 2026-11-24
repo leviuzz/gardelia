@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import type { CareChargeStatus } from '@floral/domain';
+import type { CareChargeStatus, CarePaymentStatus } from '@floral/domain';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import type { TenantRoutes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,18 @@ const CHARGE_BADGE: Record<CareChargeStatus, BadgeVariant> = {
 export function ChargeStatusBadge({ status }: { readonly status: CareChargeStatus }) {
   const t = useTranslations('care.chargeStatus');
   return <Badge variant={CHARGE_BADGE[status]}>{t(status)}</Badge>;
+}
+
+const COLLECTION_BADGE: Record<CarePaymentStatus, BadgeVariant> = {
+  PENDING: 'warning',
+  RECORDED: 'success',
+  REJECTED: 'danger',
+};
+
+/** Stato di un incasso segnato alla visita (blocco 3b): por registrar, registrado, rechazado. */
+export function CollectionStatusBadge({ status }: { readonly status: CarePaymentStatus }) {
+  const t = useTranslations('care.collection.statuses');
+  return <Badge variant={COLLECTION_BADGE[status]}>{t(status)}</Badge>;
 }
 
 /**

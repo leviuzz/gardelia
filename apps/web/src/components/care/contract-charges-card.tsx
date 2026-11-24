@@ -4,14 +4,20 @@ import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { listContractCharges, type TenantContext } from '@floral/core';
 import { ChargeStatusBadge } from '@/components/care/charge-ui';
+import { CareAdjustmentDialog, RemoveAdjustmentButton } from '@/components/care/collection-forms';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { money } from '@/lib/format';
 import { tenantRoutes } from '@/lib/routes';
+import {
+  addCareChargeAdjustmentAction,
+  removeCareChargeAdjustmentAction,
+} from '@/app/app/[tenantSlug]/subscriptions/charges/actions';
 
 /**
  * Card "Cargos" della scheda del contratto (ADR-082): gli ultimi sei, con lo stato e quanto manca,
- * e il link all'estado de cuenta del cliente (tutte le sedi). Solo per chi gestisce i soldi.
+ * e il link all'estado de cuenta del cliente (tutte le sedi). Sotto, gli "Ajustes para el próximo
+ * cargo" in attesa (blocco 3b), da aggiungere o togliere. Solo per chi gestisce i soldi.
  */
 export async function ContractChargesCard({
   ctx,
@@ -29,6 +35,9 @@ export async function ContractChargesCard({
   ]);
   const routes = tenantRoutes(ctx.tenantSlug);
   const price = (minor: number) => money(minor, charges.currency);
+  const signed = (minor: number) => (minor < 0 ? `−${price(-minor)}` : `+${price(minor)}`);
+  const shortDay = (iso: string) =>
+    format.dateTime(new Date(iso), { day: 'numeric', month: 'short', timeZone: ctx.timezone });
   const month = (iso: string) =>
     format.dateTime(new Date(`${iso}T12:00:00Z`), {
       month: 'long',
@@ -94,6 +103,62 @@ export async function ContractChargesCard({
             ) : null}
           </>
         )}
+
+        {charges.canAdjust || charges.adjustments.length > 0 ? (
+          <section className="space-y-2 border-t pt-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-medium">{t('adjustments.title')}</h3>
+              {charges.canAdjust ? (
+                <CareAdjustmentDialog
+                  action={addCareChargeAdjustmentAction.bind(null, ctx.tenantSlug, subscriptionId)}
+                  currency={charges.currency}
+                />
+              ) : null}
+            </div>
+            {charges.adjustments.length === 0 ? (
+              <p className="text-xs text-muted-foreground">{t('adjustments.hint')}</p>
+            ) : (
+              <ul className="divide-y rounded-xl border">
+                {charges.adjustments.map((adjustment) => (
+                  <li
+                    key={adjustment.id}
+                    className="flex items-center justify-between gap-3 px-3 py-2"
+                  >
+                    <span className="min-w-0">
+                      <span className="block break-words">{adjustment.reason}</span>
+                      <span className="block text-xs text-muted-foreground">
+                        {t('adjustments.by', {
+                          name: adjustment.createdByName ?? '—',
+                          date: shortDay(adjustment.createdAt),
+                        })}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1">
+                      <span
+                        className={
+                          adjustment.amountMinor < 0
+                            ? 'font-medium text-[oklch(0.42_0.12_150)] tabular-nums'
+                            : 'font-medium tabular-nums'
+                        }
+                      >
+                        {signed(adjustment.amountMinor)}
+                      </span>
+                      <RemoveAdjustmentButton
+                        action={removeCareChargeAdjustmentAction.bind(
+                          null,
+                          ctx.tenantSlug,
+                          subscriptionId,
+                          adjustment.id,
+                        )}
+                        label={t('adjustments.removeLabel', { reason: adjustment.reason })}
+                      />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ) : null}
       </CardContent>
     </Card>
   );

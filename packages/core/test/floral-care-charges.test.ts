@@ -17,11 +17,14 @@ import {
   ForbiddenError,
   MemoryMailer,
   NotFoundError,
+  ValidationError,
+  addCareChargeAdjustment,
   addCarePlant,
   addCustomerAddress,
   cancelCareVisit,
   changeCareSchedule,
   confirmCareContract,
+  confirmCarePayment,
   createCareContract,
   createCareExtraVisit,
   createCareService,
@@ -32,22 +35,30 @@ import {
   getCareCharge,
   getCareChargesOverview,
   getCareContract,
+  getCareAgendaDay,
   getCareSettings,
+  getCareVisit,
   getCustomerCareStatement,
   getCustomerTimeline,
   listCareCharges,
   listCareContracts,
+  listCareVisitCollections,
+  listCareVisitsToRecover,
   listContractCharges,
+  listPendingCareCollections,
   markAllCarePlantsOk,
   markCareVisitNotDone,
   moveCareVisit,
   recordCareChargePayment,
   recordCustomerCarePayment,
   refundCareCharge,
+  rejectCarePayment,
+  removeCareChargeAdjustment,
   repriceCareContract,
   reverseCarePayment,
   setCareVisitServiceResult,
   startCareVisit,
+  submitCareVisitCollection,
   updateCareSettings,
   updateCareSlot,
   updatePrimaryLocation,
@@ -866,5 +877,358 @@ describe('cronologia, pannello ed elenco', () => {
     );
     const summary = await listContractCharges(shop.owner, kit.subscriptionId);
     expect(summary).toMatchObject({ total: 1, overdueCount: 1 });
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Blocco 3b
+// -----------------------------------------------------------------------------
+
+/** Un contratto con «Se agenda otra visita»: la regola si copia alla conferma, qui la si cambia. */
+async function useRecoverPolicy(subscriptionId: string): Promise<void> {
+  await withSystemContext(db, { reason: 'test: regola del contratto' }, (tx) =>
+    tx.customerSubscription.update({
+      where: { id: subscriptionId },
+      data: { missedVisitPolicy: 'RECOVER' },
+    }),
+  );
+}
+
+async function paymentRow(id: string) {
+  return withSystemContext(db, { reason: 'test: movimento' }, (tx) =>
+    tx.carePayment.findUniqueOrThrow({ where: { id }, include: { allocations: true } }),
+  );
+}
+
+describe('blocco 3b: "Cobré en la visita"', () => {
+  it('lo staff segna l’incasso: resta "por registrar", una volta per visita e per modulo', async () => {
+    const kit = await newContract(shop.owner, 'Hotel Cobro Visita');
+    const visitId = kit.visits[0]!.id;
+    const cash = { amount: '300', method: 'CASH', note: 'En recepción' };
+    // Prima della visita non si segna niente.
+    await expect(submitCareVisitCollection(shop.staff, visitId, cash)).rejects.toMatchObject({
+      reason: 'care_collection_not_open',
+    });
+    await startCareVisit(shop.staff, visitId);
+    const submitKey = randomUUID();
+    const first = await submitCareVisitCollection(shop.staff, visitId, { ...cash, submitKey });
+    const again = await submitCareVisitCollection(shop.staff, visitId, { ...cash, submitKey });
+    expect(again.paymentId).toBe(first.paymentId);
+    await expect(
+      submitCareVisitCollection(shop.staff, visitId, { ...cash, submitKey: randomUUID() }),
+    ).rejects.toMatchObject({ reason: 'care_collection_pending' });
+
+    const row = await paymentRow(first.paymentId);
+    expect(row).toMatchObject({
+      status: 'PENDING',
+      kind: 'PAYMENT',
+      amountMinor: 30_000,
+      collectedMinor: 30_000,
+      visitId,
+      customerId: kit.customerId,
+    });
+    expect(row.allocations).toEqual([]);
+    // Il cargo non cambia finché chi gestisce non conferma.
+    expect((await chargeIn(kit.subscriptionId, thisMonth()))!.paidMinor).toBe(0);
+
+    // Lo staff vede il suo incasso; chi gestisce lo vede in Cobros, nel pannello e nell'estado.
+    const mine = await listCareVisitCollections(shop.staff, visitId);
+    expect(mine.map((item) => [item.status, item.collectedMinor])).toEqual([['PENDING', 30_000]]);
+    const pending = await listPendingCareCollections(shop.owner);
+    expect(pending.items.some((item) => item.id === first.paymentId)).toBe(true);
+    expect((await getCareChargesOverview(shop.owner))!.pendingCollections).toBeGreaterThan(0);
+    const statement = await getCustomerCareStatement(shop.owner, kit.customerId);
+    expect(statement.pending.map((item) => item.id)).toEqual([first.paymentId]);
+    expect(statement.payments).toEqual([]);
+  });
+
+  it('chi gestisce conferma (anche meno, mai di più) sui cargos più vecchi, una volta sola', async () => {
+    const kit = await newContract(shop.owner, 'Hotel Confirma Cobro');
+    const visitId = kit.visits[0]!.id;
+    await startCareVisit(shop.staff, visitId);
+    const { paymentId } = await submitCareVisitCollection(shop.staff, visitId, {
+      amount: '300',
+      method: 'CASH',
+    });
+    await expect(
+      confirmCarePayment(shop.staff, paymentId, { amount: '300' }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(
+      confirmCarePayment(shop.owner, paymentId, { amount: '400' }),
+    ).rejects.toMatchObject({
+      fieldErrors: { amount: 'care_confirm_exceeds_collected' },
+    });
+    const result = await confirmCarePayment(shop.manager, paymentId, {
+      amount: '250',
+      reference: 'Caja 12',
+    });
+    expect(result.charges).toBe(1);
+    const row = await paymentRow(paymentId);
+    expect(row).toMatchObject({
+      status: 'RECORDED',
+      amountMinor: 25_000,
+      collectedMinor: 30_000,
+      reference: 'Caja 12',
+    });
+    expect(row.reviewedById).toBe(shop.manager.userId);
+    expect(row.allocations.map((allocation) => allocation.amountMinor)).toEqual([25_000]);
+    expect((await chargeIn(kit.subscriptionId, thisMonth()))!.paidMinor).toBe(25_000);
+    await expect(
+      confirmCarePayment(shop.owner, paymentId, { amount: '250' }),
+    ).rejects.toMatchObject({
+      reason: 'care_payment_not_pending',
+    });
+    await expect(
+      rejectCarePayment(shop.owner, paymentId, { reason: 'Tarde' }),
+    ).rejects.toMatchObject({ reason: 'care_payment_not_pending' });
+    const statement = await getCustomerCareStatement(shop.owner, kit.customerId);
+    expect(statement.pending).toEqual([]);
+    expect(statement.payments.map((payment) => payment.id)).toEqual([paymentId]);
+    // Confermato, è un pagamento come gli altri: si annulla con lo storno.
+    await reverseCarePayment(shop.owner, paymentId);
+    expect((await chargeIn(kit.subscriptionId, thisMonth()))!.paidMinor).toBe(0);
+  });
+
+  it('due conferme insieme: una passa, l’altra trova l’incasso già registrato', async () => {
+    const kit = await newContract(shop.owner, 'Hotel Doble Confirma');
+    const visitId = kit.visits[0]!.id;
+    await startCareVisit(shop.staff, visitId);
+    const { paymentId } = await submitCareVisitCollection(shop.staff, visitId, {
+      amount: '200',
+      method: 'TRANSFER',
+    });
+    const results = await Promise.allSettled([
+      confirmCarePayment(shop.owner, paymentId, { amount: '200' }),
+      confirmCarePayment(shop.manager, paymentId, { amount: '200' }),
+    ]);
+    expect(results.filter((item) => item.status === 'fulfilled')).toHaveLength(1);
+    const failed = results.find((item) => item.status === 'rejected');
+    expect(failed?.status === 'rejected' && failed.reason).toBeInstanceOf(ConflictError);
+    expect((await chargeIn(kit.subscriptionId, thisMonth()))!.paidMinor).toBe(20_000);
+  });
+
+  it('"Rechazar" vuole il motivo, che lo staff vede; poi si può segnare di nuovo', async () => {
+    const kit = await newContract(shop.owner, 'Hotel Rechazo Cobro');
+    const visitId = kit.visits[0]!.id;
+    await startCareVisit(shop.staff, visitId);
+    const { paymentId } = await submitCareVisitCollection(shop.staff, visitId, {
+      amount: '120',
+      method: 'CASH',
+    });
+    await expect(rejectCarePayment(shop.owner, paymentId, { reason: ' ' })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    await rejectCarePayment(shop.owner, paymentId, { reason: 'No llegó a la caja' });
+    const [rejected] = await listCareVisitCollections(shop.staff, visitId);
+    expect(rejected).toMatchObject({ status: 'REJECTED', rejectReason: 'No llegó a la caja' });
+    expect((await chargeIn(kit.subscriptionId, thisMonth()))!.paidMinor).toBe(0);
+    const again = await submitCareVisitCollection(shop.staff, visitId, {
+      amount: '120',
+      method: 'CASH',
+    });
+    expect(again.paymentId).not.toBe(paymentId);
+  });
+
+  it('un’altra fioreria non segna, non conferma e non rifiuta (404 con evento)', async () => {
+    const kit = await newContract(shop.owner, 'Hotel Aislado Cobro Visita');
+    const visitId = kit.visits[0]!.id;
+    await startCareVisit(shop.staff, visitId);
+    const { paymentId } = await submitCareVisitCollection(shop.staff, visitId, {
+      amount: '90',
+      method: 'CASH',
+    });
+    await expect(
+      submitCareVisitCollection(other.staff, visitId, { amount: '90', method: 'CASH' }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      confirmCarePayment(other.owner, paymentId, { amount: '90' }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      rejectCarePayment(other.owner, paymentId, { reason: 'Ajena' }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    expect((await listPendingCareCollections(other.owner)).items).toEqual([]);
+    const events = await withSystemContext(db, { reason: 'test: eventi di sicurezza' }, (tx) =>
+      tx.auditLog.findMany({
+        where: {
+          tenantId: null,
+          entityId: { in: [visitId, paymentId] },
+          action: 'security.cross_tenant_access_attempt',
+        },
+      }),
+    );
+    expect(new Set(events.map((event) => event.entityType))).toEqual(
+      new Set(['CareVisit', 'CarePayment']),
+    );
+    expect((await paymentRow(paymentId)).status).toBe('PENDING');
+  });
+});
+
+describe('blocco 3b: "Ajuste para el próximo cargo"', () => {
+  it('entra una volta nel cargo dopo, con il motivo; prima si può togliere, dopo no', async () => {
+    const kit = await newContract(shop.owner, 'Hotel Ajuste');
+    const discount = await addCareChargeAdjustment(shop.manager, kit.subscriptionId, {
+      direction: 'CREDIT',
+      amount: '100',
+      reason: 'Descuento por la visita del día 3',
+    });
+    const extra = await addCareChargeAdjustment(shop.owner, kit.subscriptionId, {
+      direction: 'DEBIT',
+      amount: '25.50',
+      reason: 'Maceta extra',
+    });
+    const removed = await addCareChargeAdjustment(shop.owner, kit.subscriptionId, {
+      direction: 'DEBIT',
+      amount: '10',
+      reason: 'Por error',
+    });
+    await removeCareChargeAdjustment(shop.owner, kit.subscriptionId, removed.adjustmentId);
+    // Togliere due volte non cambia niente.
+    await removeCareChargeAdjustment(shop.owner, kit.subscriptionId, removed.adjustmentId);
+    const before = await listContractCharges(shop.owner, kit.subscriptionId);
+    expect(before.canAdjust).toBe(true);
+    expect(before.adjustments.map((item) => [item.amountMinor, item.reason])).toEqual([
+      [-10_000, 'Descuento por la visita del día 3'],
+      [2_550, 'Maceta extra'],
+    ]);
+
+    await issueOn(shop.owner, kit.subscriptionId, monthsAhead(1));
+    const next = (await chargeIn(kit.subscriptionId, monthsAhead(1)))!;
+    const adjustments = next.lines.filter((line) => line.kind === 'ADJUSTMENT');
+    expect(adjustments.map((line) => [line.amountMinor, line.label, line.adjustmentId])).toEqual([
+      [-10_000, 'Descuento por la visita del día 3', discount.adjustmentId],
+      [2_550, 'Maceta extra', extra.adjustmentId],
+    ]);
+    expect((await listContractCharges(shop.owner, kit.subscriptionId)).adjustments).toEqual([]);
+    await expect(
+      removeCareChargeAdjustment(shop.owner, kit.subscriptionId, extra.adjustmentId),
+    ).rejects.toMatchObject({ reason: 'care_adjustment_in_charge' });
+    // Il mese dopo ancora non lo ripete.
+    await issueOn(shop.owner, kit.subscriptionId, monthsAhead(2));
+    const later = (await chargeIn(kit.subscriptionId, monthsAhead(2)))!;
+    expect(later.lines.some((line) => line.kind === 'ADJUSTMENT')).toBe(false);
+  });
+
+  it('staff no, altra fioreria 404, contratto finito no; un ajuste a favore grande passa avanti', async () => {
+    const kit = await newContract(shop.owner, 'Hotel Ajuste Permisos');
+    const input = { direction: 'CREDIT', amount: '5000', reason: 'Compensación' };
+    await expect(
+      addCareChargeAdjustment(shop.staff, kit.subscriptionId, input),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(
+      addCareChargeAdjustment(other.owner, kit.subscriptionId, input),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      addCareChargeAdjustment(shop.owner, kit.subscriptionId, { ...input, reason: '' }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    const { adjustmentId } = await addCareChargeAdjustment(shop.owner, kit.subscriptionId, input);
+    await expect(
+      removeCareChargeAdjustment(other.owner, kit.subscriptionId, adjustmentId),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    await issueOn(shop.owner, kit.subscriptionId, monthsAhead(1));
+    const next = (await chargeIn(kit.subscriptionId, monthsAhead(1)))!;
+    // Più delle visite del mese: il cargo resta a 0 e il resto passa al cargo dopo.
+    expect(next.totalMinor).toBe(0);
+    expect(next.lines.some((line) => line.kind === 'CREDIT_CARRIED_OUT')).toBe(true);
+
+    await endCareContract(shop.owner, kit.subscriptionId, {
+      endDate: iso(today()),
+      customerNotified: 'on',
+    });
+    // Finisce oggi: il cargo finale deve ancora nascere, quindi un ajuste ci entra ancora.
+    expect((await listContractCharges(shop.owner, kit.subscriptionId)).canAdjust).toBe(true);
+    // Chiuso (come lo segna il lavoro giornaliero dopo la fine): niente più ajustes.
+    await withSystemContext(db, { reason: 'test: contratto chiuso' }, (tx) =>
+      tx.customerSubscription.update({
+        where: { id: kit.subscriptionId },
+        data: { status: 'ENDED', endedAt: new Date() },
+      }),
+    );
+    await expect(
+      addCareChargeAdjustment(shop.owner, kit.subscriptionId, { ...input, amount: '1' }),
+    ).rejects.toMatchObject({ reason: 'care_contract_not_editable' });
+    expect((await listContractCharges(shop.owner, kit.subscriptionId)).canAdjust).toBe(false);
+  });
+});
+
+describe('blocco 3b: "Por recuperar"', () => {
+  it('la visita mancata si recupera gratis una volta; si paga comunque, il recupero no', async () => {
+    const kit = await newContract(shop.owner, 'Hotel Recupera');
+    await useRecoverPolicy(kit.subscriptionId);
+    const missedId = kit.visits[0]!.id;
+    await markCareVisitNotDone(shop.staff, missedId, { cause: 'CUSTOMER' }, deps);
+
+    const missed = await getCareVisit(shop.owner, missedId);
+    expect(missed.recovery).toEqual({ visitId: null, date: null, canSchedule: true });
+    expect((await getCareVisit(shop.staff, missedId)).recovery?.canSchedule).toBe(false);
+    expect((await listCareVisitsToRecover(shop.owner)).map((visit) => visit.id)).toContain(
+      missedId,
+    );
+    expect((await getCareAgendaDay(shop.owner, iso(today()))).toRecover).toBeGreaterThan(0);
+
+    const recovery = {
+      kind: 'EXTRA',
+      placement: 'TIME',
+      date: iso(today()),
+      start: '22:00',
+      end: '22:30',
+      fee: 'FREE',
+      recoveryOfVisitId: missedId,
+    };
+    // Un recupero è sempre gratis.
+    await expect(
+      createCareExtraVisit(shop.manager, kit.subscriptionId, { ...recovery, fee: 'VISIT_FEE' }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    const { visitId } = await createCareExtraVisit(shop.manager, kit.subscriptionId, recovery);
+    await expect(
+      createCareExtraVisit(shop.manager, kit.subscriptionId, {
+        ...recovery,
+        start: '23:00',
+        end: '23:30',
+      }),
+    ).rejects.toMatchObject({ reason: 'care_visit_already_recovered' });
+
+    expect((await getCareVisit(shop.owner, missedId)).recovery).toMatchObject({
+      visitId,
+      date: iso(today()),
+      canSchedule: false,
+    });
+    expect((await getCareVisit(shop.owner, visitId)).recoveryOf).toEqual({
+      visitId: missedId,
+      date: iso(today()),
+    });
+    expect((await listCareVisitsToRecover(shop.owner)).map((visit) => visit.id)).not.toContain(
+      missedId,
+    );
+
+    // La visita di recupero si fa; il mese dopo la visita mancata resta cobrada e il recupero no.
+    await startCareVisit(shop.staff, visitId);
+    await markAllCarePlantsOk(shop.staff, visitId);
+    await finishCareVisit(shop.staff, visitId, { note: '', sendReport: '' }, deps);
+    await issueOn(shop.owner, kit.subscriptionId, monthsAhead(1));
+    const next = (await chargeIn(kit.subscriptionId, monthsAhead(1)))!;
+    expect(next.lines.some((line) => line.visitId === missedId)).toBe(false);
+    expect(next.lines.some((line) => line.visitId === visitId)).toBe(false);
+  });
+
+  it('con «Cuenta como hecha» o se la fioreria non è andata, niente recupero', async () => {
+    const counts = await newContract(shop.owner, 'Hotel Sin Recupero');
+    await markCareVisitNotDone(shop.staff, counts.visits[0]!.id, { cause: 'CUSTOMER' }, deps);
+    expect((await getCareVisit(shop.owner, counts.visits[0]!.id)).recovery).toBeNull();
+    await expect(
+      createCareExtraVisit(shop.manager, counts.subscriptionId, {
+        kind: 'EXTRA',
+        placement: 'TIME',
+        date: iso(today()),
+        start: '21:00',
+        end: '21:30',
+        fee: 'FREE',
+        recoveryOfVisitId: counts.visits[0]!.id,
+      }),
+    ).rejects.toMatchObject({ fieldErrors: { recoveryOfVisitId: 'invalid_option' } });
+
+    const shopFault = await newContract(shop.owner, 'Hotel Falla Florería');
+    await useRecoverPolicy(shopFault.subscriptionId);
+    await markCareVisitNotDone(shop.staff, shopFault.visits[0]!.id, { cause: 'SHOP' }, deps);
+    expect((await getCareVisit(shop.owner, shopFault.visits[0]!.id)).recovery).toBeNull();
   });
 });

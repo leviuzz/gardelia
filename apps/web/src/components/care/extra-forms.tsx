@@ -56,6 +56,11 @@ export interface ExtraVisitDefaults {
   readonly fee: CareExtraFee;
   /** L'avviso di una pianta morta che questa visita risolve ("Reposición sin costo"). */
   readonly followUpId: string | null;
+  /**
+   * Blocco 3b: la visita mancata che questa recupera ("Agendar recuperación"), con il suo giorno
+   * già formattato. Sempre "Sin costo".
+   */
+  readonly recovery?: { readonly visitId: string; readonly dateLabel: string } | null;
 }
 
 export function ExtraVisitDialog({
@@ -84,12 +89,16 @@ export function ExtraVisitDialog({
   readonly trigger?: ReactNode;
 }) {
   const t = useTranslations('care.extra');
+  const tr = useTranslations('care.recovery');
   const tc = useTranslations('common');
   const [open, setOpen] = useState(defaultOpen);
   const [state, formAction] = useToastActionState(action, () => setOpen(false));
   const err = (field: string) => fieldError(state, field);
   const id = (name: string) => `${idPrefix}-${name}`;
   const fromFollowUp = defaults.followUpId !== null;
+  const recovery = defaults.recovery ?? null;
+  // Una reposición da un avviso e un recupero sono sempre gratis: niente scelta del costo.
+  const fixedFree = fromFollowUp || recovery !== null;
   const [placement, setPlacement] = useState<'SLOT' | 'TIME'>(options.length > 0 ? 'SLOT' : 'TIME');
   const [fee, setFee] = useState<CareExtraFee>(
     defaults.fee === 'QUOTE' && quotes.length === 0 ? 'VISIT_FEE' : defaults.fee,
@@ -107,11 +116,25 @@ export function ExtraVisitDialog({
       </DialogTrigger>
       <DialogContent closeLabel={tc('close')}>
         <DialogHeader>
-          <DialogTitle>{fromFollowUp ? t('replacementTitle') : t('title')}</DialogTitle>
-          <DialogDescription>{fromFollowUp ? t('replacementBody') : t('body')}</DialogDescription>
+          <DialogTitle>
+            {recovery ? tr('schedule') : fromFollowUp ? t('replacementTitle') : t('title')}
+          </DialogTitle>
+          <DialogDescription>
+            {recovery
+              ? tr('dialogBody', { date: recovery.dateLabel })
+              : fromFollowUp
+                ? t('replacementBody')
+                : t('body')}
+          </DialogDescription>
         </DialogHeader>
         <form action={formAction} onSubmit={preserveOnSubmit(formAction)} className="grid gap-4">
-          {fromFollowUp ? (
+          {recovery ? (
+            <>
+              <input type="hidden" name="recoveryOfVisitId" value={recovery.visitId} />
+              <input type="hidden" name="kind" value="EXTRA" />
+              <input type="hidden" name="fee" value="FREE" />
+            </>
+          ) : fromFollowUp ? (
             <>
               <input type="hidden" name="followUpId" value={defaults.followUpId ?? ''} />
               <input type="hidden" name="kind" value="REPLACEMENT" />
@@ -223,7 +246,7 @@ export function ExtraVisitDialog({
             </div>
           )}
 
-          {fromFollowUp ? (
+          {fixedFree ? (
             <p className="rounded-xl bg-muted/60 px-3 py-2 text-sm">{t('fees.FREE')}</p>
           ) : (
             <fieldset className="grid gap-2">
@@ -270,7 +293,7 @@ export function ExtraVisitDialog({
               {err('fee') ? <p className="text-sm text-destructive">{err('fee')}</p> : null}
             </fieldset>
           )}
-          {fee === 'QUOTE' && !fromFollowUp ? (
+          {fee === 'QUOTE' && !fixedFree ? (
             <Field id={id('quote')} label={t('quote')} error={err('quoteId')} required>
               <NativeSelect
                 {...controlProps(id('quote'), err('quoteId'))}
@@ -313,6 +336,9 @@ export function ExtraVisitDialog({
           ) : null}
           {err('followUpId') ? (
             <p className="text-sm text-destructive">{err('followUpId')}</p>
+          ) : null}
+          {(err('recoveryOfVisitId') ?? (recovery ? err('fee') : null)) ? (
+            <p className="text-sm text-destructive">{err('recoveryOfVisitId') ?? err('fee')}</p>
           ) : null}
           <DialogFooter>
             <DialogClose asChild>

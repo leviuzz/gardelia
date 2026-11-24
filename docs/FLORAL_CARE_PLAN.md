@@ -374,9 +374,9 @@ rilascio su staging) e lascia qualcosa di usabile.
      finale; pagamenti su un cargo o distribuiti sull'estado de cuenta, storni; Cobros con i
      vencidos; regole copiate nel contratto; causa di "No se pudo"; voci nella cronologia;
      riquadro nel pannello.
-   - **3b:** "Cobré en la visita" (por registrar, confermato o rifiutato da chi gestisce), "Por
-     recuperar" con la visita extra "Sin costo" legata alla visita mancata, "Ajuste para el
-     próximo cargo".
+   - **3b (fatto, ADR-082):** "Cobré en la visita" (por registrar, confermato anche per meno o
+     rifiutato con il motivo da chi gestisce), "Por recuperar" con la visita extra "Sin costo"
+     legata alla visita mancata, "Ajuste para el próximo cargo".
 4. **Blocchi, vacanze e cambi di massa.**
    - Blocchi di giorni o fasce, giorni di punta proposti.
    - Elenco dei clienti toccati, spostamento o credito di tutte le visite insieme, email

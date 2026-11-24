@@ -17,10 +17,12 @@ import {
   AUDIT_ACTIONS,
   CARE_EXTRA_LIMITS,
   CARE_LIMITS,
+  CARE_LIVE_RECOVERY_STATUSES,
   addDays,
   careExtraFeeMinor,
   careExtraVisitSchema,
   careQuoteSchema,
+  careVisitRecoverable,
   compareDates,
   dayOfWeek,
   formatQuoteNumber,
@@ -118,6 +120,7 @@ async function loadContract(tx: TransactionClient, ctx: TenantContext, subscript
       visitFeeMinor: true,
       travelSurchargeMinor: true,
       deadPlantPolicy: true,
+      missedVisitPolicy: true,
     },
   });
 }
@@ -331,6 +334,28 @@ export async function createCareExtraVisit(
       });
       if (!open) throw new ValidationError({ followUpId: 'invalid_option' });
     }
+    if (input.recoveryOfVisitId) {
+      // "Agendar recuperación" (blocco 3b): la visita mancata del cliente, nello stesso contratto,
+      // con «Se agenda otra visita», senza un'altra visita di recupero ancora valida. Il contratto
+      // è bloccato: due richieste insieme non ne creano due.
+      const missed = await tx.careVisit.findFirst({
+        where: { tenantId: ctx.tenantId, id: input.recoveryOfVisitId, subscriptionId: contract.id },
+        select: {
+          isExtra: true,
+          status: true,
+          notDoneCause: true,
+          recoveries: {
+            where: { status: { in: [...CARE_LIVE_RECOVERY_STATUSES] } },
+            select: { id: true },
+            take: 1,
+          },
+        },
+      });
+      if (!missed || !careVisitRecoverable(missed, contract.missedVisitPolicy)) {
+        throw new ValidationError({ recoveryOfVisitId: 'invalid_option' });
+      }
+      if (missed.recoveries.length > 0) throw new ConflictError('care_visit_already_recovered');
+    }
     const feeMinor = careExtraFeeMinor(input.fee, contract);
     const visit = await tx.careVisit.create({
       data: {
@@ -348,6 +373,7 @@ export async function createCareExtraVisit(
         extraFeeMinor: feeMinor,
         extraNote: input.note,
         quoteId: input.quoteId,
+        recoveryOfVisitId: input.recoveryOfVisitId,
         assignedMembershipId: input.assignee,
         createdById: ctx.userId,
       },
@@ -380,6 +406,7 @@ export async function createCareExtraVisit(
           : {}),
         ...(input.quoteId ? { quoteId: input.quoteId } : {}),
         ...(input.followUpId ? { followUpId: input.followUpId } : {}),
+        ...(input.recoveryOfVisitId ? { recoveryOfVisitId: input.recoveryOfVisitId } : {}),
       },
     });
     return { visitId: visit.id };

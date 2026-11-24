@@ -163,6 +163,16 @@ export type ConflictReason =
   | 'care_payment_not_reversible'
   | 'care_charge_not_in_favor'
   | 'care_charge_too_large'
+  /**
+   * Blocco 3b: la visita non è in corso né fatta (niente incasso), c'è già un incasso "por
+   * registrar" per la visita, l'incasso è già stato confermato o rifiutato, l'ajuste è già in un
+   * cargo, la visita mancata ha già la sua visita di recupero.
+   */
+  | 'care_collection_not_open'
+  | 'care_collection_pending'
+  | 'care_payment_not_pending'
+  | 'care_adjustment_in_charge'
+  | 'care_visit_already_recovered'
   /** "Eliminar florería" con ordini ancora da consegnare o ritirare (ADR-074). */
   | 'tenant_deletion_open_orders'
   | 'session_is_current';

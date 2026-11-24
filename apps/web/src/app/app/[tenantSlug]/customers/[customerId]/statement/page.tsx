@@ -13,7 +13,7 @@ import {
 } from '@floral/core';
 import { getMarket, minorToDecimalString, todayInTimeZone, toIsoDate } from '@floral/domain';
 import { ContractStatusBadge } from '@/components/care/care-ui';
-import { ChargeStatusBadge } from '@/components/care/charge-ui';
+import { ChargeStatusBadge, CollectionStatusBadge } from '@/components/care/charge-ui';
 import { CarePaymentDialog, ReverseCarePaymentButton } from '@/components/care/payment-forms';
 import { PrintButton } from '@/components/common/print-button';
 import { PrintLetterhead } from '@/components/common/print-letterhead';
@@ -269,6 +269,37 @@ export default async function CareStatementPage({
             </ul>
           )}
         </section>
+
+        {!print && statement.pending.length > 0 ? (
+          <section className="space-y-2">
+            <h2 className="font-semibold">{tt('care.statement.pendingTitle')}</h2>
+            <p className="text-xs text-muted-foreground">{tt('care.statement.pendingHint')}</p>
+            <ul className="divide-y rounded-xl border text-sm">
+              {statement.pending.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5"
+                >
+                  <div className="min-w-0 space-y-0.5">
+                    <p className="flex flex-wrap items-center gap-2 font-medium">
+                      {tt(`orders.methods.${item.method}`)}
+                      <CollectionStatusBadge status="PENDING" />
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {[day(item.paidOn), item.contractLabel, item.createdByName]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                    {item.note ? (
+                      <p className="text-xs break-words text-muted-foreground">{item.note}</p>
+                    ) : null}
+                  </div>
+                  <span className="font-semibold tabular-nums">{price(item.collectedMinor)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </>
     );
   };

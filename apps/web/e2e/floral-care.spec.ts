@@ -103,7 +103,7 @@ async function saveOffer(page: Page) {
   await page.locator('#care-careFeeMedium').fill('20');
   await page.getByRole('checkbox', { name: /Cada semana/ }).check();
   await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-  await expect(page.getByText('Tarifas guardadas')).toBeVisible();
+  await expect(page.getByText('Tarifas guardadas', { exact: true })).toBeVisible();
 }
 
 test.describe('Floral Care (propietaria)', () => {
@@ -507,6 +507,106 @@ test.describe('Floral Care: cargos y pagos', () => {
     await end.getByRole('button', { name: 'Terminar contrato' }).click();
     await expect(page.getByText(/Fin del contrato guardado/)).toBeVisible();
     await cleanUp(page, contracts[1]!, today, slotLabel);
+  });
+});
+
+test.describe('Floral Care: cobro en la visita y ajustes', () => {
+  test('lo staff anota el cobro, la propietaria lo confirma por menos; un ajuste se agrega y se quita', async ({
+    browser,
+  }) => {
+    const stamp = Date.now();
+    const today = dayInShop(0);
+    const owner = await browser.newContext({ storageState: 'e2e/.auth/owner.json' });
+    const page = await owner.newPage();
+
+    await saveOffer(page);
+    const slotLabel = await addSlot(page, today);
+    const customer = `Oficina Cobro ${stamp}`;
+    await newCustomerWithAddress(page, customer);
+    await page.getByRole('link', { name: 'Nuevo contrato' }).click();
+    await page.getByRole('radio', { name: /Cada semana/ }).check();
+    await page.getByRole('checkbox', { name: slotLabel }).check();
+    await page.getByRole('textbox', { name: 'Primer día' }).fill(today);
+    await page.getByRole('button', { name: 'Crear borrador' }).click();
+    await expect(page).toHaveURL(/\/subscriptions\/[0-9a-f-]{36}\?created=1$/);
+    const contractUrl = page.url().replace('?created=1', '');
+    await page.getByRole('button', { name: 'Agregar plantas' }).click();
+    const plants = page.getByRole('dialog');
+    await plants.getByLabel('Nombre').fill('Potos');
+    await plants.getByLabel('Cantidad').fill('2');
+    await plants.getByRole('radio', { name: 'Mediana' }).check();
+    await plants.getByRole('button', { name: 'Agregar plantas' }).click();
+    await expect(page.getByText('2 × Potos')).toBeVisible();
+    await page.getByRole('button', { name: 'Confirmar contrato' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Confirmar', exact: true }).click();
+    await expect(page.getByText(/Contrato confirmado: \d+ visitas agendadas\./)).toBeVisible();
+    const number = (await page.getByRole('heading', { level: 1 }).textContent())?.match(
+      /SUS-\d+/,
+    )?.[0];
+    expect(number).toBeTruthy();
+
+    // "Ajuste para el próximo cargo": si aggiunge e, prima del cargo, si toglie.
+    await page.getByRole('button', { name: 'Agregar ajuste' }).click();
+    const adjust = page.getByRole('dialog');
+    await adjust.getByRole('radio', { name: /A favor del cliente/ }).check();
+    await adjust.getByLabel(/^Importe/).fill('50');
+    await adjust.getByLabel(/^Motivo/).fill('Descuento de bienvenida');
+    await adjust.getByRole('button', { name: 'Agregar ajuste' }).click();
+    await expect(page.getByText('Ajuste agregado: entra en el próximo cargo')).toBeVisible();
+    await expect(page.getByText('Descuento de bienvenida')).toBeVisible();
+    await expect(page.getByText('−$50.00')).toBeVisible();
+    await page.getByRole('button', { name: 'Quitar el ajuste «Descuento de bienvenida»' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Quitar ajuste' }).click();
+    await expect(page.getByText('Ajuste quitado')).toBeVisible();
+    await expect(page.getByText('Descuento de bienvenida')).toHaveCount(0);
+
+    // Lo staff, dal telefono: empieza la visita de hoy y anota lo que le dio el cliente.
+    const staffContext = await browser.newContext({
+      storageState: 'e2e/.auth/staff.json',
+      viewport: { width: 360, height: 740 },
+    });
+    const phone = await staffContext.newPage();
+    await phone.goto(`${SHOP}/agenda`);
+    const card = phone.getByRole('article').filter({ hasText: number ?? 'SUS' });
+    await card.getByRole('button', { name: /Empezar visita/ }).click();
+    await expect(phone.getByText('Visita empezada')).toBeVisible();
+    await card.getByRole('link', { name: 'Continuar visita' }).click();
+    await expect(phone.getByRole('heading', { level: 1 })).toContainText(number ?? 'SUS');
+    const visitUrl = phone.url();
+    await phone.getByRole('button', { name: 'Cobré en la visita' }).click();
+    const collect = phone.getByRole('dialog');
+    await collect.getByLabel(/^Importe/).fill('300');
+    await collect.getByLabel('Forma de pago').selectOption('CASH');
+    await collect.getByLabel('Nota interna').fill('En recepción');
+    await collect.getByRole('button', { name: 'Anotar cobro' }).click();
+    await expect(phone.getByText('Listo: el cobro queda por registrar')).toBeVisible();
+    await expect(phone.getByText('Por registrar', { exact: true })).toBeVisible();
+    // Un solo cobro por registrar a la vez en la visita.
+    await expect(phone.getByRole('button', { name: 'Cobré en la visita' })).toHaveCount(0);
+
+    // La propietaria lo ve en Cobros y lo confirma por menos de lo anotado.
+    await page.goto(`${SHOP}/subscriptions/charges`);
+    await expect(page.getByRole('heading', { name: /^Por registrar/ })).toBeVisible();
+    await page
+      .getByRole('button', { name: `Confirmar el cobro de $300.00 de ${customer}` })
+      .click();
+    const confirm = page.getByRole('dialog');
+    await expect(confirm.getByRole('heading', { name: 'Confirmar cobro' })).toBeVisible();
+    await confirm.getByLabel(/^Importe/).fill('250');
+    await confirm.getByRole('button', { name: 'Confirmar cobro' }).click();
+    await expect(page.getByText('Cobro registrado en 1 cargo')).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: `Confirmar el cobro de $300.00 de ${customer}` }),
+    ).toHaveCount(0);
+
+    // Lo staff ve el cobro registrado y cuánto entró.
+    await phone.goto(visitUrl);
+    await expect(phone.getByText('Registrado', { exact: true })).toBeVisible();
+    await expect(phone.getByText('Se registraron $250.00')).toBeVisible();
+    await staffContext.close();
+
+    await cleanUp(page, contractUrl, today, slotLabel);
+    await owner.close();
   });
 });
 

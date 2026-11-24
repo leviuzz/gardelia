@@ -31,7 +31,7 @@ import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { dbDate, requiredParts } from './care-internals';
 
-interface LockedCharge {
+export interface LockedCharge {
   readonly id: string;
   readonly number: number;
   readonly customerId: string;
@@ -56,7 +56,7 @@ const lockedSelect = {
 } satisfies Prisma.CareChargeSelect;
 
 /** Blocca i cargos indicati (in ordine di id) e li rilegge dopo il blocco. Solo della fioreria. */
-async function lockCharges(
+export async function lockCharges(
   tx: TransactionClient,
   tenantId: string,
   ids: readonly string[],
@@ -101,8 +101,74 @@ function parsePayment(
   return { ...parsed.data, day };
 }
 
+/**
+ * I cargos aperti più vecchi del cliente su cui va un pagamento, bloccati e riletti (un altro
+ * pagamento può averli appena cambiati). Più di quanto manca in tutto si rifiuta.
+ */
+export async function planOldestFirstTx(
+  tx: TransactionClient,
+  tenantId: string,
+  customerId: string,
+  amountMinor: number,
+): Promise<{ readonly charge: LockedCharge; readonly amountMinor: number }[]> {
+  const open = await tx.careCharge.findMany({
+    where: { tenantId, customerId, balanceMinor: { gt: 0 } },
+    orderBy: [{ period: 'asc' }, { number: 'asc' }],
+    take: CARE_CHARGE_LIMITS.allocationCharges,
+    select: { id: true },
+  });
+  const charges = await lockCharges(
+    tx,
+    tenantId,
+    open.map((charge) => charge.id),
+  );
+  const plan = allocateCarePayment(
+    amountMinor,
+    charges.map((charge) => ({
+      id: charge.id,
+      period: requiredParts(charge.period),
+      number: charge.number,
+      balanceMinor: charge.balanceMinor,
+    })),
+  );
+  if (!plan.ok) throw new ValidationError({ amount: plan.error });
+  const byId = new Map(charges.map((charge) => [charge.id, charge]));
+  return plan.allocations.map((allocation) => {
+    const charge = byId.get(allocation.chargeId);
+    if (!charge) throw new Error('Cargo bloccato mancante');
+    return { charge, amountMinor: allocation.amountMinor };
+  });
+}
+
+/** Le distribuzioni di un movimento e il nuovo pagato dei cargos (già bloccati). */
+export async function allocatePaymentTx(
+  tx: TransactionClient,
+  tenantId: string,
+  input: {
+    readonly paymentId: string;
+    readonly customerId: string;
+    readonly allocations: readonly {
+      readonly charge: LockedCharge;
+      readonly amountMinor: number;
+    }[];
+  },
+): Promise<void> {
+  await tx.carePaymentAllocation.createMany({
+    data: input.allocations.map((allocation) => ({
+      tenantId,
+      paymentId: input.paymentId,
+      chargeId: allocation.charge.id,
+      customerId: input.customerId,
+      amountMinor: allocation.amountMinor,
+    })),
+  });
+  for (const allocation of input.allocations) {
+    await applyToCharge(tx, tenantId, allocation.charge, allocation.amountMinor);
+  }
+}
+
 /** Lo stesso modulo inviato due volte: il pagamento c'è già (stessa chiave). */
-async function alreadySubmitted(
+export async function alreadySubmitted(
   tx: TransactionClient,
   tenantId: string,
   submitKey: string | null,
@@ -145,18 +211,11 @@ async function createPayment(
     },
     select: { id: true },
   });
-  await tx.carePaymentAllocation.createMany({
-    data: input.allocations.map((allocation) => ({
-      tenantId: ctx.tenantId,
-      paymentId: payment.id,
-      chargeId: allocation.charge.id,
-      customerId: input.customerId,
-      amountMinor: allocation.amountMinor,
-    })),
+  await allocatePaymentTx(tx, ctx.tenantId, {
+    paymentId: payment.id,
+    customerId: input.customerId,
+    allocations: input.allocations,
   });
-  for (const allocation of input.allocations) {
-    await applyToCharge(tx, ctx.tenantId, allocation.charge, allocation.amountMinor);
-  }
   return payment.id;
 }
 
@@ -226,34 +285,7 @@ export async function recordCustomerCarePayment(
       });
       return { paymentId: repeated, charges };
     }
-    const open = await tx.careCharge.findMany({
-      where: { tenantId: ctx.tenantId, customerId, balanceMinor: { gt: 0 } },
-      orderBy: [{ period: 'asc' }, { number: 'asc' }],
-      take: CARE_CHARGE_LIMITS.allocationCharges,
-      select: { id: true },
-    });
-    // Rilette dopo il blocco: un altro pagamento può averle appena cambiate.
-    const charges = await lockCharges(
-      tx,
-      ctx.tenantId,
-      open.map((charge) => charge.id),
-    );
-    const plan = allocateCarePayment(
-      payment.amount,
-      charges.map((charge) => ({
-        id: charge.id,
-        period: requiredParts(charge.period),
-        number: charge.number,
-        balanceMinor: charge.balanceMinor,
-      })),
-    );
-    if (!plan.ok) throw new ValidationError({ amount: plan.error });
-    const byId = new Map(charges.map((charge) => [charge.id, charge]));
-    const allocations = plan.allocations.map((allocation) => {
-      const charge = byId.get(allocation.chargeId);
-      if (!charge) throw new Error('Cargo bloccato mancante');
-      return { charge, amountMinor: allocation.amountMinor };
-    });
+    const allocations = await planOldestFirstTx(tx, ctx.tenantId, customerId, payment.amount);
     const paymentId = await createPayment(tx, ctx, {
       customerId,
       kind: 'PAYMENT',

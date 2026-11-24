@@ -9,7 +9,8 @@ import { tenantRoutes } from '@/lib/routes';
 
 /**
  * Riquadro "Cobros de Floral Care" del pannello (ADR-082): quanto c'è da cobrar e quanto è
- * vencido, con i link a "Cobros". Solo per chi gestisce i soldi e se la fioreria ha già cargos.
+ * vencido, con i link a "Cobros", e gli incassi alla visita "por registrar" (blocco 3b). Solo per
+ * chi gestisce i soldi e se la fioreria ha già cargos o incassi da registrare.
  */
 export async function CareChargesCard({ ctx }: { readonly ctx: TenantContext }) {
   const overview = await getCareChargesOverview(ctx);
@@ -29,6 +30,14 @@ export async function CareChargesCard({ ctx }: { readonly ctx: TenantContext }) 
         </Link>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
+        {overview.pendingCollections > 0 ? (
+          <Link
+            href={routes.subscriptions.charges()}
+            className="block rounded-xl bg-warning-soft px-3 py-2 font-medium text-[oklch(0.42_0.1_65)] hover:underline"
+          >
+            {t('pending', { count: overview.pendingCollections })}
+          </Link>
+        ) : null}
         {overview.openCount === 0 ? (
           <p className="text-muted-foreground">{t('allPaid')}</p>
         ) : (

@@ -4,7 +4,9 @@
  */
 import type { Prisma, TransactionClient } from '@floral/db';
 import {
+  CARE_LIVE_RECOVERY_STATUSES,
   canShareCareVisit,
+  careVisitRecoverable,
   compareDates,
   formatSubscriptionNumber,
   formatTimeOfDay,
@@ -37,9 +39,19 @@ export const agendaSelect = {
   notDoneCause: true,
   assignedMembershipId: true,
   assignedTo: { select: { user: { select: { name: true } } } },
+  // Blocco 3b: la visita mancata che questa recupera, e la visita di recupero ancora valida.
+  recoveryOfVisitId: true,
+  recoveryOf: { select: { scheduledDate: true, originalDate: true } },
+  recoveries: {
+    where: { status: { in: [...CARE_LIVE_RECOVERY_STATUSES] } },
+    select: { id: true, scheduledDate: true, originalDate: true },
+    take: 1,
+  },
   subscription: {
     select: {
       number: true,
+      status: true,
+      missedVisitPolicy: true,
       customer: { select: { displayName: true } },
       customerAddress: { select: { addressLine1: true, neighborhood: true } },
     },
@@ -73,6 +85,9 @@ export function toAgendaVisit(
   const original = requiredParts(row.originalDate);
   const due = date !== null && compareDates(date, today) <= 0;
   const visits = hasPermission(ctx, 'care:visit');
+  const dayOf = (visit: { scheduledDate: Date | null; originalDate: Date }) =>
+    toIsoDate(dateToParts(visit.scheduledDate) ?? requiredParts(visit.originalDate));
+  const live = row.recoveries[0] ?? null;
   return {
     id: row.id,
     subscriptionId: row.subscriptionId,
@@ -109,6 +124,24 @@ export function toAgendaVisit(
     outcomeNote: row.outcomeNote,
     cancelReason: row.cancelReason,
     notDoneCause: row.notDoneCause,
+    // Come l'elenco "Por recuperar": si recupera solo in un contratto attivo (una visita di
+    // recupero già fissata resta visibile anche dopo).
+    recovery:
+      careVisitRecoverable(row, row.subscription.missedVisitPolicy) &&
+      (live !== null || row.subscription.status === 'ACTIVE')
+        ? {
+            visitId: live?.id ?? null,
+            date: live ? dayOf(live) : null,
+            canSchedule:
+              live === null &&
+              row.subscription.status === 'ACTIVE' &&
+              hasPermission(ctx, 'subscriptions:write'),
+          }
+        : null,
+    recoveryOf:
+      row.recoveryOfVisitId && row.recoveryOf
+        ? { visitId: row.recoveryOfVisitId, date: dayOf(row.recoveryOf) }
+        : null,
     canStart: visits && row.status === 'SCHEDULED' && due,
     canContinue: visits && row.status === 'IN_PROGRESS',
     canMarkNotDone: visits && (row.status === 'SCHEDULED' || row.status === 'IN_PROGRESS') && due,

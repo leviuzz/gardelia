@@ -12,7 +12,11 @@
  *  - le visite extra fatte con la tariffa per visita e i servizi "una sola vez" fatti si cobrano una
  *    volta, nel cargo dopo la visita;
  *  - con il contratto attivo un cargo non va sotto zero: l'eccedenza passa al cargo dopo. Nel cargo
- *    finale di un contratto chiuso resta "a favor" e si chiude con una devolución.
+ *    finale di un contratto chiuso resta "a favor" e si chiude con una devolución;
+ *  - blocco 3b: un "Ajuste para el próximo cargo" di chi gestisce entra una volta nel cargo dopo;
+ *    un incasso alla visita resta "Por registrar" finché chi gestisce lo conferma (distribuito sui
+ *    cargos più vecchi) o lo rifiuta; una visita mancata per il cliente, in un contratto con «Se
+ *    agenda otra visita», resta "Por recuperar" finché non ha la sua visita di recupero gratis.
  *
  * Importi in unità minime, calcolati solo dal server: dal browser arriva solo quanto ha pagato il
  * cliente, e il server lo ricontrolla. Il cargo non è una factura: "Precios finales, sin impuestos"
@@ -27,12 +31,18 @@ import {
   toIsoDate,
   type CalendarDate,
 } from './calendar';
-import type { CareVisitCancelReason, CareVisitStatus } from './floral-care';
+import type { CareVisitCancelReason, CareVisitStatus, MissedVisitPolicy } from './floral-care';
 import type { CareExtraFee } from './floral-care-extras';
 import { MAX_AMOUNT_MINOR, multiplyMinor, type CurrencyCode } from './money';
 import { PAYMENT_METHODS, optionalUuidField } from './order';
 import { parseDateInput } from './quote';
-import { moneyField, optionalInteger, optionalText, toTrimmedString } from './validation';
+import {
+  moneyField,
+  optionalInteger,
+  optionalText,
+  requiredText,
+  toTrimmedString,
+} from './validation';
 
 export const CARE_CHARGE_LIMITS = {
   /** "Días para pagar" della fioreria: da 1 a 90, 10 se non li sceglie. */
@@ -55,6 +65,12 @@ export const CARE_CHARGE_LIMITS = {
   statementMonths: 12,
   /** Cargos aperti di un cliente su cui si distribuisce un pagamento. */
   allocationCharges: 120,
+  /** Motivo di un ajuste: diventa l'etichetta della riga del cargo. */
+  adjustmentReason: 120,
+  /** Motivo del rifiuto di un incasso "por registrar". */
+  rejectReason: 300,
+  /** Ajustes in attesa per contratto: oltre è un errore, non un uso normale. */
+  pendingAdjustments: 20,
 } as const;
 
 /** Numero del cargo: CAR-0001 (per fioreria). */
@@ -280,6 +296,38 @@ export function careCreditReason(visit: {
   return 'SHOP';
 }
 
+/**
+ * Le visite di recupero ancora valide: una programmata, in corso, fatta o da riprogrammare. Se la
+ * visita di recupero si cancella o non si può fare, la visita mancata torna "Por recuperar".
+ */
+export const CARE_LIVE_RECOVERY_STATUSES = [
+  'SCHEDULED',
+  'IN_PROGRESS',
+  'DONE',
+  'TO_RESCHEDULE',
+] as const satisfies readonly CareVisitStatus[];
+
+/**
+ * Una visita si può recuperare con una visita gratis (decisione del founder del 24/11): è del
+ * calendario, "No se pudo" perché il cliente non ha aperto (le visite di prima senza causa valgono
+ * così) e il contratto dice «Se agenda otra visita». La visita mancata resta cobrada.
+ */
+export function careVisitRecoverable(
+  visit: {
+    readonly isExtra: boolean;
+    readonly status: CareVisitStatus;
+    readonly notDoneCause: CareNotDoneCause | null;
+  },
+  policy: MissedVisitPolicy | null,
+): boolean {
+  return (
+    !visit.isExtra &&
+    visit.status === 'NOT_DONE' &&
+    visit.notDoneCause !== 'SHOP' &&
+    policy === 'RECOVER'
+  );
+}
+
 // -----------------------------------------------------------------------------
 // Le righe di un cargo
 // -----------------------------------------------------------------------------
@@ -294,6 +342,15 @@ export interface CareOneTimeServiceDone {
   readonly priceMinor: number;
   /** Il giorno della visita. */
   readonly day: CalendarDate;
+}
+
+/** Un "Ajuste para el próximo cargo" non ancora entrato in un cargo (blocco 3b). */
+export interface CarePendingAdjustment {
+  readonly id: string;
+  /** Con il segno: negativo a favore del cliente, positivo a suo carico. */
+  readonly amountMinor: number;
+  /** Il motivo, che diventa l'etichetta della riga. */
+  readonly reason: string;
 }
 
 /** Un saldo a favore di un cargo precedente da portare in questo. */
@@ -314,6 +371,8 @@ export interface CareChargePlanInput {
   readonly visits: readonly CareBillableVisit[];
   readonly oneTimeServices: readonly CareOneTimeServiceDone[];
   readonly carriedIn: readonly CareCarriedCredit[];
+  /** Gli ajustes in attesa: entrano tutti, senza guardare il mese. */
+  readonly adjustments?: readonly CarePendingAdjustment[];
   /**
    * Il contratto è finito: si guardano tutte le visite (non c'è un mese dopo) e il cargo può
    * restare a favore del cliente, da chiudere con una devolución.
@@ -329,8 +388,10 @@ export interface PlannedCareChargeLine {
   readonly serviceId: string | null;
   /** CREDIT_CARRIED_IN: il cargo da cui viene il saldo. */
   readonly sourceChargeId: string | null;
+  /** ADJUSTMENT: l'ajuste che la riga porta nel cargo. */
+  readonly adjustmentId: string | null;
   readonly creditReason: CareCreditReason | null;
-  /** Nome copiato (servizio "una sola vez"). */
+  /** Nome copiato (servizio "una sola vez") o motivo dell'ajuste. */
   readonly label: string | null;
   readonly quantity: number;
   readonly unitPriceMinor: number;
@@ -370,6 +431,7 @@ function line(
     serviceResultId: null,
     serviceId: null,
     sourceChargeId: null,
+    adjustmentId: null,
     creditReason: null,
     label: null,
     quantity: 1,
@@ -475,6 +537,18 @@ export function planCareChargeLines(input: CareChargePlanInput): CareChargePlan 
     );
   }
 
+  // Gli ajustes entrano nel primo cargo che nasce, qualunque sia il mese; l'importo è già col segno.
+  const adjustments = (input.adjustments ?? [])
+    .filter((adjustment) => adjustment.amountMinor !== 0)
+    .map((adjustment) =>
+      line('ADJUSTMENT', {
+        adjustmentId: adjustment.id,
+        label: adjustment.reason,
+        unitPriceMinor: Math.abs(adjustment.amountMinor),
+        amountMinor: adjustment.amountMinor,
+      }),
+    );
+
   const carried = input.carriedIn
     .filter((credit) => credit.amountMinor > 0)
     .map((credit) =>
@@ -501,7 +575,7 @@ export function planCareChargeLines(input: CareChargePlanInput): CareChargePlan 
       }),
     );
   }
-  lines.push(...debits, ...extras, ...services, ...credits, ...carried);
+  lines.push(...debits, ...extras, ...services, ...adjustments, ...credits, ...carried);
 
   let total = 0;
   for (const item of lines) {
@@ -637,6 +711,64 @@ export function carePaymentSchema(currency: CurrencyCode) {
   });
 }
 export type CarePaymentInput = z.infer<ReturnType<typeof carePaymentSchema>>;
+
+/**
+ * "Cobré en la visita" (blocco 3b): chi fa la visita segna quanto gli ha dato il cliente, come e
+ * una nota. Resta "Por registrar"; il giorno è quello in cui lo segna. Niente referencia: la mette
+ * chi lo conferma, se serve.
+ */
+export function careVisitCollectionSchema(currency: CurrencyCode) {
+  return z.object({
+    amount: positiveMoneyField(currency),
+    method: z.preprocess(toTrimmedString, z.enum(PAYMENT_METHODS, { error: 'required' })),
+    note: optionalText(CARE_CHARGE_LIMITS.paymentNote),
+    submitKey: optionalUuidField,
+  });
+}
+export type CareVisitCollectionInput = z.infer<ReturnType<typeof careVisitCollectionSchema>>;
+
+/**
+ * "Confirmar" un incasso "por registrar": l'importo che entra davvero (non oltre quello segnato,
+ * lo controlla il server) e la referencia. Il resto (forma, giorno, nota) resta quello segnato.
+ */
+export function careCollectionConfirmSchema(currency: CurrencyCode) {
+  return z.object({
+    amount: positiveMoneyField(currency),
+    reference: optionalText(CARE_CHARGE_LIMITS.paymentReference),
+  });
+}
+export type CareCollectionConfirmInput = z.infer<ReturnType<typeof careCollectionConfirmSchema>>;
+
+/** "Rechazar" un incasso "por registrar": il motivo è obbligatorio (lo vede chi l'ha segnato). */
+export const careCollectionRejectSchema = z.object({
+  reason: requiredText(CARE_CHARGE_LIMITS.rejectReason),
+});
+export type CareCollectionRejectInput = z.infer<typeof careCollectionRejectSchema>;
+
+/** Un ajuste va a favore del cliente (resta dal cargo) o a suo carico (si somma). */
+export const CARE_ADJUSTMENT_DIRECTIONS = ['CREDIT', 'DEBIT'] as const;
+export type CareAdjustmentDirection = (typeof CARE_ADJUSTMENT_DIRECTIONS)[number];
+
+/**
+ * "Ajuste para el próximo cargo" (blocco 3b): per correggere un errore o fare uno sconto. Il verso
+ * si sceglie a parte, così nessuno scrive importi negativi; il motivo diventa la riga del cargo.
+ */
+export function careAdjustmentSchema(currency: CurrencyCode) {
+  return z
+    .object({
+      direction: z.preprocess(
+        toTrimmedString,
+        z.enum(CARE_ADJUSTMENT_DIRECTIONS, { error: 'required' }),
+      ),
+      amount: positiveMoneyField(currency),
+      reason: requiredText(CARE_CHARGE_LIMITS.adjustmentReason),
+    })
+    .transform((value) => ({
+      amountMinor: value.direction === 'CREDIT' ? -value.amount : value.amount,
+      reason: value.reason,
+    }));
+}
+export type CareAdjustmentInput = z.infer<ReturnType<typeof careAdjustmentSchema>>;
 
 /** Il campo "Días para pagar" di Ajustes → Floral Care: vuoto = 10. */
 export const careDueDaysField = optionalInteger({

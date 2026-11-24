@@ -53,7 +53,9 @@ export async function ChargeLines({
           ? t('lines.CREDIT_CARRIED_OUT_TO', { number: charge.carriedInto.numberLabel })
           : t('lines.CREDIT_CARRIED_OUT');
       case 'ADJUSTMENT':
-        return line.label ?? t('lines.ADJUSTMENT');
+        return line.label
+          ? t('lines.ADJUSTMENT_WITH', { reason: line.label })
+          : t('lines.ADJUSTMENT');
     }
   };
   const inFavor = charge.balanceMinor < 0;
