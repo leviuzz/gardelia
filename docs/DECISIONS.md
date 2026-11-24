@@ -2334,6 +2334,41 @@ di Clientes; una visita extra si fissa in un orario di visita oppure a un'ora li
 - **Non fatto (2b):** il cliente che chiede una visita extra dal portale (blocco 5); i cargos delle
   visite extra (blocco 3); il collegamento inverso dalla cotización al contratto nell'editor.
 
+### ADR-079 — Esportazione dei dati della fioreria — ADOTTATO (24/11/2026)
+
+Voce 15 di `docs/V1_SCOPE.md`, chiesta dal founder ("fai la 1"). Completa l'eliminazione della
+fioreria (ADR-074): prima di eliminarla, i dati si portano via.
+
+- **Chi e dove:** solo il titolare (`tenant:export`, OWNER): contiene i dati personali di tutti i
+  clienti. Card "Datos de tu florería" in Ajustes e promemoria nella pagina "Eliminar florería".
+  La rotta `/app/<slug>/settings/export` risponde 404 a chi non può, come le immagini private.
+- **Cosa:** uno ZIP con un `LEEME.txt` e un CSV per area:
+  - clienti, indirizzi e date speciali;
+  - catalogo e ricette;
+  - cotizaciones e loro concetti;
+  - pedidos, loro concetti e pagamenti (le anulaciones con importo negativo);
+  - inventario, movimenti e fornitori;
+  - squadra;
+  - Floral Care (contratti, visite, piante).
+
+  Le colonne `id` collegano i file. Non contiene foto, immagini del Diseñador e registro di
+  attività: il LEEME lo dice.
+
+- **Formato:**
+  - CSV UTF-8 con BOM e righe CRLF (Excel e Google Sheets li aprono con gli accenti giusti);
+  - importi con il punto decimale;
+  - date nel fuso della fioreria;
+  - stati e tipi con le parole dell'app, nella lingua del mercato (es-MX, come le email ai clienti).
+- **Sicurezza:**
+  - i testi che cominciano con `=`, `+`, `-`, `@` si fanno precedere da un apostrofo, così Excel
+    non li esegue come formule (CSV injection, es. un cliente chiamato `=HYPERLINK(…)`);
+  - importi, quantità e telefoni (formato controllato dal server) restano numeri;
+  - tutto si legge nel contesto della fioreria con la RLS;
+  - nel registro (`tenant.data_exported`) solo i conteggi per file, mai i dati.
+- **Tecnica:** ZIP fatto in memoria con `fflate` (nuova dipendenza di `core`, senza dipendenze,
+  versione fissa). Per le fiorerie della V1 bastano pochi MB; con archivi molto grandi servirà
+  generarlo in background e mandarlo per email.
+
 ## 3. Proposte da approvare
 
 | ID   | Proposta                                                                                                                                                                               | Motivazione                                                                                                                                  | Quando serve                 |

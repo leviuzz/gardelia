@@ -23,6 +23,7 @@
     "@floral/db": "workspace:*",
     "@floral/domain": "workspace:*",
     "aws4fetch": "1.0.20",
+    "fflate": "0.8.3",
     "nodemailer": "10.6.1",
     "pino": "10.4.0",
     "sharp": "0.35.5",

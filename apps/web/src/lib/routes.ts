@@ -205,6 +205,8 @@ export function tenantRoutes(slug: string) {
       care: `${settings}/floral-care`,
       /** "Eliminar florería" (ADR-074), solo per il titolare. */
       deleteShop: `${settings}/delete`,
+      /** ZIP con i dati della fioreria (ADR-079), solo per il titolare. */
+      exportData: `${settings}/export`,
       /** Anteprima di logo o copertina nelle impostazioni (`v` = ID attuale, contro la cache). */
       storeImage: (kind: 'LOGO' | 'COVER', imageId: string) =>
         withQuery(`${settings}/store/image/${kind === 'LOGO' ? 'logo' : 'cover'}`, { v: imageId }),

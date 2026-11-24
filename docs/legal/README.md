@@ -76,6 +76,6 @@ che si registra con ogni ordine online.
 
 - Revisione dell'avvocato e testi definitivi (senza riquadro "BORRADOR") sulle pagine già pronte.
 - Caselle di consenso in registrazione o nel pedido, se l'avvocato le richiede.
-- Esportazione dei dati dall'app **per le fiorerie** (la cancellazione c'è: "Eliminar florería" nelle
-  impostazioni, ADR-074; per chi compra ci sono già "Descargar mis datos" ed "Eliminar mi cuenta" in
-  "Mi cuenta", ADR-068).
+- Esportazione e cancellazione dei dati per le fiorerie: fatte ("Datos de tu florería" ed "Eliminar
+  florería" in Ajustes, ADR-079 e ADR-074); per chi compra ci sono "Descargar mis datos" ed "Eliminar
+  mi cuenta" in "Mi cuenta" (ADR-068).
