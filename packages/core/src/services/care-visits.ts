@@ -1,20 +1,18 @@
 /**
  * Visite di Floral Care nell'Agenda dei lavori (ADR-075, blocco 1): il giorno per fascia (con i
- * posti occupati), il mese (quante visite per giorno) e le visite "Por reprogramar". Dalla visita:
- * "Hecha" o "No se pudo" (tutta la squadra, `care:visit`), e chi gestisce la sposta, la cancella o
- * la assegna a una persona. Spostare o cancellare tocca una visita già fissata: serve "Sí, avisé al
- * cliente"; cambiare solo la persona no.
+ * posti occupati), il mese (quante visite per giorno) e le visite "Por reprogramar". Chi gestisce
+ * sposta, cancella o assegna una visita. Spostare o cancellare tocca una visita già fissata: serve
+ * "Sí, avisé al cliente"; cambiare solo la persona no. La visita dal telefono (Empezar, passi,
+ * Terminar, No se pudo) è in `care-visit-work.ts` (ADR-078).
  */
-import { getDb, withTenantContext, type Prisma, type TransactionClient } from '@floral/db';
+import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
   CARE_LIMITS,
   CARE_VISIT_HOLDING_STATUSES,
   addDays,
-  canCloseCareVisit,
   careVisitCancelSchema,
   careVisitMoveSchema,
-  careVisitOutcomeSchema,
   compareDates,
   dayOfWeek,
   daysInMonth,
@@ -30,13 +28,13 @@ import {
   type CareVisitStatus,
 } from '@floral/domain';
 import { notFound, recordAudit } from '../audit';
-import { hasPermission, requirePermission } from '../authorization';
+import { requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { requireEntitlement } from './billing';
 import { openSlotBook } from './care-booking';
+import { countOpenCareFollowUpsTx } from './care-follow-ups';
 import {
-  addressLineOf,
   dbDate,
   earlierDate,
   isoOf,
@@ -44,6 +42,12 @@ import {
   lockSubscription,
   requiredParts,
 } from './care-internals';
+import {
+  agendaSelect,
+  lockCareVisit as lockVisit,
+  plantCounts,
+  toAgendaVisit,
+} from './care-visit-internals';
 import { dateToParts } from './quote-internals';
 
 export interface CareAgendaVisitDto {
@@ -65,11 +69,19 @@ export interface CareAgendaVisitDto {
   /** Non è più nel suo giorno originale. */
   readonly moved: boolean;
   readonly assignee: { readonly membershipId: string; readonly name: string } | null;
+  /** È assegnata a chi guarda ("Mis visitas"). */
+  readonly assignedToMe: boolean;
   readonly plantCount: number;
   readonly outcomeNote: string | null;
   readonly cancelReason: CareVisitCancelReason | null;
-  /** Chi guarda può segnarla "Hecha" o "No se pudo" adesso. */
-  readonly canClose: boolean;
+  /** Chi guarda può iniziarla adesso ("Empezar visita": programmata, di oggi o di un giorno passato). */
+  readonly canStart: boolean;
+  /** È in corso e chi guarda può continuarla. */
+  readonly canContinue: boolean;
+  /** Chi guarda può segnarla "No se pudo" adesso. */
+  readonly canMarkNotDone: boolean;
+  /** Chiusa (hecha o no realizada): ha il suo resoconto. */
+  readonly hasReport: boolean;
   /** Chi guarda può spostarla, cancellarla o assegnarla. */
   readonly canManage: boolean;
 }
@@ -93,6 +105,8 @@ export interface CareAgendaDayDto {
   readonly counts: { readonly total: number; readonly done: number; readonly pending: number };
   /** Visite di tutta la fioreria ancora da riprogrammare. */
   readonly toReschedule: number;
+  /** Avvisi della squadra ancora aperti (reposición, extra, altro), per chi gestisce. */
+  readonly openFollowUps: number;
 }
 
 export interface CareAgendaMonthDto {
@@ -124,89 +138,6 @@ export interface CareAssigneeDto {
 
 const MOVE_OPTION_DAYS = 21;
 
-const agendaSelect = {
-  id: true,
-  subscriptionId: true,
-  status: true,
-  scheduledDate: true,
-  originalDate: true,
-  slotId: true,
-  startMinutes: true,
-  endMinutes: true,
-  seats: true,
-  isExtra: true,
-  outcomeNote: true,
-  cancelReason: true,
-  assignedMembershipId: true,
-  assignedTo: { select: { user: { select: { name: true } } } },
-  subscription: {
-    select: {
-      number: true,
-      customer: { select: { displayName: true } },
-      customerAddress: { select: { addressLine1: true, neighborhood: true } },
-    },
-  },
-} satisfies Prisma.CareVisitSelect;
-
-type AgendaRow = Prisma.CareVisitGetPayload<{ select: typeof agendaSelect }>;
-
-async function plantCounts(
-  tx: TransactionClient,
-  tenantId: string,
-  subscriptionIds: readonly string[],
-): Promise<Map<string, number>> {
-  if (subscriptionIds.length === 0) return new Map();
-  const rows = await tx.carePlant.groupBy({
-    by: ['subscriptionId'],
-    where: { tenantId, subscriptionId: { in: [...new Set(subscriptionIds)] }, status: 'ACTIVE' },
-    _sum: { quantity: true },
-  });
-  return new Map(rows.map((row) => [row.subscriptionId, row._sum.quantity ?? 0]));
-}
-
-function toAgendaVisit(
-  ctx: TenantContext,
-  row: AgendaRow,
-  plants: ReadonlyMap<string, number>,
-  today: CalendarDate,
-): CareAgendaVisitDto {
-  const date = dateToParts(row.scheduledDate);
-  const original = requiredParts(row.originalDate);
-  return {
-    id: row.id,
-    subscriptionId: row.subscriptionId,
-    numberLabel: formatSubscriptionNumber(row.subscription.number),
-    customerName: row.subscription.customer.displayName,
-    addressLine: row.subscription.customerAddress
-      ? addressLineOf(row.subscription.customerAddress)
-      : null,
-    status: row.status,
-    date: date ? toIsoDate(date) : null,
-    originalDate: toIsoDate(original),
-    start: row.startMinutes === null ? null : formatTimeOfDay(row.startMinutes),
-    end: row.endMinutes === null ? null : formatTimeOfDay(row.endMinutes),
-    slotId: row.slotId,
-    seats: row.seats,
-    isExtra: row.isExtra,
-    moved: date !== null && compareDates(date, original) !== 0,
-    assignee:
-      row.assignedMembershipId && row.assignedTo
-        ? { membershipId: row.assignedMembershipId, name: row.assignedTo.user.name }
-        : null,
-    plantCount: plants.get(row.subscriptionId) ?? 0,
-    outcomeNote: row.outcomeNote,
-    cancelReason: row.cancelReason,
-    canClose:
-      hasPermission(ctx, 'care:visit') &&
-      canCloseCareVisit(row.status) &&
-      date !== null &&
-      compareDates(date, today) <= 0,
-    canManage:
-      hasPermission(ctx, 'subscriptions:write') &&
-      (row.status === 'SCHEDULED' || row.status === 'TO_RESCHEDULE'),
-  };
-}
-
 function parseDay(ctx: TenantContext, raw: unknown): CalendarDate {
   return parseIsoDate(raw) ?? todayInTimeZone(ctx.timezone);
 }
@@ -221,7 +152,7 @@ export async function getCareAgendaDay(
   const today = todayInTimeZone(ctx.timezone);
   return withTenantContext(getDb(), ctx, async (tx) => {
     await requireEntitlement(ctx, 'floralCare', tx);
-    const [rows, slots, toReschedule] = await Promise.all([
+    const [rows, slots, toReschedule, openFollowUps] = await Promise.all([
       tx.careVisit.findMany({
         where: {
           tenantId: ctx.tenantId,
@@ -236,6 +167,7 @@ export async function getCareAgendaDay(
         orderBy: [{ startMinutes: 'asc' }, { endMinutes: 'asc' }],
       }),
       tx.careVisit.count({ where: { tenantId: ctx.tenantId, status: 'TO_RESCHEDULE' } }),
+      countOpenCareFollowUpsTx(tx, ctx.tenantId),
     ]);
     const plants = await plantCounts(
       tx,
@@ -280,6 +212,7 @@ export async function getCareAgendaDay(
       groups: ordered,
       counts: { total: rows.length, done, pending: rows.length - done },
       toReschedule,
+      openFollowUps,
     };
   });
 }
@@ -425,78 +358,6 @@ export async function getCareVisitMoveOptions(
 // -----------------------------------------------------------------------------
 // Azioni sulla visita
 // -----------------------------------------------------------------------------
-
-async function lockVisit(tx: TransactionClient, ctx: TenantContext, visitId: string) {
-  const rows = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "CareVisit"
-    WHERE "id" = ${visitId}::uuid AND "tenantId" = ${ctx.tenantId}::uuid FOR UPDATE`;
-  if (rows.length === 0) return null;
-  return tx.careVisit.findFirst({
-    where: { tenantId: ctx.tenantId, id: visitId },
-    include: { subscription: { select: { number: true, startDate: true, endDate: true } } },
-  });
-}
-
-async function closeVisit(
-  ctx: TenantContext,
-  visitId: string,
-  rawInput: unknown,
-  outcome: 'DONE' | 'NOT_DONE',
-): Promise<void> {
-  requirePermission(ctx, 'care:visit');
-  if (!isUuid(visitId)) throw new NotFoundError('CareVisit');
-  const parsed = careVisitOutcomeSchema.safeParse(rawInput ?? {});
-  if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
-  const { note } = parsed.data;
-  const today = todayInTimeZone(ctx.timezone);
-  const found = await withTenantContext(getDb(), ctx, async (tx) => {
-    await requireEntitlement(ctx, 'floralCare', tx);
-    const visit = await lockVisit(tx, ctx, visitId);
-    if (!visit) return false;
-    if (!canCloseCareVisit(visit.status)) throw new ConflictError('care_visit_closed');
-    const date = dateToParts(visit.scheduledDate);
-    if (!date || compareDates(date, today) > 0) throw new ConflictError('care_visit_future');
-    const now = new Date();
-    await tx.careVisit.update({
-      where: { id: visit.id, tenantId: ctx.tenantId },
-      data: {
-        status: outcome,
-        startedAt: visit.startedAt ?? now,
-        finishedAt: now,
-        outcomeNote: note,
-        closedById: ctx.userId,
-      },
-    });
-    await recordAudit(tx, ctx, {
-      action: outcome === 'DONE' ? AUDIT_ACTIONS.careVisitDone : AUDIT_ACTIONS.careVisitNotDone,
-      entityType: 'CareVisit',
-      entityId: visit.id,
-      metadata: {
-        number: formatSubscriptionNumber(visit.subscription.number),
-        date: toIsoDate(date),
-      },
-    });
-    return true;
-  });
-  if (!found) await notFound(ctx, 'CareVisit', visitId);
-}
-
-/** "Hecha": la visita di oggi (o di un giorno passato) è stata fatta. */
-export async function completeCareVisit(
-  ctx: TenantContext,
-  visitId: string,
-  rawInput: unknown,
-): Promise<void> {
-  await closeVisit(ctx, visitId, rawInput, 'DONE');
-}
-
-/** "No se pudo": il cliente non ha aperto (o altro); vale la regola del contratto. */
-export async function markCareVisitNotDone(
-  ctx: TenantContext,
-  visitId: string,
-  rawInput: unknown,
-): Promise<void> {
-  await closeVisit(ctx, visitId, rawInput, 'NOT_DONE');
-}
 
 /**
  * Sposta una visita (anche una "Por reprogramar") a un giorno e una fascia con posto, fino a 90

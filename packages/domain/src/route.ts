@@ -7,6 +7,7 @@
  * Senza coordinate (Google Places, O-14) le fermate restano nell'ordine delle fasce e i link usano
  * l'indirizzo scritto.
  */
+import { nearestNeighborOrder, type Coordinates } from './places';
 
 /** 3 tappe intermedie (limite sul telefono) + arrivo. */
 export const MAPS_STOPS_PER_LINK = 4;
@@ -47,4 +48,70 @@ export function mapsRouteLinks(
     links.push({ from: start + 1, to: start + chunk.length, url: `${MAPS_BASE}/dir/?${params}` });
   }
   return links;
+}
+
+/** La fascia di una fermata in minuti dalla mezzanotte; `null` = "in giornata". */
+export interface RouteStopWindow {
+  readonly start: number | null;
+  readonly end: number | null;
+}
+
+export interface OrderedRouteStops<T> {
+  readonly stops: T[];
+  /** Almeno una fascia aveva due fermate con le coordinate: l'ordine dentro è per vicinanza. */
+  readonly orderedByDistance: boolean;
+}
+
+function compareNullableMinutes(a: number | null, b: number | null): number {
+  if (a === b) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return a - b;
+}
+
+/**
+ * L'ordine del giro del giorno (consegne e visite di Floral Care, ADR-078): per fascia (inizio, poi
+ * fine; quelle "in giornata" in fondo) e, dentro la stessa fascia, la fermata più vicina a dove si
+ * è: la fioreria, poi l'ultima fermata con le coordinate. A parità resta l'ordine ricevuto.
+ */
+export function orderRouteStops<T>(
+  stops: readonly T[],
+  options: {
+    readonly origin: Coordinates | null;
+    readonly windowOf: (stop: T) => RouteStopWindow;
+    readonly coordinatesOf: (stop: T) => Coordinates | null;
+  },
+): OrderedRouteStops<T> {
+  const sorted = stops
+    .map((stop, index) => ({ stop, index, window: options.windowOf(stop) }))
+    .sort(
+      (a, b) =>
+        compareNullableMinutes(a.window.start, b.window.start) ||
+        compareNullableMinutes(a.window.end, b.window.end) ||
+        a.index - b.index,
+    );
+  const ordered: T[] = [];
+  let position = options.origin;
+  let orderedByDistance = false;
+  for (let start = 0; start < sorted.length;) {
+    const first = sorted[start]!.window;
+    let end = start;
+    while (
+      end < sorted.length &&
+      sorted[end]!.window.start === first.start &&
+      sorted[end]!.window.end === first.end
+    ) {
+      end += 1;
+    }
+    const group = sorted.slice(start, end).map((entry) => entry.stop);
+    if (group.filter((stop) => options.coordinatesOf(stop) !== null).length > 1) {
+      orderedByDistance = true;
+    }
+    const inGroup = nearestNeighborOrder(position, group, options.coordinatesOf);
+    ordered.push(...inGroup);
+    const last = [...inGroup].reverse().find((stop) => options.coordinatesOf(stop) !== null);
+    if (last) position = options.coordinatesOf(last) ?? position;
+    start = end;
+  }
+  return { stops: ordered, orderedByDistance };
 }

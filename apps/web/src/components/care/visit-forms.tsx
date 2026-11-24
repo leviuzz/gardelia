@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarX2, Check, UserRound, X } from 'lucide-react';
+import { CalendarX2, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { CARE_LIMITS, CARE_MANUAL_CANCEL_REASONS } from '@floral/domain';
@@ -27,75 +27,6 @@ type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
 const choice =
   'flex cursor-pointer items-start gap-2.5 rounded-xl border px-3 py-2.5 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5';
-
-/** "Hecha" o "No se pudo", con una nota facoltativa per il registro della visita. */
-export function VisitOutcomeDialog({
-  action,
-  outcome,
-  idPrefix,
-  label,
-  compact,
-}: {
-  readonly action: Action;
-  readonly outcome: 'DONE' | 'NOT_DONE';
-  readonly idPrefix: string;
-  /** "SUS-0001 · Hotel Jardín" per il titolo. */
-  readonly label: string;
-  readonly compact?: boolean;
-}) {
-  const t = useTranslations('care.visit');
-  const tc = useTranslations('common');
-  const [open, setOpen] = useState(false);
-  const [state, formAction] = useToastActionState(action, () => setOpen(false));
-  const error = fieldError(state, 'note');
-  const done = outcome === 'DONE';
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant={done ? 'default' : 'outline'}
-          size={compact ? 'sm' : 'default'}
-          className={compact ? undefined : 'w-full sm:w-auto'}
-        >
-          {done ? <Check /> : <X />}
-          {done ? t('done') : t('notDone')}
-        </Button>
-      </DialogTrigger>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>
-            {done ? t('doneTitle', { label }) : t('notDoneTitle', { label })}
-          </DialogTitle>
-          <DialogDescription>{done ? t('doneBody') : t('notDoneBody')}</DialogDescription>
-        </DialogHeader>
-        <form action={formAction} onSubmit={preserveOnSubmit(formAction)} className="grid gap-4">
-          <Field
-            id={`${idPrefix}-note`}
-            label={done ? t('noteDone') : t('noteNotDone')}
-            error={error}
-          >
-            <Textarea
-              {...controlProps(`${idPrefix}-note`, error)}
-              name="note"
-              rows={3}
-              maxLength={CARE_LIMITS.notes}
-            />
-          </Field>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="ghost">
-                {tc('cancel')}
-              </Button>
-            </DialogClose>
-            <SubmitButton className="w-full sm:w-auto">
-              {done ? t('doneSubmit') : t('notDoneSubmit')}
-            </SubmitButton>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 export interface MoveOptionView {
   /** "AAAA-MM-GG_idFascia". */

@@ -41,23 +41,26 @@ export function AgendaTabs({
   toReschedule,
 }: {
   readonly routes: TenantRoutes;
-  readonly current: 'day' | 'month' | 'reschedule';
-  readonly toReschedule: number;
+  readonly current: 'day' | 'route' | 'month' | 'reschedule';
+  /** Visite da riprogrammare; null se la pagina non le conta (si mostra solo l'etichetta). */
+  readonly toReschedule: number | null;
 }) {
   const t = useTranslations('care.agenda.tabs');
   const tabs = [
     { key: 'day', href: routes.agenda.day(), label: t('day') },
+    { key: 'route', href: routes.agenda.route(), label: t('route') },
     { key: 'month', href: routes.agenda.month(), label: t('month') },
     {
       key: 'reschedule',
       href: routes.agenda.toReschedule,
-      label: t('reschedule', { count: toReschedule }),
+      label:
+        toReschedule === null ? t('rescheduleShort') : t('reschedule', { count: toReschedule }),
     },
   ] as const;
   return (
     <nav
       aria-label={t('label')}
-      className="flex gap-1 rounded-xl bg-muted p-1 sm:w-fit print:hidden"
+      className="flex gap-1 overflow-x-auto rounded-xl bg-muted p-1 sm:w-fit print:hidden"
     >
       {tabs.map((tab) => (
         <Link
@@ -65,11 +68,12 @@ export function AgendaTabs({
           href={tab.href}
           aria-current={current === tab.key ? 'page' : undefined}
           className={cn(
-            'flex-1 rounded-lg px-3 py-1.5 text-center text-sm font-medium transition-colors sm:flex-none sm:px-4',
+            'flex-1 rounded-lg px-2.5 py-1.5 text-center text-sm font-medium whitespace-nowrap transition-colors sm:flex-none sm:px-4',
             current === tab.key
               ? 'bg-card text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground',
             tab.key === 'reschedule' &&
+              toReschedule !== null &&
               toReschedule > 0 &&
               current !== tab.key &&
               'text-[oklch(0.45_0.17_27)]',

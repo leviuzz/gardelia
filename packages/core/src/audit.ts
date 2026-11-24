@@ -97,7 +97,9 @@ type ProbeableEntity =
   | 'CareSlot'
   | 'CustomerSubscription'
   | 'CarePlant'
-  | 'CareVisit';
+  | 'CareVisit'
+  | 'CarePhoto'
+  | 'CareFollowUp';
 
 async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<string | null> {
   return withSystemContext(
@@ -182,6 +184,10 @@ async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<st
           return (await tx.carePlant.findUnique({ where: { id }, select }))?.tenantId ?? null;
         case 'CareVisit':
           return (await tx.careVisit.findUnique({ where: { id }, select }))?.tenantId ?? null;
+        case 'CarePhoto':
+          return (await tx.carePhoto.findUnique({ where: { id }, select }))?.tenantId ?? null;
+        case 'CareFollowUp':
+          return (await tx.careFollowUp.findUnique({ where: { id }, select }))?.tenantId ?? null;
       }
     },
   );

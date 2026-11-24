@@ -202,22 +202,34 @@ export async function purgeDeletedTenants(): Promise<number> {
       });
       if (!tenant) return null;
       const where = { tenantId };
-      const [store, aiJobs, bouquetPhotos, catalogPhotos, styleReferences, orderPhotos] =
-        await Promise.all([
-          tx.onlineStore.findMany({ where, select: { logoKey: true, coverKey: true } }),
-          tx.aiJob.findMany({ where, select: { outputKey: true } }),
-          tx.bouquetPhoto.findMany({ where, select: { storageKey: true, thumbKey: true } }),
-          tx.catalogItemPhoto.findMany({
-            where,
-            select: { storageKey: true, thumbKey: true, cutoutKey: true },
-          }),
-          tx.styleReferencePhoto.findMany({ where, select: { storageKey: true, thumbKey: true } }),
-          tx.orderPhoto.findMany({ where, select: { storageKey: true, thumbKey: true } }),
-        ]);
+      const [
+        store,
+        aiJobs,
+        bouquetPhotos,
+        catalogPhotos,
+        styleReferences,
+        orderPhotos,
+        carePhotos,
+      ] = await Promise.all([
+        tx.onlineStore.findMany({ where, select: { logoKey: true, coverKey: true } }),
+        tx.aiJob.findMany({ where, select: { outputKey: true } }),
+        tx.bouquetPhoto.findMany({ where, select: { storageKey: true, thumbKey: true } }),
+        tx.catalogItemPhoto.findMany({
+          where,
+          select: { storageKey: true, thumbKey: true, cutoutKey: true },
+        }),
+        tx.styleReferencePhoto.findMany({ where, select: { storageKey: true, thumbKey: true } }),
+        tx.orderPhoto.findMany({ where, select: { storageKey: true, thumbKey: true } }),
+        // Foto delle visite di Floral Care (ADR-078) i cui file ci sono ancora.
+        tx.carePhoto.findMany({
+          where: { tenantId, deletedAt: null },
+          select: { storageKey: true, thumbKey: true },
+        }),
+      ]);
       const keys = [
         ...store.flatMap((row) => [row.logoKey, row.coverKey]),
         ...aiJobs.map((row) => row.outputKey),
-        ...[...bouquetPhotos, ...styleReferences, ...orderPhotos].flatMap((row) => [
+        ...[...bouquetPhotos, ...styleReferences, ...orderPhotos, ...carePhotos].flatMap((row) => [
           row.storageKey,
           row.thumbKey,
         ]),

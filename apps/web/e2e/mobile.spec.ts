@@ -9,8 +9,10 @@ test.describe('staff', () => {
     await page.goto('/app/las-camelias');
     const bottomNav = page.getByRole('navigation', { name: 'Navegación principal' }).last();
     await expect(bottomNav).toBeVisible();
-    // I Pedidos sono nella barra in basso (ADR-054); il Catálogo nel menu "Más".
+    // Pedidos e Agenda sono nella barra in basso (ADR-054, ADR-078); il Catálogo nel menu "Más".
     await expect(bottomNav.getByRole('link', { name: 'Pedidos' })).toBeVisible();
+    await expect(bottomNav.getByRole('link', { name: 'Agenda' })).toBeVisible();
+    await expect(bottomNav.getByRole('link', { name: 'Clientes' })).toHaveCount(0);
     // Nel menu "Más" lo staff trova Diseñador e Catálogo, ma non Equipo né Ajustes.
     await bottomNav.getByRole('button', { name: 'Más' }).click();
     await expect(page.getByRole('menuitem', { name: 'Diseñador' })).toBeVisible();
@@ -37,6 +39,8 @@ test.describe('propietario', () => {
     await expect(bottomNav.getByRole('link', { name: 'Cotizaciones' })).toBeVisible();
     await bottomNav.getByRole('button', { name: 'Más' }).click();
     await expect(page.getByRole('menuitem', { name: 'Calendario' })).toBeVisible();
+    // Clientes passa in "Más": al suo posto nella barra c'è l'Agenda (founder, 24/11/2026).
+    await expect(page.getByRole('menuitem', { name: 'Clientes' })).toBeVisible();
     await page.getByRole('menuitem', { name: 'Equipo' }).click();
     await expect(page).toHaveURL(/\/settings\/team$/);
   });

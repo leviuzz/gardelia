@@ -198,6 +198,13 @@ export const AUDIT_ACTIONS = {
   careVisitAssigned: 'care.visit_assigned',
   careVisitMoved: 'care.visit_moved',
   careVisitCancelled: 'care.visit_cancelled',
+  /** La visita dal telefono (ADR-078): iniziata, una foto tolta, avvisi per chi gestisce. */
+  careVisitStarted: 'care.visit_started',
+  careVisitPhotoRemoved: 'care.visit_photo_removed',
+  careFollowUpCreated: 'care.follow_up_created',
+  careFollowUpResolved: 'care.follow_up_resolved',
+  /** Il lavoro giornaliero ha cancellato le foto di un contratto finito da 30 giorni. */
+  carePhotosDeleted: 'care.photos_deleted',
   /**
    * Contratti con i clienti (CustomerSubscription): `customer_subscription.*`, da non confondere con
    * `subscription.assigned`, il piano della fioreria su Gardelia.

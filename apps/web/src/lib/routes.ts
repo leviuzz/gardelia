@@ -165,8 +165,19 @@ export function tenantRoutes(slug: string) {
       day: (query?: { readonly date?: string }) => withQuery(agenda, query),
       month: (query?: { readonly month?: string }) => withQuery(`${agenda}/month`, query),
       toReschedule: `${agenda}/reschedule`,
-      /** Una visita: chi la fa, "Hecha" o "No se pudo", spostarla, cancellarla. */
+      /** Una visita: la visita dal telefono (ADR-078), spostarla, cancellarla, assegnarla. */
       visit: (visitId: string) => `${agenda}/visits/${segment(visitId)}`,
+      /** Una foto della visita (`thumb` = miniatura). */
+      visitPhoto: (visitId: string, photoId: string, options?: { readonly thumb?: boolean }) =>
+        withQuery(`${agenda}/visits/${segment(visitId)}/photos/${segment(photoId)}`, {
+          size: options?.thumb ? 'thumb' : undefined,
+        }),
+      /** Ruta del día con consegne e visite (`mine`: solo le proprie). */
+      route: (query?: { readonly date?: string; readonly mine?: boolean }) =>
+        withQuery(`${agenda}/route`, query),
+      /** Avvisi della squadra per chi gestisce (reposición, extra, altro). */
+      followUps: (query?: { readonly view?: 'resolved' }) =>
+        withQuery(`${agenda}/follow-ups`, query),
     },
     builder: {
       list: (query?: QueryValues) => withQuery(builder, query),

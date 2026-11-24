@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 24 novembre 2026 (sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 24 novembre 2026 (Floral Care, la visita dal telefono, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -1233,7 +1233,8 @@ Blocco A1a di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26, D-27).
   a tutti; `orders:write` (creare, cambiare consegna, accettare, annullare) e `orders:payments` a
   proprietario e manager. Coerente con O-08: lo staff non crea clienti né preventivi.
 - **Navigazione:** "Pedidos" nella barra in basso del telefono; il Catálogo passa nel menu "Más"
-  per lasciare cinque colonne.
+  per lasciare cinque colonne. Aggiornato da ADR-078 (founder, 24/11/2026): l'Agenda prende il
+  posto di Clientes, che passa in "Más".
 - **Audit:** `order.created`, `order.updated` (solo campi non personali), `order.status_changed`,
   `order.cancelled`, `order.payment_recorded`, `order.payment_reversed`; un ID di un'altra fioreria
   dà 404 e un evento di sicurezza.
@@ -2104,8 +2105,9 @@ Avviato dal founder con la visione del 24/11 ("l'offerta floral care deve essere
     con le loro indicazioni, servizi. Da lì "Hecha" e "No se pudo" (tutta la squadra), poi
     spostare, cancellare e assegnare (chi gestisce);
   - le viste dei Pedidos restano dove sono. Su mobile "Agenda" e "Floral Care" stanno in "Más":
-    la barra in basso resta di cinque voci (ADR-054). **Da decidere col founder** se l'Agenda
-    debba prendere il posto di un'altra voce.
+    la barra in basso resta di cinque voci (ADR-054). Deciso poi dal founder (ADR-078): l'Agenda
+    va nella barra al posto di Clientes; "Floral Care" resta in "Más";
+  - "Hecha" e "No se pudo" in un tocco sono sostituiti dalla visita dal telefono (ADR-078).
 - **Lavori senza utente (§8 del piano):**
   - lo `JobScope` lo costruisce solo `loadJobScope`, che rilegge la fioreria attiva nella
     transazione del lavoro. Le funzioni `…Tx` ricevono uno `WriteScope` (un membro o un lavoro);
@@ -2125,7 +2127,8 @@ Avviato dal founder con la visione del 24/11 ("l'offerta floral care deve essere
     non inventiamo prezzi;
   - i termini li scrive la fioreria: Gardelia non aggiunge condizioni.
 - **Non fatto (blocchi 2–7 del piano):**
-  - 2: visita dal telefono con checklist, stato delle piante e foto; ruta del día con le visite;
+  - 2: visita dal telefono con checklist, stato delle piante e foto; ruta del día con le visite
+    (fatto nel blocco 2a, ADR-078; visita extra, piante morte e cambio di stagione nel 2b);
   - 3: cargos e pagamenti;
   - 4: blocchi, vacanze e cambi di massa con l'elenco dei clienti toccati;
   - 5: pagina del cliente con messaggi e "Cambiar fecha";
@@ -2229,6 +2232,72 @@ giorni" e "facoltativa"). Realizza P-09.
   sessioni, dopo che il founder ha verificato chi è (guida in `docs/DEPLOY_VERCEL.md`).
 - **Non fatto:** avvisi via email (verifica tolta, nuovo dispositivo) con Sentry e gli altri avvisi
   (punto 3 della lista in `docs/ROADMAP.md`); chiavi di accesso (passkey).
+
+### ADR-078 — Floral Care, blocco 2a: la visita dal telefono, il resoconto e la ruta — ADOTTATO (24/11/2026)
+
+Blocco 2 del piano approvato (`docs/FLORAL_CARE_PLAN.md`), chiesto dal founder ("ok vai col
+blocco 2") e diviso in due rilasci: 2a (questo) e 2b (visita extra, piante morte, cambio di
+stagione con cotización). Il founder ha deciso il 24/11: l'Agenda va nella barra in basso al posto
+di Clientes; una visita extra si fissa in un orario di visita oppure a un'ora libera (2b).
+
+- **La visita dal telefono** (`care-visit-work.ts`, permesso `care:visit`, anche lo staff):
+  - "Empezar visita": da programmata (con data di oggi o passata, contratto attivo) a in corso,
+    con ora e persona. Se non era assegnata la prende chi la inizia. Ripetuta non fa nulla;
+  - i passi si salvano uno per uno (sul posto il segnale può mancare): servizi della checklist
+    ("Hecho" / "No se hizo"), stato di ogni pianta (bien, atención, problema, muerta; in un gruppo
+    quante sono toccate), "Todas bien" per quelle ancora senza stato, materiali, nota per il
+    cliente, avvisi per chi gestisce. Un servizio "una sola vez" già fatto non torna;
+  - i risultati dei servizi puntano al servizio della fioreria (mai cancellato) e ne copiano nome,
+    prezzo e unità: quelli del contratto si riscrivono a ogni modifica;
+  - "Terminar visita": ogni pianta deve avere il suo stato. I materiali escono dall'inventario in
+    un solo registro legato alla visita (`consumeStockTx`, con conferma se manca giacenza); le
+    piante morte diventano avvisi di reposición; nascono il link del resoconto e, se chiesta,
+    l'email. Un secondo "Terminar" non fa nulla: il blocco della riga e le chiavi uniche
+    (`inventoryEntryId`, un'email per visita e tipo) impediscono doppia uscita e doppia email;
+  - "No se pudo": da programmata o in corso; niente materiali, foto e stati restano come prova;
+  - "Hecha" in un tocco del blocco 1 sparisce.
+- **Ordine dei blocchi:** contratto → visita → righe d'inventario. I passi bloccano solo la visita.
+  File ed email sempre fuori dalle transazioni.
+- **Foto** (`care-photos.ts`): una alla volta, dalla fotocamera o dalla galleria, al massimo 20 per
+  visita, ridotte e senza dati EXIF. Ogni file ha la sua `uploadKey`, così un nuovo tentativo non
+  crea doppioni. File privati `tenants/<id>/care-photos/<contratto>-<foto>.jpg`.
+- **Cancellazione delle foto (eccezione accanto ad ADR-051; DECISO dal founder "a fine servizio",
+  i 30 giorni sono PROPOSTI nel piano):**
+  - 30 giorni dopo l'ultimo giorno del contratto il lavoro giornaliero cancella i file su R2, poi
+    segna la riga (`deletedAt`); testi e stati restano;
+  - una foto tolta durante la visita (o dopo, da chi gestisce) si cancella subito;
+  - se lo storage non risponde si riprova ogni giorno; dal settimo giorno dopo la data è un errore
+    nel log. `app_care_photos_to_purge` dà solo gli ID;
+  - l'eliminazione di una fioreria (ADR-074) cancella anche queste foto.
+- **Resoconto** (`care-report.ts`): lo stesso per la pagina della visita, la pagina pubblica e
+  l'email. Fioreria, giorno, ore, chi è venuto (solo il nome), servizi, piante con stato e note,
+  foto, nota; mai prezzi, materiali né avvisi interni.
+- **Link pubblico:** riusa `PublicLink` (tipo `CARE_VISIT`, 60 giorni). Il nuovo valore dell'enum
+  e il vincolo che lo usa stanno in due migrazioni. Pagina `/visita/<token>`: nella lingua del
+  mercato, stampabile, con il logo della fioreria come i link di cotizaciones e pedidos (ADR-076).
+  Lo condivide chi fa la visita (`care:visit`); rinnovarlo e disattivarlo resta a chi gestisce.
+- **Email** (`care-email.ts`, tre lingue, quella del mercato della fioreria):
+  - un solo controllo per tutte le email di Floral Care, `careEmailsAllowed`: fioreria LIVE e
+    attiva, mai demo;
+  - tabella d'uscita `CareEmail`, una riga per visita e tipo. Dopo il commit la riga si prende in
+    modo atomico e si ricontrollano fioreria, email e link;
+  - "Reintentar" a mano; il lavoro giornaliero riprova fino a 3 volte in 3 giorni
+    (`app_care_emails_due`); una SENDING ferma da un'ora si chiude senza rimandarla.
+- **Avvisi per chi gestisce** (`CareFollowUp`): reposición, extra chiesto dal cliente, altro. Li
+  scrive la squadra; chi gestisce li segna "Atendido" con una nota facoltativa. Non si cancellano.
+  L'Agenda li segnala.
+- **Ruta del día** (`day-route.ts`): consegne e visite in un solo giro. L'ordine sta nel dominio
+  (`orderRouteStops`): per fascia, poi per vicinanza con le coordinate ancora valide. Le visite
+  entrano solo per chi vede i contratti in una fioreria con Floral Care. Scheda "Ruta"
+  dell'Agenda; la ruta dei Pedidos resta.
+- **Barra in basso (DECISO dal founder, aggiorna ADR-054 e ADR-075):** Inicio, Pedidos,
+  Cotizaciones, Agenda, Más; Clientes passa in "Más".
+- **Cronologia del cliente:** le visite hechas e no realizadas (ADR-070).
+- **PROPOSTO (si cambia facilmente):** il resoconto va all'email del cliente del CRM (più
+  destinatari col blocco 5); anche "No se pudo" avvisa il cliente, con la casella attiva; di chi è
+  venuto si mostra il nome; 20 foto per visita.
+- **Non fatto:** modo offline vero (le foto si possono caricare dopo dalla galleria); riaprire una
+  visita chiusa; 2b (visita extra, piante morte, cambio di stagione); cargos (blocco 3).
 
 ## 3. Proposte da approvare
 

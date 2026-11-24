@@ -10,6 +10,7 @@
 import { getDb, withTenantContext } from '@floral/db';
 import {
   CUSTOMER_TIMELINE_ORDER_STATUSES,
+  formatSubscriptionNumber,
   customerTimelineLimit,
   formatOrderNumber,
   formatQuoteNumber,
@@ -23,6 +24,7 @@ import {
 } from '@floral/domain';
 import { notFound } from '../audit';
 import { hasPermission, requirePermission } from '../authorization';
+import { getEntitlements } from './billing';
 import type { TenantContext } from '../context';
 import { NotFoundError } from '../errors';
 
@@ -75,7 +77,15 @@ export type CustomerTimelineEvent =
       readonly occasionType: OccasionType;
       readonly occasionLabel: string | null;
     })
-  | (TimelineBase & { readonly kind: 'promo_redeemed'; readonly code: string });
+  | (TimelineBase & { readonly kind: 'promo_redeemed'; readonly code: string })
+  | (TimelineBase & {
+      /** Visita di Floral Care chiusa (ADR-078): hecha o no realizada. */
+      readonly kind: 'care_visit';
+      readonly visitId: string;
+      readonly subscriptionId: string;
+      readonly number: string;
+      readonly status: 'DONE' | 'NOT_DONE';
+    });
 
 export interface CustomerTimelineResult {
   readonly events: readonly CustomerTimelineEvent[];
@@ -98,6 +108,7 @@ export async function getCustomerTimeline(
   const limit = customerTimelineLimit(rawLimit);
   const canQuotes = hasPermission(ctx, 'quotes:read');
   const canOrders = hasPermission(ctx, 'orders:read');
+  const canCare = hasPermission(ctx, 'subscriptions:read');
   const tenantId = ctx.tenantId;
 
   const events = await withTenantContext(getDb(), ctx, async (tx) => {
@@ -263,6 +274,39 @@ export async function getCustomerTimeline(
         at: promo.redeemedAt,
         code: promo.code,
       });
+    }
+
+    // Visite di Floral Care chiuse (ADR-078): per chi vede i contratti, se la fioreria ha il piano.
+    if (canCare && (await getEntitlements(ctx, tx)).floralCare) {
+      const visits = await tx.careVisit.findMany({
+        where: {
+          tenantId,
+          status: { in: ['DONE', 'NOT_DONE'] },
+          finishedAt: { not: null },
+          subscription: { tenantId, customerId },
+        },
+        select: {
+          id: true,
+          status: true,
+          finishedAt: true,
+          subscriptionId: true,
+          subscription: { select: { number: true } },
+        },
+        orderBy: [{ finishedAt: 'desc' }, { id: 'desc' }],
+        take: limit,
+      });
+      for (const visit of visits) {
+        if (!visit.finishedAt) continue;
+        collected.push({
+          kind: 'care_visit',
+          id: `care-visit:${visit.id}`,
+          at: visit.finishedAt,
+          visitId: visit.id,
+          subscriptionId: visit.subscriptionId,
+          number: formatSubscriptionNumber(visit.subscription.number),
+          status: visit.status === 'DONE' ? 'DONE' : 'NOT_DONE',
+        });
+      }
     }
     return collected;
   });

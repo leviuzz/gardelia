@@ -302,6 +302,12 @@ model Tenant {
   subscriptionServices CustomerSubscriptionService[]
   carePlants           CarePlant[]
   careVisits           CareVisit[]
+  careServiceResults   CareVisitServiceResult[]
+  carePlantResults     CareVisitPlantResult[]
+  careMaterials        CareVisitMaterial[]
+  carePhotos           CarePhoto[]
+  careFollowUps        CareFollowUp[]
+  careEmails           CareEmail[]
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -577,6 +583,7 @@ model CatalogItem {
   builderLines    BouquetConfigurationLine[]
   photos          CatalogItemPhoto[]
   inventoryItem   InventoryItem?
+  careMaterials   CareVisitMaterial[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, sku])
@@ -710,6 +717,8 @@ model InventoryEntry {
   reservation InventoryReservation?
   /// L'ordine scaricato con questo registro (ADR-071).
   order       Order?
+  /// La visita di Floral Care che ha usato i materiali (ADR-078).
+  careVisit   CareVisit?
 
   @@unique([tenantId, id])
   /// Bersaglio della FK dei movimenti: il tipo del movimento è sempre quello del registro.
@@ -1765,29 +1774,35 @@ model DeliveryWindow {
 enum PublicLinkKind {
   QUOTE
   ORDER
+  /// Resoconto di una visita di Floral Care (ADR-078).
+  CARE_VISIT
 }
 
-/// Link pubblico di un preventivo (con accettazione) o di un ordine (stato), da mandare al cliente
-/// (ADR-056). Il token non si salva: è firmato dal server (fioreria + ID del link), quindi il
-/// fiorista può ricopiarlo quando vuole. Scade e si può disattivare; uno solo attivo per documento.
+/// Link pubblico di un preventivo (con accettazione), di un ordine (stato) o del resoconto di una
+/// visita di Floral Care, da mandare al cliente (ADR-056, ADR-078). Il token non si salva: è
+/// firmato dal server (fioreria + ID del link), quindi il fiorista può ricopiarlo quando vuole.
+/// Scade e si può disattivare; uno solo attivo per documento.
 model PublicLink {
   id          String         @id @default(uuid(7)) @db.Uuid
   tenantId    String         @db.Uuid
   kind        PublicLinkKind
   quoteId     String?        @db.Uuid
   orderId     String?        @db.Uuid
+  careVisitId String?        @db.Uuid
   createdById String?        @db.Uuid
   createdAt   DateTime       @default(now())
   expiresAt   DateTime
   revokedAt   DateTime?
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  quote  Quote? @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Restrict)
-  order  Order? @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Restrict)
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quote     Quote?     @relation(fields: [tenantId, quoteId], references: [tenantId, id], onDelete: Restrict)
+  order     Order?     @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Restrict)
+  careVisit CareVisit? @relation(fields: [tenantId, careVisitId], references: [tenantId, id], onDelete: Restrict)
 
   @@unique([tenantId, id])
   @@index([tenantId, quoteId])
   @@index([tenantId, orderId])
+  @@index([tenantId, careVisitId])
 }
 
 /// Foto del ramo finito di un ordine (prova di consegna, ADR-058): la scatta chi lo prepara o lo
@@ -1892,6 +1907,44 @@ enum CareVisitCancelReason {
   CUSTOMER
 }
 
+/// Stato di una pianta alla visita dal telefono (ADR-078).
+enum CarePlantCondition {
+  OK
+  ATTENTION
+  PROBLEM
+  DEAD
+}
+
+/// Un servizio della checklist: fatto o no.
+enum CareServiceOutcome {
+  DONE
+  SKIPPED
+}
+
+/// Avviso della squadra per chi gestisce: una pianta da reponer, un lavoro extra chiesto, altro.
+enum CareFollowUpKind {
+  REPLACEMENT
+  EXTRA
+  OTHER
+}
+
+enum CareFollowUpStatus {
+  OPEN
+  RESOLVED
+}
+
+/// Email di Floral Care al cliente (tabella d'uscita).
+enum CareEmailKind {
+  VISIT_REPORT
+}
+
+enum CareEmailStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+}
+
 /// Offerta di Floral Care della fioreria: una riga per fioreria, creata la prima volta che la
 /// salva. I prezzi sono in unità minime nella valuta della fioreria.
 model CareSettings {
@@ -1947,6 +2000,7 @@ model CareService {
 
   tenant        Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   subscriptions CustomerSubscriptionService[]
+  visitResults  CareVisitServiceResult[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, presetKey])
@@ -2028,6 +2082,9 @@ model CustomerSubscription {
   services        CustomerSubscriptionService[]
   plants          CarePlant[]
   visits          CareVisit[]
+  photos          CarePhoto[]
+  followUps       CareFollowUp[]
+  emails          CareEmail[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, number])
@@ -2092,9 +2149,12 @@ model CarePlant {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
-  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
-  species      CanonicalFlower?     @relation(fields: [canonicalFlowerId], references: [id], onDelete: Restrict)
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription CustomerSubscription   @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
+  species      CanonicalFlower?       @relation(fields: [canonicalFlowerId], references: [id], onDelete: Restrict)
+  visitResults CareVisitPlantResult[]
+  photos       CarePhoto[]
+  followUps    CareFollowUp[]
 
   @@unique([tenantId, id])
   @@index([tenantId, subscriptionId])
@@ -2118,23 +2178,194 @@ model CareVisit {
   isExtra              Boolean                @default(false)
   assignedMembershipId String?                @db.Uuid
   startedAt            DateTime?
+  /// Chi ha iniziato la visita dal telefono ("Empezar visita", ADR-078).
+  startedById          String?                @db.Uuid
   finishedAt           DateTime?
   /// Perché si è cancellata: serve ai cargos (una visita tolta dalla fioreria è un credito).
   cancelReason         CareVisitCancelReason?
-  /// Perché non si è fatta o perché si è cancellata (testo della fioreria).
+  /// Hecha o no realizada: la nota che il cliente legge nel resoconto. Cancellata: il perché.
   outcomeNote          String?
   closedById           String?                @db.Uuid
+  /// Registro d'inventario con i materiali usati, scritto a "Terminar visita" (ADR-078).
+  inventoryEntryId     String?                @db.Uuid
   createdById          String?                @db.Uuid
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
 
-  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
-  slot         CareSlot?            @relation(fields: [tenantId, slotId], references: [tenantId, id], onDelete: Restrict)
-  assignedTo   Membership?          @relation(fields: [tenantId, assignedMembershipId], references: [tenantId, id], onDelete: Restrict)
+  tenant         Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription   CustomerSubscription     @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
+  slot           CareSlot?                @relation(fields: [tenantId, slotId], references: [tenantId, id], onDelete: Restrict)
+  assignedTo     Membership?              @relation(fields: [tenantId, assignedMembershipId], references: [tenantId, id], onDelete: Restrict)
+  inventoryEntry InventoryEntry?          @relation(fields: [tenantId, inventoryEntryId], references: [tenantId, id], onDelete: Restrict)
+  serviceResults CareVisitServiceResult[]
+  plantResults   CareVisitPlantResult[]
+  materials      CareVisitMaterial[]
+  photos         CarePhoto[]
+  followUps      CareFollowUp[]
+  emails         CareEmail[]
+  publicLinks    PublicLink[]
 
   @@unique([tenantId, id])
+  @@unique([tenantId, inventoryEntryId])
   @@index([tenantId, scheduledDate])
   @@index([tenantId, slotId, scheduledDate])
   @@index([tenantId, subscriptionId])
+}
+
+/// Un servizio della checklist di una visita (ADR-078). Punta al servizio della fioreria, che non si
+/// cancella mai (quelli del contratto sì, a ogni modifica), e ne copia nome, prezzo e unità: il
+/// resoconto resta com'era anche se poi il servizio cambia.
+model CareVisitServiceResult {
+  id           String             @id @default(uuid(7)) @db.Uuid
+  tenantId     String             @db.Uuid
+  visitId      String             @db.Uuid
+  serviceId    String             @db.Uuid
+  name         String
+  pricing      CareServicePricing
+  unit         CareServiceUnit
+  outcome      CareServiceOutcome
+  note         String?
+  recordedById String?            @db.Uuid
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  tenant  Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  visit   CareVisit   @relation(fields: [tenantId, visitId], references: [tenantId, id], onDelete: Restrict)
+  service CareService @relation(fields: [tenantId, serviceId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, visitId, serviceId])
+}
+
+/// Lo stato di una pianta (o di un gruppo) alla visita. Nome e quantità copiati: il resoconto
+/// resta com'era. `affected`: in un gruppo, quante piante sono toccate.
+model CareVisitPlantResult {
+  id           String             @id @default(uuid(7)) @db.Uuid
+  tenantId     String             @db.Uuid
+  visitId      String             @db.Uuid
+  plantId      String             @db.Uuid
+  plantName    String
+  quantity     Int
+  condition    CarePlantCondition
+  affected     Int?
+  note         String?
+  recordedById String?            @db.Uuid
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  tenant Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  visit  CareVisit @relation(fields: [tenantId, visitId], references: [tenantId, id], onDelete: Restrict)
+  plant  CarePlant @relation(fields: [tenantId, plantId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, visitId, plantId])
+  @@index([tenantId, plantId])
+}
+
+/// Materiali segnati durante la visita: escono dall'inventario tutti insieme a "Terminar visita".
+model CareVisitMaterial {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  tenantId      String   @db.Uuid
+  visitId       String   @db.Uuid
+  catalogItemId String   @db.Uuid
+  quantity      Int
+  createdById   String?  @db.Uuid
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  visit       CareVisit   @relation(fields: [tenantId, visitId], references: [tenantId, id], onDelete: Restrict)
+  catalogItem CatalogItem @relation(fields: [tenantId, catalogItemId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, visitId, catalogItemId])
+}
+
+/// Foto di una visita (ADR-078), file privati sotto `tenants/{tenantId}/care-photos/`. Si cancellano
+/// da R2 30 giorni dopo la fine del contratto, o subito se tolte (eccezione voluta dal founder): la
+/// riga resta con `deletedAt`. `uploadKey`: un nuovo tentativo dello stesso file non la raddoppia.
+model CarePhoto {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  tenantId       String    @db.Uuid
+  subscriptionId String    @db.Uuid
+  visitId        String?   @db.Uuid
+  plantId        String?   @db.Uuid
+  storageKey     String
+  thumbKey       String
+  contentType    String
+  width          Int
+  height         Int
+  sizeBytes      Int
+  uploadKey      String?   @db.Uuid
+  createdById    String?   @db.Uuid
+  createdAt      DateTime  @default(now())
+  /// Tolta da chi fa o gestisce la visita: non si vede più; i file si cancellano subito.
+  removedAt      DateTime?
+  removedById    String?   @db.Uuid
+  /// I file non ci sono più (tolta, o contratto finito da 30 giorni).
+  deletedAt      DateTime?
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
+  visit        CareVisit?           @relation(fields: [tenantId, visitId], references: [tenantId, id], onDelete: Restrict)
+  plant        CarePlant?           @relation(fields: [tenantId, plantId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, visitId, uploadKey])
+  @@index([tenantId, visitId])
+}
+
+/// Avviso della squadra per chi gestisce (ADR-078): una pianta morta da reponer (anche creato da
+/// solo), un lavoro extra chiesto dal cliente, altro. Non si cancella: si segna come atteso.
+model CareFollowUp {
+  id             String             @id @default(uuid(7)) @db.Uuid
+  tenantId       String             @db.Uuid
+  subscriptionId String             @db.Uuid
+  visitId        String             @db.Uuid
+  kind           CareFollowUpKind
+  plantId        String?            @db.Uuid
+  quantity       Int?
+  note           String?
+  status         CareFollowUpStatus @default(OPEN)
+  resolutionNote String?
+  resolvedById   String?            @db.Uuid
+  resolvedAt     DateTime?
+  createdById    String?            @db.Uuid
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
+  visit        CareVisit            @relation(fields: [tenantId, visitId], references: [tenantId, id], onDelete: Restrict)
+  plant        CarePlant?           @relation(fields: [tenantId, plantId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, status])
+  @@index([tenantId, visitId])
+}
+
+/// Tabella d'uscita delle email di Floral Care al cliente (ADR-078): una per visita e tipo, così il
+/// resoconto parte una volta sola anche con due "Terminar" o con i nuovi tentativi. Non salva
+/// l'indirizzo: lo rilegge dal cliente al momento di mandare.
+model CareEmail {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  tenantId       String          @db.Uuid
+  kind           CareEmailKind
+  subscriptionId String          @db.Uuid
+  visitId        String?         @db.Uuid
+  status         CareEmailStatus @default(PENDING)
+  attempts       Int             @default(0)
+  sentAt         DateTime?
+  /// Codice dell'ultimo errore (mai il testo del provider, che può contenere l'indirizzo).
+  lastError      String?
+  requestedById  String?         @db.Uuid
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
+  visit        CareVisit?           @relation(fields: [tenantId, visitId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, visitId, kind])
 }

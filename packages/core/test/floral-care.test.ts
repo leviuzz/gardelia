@@ -23,7 +23,6 @@ import {
   assignCareVisit,
   cancelCareVisit,
   changeCareSchedule,
-  completeCareVisit,
   confirmCareContract,
   createCareContract,
   createCareService,
@@ -31,6 +30,7 @@ import {
   createCustomer,
   discardCareContract,
   endCareContract,
+  finishCareVisit,
   getCareAgendaDay,
   getCareAgendaMonth,
   getCareContract,
@@ -38,13 +38,16 @@ import {
   getCareVisitMoveOptions,
   listCareContracts,
   listCareVisitsToReschedule,
+  markAllCarePlantsOk,
   markCareVisitNotDone,
   moveCareVisit,
   purgeDeletedTenants,
   repriceCareContract,
   requestTenantDeletion,
   runCareMaintenance,
+  saveCareVisitNote,
   setObjectStorage,
+  startCareVisit,
   updateCareSettings,
   updateCareSlot,
   updatePrimaryLocation,
@@ -552,7 +555,8 @@ describe('visite: Agenda, "Hecha", spostare, cancellare, assegnare', () => {
       customerName: 'Oficinas Sol',
       plantCount: 6,
       status: 'SCHEDULED',
-      canClose: true,
+      canStart: true,
+      canMarkNotDone: true,
       canManage: false,
     });
     const month = await getCareAgendaMonth(shop.owner, iso(today()).slice(0, 7));
@@ -561,14 +565,23 @@ describe('visite: Agenda, "Hecha", spostare, cancellare, assegnare', () => {
     );
   });
 
-  it('lo staff segna "Hecha" la visita di oggi; una visita futura no', async () => {
+  it('lo staff fa la visita di oggi (Empezar → Todas bien → Terminar); una futura no', async () => {
     const visits = await visitsOf(shop.tenant.tenantId, weeklyId);
     const [first, second] = visits;
-    await completeCareVisit(shop.staff, first!.id, { note: 'Todo bien.' });
-    await expect(completeCareVisit(shop.staff, first!.id, {})).rejects.toThrow(
-      new ConflictError('care_visit_closed'),
+    await startCareVisit(shop.staff, first!.id);
+    await markAllCarePlantsOk(shop.staff, first!.id);
+    await saveCareVisitNote(shop.staff, first!.id, { note: 'Todo bien.' });
+    expect(await finishCareVisit(shop.staff, first!.id, {}, null)).toEqual({
+      alreadyClosed: false,
+      report: 'not_requested',
+    });
+    expect(await finishCareVisit(shop.staff, first!.id, {}, null)).toMatchObject({
+      alreadyClosed: true,
+    });
+    await expect(markCareVisitNotDone(shop.staff, second!.id, {}, null)).rejects.toThrow(
+      new ConflictError('care_visit_future'),
     );
-    await expect(markCareVisitNotDone(shop.staff, second!.id, {})).rejects.toThrow(
+    await expect(startCareVisit(shop.staff, second!.id)).rejects.toThrow(
       new ConflictError('care_visit_future'),
     );
     const [done] = await visitsOf(shop.tenant.tenantId, weeklyId);
@@ -576,6 +589,7 @@ describe('visite: Agenda, "Hecha", spostare, cancellare, assegnare', () => {
       status: 'DONE',
       outcomeNote: 'Todo bien.',
       closedById: shop.staff.userId,
+      startedById: shop.staff.userId,
     });
   });
 
@@ -934,7 +948,8 @@ describe('isolamento fra fiorerie', () => {
         customerNotified: 'on',
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
-    await expect(completeCareVisit(other.staff, visit!.id, {})).rejects.toBeInstanceOf(
+    await expect(startCareVisit(other.staff, visit!.id)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(finishCareVisit(other.staff, visit!.id, {}, null)).rejects.toBeInstanceOf(
       NotFoundError,
     );
     await expect(
@@ -1028,7 +1043,9 @@ describe('cancellazione definitiva di una fioreria con Floral Care (ADR-074)', (
     await addCarePlant(gone.owner, contract, { name: 'Plantas', quantity: '2', size: 'SMALL' });
     await confirmCareContract(gone.owner, contract);
     const [first] = await visitsOf(gone.tenant.tenantId, contract);
-    await completeCareVisit(gone.owner, first!.id, {});
+    await startCareVisit(gone.owner, first!.id);
+    await markAllCarePlantsOk(gone.owner, first!.id);
+    await finishCareVisit(gone.owner, first!.id, {}, null);
 
     await requestTenantDeletion(gone.owner, { confirmName: 'Florería Care Se Va' }, null);
     await withSystemContext(db, { reason: 'test: 30 giorni passati' }, (tx) =>

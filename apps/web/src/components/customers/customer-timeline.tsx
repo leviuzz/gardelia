@@ -6,6 +6,7 @@ import {
   Package,
   PackageCheck,
   PackageX,
+  Sprout,
   Ticket,
   UserPlus,
 } from 'lucide-react';
@@ -34,6 +35,8 @@ function EventIcon({ event }: { readonly event: CustomerTimelineEvent }) {
       return <Mail />;
     case 'promo_redeemed':
       return <Ticket />;
+    case 'care_visit':
+      return <Sprout />;
   }
 }
 
@@ -130,6 +133,15 @@ export async function CustomerTimeline({
           text: t('customers.timeline.promoRedeemed', { code: event.code }),
           detail: null,
           href: null,
+        };
+      case 'care_visit':
+        return {
+          text:
+            event.status === 'DONE'
+              ? t('customers.timeline.careVisitDone', { number: event.number })
+              : t('customers.timeline.careVisitNotDone', { number: event.number }),
+          detail: null,
+          href: routes.agenda.visit(event.visitId),
         };
     }
   }

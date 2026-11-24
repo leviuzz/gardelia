@@ -131,6 +131,8 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
 - **Lavori di Floral Care** (ADR-075): `app_care_contracts_to_extend(giorni, n)` e
   `app_care_contracts_to_close(n)` (SECURITY DEFINER) danno alla manutenzione solo gli ID dei
   contratti da allungare o chiudere; il lavoro avviene poi nel contesto della fioreria, senza utente.
+  Allo stesso modo (ADR-078) `app_care_photos_to_purge(giorni, n)` dà i contratti con foto da
+  cancellare e `app_care_emails_due(n)` le email dei resoconti da riprovare.
 - Vincoli aggiuntivi nel SQL: CHECK su importi/quantità/valute/slug, indici univoci parziali
   (una sede primaria per tenant, un invito pendente per email).
 
@@ -270,6 +272,21 @@ visite e chiude i contratti finiti un contratto per transazione, in
 lavori ricevono uno `WriteScope` (membro o lavoro); il registro di un lavoro ha attore nullo e il
 nome del lavoro (`recordJobAudit`). Un test delle convenzioni vieta `as TenantContext` fuori da
 `context.ts`.
+
+La visita dal telefono (ADR-078, `services/care-visit-work.ts`): "Empezar" porta la visita in
+corso; ogni passo (servizi, stato delle piante, materiali, nota, avvisi) è un upsert sulla sua
+chiave unica, quindi si può ripetere, e blocca solo la visita. "Terminar" blocca contratto →
+visita → righe d'inventario (`consumeStockTx`, un registro per visita grazie a
+`CareVisit.inventoryEntryId` unico), crea gli avvisi delle piante morte, il link `CARE_VISIT` e la
+riga d'uscita `CareEmail` (unica per visita e tipo). L'email parte dopo il commit: la riga passa
+PENDING → SENDING in modo atomico, poi SENT o FAILED; la manutenzione riprova con un tetto di
+tentativi. Le foto (`services/care-photos.ts`) si salvano prima nello storage e poi nella riga
+(`storeFilesThenCommit`), con una `uploadKey` per file che rende innocuo un nuovo tentativo; la
+manutenzione cancella i file 30 giorni dopo la fine del contratto e poi segna `deletedAt`. Il
+resoconto (`services/care-report.ts`) è un solo DTO per la pagina interna, quella pubblica
+`/visita/<token>` e l'email, senza prezzi né materiali. La ruta del día (`services/day-route.ts`)
+mette insieme consegne e visite; l'ordine è una funzione pura del dominio (`orderRouteStops`),
+usata anche dalla ruta dei Pedidos.
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per

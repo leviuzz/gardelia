@@ -31,9 +31,10 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
     // Il lavoro di ogni giorno (ADR-054): su mobile nella barra in basso.
     { href: routes.orders.list(), label: t('nav.orders'), icon: 'orders' },
     { href: routes.quotes.list(), label: t('nav.quotes'), icon: 'quotes' },
-    // Floral Care (ADR-075): l'Agenda dei lavori (visite e consegne) e i contratti. Su mobile nel
-    // menu "Más": la barra in basso resta di cinque voci (ADR-054).
-    { href: routes.agenda.day(), label: t('nav.agenda'), icon: 'agenda', secondary: true },
+    // L'Agenda dei lavori (visite e consegne, ADR-075): nella barra in basso al posto di Clientes,
+    // per chi esce a fare visite e consegne dal telefono (decisione del founder del 24/11/2026,
+    // ADR-078). I contratti di Floral Care su mobile stanno in "Más".
+    { href: routes.agenda.day(), label: t('nav.agenda'), icon: 'agenda' },
     ...(hasPermission(ctx, 'subscriptions:read')
       ? [
           {
@@ -46,7 +47,13 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
       : []),
     // Funzione Plus: chi non ce l'ha trova l'invito all'upgrade (mai una finta funzione).
     { href: routes.builder.list(), label: t('nav.builder'), icon: 'builder', secondary: true },
-    { href: routes.customers.list(), label: t('nav.customers'), icon: 'customers' },
+    // I clienti si aprono quasi sempre da pedidos e cotizaciones: su mobile nel menu "Más".
+    {
+      href: routes.customers.list(),
+      label: t('nav.customers'),
+      icon: 'customers',
+      secondary: true,
+    },
     // Date speciali dei clienti: su mobile nel menu "Más".
     { href: routes.calendar(), label: t('nav.calendar'), icon: 'calendar', secondary: true },
     ...(hasPermission(ctx, 'promotions:manage')

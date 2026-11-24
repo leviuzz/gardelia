@@ -1,7 +1,7 @@
 # Floral Care, consegne periodiche e Asistente de plantas — piano
 
-Piano approvato dal founder il 24/11/2026 (risposte nel §2). Il blocco 1 è fatto (ADR-075); i
-blocchi 2–7 seguono quest'ordine. Le etichette DECISO / PROPOSTO / DA VALIDARE valgono come nella
+Piano approvato dal founder il 24/11/2026 (risposte nel §2). Il blocco 1 è fatto (ADR-075), il
+blocco 2 è diviso in 2a (fatto, ADR-078) e 2b; i blocchi seguenti seguono quest'ordine. Le etichette DECISO / PROPOSTO / DA VALIDARE valgono come nella
 spec: una proposta non diventa decisione senza il founder.
 
 ## Contesto
@@ -107,7 +107,10 @@ quaderni; il cliente ha una pagina sua; ogni visita lascia la prova (ora, checkl
 - agenda dei lavori separata dal calendario degli eventi;
 - "Sí, avisé al cliente" obbligatorio sui cambi che toccano visite fissate;
 - foto cancellate da R2 a fine servizio;
-- vasi autoirriganti e irrigazione fuori per ora.
+- vasi autoirriganti e irrigazione fuori per ora;
+- (blocco 2) l'Agenda nella barra in basso del telefono al posto di Clientes, che passa in "Más";
+- (blocco 2) una visita extra si fissa in un orario di visita, e conta i posti, oppure a un'ora
+  libera, che non tocca i posti e i clienti non possono scegliere.
 
 **PROPOSTO da me (da confermare guardando il piano):**
 
@@ -350,11 +353,17 @@ rilascio su staging) e lascia qualcosa di usabile.
    - "Hecha / No se pudo" semplice; il controllo "Sí, avisé al cliente" su ogni modifica che
      tocca visite.
    - Base dei lavori senza utente (§8).
-2. **La visita dal telefono.**
-   - Checklist, piante con "todas bien", foto una alla volta, materiali dall'inventario, note.
-   - Resoconto per email e con link firmato.
-   - Colonne e regole della cancellazione delle foto.
-   - Visita extra, reposición e cambio di stagione con preventivo.
+2. **La visita dal telefono**, in due rilasci (decisioni del founder del 24/11: l'Agenda nella
+   barra in basso al posto di Clientes; la visita extra in un orario di visita oppure a un'ora
+   libera, che non conta i posti e i clienti non possono scegliere).
+   - **2a (fatto, ADR-078):** "Empezar visita", checklist, piante con "todas bien", foto una alla
+     volta, materiali dall'inventario, nota per il cliente, avvisi per chi gestisce, "Terminar" e
+     "No se pudo"; resoconto per email (tabella d'uscita con nuovi tentativi) e con link firmato;
+     cancellazione delle foto 30 giorni dopo la fine del contratto; ruta del día con consegne e
+     visite; Agenda nella barra in basso.
+   - **2b:** visita extra (in un orario o a un'ora libera, con il costo calcolato dal server),
+     reposición delle piante morte (sin costo, cotización o no se repone) e cambio di stagione con
+     la cotización legata al contratto.
 3. **Cargos e pagamenti.**
    - Cargo del mese, proporzione del primo mese, crediti ed extra sul mese dopo.
    - Pagamenti e storni, "en retraso".

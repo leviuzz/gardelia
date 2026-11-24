@@ -1,19 +1,22 @@
 /**
- * Link pubblici di preventivi e ordini, lato fioreria (ADR-056): crearlo (o ritrovare quello
- * attivo), rinnovarlo e disattivarlo. Il token non si salva: si ricalcola firmando fioreria e ID
+ * Link pubblici di preventivi, ordini e resoconti delle visite di Floral Care, lato fioreria
+ * (ADR-056, ADR-078): crearlo (o ritrovare quello attivo), rinnovarlo e disattivarlo. Il token non si salva: si ricalcola firmando fioreria e ID
  * del link, quindi il fiorista può ricopiarlo quando vuole. Cosa vede il cliente: `public-links.ts`.
  */
 import { getDb, isUniqueViolation, withTenantContext, type TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
+  canShareCareVisit,
   canShareOrder,
   canShareQuote,
   effectiveQuoteStatus,
   formatOrderNumber,
   formatQuoteNumber,
+  formatSubscriptionNumber,
   isUuid,
   publicLinkExpiry,
   todayInTimeZone,
+  type CareVisitStatus,
   type OrderStatus,
   type PublicLinkKind,
   type QuoteStatus,
@@ -23,31 +26,54 @@ import { requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError } from '../errors';
 import { createPublicLinkToken } from '../public-links';
+import { requireEntitlement } from './billing';
 import { dateToParts } from './quote-internals';
 
-/** Il documento del link: un preventivo o un ordine della fioreria del contesto. */
+/** Il documento del link: un preventivo, un ordine o una visita della fioreria del contesto. */
 export type PublicLinkTarget =
-  { readonly kind: 'QUOTE'; readonly id: string } | { readonly kind: 'ORDER'; readonly id: string };
+  | { readonly kind: 'QUOTE'; readonly id: string }
+  | { readonly kind: 'ORDER'; readonly id: string }
+  | { readonly kind: 'CARE_VISIT'; readonly id: string };
 
 export interface PublicLinkDto {
   readonly kind: PublicLinkKind;
-  /** Da mettere nell'URL pubblico (`/cotizacion/…` o `/pedido/…`). */
+  /** Da mettere nell'URL pubblico (`/cotizacion/…`, `/pedido/…` o `/visita/…`). */
   readonly token: string;
   readonly createdAt: Date;
   readonly expiresAt: Date;
 }
 
-const ENTITY = { QUOTE: 'Quote', ORDER: 'Order' } as const;
+const ENTITY = { QUOTE: 'Quote', ORDER: 'Order', CARE_VISIT: 'CareVisit' } as const;
 
-function permissionFor(target: PublicLinkTarget) {
-  // Chi condivide il documento è chi lo gestisce: il link mostra dati del cliente.
-  return target.kind === 'QUOTE' ? ('quotes:write' as const) : ('orders:write' as const);
+/**
+ * Chi condivide il documento è chi lo gestisce: il link mostra dati del cliente. Il resoconto di
+ * una visita lo condivide anche chi l'ha fatta (dal posto, per WhatsApp); rinnovarlo o
+ * disattivarlo resta a chi gestisce i contratti.
+ */
+function permissionFor(target: PublicLinkTarget, use: 'share' | 'manage') {
+  if (target.kind === 'QUOTE') return 'quotes:write' as const;
+  if (target.kind === 'ORDER') return 'orders:write' as const;
+  return use === 'share' ? ('care:visit' as const) : ('subscriptions:write' as const);
 }
 
 function documentWhere(ctx: TenantContext, target: PublicLinkTarget) {
-  return target.kind === 'QUOTE'
-    ? { tenantId: ctx.tenantId, kind: 'QUOTE' as const, quoteId: target.id }
-    : { tenantId: ctx.tenantId, kind: 'ORDER' as const, orderId: target.id };
+  switch (target.kind) {
+    case 'QUOTE':
+      return { tenantId: ctx.tenantId, kind: 'QUOTE' as const, quoteId: target.id };
+    case 'ORDER':
+      return { tenantId: ctx.tenantId, kind: 'ORDER' as const, orderId: target.id };
+    case 'CARE_VISIT':
+      return { tenantId: ctx.tenantId, kind: 'CARE_VISIT' as const, careVisitId: target.id };
+  }
+}
+
+/** Il resoconto di una visita è di Floral Care: serve la funzione del piano. */
+async function requireTargetPlan(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  target: PublicLinkTarget,
+): Promise<void> {
+  if (target.kind === 'CARE_VISIT') await requireEntitlement(ctx, 'floralCare', tx);
 }
 
 /** Numero leggibile del documento, o null se non è della fioreria. Blocca la riga. */
@@ -68,6 +94,18 @@ async function lockDocument(
       todayInTimeZone(ctx.timezone),
     );
     return { label: formatQuoteNumber(quote.number), shareable: canShareQuote(status) };
+  }
+  if (target.kind === 'CARE_VISIT') {
+    const [visit] = await tx.$queryRaw<{ number: number; status: CareVisitStatus }[]>`
+      SELECT s."number", v."status" FROM "CareVisit" v
+      JOIN "CustomerSubscription" s ON s."tenantId" = v."tenantId" AND s."id" = v."subscriptionId"
+      WHERE v."id" = ${target.id}::uuid AND v."tenantId" = ${ctx.tenantId}::uuid
+      FOR UPDATE OF v`;
+    if (!visit) return null;
+    return {
+      label: formatSubscriptionNumber(visit.number),
+      shareable: canShareCareVisit(visit.status),
+    };
   }
   const [order] = await tx.$queryRaw<{ number: number; status: OrderStatus }[]>`
     SELECT "number", "status" FROM "Order"
@@ -95,13 +133,14 @@ export async function getPublicLink(
   secret: string,
   target: PublicLinkTarget,
 ): Promise<PublicLinkDto | null> {
-  requirePermission(ctx, permissionFor(target));
+  requirePermission(ctx, permissionFor(target, 'share'));
   if (!isUuid(target.id)) throw new NotFoundError(ENTITY[target.kind]);
-  const link = await withTenantContext(getDb(), ctx, (tx) =>
-    tx.publicLink.findFirst({
+  const link = await withTenantContext(getDb(), ctx, async (tx) => {
+    await requireTargetPlan(tx, ctx, target);
+    return tx.publicLink.findFirst({
       where: { ...documentWhere(ctx, target), revokedAt: null, expiresAt: { gt: new Date() } },
-    }),
-  );
+    });
+  });
   return link ? toDto(ctx, secret, link) : null;
 }
 
@@ -167,6 +206,26 @@ export async function ensureOrderPublicLinkTx(
 }
 
 /**
+ * Link del resoconto di una visita di Floral Care appena chiusa (ADR-078): lo stesso se è ancora
+ * attivo, altrimenti uno nuovo. Da chiamare nella transazione che chiude la visita, con la sua riga
+ * bloccata e il permesso già controllato (`care:visit`). Restituisce l'ID del link.
+ */
+export async function ensureCareVisitPublicLinkTx(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  visit: { readonly id: string; readonly number: number },
+): Promise<string> {
+  const link = await activeOrNewLinkTx(
+    tx,
+    ctx,
+    { kind: 'CARE_VISIT', id: visit.id },
+    { label: formatSubscriptionNumber(visit.number), shareable: true },
+    false,
+  );
+  return link.id;
+}
+
+/**
  * "Compartir enlace": restituisce il link attivo o ne crea uno. Con `renew` il vecchio smette di
  * funzionare e ne nasce uno nuovo (es. inviato alla persona sbagliata).
  */
@@ -176,10 +235,11 @@ export async function sharePublicLink(
   target: PublicLinkTarget,
   options: { readonly renew?: boolean } = {},
 ): Promise<PublicLinkDto> {
-  requirePermission(ctx, permissionFor(target));
+  requirePermission(ctx, permissionFor(target, options.renew === true ? 'manage' : 'share'));
   if (!isUuid(target.id)) throw new NotFoundError(ENTITY[target.kind]);
   try {
     const result = await withTenantContext(getDb(), ctx, async (tx) => {
+      await requireTargetPlan(tx, ctx, target);
       const document = await lockDocument(tx, ctx, target);
       if (!document) return null;
       return activeOrNewLinkTx(tx, ctx, target, document, options.renew === true);
@@ -201,9 +261,10 @@ export async function revokePublicLink(
   ctx: TenantContext,
   target: PublicLinkTarget,
 ): Promise<void> {
-  requirePermission(ctx, permissionFor(target));
+  requirePermission(ctx, permissionFor(target, 'manage'));
   if (!isUuid(target.id)) throw new NotFoundError(ENTITY[target.kind]);
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
+    await requireTargetPlan(tx, ctx, target);
     const document = await lockDocument(tx, ctx, target);
     if (!document) return false;
     const revoked = await tx.publicLink.updateMany({
