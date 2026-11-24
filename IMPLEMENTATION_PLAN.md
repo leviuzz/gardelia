@@ -1113,6 +1113,8 @@ Verifiche locali:
   ne aveva 186. Ora quei test cercano il cliente per nome (`e2e/support/customers.ts`). Gli 8 file
   rilanciati: 28/28 ✅; cotizaciones e link pubblici ripetuti 3 volte: 24/24 ✅. Floral Care 5/5 ✅,
   compreso il nuovo "cargos y pagos";
+- dopo l'unione con staging: lint ✅ · format ✅ · typecheck ✅ · test 1074/1074 ✅ (con reports ed
+  esportazione; nello ZIP anche cargos, righe e pagamenti) · build ✅ · E2E 107/107 ✅;
 - controllo a 320 px di pannello, Cobros, cargo, dialogo del pagamento, estado de cuenta, contratto,
   elenco e impostazioni: nessuno sbordo.
 
