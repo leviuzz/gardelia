@@ -106,6 +106,67 @@ export async function getPublicLink(
 }
 
 /**
+ * Il link attivo del documento, o uno nuovo (con audit) se non c'è, è scaduto o va rinnovato. Il
+ * documento è già bloccato da chi chiama: due richieste insieme si mettono in fila sulla sua riga.
+ */
+async function activeOrNewLinkTx(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  target: PublicLinkTarget,
+  document: { readonly label: string; readonly shareable: boolean },
+  renew: boolean,
+) {
+  const now = new Date();
+  const active = await tx.publicLink.findFirst({
+    where: { ...documentWhere(ctx, target), revokedAt: null },
+  });
+  if (active && active.expiresAt > now && !renew) return active;
+  if (!document.shareable) throw new ConflictError('public_link_unavailable');
+  if (active) {
+    await tx.publicLink.updateMany({
+      where: { id: active.id, tenantId: ctx.tenantId },
+      data: { revokedAt: now },
+    });
+  }
+  const created = await tx.publicLink.create({
+    data: {
+      ...documentWhere(ctx, target),
+      createdById: ctx.userId,
+      createdAt: now,
+      expiresAt: publicLinkExpiry(now),
+    },
+  });
+  await recordAudit(tx, ctx, {
+    action: AUDIT_ACTIONS.publicLinkCreated,
+    entityType: ENTITY[target.kind],
+    entityId: target.id,
+    metadata: { number: document.label, renewed: active !== null },
+  });
+  return created;
+}
+
+/**
+ * Link di tracciamento per la conferma al cliente di un ordine del banco (ADR-072): lo stesso di
+ * "Compartir enlace" se è ancora attivo, altrimenti uno nuovo. Da chiamare nella transazione che ha
+ * appena confermato l'ordine, con la sua riga bloccata (o appena creata) e il permesso già controllato
+ * da chi chiama (`orders:write`, lo stesso di "Compartir enlace"). Restituisce l'ID del link.
+ */
+export async function ensureOrderPublicLinkTx(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  order: { readonly id: string; readonly number: number },
+): Promise<string> {
+  const link = await activeOrNewLinkTx(
+    tx,
+    ctx,
+    { kind: 'ORDER', id: order.id },
+    { label: formatOrderNumber(order.number), shareable: true },
+    false,
+  );
+  return link.id;
+}
+
+/**
  * "Compartir enlace": restituisce il link attivo o ne crea uno. Con `renew` il vecchio smette di
  * funzionare e ne nasce uno nuovo (es. inviato alla persona sbagliata).
  */
@@ -121,33 +182,7 @@ export async function sharePublicLink(
     const result = await withTenantContext(getDb(), ctx, async (tx) => {
       const document = await lockDocument(tx, ctx, target);
       if (!document) return null;
-      const now = new Date();
-      const active = await tx.publicLink.findFirst({
-        where: { ...documentWhere(ctx, target), revokedAt: null },
-      });
-      if (active && active.expiresAt > now && !options.renew) return active;
-      if (!document.shareable) throw new ConflictError('public_link_unavailable');
-      if (active) {
-        await tx.publicLink.updateMany({
-          where: { id: active.id, tenantId: ctx.tenantId },
-          data: { revokedAt: now },
-        });
-      }
-      const created = await tx.publicLink.create({
-        data: {
-          ...documentWhere(ctx, target),
-          createdById: ctx.userId,
-          createdAt: now,
-          expiresAt: publicLinkExpiry(now),
-        },
-      });
-      await recordAudit(tx, ctx, {
-        action: AUDIT_ACTIONS.publicLinkCreated,
-        entityType: ENTITY[target.kind],
-        entityId: target.id,
-        metadata: { number: document.label, renewed: active !== null },
-      });
-      return created;
+      return activeOrNewLinkTx(tx, ctx, target, document, options.renew === true);
     });
     if (!result) return notFound(ctx, ENTITY[target.kind], target.id);
     return toDto(ctx, secret, result);

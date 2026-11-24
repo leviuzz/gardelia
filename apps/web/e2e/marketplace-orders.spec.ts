@@ -5,6 +5,7 @@ import { linkFrom, uniqueEmail, waitForEmail } from './support/mailbox';
  * Ordine dalla tienda en línea (marketplace, blocco C4, ADR-067): la proprietaria accende gli
  * ordini online; chi compra si registra dal modulo, sceglie un ramo, la consegna e la tarjeta e
  * lo invia; la fioreria lo accetta e chi compra vede come pagare e lo stato in "Mis pedidos".
+ * Un secondo ordine, da ritirare, chi compra lo annulla da "Mis pedidos" prima della risposta.
  * Alla fine la tienda torna com'era (ordini spenti, non pubblicata) per gli altri test.
  */
 
@@ -156,6 +157,43 @@ test.describe('pedido en línea (cliente y florería)', () => {
     const myOrder = shopper.getByRole('link', { name: /Florería Las Camelias/ });
     await expect(myOrder).toBeVisible();
     await expect(myOrder.getByText('Aceptado')).toBeVisible();
+
+    // Un secondo ordine da ritirare, che chi compra annulla prima che la fioreria risponda.
+    await shopper.goto('/f/las-camelias');
+    await shopper.getByRole('link', { name: /Ramo Clásico 12 rosas/ }).click();
+    await shopper.getByRole('link', { name: 'Pedir en línea' }).click();
+    await expect(shopper.getByRole('heading', { level: 1, name: 'Hacer un pedido' })).toBeVisible();
+    await shopper.getByRole('button', { name: 'Continuar' }).click();
+    await shopper.getByRole('radio', { name: 'Recoger en la tienda' }).check();
+    const pickupInput = shopper.getByLabel('Día para recoger');
+    const pickupMin = (await pickupInput.getAttribute('min')) ?? '';
+    const pickupDay = new Date(`${pickupMin}T12:00:00Z`);
+    for (let attempt = 0; attempt < 7; attempt += 1) {
+      await pickupInput.fill(pickupDay.toISOString().slice(0, 10));
+      if ((await shopper.getByText('La florería no abre ese día: elige otro.').count()) === 0)
+        break;
+      pickupDay.setUTCDate(pickupDay.getUTCDate() + 1);
+    }
+    await shopper.getByRole('button', { name: 'Continuar' }).click();
+    await shopper.getByRole('button', { name: 'Continuar' }).click();
+    await shopper.getByLabel('Tu teléfono').fill('449 555 0177');
+    await shopper.getByRole('button', { name: 'Enviar pedido' }).click();
+    await expect(shopper).toHaveURL(/\/pedido\/[\w-]+\?enviado=1$/);
+
+    await shopper.goto('/cuenta');
+    const waiting = shopper.getByRole('listitem').filter({ hasText: 'Esperando a la florería' });
+    await waiting.getByRole('button', { name: 'Cancelar pedido' }).click();
+    await shopper
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Sí, cancelar el pedido' })
+      .click();
+    await expect(shopper.getByText('Pedido cancelado.')).toBeVisible();
+    await expect(
+      shopper.getByRole('listitem').filter({ hasText: 'Esperando a la florería' }),
+    ).toHaveCount(0);
+    await expect(shopper.getByText('Cancelado', { exact: true })).toBeVisible();
+    await waitForEmail(email, { subject: 'Cancelaste tu pedido' });
+    await waitForEmail(OWNER_EMAIL, { subject: 'canceló el pedido' });
     await visitor.close();
 
     // Si rimette la tienda com'era per gli altri test.

@@ -101,6 +101,14 @@ export interface WindowOption {
   readonly label: string;
 }
 
+/** Conferma per email al cliente, solo creando o confermando un ordine del banco (ADR-072). */
+export interface CustomerNotice {
+  /** Email della scheda del cliente, o null se non ce l'ha. */
+  readonly email: string | null;
+  /** Fioreria demo: ai clienti non si invia niente (ADR-016). */
+  readonly demo: boolean;
+}
+
 function windowKey(window: { readonly start: string; readonly end: string }): string {
   return `${window.start}-${window.end}`;
 }
@@ -121,6 +129,7 @@ export function FulfillmentForm({
   windows,
   closedWeekdays,
   distance = null,
+  customerNotice = null,
 }: {
   readonly action: Action;
   readonly defaults: FulfillmentDefaults;
@@ -137,6 +146,8 @@ export function FulfillmentForm({
   readonly closedWeekdays: readonly number[];
   /** Con le fasce di distanza: pulsante che propone il costo (si può sempre cambiare). */
   readonly distance?: DistancePricing | null;
+  /** Casella "Enviar la confirmación" (non nella modifica di un ordine già confermato). */
+  readonly customerNotice?: CustomerNotice | null;
 }) {
   const t = useTranslations('orders');
   const [state, formAction] = useToastActionState(action);
@@ -475,10 +486,32 @@ export function FulfillmentForm({
         />
       </Field>
 
+      {customerNotice ? <CustomerNoticeField notice={customerNotice} /> : null}
+
       <div>
         <SubmitButton>{submitLabel}</SubmitButton>
       </div>
     </form>
+  );
+}
+
+/** La casella per la conferma al cliente, o perché non parte (niente email, fioreria demo). */
+function CustomerNoticeField({ notice }: { readonly notice: CustomerNotice }) {
+  const t = useTranslations('orders.form');
+  if (!notice.email) {
+    return <p className="text-sm text-muted-foreground">{t('notifyCustomerNoEmail')}</p>;
+  }
+  if (notice.demo) {
+    return <p className="text-sm text-muted-foreground">{t('notifyCustomerDemo')}</p>;
+  }
+  return (
+    <label className="flex items-start gap-2 text-sm">
+      <Checkbox name="notifyCustomer" defaultChecked className="mt-0.5" />
+      <span>
+        {t('notifyCustomer', { email: notice.email })}
+        <span className="block text-muted-foreground">{t('notifyCustomerHint')}</span>
+      </span>
+    </label>
   );
 }
 

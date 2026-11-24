@@ -334,7 +334,12 @@
         "PICKED_UP": "Picked up",
         "CANCELLED": "Cancelled",
         "DRAFT": "Draft"
-      }
+      },
+      "cancel": "Cancel order",
+      "cancelTitle": "Cancel order {number}?",
+      "cancelBody": "{shop} hasn’t accepted it yet: it’s cancelled and you don’t pay anything. We’ll let the shop know.",
+      "cancelConfirm": "Yes, cancel the order",
+      "cancelled": "Order cancelled."
     },
     "privacy": {
       "title": "Your data and privacy",
@@ -699,7 +704,8 @@
       "receiver_recorded": "{actor} recorded who received {number}",
       "placed_online": "{actor} placed order {number} from the online shop",
       "accepted": "{actor} accepted online order {number}",
-      "expired": "Online order {number} was cancelled because nobody accepted it in time"
+      "expired": "Online order {number} was cancelled because nobody accepted it in time",
+      "cancelled_by_buyer": "{actor} cancelled their order {number}"
     },
     "delivery_settings": {
       "updated": "{actor} changed the delivery settings"
@@ -1617,7 +1623,11 @@
       "distanceButton": "Calculate by distance",
       "distanceFee": "{km} km in a straight line: {fee}.",
       "distanceOutOfZone": "{km} km in a straight line: farther than your last rate ({max} km). Type the fee by hand.",
-      "distanceUnknown": "We don’t know where this address is: choose it with “Search address” to measure the distance."
+      "distanceUnknown": "We don’t know where this address is: choose it with “Search address” to measure the distance.",
+      "notifyCustomer": "Send the order confirmation to {email}",
+      "notifyCustomerHint": "They get the order summary and a link to follow it.",
+      "notifyCustomerNoEmail": "The customer has no email: you can share the order link on WhatsApp.",
+      "notifyCustomerDemo": "Demo shop: the confirmation isn’t sent by email."
     },
     "whatsapp": {
       "greeting": "Hi {name}, we confirm your order {number} from {shop}.",
@@ -1664,7 +1674,8 @@
       "stepCustomer": "Customer",
       "changeLines": "Change products",
       "linesCount": "{count, plural, one {# product} other {# products}}",
-      "continueHint": "Once the products are in, continue to the delivery."
+      "continueHint": "Once the products are in, continue to the delivery.",
+      "confirmedNotified": "Order confirmed. We sent the confirmation to the customer."
     },
     "customerCard": {
       "title": "Orders",
@@ -1799,8 +1810,10 @@
       "missing": "{quantity} short",
       "available": "Available: {quantity}",
       "movements": "See inventory movements",
-      "reservedHint": "Some of these products are reserved. If a reservation is for this order, release it when you mark the order ready: the order already deducts its materials.",
-      "reservations": "See reservations"
+      "reservedHint": "Some of these products are reserved for other orders or events. If you made a reservation for this order by hand, release it: the order already reserves and deducts its materials.",
+      "reservations": "See reservations",
+      "held": "Reserved for this order until {date}: not offered as available for other bouquets.",
+      "heldFrom": "They’ll be reserved for this order from {date}, {days} days before delivery; until then they stay available."
     }
   },
   "plans": {
@@ -2593,7 +2606,8 @@
       "entry_already_reversed": "This movement was already reversed.",
       "no_real_cost": "This product has no real cost yet: record a purchase.",
       "reservation_closed": "This reservation was already used or released. Reload the page.",
-      "bouquet_without_recipe": "This bouquet has no recipe: add its ingredients in the catalog."
+      "bouquet_without_recipe": "This bouquet has no recipe: add its ingredients in the catalog.",
+      "reservation_order": "This reservation belongs to an order: it’s used and released from the order."
     },
     "activity": {
       "tracking_started": "{units, plural, one {{actor} started tracking {name} in the inventory} other {{actor} started tracking # products in the inventory}}",
@@ -2613,7 +2627,8 @@
       "reservation_extended": "{actor} extended a reservation",
       "reservation_released": "{actor} released a reservation",
       "reservation_used": "{actor} used a reservation",
-      "bouquets_made": "{units, plural, one {{actor} recorded # bouquet made of {name}} other {{actor} recorded # bouquets made of {name}}}"
+      "bouquets_made": "{units, plural, one {{actor} recorded # bouquet made of {name}} other {{actor} recorded # bouquets made of {name}}}",
+      "reservation_updated": "{actor} updated an order’s reservation"
     },
     "purchases": {
       "title": "Purchases",
@@ -2768,7 +2783,10 @@
         "releasedNotice": "This reservation was released: the stock is available again.",
         "movementsLink": "See movements",
         "usedLine": "Used: {quantity}",
-        "forThisLine": "Available for it: {quantity}"
+        "forThisLine": "Available for it: {quantity}",
+        "orderNotice": "This is the reservation for order {number} for {name}: it follows the order’s changes, is used when the order is ready and is released if the order is cancelled. It’s managed from the order.",
+        "orderClosed": "This was the reservation for order {number} for {name}.",
+        "orderLink": "View order"
       },
       "actions": {
         "use": "Use",
@@ -2794,7 +2812,9 @@
         "empty": "Nothing reserved of this product.",
         "entry": "{quantity} for {label}",
         "new": "Reserve"
-      }
+      },
+      "holdsFrom": "Holds stock from {date}",
+      "forOrder": "Order for {name}"
     },
     "alerts": {
       "title": "Inventory",

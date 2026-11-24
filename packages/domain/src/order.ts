@@ -301,6 +301,28 @@ export function orderFulfillmentSchema(country: MarketCountry, currency: Currenc
 }
 export type OrderFulfillmentInput = z.infer<ReturnType<typeof orderFulfillmentSchema>>;
 
+/**
+ * Casella "Enviar la confirmación" quando un ordine del banco diventa confermato (ADR-072).
+ * Assente = no: senza il form (test, script) non parte nessuna email.
+ */
+export const orderConfirmationNoticeSchema = z.object({ notifyCustomer: checkboxField() });
+
+/**
+ * A chi va la conferma di un ordine del banco, o null se non va a nessuno: solo se chi conferma
+ * l'ha chiesta, la fioreria è LIVE (mai email ai clienti dalle demo, ADR-016), l'ordine non è della
+ * tienda en línea (lì scrive già il flusso di ADR-067) e il cliente ha un'email.
+ */
+export function counterConfirmationRecipient(input: {
+  readonly requested: boolean;
+  readonly tenantMode: 'DEMO' | 'LIVE';
+  readonly placedOnline: boolean;
+  readonly customerEmail: string | null;
+}): string | null {
+  if (!input.requested || input.tenantMode !== 'LIVE' || input.placedOnline) return null;
+  const email = input.customerEmail?.trim() ?? '';
+  return email === '' ? null : email;
+}
+
 /** Indirizzo di consegna nuovo, con le stesse regole della rubrica del cliente. */
 export function deliveryAddressSchema(country: MarketCountry) {
   return customerAddressSchema(country).pick({

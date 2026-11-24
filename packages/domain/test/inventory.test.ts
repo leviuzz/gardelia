@@ -19,9 +19,12 @@ import {
   isReversibleEntryKind,
   isStockOutKind,
   missingQuantity,
+  ORDER_HOLD_DAYS,
+  orderHoldWindow,
   reservationDaysLeft,
   reservationExpiryRange,
   reservationExtendSchema,
+  reservationHolds,
   reservationInputSchema,
   reservationListFiltersSchema,
   reservationState,
@@ -453,5 +456,51 @@ describe('ramos del catálogo (ADR-063)', () => {
     expect(bouquetsMadeSchema.parse({ count: '3' })).toEqual({ count: 3, confirmShortage: false });
     expect(bouquetsMadeSchema.safeParse({ count: '0' }).success).toBe(false);
     expect(bouquetsMadeSchema.safeParse({ count: '501' }).success).toBe(false);
+  });
+});
+
+describe('apartados degli ordini confermati (ADR-072)', () => {
+  const today = { year: 2026, month: 11, day: 24 };
+  const order = (overrides: Partial<Parameters<typeof orderHoldWindow>[0]> = {}) => ({
+    status: 'CONFIRMED' as const,
+    scheduledDate: { year: 2026, month: 11, day: 28 },
+    consumed: false,
+    ...overrides,
+  });
+
+  it('tiene la merce dai 7 giorni prima fino al giorno della consegna', () => {
+    expect(ORDER_HOLD_DAYS).toBe(7);
+    expect(orderHoldWindow(order(), today)).toEqual({
+      holdsFrom: { year: 2026, month: 11, day: 21 },
+      expiresOn: { year: 2026, month: 11, day: 28 },
+    });
+    expect(
+      orderHoldWindow(order({ status: 'IN_PREPARATION', scheduledDate: today }), today),
+    ).toEqual({ holdsFrom: { year: 2026, month: 11, day: 17 }, expiresOn: today });
+  });
+
+  it('nessun apartado senza impegno, dopo lo scarico o a giorno passato', () => {
+    for (const status of ['DRAFT', 'PENDING_ACCEPTANCE', 'READY', 'CANCELLED'] as const) {
+      expect(orderHoldWindow(order({ status }), today)).toBeNull();
+    }
+    expect(orderHoldWindow(order({ consumed: true }), today)).toBeNull();
+    expect(orderHoldWindow(order({ scheduledDate: null }), today)).toBeNull();
+    expect(
+      orderHoldWindow(order({ scheduledDate: { year: 2026, month: 11, day: 23 } }), today),
+    ).toBeNull();
+  });
+
+  it('un apartado con inizio futuro non toglie ancora merce', () => {
+    const expiresOn = { year: 2027, month: 2, day: 14 };
+    expect(reservationHolds({ year: 2027, month: 2, day: 7 }, expiresOn, today)).toBe(false);
+    expect(
+      reservationHolds({ year: 2027, month: 2, day: 7 }, expiresOn, {
+        year: 2027,
+        month: 2,
+        day: 7,
+      }),
+    ).toBe(true);
+    expect(reservationHolds(null, expiresOn, today)).toBe(true);
+    expect(reservationHolds(null, { year: 2026, month: 11, day: 23 }, today)).toBe(false);
   });
 });

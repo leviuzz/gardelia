@@ -334,7 +334,12 @@
         "PICKED_UP": "Ritirato",
         "CANCELLED": "Annullato",
         "DRAFT": "Bozza"
-      }
+      },
+      "cancel": "Annulla l’ordine",
+      "cancelTitle": "Annullare l’ordine {number}?",
+      "cancelBody": "{shop} non l’ha ancora accettato: si annulla e non devi pagare nulla. Avvisiamo noi la fioreria.",
+      "cancelConfirm": "Sì, annulla l’ordine",
+      "cancelled": "Ordine annullato."
     },
     "privacy": {
       "title": "I tuoi dati e la tua privacy",
@@ -699,7 +704,8 @@
       "receiver_recorded": "{actor} ha indicato chi ha ricevuto {number}",
       "placed_online": "{actor} ha fatto l’ordine {number} dal negozio online",
       "accepted": "{actor} ha accettato l’ordine online {number}",
-      "expired": "L’ordine online {number} si è annullato perché nessuno l’ha accettato in tempo"
+      "expired": "L’ordine online {number} si è annullato perché nessuno l’ha accettato in tempo",
+      "cancelled_by_buyer": "{actor} ha annullato il suo ordine {number}"
     },
     "delivery_settings": {
       "updated": "{actor} ha cambiato le impostazioni di consegna"
@@ -1617,7 +1623,11 @@
       "distanceButton": "Calcola per distanza",
       "distanceFee": "A {km} km in linea retta: {fee}.",
       "distanceOutOfZone": "A {km} km in linea retta: oltre la tua ultima tariffa ({max} km). Scrivi il costo a mano.",
-      "distanceUnknown": "Non sappiamo dove si trova questo indirizzo: sceglilo con «Cerca indirizzo» per misurare la distanza."
+      "distanceUnknown": "Non sappiamo dove si trova questo indirizzo: sceglilo con «Cerca indirizzo» per misurare la distanza.",
+      "notifyCustomer": "Invia la conferma dell’ordine a {email}",
+      "notifyCustomerHint": "Riceve il riepilogo dell’ordine e un link per seguirlo.",
+      "notifyCustomerNoEmail": "Il cliente non ha un’email: puoi condividergli il link dell’ordine su WhatsApp.",
+      "notifyCustomerDemo": "Fioreria di prova: la conferma non viene inviata per email."
     },
     "whatsapp": {
       "greeting": "Ciao {name}, ti confermiamo l’ordine {number} di {shop}.",
@@ -1664,7 +1674,8 @@
       "stepCustomer": "Cliente",
       "changeLines": "Cambia prodotti",
       "linesCount": "{count, plural, one {# prodotto} other {# prodotti}}",
-      "continueHint": "Quando hai i prodotti, continua con la consegna."
+      "continueHint": "Quando hai i prodotti, continua con la consegna.",
+      "confirmedNotified": "Ordine confermato. Abbiamo inviato la conferma al cliente."
     },
     "customerCard": {
       "title": "Ordini",
@@ -1799,8 +1810,10 @@
       "missing": "Mancano {quantity}",
       "available": "Disponibili: {quantity}",
       "movements": "Vedi i movimenti dell’inventario",
-      "reservedHint": "Una parte di questi prodotti è riservata. Se una riserva è per questo ordine, liberala quando lo segni come pronto: l’ordine scarica già i suoi materiali.",
-      "reservations": "Vedi le riserve"
+      "reservedHint": "Una parte di questi prodotti è riservata per altri ordini o eventi. Se hai fatto a mano una riserva per questo ordine, liberala: l’ordine riserva e scarica già i suoi materiali.",
+      "reservations": "Vedi le riserve",
+      "held": "Riservati per questo ordine fino al {date}: non risultano disponibili per altri mazzi.",
+      "heldFrom": "Verranno riservati per questo ordine dal {date}, {days} giorni prima della consegna; fino ad allora restano disponibili."
     }
   },
   "plans": {
@@ -2593,7 +2606,8 @@
       "entry_already_reversed": "Questo movimento è già stato annullato.",
       "no_real_cost": "Questo prodotto non ha ancora un costo reale: registra un acquisto.",
       "reservation_closed": "Questa riserva è già stata usata o liberata. Ricarica la pagina.",
-      "bouquet_without_recipe": "Questo mazzo non ha una ricetta: aggiungi gli ingredienti nel catalogo."
+      "bouquet_without_recipe": "Questo mazzo non ha una ricetta: aggiungi gli ingredienti nel catalogo.",
+      "reservation_order": "Questa riserva è di un ordine: si usa e si libera dall’ordine."
     },
     "activity": {
       "tracking_started": "{units, plural, one {{actor} ha iniziato a controllare {name} nell'inventario} other {{actor} ha iniziato a controllare # prodotti nell'inventario}}",
@@ -2613,7 +2627,8 @@
       "reservation_extended": "{actor} ha prorogato una riserva",
       "reservation_released": "{actor} ha liberato una riserva",
       "reservation_used": "{actor} ha usato una riserva",
-      "bouquets_made": "{units, plural, one {{actor} ha registrato # mazzo fatto di {name}} other {{actor} ha registrato # mazzi fatti di {name}}}"
+      "bouquets_made": "{units, plural, one {{actor} ha registrato # mazzo fatto di {name}} other {{actor} ha registrato # mazzi fatti di {name}}}",
+      "reservation_updated": "{actor} ha aggiornato la riserva di un ordine"
     },
     "purchases": {
       "title": "Acquisti",
@@ -2768,7 +2783,10 @@
         "releasedNotice": "Questa riserva è stata liberata: la merce è di nuovo disponibile.",
         "movementsLink": "Vedi i movimenti",
         "usedLine": "Usato: {quantity}",
-        "forThisLine": "C'è per questa riserva: {quantity}"
+        "forThisLine": "C'è per questa riserva: {quantity}",
+        "orderNotice": "È la riserva dell’ordine {number} di {name}: segue le modifiche dell’ordine, si usa quando l’ordine è pronto e si libera se viene annullato. Si gestisce dall’ordine.",
+        "orderClosed": "Era la riserva dell’ordine {number} di {name}.",
+        "orderLink": "Vedi l’ordine"
       },
       "actions": {
         "use": "Usa",
@@ -2794,7 +2812,9 @@
         "empty": "Niente riservato di questo prodotto.",
         "entry": "{quantity} per {label}",
         "new": "Riserva"
-      }
+      },
+      "holdsFrom": "Trattiene la merce dal {date}",
+      "forOrder": "Ordine di {name}"
     },
     "alerts": {
       "title": "Inventario",

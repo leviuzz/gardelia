@@ -9,13 +9,14 @@
  * o per i prodotti non controllati non succede nulla (lo decide l'inventario).
  */
 import { getDb, withTenantContext, type Prisma, type TransactionClient } from '@floral/db';
-import { isUuid, type SaleUnit } from '@floral/domain';
+import { compareDates, isUuid, toIsoDate, todayInTimeZone, type SaleUnit } from '@floral/domain';
 import { notFound } from '../audit';
 import { requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { NotFoundError } from '../errors';
 import { getEntitlements } from './billing';
 import { checkStockTx, type StockRequestLine } from './inventory';
+import { dateToParts } from './quote-internals';
 
 interface LineSnapshotView {
   readonly item?: { readonly type?: string };
@@ -119,11 +120,11 @@ export interface OrderInventoryLineDto {
   readonly saleUnit: SaleUnit;
   /** Quanto serve all'ordine. */
   readonly requested: number;
-  /** Disponibile ora (giacenza meno apartados). */
+  /** Disponibile per questo ordine: giacenza meno gli apartados degli altri (il suo è suo). */
   readonly available: number;
   /**
-   * Apartado (ADR-062) per qualcuno: se è per questo ordine va liberato, non usato, perché l'ordine
-   * scarica già i suoi materiali (altrimenti uscirebbero due volte).
+   * Apartado (ADR-062) per altri: altri ordini o apartados fatti a mano. Uno fatto a mano per questo
+   * ordine va liberato, non usato: l'ordine aparta e scarica già i suoi materiali (ADR-072).
    */
   readonly reserved: number;
   readonly missing: number;
@@ -143,6 +144,15 @@ export interface OrderInventoryDto {
   readonly lines: readonly OrderInventoryLineDto[];
   /** Quelli per cui la merce non basta. */
   readonly shortages: readonly OrderInventoryLineDto[];
+  /**
+   * L'apartado dell'ordine (ADR-072), date "AAAA-MM-GG": tiene i materiali da `holdsFrom` fino al
+   * giorno della consegna; `started` = li tiene già (prima non tolgono nulla dal disponibile).
+   */
+  readonly hold: {
+    readonly holdsFrom: string | null;
+    readonly expiresOn: string;
+    readonly started: boolean;
+  } | null;
 }
 
 /**
@@ -163,6 +173,8 @@ export async function getOrderInventory(
         inventoryEntry: {
           select: { id: true, createdAt: true, reversedBy: { select: { id: true } } },
         },
+        inventoryReservationId: true,
+        inventoryReservation: { select: { status: true, holdsFrom: true, expiresOn: true } },
       },
     });
     // Prima l'esistenza (404 anche per chi non ha il piano), poi il piano.
@@ -177,13 +189,18 @@ export async function getOrderInventory(
         },
         lines: [],
         shortages: [],
+        hold: null,
       };
     }
     // Solo gli ordini che devono ancora essere fatti: dopo, o annullati, non c'è niente da dire.
     if (!['PENDING_ACCEPTANCE', 'CONFIRMED', 'IN_PREPARATION'].includes(order.status)) return null;
     const request = await orderStockRequest(tx, ctx.tenantId, orderId);
     if (request.length === 0) return null;
-    const check = await checkStockTx(tx, ctx, request);
+    const reservation =
+      order.inventoryReservation?.status === 'ACTIVE' ? order.inventoryReservation : null;
+    const check = await checkStockTx(tx, ctx, request, {
+      excludeReservationId: reservation ? order.inventoryReservationId : null,
+    });
     const tracked = check.lines.filter((line) => line.tracked);
     if (tracked.length === 0) return null;
     const items = await tx.catalogItem.findMany({
@@ -208,7 +225,16 @@ export async function getOrderInventory(
       })
       .filter((line): line is OrderInventoryLineDto => line !== null)
       .sort((a, b) => a.name.localeCompare(b.name, 'es'));
-    return { consumed: null, lines, shortages: lines.filter((line) => line.missing > 0) };
+    const holdsFrom = reservation ? dateToParts(reservation.holdsFrom) : null;
+    const hold = reservation
+      ? {
+          holdsFrom: holdsFrom ? toIsoDate(holdsFrom) : null,
+          expiresOn: reservation.expiresOn.toISOString().slice(0, 10),
+          started:
+            holdsFrom === null || compareDates(holdsFrom, todayInTimeZone(ctx.timezone)) <= 0,
+        }
+      : null;
+    return { consumed: null, lines, shortages: lines.filter((line) => line.missing > 0), hold };
   });
   // Un ordine di un'altra fioreria risponde come uno inesistente (404, con l'evento di sicurezza).
   if (result === MISSING) return notFound(ctx, 'Order', orderId);
