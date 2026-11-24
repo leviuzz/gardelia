@@ -52,8 +52,11 @@ function Harness() {
 
 let container: HTMLDivElement;
 let root: Root;
+/** Testo del suggerimento che Google propone (e che la persona sceglie). */
+let suggestionText = 'Rancho Santa Monica';
 
 beforeEach(() => {
+  suggestionText = 'Rancho Santa Monica';
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.stubGlobal(
     'fetch',
@@ -61,7 +64,7 @@ beforeEach(() => {
       const body = url.endsWith('/autocomplete')
         ? {
             suggestions: [
-              { placeId: COLONIA.placeId, mainText: 'Rancho Santa Monica', secondaryText: null },
+              { placeId: COLONIA.placeId, mainText: suggestionText, secondaryText: null },
             ],
           }
         : { details: COLONIA };
@@ -142,5 +145,21 @@ describe('AddressFields: punto di Google', () => {
     await type(input('city'), 'Jesús María');
     expect(hidden()).toEqual({ placeId: '', latitude: '', longitude: '' });
     expect(status()).toBe('off-map');
+  });
+
+  it('Google senza via: si usa quella del suggerimento scelto, se ha il numero civico', async () => {
+    suggestionText = 'Magnolias 59';
+    act(() => root.render(<Harness />));
+    await chooseColonia();
+    expect(input('addressLine1').value).toBe('Magnolias 59');
+    expect(hidden().placeId).toBe(COLONIA.placeId);
+    expect(status()).toBe('on-map');
+  });
+
+  it('una colonia senza via: il campo resta vuoto e il cursore ci va', async () => {
+    act(() => root.render(<Harness />));
+    await chooseColonia();
+    expect(input('addressLine1').value).toBe('');
+    expect(document.activeElement).toBe(input('addressLine1'));
   });
 });

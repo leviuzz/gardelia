@@ -569,7 +569,8 @@ il proprio indirizzo. Le cause erano due:
 Ora:
 
 - il punto sta nello stato del componente;
-- la via che Google non ha dato si scrive senza perderlo;
+- la via che Google non ha dato si scrive senza perderlo, e se il suggerimento scelto ha un numero
+  civico ("Magnolias 59") la via si riempie da sola;
 - il form della sede dice se la tienda è sulla mappa;
 - "Mi tienda en línea" avvisa quando non lo è.
 

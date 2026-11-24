@@ -3,6 +3,7 @@
 import { MapPinCheck, MapPinOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
+import { streetFromSuggestion } from '@floral/domain';
 import {
   AddressSearch,
   usePlacesConfig,
@@ -129,8 +130,11 @@ export function AddressFields({
         }
       }
     };
-    set('addressLine1', found.addressLine1);
-    streetToComplete.current = found.addressLine1.trim() === '';
+    // Google a volte non dà la via: vale quella del suggerimento scelto, se ha un numero civico.
+    const googleStreet = found.addressLine1.trim();
+    const street = googleStreet || streetFromSuggestion(found.label, found);
+    set('addressLine1', street);
+    streetToComplete.current = googleStreet === '';
     set('addressLine2', found.addressLine2);
     set('neighborhood', found.neighborhood);
     set('postalCode', found.postalCode);
@@ -142,6 +146,11 @@ export function AddressFields({
       longitude: found.coordinates?.longitude.toString() ?? '',
     });
     setOnMap(found.coordinates !== null);
+    // Via ancora da scrivere (una colonia): il cursore ci va da solo.
+    if (street === '') {
+      const element = form.elements.namedItem(name('addressLine1'));
+      if (element instanceof HTMLInputElement) element.focus();
+    }
   }
 
   return (

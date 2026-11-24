@@ -47,6 +47,8 @@ export interface FoundAddress {
   readonly city: string | null;
   readonly region: string | null;
   readonly coordinates: { readonly latitude: number; readonly longitude: number } | null;
+  /** Testo del suggerimento scelto: la via, se Google non la dà (`streetFromSuggestion`). */
+  readonly label?: string;
 }
 
 function newSessionToken(): string {
@@ -150,7 +152,7 @@ export function AddressSearch({
     setQuery(suggestion.mainText);
     setSuggestions([]);
     setMessage(t('found'));
-    onFound(result.details);
+    onFound({ ...result.details, label: suggestion.mainText });
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
