@@ -5,6 +5,7 @@ import {
   ConflictError,
   ForbiddenError,
   MemoryStorage,
+  NotFoundError,
   ValidationError,
   createCatalogItem,
   getOnlineStoreSettings,
@@ -15,6 +16,7 @@ import {
   getPublicStoreItemPhoto,
   removeStoreImage,
   setCatalogItemArchived,
+  setCatalogItemOnline,
   setObjectStorage,
   setOnlineStorePublished,
   setStoreImage,
@@ -313,5 +315,65 @@ describe('pagina pubblica', () => {
     expect((await getOnlineStoreSettings(shop.owner)).isPublished).toBe(false);
     const { logoId } = await getOnlineStoreSettings(shop.owner);
     expect(await getPublicStoreImage(shop.tenant.slug, 'LOGO', logoId)).toBeNull();
+  });
+});
+
+/** L'interruttore "En tu tienda en línea" nell'elenco del catalogo (24/11/2026). */
+describe("visibilità nella tienda dall'elenco del catalogo", () => {
+  it('si accende e si spegne; conta per la pubblicazione; registro di audit', async () => {
+    const shopB = await createTestShop('Florería Interruptor');
+    const tulip = await createCatalogItem(
+      shopB.owner,
+      itemInput({ name: 'Tulipán', isOnline: false }),
+    );
+    expect((await getOnlineStoreSettings(shopB.owner)).onlineItems).toBe(0);
+    await setCatalogItemOnline(shopB.manager, tulip.id, true);
+    expect((await getOnlineStoreSettings(shopB.owner)).onlineItems).toBe(1);
+    // Ripetere lo stesso valore non scrive nulla.
+    await setCatalogItemOnline(shopB.owner, tulip.id, true);
+    await setCatalogItemOnline(shopB.owner, tulip.id, false);
+    expect((await getOnlineStoreSettings(shopB.owner)).onlineItems).toBe(0);
+    const audits = await withTenantContext(db, shopB.owner, (tx) =>
+      tx.auditLog.count({
+        where: {
+          tenantId: shopB.owner.tenantId,
+          entityId: tulip.id,
+          action: 'catalog_item.updated',
+        },
+      }),
+    );
+    expect(audits).toBe(2);
+  });
+
+  it('solo i tipi che la tienda vende e solo i prodotti attivi; lo staff no; altra fioreria 404', async () => {
+    const shopB = await createTestShop('Florería Interruptor Reglas');
+    const paper = await createCatalogItem(
+      shopB.owner,
+      itemInput({
+        name: 'Papel kraft',
+        type: 'PACKAGING',
+        saleUnit: 'PIECE',
+        canonicalFlowerId: null,
+        variety: null,
+        colors: [],
+      }),
+    );
+    await expect(setCatalogItemOnline(shopB.owner, paper.id, true)).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    const daisy = await createCatalogItem(shopB.owner, itemInput({ name: 'Margarita' }));
+    await setCatalogItemArchived(shopB.owner, daisy.id, true);
+    await expect(setCatalogItemOnline(shopB.owner, daisy.id, true)).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    await expect(setCatalogItemOnline(shopB.staff, daisy.id, true)).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    await expect(setCatalogItemOnline(shopB.owner, daisy.id, 'on')).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    await expect(setCatalogItemOnline(other.owner, daisy.id, true)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
   });
 });
