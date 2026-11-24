@@ -308,6 +308,11 @@ model Tenant {
   carePhotos           CarePhoto[]
   careFollowUps        CareFollowUp[]
   careEmails           CareEmail[]
+  careCharges          CareCharge[]
+  careChargeLines      CareChargeLine[]
+  careVisitBilling     CareVisitBilling[]
+  carePayments         CarePayment[]
+  careAllocations      CarePaymentAllocation[]
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -888,6 +893,8 @@ model Customer {
   occasions     CustomerOccasion[]
   promoEmails   OccasionPromoEmail[]
   subscriptions CustomerSubscription[]
+  careCharges   CareCharge[]
+  carePayments  CarePayment[]
 
   @@unique([tenantId, id])
   @@index([tenantId, status])
@@ -1975,6 +1982,49 @@ enum CareEmailStatus {
   FAILED
 }
 
+/// "No se pudo" (ADR-079): il cliente non ha aperto (si paga) o la fioreria non è potuta andare
+/// (credito).
+enum CareNotDoneCause {
+  CUSTOMER
+  SHOP
+}
+
+/// Le righe di un cargo (ADR-079).
+enum CareChargeLineKind {
+  VISITS
+  VISIT_DEBIT
+  VISIT_CREDIT
+  EXTRA_VISIT
+  ONE_TIME_SERVICE
+  CREDIT_CARRIED_IN
+  CREDIT_CARRIED_OUT
+  ADJUSTMENT
+}
+
+/// Perché una visita cobrada torna come credito.
+enum CareCreditReason {
+  TO_RESCHEDULE
+  SHOP
+  SCHEDULE_CHANGE
+  CONTRACT_END
+  NOT_DONE
+}
+
+/// Movimento di soldi del cliente: pagamento, storno ("Anular") o devolución.
+enum CarePaymentKind {
+  PAYMENT
+  REVERSAL
+  REFUND
+}
+
+/// Un incasso segnato dallo staff alla visita resta "Por registrar" (PENDING) finché chi gestisce
+/// lo conferma o lo rifiuta (blocco 3b).
+enum CarePaymentStatus {
+  RECORDED
+  PENDING
+  REJECTED
+}
+
 /// Offerta di Floral Care della fioreria: una riga per fioreria, creata la prima volta che la
 /// salva. I prezzi sono in unità minime nella valuta della fioreria.
 model CareSettings {
@@ -1989,6 +2039,8 @@ model CareSettings {
   minNoticeHours     Int                   @default(24)
   missedVisitPolicy  CareMissedVisitPolicy @default(COUNTS)
   deadPlantPolicy    CareDeadPlantPolicy   @default(QUOTE)
+  /// "Días para pagar" un cargo (ADR-079), da 1 a 90.
+  paymentDueDays     Int                   @default(10)
   /// Termini della fioreria, scritti da lei (Gardelia non inventa condizioni).
   termsText          String?
   createdAt          DateTime              @default(now())
@@ -2031,6 +2083,7 @@ model CareService {
   tenant        Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   subscriptions CustomerSubscriptionService[]
   visitResults  CareVisitServiceResult[]
+  chargeLines   CareChargeLine[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, presetKey])
@@ -2096,6 +2149,11 @@ model CustomerSubscription {
   notes                String?
   /// Fin dove sono state create le visite (calendario della fioreria).
   generatedUntil       DateTime?                  @db.Date
+  /// L'ultimo mese con il cargo già emesso (primo giorno del mese); NULL = mai (ADR-079).
+  chargedThrough       DateTime?                  @db.Date
+  /// Regole della fioreria copiate alla conferma (ADR-079): valgono per tutto il contratto.
+  missedVisitPolicy    CareMissedVisitPolicy?
+  deadPlantPolicy      CareDeadPlantPolicy?
   acquisitionSource    AcquisitionSource          @default(MERCHANT_DIRECT)
   /// Chi ha confermato il contratto: da lui viene il permesso dei lavori automatici.
   confirmedById        String?                    @db.Uuid
@@ -2116,8 +2174,11 @@ model CustomerSubscription {
   followUps       CareFollowUp[]
   emails          CareEmail[]
   quotes          Quote[]
+  charges         CareCharge[]
 
   @@unique([tenantId, id])
+  /// Per le FK dei cargos: il cargo è dello stesso cliente del contratto.
+  @@unique([tenantId, id, customerId])
   @@unique([tenantId, number])
   @@index([tenantId, status])
   @@index([tenantId, customerId])
@@ -2216,6 +2277,8 @@ model CareVisit {
   finishedAt           DateTime?
   /// Perché si è cancellata: serve ai cargos (una visita tolta dalla fioreria è un credito).
   cancelReason         CareVisitCancelReason?
+  /// "No se pudo": il cliente non ha aperto o la fioreria non è potuta andare (ADR-079).
+  notDoneCause         CareNotDoneCause?
   /// Hecha o no realizada: la nota che il cliente legge nel resoconto. Cancellata: il perché.
   outcomeNote          String?
   closedById           String?                @db.Uuid
@@ -2248,6 +2311,10 @@ model CareVisit {
   resolvedFollowUps CareFollowUp[]           @relation("CareFollowUpExtraVisit")
   emails            CareEmail[]
   publicLinks       PublicLink[]
+  /// Quanto è cobrado adesso per questa visita (ADR-079).
+  billing           CareVisitBilling?
+  chargeLines       CareChargeLine[]
+  payments          CarePayment[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, inventoryEntryId])
@@ -2269,14 +2336,18 @@ model CareVisitServiceResult {
   pricing      CareServicePricing
   unit         CareServiceUnit
   outcome      CareServiceOutcome
+  /// Prezzo del servizio nel contratto quando la squadra l'ha segnato: un servizio "una sola vez"
+  /// si cobra a questo prezzo (ADR-079).
+  priceMinor   Int?
   note         String?
   recordedById String?            @db.Uuid
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
-  tenant  Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  visit   CareVisit   @relation(fields: [tenantId, visitId], references: [tenantId, id], onDelete: Restrict)
-  service CareService @relation(fields: [tenantId, serviceId], references: [tenantId, id], onDelete: Restrict)
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  visit       CareVisit        @relation(fields: [tenantId, visitId], references: [tenantId, id], onDelete: Restrict)
+  service     CareService      @relation(fields: [tenantId, serviceId], references: [tenantId, id], onDelete: Restrict)
+  chargeLines CareChargeLine[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, visitId, serviceId])
@@ -2420,4 +2491,178 @@ model CareEmail {
 
   @@unique([tenantId, id])
   @@unique([tenantId, visitId, kind])
+}
+
+/// Cargo del mese di un contratto di Floral Care (ADR-079): nasce dalle visite del mese (più le
+/// variazioni dei mesi prima) e poi non cambia. Uno per contratto e mese. Totale, pagato e saldo
+/// si controllano nel database; lo stato (vencido, pagado…) si calcola in lettura.
+model CareCharge {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  tenantId       String   @db.Uuid
+  /// Numero progressivo per fioreria (CAR-0001).
+  number         Int
+  subscriptionId String   @db.Uuid
+  customerId     String   @db.Uuid
+  /// Il mese del cargo (primo giorno), nel calendario della fioreria.
+  period         DateTime @db.Date
+  issuedOn       DateTime @db.Date
+  dueDate        DateTime @db.Date
+  currency       String
+  /// Prezzo di una visita e versione del prezzo del contratto quando il cargo è nato.
+  unitPriceMinor Int
+  priceVersion   Int
+  /// Visite del mese nella riga VISITS.
+  visitCount     Int      @default(0)
+  totalMinor     Int
+  paidMinor      Int      @default(0)
+  /// Totale − pagato: positivo, il cliente deve; negativo, la fioreria deve restituire.
+  balanceMinor   Int
+  /// Cargo dopo la fine del contratto: può restare a favore del cliente (si chiude con una
+  /// devolución). Gli altri non vanno mai sotto zero.
+  final          Boolean  @default(false)
+  /// Chi l'ha emesso (conferma, cambio di prezzo); NULL = il lavoro giornaliero.
+  issuedById     String?  @db.Uuid
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant       Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription CustomerSubscription    @relation(fields: [tenantId, subscriptionId, customerId], references: [tenantId, id, customerId], onDelete: Restrict)
+  customer     Customer                @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
+  lines        CareChargeLine[]        @relation("CareChargeLines")
+  /// Le righe che portano il saldo a favore di questo cargo nel cargo dopo.
+  carriedInto  CareChargeLine[]        @relation("CareChargeLineSource")
+  allocations  CarePaymentAllocation[]
+
+  @@unique([tenantId, id])
+  /// Per le FK delle righe (stesso contratto) e delle distribuzioni (stesso cliente).
+  @@unique([tenantId, id, subscriptionId])
+  @@unique([tenantId, id, customerId])
+  @@unique([tenantId, number])
+  @@unique([tenantId, subscriptionId, period])
+  @@index([tenantId, customerId])
+  @@index([tenantId, period])
+  @@index([tenantId, dueDate])
+}
+
+/// Una riga di un cargo (ADR-079), con il segno: i crediti sono negativi. Le righe di una visita
+/// puntano alla visita (e ne copiano il giorno), quella di un servizio "una sola vez" al risultato
+/// della visita e al servizio, con il nome copiato.
+model CareChargeLine {
+  id              String             @id @default(uuid(7)) @db.Uuid
+  tenantId        String             @db.Uuid
+  chargeId        String             @db.Uuid
+  subscriptionId  String             @db.Uuid
+  /// Ordine delle righe nel cargo.
+  position        Int
+  kind            CareChargeLineKind
+  visitId         String?            @db.Uuid
+  visitDate       DateTime?          @db.Date
+  serviceResultId String?            @db.Uuid
+  serviceId       String?            @db.Uuid
+  /// CREDIT_CARRIED_IN: il cargo da cui viene il saldo a favore.
+  sourceChargeId  String?            @db.Uuid
+  creditReason    CareCreditReason?
+  /// Nome copiato del servizio "una sola vez".
+  label           String?
+  quantity        Int                @default(1)
+  unitPriceMinor  Int
+  amountMinor     Int
+  createdAt       DateTime           @default(now())
+
+  tenant        Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  charge        CareCharge              @relation("CareChargeLines", fields: [tenantId, chargeId, subscriptionId], references: [tenantId, id, subscriptionId], onDelete: Restrict)
+  visit         CareVisit?              @relation(fields: [tenantId, visitId], references: [tenantId, id], onDelete: Restrict)
+  serviceResult CareVisitServiceResult? @relation(fields: [tenantId, serviceResultId], references: [tenantId, id], onDelete: Restrict)
+  service       CareService?            @relation(fields: [tenantId, serviceId], references: [tenantId, id], onDelete: Restrict)
+  sourceCharge  CareCharge?             @relation("CareChargeLineSource", fields: [tenantId, sourceChargeId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, chargeId, position])
+  @@index([tenantId, visitId])
+  @@index([tenantId, sourceChargeId])
+}
+
+/// Quanto è cobrado adesso per una visita (ADR-079). La scrive solo l'emissione dei cargos, in una
+/// tabella sua: un cargo non aggiorna mai la visita (il cambio di una fascia aggiorna le visite
+/// senza bloccare il contratto). `stableAt`: la visita è chiusa e già sistemata, non si guarda più.
+model CareVisitBilling {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  tenantId    String    @db.Uuid
+  visitId     String    @db.Uuid
+  /// NULL = niente di cobrado per questa visita.
+  billedMinor Int?
+  stableAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tenant Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  visit  CareVisit @relation(fields: [tenantId, visitId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, visitId])
+}
+
+/// Un movimento di soldi di un cliente per Floral Care (ADR-079), registrato a mano: pagamento,
+/// storno di un movimento sbagliato ("Anular", di segno opposto, uno per movimento) o devolución di
+/// un saldo a favore. Si distribuisce sui cargos (`CarePaymentAllocation`). Niente si cancella.
+model CarePayment {
+  id                String            @id @default(uuid(7)) @db.Uuid
+  tenantId          String            @db.Uuid
+  customerId        String            @db.Uuid
+  kind              CarePaymentKind
+  status            CarePaymentStatus @default(RECORDED)
+  /// Con il segno: pagamenti positivi, devoluciones negative, storni di segno opposto.
+  amountMinor       Int
+  currency          String
+  method            PaymentMethod
+  /// Giorno del pagamento, nel calendario della fioreria.
+  paidOn            DateTime          @db.Date
+  reference         String?
+  note              String?
+  /// "Cobré en la visita" (blocco 3b): la visita in cui lo staff ha incassato.
+  visitId           String?           @db.Uuid
+  /// Chiave del modulo: lo stesso invio arrivato due volte non raddoppia il pagamento.
+  submitKey         String?           @db.Uuid
+  /// Solo per gli storni: il movimento annullato.
+  reversedPaymentId String?           @db.Uuid
+  createdById       String?           @db.Uuid
+  reviewedById      String?           @db.Uuid
+  reviewedAt        DateTime?
+  rejectReason      String?
+  createdAt         DateTime          @default(now())
+
+  tenant          Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer        Customer                @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
+  visit           CareVisit?              @relation(fields: [tenantId, visitId], references: [tenantId, id], onDelete: Restrict)
+  reversedPayment CarePayment?            @relation("CarePaymentReversal", fields: [tenantId, reversedPaymentId], references: [tenantId, id], onDelete: Restrict)
+  reversal        CarePayment?            @relation("CarePaymentReversal")
+  allocations     CarePaymentAllocation[]
+
+  @@unique([tenantId, id])
+  /// Per le FK delle distribuzioni: stesso cliente del cargo.
+  @@unique([tenantId, id, customerId])
+  @@unique([tenantId, reversedPaymentId])
+  @@unique([tenantId, submitKey])
+  @@index([tenantId, customerId])
+  @@index([tenantId, status])
+}
+
+/// Quanto di un movimento va su un cargo (ADR-079). Il cliente è nelle due chiavi: un pagamento non
+/// tocca mai i cargos di un altro cliente.
+model CarePaymentAllocation {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  tenantId    String   @db.Uuid
+  paymentId   String   @db.Uuid
+  chargeId    String   @db.Uuid
+  customerId  String   @db.Uuid
+  amountMinor Int
+  createdAt   DateTime @default(now())
+
+  tenant  Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payment CarePayment @relation(fields: [tenantId, paymentId, customerId], references: [tenantId, id, customerId], onDelete: Restrict)
+  charge  CareCharge  @relation(fields: [tenantId, chargeId, customerId], references: [tenantId, id, customerId], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, paymentId, chargeId])
+  @@index([tenantId, chargeId])
 }

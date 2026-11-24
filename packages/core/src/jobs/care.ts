@@ -1,5 +1,7 @@
 /**
- * Lavori giornalieri di Floral Care (ADR-075, ADR-078), dentro la manutenzione:
+ * Lavori giornalieri di Floral Care (ADR-075, ADR-078, ADR-079), dentro la manutenzione:
+ *  - per primi i cargos del mese (ADR-079), con il loro tetto di tempo: un mese per transazione,
+ *    fino a 3 mesi per un contratto rimasto indietro; quelli che restano li prende il giro dopo;
  *  - allunga le visite dei contratti attivi che coprono meno di 45 giorni, fino a 60 da oggi;
  *  - chiude i contratti il cui ultimo giorno è passato;
  *  - cancella dallo storage le foto dei contratti finiti da 30 giorni (e quelle tolte i cui file
@@ -14,6 +16,7 @@
 import { getDb, withTenantContext } from '@floral/db';
 import {
   AUDIT_ACTIONS,
+  CARE_CHARGE_LIMITS,
   CARE_EMAIL_RETRY,
   CARE_LIMITS,
   CARE_PHOTO_PURGE,
@@ -26,12 +29,17 @@ import {
 } from '@floral/domain';
 import { logger } from '../logger';
 import { jobWriteScope, loadJobScope, recordJobAudit } from '../scope';
+import { issueNextCareChargeTx } from '../services/care-charges';
 import { closeEndedCareContractTx, extendCareVisitsTx } from '../services/care-generation';
 import { deleteCarePhotoFiles } from '../services/care-photos';
 import { deliverCareEmail, type CareMailDeps } from '../services/care-visit-work';
 import { dateToParts } from '../services/quote-internals';
 
 export interface CareMaintenanceResult {
+  /** Cargos nati in questo giro (ADR-079). */
+  readonly chargesIssued: number;
+  /** Contratti con mesi ancora da emettere (tempo finito o più di 3 mesi indietro). */
+  readonly chargesPending: number;
   /** Contratti con visite nuove. */
   readonly contractsExtended: number;
   readonly visitsScheduled: number;
@@ -53,6 +61,8 @@ interface Candidate {
 export async function runCareMaintenance(
   mail: CareMailDeps | null = null,
 ): Promise<CareMaintenanceResult> {
+  // Prima i cargos: il giorno 1 sono il lavoro più importante e hanno il loro tetto di tempo.
+  const charges = await issueCareCharges();
   const toExtend = await getDb().$queryRaw<Candidate[]>`
     SELECT tenant_id, subscription_id
     FROM app_care_contracts_to_extend(${CARE_LIMITS.refillDays}::int, ${CARE_LIMITS.jobBatch}::int)`;
@@ -109,6 +119,8 @@ export async function runCareMaintenance(
   const photos = await purgeCarePhotos();
   const emails = await retryCareEmails(mail);
   return {
+    chargesIssued: charges.issued,
+    chargesPending: charges.pending,
     contractsExtended,
     visitsScheduled,
     visitsToReschedule,
@@ -116,6 +128,61 @@ export async function runCareMaintenance(
     photosDeleted: photos.deleted,
     emailsSent: emails.sent,
   };
+}
+
+export interface CareChargeRunResult {
+  readonly issued: number;
+  /** Contratti con mesi ancora da emettere: li riprende il giro dopo. */
+  readonly pending: number;
+}
+
+/**
+ * I cargos dei contratti con un mese da emettere (calendario di ogni fioreria): un mese per
+ * transazione, fino a 3 per contratto in un giro, nel contesto della fioreria e senza utente. Si
+ * ferma al tetto di tempo; un errore su un contratto non ferma gli altri. Idempotente: un mese si
+ * emette una volta.
+ */
+export async function issueCareCharges(
+  options: { readonly deadline?: number } = {},
+): Promise<CareChargeRunResult> {
+  const deadline = options.deadline ?? Date.now() + CARE_CHARGE_LIMITS.budgetMs;
+  const due = await getDb().$queryRaw<Candidate[]>`
+    SELECT tenant_id, subscription_id
+    FROM app_care_contracts_to_charge(${CARE_CHARGE_LIMITS.jobBatch}::int)`;
+  let issued = 0;
+  let pending = 0;
+  for (const [index, candidate] of due.entries()) {
+    if (Date.now() > deadline) {
+      pending += due.length - index;
+      break;
+    }
+    const tenantId = candidate.tenant_id;
+    const subscriptionId = candidate.subscription_id;
+    try {
+      let more = false;
+      for (let month = 0; month < CARE_CHARGE_LIMITS.catchUpMonths; month += 1) {
+        const outcome = await withTenantContext(getDb(), { tenantId, userId: null }, async (tx) => {
+          const job = await loadJobScope(tx, tenantId, 'care.charges.issue');
+          if (!job) return null;
+          return issueNextCareChargeTx(tx, jobWriteScope(job), subscriptionId);
+        });
+        more = outcome?.kind === 'issued' && outcome.more;
+        if (outcome?.kind === 'issued' && outcome.chargeId) issued += 1;
+        if (!more || Date.now() > deadline) break;
+      }
+      if (more) pending += 1;
+    } catch (error) {
+      pending += 1;
+      logger.error({ err: error, subscriptionId }, 'cargo di Floral Care non emesso');
+    }
+  }
+  if (pending > 0 || due.length === CARE_CHARGE_LIMITS.jobBatch) {
+    logger.warn(
+      { pending, batch: due.length },
+      'cargos di Floral Care ancora da emettere: li riprende il giro dopo',
+    );
+  }
+  return { issued, pending };
 }
 
 /** Il giorno da cui contano i 30 giorni: l'ultimo del contratto (o quello in cui si è chiuso). */

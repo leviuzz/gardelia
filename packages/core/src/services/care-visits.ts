@@ -26,6 +26,7 @@ import {
   type CalendarDate,
   type CareExtraFee,
   type CareExtraKind,
+  type CareNotDoneCause,
   type CareVisitCancelReason,
   type CareVisitStatus,
 } from '@floral/domain';
@@ -83,6 +84,8 @@ export interface CareAgendaVisitDto {
   readonly plantCount: number;
   readonly outcomeNote: string | null;
   readonly cancelReason: CareVisitCancelReason | null;
+  /** "No se pudo": il cliente non ha aperto o la fioreria non è potuta andare (ADR-079). */
+  readonly notDoneCause: CareNotDoneCause | null;
   /** Chi guarda può iniziarla adesso ("Empezar visita": programmata, di oggi o di un giorno passato). */
   readonly canStart: boolean;
   /** È in corso e chi guarda può continuarla. */

@@ -117,6 +117,7 @@ async function loadContract(tx: TransactionClient, ctx: TenantContext, subscript
       currency: true,
       visitFeeMinor: true,
       travelSurchargeMinor: true,
+      deadPlantPolicy: true,
     },
   });
 }
@@ -215,7 +216,8 @@ export async function getCareExtraVisitOptions(
       quotes: hasPermission(ctx, 'quotes:read')
         ? await contractQuotes(tx, ctx, contract.id, OPEN_QUOTE_STATUSES)
         : [],
-      deadPlantPolicy: settings.deadPlantPolicy,
+      // La regola copiata nel contratto alla conferma (ADR-079); prima c'era solo quella di oggi.
+      deadPlantPolicy: contract.deadPlantPolicy ?? settings.deadPlantPolicy,
       firstDate: toIsoDate(window.first),
       lastDate: toIsoDate(window.last),
     };

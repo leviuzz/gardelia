@@ -193,7 +193,9 @@ describe('moduli dei passi', () => {
       confirmShortage: false,
       archiveSeasonal: false,
     });
+    // Senza la causa vale "El cliente no abrió" (ADR-079).
     expect(careNotDoneSchema.parse({ note: ' Cerrado ' })).toEqual({
+      cause: 'CUSTOMER',
       note: 'Cerrado',
       sendReport: false,
     });

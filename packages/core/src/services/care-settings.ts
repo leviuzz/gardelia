@@ -11,6 +11,7 @@
 import { getDb, isUniqueViolation, withTenantContext, type TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
+  CARE_CHARGE_LIMITS,
   CARE_LIMITS,
   CARE_SERVICE_PRESETS,
   careNoticeSchema,
@@ -104,6 +105,8 @@ export interface CareSettingsDto {
   readonly minNoticeHours: number;
   readonly missedVisitPolicy: MissedVisitPolicy;
   readonly deadPlantPolicy: DeadPlantPolicy;
+  /** "Días para pagar" un cargo (ADR-079). */
+  readonly paymentDueDays: number;
   readonly termsText: string | null;
   /** Raggio di consegna della tienda principale: il punto di partenza proposto per il raggio. */
   readonly deliveryRadiusKm: number | null;
@@ -172,6 +175,7 @@ async function readSettings(tx: TransactionClient, ctx: TenantContext): Promise<
     minNoticeHours: settings?.minNoticeHours ?? 24,
     missedVisitPolicy: settings?.missedVisitPolicy ?? 'COUNTS',
     deadPlantPolicy: settings?.deadPlantPolicy ?? 'QUOTE',
+    paymentDueDays: settings?.paymentDueDays ?? CARE_CHARGE_LIMITS.dueDaysDefault,
     termsText: settings?.termsText ?? null,
     deliveryRadiusKm: place.deliveryRadiusKm,
     hasOrigin: place.origin !== null,
@@ -245,6 +249,7 @@ export async function updateCareSettings(ctx: TenantContext, rawInput: unknown):
       minNoticeHours: input.minNoticeHours,
       missedVisitPolicy: input.missedVisitPolicy,
       deadPlantPolicy: input.deadPlantPolicy,
+      paymentDueDays: input.paymentDueDays,
       termsText: input.termsText,
     };
     if (!before) {

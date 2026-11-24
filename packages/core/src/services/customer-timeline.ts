@@ -10,11 +10,13 @@
 import { getDb, withTenantContext } from '@floral/db';
 import {
   CUSTOMER_TIMELINE_ORDER_STATUSES,
+  formatCareChargeNumber,
   formatSubscriptionNumber,
   customerTimelineLimit,
   formatOrderNumber,
   formatQuoteNumber,
   isUuid,
+  type CarePaymentKind,
   type FulfillmentMode,
   type OccasionType,
   type OrderPaymentKind,
@@ -85,6 +87,26 @@ export type CustomerTimelineEvent =
       readonly subscriptionId: string;
       readonly number: string;
       readonly status: 'DONE' | 'NOT_DONE';
+    })
+  | (TimelineBase & {
+      /** Cargo del mese di un contratto (ADR-079): solo per chi gestisce i soldi. */
+      readonly kind: 'care_charge';
+      readonly chargeId: string;
+      readonly subscriptionId: string;
+      readonly number: string;
+      /** Il mese ("2026-11-01"). */
+      readonly period: string;
+      readonly totalMinor: number;
+      readonly currency: string;
+    })
+  | (TimelineBase & {
+      /** Pagamento, storno o devolución di Floral Care (ADR-079): solo per chi gestisce i soldi. */
+      readonly kind: 'care_payment';
+      readonly paymentId: string;
+      readonly paymentKind: CarePaymentKind;
+      readonly method: PaymentMethod;
+      readonly amountMinor: number;
+      readonly currency: string;
     });
 
 export interface CustomerTimelineResult {
@@ -109,6 +131,7 @@ export async function getCustomerTimeline(
   const canQuotes = hasPermission(ctx, 'quotes:read');
   const canOrders = hasPermission(ctx, 'orders:read');
   const canCare = hasPermission(ctx, 'subscriptions:read');
+  const canCareMoney = hasPermission(ctx, 'subscriptions:payments');
   const tenantId = ctx.tenantId;
 
   const events = await withTenantContext(getDb(), ctx, async (tx) => {
@@ -305,6 +328,63 @@ export async function getCustomerTimeline(
           subscriptionId: visit.subscriptionId,
           number: formatSubscriptionNumber(visit.subscription.number),
           status: visit.status === 'DONE' ? 'DONE' : 'NOT_DONE',
+        });
+      }
+    }
+
+    // Cargos e movimenti di Floral Care (ADR-079): per chi gestisce i soldi, anche senza il piano
+    // (i contratti firmati si cobran lo stesso). Solo i movimenti registrati.
+    if (canCareMoney) {
+      const charges = await tx.careCharge.findMany({
+        where: { tenantId, customerId },
+        select: {
+          id: true,
+          number: true,
+          period: true,
+          totalMinor: true,
+          currency: true,
+          createdAt: true,
+          subscriptionId: true,
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit,
+      });
+      for (const charge of charges) {
+        collected.push({
+          kind: 'care_charge',
+          id: `care-charge:${charge.id}`,
+          at: charge.createdAt,
+          chargeId: charge.id,
+          subscriptionId: charge.subscriptionId,
+          number: formatCareChargeNumber(charge.number),
+          period: charge.period.toISOString().slice(0, 10),
+          totalMinor: charge.totalMinor,
+          currency: charge.currency,
+        });
+      }
+      const movements = await tx.carePayment.findMany({
+        where: { tenantId, customerId, status: 'RECORDED' },
+        select: {
+          id: true,
+          kind: true,
+          method: true,
+          amountMinor: true,
+          currency: true,
+          createdAt: true,
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit,
+      });
+      for (const movement of movements) {
+        collected.push({
+          kind: 'care_payment',
+          id: `care-payment:${movement.id}`,
+          at: movement.createdAt,
+          paymentId: movement.id,
+          paymentKind: movement.kind,
+          method: movement.method,
+          amountMinor: movement.amountMinor,
+          currency: movement.currency,
         });
       }
     }

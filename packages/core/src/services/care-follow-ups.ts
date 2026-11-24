@@ -72,14 +72,20 @@ export const followUpSelect = {
   extraVisit: { select: { id: true, scheduledDate: true } },
   plant: { select: { name: true } },
   visit: { select: { scheduledDate: true } },
-  subscription: { select: { number: true, customer: { select: { displayName: true } } } },
+  subscription: {
+    select: { number: true, deadPlantPolicy: true, customer: { select: { displayName: true } } },
+  },
 } satisfies Prisma.CareFollowUpSelect;
 
 type FollowUpRow = Prisma.CareFollowUpGetPayload<{ select: typeof followUpSelect }>;
 
-/** `policy`: la regola della fioreria sulle piante morte (per il suggerimento), se c'è l'offerta. */
-export function toFollowUpDto(row: FollowUpRow, policy: DeadPlantPolicy | null): CareFollowUpDto {
+/**
+ * `policy`: la regola della fioreria sulle piante morte, se c'è l'offerta. Vale quella copiata nel
+ * contratto alla conferma (ADR-079), se c'è: è quella firmata con il cliente.
+ */
+export function toFollowUpDto(row: FollowUpRow, fallback: DeadPlantPolicy | null): CareFollowUpDto {
   const open = row.status === 'OPEN';
+  const policy = row.subscription.deadPlantPolicy ?? fallback;
   return {
     id: row.id,
     kind: row.kind,

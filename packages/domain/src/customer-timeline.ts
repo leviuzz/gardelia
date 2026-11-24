@@ -14,6 +14,9 @@ export const CUSTOMER_TIMELINE_KINDS = [
   'promo_sent',
   'promo_redeemed',
   'care_visit',
+  /** Floral Care, blocco 3 (ADR-079): cargo emesso e movimenti di soldi (solo per chi li gestisce). */
+  'care_charge',
+  'care_payment',
 ] as const;
 export type CustomerTimelineKind = (typeof CUSTOMER_TIMELINE_KINDS)[number];
 
