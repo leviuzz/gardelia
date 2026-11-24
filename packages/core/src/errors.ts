@@ -138,7 +138,8 @@ export type ConflictReason =
   | 'care_visit_closed'
   | 'care_visit_future'
   /** "Eliminar florería" con ordini ancora da consegnare o ritirare (ADR-074). */
-  | 'tenant_deletion_open_orders';
+  | 'tenant_deletion_open_orders'
+  | 'session_is_current';
 
 export class ConflictError extends AppError {
   readonly code = 'conflict' as const;

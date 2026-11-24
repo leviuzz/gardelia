@@ -30,7 +30,8 @@
     "platform:grant-ai-credits": "pnpm --filter @floral/core run grant-ai-credits",
     "platform:bootstrap-admin": "pnpm --filter @floral/core run bootstrap-admin",
     "platform:test-data": "pnpm --filter @floral/core run fill-test-shop",
-    "platform:confirm-user": "pnpm --filter @floral/core run confirm-user"
+    "platform:confirm-user": "pnpm --filter @floral/core run confirm-user",
+    "platform:reset-two-factor": "pnpm --filter @floral/core run reset-two-factor"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

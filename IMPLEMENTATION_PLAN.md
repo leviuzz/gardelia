@@ -558,6 +558,24 @@ simulate nel browser, e con la chiave finta (Google risponde errore → messaggi
 Prossimi: il marketplace (C1–C5); costo di consegna per distanza (servono regole per gli indirizzi
 scritti a mano); scarico dell'inventario dagli ordini (`consumeStockTx`).
 
+**Sicurezza del conto (24/11, ADR-077):** voce 1 della V1 e primi due punti di sicurezza della
+roadmap. La pagina "Seguridad de la cuenta" (`/seguridad`) è per tutti e ci si arriva dal menu della
+persona e da "Mi cuenta".
+
+- **Verifica in due passaggi:** si attiva con password, QR o chiave, primo codice e 10 codici di
+  respaldo da copiare o scaricare. All'accesso con password segue il passo del codice (o un codice
+  di respaldo), con "Confiar en este dispositivo" per 30 giorni. Si possono rigenerare i codici o
+  disattivarla.
+- **Obbligo per i titolari:** chi ha una password ed è titolare di una fioreria vera (scelta del
+  founder: dopo 14 giorni) vede un avviso nel pannello con la data. Passata la scadenza la fioreria
+  non si apre finché non la attiva. Chi entra solo con Google e le fiorerie demo non hanno obblighi.
+- **Dispositivi collegati:** elenco con browser e sistema, chiusura di uno o di tutti gli altri.
+- **Registro:** eventi `security.*` con il solo ID.
+- **Pulizia nel pannello:** tolta la card "Próximamente en Gardelia", che diceva ancora "in sviluppo"
+  ordini, pagamenti e consegne, ormai fatti.
+
+Nuova dipendenza `uqr` (QR, senza dipendenze, versione fissa). Verifiche: VERIFICHE_SICUREZZA
+
 **Dati della fioreria (24/11, ADR-076):** chiesti dal founder dalla voce 2 della V1. Prima di
 cominciare: allineamento a staging, con Floral Care (ADR-075) dell'altra chat.
 

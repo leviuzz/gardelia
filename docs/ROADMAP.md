@@ -60,12 +60,12 @@ Le basi ci sono già. Il login è gestito da Better Auth 1.7.27 senza vulnerabil
 - Google con PKCE e collegamento solo fra email verificate.
 
 Ci sono anche isolamento fra fiorerie nel database, intestazioni di sicurezza e controllo delle
-dipendenze nella CI. Mancano quattro cose:
+dipendenze nella CI. Le quattro cose da aggiungere (le prime due fatte):
 
-1. **Verifica in due passaggi** (codice da un'app di autenticazione, con codici di recupero),
-   obbligatoria per i proprietari e consigliata ai manager (P-09).
-2. **Sessioni attive:** elenco dei dispositivi collegati e "Cerrar sesión en todos los
-   dispositivos", anche per chi perde il telefono del negozio.
+1. ✅ **Verifica in due passaggi** (codice da un'app di autenticazione, con codici di recupero):
+   fatta il 24/11/2026, obbligatoria per i titolari con password dopo 14 giorni (ADR-077).
+2. ✅ **Sessioni attive:** elenco dei dispositivi collegati, chiusura di uno o di tutti gli altri,
+   fatte il 24/11/2026 (ADR-077).
 3. **Aggiornamenti e avvisi:**
    - aggiornamenti automatici delle dipendenze, provati dalla CI prima dell'unione;
    - scansione dei segreti nel repository;

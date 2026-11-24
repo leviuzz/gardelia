@@ -163,12 +163,20 @@ export const AUDIT_ACTIONS = {
   /** La fioreria è stata cancellata davvero (evento di piattaforma, senza dati personali). */
   platformTenantPurged: 'platform.tenant_purged',
   securityTenantAccessDenied: 'security.tenant_access_denied',
+  /** Sicurezza del conto (ADR-077): verifica in due passaggi e sessioni. Solo ID, mai codici. */
+  securityTwoFactorEnabled: 'security.two_factor_enabled',
+  securityTwoFactorDisabled: 'security.two_factor_disabled',
+  securityBackupCodesRegenerated: 'security.backup_codes_regenerated',
+  securitySessionRevoked: 'security.session_revoked',
+  securityOtherSessionsRevoked: 'security.other_sessions_revoked',
   securityCrossTenantAccess: 'security.cross_tenant_access_attempt',
   platformAdminBootstrapped: 'platform.admin_bootstrapped',
   /** Email confermata a mano dall'amministratore (senza email di conferma, ADR-050). */
   platformUserEmailConfirmed: 'platform.user_email_confirmed',
   /** Chi compra ha eliminato il suo conto cliente (diritto di cancellazione, ADR-068). */
   platformBuyerAccountDeleted: 'platform.buyer_account_deleted',
+  /** Verifica in due passaggi tolta dall'amministratore a chi ha perso telefono e codici (ADR-077). */
+  platformTwoFactorReset: 'platform.two_factor_reset',
   /** Persona aggiunta al team dall'amministratore della piattaforma (ADR-050). */
   memberAddedByPlatform: 'member.added_by_platform',
   /** Floral Care (ADR-075): offerta, servizi, fasce, contratti, piante e visite. */

@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronRight, Download, ShoppingBag, Store } from 'lucide-react';
+import { ArrowRight, ChevronRight, Download, ShieldCheck, ShoppingBag, Store } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -23,7 +23,13 @@ import { serverEnv } from '@/lib/env';
 import { money, phoneForInput } from '@/lib/format';
 import { ORDER_STATUS_BADGE } from '@/lib/order-ui';
 import { calendarDate } from '@/lib/quote-ui';
-import { accountRoutes, buyerRoutes, legalRoutes, publicStoreRoutes } from '@/lib/routes';
+import {
+  accountRoutes,
+  buyerRoutes,
+  legalRoutes,
+  publicStoreRoutes,
+  securityRoutes,
+} from '@/lib/routes';
 import {
   addBuyerAddressAction,
   archiveBuyerAddressAction,
@@ -222,6 +228,21 @@ export default async function AccountPage() {
           </CardContent>
         </Card>
       ) : null}
+
+      {/* Verifica in due passaggi e dispositivi collegati (ADR-077). */}
+      <Link
+        href={securityRoutes.home({ volver: accountRoutes.home })}
+        className="flex items-center gap-4 rounded-2xl border bg-card p-4 transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
+          <ShieldCheck className="size-5" aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">{t('security.title')}</span>
+          <span className="block text-sm text-muted-foreground">{t('security.linkBody')}</span>
+        </span>
+        <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
+      </Link>
 
       <Card id="privacidad" className="scroll-mt-20">
         <CardHeader>

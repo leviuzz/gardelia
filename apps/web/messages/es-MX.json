@@ -125,7 +125,8 @@
       "delivery_fee_tier_exists": "Ya tienes una tarifa para esa distancia.",
       "delivery_fee_tier_limit": "Llegaste al máximo de tarifas.",
       "order_inventory_shortage": "No alcanza el inventario para este pedido. Abre o recarga la ficha del pedido para ver qué falta y confirmar que está listo.",
-      "tenant_deletion_open_orders": "Hay pedidos en curso: entrégalos o cancélalos antes de eliminar la florería."
+      "tenant_deletion_open_orders": "Hay pedidos en curso: entrégalos o cancélalos antes de eliminar la florería.",
+      "session_is_current": "Para cerrar la sesión de este dispositivo usa «Cerrar sesión» en el menú."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -266,7 +267,12 @@
       "INVALID_EMAIL": "Escribe un correo electrónico válido.",
       "FAILED_TO_CREATE_SESSION": "No pudimos iniciar tu sesión. Si el problema continúa, contacta a soporte.",
       "TOO_MANY_REQUESTS": "Demasiados intentos. Espera un minuto e inténtalo de nuevo.",
-      "generic": "No pudimos completar la operación. Inténtalo de nuevo."
+      "generic": "No pudimos completar la operación. Inténtalo de nuevo.",
+      "INVALID_PASSWORD": "Contraseña incorrecta.",
+      "INVALID_CODE": "Código incorrecto. Revisa que la hora de tu teléfono sea correcta e inténtalo de nuevo.",
+      "INVALID_BACKUP_CODE": "Ese código de respaldo no es válido o ya se usó.",
+      "INVALID_TWO_FACTOR_COOKIE": "Pasó demasiado tiempo. Vuelve a iniciar sesión.",
+      "ACCOUNT_TEMPORARILY_LOCKED": "Demasiados códigos incorrectos. Espera 15 minutos e inténtalo de nuevo."
     },
     "verifyInvalidTitle": "No pudimos confirmar tu correo",
     "verifiedTitle": "Correo confirmado",
@@ -617,8 +623,6 @@
     "catalogOk": "Tu catálogo está completo.",
     "recentActivity": "Actividad reciente",
     "noActivity": "Aún no hay actividad registrada.",
-    "comingSoonTitle": "Próximamente en Gardelia",
-    "comingSoonBody": "Pedidos, pagos y entregas con calendario están en desarrollo. No aparecerán aquí hasta que funcionen de verdad.",
     "upcomingOccasions": "Fechas especiales próximas",
     "noUpcomingOccasions": "No hay fechas especiales en los próximos 30 días.",
     "contactNow": "Contactar",
@@ -3545,5 +3549,99 @@
     "hours": "Horario",
     "closed": "Cerrado",
     "days": "{first} a {last}"
+  },
+  "security": {
+    "title": "Seguridad de la cuenta",
+    "subtitle": "Protege el acceso de {email}.",
+    "back": "Volver",
+    "menu": "Seguridad de la cuenta",
+    "linkBody": "Verificación en dos pasos y dispositivos conectados.",
+    "banner": "Activa la verificación en dos pasos antes del {date}: es obligatoria para quien es propietario de una florería.",
+    "bannerAction": "Activarla",
+    "blocked": "Para entrar a tu florería, activa la verificación en dos pasos. Es obligatoria para quien es propietario: protege los datos de tu negocio y de tus clientes.",
+    "signOut": "Cerrar sesión",
+    "twoFactor": {
+      "title": "Verificación en dos pasos",
+      "subtitle": "Además de tu contraseña, al entrar te pedimos un código de una app en tu teléfono (Google Authenticator, Microsoft Authenticator u otra).",
+      "googleOnly": "Entras con Google: la verificación en dos pasos la configuras en tu cuenta de Google.",
+      "statusOn": "Activa",
+      "onBody": "Al entrar con tu contraseña te pedimos el código de tu app.",
+      "statusOff": "Desactivada",
+      "offBody": "Hoy basta tu contraseña para entrar.",
+      "requiredBy": "Es obligatoria para propietarios: actívala antes del {date}. Después, tu florería no se abre hasta que la actives.",
+      "enable": "Activar verificación en dos pasos",
+      "newCodes": "Nuevos códigos de respaldo",
+      "disable": "Desactivar",
+      "disabled": "Verificación en dos pasos desactivada",
+      "cancel": "Cancelar",
+      "codeFormat": "Escribe los 6 números de tu app.",
+      "passwordLabel": "Tu contraseña",
+      "passwordHint": {
+        "enable": "Para confirmar que eres tú.",
+        "codes": "Los códigos anteriores dejarán de funcionar.",
+        "disable": "Al entrar solo te pediremos la contraseña."
+      },
+      "passwordSubmit": {
+        "enable": "Continuar",
+        "codes": "Generar códigos",
+        "disable": "Desactivar"
+      },
+      "disableRequiredWarning": "Como propietario es obligatoria: si la desactivas, tu florería no se abre hasta que la actives de nuevo.",
+      "scan": {
+        "step1": "1. Abre tu app de autenticación y escanea el código.",
+        "step2": "2. Escribe el código de 6 números que te muestra.",
+        "qrLabel": "Código QR para tu app de autenticación",
+        "manual": "¿No puedes escanear? Escribe esta clave en la app:",
+        "codeLabel": "Código de la app",
+        "codeHint": "Cambia cada 30 segundos.",
+        "submit": "Activar"
+      },
+      "codes": {
+        "enabled": "Listo: la verificación en dos pasos está activa.",
+        "regenerated": "Nuevos códigos de respaldo: los anteriores ya no sirven.",
+        "body": "Guarda estos códigos en un lugar seguro. Si pierdes tu teléfono, cada uno te deja entrar una vez.",
+        "copy": "Copiar",
+        "download": "Descargar",
+        "copied": "Códigos copiados",
+        "copyFailed": "No se pudieron copiar: anótalos o descárgalos.",
+        "fileTitle": "Gardelia: códigos de respaldo (cada uno sirve una vez)",
+        "fileName": "gardelia-codigos-de-respaldo.txt",
+        "savedCheck": "Guardé mis códigos en un lugar seguro",
+        "done": "Listo"
+      }
+    },
+    "challenge": {
+      "title": "Verificación en dos pasos",
+      "subtitle": "Escribe el código de tu app de autenticación.",
+      "codeLabel": "Código de 6 números",
+      "codeHint": "Lo ves en tu app (Google Authenticator u otra).",
+      "codeFormat": "Escribe los 6 números de tu app.",
+      "backupLabel": "Código de respaldo",
+      "backupHint": "Cada código sirve una sola vez.",
+      "backupRequired": "Escribe uno de tus códigos de respaldo.",
+      "trustDevice": "Confiar en este dispositivo por {days} días",
+      "submit": "Entrar",
+      "useBackup": "No tengo mi teléfono: usar un código de respaldo",
+      "useApp": "Usar el código de la app",
+      "expired": "Pasó demasiado tiempo. Vuelve a escribir tu correo y tu contraseña.",
+      "backToLogin": "Volver a iniciar sesión"
+    },
+    "sessions": {
+      "title": "Dispositivos conectados",
+      "subtitle": "Dónde está abierta tu cuenta. Si no reconoces uno, o perdiste el teléfono de la tienda, cierra su sesión.",
+      "device": "{browser} en {os}",
+      "unknownDevice": "Dispositivo desconocido",
+      "current": "Este dispositivo",
+      "since": "Desde el {date}",
+      "lastSeen": "último uso el {date}",
+      "revoke": "Cerrar sesión",
+      "revokeNamed": "Cerrar la sesión de {device}",
+      "revokeOthers": "Cerrar sesión en los demás dispositivos",
+      "revokeOthersTitle": "¿Cerrar sesión en los demás dispositivos?",
+      "revokeOthersBody": "Solo este dispositivo sigue conectado. En los demás habrá que volver a entrar.",
+      "revoked": "Sesión cerrada",
+      "othersRevoked": "Sesiones cerradas en los demás dispositivos",
+      "note": "En el otro dispositivo la sesión termina en unos minutos."
+    }
   }
 }

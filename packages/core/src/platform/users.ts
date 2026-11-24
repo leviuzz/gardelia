@@ -131,3 +131,73 @@ export async function confirmUserAccess(input: ConfirmUserInput): Promise<Confir
   );
   return result;
 }
+
+export interface ResetTwoFactorInput {
+  readonly operatorEmail: string;
+  /** Email della persona che ha perso il telefono e i codici di respaldo. */
+  readonly email: string;
+}
+
+export interface ResetTwoFactorResult {
+  readonly userId: string;
+  /** false = la persona non aveva la verifica attiva (nessun cambio). */
+  readonly wasEnabled: boolean;
+  /** Sessioni chiuse: la persona deve entrare di nuovo ovunque. */
+  readonly sessionsClosed: number;
+}
+
+/**
+ * Supporto (ADR-077): chi ha perso telefono e codici di respaldo non entra più con la password.
+ * L'amministratore, dopo aver verificato chi è (fuori dall'app), toglie la verifica e chiude tutte le
+ * sue sessioni; al prossimo accesso basta la password e, se è titolare oltre la scadenza, la
+ * riattiva subito. Solo CLI di piattaforma (ADR-021), con audit.
+ */
+export async function resetUserTwoFactor(
+  input: ResetTwoFactorInput,
+): Promise<ResetTwoFactorResult> {
+  const operatorEmail = normalizeEmail(input.operatorEmail);
+  const email = normalizeEmail(input.email);
+  if (!email) throw new ValidationError({ email: 'required' });
+
+  const result = await withSystemContext(
+    getDb(),
+    { reason: 'platform: verifica in due passaggi tolta (supporto)' },
+    async (tx) => {
+      const operator = await tx.user.findFirst({
+        where: { email: operatorEmail, platformRole: 'SUPER_ADMIN', status: 'ACTIVE' },
+        select: { id: true },
+      });
+      if (!operator) throw new ForbiddenError('platform_admin_required');
+      const user = await tx.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } },
+        select: { id: true, twoFactorEnabled: true },
+      });
+      if (!user) throw new NotFoundError('User');
+      await tx.twoFactor.deleteMany({ where: { userId: user.id } });
+      if (user.twoFactorEnabled) {
+        await tx.user.update({ where: { id: user.id }, data: { twoFactorEnabled: false } });
+      }
+      const sessions = await tx.session.deleteMany({ where: { userId: user.id } });
+      await tx.auditLog.create({
+        data: {
+          tenantId: null,
+          actorUserId: operator.id,
+          action: AUDIT_ACTIONS.platformTwoFactorReset,
+          entityType: 'User',
+          entityId: user.id,
+          metadata: {
+            via: 'platform-cli',
+            wasEnabled: user.twoFactorEnabled,
+            sessions: sessions.count,
+          },
+        },
+      });
+      return { userId: user.id, wasEnabled: user.twoFactorEnabled, sessionsClosed: sessions.count };
+    },
+  );
+  logger.warn(
+    { userId: result.userId, wasEnabled: result.wasEnabled, sessions: result.sessionsClosed },
+    'verifica in due passaggi tolta dalla piattaforma',
+  );
+  return result;
+}

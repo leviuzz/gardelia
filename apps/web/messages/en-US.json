@@ -125,7 +125,8 @@
       "delivery_fee_tier_exists": "You already have a rate for that distance.",
       "delivery_fee_tier_limit": "You reached the maximum number of rates.",
       "order_inventory_shortage": "There isn’t enough stock for this order. Open or reload the order page to see what’s missing and confirm it’s ready.",
-      "tenant_deletion_open_orders": "There are orders in progress: deliver or cancel them before deleting the shop."
+      "tenant_deletion_open_orders": "There are orders in progress: deliver or cancel them before deleting the shop.",
+      "session_is_current": "To sign out of this device, use “Sign out” in the menu."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -266,7 +267,12 @@
       "INVALID_EMAIL": "Enter a valid email address.",
       "FAILED_TO_CREATE_SESSION": "We couldn’t sign you in. If the problem continues, contact support.",
       "TOO_MANY_REQUESTS": "Too many attempts. Wait a minute and try again.",
-      "generic": "We couldn’t complete the operation. Try again."
+      "generic": "We couldn’t complete the operation. Try again.",
+      "INVALID_PASSWORD": "Wrong password.",
+      "INVALID_CODE": "Wrong code. Check that your phone’s time is correct and try again.",
+      "INVALID_BACKUP_CODE": "That backup code is not valid or was already used.",
+      "INVALID_TWO_FACTOR_COOKIE": "Too much time has passed. Sign in again.",
+      "ACCOUNT_TEMPORARILY_LOCKED": "Too many wrong codes. Wait 15 minutes and try again."
     },
     "verifyInvalidTitle": "We couldn’t confirm your email",
     "verifiedTitle": "Email confirmed",
@@ -617,8 +623,6 @@
     "catalogOk": "Your catalog is complete.",
     "recentActivity": "Recent activity",
     "noActivity": "No activity recorded yet.",
-    "comingSoonTitle": "Coming soon to Gardelia",
-    "comingSoonBody": "Orders, payments, and deliveries with a calendar are in development. They won’t appear here until they actually work.",
     "upcomingOccasions": "Upcoming occasions",
     "noUpcomingOccasions": "No occasions in the next 30 days.",
     "contactNow": "Contact",
@@ -3545,5 +3549,99 @@
     "hours": "Hours",
     "closed": "Closed",
     "days": "{first} to {last}"
+  },
+  "security": {
+    "title": "Account security",
+    "subtitle": "Protect access to {email}.",
+    "back": "Back",
+    "menu": "Account security",
+    "linkBody": "Two-step verification and connected devices.",
+    "banner": "Turn on two-step verification by {date}: it is required for flower shop owners.",
+    "bannerAction": "Turn it on",
+    "blocked": "To open your flower shop, turn on two-step verification. It is required for owners: it protects your business data and your customers.",
+    "signOut": "Sign out",
+    "twoFactor": {
+      "title": "Two-step verification",
+      "subtitle": "Besides your password, when you sign in we ask for a code from an app on your phone (Google Authenticator, Microsoft Authenticator or another).",
+      "googleOnly": "You sign in with Google: two-step verification is set up in your Google account.",
+      "statusOn": "On",
+      "onBody": "When you sign in with your password we ask for your app’s code.",
+      "statusOff": "Off",
+      "offBody": "Today your password is enough to sign in.",
+      "requiredBy": "It is required for owners: turn it on by {date}. After that, your flower shop won’t open until you do.",
+      "enable": "Turn on two-step verification",
+      "newCodes": "New backup codes",
+      "disable": "Turn off",
+      "disabled": "Two-step verification turned off",
+      "cancel": "Cancel",
+      "codeFormat": "Enter the 6 digits from your app.",
+      "passwordLabel": "Your password",
+      "passwordHint": {
+        "enable": "To confirm it’s you.",
+        "codes": "Your previous codes will stop working.",
+        "disable": "When you sign in we’ll only ask for your password."
+      },
+      "passwordSubmit": {
+        "enable": "Continue",
+        "codes": "Generate codes",
+        "disable": "Turn off"
+      },
+      "disableRequiredWarning": "It is required for owners: if you turn it off, your flower shop won’t open until you turn it on again.",
+      "scan": {
+        "step1": "1. Open your authenticator app and scan the code.",
+        "step2": "2. Enter the 6-digit code it shows.",
+        "qrLabel": "QR code for your authenticator app",
+        "manual": "Can’t scan it? Type this key into the app:",
+        "codeLabel": "App code",
+        "codeHint": "It changes every 30 seconds.",
+        "submit": "Turn on"
+      },
+      "codes": {
+        "enabled": "Done: two-step verification is on.",
+        "regenerated": "New backup codes: the previous ones no longer work.",
+        "body": "Keep these codes somewhere safe. If you lose your phone, each one lets you sign in once.",
+        "copy": "Copy",
+        "download": "Download",
+        "copied": "Codes copied",
+        "copyFailed": "Couldn’t copy them: write them down or download them.",
+        "fileTitle": "Gardelia: backup codes (each one works once)",
+        "fileName": "gardelia-backup-codes.txt",
+        "savedCheck": "I saved my codes somewhere safe",
+        "done": "Done"
+      }
+    },
+    "challenge": {
+      "title": "Two-step verification",
+      "subtitle": "Enter the code from your authenticator app.",
+      "codeLabel": "6-digit code",
+      "codeHint": "You’ll see it in your app (Google Authenticator or another).",
+      "codeFormat": "Enter the 6 digits from your app.",
+      "backupLabel": "Backup code",
+      "backupHint": "Each code works only once.",
+      "backupRequired": "Enter one of your backup codes.",
+      "trustDevice": "Trust this device for {days} days",
+      "submit": "Sign in",
+      "useBackup": "I don’t have my phone: use a backup code",
+      "useApp": "Use the app code",
+      "expired": "Too much time has passed. Enter your email and password again.",
+      "backToLogin": "Back to sign in"
+    },
+    "sessions": {
+      "title": "Connected devices",
+      "subtitle": "Where your account is signed in. If you don’t recognize one, or you lost the shop’s phone, sign it out.",
+      "device": "{browser} on {os}",
+      "unknownDevice": "Unknown device",
+      "current": "This device",
+      "since": "Since {date}",
+      "lastSeen": "last used {date}",
+      "revoke": "Sign out",
+      "revokeNamed": "Sign out {device}",
+      "revokeOthers": "Sign out of other devices",
+      "revokeOthersTitle": "Sign out of other devices?",
+      "revokeOthersBody": "Only this device stays signed in. The others will need to sign in again.",
+      "revoked": "Session signed out",
+      "othersRevoked": "Other devices signed out",
+      "note": "On the other device the session ends within a few minutes."
+    }
   }
 }

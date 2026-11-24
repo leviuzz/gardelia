@@ -1,7 +1,8 @@
 'use client';
 
-import { Check, LogOut } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Check, LogOut, ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { ENABLED_LOCALES, LOCALE_NAMES, type SupportedLocale } from '@floral/domain';
@@ -17,6 +18,7 @@ import {
 import { changeLocaleAction } from '@/i18n/actions';
 import { authClient } from '@/lib/auth-client';
 import { initials } from '@/lib/format';
+import { securityRoutes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 
 export function UserMenu({
@@ -33,6 +35,7 @@ export function UserMenu({
   const t = useTranslations();
   const locale = useLocale();
   const router = useRouter();
+  const pathname = usePathname();
   const [pending, startTransition] = useTransition();
 
   // Lingua dell'interfaccia di questo browser (ADR-042): l'azione salva il cookie e ricarica.
@@ -96,6 +99,13 @@ export function UserMenu({
           ))}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+        {/* Verifica in due passaggi e dispositivi collegati (ADR-077). */}
+        <DropdownMenuItem asChild>
+          <Link href={securityRoutes.home({ volver: pathname })}>
+            <ShieldCheck />
+            {t('security.menu')}
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={signOut} disabled={pending}>
           <LogOut />
           {t('auth.signOut')}

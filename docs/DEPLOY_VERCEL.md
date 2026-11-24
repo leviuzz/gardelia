@@ -229,6 +229,14 @@ variabili da sistemare.
      fa creare. Se invece deve entrare nella tua, scrivi l'indirizzo e scegli il ruolo (manager o
      staff).
    - Poi entra con la sua password. Conferma solo persone che conosci.
+8. **Qualcuno ha perso il telefono e i codici di respaldo (ADR-077):** con la verifica in due
+   passaggi attiva non entra più con la sola password.
+   - Prima verifica che sia davvero lei (una videochiamata o il telefono della fioreria che
+     conosci).
+   - Lo stesso workflow, operazione `reset-two-factor`, la tua email e in "Email della persona" la
+     sua. La verifica si toglie e tutte le sue sessioni si chiudono.
+   - La persona entra con la sua password. Se è titolare oltre i 14 giorni, l'app le chiede subito
+     di riattivarla con il telefono nuovo.
 
 ## 9. Ricerca degli indirizzi (Google Places, facoltativa)
 
