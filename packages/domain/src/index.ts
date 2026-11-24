@@ -28,6 +28,7 @@ export * from './production';
 export * from './plans';
 export * from './promotions';
 export * from './public-link';
+export * from './opening-hours';
 export * from './quote';
 export * from './recipe';
 export * from './route';

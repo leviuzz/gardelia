@@ -96,6 +96,7 @@ export {
   getPublicOrder,
   getPublicOrderPhoto,
   getPublicQuote,
+  getPublicShopLogo,
   publicLinkUrl,
   type AcceptQuoteResult,
   type PublicLineDto,
@@ -204,4 +205,6 @@ export * from './services/public-links';
 export * from './services/quotes';
 export * from './services/recipes';
 export * from './services/team';
+export * from './services/letterhead';
+export * from './services/opening-hours';
 export * from './services/tenants';

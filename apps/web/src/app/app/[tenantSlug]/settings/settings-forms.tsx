@@ -185,3 +185,47 @@ export function BuilderSettingsForm({
     </form>
   );
 }
+
+/** "Vigencia de las cotizaciones": i giorni proposti nelle cotizaciones nuove. */
+export function QuoteSettingsForm({
+  action,
+  validityDays,
+  maxDays,
+}: {
+  action: Action;
+  validityDays: number;
+  maxDays: number;
+}) {
+  const t = useTranslations('settings.quotes');
+  const tc = useTranslations('common');
+  const [state, formAction] = useActionState(action, idleState);
+  useActionToast(state);
+  const err = fieldError(state, 'validityDays');
+  return (
+    <form
+      action={formAction}
+      onSubmit={preserveOnSubmit(formAction)}
+      className="grid gap-4 sm:grid-cols-[minmax(0,16rem)_auto] sm:items-start"
+    >
+      <Field
+        id="validityDays"
+        label={t('validityLabel')}
+        hint={t('validityHint', { max: maxDays })}
+        error={err}
+      >
+        <Input
+          {...controlProps('validityDays', err, true)}
+          name="validityDays"
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={maxDays}
+          defaultValue={validityDays}
+        />
+      </Field>
+      <div className="sm:pt-7">
+        <SubmitButton variant="secondary">{tc('save')}</SubmitButton>
+      </div>
+    </form>
+  );
+}

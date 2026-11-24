@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { getPublicStore } from '@floral/core';
 import { BRAND, WEEKDAYS_FROM_MONDAY } from '@floral/domain';
+import { OpeningHoursList } from '@/components/common/opening-hours-list';
 import { StoreShell } from '@/components/public/store-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -159,6 +160,21 @@ export default async function PublicStorePage({ params }: PageProps<'/f/[slug]'>
       </section>
 
       <section className="mt-10 grid gap-4 sm:grid-cols-2">
+        {store.openingHours ? (
+          <div className="rounded-2xl border bg-card p-5" data-testid="store-hours">
+            <h2 className="flex items-center gap-2 font-semibold">
+              <Clock className="size-4 text-primary" aria-hidden="true" />
+              {t('hoursTitle')}
+            </h2>
+            <OpeningHoursList
+              className="mt-3"
+              days={store.openingHours}
+              dayName={dayName}
+              dayRange={(first, last) => t('hoursDays', { first, last })}
+              closedLabel={t('hoursClosed')}
+            />
+          </div>
+        ) : null}
         <div className="rounded-2xl border bg-card p-5">
           <h2 className="flex items-center gap-2 font-semibold">
             <Truck className="size-4 text-primary" aria-hidden="true" />

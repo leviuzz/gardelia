@@ -7,6 +7,7 @@ import {
   parseDateInput,
   priceQuote,
   quoteDetailsSchema,
+  quoteSettingsSchema,
 } from '../src/quote';
 import { toFieldErrors } from '../src/validation';
 
@@ -97,5 +98,21 @@ describe('stati del preventivo', () => {
         validUntil: 'invalid_date',
       });
     }
+  });
+});
+
+describe('vigencia delle cotizaciones nuove', () => {
+  it('da 1 a 90 giorni interi', () => {
+    expect(quoteSettingsSchema.parse({ validityDays: ' 30 ' })).toEqual({ validityDays: 30 });
+    expect(quoteSettingsSchema.parse({ validityDays: '1' }).validityDays).toBe(1);
+    expect(quoteSettingsSchema.parse({ validityDays: '90' }).validityDays).toBe(90);
+    const errorOf = (value: string) => {
+      const result = quoteSettingsSchema.safeParse({ validityDays: value });
+      return result.success ? null : toFieldErrors(result.error).validityDays;
+    };
+    expect(errorOf('')).toBe('required');
+    expect(errorOf('0')).toBe('out_of_range');
+    expect(errorOf('91')).toBe('out_of_range');
+    expect(errorOf('siete')).toBe('invalid_number');
   });
 });

@@ -12,17 +12,20 @@ import {
   ONLINE_ITEM_TYPES,
   STORE_LIMITS,
   formatTimeOfDay,
+  hasOpeningHours,
   isStoreImageKind,
   isUuid,
   resolveLocale,
   type Availability,
   type CatalogItemType,
+  type OpeningDay,
   type SaleUnit,
   type StorePaymentMethod,
   type SupportedLocale,
 } from '@floral/domain';
 import { NotFoundError } from './errors';
 import { logger } from './logger';
+import { loadOpeningHours } from './services/opening-hours';
 import { readStoredImage, type StoredImage } from './media/stored-files';
 
 const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
@@ -62,6 +65,8 @@ export interface PublicStoreDto {
     readonly city: string;
     readonly region: string;
   } | null;
+  /** Orari di apertura, da domenica (0) a sabato; null se la fioreria non li ha indicati. */
+  readonly openingHours: readonly OpeningDay[] | null;
   readonly delivery: {
     readonly windows: readonly { readonly start: string; readonly end: string }[];
     readonly closedWeekdays: readonly number[];
@@ -178,7 +183,7 @@ async function readStoreHeader(tx: TransactionClient, tenantId: string) {
 export async function getPublicStore(slug: unknown): Promise<PublicStoreDto | null> {
   return withPublishedStore(slug, async (tx, tenantId) => {
     const { tenant, store, header } = await readStoreHeader(tx, tenantId);
-    const [location, windows, items, feeTiers] = await Promise.all([
+    const [location, windows, items, feeTiers, openingHours] = await Promise.all([
       tx.location.findFirst({
         where: { tenantId, isPrimary: true },
         select: {
@@ -213,6 +218,7 @@ export async function getPublicStore(slug: unknown): Promise<PublicStoreDto | nu
         orderBy: { maxMeters: 'asc' },
         select: { maxMeters: true, feeMinor: true },
       }),
+      loadOpeningHours(tx, tenantId),
     ]);
     const region = (code: string) => MX_REGIONS.find((item) => item.code === code)?.name ?? code;
     return {
@@ -227,6 +233,7 @@ export async function getPublicStore(slug: unknown): Promise<PublicStoreDto | nu
             region: region(location.region),
           }
         : null,
+      openingHours: hasOpeningHours(openingHours) ? openingHours : null,
       delivery: {
         windows: windows.map((window) => ({
           start: formatTimeOfDay(window.startMinutes),

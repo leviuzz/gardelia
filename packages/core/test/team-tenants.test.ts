@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { disconnectDb, getDb, withTenantContext } from '@floral/db';
 import { createTestUser } from '@floral/db/testing';
+import { addDays, toIsoDate, todayInTimeZone } from '@floral/domain';
 import {
   ConflictError,
   ForbiddenError,
@@ -8,9 +9,12 @@ import {
   ValidationError,
   acceptInvitation,
   changeMemberRole,
+  createCustomer,
+  createQuote,
   createTenant,
   getDashboard,
   getInvitationPreview,
+  getQuote,
   getTeam,
   getTenantSettings,
   inviteMember,
@@ -19,6 +23,7 @@ import {
   revokeInvitation,
   setMemberActive,
   updatePrimaryLocation,
+  updateQuoteSettings,
   updateTenantLegal,
   updateTenantProfile,
 } from '../src/index';
@@ -161,6 +166,58 @@ describe('impostazioni', () => {
       postalCode: '20010',
       deliveryRadiusKm: null,
     });
+  });
+});
+
+describe('vigenza dei preventivi', () => {
+  async function newQuoteValidUntil(target: TestShop): Promise<string | null> {
+    const customer = await createCustomer(target.owner, {
+      type: 'PERSON',
+      displayName: 'Cliente Vigencia',
+      legalName: null,
+      taxId: null,
+      email: null,
+      phone: null,
+      notes: null,
+      preferences: null,
+      restrictions: null,
+      tags: [],
+      acquisitionChannel: null,
+      marketingConsent: false,
+    });
+    const { id } = await createQuote(target.owner, { customerId: customer.id });
+    return (await getQuote(target.owner, id)).validUntil;
+  }
+  const inDays = (target: TestShop, days: number) =>
+    toIsoDate(addDays(todayInTimeZone(target.owner.timezone), days));
+
+  it('owner e manager la cambiano (1–90 giorni); vale per le cotizaciones nuove di quella fioreria', async () => {
+    const local = await createTestShop();
+    const other = await createTestShop();
+    expect((await getTenantSettings(local.owner)).tenant.quoteValidityDays).toBe(7);
+
+    await expect(updateQuoteSettings(local.staff, { validityDays: '15' })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    for (const bad of ['', '0', '91', 'diez', '2.5']) {
+      await expect(
+        updateQuoteSettings(local.manager, { validityDays: bad }),
+      ).rejects.toBeInstanceOf(ValidationError);
+    }
+    await updateQuoteSettings(local.manager, { validityDays: ' 15 ' });
+    expect((await getTenantSettings(local.owner)).tenant.quoteValidityDays).toBe(15);
+    expect(await newQuoteValidUntil(local)).toBe(inDays(local, 15));
+    // L'altra fioreria resta con i suoi 7 giorni.
+    expect((await getTenantSettings(other.owner)).tenant.quoteValidityDays).toBe(7);
+    expect(await newQuoteValidUntil(other)).toBe(inDays(other, 7));
+
+    const audit = await withTenantContext(db, local.owner, (tx) =>
+      tx.auditLog.findFirst({
+        where: { tenantId: local.owner.tenantId, action: 'tenant.updated' },
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
+    expect(audit?.metadata).toEqual({ changes: { quoteValidityDays: { from: 7, to: 15 } } });
   });
 });
 

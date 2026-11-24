@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { cache } from 'react';
 import {
+  getLetterhead,
   NotFoundError,
   getQuote,
   getPublicLink,
@@ -24,6 +25,7 @@ import {
   whatsappLink,
 } from '@floral/domain';
 import { QuoteStatusBadge } from '@/components/common/status-badges';
+import { PrintLetterhead } from '@/components/common/print-letterhead';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -128,9 +130,10 @@ export default async function QuotePage({
   // finale: sempre nella lingua del mercato della fioreria, qualunque lingua abbia scelto chi lo
   // prepara (ADR-042).
   const shopLocale = getMarket(ctx.country).defaultLocale;
-  const [tShop, formatShop] = await Promise.all([
+  const [tShop, formatShop, letterhead] = await Promise.all([
     getTranslations({ locale: shopLocale }),
     getFormatter({ locale: shopLocale }),
+    getLetterhead(ctx),
   ]);
   const shopCalendar = (value: string) =>
     formatShop.dateTime(calendarDate(value), { dateStyle: 'long', timeZone: 'UTC' });
@@ -236,8 +239,17 @@ export default async function QuotePage({
       />
 
       {/* Intestazione visibile solo in stampa / PDF. */}
-      <div className="hidden space-y-1 border-b pb-4 print:block">
-        <p className="font-display text-2xl font-semibold">{ctx.tenantName}</p>
+      <div className="hidden space-y-3 border-b pb-4 print:block">
+        <PrintLetterhead
+          letterhead={letterhead}
+          logoSrc={
+            letterhead.logoId
+              ? tenantRoutes(slug).settings.storeImage('LOGO', letterhead.logoId)
+              : null
+          }
+          locale={shopLocale}
+          showHours
+        />
         <p className="text-lg font-medium">
           {t('quotes.editor.printHeader', { number: quote.numberLabel })}
         </p>

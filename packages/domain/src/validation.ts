@@ -41,6 +41,7 @@ export const VALIDATION_CODES = [
   'photos_not_allowed_for_type',
   'consent_required',
   'invalid_time_window',
+  'opening_hours_overlap',
   'payment_exceeds_balance',
   /** Inventario (ADR-060): nessun prodotto con la quantità in "Elegir productos". */
   'inventory_none_selected',

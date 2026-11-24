@@ -77,6 +77,15 @@ export const QUOTE_LIMITS = {
   validityDaysMax: 90,
 } as const;
 
+/**
+ * "Vigencia de las cotizaciones" (impostazioni): fra quanti giorni scade una cotización nuova. Nella
+ * singola cotización la data si cambia sempre a mano. Il database ha lo stesso limite (CHECK 1–90).
+ */
+export const quoteSettingsSchema = z.object({
+  validityDays: requiredInteger({ min: 1, max: QUOTE_LIMITS.validityDaysMax }),
+});
+export type QuoteSettingsInput = z.infer<typeof quoteSettingsSchema>;
+
 export interface PricedLine {
   readonly quantity: number;
   readonly unitPriceMinor: number;

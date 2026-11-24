@@ -63,7 +63,8 @@
     "builder_color_required": "Scegli il colore dell’incarto o del complemento.",
     "invalid_time_window": "Indica l’ora di inizio e quella di fine, in ordine.",
     "payment_exceeds_balance": "L’importo supera quanto resta da incassare.",
-    "tenant_deletion_name_mismatch": "Il nome non corrisponde a quello della fioreria."
+    "tenant_deletion_name_mismatch": "Il nome non corrisponde a quello della fioreria.",
+    "opening_hours_overlap": "Questa fascia si sovrappone a un'altra dello stesso giorno: uniscile in una sola."
   },
   "errors": {
     "validation": "Controlla i campi evidenziati.",
@@ -454,7 +455,7 @@
     "imagesTitle": "Logo e copertina",
     "imagesSubtitle": "Così riconoscono la tua fioreria sulla pagina e quando condividi il link.",
     "logo": "Logo",
-    "logoHint": "Meglio quadrato; si vede piccolo accanto al nome.",
+    "logoHint": "Meglio quadrato. Si vede accanto al nome nel negozio online e nell'intestazione di preventivi e ordini stampati.",
     "cover": "Foto di copertina",
     "coverHint": "Orizzontale: il tuo negozio, i tuoi fiori o la tua composizione migliore.",
     "logoFile": "File del logo",
@@ -550,7 +551,10 @@
     "orderHow": "Scegli online, la fioreria conferma e la paghi direttamente.",
     "orderOnline": "Ordina online",
     "feeByDistance": "Consegna in base alla distanza: {tiers}.",
-    "feeTier": "fino a {km} km {fee}"
+    "feeTier": "fino a {km} km {fee}",
+    "hoursTitle": "Orari di apertura",
+    "hoursClosed": "Chiuso",
+    "hoursDays": "Da {first} a {last}"
   },
   "timezones": {
     "America/Mexico_City": "Ora del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -968,7 +972,7 @@
     "title": "Impostazioni",
     "subtitle": "Dati della tua fioreria e del negozio principale.",
     "profileTitle": "Profilo della fioreria",
-    "profileSubtitle": "Nome, contatti e fuso orario.",
+    "profileSubtitle": "Nome, logo, contatti e fuso orario.",
     "legalTitle": "Dati fiscali",
     "legalSubtitle": "Solo chi è titolare può modificarli. La fatturazione elettronica (CFDI) non è ancora disponibile.",
     "legalReadOnly": "Solo chi è titolare può modificare questi dati.",
@@ -1028,6 +1032,27 @@
       "confirmBody": "Per evitare errori, scrivi il nome della fioreria così come compare.",
       "confirmLabel": "Nome della fioreria: {name}",
       "submit": "Elimina fioreria"
+    },
+    "quotes": {
+      "title": "Preventivi",
+      "subtitle": "Per quanto tempo valgono i preventivi nuovi.",
+      "validityLabel": "Validità (giorni)",
+      "validityHint": "I preventivi nuovi scadono dopo questi giorni dalla creazione (da 1 a {max}). In ogni preventivo puoi cambiare la data.",
+      "saved": "Validità salvata"
+    },
+    "hours": {
+      "title": "Orari di apertura",
+      "subtitle": "Quando è aperto il tuo negozio. Si vede nel negozio online e nei preventivi stampati. Puoi mettere più fasce in un giorno, per esempio se chiudi a pranzo.",
+      "open": "Aperto",
+      "closed": "Chiuso",
+      "openDay": "Aperto il {day}",
+      "from": "{day}, fascia {n}: dalle",
+      "to": "{day}, fascia {n}: alle",
+      "removeRange": "Togli la fascia {n} del {day}",
+      "addRange": "Aggiungi fascia",
+      "addRangeFor": "Aggiungi fascia il {day}",
+      "saved": "Orari salvati",
+      "deliveryMismatch": "Il negozio è chiuso in questi giorni, ma nelle Consegne accetti consegne e ritiri: {days}. Se quei giorni non lavori, segnali come chiusi nelle Consegne."
     }
   },
   "team": {
@@ -3512,5 +3537,13 @@
       "option": "{date} · {start}–{end} · {count, plural, one {# posto} other {# posti}}",
       "assignTitle": "Chi va"
     }
+  },
+  "letterhead": {
+    "logoAlt": "Logo di {name}",
+    "postalCode": "CAP {code}",
+    "phone": "Tel. {phone}",
+    "hours": "Orari",
+    "closed": "Chiuso",
+    "days": "Da {first} a {last}"
   }
 }

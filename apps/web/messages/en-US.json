@@ -63,7 +63,8 @@
     "builder_color_required": "Choose the color of the wrapping or add-on.",
     "invalid_time_window": "Enter a start and an end time, in order.",
     "payment_exceeds_balance": "The amount is more than what is left to collect.",
-    "tenant_deletion_name_mismatch": "The name doesn’t match the shop’s name."
+    "tenant_deletion_name_mismatch": "The name doesn’t match the shop’s name.",
+    "opening_hours_overlap": "This range overlaps another one on the same day: merge them into one."
   },
   "errors": {
     "validation": "Check the highlighted fields.",
@@ -454,7 +455,7 @@
     "imagesTitle": "Logo and cover",
     "imagesSubtitle": "How people recognize your flower shop on the page and when you share the link.",
     "logo": "Logo",
-    "logoHint": "Square works best; it shows small next to the name.",
+    "logoHint": "Square works best. It shows next to the name in your online shop and at the top of printed quotes and orders.",
     "cover": "Cover photo",
     "coverHint": "Landscape: your shop, your flowers or your best arrangement.",
     "logoFile": "Logo file",
@@ -550,7 +551,10 @@
     "orderHow": "Choose online, the shop confirms and you pay them directly.",
     "orderOnline": "Order online",
     "feeByDistance": "Delivery by distance: {tiers}.",
-    "feeTier": "up to {km} km {fee}"
+    "feeTier": "up to {km} km {fee}",
+    "hoursTitle": "Opening hours",
+    "hoursClosed": "Closed",
+    "hoursDays": "{first} to {last}"
   },
   "timezones": {
     "America/Mexico_City": "Central Time (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -968,7 +972,7 @@
     "title": "Settings",
     "subtitle": "Details for your shop and its main store.",
     "profileTitle": "Shop profile",
-    "profileSubtitle": "Name, contact, and time zone.",
+    "profileSubtitle": "Name, logo, contact details and time zone.",
     "legalTitle": "Tax details",
     "legalSubtitle": "Only the owner can change them. Electronic invoicing (CFDI) isn’t available yet.",
     "legalReadOnly": "Only the owner can change these details.",
@@ -1028,6 +1032,27 @@
       "confirmBody": "To avoid mistakes, type the shop’s name exactly as it appears.",
       "confirmLabel": "Shop name: {name}",
       "submit": "Delete shop"
+    },
+    "quotes": {
+      "title": "Quotes",
+      "subtitle": "How long new quotes are valid.",
+      "validityLabel": "Valid for (days)",
+      "validityHint": "New quotes expire this many days after they are created (1 to {max}). You can change the date on each quote.",
+      "saved": "Validity saved"
+    },
+    "hours": {
+      "title": "Opening hours",
+      "subtitle": "When your shop is open. Shown in your online shop and on printed quotes. You can add several time ranges to a day, for example if you close for lunch.",
+      "open": "Open",
+      "closed": "Closed",
+      "openDay": "Open on {day}",
+      "from": "{day}, range {n}: from",
+      "to": "{day}, range {n}: to",
+      "removeRange": "Remove range {n} on {day}",
+      "addRange": "Add time range",
+      "addRangeFor": "Add a time range on {day}",
+      "saved": "Opening hours saved",
+      "deliveryMismatch": "Your shop is closed on these days, but in Deliveries you accept deliveries and pickups: {days}. If you don’t work those days, mark them as closed in Deliveries."
     }
   },
   "team": {
@@ -3512,5 +3537,13 @@
       "option": "{date} · {start}–{end} · {count, plural, one {# seat} other {# seats}}",
       "assignTitle": "Who goes"
     }
+  },
+  "letterhead": {
+    "logoAlt": "{name} logo",
+    "postalCode": "ZIP {code}",
+    "phone": "Tel. {phone}",
+    "hours": "Hours",
+    "closed": "Closed",
+    "days": "{first} to {last}"
   }
 }

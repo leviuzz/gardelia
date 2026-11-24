@@ -252,6 +252,7 @@ model Tenant {
   quoteLines           QuoteLine[]
   orders               Order[]
   deliveryWindows      DeliveryWindow[]
+  openingHours         OpeningHoursRange[]
   deliveryFeeTiers     DeliveryFeeTier[]
   orderLines           OrderLine[]
   orderPayments        OrderPayment[]
@@ -311,9 +312,32 @@ model Location {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  openingHours OpeningHoursRange[]
 
   @@unique([tenantId, id])
+  @@index([tenantId])
+}
+
+/// Orari di apertura della tienda (V1 §2.2): zero o più fasce per giorno della settimana; un giorno
+/// senza fasce è chiuso, nessuna fascia nella settimana = orario non indicato. Si sostituiscono
+/// tutte insieme dalle impostazioni (sono configurazione, non dati commerciali).
+model OpeningHoursRange {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  tenantId     String   @db.Uuid
+  locationId   String   @db.Uuid
+  /// 0 = domenica … 6 = sabato.
+  weekday      Int
+  /// Minuti dalla mezzanotte nel fuso della fioreria, stesso giorno (start < end).
+  startMinutes Int
+  endMinutes   Int
+  createdAt    DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [tenantId, locationId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, locationId, weekday, startMinutes])
   @@index([tenantId])
 }
 
@@ -2057,30 +2081,30 @@ model CarePlant {
 /// Visita di Floral Care. Unica per contratto, versione del calendario e data originale (indice
 /// parziale nel SQL, salvo le visite extra); le cancellate restano come righe.
 model CareVisit {
-  id                   String          @id @default(uuid(7)) @db.Uuid
-  tenantId             String          @db.Uuid
-  subscriptionId       String          @db.Uuid
+  id                   String                 @id @default(uuid(7)) @db.Uuid
+  tenantId             String                 @db.Uuid
+  subscriptionId       String                 @db.Uuid
   scheduleVersion      Int
-  originalDate         DateTime        @db.Date
+  originalDate         DateTime               @db.Date
   /// NULL solo per "Por reprogramar" (o una visita così cancellata).
-  scheduledDate        DateTime?       @db.Date
-  slotId               String?         @db.Uuid
+  scheduledDate        DateTime?              @db.Date
+  slotId               String?                @db.Uuid
   startMinutes         Int?
   endMinutes           Int?
-  seats                Int             @default(1)
-  status               CareVisitStatus @default(SCHEDULED)
-  isExtra              Boolean         @default(false)
-  assignedMembershipId String?         @db.Uuid
+  seats                Int                    @default(1)
+  status               CareVisitStatus        @default(SCHEDULED)
+  isExtra              Boolean                @default(false)
+  assignedMembershipId String?                @db.Uuid
   startedAt            DateTime?
   finishedAt           DateTime?
   /// Perché si è cancellata: serve ai cargos (una visita tolta dalla fioreria è un credito).
   cancelReason         CareVisitCancelReason?
   /// Perché non si è fatta o perché si è cancellata (testo della fioreria).
   outcomeNote          String?
-  closedById           String?         @db.Uuid
-  createdById          String?         @db.Uuid
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
+  closedById           String?                @db.Uuid
+  createdById          String?                @db.Uuid
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
 
   tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)

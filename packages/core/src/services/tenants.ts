@@ -20,6 +20,7 @@ import {
   newId,
   nextStoredPlace,
   onboardingSchema,
+  quoteSettingsSchema,
   slugWithSuffix,
   tenantLegalSchema,
   tenantProfileSchema,
@@ -141,6 +142,7 @@ export interface TenantSettings {
     | 'currency'
     | 'marketCountry'
     | 'mode'
+    | 'quoteValidityDays'
   >;
   readonly location: Pick<
     Location,
@@ -174,6 +176,7 @@ export async function getTenantSettings(ctx: TenantContext): Promise<TenantSetti
         currency: true,
         marketCountry: true,
         mode: true,
+        quoteValidityDays: true,
       },
     });
     const location = await tx.location.findFirst({
@@ -243,6 +246,38 @@ export async function updateTenantLegal(ctx: TenantContext, data: unknown): Prom
       entityId: ctx.tenantId,
       // I valori fiscali non vengono copiati nel registro: si annota solo cosa è cambiato.
       metadata: { changedFields: Object.keys(changes) },
+    });
+  });
+}
+
+/**
+ * "Vigencia de las cotizaciones": i giorni proposti nelle cotizaciones nuove. Quelle già fatte non
+ * cambiano.
+ */
+export async function updateQuoteSettings(ctx: TenantContext, data: unknown): Promise<void> {
+  requirePermission(ctx, 'tenant:settings:update');
+  const parsed = quoteSettingsSchema.safeParse(data);
+  if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
+
+  await withTenantContext(getDb(), ctx, async (tx) => {
+    const before = await tx.tenant.findUniqueOrThrow({
+      where: { id: ctx.tenantId },
+      select: { quoteValidityDays: true },
+    });
+    if (before.quoteValidityDays === parsed.data.validityDays) return;
+    await tx.tenant.update({
+      where: { id: ctx.tenantId },
+      data: { quoteValidityDays: parsed.data.validityDays },
+    });
+    await recordAudit(tx, ctx, {
+      action: AUDIT_ACTIONS.tenantUpdated,
+      entityType: 'Tenant',
+      entityId: ctx.tenantId,
+      metadata: {
+        changes: {
+          quoteValidityDays: { from: before.quoteValidityDays, to: parsed.data.validityDays },
+        },
+      },
     });
   });
 }

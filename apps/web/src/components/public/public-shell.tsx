@@ -8,12 +8,15 @@ import { Button } from '@/components/ui/button';
  */
 export function PublicShell({
   shopName,
+  logoSrc = null,
   contact,
   footer,
   legal,
   children,
 }: {
   readonly shopName: string;
+  /** Logo della fioreria accanto al nome (al posto del fiore), o null. */
+  readonly logoSrc?: string | null;
   /** Pulsante "Escribir a la florería" (null se la fioreria non ha telefono). */
   readonly contact: {
     readonly phone: string;
@@ -29,7 +32,16 @@ export function PublicShell({
     <div className="min-h-dvh bg-[radial-gradient(ellipse_at_top,oklch(0.95_0.025_150),transparent_60%)]">
       <main className="mx-auto w-full max-w-2xl px-4 pt-10 pb-16">
         <p className="mb-6 flex items-center gap-2 text-sm font-medium tracking-wide text-primary uppercase">
-          <Flower2 className="size-4" aria-hidden="true" />
+          {logoSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element -- logo servito dall'app; il nome accanto basta.
+            <img
+              src={logoSrc}
+              alt=""
+              className="size-10 shrink-0 rounded-xl border bg-white object-contain"
+            />
+          ) : (
+            <Flower2 className="size-4" aria-hidden="true" />
+          )}
           {shopName}
         </p>
         <div className="space-y-6 rounded-2xl border bg-card p-5 shadow-sm sm:p-8">{children}</div>
