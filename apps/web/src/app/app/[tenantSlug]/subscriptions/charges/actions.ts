@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Server action dei pagamenti di Floral Care (ADR-079): "Registrar pago" su un cargo o
+ * Server action dei pagamenti di Floral Care (ADR-081): "Registrar pago" su un cargo o
  * sull'estado de cuenta, "Registrar devolución", "Anular". Il servizio di @floral/core valida
  * l'importo, ricontrolla permessi e fioreria e decide su quali cargos va il pagamento: dal client
  * arriva solo quanto ha pagato il cliente. Gli ID legati con .bind() non sono affidabili.

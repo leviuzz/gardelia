@@ -62,7 +62,7 @@ export interface CareOfferDefaults {
   readonly minNoticeHours: string;
   readonly missedVisitPolicy: string;
   readonly deadPlantPolicy: string;
-  /** "Días para pagar" un cargo (ADR-079). */
+  /** "Días para pagar" un cargo (ADR-081). */
   readonly paymentDueDays: string;
   readonly termsText: string;
 }

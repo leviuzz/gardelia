@@ -89,7 +89,7 @@ export type CustomerTimelineEvent =
       readonly status: 'DONE' | 'NOT_DONE';
     })
   | (TimelineBase & {
-      /** Cargo del mese di un contratto (ADR-079): solo per chi gestisce i soldi. */
+      /** Cargo del mese di un contratto (ADR-081): solo per chi gestisce i soldi. */
       readonly kind: 'care_charge';
       readonly chargeId: string;
       readonly subscriptionId: string;
@@ -100,7 +100,7 @@ export type CustomerTimelineEvent =
       readonly currency: string;
     })
   | (TimelineBase & {
-      /** Pagamento, storno o devolución di Floral Care (ADR-079): solo per chi gestisce i soldi. */
+      /** Pagamento, storno o devolución di Floral Care (ADR-081): solo per chi gestisce i soldi. */
       readonly kind: 'care_payment';
       readonly paymentId: string;
       readonly paymentKind: CarePaymentKind;
@@ -332,7 +332,7 @@ export async function getCustomerTimeline(
       }
     }
 
-    // Cargos e movimenti di Floral Care (ADR-079): per chi gestisce i soldi, anche senza il piano
+    // Cargos e movimenti di Floral Care (ADR-081): per chi gestisce i soldi, anche senza il piano
     // (i contratti firmati si cobran lo stesso). Solo i movimenti registrati.
     if (canCareMoney) {
       const charges = await tx.careCharge.findMany({

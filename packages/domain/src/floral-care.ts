@@ -288,7 +288,7 @@ export function careSettingsSchema(currency: CurrencyCode) {
     minNoticeHours: requiredInteger({ min: 0, max: CARE_LIMITS.noticeHoursMax }),
     missedVisitPolicy: enumField(MISSED_VISIT_POLICIES),
     deadPlantPolicy: enumField(DEAD_PLANT_POLICIES),
-    /** "Días para pagar" un cargo (ADR-079): vuoto = 10. */
+    /** "Días para pagar" un cargo (ADR-081): vuoto = 10. */
     paymentDueDays: careDueDaysField,
     /** I termini della fioreria, scritti da lei: Gardelia non inventa condizioni. */
     termsText: optionalText(CARE_LIMITS.termsText),
@@ -735,7 +735,7 @@ export interface CareVisitPrice {
   /** Totale di una visita. */
   readonly perVisitMinor: number;
   /**
-   * Extra una tantum: si pagano una volta, nel cargo dopo la visita in cui si fanno (ADR-079), al
+   * Extra una tantum: si pagano una volta, nel cargo dopo la visita in cui si fanno (ADR-081), al
    * prezzo copiato quando la squadra li segna.
    */
   readonly oneTimeMinor: number;

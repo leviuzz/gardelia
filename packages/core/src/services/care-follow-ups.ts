@@ -81,7 +81,7 @@ type FollowUpRow = Prisma.CareFollowUpGetPayload<{ select: typeof followUpSelect
 
 /**
  * `policy`: la regola della fioreria sulle piante morte, se c'è l'offerta. Vale quella copiata nel
- * contratto alla conferma (ADR-079), se c'è: è quella firmata con il cliente.
+ * contratto alla conferma (ADR-081), se c'è: è quella firmata con il cliente.
  */
 export function toFollowUpDto(row: FollowUpRow, fallback: DeadPlantPolicy | null): CareFollowUpDto {
   const open = row.status === 'OPEN';

@@ -1,6 +1,6 @@
 /**
- * Lavori giornalieri di Floral Care (ADR-075, ADR-078, ADR-079), dentro la manutenzione:
- *  - per primi i cargos del mese (ADR-079), con il loro tetto di tempo: un mese per transazione,
+ * Lavori giornalieri di Floral Care (ADR-075, ADR-078, ADR-081), dentro la manutenzione:
+ *  - per primi i cargos del mese (ADR-081), con il loro tetto di tempo: un mese per transazione,
  *    fino a 3 mesi per un contratto rimasto indietro; quelli che restano li prende il giro dopo;
  *  - allunga le visite dei contratti attivi che coprono meno di 45 giorni, fino a 60 da oggi;
  *  - chiude i contratti il cui ultimo giorno è passato;
@@ -36,7 +36,7 @@ import { deliverCareEmail, type CareMailDeps } from '../services/care-visit-work
 import { dateToParts } from '../services/quote-internals';
 
 export interface CareMaintenanceResult {
-  /** Cargos nati in questo giro (ADR-079). */
+  /** Cargos nati in questo giro (ADR-081). */
   readonly chargesIssued: number;
   /** Contratti con mesi ancora da emettere (tempo finito o più di 3 mesi indietro). */
   readonly chargesPending: number;

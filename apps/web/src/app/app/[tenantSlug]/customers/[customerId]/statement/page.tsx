@@ -52,7 +52,7 @@ export async function generateMetadata({
 }
 
 /**
- * Estado de cuenta di Floral Care di un cliente (ADR-079): tutte le sue sedi, i cargos con lo
+ * Estado de cuenta di Floral Care di un cliente (ADR-081): tutte le sue sedi, i cargos con lo
  * stato, i pagamenti e i totali. "Registrar pago" qui è un solo pagamento per tutte le sedi, che
  * va prima ai cargos più vecchi (decisione del founder del 24/11). Si stampa per il cliente, nella
  * lingua del mercato della fioreria.

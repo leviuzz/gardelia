@@ -106,7 +106,7 @@ export default async function CareContractsPage({
         description={t('care.contracts.subtitle')}
         actions={actions}
       />
-      {/* "Cobros" (ADR-079): solo per chi gestisce i soldi. */}
+      {/* "Cobros" (ADR-081): solo per chi gestisce i soldi. */}
       {hasPermission(ctx, 'subscriptions:payments') ? (
         <CareTabs routes={routes} current="contracts" />
       ) : null}

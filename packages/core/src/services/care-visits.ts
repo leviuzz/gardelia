@@ -84,7 +84,7 @@ export interface CareAgendaVisitDto {
   readonly plantCount: number;
   readonly outcomeNote: string | null;
   readonly cancelReason: CareVisitCancelReason | null;
-  /** "No se pudo": il cliente non ha aperto o la fioreria non è potuta andare (ADR-079). */
+  /** "No se pudo": il cliente non ha aperto o la fioreria non è potuta andare (ADR-081). */
   readonly notDoneCause: CareNotDoneCause | null;
   /** Chi guarda può iniziarla adesso ("Empezar visita": programmata, di oggi o di un giorno passato). */
   readonly canStart: boolean;

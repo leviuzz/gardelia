@@ -198,7 +198,7 @@ export interface CareContractDetailDto {
   };
   readonly canWrite: boolean;
   readonly canVisit: boolean;
-  /** Regole copiate alla conferma (ADR-079); null per le bozze. */
+  /** Regole copiate alla conferma (ADR-081); null per le bozze. */
   readonly rules: {
     readonly missedVisitPolicy: MissedVisitPolicy;
     readonly deadPlantPolicy: DeadPlantPolicy;
@@ -221,7 +221,7 @@ export interface CareContractListItemDto {
   readonly nextVisit: string | null;
   readonly toReschedule: number;
   readonly plantCount: number;
-  /** Ha un cargo vencido (solo per chi gestisce i soldi, ADR-079). */
+  /** Ha un cargo vencido (solo per chi gestisce i soldi, ADR-081). */
   readonly overdue: boolean;
 }
 
@@ -1002,7 +1002,7 @@ export async function confirmCareContract(
         oneTimeMinor: pricing.price.oneTimeMinor,
         distanceMeters: pricing.distanceMeters,
         outOfRange: pricing.travel.kind === 'out_of_range',
-        // Le regole di oggi valgono per tutto il contratto (ADR-079): poi la fioreria può
+        // Le regole di oggi valgono per tutto il contratto (ADR-081): poi la fioreria può
         // cambiarle senza toccare quello che ha firmato con il cliente.
         missedVisitPolicy: settings.missedVisitPolicy,
         deadPlantPolicy: settings.deadPlantPolicy,
@@ -1064,7 +1064,7 @@ export async function repriceCareContract(
       pricing.price.travelSurchargeMinor === subscription.travelSurchargeMinor;
     if (same) return { changed: false };
     requireNotice(1, notified);
-    // Il prezzo nuovo vale dal mese dopo (ADR-079): il mese in corso si emette prima, se manca.
+    // Il prezzo nuovo vale dal mese dopo (ADR-081): il mese in corso si emette prima, se manca.
     await catchUpCareChargesTx(tx, memberScope(ctx), subscription.id);
     await refreshServiceSnapshots(tx, ctx.tenantId, subscriptionId);
     await tx.customerSubscription.update({

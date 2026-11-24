@@ -664,7 +664,7 @@ export async function setCareVisitServiceResult(
         name: service.name,
         pricing: service.pricing,
         unit: service.unit,
-        // Il prezzo del contratto adesso: un servizio "una sola vez" si cobra così (ADR-079).
+        // Il prezzo del contratto adesso: un servizio "una sola vez" si cobra così (ADR-081).
         priceMinor: service.priceMinor,
         outcome: input.outcome,
         note: input.note,
@@ -1130,7 +1130,7 @@ export async function markCareVisitNotDone(
       where: { id: visit.id, tenantId: ctx.tenantId },
       data: {
         status: 'NOT_DONE',
-        // Il cliente non ha aperto (si paga) o la fioreria non è potuta andare (credito, ADR-079).
+        // Il cliente non ha aperto (si paga) o la fioreria non è potuta andare (credito, ADR-081).
         notDoneCause: input.cause,
         startedAt: visit.startedAt ?? now,
         finishedAt: now,

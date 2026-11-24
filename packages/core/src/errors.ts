@@ -154,7 +154,7 @@ export type ConflictReason =
   /** L'avviso è già stato risolto (da qualcun altro, o in un altro modo). */
   | 'care_follow_up_resolved'
   /**
-   * Cargos (ADR-079): un movimento che non si annulla (è uno storno, o è "por registrar"), una
+   * Cargos (ADR-081): un movimento che non si annulla (è uno storno, o è "por registrar"), una
    * devolución su un cargo che non è a favore del cliente, un cargo con importi fuori misura.
    */
   | 'care_payment_not_reversible'

@@ -591,7 +591,7 @@ export function FinishVisitDialog({
 
 /**
  * "No se pudo": perché (il cliente non ha aperto e la visita si paga, oppure la fioreria non è
- * potuta andare ed è un credito, ADR-079), la nota per il cliente e, se si può, il resoconto.
+ * potuta andare ed è un credito, ADR-081), la nota per il cliente e, se si può, il resoconto.
  */
 export function NotDoneDialog({
   action,

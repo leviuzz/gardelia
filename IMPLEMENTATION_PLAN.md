@@ -1030,7 +1030,7 @@ Verifiche locali:
 - controllo a 320 px di contratto, dialogo della visita extra, avvisi e Agenda (la riga di una
   visita extra nel contratto sbordava di 6 px: corretta).
 
-**Floral Care, blocco 3a (fatto il 24/11, ADR-079):** "ok vai col blocco 3" del founder, con le
+**Floral Care, blocco 3a (fatto il 24/11, ADR-081):** "ok vai col blocco 3" del founder, con le
 sue quattro decisioni del 24/11 ("Días para pagar" della fioreria, 10 di default; il cliente che
 non apre paga la visita e il recupero è gratis; un solo pagamento sull'estado de cuenta per tutte
 le sedi; lo staff segna gli incassi "por registrar"). Diviso in 3a (questo) e 3b.
@@ -1093,7 +1093,7 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 3. Inventario: fatto (blocchi 1–4, ADR-060…063), con lo scarico (ADR-071) e gli apartados
    (ADR-072) dagli ordini.
 4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
-5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078) e 3a (ADR-079) fatti;
+5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078) e 3a (ADR-081) fatti;
    3b e blocchi 4–7 in `docs/FLORAL_CARE_PLAN.md`.
 6. Report.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.

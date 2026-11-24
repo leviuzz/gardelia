@@ -15,7 +15,7 @@ const CHARGE_BADGE: Record<CareChargeStatus, BadgeVariant> = {
   REFUNDED: 'secondary',
 };
 
-/** Stato di un cargo di Floral Care (ADR-079): calcolato in lettura, "Vencido" dopo la scadenza. */
+/** Stato di un cargo di Floral Care (ADR-081): calcolato in lettura, "Vencido" dopo la scadenza. */
 export function ChargeStatusBadge({ status }: { readonly status: CareChargeStatus }) {
   const t = useTranslations('care.chargeStatus');
   return <Badge variant={CHARGE_BADGE[status]}>{t(status)}</Badge>;
@@ -23,7 +23,7 @@ export function ChargeStatusBadge({ status }: { readonly status: CareChargeStatu
 
 /**
  * Le due pagine di Floral Care fuori dall'Agenda: i contratti e, per chi gestisce i soldi, i cobros
- * (ADR-079).
+ * (ADR-081).
  */
 export function CareTabs({
   routes,
