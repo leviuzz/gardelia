@@ -869,6 +869,12 @@ https://fal.run/<endpoint>` sincrono con `sync_mode`, così l'immagine torna nel
   FormatJS).
 - **Test:** parità dei messaggi; E2E che cambia lingua (pagina di accesso e menu) e torna allo
   spagnolo; i test E2E esistenti restano in spagnolo (lingua predefinita).
+- **Dati scritti dalla fioreria (25/11/2026, feedback del founder):** i servizi di Floral Care hanno
+  il nome principale nella lingua del mercato, che leggono i clienti, e traduzioni facoltative
+  (`CareService.translations`, copiate sul contratto con il nome perché Mi Floral Care non legge
+  il servizio). Quelli della nostra lista li traduce Gardelia; per i suoi li scrive il fiorista.
+  L'app della fioreria e Mi Floral Care mostrano la lingua di chi guarda; rapporto pubblico della
+  visita, email, addebiti ed esportazioni restano nella lingua del mercato.
 
 ### ADR-043 — Specie dei fiori: elenco ampio, ricerca nella propria lingua, specie dal nome — ADOTTATO (22/11/2026), elenco DA VALIDARE
 
@@ -2135,6 +2141,13 @@ Avviato dal founder con la visione del 24/11 ("l'offerta floral care deve essere
   - 6: Asistente de plantas, con le ricariche pagate a Gardelia. Cambia D-26 solo per le consultas
     (superato il 25/11 da ADR-085: i crediti li compra la fioreria, D-26 resta intatta);
   - 7: consegne periodiche.
+- **Feedback del founder sul modulo del contratto (25/11/2026 sera):**
+  - «Usa i dati del cliente» nella sede: persona e telefono del destinatario dell'indirizzo scelto,
+    se no del cliente; acceso di default nel contratto nuovo (PROPOSTO), spento per scriverli a
+    mano. Fatto nel rilascio 1;
+  - **DECISO dal founder:** le **date scelte a mano** diventano una frequenza in più («Date scelte
+    a mano»): il fiorista sceglie ogni data sul calendario, nelle fasce. Da fare nel rilascio 3,
+    con le visite create subito per ogni data (piano in `IMPLEMENTATION_PLAN.md`).
 
 ### ADR-076 — Dati della fioreria: vigencia, orario di apertura, logo nelle stampe — ADOTTATO (24/11/2026)
 
@@ -3112,6 +3125,22 @@ staff usa l'assistente come gli altri ruoli; la risposta nella stessa richiesta 
 **DA VALIDARE con professionisti:** i dati di tossicità (fiorista o veterinario); l'aviso de
 privacidad (foto e domande vanno ad Anthropic, Stati Uniti, come fornitore); per il 6c la vendita
 di consultas ai consumatori in Messico (SAT, IVA, CFDI, PROFECO, chi incassa: O-02).
+
+**Decisioni del founder del 25/11 sera (da fare nel rilascio 2, aggiornano «la rivende come vuole:
+niente codice nuovo»):**
+
+- l'assistente si sceglie fra i servizi del contratto e il cliente vede quante domande riceve e
+  quanto costano altre;
+- **DECISO:** domande comprese **ogni mese**, nel numero deciso dal fiorista nelle Impostazioni;
+  quelle non usate restano finché il contratto è attivo e alla fine tornano alla fioreria;
+- **DECISO:** altre domande: il cliente **chiede** un pacchetto, il fiorista **approva**; i crediti
+  escono dal saldo della fioreria e il costo va nel prossimo addebito del cliente (paga la
+  fioreria, mai Gardelia: D-26);
+- **DECISO:** il pacchetto (quante domande e prezzo) lo decide il fiorista, es. 100 per 299 MXN
+  sopra i 199 MXN che paga a Gardelia; nessun prezzo di Gardelia nel codice (D-16/17);
+- **DECISO:** le domande comprate e non usate **non si rimborsano** a fine contratto, e il cliente
+  lo legge prima di chiederle. **DA VALIDARE** con l'avvocato (PROFECO) e nei termini della
+  fioreria; IVA della rivendita con il contador della fioreria.
 
 ## 3. Proposte da approvare
 
