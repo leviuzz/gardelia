@@ -6,7 +6,8 @@
 > entre corchetes `[...]` son datos pendientes o puntos que el abogado debe confirmar. Notas para la
 > revisión: `docs/legal/README.md`.
 
-**Última actualización:** [fecha de publicación] · Borrador del 23/11/2026 (compradores)
+**Última actualización:** [fecha de publicación] · Borrador del 23/11/2026 (compradores) y del
+25/11/2026 (Mi Floral Care)
 
 ## 1. Quién es el responsable de tus datos
 
@@ -23,6 +24,8 @@ Para cualquier tema relacionado con tus datos personales escríbenos a **privaci
 - Personas invitadas a unirse a una florería.
 - Personas que crean una cuenta para **comprar flores** y hacer pedidos a las florerías desde sus
   tiendas en línea ("Mi cuenta").
+- Personas a las que una florería invita a ver su servicio de cuidado de plantas ("Mi Floral
+  Care").
 - Personas que visitan nuestro sitio.
 
 **Datos de los clientes de cada florería.** Las florerías registran en Gardelia datos de sus propios
@@ -36,6 +39,15 @@ nos escribes, la ayudaremos a atender tu solicitud.
 guardadas) son responsabilidad de Gardelia. Cuando haces un pedido, compartimos con la florería que
 elegiste lo necesario para atenderlo (ver la sección 5); desde ese momento **la florería es también
 responsable** de los datos del pedido y de tu ficha en su lista de clientes.
+
+**Si una florería te invita a "Mi Floral Care".** [Borrador del 25/11/2026 — validar con el
+abogado.] La florería que cuida las plantas de un lugar (tu casa, tu oficina, tu negocio) te invita
+con tu correo. Al aceptar con tu cuenta, ves los datos del servicio que la florería registra: la
+dirección del lugar, las visitas, los reportes con fotos, las plantas y, solo si la florería lo
+elige, precios y cargos. Esos datos son responsabilidad de la florería. La florería sabe qué
+cuentas tienen acceso (nombre y correo) y recibe los cambios de fecha que haces. La florería puede
+quitarte el acceso en cualquier momento; se cierra solo si archiva al cliente y 30 días después del
+fin del contrato.
 
 ## 3. Datos personales que tratamos
 
@@ -54,6 +66,9 @@ responsable** de los datos del pedido y de tu ficha en su lista de clientes.
    dirección de entrega, quién recibe, el mensaje de la tarjeta y tus comentarios.
 7. **Datos de la persona que recibe las flores** (nombre, teléfono y dirección): nos los das tú para
    la entrega. Compártelos solo si esa persona está de acuerdo.
+8. **Si una florería te invita a "Mi Floral Care":** el correo de la invitación, a qué florería y
+   a qué cliente tienes acceso, si puedes ver precios, cuándo lo aceptaste o se cerró, y los
+   cambios de fecha de visita que haces.
 
 **No tratamos datos personales sensibles.** Te pedimos no subir fotos en las que aparezcan personas.
 
@@ -128,8 +143,9 @@ en [plazo legal — validar]. Ejercer tus derechos es gratuito; solo podrían co
 costos de reproducción o envío previstos por la ley.
 
 Muchas acciones las puedes hacer tú mismo desde la app: editar tu perfil, eliminar fotos y
-desactivar usuarios de tu equipo. **Si compras,** desde "Mi cuenta" puedes **descargar tus datos**
-y **eliminar tu cuenta** (te pedimos confirmarlo por correo). Los pedidos que ya hiciste siguen en las
+desactivar usuarios de tu equipo. **Si compras o tienes "Mi Floral Care",** desde "Mi cuenta"
+puedes **descargar tus datos** (también tus accesos a Mi Floral Care) y **eliminar tu cuenta** (te
+pedimos confirmarlo por correo). Los pedidos que ya hiciste siguen en las
 florerías que los atendieron: para esos datos, contacta a la florería. [Pendiente: exportar y
 cancelar desde la app las cuentas de las florerías.]
 
@@ -153,7 +169,8 @@ contables, durante el tiempo que estas exijan.
 
 Si compras y eliminas tu cuenta desde "Mi cuenta", borramos de inmediato tu cuenta, tu teléfono y tus
 direcciones guardadas. Los pedidos quedan en las florerías que los atendieron (son responsables de
-esos datos) sin el vínculo con tu cuenta. En nuestros registros de seguridad solo queda un
+esos datos) sin el vínculo con tu cuenta. Tus accesos a "Mi Floral Care" se borran con la cuenta;
+el servicio de cuidado sigue en la florería. En nuestros registros de seguridad solo queda un
 identificador técnico, sin tu nombre ni tu correo. Las copias de seguridad se borran automáticamente en
 un máximo de [7 a 30 días, según el plan de la base de datos — validar].
 
