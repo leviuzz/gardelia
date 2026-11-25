@@ -35,6 +35,7 @@ import {
   careCustomerEarliestStart,
   careCustomerTargetProblem,
   careMessageDayStart,
+  careMessagePages,
   careMessageProblem,
   careMessageSchema,
   careMessagesOpen,
@@ -710,8 +711,7 @@ export async function getMyCareThread(
   subscriptionId: string,
   pages = 1,
 ): Promise<MyCareThreadDto> {
-  const take =
-    CARE_MESSAGE_LIMITS.page * (Number.isInteger(pages) ? Math.min(Math.max(pages, 1), 20) : 1);
+  const take = CARE_MESSAGE_LIMITS.page * careMessagePages(pages);
   const found = await openPortal(buyer, subscriptionId, async (tx, entry) => {
     const contract = await tx.customerSubscription.findFirst({
       where: { tenantId: entry.tenantId, id: subscriptionId },

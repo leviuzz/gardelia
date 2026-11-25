@@ -11,7 +11,8 @@ import {
   minorToDecimalString,
   todayInTimeZone,
 } from '@floral/domain';
-import { CareTabs, ChargeStatusBadge } from '@/components/care/charge-ui';
+import { ChargeStatusBadge } from '@/components/care/charge-ui';
+import { CareTabs } from '@/components/care/care-tabs';
 import {
   ConfirmCollectionDialog,
   RejectCollectionDialog,
@@ -95,7 +96,7 @@ export default async function CareChargesPage({
   return (
     <div className="space-y-6">
       <PageHeader title={t('care.charges.title')} description={t('care.charges.subtitle')} />
-      <CareTabs routes={routes} current="charges" />
+      <CareTabs ctx={ctx} current="charges" />
 
       {pending.items.length > 0 ? (
         <Card>

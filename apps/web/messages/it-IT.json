@@ -372,7 +372,7 @@
       "title": "I tuoi dati e la tua privacy",
       "subtitle": "Come usiamo i tuoi dati è nell’<privacy>Informativa sulla privacy</privacy>. Qui puoi scaricarli o eliminare il tuo account.",
       "download": "Scarica i miei dati",
-      "downloadHint": "Un file con il tuo account, i tuoi indirizzi e i tuoi ordini.",
+      "downloadHint": "Un file con il tuo account, i tuoi indirizzi, i tuoi ordini e quello che è tuo in Mi Floral Care.",
       "delete": "Elimina il mio account",
       "deleteTitle": "Eliminare il tuo account?",
       "deleteIntro": "Prima di farlo, tieni presente:",
@@ -399,7 +399,8 @@
         "tooMany": "Hai già chiesto di eliminare il tuo account poco fa. Controlla la tua email o riprova tra qualche minuto.",
         "invalidLink": "Questo link non è più valido. Chiedine uno nuovo dal tuo account.",
         "generic": "Non siamo riusciti a completare la richiesta. Riprova."
-      }
+      },
+      "deleteCare": "Se hai accesso a Mi Floral Care, lo perdi; i tuoi messaggi restano alla fioreria senza il tuo nome."
     },
     "care": {
       "title": "Mi Floral Care",
@@ -489,7 +490,13 @@
         "accepted": "Hai già accettato questo invito.",
         "invalid": "Questo link non è valido.",
         "goToCare": "Vai a Mi Floral Care"
-      }
+      },
+      "messages": {
+        "title": "Messaggi con {shop}",
+        "subtitle": "Scrivi alla fioreria sulle tue piante; ti risponderà qui.",
+        "closed": "Il servizio è finito: puoi leggere i messaggi, ma non mandarne di nuovi."
+      },
+      "unread": "{count, plural, one {# messaggio nuovo} other {# messaggi nuovi}}"
     }
   },
   "store": {
@@ -3444,7 +3451,8 @@
       "portal_move_other_month": "Puoi cambiarla solo nello stesso mese.",
       "portal_move_busy_day": "Quel giorno c’è già un’altra visita di questo servizio.",
       "portal_move_same": "È lo stesso orario di adesso.",
-      "portal_move_notice": "Quell’orario è troppo vicino: scegline uno più avanti."
+      "portal_move_notice": "Quell’orario è troppo vicino: scegline uno più avanti.",
+      "message_empty": "Scrivi un messaggio o aggiungi una foto."
     },
     "conflict": {
       "not_configured": "Prima salva le tariffe di Floral Care (Impostazioni → Floral Care).",
@@ -3491,7 +3499,9 @@
       "portal_invite_expired": "L’invito è scaduto. Chiedine un altro alla fioreria.",
       "portal_email_mismatch": "L’invito è per un’altra email.",
       "portal_move_not_allowed": "Questa visita non si può cambiare da qui.",
-      "portal_move_notice": "Non si può più cambiare: manca troppo poco alla visita."
+      "portal_move_notice": "Non si può più cambiare: manca troppo poco alla visita.",
+      "message_closed": "Il servizio non è più attivo: non si possono mandare messaggi.",
+      "message_daily_limit": "Oggi hai già mandato molti messaggi. Riprova domani o chiama la fioreria."
     },
     "contracts": {
       "title": "Floral Care",
@@ -4056,7 +4066,9 @@
     "tabs": {
       "label": "Floral Care",
       "contracts": "Contratti",
-      "charges": "Incassi"
+      "charges": "Incassi",
+      "messages": "Messaggi",
+      "messagesCount": "Messaggi ({count})"
     },
     "chargeStatus": {
       "PENDING": "Da pagare",
@@ -4443,6 +4455,56 @@
       "notOpen": "Si invita solo da un contratto attivo di un cliente attivo.",
       "customerLine": "Mi Floral Care: {people, plural, =0 {ancora nessuno} one {# persona} other {# persone}}{pending, plural, =0 {} one { · # invito in attesa} other { · # inviti in attesa}}",
       "movedByCustomer": "Cambiata dal cliente"
+    },
+    "messages": {
+      "title": "Messaggi",
+      "subtitle": "Quello che scrivono la fioreria e il cliente su questo servizio. Lo legge tutta la squadra.",
+      "empty": "Ancora nessun messaggio.",
+      "noAccess": "Nessuno del cliente vede questo servizio in Mi Floral Care: leggerà i tuoi messaggi quando accetterà un invito da «Acceso del cliente».",
+      "closed": "Il servizio è finito: i messaggi restano da consultare.",
+      "older": "Vedi i messaggi precedenti",
+      "unreadDivider": "Da leggere",
+      "newDivider": "Nuovi",
+      "customer": "Cliente",
+      "deletedAccount": "Account eliminato",
+      "you": "Tu",
+      "photoAlt": "Foto del messaggio",
+      "photoGone": "La foto non è più disponibile.",
+      "removePhoto": "Togli foto",
+      "removePhotoTitle": "Togliere la foto?",
+      "removePhotoBody": "La foto si cancella per tutti, anche per il cliente. Il testo del messaggio resta.",
+      "photoRemoved": "Foto tolta",
+      "sent": "Messaggio inviato",
+      "composer": {
+        "label": "Messaggio",
+        "placeholder": "Scrivi un messaggio…",
+        "addPhoto": "Aggiungi foto",
+        "photoChosen": "Foto: {name}",
+        "removeChosen": "Togli la foto scelta",
+        "send": "Invia",
+        "hint": "Fino a 2000 caratteri e una foto.",
+        "empty": "Scrivi un messaggio o aggiungi una foto.",
+        "networkError": "Non è stato possibile inviare. Controlla la connessione e riprova."
+      },
+      "list": {
+        "title": "Messaggi",
+        "subtitle": "I messaggi dei tuoi clienti di Floral Care, prima quelli che non hai letto.",
+        "empty": "Ancora nessun messaggio. Quando un cliente ti scriverà da Mi Floral Care, comparirà qui.",
+        "fromCustomer": "Cliente: {text}",
+        "fromShop": "Fioreria: {text}",
+        "photo": "Foto",
+        "unread": "{count, plural, one {# da leggere} other {# da leggere}}",
+        "ended": "Finito",
+        "previous": "Precedenti",
+        "next": "Successivi",
+        "emptyTitle": "Nessun messaggio",
+        "photoOnly": "Ha inviato una foto"
+      }
+    },
+    "messagesCard": {
+      "title": "Messaggi da leggere",
+      "body": "{unread, plural, one {# messaggio} other {# messaggi}} di clienti di Floral Care in {threads, plural, one {# contratto} other {# contratti}}.",
+      "link": "Vedi i messaggi"
     }
   },
   "letterhead": {

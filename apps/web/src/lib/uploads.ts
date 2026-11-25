@@ -17,3 +17,10 @@ export async function uploadedBytes(formData: FormData): Promise<Uint8Array> {
   }
   return new Uint8Array(await file.arrayBuffer());
 }
+
+/** Come `uploadedBytes`, ma il file è facoltativo (la foto di un messaggio): null se non c'è. */
+export async function optionalUploadedBytes(formData: FormData): Promise<Uint8Array | null> {
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) return null;
+  return uploadedBytes(formData);
+}

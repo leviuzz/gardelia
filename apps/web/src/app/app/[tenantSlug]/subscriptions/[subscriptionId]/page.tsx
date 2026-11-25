@@ -35,12 +35,14 @@ import {
   CARE_EXTRA_KINDS,
   CARE_LIMITS,
   addDays,
+  careMessagePages,
   suggestedCareExtraFee,
   todayInTimeZone,
   toIsoDate,
   type CareExtraKind,
 } from '@floral/domain';
 import { ContractStatusBadge, ExtraVisitBadge, VisitStatusBadge } from '@/components/care/care-ui';
+import { CareMessagesCard } from '@/components/care/care-messages-card';
 import { ContractChargesCard } from '@/components/care/contract-charges-card';
 import { CareUpsell } from '@/components/care/care-upsell';
 import { PortalAccessCard } from '@/components/care/portal-access-card';
@@ -119,6 +121,8 @@ export default async function CareContractPage({
   // Da un avviso di pianta morta: "Reposición sin costo" apre il modulo della visita extra.
   const fromFollowUp = typeof query.followUp === 'string' ? query.followUp : null;
   const openExtra = typeof query.extra === 'string' ? query.extra : null;
+  // «Ver mensajes anteriores» (ADR-084): quante pagine del filo mostrare.
+  const messagePages = careMessagePages(query.mensajes);
   const ctx = await getTenantContext(tenantSlug);
   if (!hasPermission(ctx, 'subscriptions:read')) return <Forbidden />;
   const t = await getTranslations();
@@ -632,6 +636,9 @@ export default async function CareContractPage({
         </div>
 
         <div className="min-w-0 space-y-6">
+          {isDraft ? null : (
+            <CareMessagesCard ctx={ctx} subscriptionId={contract.id} pages={messagePages} />
+          )}
           {contract.canPayments ? (
             <ContractChargesCard
               ctx={ctx}

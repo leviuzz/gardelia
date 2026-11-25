@@ -19,6 +19,7 @@ import {
   type QuoteStatus,
 } from '@floral/domain';
 import { CareChargesCard } from '@/components/care/care-charges-card';
+import { CareUnreadMessagesCard } from '@/components/care/care-unread-messages-card';
 import { InventoryAlertsCard } from '@/components/inventory/inventory-alerts-card';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -152,6 +153,8 @@ export default async function DashboardPage({ params }: PageProps<'/app/[tenantS
 
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="min-w-0 space-y-6 lg:col-span-3">
+          {/* Clienti che aspettano una risposta (ADR-084): prima di tutto il resto. */}
+          <CareUnreadMessagesCard ctx={ctx} />
           {pendingSteps > 0 ? (
             <Card>
               <CardHeader>

@@ -72,6 +72,7 @@ export default async function AccountPage() {
   ]);
   const t = await getTranslations();
   const format = await getFormatter();
+  const careUnread = careContracts.reduce((total, contract) => total + contract.unreadMessages, 0);
 
   return (
     <div className="space-y-6">
@@ -170,6 +171,11 @@ export default async function AccountPage() {
               <span className="text-muted-foreground">
                 {t('account.care.cardBody', { count: careContracts.length })}
               </span>
+              {careUnread > 0 ? (
+                <Badge variant="info" className="mt-1">
+                  {t('account.care.unread', { count: careUnread })}
+                </Badge>
+              ) : null}
             </p>
             <Button asChild variant="outline" size="sm">
               <Link href={accountRoutes.care.home}>

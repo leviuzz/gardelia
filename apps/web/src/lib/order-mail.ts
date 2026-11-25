@@ -18,6 +18,7 @@ export function orderMailDeps(): OrderMailDeps {
       order: (tenantSlug, orderId) => `${base}${tenantRoutes(tenantSlug).orders.detail(orderId)}`,
       account: `${base}${accountRoutes.home}`,
       search: `${base}${buyerRoutes.home}`,
+      careMessages: (tenantSlug) => `${base}${tenantRoutes(tenantSlug).subscriptions.messages()}`,
     },
   };
 }

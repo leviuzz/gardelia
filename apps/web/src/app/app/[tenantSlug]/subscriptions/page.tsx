@@ -11,7 +11,7 @@ import {
 } from '@floral/core';
 import { CARE_CONTRACT_VIEWS, careContractListFiltersSchema } from '@floral/domain';
 import { ContractStatusBadge } from '@/components/care/care-ui';
-import { CareTabs } from '@/components/care/charge-ui';
+import { CareTabs } from '@/components/care/care-tabs';
 import { CareUpsell } from '@/components/care/care-upsell';
 import { FilterBar } from '@/components/common/list/filter-bar';
 import { ListPagination } from '@/components/common/list/list-pagination';
@@ -106,10 +106,8 @@ export default async function CareContractsPage({
         description={t('care.contracts.subtitle')}
         actions={actions}
       />
-      {/* "Cobros" (ADR-082): solo per chi gestisce i soldi. */}
-      {hasPermission(ctx, 'subscriptions:payments') ? (
-        <CareTabs routes={routes} current="contracts" />
-      ) : null}
+      {/* "Cobros" (ADR-082) per chi gestisce i soldi, "Mensajes" (ADR-084) per tutti. */}
+      <CareTabs ctx={ctx} current="contracts" />
 
       <nav aria-label={t('care.contracts.viewsLabel')} className="flex flex-wrap gap-2 text-sm">
         {CARE_CONTRACT_VIEWS.map((view) => (

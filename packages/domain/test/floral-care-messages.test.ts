@@ -3,6 +3,7 @@ import {
   CARE_EMAIL_KINDS,
   CARE_MESSAGE_LIMITS,
   careMessageDayStart,
+  careMessagePages,
   careMessageProblem,
   careMessageSchema,
   careMessagesOpen,
@@ -28,6 +29,19 @@ describe('messaggi di Floral Care', () => {
     expect(careMessageSchema.safeParse({ body: 'Hola', submitKey: 'non-uuid' }).success).toBe(
       false,
     );
+  });
+
+  it('«Ver mensajes anteriores»: da 1 al massimo di pagine, qualunque cosa arrivi', () => {
+    expect(careMessagePages(undefined)).toBe(1);
+    expect(careMessagePages('2')).toBe(2);
+    expect(careMessagePages(3)).toBe(3);
+    expect(careMessagePages('0')).toBe(1);
+    expect(careMessagePages('-4')).toBe(1);
+    expect(careMessagePages('abc')).toBe(1);
+    expect(careMessagePages(2.5)).toBe(1);
+    expect(careMessagePages(['2', '3'])).toBe(1);
+    expect(careMessagePages('2abc')).toBe(1);
+    expect(careMessagePages('999')).toBe(CARE_MESSAGE_LIMITS.maxPages);
   });
 
   it('si scrive con il contratto attivo o in pausa, con testo o foto', () => {

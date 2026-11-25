@@ -22,6 +22,8 @@ export const CARE_MESSAGE_LIMITS = {
   perPersonPerDay: 30,
   /** Messaggi mostrati per volta nel filo ("Ver anteriores" per gli altri). */
   page: 30,
+  /** Pagine del filo mostrate al massimo (600 messaggi): oltre non serve un link. */
+  maxPages: 20,
   /** Contratti per pagina nell'elenco «Mensajes» della fioreria. */
   threadsPage: 25,
   /** Tentativi del riassunto giornaliero alla fioreria (come le altre email di Floral Care). */
@@ -52,6 +54,17 @@ export const careMessageSchema = z.object({
   submitKey: z.preprocess(toTrimmedString, z.uuid({ error: 'required' })),
 });
 export type CareMessageInput = z.infer<typeof careMessageSchema>;
+
+/**
+ * Quante pagine del filo mostrare, da `?mensajes=` o da un numero: un valore assente, non intero o
+ * fuori dai limiti diventa 1 o il massimo.
+ */
+export function careMessagePages(raw: unknown): number {
+  const text = typeof raw === 'string' ? raw.trim() : '';
+  const pages = typeof raw === 'number' ? raw : /^\d{1,4}$/.test(text) ? Number(text) : 0;
+  if (!Number.isInteger(pages) || pages < 1) return 1;
+  return Math.min(pages, CARE_MESSAGE_LIMITS.maxPages);
+}
 
 /** Si scrive solo su un contratto attivo o in pausa (mai un borrador o uno finito). */
 export function careMessagesOpen(status: CustomerSubscriptionStatus): boolean {

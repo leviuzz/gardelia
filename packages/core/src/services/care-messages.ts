@@ -18,6 +18,7 @@ import {
   AUDIT_ACTIONS,
   CARE_MESSAGE_LIMITS,
   careEmailsAllowed,
+  careMessagePages,
   careMessageProblem,
   careMessageSchema,
   careMessagesOpen,
@@ -41,7 +42,7 @@ import {
   type FileToStore,
   type StoredImage,
 } from '../media/stored-files';
-import { requireEntitlement } from './billing';
+import { getEntitlements, requireEntitlement } from './billing';
 import type { PhotoVariant } from './catalog-photos';
 import { dbDate } from './care-internals';
 import { portalAccessCountTx } from './care-message-internals';
@@ -165,10 +166,6 @@ export function toCareMessageDto(row: MessageRow): CareMessageDto {
 
 export { messageSelect as careMessageSelect };
 
-function pagesOf(pages: number): number {
-  return Number.isInteger(pages) ? Math.min(Math.max(pages, 1), 20) : 1;
-}
-
 function previewOf(body: string): string {
   const flat = body.replace(/\s+/g, ' ').trim();
   return flat.length > PREVIEW_CHARS ? `${flat.slice(0, PREVIEW_CHARS - 1)}…` : flat;
@@ -186,7 +183,7 @@ export async function getCareThread(
 ): Promise<CareThreadDto> {
   requirePermission(ctx, 'care:messages');
   if (!isUuid(subscriptionId)) throw new NotFoundError('CustomerSubscription');
-  const take = CARE_MESSAGE_LIMITS.page * pagesOf(pages);
+  const take = CARE_MESSAGE_LIMITS.page * careMessagePages(pages);
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     await requireEntitlement(ctx, 'floralCare', tx);
     const contract = await tx.customerSubscription.findFirst({
@@ -329,24 +326,22 @@ export async function listCareThreads(ctx: TenantContext, page = 1): Promise<Car
 
 /**
  * I messaggi del cliente da leggere (riquadro del pannello e scheda «Mensajes»); null per chi non
- * vede i messaggi.
+ * vede i messaggi o se il piano non comprende Floral Care (la scheda e il riquadro non compaiono).
  */
 export async function countUnreadCareMessages(
   ctx: TenantContext,
 ): Promise<CareUnreadMessagesDto | null> {
   if (!hasPermission(ctx, 'care:messages')) return null;
-  const rows = await withTenantContext(
-    getDb(),
-    ctx,
-    (tx) =>
-      tx.$queryRaw<{ unread: number; threads: number }[]>`
-        SELECT count(*)::int AS unread, count(DISTINCT m."subscriptionId")::int AS threads
-        FROM "CareMessage" m
-        WHERE m."tenantId" = ${ctx.tenantId}::uuid
-          AND m."authorKind" = 'CUSTOMER'
-          AND m."readByShopAt" IS NULL`,
-  );
-  return { unread: rows[0]?.unread ?? 0, threads: rows[0]?.threads ?? 0 };
+  return withTenantContext(getDb(), ctx, async (tx) => {
+    if (!(await getEntitlements(ctx, tx)).floralCare) return null;
+    const rows = await tx.$queryRaw<{ unread: number; threads: number }[]>`
+      SELECT count(*)::int AS unread, count(DISTINCT m."subscriptionId")::int AS threads
+      FROM "CareMessage" m
+      WHERE m."tenantId" = ${ctx.tenantId}::uuid
+        AND m."authorKind" = 'CUSTOMER'
+        AND m."readByShopAt" IS NULL`;
+    return { unread: rows[0]?.unread ?? 0, threads: rows[0]?.threads ?? 0 };
+  });
 }
 
 // -----------------------------------------------------------------------------

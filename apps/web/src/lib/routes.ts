@@ -172,6 +172,21 @@ export function tenantRoutes(slug: string) {
       /** Un cargo del contratto: righe, pagamenti, stampa. */
       charge: (subscriptionId: string, chargeId: string) =>
         `${subscriptions}/${segment(subscriptionId)}/charges/${segment(chargeId)}`,
+      /** «Mensajes» (ADR-084): i fili dei contratti, prima quelli da leggere (`page`). */
+      messages: (query?: QueryValues) => withQuery(`${subscriptions}/messages`, query),
+      /** Il filo nella pagina del contratto (`mensajes`: pagine da mostrare). */
+      thread: (subscriptionId: string, query?: QueryValues) =>
+        `${withQuery(`${subscriptions}/${segment(subscriptionId)}`, query)}#mensajes`,
+      /** La foto di un messaggio (`thumb` = miniatura). */
+      messagePhoto: (
+        subscriptionId: string,
+        photoId: string,
+        options?: { readonly thumb?: boolean },
+      ) =>
+        withQuery(
+          `${subscriptions}/${segment(subscriptionId)}/messages/photos/${segment(photoId)}`,
+          { size: options?.thumb ? 'thumb' : undefined },
+        ),
     },
     /** Agenda dei lavori (ADR-075): il giorno con visite e consegne, il mese, le visite da riprogrammare. */
     agenda: {
@@ -278,6 +293,9 @@ function careAccountRoutes() {
       }),
     /** L'invito della fioreria: si apre anche senza sessione. */
     invite: (token: string) => `${home}/invitacion/${segment(token)}`,
+    /** I messaggi con la fioreria nella pagina del contratto (`mensajes`: pagine da mostrare). */
+    thread: (subscriptionId: string, query?: QueryValues) =>
+      `${withQuery(contract(subscriptionId), query)}#mensajes`,
   };
 }
 
