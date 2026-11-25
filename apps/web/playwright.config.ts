@@ -66,6 +66,8 @@ export default defineConfig({
       // Anteprime AI con il provider simulato (solo locale) e archivio su file.
       AI_PROVIDER: 'simulated',
       AI_MONTHLY_BUDGET_USD: '50',
+      // Asistente de plantas (ADR-085) simulato: risposte finte etichettate, mai in pubblico.
+      ASSISTANT_PROVIDER: 'simulated',
       STORAGE_DRIVER: 'filesystem',
       STORAGE_DIR: '.storage',
       // Login con Google (ADR-036): client finto ed endpoint dei token simulato nel server.

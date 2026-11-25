@@ -343,6 +343,7 @@ export {
   getAssistantCase,
   getAssistantPanel,
   getAssistantPhotoImage,
+  isPlantAssistantAvailable,
   listAssistantCases,
   startAssistantCase,
   type AssistantAnswerDto,

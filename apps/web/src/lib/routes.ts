@@ -187,6 +187,24 @@ export function tenantRoutes(slug: string) {
           `${subscriptions}/${segment(subscriptionId)}/messages/photos/${segment(photoId)}`,
           { size: options?.thumb ? 'thumb' : undefined },
         ),
+      /**
+       * Asistente de plantas (ADR-085): una nuova consulta (`plant` e `visit` da cui si parte) o un
+       * caso già aperto (`case`).
+       */
+      assistant: (
+        subscriptionId: string,
+        query?: { readonly plant?: string; readonly visit?: string; readonly case?: string },
+      ) => withQuery(`${subscriptions}/${segment(subscriptionId)}/assistant`, query),
+      /** La foto di un caso dell'assistente (`thumb` = miniatura). */
+      assistantPhoto: (
+        subscriptionId: string,
+        caseId: string,
+        options?: { readonly thumb?: boolean },
+      ) =>
+        withQuery(
+          `${subscriptions}/${segment(subscriptionId)}/assistant/photos/${segment(caseId)}`,
+          { size: options?.thumb ? 'thumb' : undefined },
+        ),
     },
     /** Agenda dei lavori (ADR-075): il giorno con visite e consegne, il mese, le visite da riprogrammare. */
     agenda: {

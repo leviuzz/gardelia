@@ -272,6 +272,11 @@ async function recordFailedCall(
 // Letture
 // -----------------------------------------------------------------------------
 
+/** L'assistente è configurato: senza, l'interfaccia non mostra i link (niente funzioni finte). */
+export function isPlantAssistantAvailable(): boolean {
+  return getPlantAssistant() !== null;
+}
+
 /** Stato dell'assistente per la pagina: disponibile, consultas di oggi, piante della lista. */
 export async function getAssistantPanel(ctx: TenantContext): Promise<AssistantPanelDto> {
   requirePermission(ctx, 'care:assistant');
@@ -480,17 +485,28 @@ export async function listAssistantCases(
   });
 }
 
-/** La foto di un caso (`thumb` = miniatura), finché non è cancellata. */
+/**
+ * La foto di un caso (`thumb` = miniatura), finché non è cancellata. Con `subscriptionId` (il
+ * percorso della pagina) il caso dev'essere di quel contratto.
+ */
 export async function getAssistantPhotoImage(
   ctx: TenantContext,
   caseId: string,
   variant: PhotoVariant,
+  subscriptionId?: string,
 ): Promise<StoredImage> {
   requirePermission(ctx, 'care:assistant');
-  if (!isUuid(caseId)) throw new NotFoundError('AssistantCase');
+  if (!isUuid(caseId) || (subscriptionId !== undefined && !isUuid(subscriptionId))) {
+    throw new NotFoundError('AssistantCase');
+  }
   const row = await withTenantContext(getDb(), ctx, (tx) =>
     tx.assistantCase.findFirst({
-      where: { tenantId: ctx.tenantId, id: caseId, photoDeletedAt: null },
+      where: {
+        tenantId: ctx.tenantId,
+        id: caseId,
+        photoDeletedAt: null,
+        ...(subscriptionId !== undefined ? { subscriptionId } : {}),
+      },
       select: { storageKey: true, thumbKey: true },
     }),
   );

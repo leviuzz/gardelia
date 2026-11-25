@@ -4685,5 +4685,118 @@
     "hours": "{hours} h",
     "minutes": "{minutes} min",
     "hoursMinutes": "{hours} h {minutes} min"
+  },
+  "assistant": {
+    "title": "Assistente delle piante",
+    "subtitle": "Fotografa la pianta e chiedi che cos'ha: la risposta è breve, con i passi da seguire.",
+    "back": "Torna al contratto {number}",
+    "simulated": "Simulazione (ambiente di sviluppo): le risposte sono di prova, non le scrive l'IA.",
+    "unavailable": "L'assistente delle piante per ora non è disponibile.",
+    "usage": "Oggi: {used} di {limit} domande della fioreria",
+    "limitReached": "La fioreria ha raggiunto il limite di oggi ({limit} domande). Riprova domani.",
+    "aiNotice": "Risposta generata con l'IA: controllala prima di agire.",
+    "new": {
+      "title": "Nuova domanda",
+      "plant": "Pianta del contratto",
+      "plantNone": "Non specificata",
+      "photo": "Foto della pianta",
+      "choosePhoto": "Scatta o scegli una foto",
+      "changePhoto": "Cambia foto",
+      "previewAlt": "Anteprima della foto scelta",
+      "tip": "Con la luce del giorno, che si vedano le foglie e, se c'è un problema, la parte rovinata.",
+      "submit": "Analizza la foto",
+      "analyzing": "Sto analizzando la foto… può volerci una ventina di secondi.",
+      "photoRequired": "Scegli una foto.",
+      "networkError": "Invio non riuscito. Controlla la connessione e riprova.",
+      "recentTitle": "Domande precedenti",
+      "recentEmpty": "Ancora nessuna domanda in questo contratto.",
+      "answers": "{count, plural, =0 {Senza risposta} one {# risposta} other {# risposte}}",
+      "unknownSpecies": "Pianta non identificata"
+    },
+    "case": {
+      "title": "Domanda del {date}",
+      "photoAlt": "Foto della pianta della domanda",
+      "openPhoto": "Vedi la foto intera",
+      "photoDeleted": "La foto è già stata cancellata (30 giorni dopo la fine del contratto).",
+      "unusable": "Nella foto la pianta non si distingue bene. Scattane un'altra con più luce e più da vicino.",
+      "retakePhoto": "Scatta un'altra foto",
+      "condition": "Cosa si vede nella foto",
+      "notInList": "Sembra una pianta che non è nella nostra lista: scegli «Altra» o «Non lo so».",
+      "full": "Hai già fatto le {count} domande di questa foto. Per un'altra, scatta una foto nuova.",
+      "askedBy": "Ha chiesto {name}"
+    },
+    "ask": {
+      "speciesLegend": "È una di queste?",
+      "speciesLegendAgain": "Pianta",
+      "fromRecord": "Secondo la scheda della pianta",
+      "other": "Altra",
+      "otherSelect": "Quale?",
+      "otherPlaceholder": "Scegli la pianta…",
+      "unknown": "Non lo so",
+      "question": "Che cos'ha?",
+      "questionAgain": "Un'altra domanda",
+      "placeholder": "Es.: ha foglie gialle e le punte secche. Cosa faccio?",
+      "remaining": "{count, plural, one {Resta # domanda} other {Restano # domande}} su questa foto.",
+      "submit": "Chiedi",
+      "thinking": "Sto preparando la risposta… può volerci una ventina di secondi.",
+      "answered": "Risposta pronta.",
+      "likelihood": {
+        "high": "Molto probabile",
+        "medium": "Probabile",
+        "low": "Possibile"
+      },
+      "otherRequired": "Scegli la pianta dall'elenco."
+    },
+    "answer": {
+      "question": "Domanda",
+      "species": "Pianta: {name}",
+      "speciesUnknown": "Pianta: non identificata",
+      "steps": "Passi",
+      "unsure": "L'assistente non è sicuro: controlla la pianta di persona.",
+      "careTitle": "Cure secondo Gardelia",
+      "light": "Luce",
+      "watering": "Acqua",
+      "humidity": "Umidità"
+    },
+    "care": {
+      "light": {
+        "LOW": "Tollera poca luce, lontano dalle finestre",
+        "MEDIUM": "Luce indiretta brillante",
+        "HIGH": "Sole diretto per parte del giorno"
+      },
+      "watering": {
+        "LITTLE": "Poca acqua: lascia asciugare del tutto la terra",
+        "DRY_BETWEEN": "Quando i primi centimetri di terra sono asciutti",
+        "SLIGHTLY_MOIST": "Terra appena umida, mai zuppa"
+      },
+      "humidity": {
+        "LOW": "Bassa: tollera l'aria secca",
+        "MEDIUM": "Media",
+        "HIGH": "Alta: ama l'aria umida"
+      }
+    },
+    "toxicity": {
+      "TOXIC": "Tossica per cani e gatti se la mordono o la mangiano.",
+      "MILD": "Può dare disturbi lievi a cani e gatti se la mordono.",
+      "NON_TOXIC": "Non è tossica per cani e gatti.",
+      "VARIES": "Dipende dalla specie: alcune sono tossiche per cani e gatti.",
+      "sourceASPCA": "Fonte: elenco delle piante tossiche e non tossiche dell'ASPCA.",
+      "noSource": "Dato da confermare.",
+      "unreviewed": "Non ancora verificato da uno specialista."
+    },
+    "conflict": {
+      "unavailable": "L'assistente delle piante per ora non è disponibile.",
+      "daily_limit": "La fioreria ha raggiunto il limite di domande di oggi. Riprova domani.",
+      "budget_reached": "L'assistente ha raggiunto il suo limite di questo mese. Riprova il mese prossimo.",
+      "photo_unusable": "In quella foto la pianta non si distingue: scattane un'altra.",
+      "case_full": "Hai già fatto tutte le domande di questa foto. Scatta una foto nuova.",
+      "failed": "L'assistente non è riuscito a rispondere e non conta come domanda. Riprova."
+    },
+    "card": {
+      "description": "Fotografa una pianta del contratto e chiedi che cos'ha.",
+      "empty": "Ancora nessuna domanda.",
+      "askPlant": "Chiedi all'assistente di {name}",
+      "askVisitPlant": "Chiedi all'assistente"
+    }
   }
 }

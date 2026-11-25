@@ -189,7 +189,7 @@ export const assistantQuestionSchema = z.object({
 });
 export type AssistantQuestionInput = z.infer<typeof assistantQuestionSchema>;
 
-/** Codici dei problemi (testi in `care.assistant.errors.*`). */
+/** Codici dei problemi (testi in `assistant.conflict.*` dei messaggi del web). */
 export type AssistantProblem =
   | 'assistant_unavailable'
   | 'assistant_daily_limit'

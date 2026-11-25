@@ -265,6 +265,13 @@ describe('Asistente de plantas: caso e risposte', () => {
     expect(Math.max(size.width ?? 0, size.height ?? 0)).toBeLessThanOrEqual(1092);
     const thumb = await getAssistantPhotoImage(owner, found.id, 'thumb');
     expect(thumb.contentType).toBe('image/jpeg');
+    // Con il contratto del percorso: solo quello del caso.
+    await expect(
+      getAssistantPhotoImage(owner, found.id, 'full', found.subscriptionId),
+    ).resolves.toMatchObject({ contentType: 'image/jpeg' });
+    await expect(
+      getAssistantPhotoImage(owner, found.id, 'full', '00000000-0000-4000-8000-000000000000'),
+    ).rejects.toBeInstanceOf(NotFoundError);
     const calls = await callsOf(shop.tenant.tenantId);
     expect(calls.at(-1)).toMatchObject({
       caseId: found.id,

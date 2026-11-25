@@ -4685,5 +4685,118 @@
     "hours": "{hours} h",
     "minutes": "{minutes} min",
     "hoursMinutes": "{hours} h {minutes} min"
+  },
+  "assistant": {
+    "title": "Plant assistant",
+    "subtitle": "Take a photo of the plant and ask what's wrong: the answer is short, with the steps to follow.",
+    "back": "Back to contract {number}",
+    "simulated": "Simulation (development environment): these are test answers, not written by AI.",
+    "unavailable": "The plant assistant isn't available right now.",
+    "usage": "Today: {used} of {limit} shop questions",
+    "limitReached": "The shop has reached today's limit ({limit} questions). Try again tomorrow.",
+    "aiNotice": "AI-generated answer: check it before acting.",
+    "new": {
+      "title": "New question",
+      "plant": "Contract plant",
+      "plantNone": "Not specified",
+      "photo": "Plant photo",
+      "choosePhoto": "Take or choose a photo",
+      "changePhoto": "Change photo",
+      "previewAlt": "Preview of the chosen photo",
+      "tip": "In daylight, with the leaves in view and, if there's a problem, the damaged part.",
+      "submit": "Analyze photo",
+      "analyzing": "Analyzing the photo… this can take about 20 seconds.",
+      "photoRequired": "Choose a photo.",
+      "networkError": "Couldn't send. Check your connection and try again.",
+      "recentTitle": "Previous questions",
+      "recentEmpty": "No questions on this contract yet.",
+      "answers": "{count, plural, =0 {No answer} one {# answer} other {# answers}}",
+      "unknownSpecies": "Unidentified plant"
+    },
+    "case": {
+      "title": "Question from {date}",
+      "photoAlt": "Photo of the plant in question",
+      "openPhoto": "See the full photo",
+      "photoDeleted": "The photo has been deleted (30 days after the contract ended).",
+      "unusable": "The plant isn't clear in the photo. Take another one with more light, closer up.",
+      "retakePhoto": "Take another photo",
+      "condition": "What the photo shows",
+      "notInList": "It looks like a plant that isn't on our list: choose “Other” or “I don't know”.",
+      "full": "You've asked all {count} questions for this photo. For another one, take a new photo.",
+      "askedBy": "Asked by {name}"
+    },
+    "ask": {
+      "speciesLegend": "Is it one of these?",
+      "speciesLegendAgain": "Plant",
+      "fromRecord": "From the plant record",
+      "other": "Other",
+      "otherSelect": "Which one?",
+      "otherPlaceholder": "Choose the plant…",
+      "unknown": "I don't know",
+      "question": "What's wrong with it?",
+      "questionAgain": "Another question",
+      "placeholder": "E.g.: its leaves are yellow with dry tips. What should I do?",
+      "remaining": "{count, plural, one {# question} other {# questions}} left for this photo.",
+      "submit": "Ask",
+      "thinking": "Preparing the answer… this can take about 20 seconds.",
+      "answered": "Answer ready.",
+      "likelihood": {
+        "high": "Very likely",
+        "medium": "Likely",
+        "low": "Possible"
+      },
+      "otherRequired": "Choose the plant from the list."
+    },
+    "answer": {
+      "question": "Question",
+      "species": "Plant: {name}",
+      "speciesUnknown": "Plant: unidentified",
+      "steps": "Steps",
+      "unsure": "The assistant isn't sure: check the plant in person.",
+      "careTitle": "Care according to Gardelia",
+      "light": "Light",
+      "watering": "Watering",
+      "humidity": "Humidity"
+    },
+    "care": {
+      "light": {
+        "LOW": "Tolerates low light, away from windows",
+        "MEDIUM": "Bright indirect light",
+        "HIGH": "Direct sun for part of the day"
+      },
+      "watering": {
+        "LITTLE": "Little water: let the soil dry out completely",
+        "DRY_BETWEEN": "When the top few centimeters of soil are dry",
+        "SLIGHTLY_MOIST": "Soil slightly moist, never soggy"
+      },
+      "humidity": {
+        "LOW": "Low: tolerates dry air",
+        "MEDIUM": "Medium",
+        "HIGH": "High: likes humid air"
+      }
+    },
+    "toxicity": {
+      "TOXIC": "Toxic to dogs and cats if they chew or eat it.",
+      "MILD": "Can cause mild upset in dogs and cats if they chew it.",
+      "NON_TOXIC": "Not toxic to dogs and cats.",
+      "VARIES": "Depends on the species: some are toxic to dogs and cats.",
+      "sourceASPCA": "Source: the ASPCA list of toxic and non-toxic plants.",
+      "noSource": "Not yet confirmed.",
+      "unreviewed": "Not yet checked by a specialist."
+    },
+    "conflict": {
+      "unavailable": "The plant assistant isn't available right now.",
+      "daily_limit": "The shop has reached today's question limit. Try again tomorrow.",
+      "budget_reached": "The assistant has reached its limit for this month. Try again next month.",
+      "photo_unusable": "The plant isn't clear in that photo: take another one.",
+      "case_full": "You've asked all the questions for this photo. Take a new photo.",
+      "failed": "The assistant couldn't answer, and it didn't count as a question. Try again."
+    },
+    "card": {
+      "description": "Take a photo of a contract plant and ask what's wrong.",
+      "empty": "No questions yet.",
+      "askPlant": "Ask the assistant about {name}",
+      "askVisitPlant": "Ask the assistant"
+    }
   }
 }
