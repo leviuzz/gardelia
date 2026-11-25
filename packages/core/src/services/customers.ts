@@ -35,6 +35,7 @@ import { notFound, recordAudit } from '../audit';
 import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
+import { closeCustomerPortalTx } from './care-portal-internals';
 
 export interface CustomerSummaryDto {
   readonly id: string;
@@ -404,6 +405,8 @@ export async function setCustomerArchived(
     const target: RecordStatus = archived ? 'ARCHIVED' : 'ACTIVE';
     if (existing.status === target) return true;
     await tx.customer.update({ where: { id: existing.id }, data: { status: target } });
+    // Archiviato: chi lo seguiva dalla pagina di Floral Care non lo vede più (ADR-084).
+    if (archived) await closeCustomerPortalTx(tx, ctx.tenantId, existing.id, ctx.userId);
     await recordAudit(tx, ctx, {
       action: archived ? AUDIT_ACTIONS.customerArchived : AUDIT_ACTIONS.customerRestored,
       entityType: 'Customer',

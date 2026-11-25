@@ -32,6 +32,7 @@ import {
 } from '../scope';
 import { lockCareSlots, openSlotBook, type SlotBook } from './care-booking';
 import { dbDate, laterDate, lockSubscription, requiredParts } from './care-internals';
+import { revokeContractPortalInvitesTx } from './care-portal-internals';
 import { dateToParts } from './quote-internals';
 
 export interface CareGenerationResult {
@@ -497,6 +498,8 @@ export async function closeEndedCareContractTx(
     where: { id: subscriptionId, tenantId },
     data: { status: 'ENDED', endedAt: new Date() },
   });
+  // Un contratto finito non si apre più con un invito (la pagina del cliente, ADR-084).
+  await revokeContractPortalInvitesTx(tx, tenantId, subscriptionId);
   await recordScopeAudit(tx, scope, {
     action: AUDIT_ACTIONS.subscriptionEnded,
     entityType: 'CustomerSubscription',

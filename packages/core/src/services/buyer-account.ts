@@ -15,6 +15,7 @@ import {
   buyerAddressSchema,
   buyerProfileSchema,
   formatOrderNumber,
+  formatSubscriptionNumber,
   freshCoordinates,
   isUuid,
   nextStoredPlace,
@@ -342,12 +343,25 @@ export interface BuyerDataExport {
     readonly currency: string;
     readonly createdAt: string;
   }[];
+  /** Floral Care (ADR-084): i contratti che la persona vede o ha visto nella pagina del cliente. */
+  readonly floralCare: {
+    readonly accesses: readonly {
+      readonly shop: string;
+      readonly customer: string;
+      /** Il contratto, se l'accesso era solo per uno (SUS-0001). */
+      readonly contract: string | null;
+      readonly canSeeMoney: boolean;
+      readonly since: string;
+      readonly closedAt: string | null;
+      readonly closedReason: string | null;
+    }[];
+  };
 }
 
 export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExport> {
   assertBuyer(ctx);
   return withUserContext(getDb(), ctx.userId, async (tx) => {
-    const [user, profile, addresses, orders] = await Promise.all([
+    const [user, profile, addresses, orders, careAccesses] = await Promise.all([
       tx.user.findUniqueOrThrow({
         where: { id: ctx.userId },
         select: { name: true, email: true, locale: true, createdAt: true },
@@ -374,6 +388,17 @@ export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExpor
         },
       }),
       buyerOrderRows(tx),
+      tx.$queryRaw<
+        {
+          shop_name: string;
+          customer_name: string;
+          contract_number: number | null;
+          can_see_money: boolean;
+          created_at: Date;
+          revoked_at: Date | null;
+          revoked_reason: string | null;
+        }[]
+      >`SELECT * FROM app_buyer_care_access()`,
     ]);
     return {
       exportedAt: new Date().toISOString(),
@@ -400,6 +425,18 @@ export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExpor
         currency: order.currency.trim(),
         createdAt: order.created_at.toISOString(),
       })),
+      floralCare: {
+        accesses: careAccesses.map((row) => ({
+          shop: row.shop_name,
+          customer: row.customer_name,
+          contract:
+            row.contract_number === null ? null : formatSubscriptionNumber(row.contract_number),
+          canSeeMoney: row.can_see_money,
+          since: row.created_at.toISOString(),
+          closedAt: row.revoked_at ? row.revoked_at.toISOString() : null,
+          closedReason: row.revoked_reason,
+        })),
+      },
     };
   });
 }

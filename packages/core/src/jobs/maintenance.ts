@@ -41,6 +41,8 @@ export interface MaintenanceResult {
   /** Floral Care (ADR-075): visite nuove (con posto o da riprogrammare) e contratti chiusi. */
   readonly careVisitsCreated: number;
   readonly careContractsEnded: number;
+  /** Floral Care (ADR-084): accessi alla pagina del cliente chiusi (contratto finito da 30 giorni). */
+  readonly carePortalAccessClosed: number;
   /** Floral Care (ADR-078): foto cancellate e resoconti mandati dal lavoro. */
   readonly carePhotosDeleted: number;
   readonly careEmailsSent: number;
@@ -86,6 +88,7 @@ export async function runDailyMaintenance(
     careChargesPending: care.chargesPending,
     careVisitsCreated: care.visitsScheduled + care.visitsToReschedule,
     careContractsEnded: care.contractsEnded,
+    carePortalAccessClosed: care.portalAccessClosed,
     carePhotosDeleted: care.photosDeleted,
     careEmailsSent: care.emailsSent,
     tenantsPurged,

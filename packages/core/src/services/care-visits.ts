@@ -588,7 +588,13 @@ export async function moveCareVisit(
     }
     await tx.careVisit.update({
       where: { id: visit.id, tenantId: ctx.tenantId },
-      data: { status: 'SCHEDULED', scheduledDate: dbDate(input.date), ...target },
+      // La data ora la sceglie la fioreria: il segno "Cambiada por el cliente" si toglie.
+      data: {
+        status: 'SCHEDULED',
+        scheduledDate: dbDate(input.date),
+        ...target,
+        customerMovedAt: null,
+      },
     });
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.careVisitMoved,

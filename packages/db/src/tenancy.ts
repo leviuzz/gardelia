@@ -193,10 +193,10 @@ async function enterPortal(
  * contratto. Senza `app.tenant_id` le tabelle della fioreria non danno nulla, tranne le righe
  * delle policy `portal_read` di quel contratto; ogni scrittura è rifiutata.
  *
- * Restituisce null se la persona non ha accesso (il servizio risponde 404): `fn` non restituisce
- * mai null.
+ * Restituisce null se la persona non ha accesso: il servizio risponde 404, come quando `fn` non
+ * trova la riga e restituisce null.
  */
-export async function withPortalContext<T extends NonNullable<unknown> | undefined>(
+export async function withPortalContext<T>(
   db: DbClient,
   scope: PortalScope,
   fn: (tx: TransactionClient, entry: PortalEntry) => Promise<T>,
@@ -220,7 +220,7 @@ export async function withPortalContext<T extends NonNullable<unknown> | undefin
  * fioreria e accende la guardia `portal_write_guard` sulle visite. `tenantId` viene solo da
  * `app_buyer_care_contracts()`. Null senza accesso.
  */
-export async function withPortalWriteContext<T extends NonNullable<unknown> | undefined>(
+export async function withPortalWriteContext<T>(
   db: DbClient,
   scope: PortalScope & { readonly tenantId: string },
   fn: (tx: TransactionClient, entry: PortalEntry) => Promise<T>,

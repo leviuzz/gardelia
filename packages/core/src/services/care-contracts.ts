@@ -79,6 +79,7 @@ import {
   requireCareSettings,
   requiredParts,
 } from './care-internals';
+import { revokeContractPortalInvitesTx } from './care-portal-internals';
 import { dateToParts, nextTenantCounter } from './quote-internals';
 
 export type { CareGenerationResult } from './care-generation';
@@ -1010,6 +1011,8 @@ export async function confirmCareContract(
         missedVisitPolicy: settings.missedVisitPolicy,
         deadPlantPolicy: settings.deadPlantPolicy,
         lateCancelHours: settings.lateCancelHours,
+        // "Cambiar fecha" dalla pagina del cliente (ADR-084).
+        minNoticeHours: settings.minNoticeHours,
       },
     });
     const scope = memberScope(ctx);
@@ -1272,6 +1275,8 @@ export async function endCareContract(
         ...(endsNow ? { status: 'ENDED', endedAt: new Date() } : {}),
       },
     });
+    // Un contratto finito non si apre più con un invito (la pagina del cliente, ADR-084).
+    if (endsNow) await revokeContractPortalInvitesTx(tx, ctx.tenantId, subscription.id);
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.subscriptionEnded,
       entityType: 'CustomerSubscription',

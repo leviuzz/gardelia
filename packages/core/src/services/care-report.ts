@@ -133,7 +133,7 @@ export async function loadCareVisitReportTx(
       select: { id: true, plantId: true },
     }),
     tx.carePhoto.count({ where: { tenantId, visitId, removedAt: null, deletedAt: { not: null } } }),
-    visitorName(tx, tenantId, visit.startedById ?? visit.closedById),
+    visitorName(tx, visit.startedById ?? visit.closedById),
   ]);
   const endDate = dateToParts(visit.subscription.endDate);
   return {
@@ -167,15 +167,10 @@ export async function loadCareVisitReportTx(
   };
 }
 
-async function visitorName(
-  tx: TransactionClient,
-  tenantId: string,
-  userId: string | null,
-): Promise<string | null> {
+async function visitorName(tx: TransactionClient, userId: string | null): Promise<string | null> {
   if (!userId) return null;
-  const member = await tx.membership.findFirst({
-    where: { tenantId, userId },
-    select: { user: { select: { name: true } } },
-  });
-  return firstNameOf(member?.user.name);
+  // Dalla tabella delle persone, non dalle membership: la pagina del cliente (ADR-084) non le vede.
+  // L'ID viene dalla visita della fioreria (chi l'ha iniziata o chiusa).
+  const user = await tx.user.findUnique({ where: { id: userId }, select: { name: true } });
+  return firstNameOf(user?.name);
 }
