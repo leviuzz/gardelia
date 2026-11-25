@@ -14,6 +14,7 @@ import {
   setCatalogItemArchived,
   setCatalogItemFeatured,
   setCatalogItemOnline,
+  setCatalogItemsOnline,
   updateCatalogItem,
   updateRecipeDetails,
   updateRecipeLineQuantity,
@@ -173,6 +174,33 @@ export async function setItemOnlineAction(
       // Anche "Mi tienda en línea": conta i prodotti visibili e dice se si può pubblicare.
       revalidate: [section(routes.catalog.list()), routes.settings.store],
       success: online ? 'catalog.onlineShown' : 'catalog.onlineHidden',
+    };
+  });
+}
+
+/**
+ * «Mostra nel negozio» / «Togli dal negozio» per i prodotti scelti nel Catalogo (M1-2): gli ID e
+ * il pulsante premuto arrivano dal client; il servizio ricontrolla tutto e dice quanti ne ha
+ * cambiati e quanti ha saltato.
+ */
+export async function setItemsOnlineAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const online = formData.get('online') === 'on';
+    const ids = formData.getAll('itemId').map(String);
+    const { changed, skipped } = await setCatalogItemsOnline(ctx, ids, online);
+    return {
+      revalidate: [section(routes.catalog.list()), routes.settings.store],
+      success: (t) =>
+        [
+          t(online ? 'catalog.bulk.shown' : 'catalog.bulk.hidden', { count: changed }),
+          skipped > 0 ? t('catalog.bulk.skipped', { count: skipped }) : null,
+        ]
+          .filter(Boolean)
+          .join(' '),
     };
   });
 }

@@ -35,6 +35,7 @@ import {
   StoreLinkCard,
   StorePoliciesForm,
 } from './store-forms';
+import { StoreReadinessCard } from './store-readiness';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('store');
@@ -181,6 +182,8 @@ export default async function StoreSettingsPage({
         </CardContent>
       </Card>
 
+      <StoreReadinessCard slug={slug} settings={settings} />
+
       <Card>
         <CardHeader>
           <CardTitle className="flex flex-wrap items-center gap-2">
@@ -238,7 +241,7 @@ export default async function StoreSettingsPage({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="store-images" className="scroll-mt-20">
         <CardHeader>
           <CardTitle>{t('store.imagesTitle')}</CardTitle>
           <CardDescription>{t('store.imagesSubtitle')}</CardDescription>

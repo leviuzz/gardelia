@@ -97,7 +97,9 @@ export {
   listFeaturedItems,
   moveCatalogItemPhoto,
   setCatalogItemFeatured,
+  setCatalogItemsOnline,
   updateStorePolicies,
+  type CatalogBulkOnlineResult,
   type FeaturedItemDto,
 } from './services/storefront-tools';
 export {

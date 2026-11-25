@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { isBuilderComponentType } from './builder';
 import { CATALOG_COLORS } from './colors';
+import { isUuid } from './ids';
 import { MAX_AMOUNT_MINOR, type CurrencyCode } from './money';
 import { canShowOnline } from './online-store';
 import {
@@ -272,12 +273,20 @@ export function catalogItemFormSchema(currency: CurrencyCode) {
     .pipe(catalogItemInputSchema);
 }
 
+/**
+ * Filtro «Negozio online» del Catalogo (M1-2, ADR-087): `yes` = nella vetrina, `no` = prodotti che
+ * si possono vendere online ma sono spenti, `no_photo` = nella vetrina senza nessuna foto.
+ */
+export const CATALOG_ONLINE_FILTERS = ['yes', 'no', 'no_photo'] as const;
+export type CatalogOnlineFilter = (typeof CATALOG_ONLINE_FILTERS)[number];
+
 /** Filtri dell'elenco catalogo (query string). */
 export const catalogListFiltersSchema = z.object({
   q: z.preprocess(toTrimmedString, z.string().max(80).catch('')),
   type: z.preprocess(toTrimmedString, z.enum(CATALOG_ITEM_TYPES).nullable().catch(null)),
   status: z.preprocess(toTrimmedString, z.enum(RECORD_STATUSES).catch('ACTIVE')),
   availability: z.preprocess(toTrimmedString, z.enum(AVAILABILITY_STATES).nullable().catch(null)),
+  online: z.preprocess(toTrimmedString, z.enum(CATALOG_ONLINE_FILTERS).nullable().catch(null)),
   page: z.preprocess(
     (value) => (typeof value === 'string' ? Number(value) : value),
     z.int().min(1).max(10_000).catch(1),
@@ -287,3 +296,23 @@ export const catalogListFiltersSchema = z.object({
 export type CatalogListFilters = z.infer<typeof catalogListFiltersSchema>;
 
 export const CATALOG_PAGE_SIZE = 20;
+
+/** Accensione e spegnimento di più prodotti insieme (M1-2): al massimo una pagina del Catalogo. */
+export const CATALOG_BULK_LIMIT = CATALOG_PAGE_SIZE;
+
+/**
+ * Gli ID scelti per «Mostra nel negozio» / «Togli dal negozio», senza doppioni: `empty` se non ce
+ * n'è nessuno, `too_many` oltre il limite, `invalid` se uno non è un ID. Il servizio li ricontrolla
+ * comunque nella fioreria.
+ */
+export function parseCatalogBulkIds(
+  value: unknown,
+): { readonly ids: readonly string[] } | { readonly error: 'empty' | 'too_many' | 'invalid' } {
+  if (!Array.isArray(value) || value.length === 0) return { error: 'empty' };
+  if (!value.every((id): id is string => typeof id === 'string' && isUuid(id))) {
+    return { error: 'invalid' };
+  }
+  const ids = [...new Set(value)];
+  if (ids.length > CATALOG_BULK_LIMIT) return { error: 'too_many' };
+  return { ids };
+}

@@ -248,7 +248,7 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="delivery" className="scroll-mt-24">
         <CardHeader>
           <CardTitle>{t('settings.delivery.title')}</CardTitle>
           <CardDescription>{t('settings.delivery.subtitle')}</CardDescription>

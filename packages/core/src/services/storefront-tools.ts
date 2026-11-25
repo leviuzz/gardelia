@@ -13,6 +13,7 @@ import {
   isPhotoMove,
   isUuid,
   movePhotoId,
+  parseCatalogBulkIds,
   storePoliciesSchema,
   toFieldErrors,
 } from '@floral/domain';
@@ -99,6 +100,84 @@ export async function setCatalogItemFeatured(
     return true;
   });
   if (!found) await notFound(ctx, 'CatalogItem', itemId);
+}
+
+export interface CatalogBulkOnlineResult {
+  /** Prodotti accesi o spenti davvero. */
+  readonly changed: number;
+  /** Prodotti scelti che la vetrina non può mostrare (archiviati, materiali): restano com'erano. */
+  readonly skipped: number;
+}
+
+/**
+ * «Mostra nel negozio» / «Togli dal negozio» per i prodotti scelti nel Catalogo (M1-2): al
+ * massimo una pagina alla volta. Si accendono solo i prodotti attivi di un tipo da vendere (gli
+ * altri si saltano e si contano) e mai oltre il limite dei 500; spenti, escono anche da
+ * «Destacados». Un ID che non è della fioreria respinge tutta la richiesta (404 con l'evento di
+ * sicurezza). Ogni prodotto cambiato ha la sua riga nel registro, come con l'interruttore.
+ */
+export async function setCatalogItemsOnline(
+  ctx: TenantContext,
+  rawIds: unknown,
+  online: unknown,
+): Promise<CatalogBulkOnlineResult> {
+  requirePermission(ctx, 'catalog:write');
+  if (typeof online !== 'boolean') throw new ValidationError({ online: 'invalid_option' });
+  const parsed = parseCatalogBulkIds(rawIds);
+  if ('error' in parsed) {
+    if (parsed.error === 'invalid') throw new NotFoundError('CatalogItem');
+    throw new ValidationError({
+      items: parsed.error === 'empty' ? 'catalog_bulk_empty' : 'catalog_bulk_too_many',
+    });
+  }
+  const { ids } = parsed;
+  const result = await withTenantContext(getDb(), ctx, async (tx) => {
+    // Prima il lock dei prodotti online (come una sola accensione), poi le righe scelte.
+    if (online) {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('floral:online-items'), hashtext(${ctx.tenantId}))`;
+    }
+    const items = await tx.catalogItem.findMany({
+      where: { tenantId: ctx.tenantId, id: { in: [...ids] } },
+      select: { id: true, name: true, type: true, status: true, isOnline: true, featuredAt: true },
+    });
+    const missing = ids.find((id) => !items.some((item) => item.id === id));
+    if (missing !== undefined) return { missing, changed: 0, skipped: 0 };
+    const showable = (item: (typeof items)[number]) =>
+      item.status === 'ACTIVE' && canShowOnline(item.type);
+    const toChange = items.filter(
+      (item) => item.isOnline !== online && (!online || showable(item)),
+    );
+    const skipped = online ? items.filter((item) => !item.isOnline && !showable(item)).length : 0;
+    if (online && toChange.length > 0) {
+      // Il lock è già preso: qui solo il conto (stessa regola di `assertOnlineRoomTx`).
+      const count = await tx.catalogItem.count({ where: onlineWhere(ctx.tenantId) });
+      if (count + toChange.length > STORE_LIMITS.onlineItems) {
+        throw new ConflictError('store_online_limit');
+      }
+    }
+    for (const item of toChange) {
+      await tx.catalogItem.update({
+        where: { id: item.id },
+        // Spento: fuori anche dalla riga «Destacados» (CHECK nel database).
+        data: online ? { isOnline: true } : { isOnline: false, featuredAt: null },
+      });
+      await recordAudit(tx, ctx, {
+        action: AUDIT_ACTIONS.catalogItemUpdated,
+        entityType: 'CatalogItem',
+        entityId: item.id,
+        metadata: {
+          name: item.name,
+          changes: {
+            isOnline: { from: item.isOnline, to: online },
+            ...(item.featuredAt !== null ? { featured: { from: true, to: false } } : {}),
+          },
+        },
+      });
+    }
+    return { missing: null, changed: toChange.length, skipped };
+  });
+  if (result.missing !== null) return notFound(ctx, 'CatalogItem', result.missing);
+  return { changed: result.changed, skipped: result.skipped };
 }
 
 /**

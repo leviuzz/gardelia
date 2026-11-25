@@ -96,11 +96,14 @@ describe('form articolo di catalogo', () => {
 
 describe('filtri elenco catalogo', () => {
   it('ignora valori non validi senza fallire', () => {
-    expect(catalogListFiltersSchema.parse({ q: ' rosa ', type: 'NOPE', page: 'x' })).toEqual({
+    expect(
+      catalogListFiltersSchema.parse({ q: ' rosa ', type: 'NOPE', page: 'x', online: 'tal vez' }),
+    ).toEqual({
       q: 'rosa',
       type: null,
       status: 'ACTIVE',
       availability: null,
+      online: null,
       page: 1,
     });
   });
