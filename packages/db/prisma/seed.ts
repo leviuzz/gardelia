@@ -259,6 +259,28 @@ export async function runSeed(db: DbClient, options: { password: string }): Prom
         create: { tenantId: tenantIds.demo, planId: plus.id, status: 'PILOT', source: 'MANUAL' },
       });
 
+      // Asistente de plantas (ADR-085): la fioreria demo ha crediti da dare ai suoi servizi, come se
+      // li avesse comprati dalla piattaforma (in produzione li accredita l'operazione di piattaforma).
+      const assistantGrants = await tx.aiCreditGrant.count({
+        where: { tenantId: tenantIds.demo, feature: 'PLANT_ASSISTANT' },
+      });
+      if (assistantGrants === 0) {
+        const owner = await tx.membership.findFirst({
+          where: { tenantId: tenantIds.demo, role: 'OWNER' },
+          select: { userId: true },
+        });
+        if (!owner) throw new Error('Proprietario della fioreria demo mancante nel seed.');
+        await tx.aiCreditGrant.create({
+          data: {
+            tenantId: tenantIds.demo,
+            feature: 'PLANT_ASSISTANT',
+            units: 100,
+            note: 'seed: crediti di prova',
+            grantedById: owner.userId,
+          },
+        });
+      }
+
       return {
         tenants: [DEMO_TENANT.slug, SECOND_TENANT.slug],
         users: DEMO_USERS.length,

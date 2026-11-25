@@ -291,6 +291,20 @@ function careAccountRoutes() {
       withQuery(`${contract(subscriptionId)}/foto/${segment(photoId)}`, {
         size: options?.thumb ? 'thumb' : undefined,
       }),
+    /**
+     * Asistente de plantas (ADR-085): una consulta nuova o un caso già aperto (`caso`).
+     */
+    assistant: (subscriptionId: string, query?: { readonly caso?: string }) =>
+      withQuery(`${contract(subscriptionId)}/asistente`, query),
+    /** La foto di un caso dell'assistente (`thumb` = miniatura). */
+    assistantPhoto: (
+      subscriptionId: string,
+      caseId: string,
+      options?: { readonly thumb?: boolean },
+    ) =>
+      withQuery(`${contract(subscriptionId)}/asistente/foto/${segment(caseId)}`, {
+        size: options?.thumb ? 'thumb' : undefined,
+      }),
     /** L'invito della fioreria: si apre anche senza sessione. */
     invite: (token: string) => `${home}/invitacion/${segment(token)}`,
     /** I messaggi con la fioreria nella pagina del contratto (`mensajes`: pagine da mostrare). */

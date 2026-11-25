@@ -42,6 +42,7 @@ import {
   type CareExtraKind,
 } from '@floral/domain';
 import { ContractStatusBadge, ExtraVisitBadge, VisitStatusBadge } from '@/components/care/care-ui';
+import { AssistantCreditsCard } from '@/components/care/assistant-credits-card';
 import { CareMessagesCard } from '@/components/care/care-messages-card';
 import { ContractChargesCard } from '@/components/care/contract-charges-card';
 import { CareUpsell } from '@/components/care/care-upsell';
@@ -639,6 +640,7 @@ export default async function CareContractPage({
           {isDraft ? null : (
             <CareMessagesCard ctx={ctx} subscriptionId={contract.id} pages={messagePages} />
           )}
+          {isDraft ? null : <AssistantCreditsCard ctx={ctx} subscriptionId={contract.id} />}
           {contract.canPayments ? (
             <ContractChargesCard
               ctx={ctx}

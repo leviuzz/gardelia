@@ -135,6 +135,8 @@ export interface MyAssistantDto {
   /** Assistente finto di sviluppo e test: l'interfaccia lo dice. */
   readonly simulated: boolean;
   readonly shopName: string;
+  /** Il fuso della fioreria, per le date. */
+  readonly shopTimeZone: string;
   /** Contratto attivo o in pausa (e non in sola lettura): si può consultare. */
   readonly open: boolean;
   readonly credits: MyAssistantCreditsDto;
@@ -421,6 +423,7 @@ async function loadMyAssistant(
     available: assistants !== null,
     simulated: assistants?.main.simulated ?? false,
     shopName: found.entry.shop.name,
+    shopTimeZone: found.entry.shop.timezone,
     open: isOpen(found.entry, found.status),
     credits: creditsDto(found.credits),
     answersLimitReached: found.credits.answers_since >= ASSISTANT_LIMITS.contractAnswersPerDay,
@@ -790,6 +793,9 @@ interface ShareCopy {
   readonly question: (text: string) => string;
   readonly answer: (text: string) => string;
   readonly ai: string;
+  /** «Pedir consultas»: la fioreria non ne ha ancora date. */
+  readonly firstCredits: string;
+  /** «Pedir más consultas»: finite quelle date. */
   readonly moreCredits: string;
 }
 
@@ -803,11 +809,13 @@ const SHARE_COPY: Record<SupportedLocale, ShareCopy> = {
     question: (text) => `Pregunta: ${text}`,
     answer: (text) => `Respuesta del asistente: ${text}`,
     ai: 'Respuesta generada con IA.',
+    firstCredits:
+      'Hola, me interesa el Asistente de plantas para este servicio. ¿Me puedes dar consultas?',
     moreCredits:
-      'Hola, ya usé las consultas del Asistente de plantas de este contrato. ¿Me puedes dar más?',
+      'Hola, ya usé las consultas del Asistente de plantas de este servicio. ¿Me puedes dar más?',
   },
   'it-IT': {
-    title: 'Consulta all’Asistente de plantas',
+    title: 'Domanda all’assistente delle piante',
     plant: (name) => `Pianta: ${name}`,
     species: (name, scientificName) => `Specie: ${name} (${scientificName})`,
     speciesUnknown: 'Specie: non la so',
@@ -815,11 +823,13 @@ const SHARE_COPY: Record<SupportedLocale, ShareCopy> = {
     question: (text) => `Domanda: ${text}`,
     answer: (text) => `Risposta dell’assistente: ${text}`,
     ai: 'Risposta generata con l’IA.',
+    firstCredits:
+      'Ciao, mi interessa l’assistente delle piante per questo servizio. Mi puoi dare delle domande?',
     moreCredits:
-      'Ciao, ho usato le consulte dell’Asistente de plantas di questo contratto. Me ne puoi dare altre?',
+      'Ciao, ho usato le domande dell’assistente delle piante di questo servizio. Me ne puoi dare altre?',
   },
   'en-US': {
-    title: 'Asistente de plantas consultation',
+    title: 'Question for the plant assistant',
     plant: (name) => `Plant: ${name}`,
     species: (name, scientificName) => `Species: ${name} (${scientificName})`,
     speciesUnknown: 'Species: I don’t know',
@@ -827,8 +837,10 @@ const SHARE_COPY: Record<SupportedLocale, ShareCopy> = {
     question: (text) => `Question: ${text}`,
     answer: (text) => `Assistant’s answer: ${text}`,
     ai: 'AI-generated answer.',
+    firstCredits:
+      'Hi, I’m interested in the plant assistant for this service. Can you give me some questions?',
     moreCredits:
-      'Hi, I’ve used the Asistente de plantas consultations of this contract. Can you give me more?',
+      'Hi, I’ve used the plant assistant questions for this service. Can you give me more?',
   },
 };
 
@@ -938,26 +950,27 @@ export async function sendMyAssistantCaseToShop(
 }
 
 /**
- * «Pedir más consultas» (senza crediti): un messaggio della persona alla fioreria. Una volta al
- * giorno per persona e contratto (chiave d'invio calcolata); il resto si scrive nel filo.
+ * «Pedir consultas» / «Pedir más consultas» (senza crediti): un messaggio della persona alla
+ * fioreria. Una volta al giorno per persona e contratto (chiave d'invio calcolata); il resto si
+ * scrive nel filo.
  */
 export async function askMyShopForAssistantCredits(
   buyer: BuyerContext,
   subscriptionId: string,
   locale: SupportedLocale,
 ): Promise<MyCareMessagePostResult> {
-  const timezone = await openPortal(
-    buyer,
-    subscriptionId,
-    async (_tx, entry) => entry.shop.timezone,
-  );
-  if (!timezone) throw new NotFoundError('CustomerSubscription');
-  const day = toIsoDate(todayInTimeZone(timezone));
+  const found = await openPortal(buyer, subscriptionId, async (tx, entry) => ({
+    timezone: entry.shop.timezone,
+    credits: await portalCreditsTx(tx, entry.shop.timezone),
+  }));
+  if (!found) throw new NotFoundError('CustomerSubscription');
+  const day = toIsoDate(todayInTimeZone(found.timezone));
+  const copy = SHARE_COPY[locale];
   return postMyCareMessage(
     buyer,
     subscriptionId,
     {
-      body: SHARE_COPY[locale].moreCredits,
+      body: found.credits.allocated > 0 ? copy.moreCredits : copy.firstCredits,
       submitKey: uuidFromSeed(`assistant-more:${subscriptionId}:${buyer.userId}:${day}`),
     },
     null,

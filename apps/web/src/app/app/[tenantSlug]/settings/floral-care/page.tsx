@@ -21,6 +21,7 @@ import {
   CareSlotEditDialog,
   CareTravelTiersEditor,
 } from '@/components/care/care-settings-forms';
+import { AssistantCreditsSettingsCard } from '@/components/care/assistant-credits-settings-card';
 import { CareUpsell } from '@/components/care/care-upsell';
 import { ActionButton } from '@/components/form/action-button';
 import { Forbidden } from '@/components/forbidden';
@@ -158,6 +159,8 @@ export default async function CareSettingsPage({
           />
         </CardContent>
       </Card>
+
+      <AssistantCreditsSettingsCard ctx={ctx} />
 
       {settings.configured ? (
         <>

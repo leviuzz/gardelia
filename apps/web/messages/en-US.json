@@ -814,7 +814,7 @@
     },
     "ai_credits": {
       "granted": "{units} extra previews were added",
-      "assistant_granted": "{units} Asistente de plantas credits were added"
+      "assistant_granted": "{units} plant assistant credits were added"
     },
     "promo": {
       "redeemed": "{actor} marked a discount as used",
@@ -3259,7 +3259,7 @@
       "portal_access_revoked": "{actor} removed access to Mi Floral Care",
       "visit_moved_by_customer": "{actor} changed the date of a visit of {number} from Mi Floral Care",
       "message_photo_removed": "{actor} removed the photo of a message on {number}",
-      "assistant_credits_given": "{actor} gave {count, plural, one {# credit} other {# credits}} of the Asistente de plantas to {number}"
+      "assistant_credits_given": "{actor} gave {count, plural, one {# plant assistant credit} other {# plant assistant credits}} to {number}"
     },
     "notice": {
       "label": "Yes, I let the customer know"
@@ -4507,6 +4507,38 @@
       "title": "Unread messages",
       "body": "{unread, plural, one {# message} other {# messages}} from Floral Care customers on {threads, plural, one {# contract} other {# contracts}}.",
       "link": "See messages"
+    },
+    "assistant": {
+      "settings": {
+        "title": "Plant assistant for your customers",
+        "description": "Your Floral Care customers ask the AI how to care for their plants between visits, from Mi Floral Care. You give them questions as part of your service, at the price you choose.",
+        "rule": "1 credit = 1 answer for your customer. Analyzing the photo is free, and so is an answer that fails.",
+        "purchased": "Bought",
+        "allocated": "Given to your services",
+        "remaining": "Available",
+        "howTo": "Give credits from each service's page. Those your customer doesn't use come back to you when the service ends.",
+        "buy": "Buy credits on WhatsApp",
+        "buyText": "Hi, I'd like to buy plant assistant credits for {shop}.",
+        "noContact": "To buy credits, write to Gardelia.",
+        "notAvailable": "The assistant isn't active on Gardelia yet: we'll let you know when it is."
+      },
+      "card": {
+        "title": "Plant assistant",
+        "description": "Your customer asks the AI about their plants from Mi Floral Care. You see how many questions they use, not what they ask.",
+        "given": "Given",
+        "used": "Used",
+        "remaining": "Left",
+        "lastUsed": "Last question: {date}",
+        "returned": "{count, plural, one {# credit} other {# credits}} came back to your shop when the service ended.",
+        "noAccess": "No one from this customer uses Mi Floral Care yet: invite them so they can use the questions.",
+        "credits": "Credits",
+        "give": "Give credits",
+        "done": "Credits given.",
+        "shopRemaining": "{count, plural, =0 {You have no credits available.} one {You have # credit available.} other {You have # credits available.}}",
+        "buyHint": "Buy credits in Settings → Floral Care.",
+        "onlyManagers": "Only the owner or a manager can give credits.",
+        "closed": "The service isn't active: it no longer receives credits."
+      }
     }
   },
   "letterhead": {
@@ -4689,30 +4721,28 @@
   },
   "assistant": {
     "title": "Plant assistant",
-    "subtitle": "Take a photo of the plant and ask what's wrong: the answer is short, with the steps to follow.",
-    "back": "Back to contract {number}",
+    "subtitle": "Take a photo of your plant and ask how to care for it or what's wrong. The answer is short, with the steps to follow.",
     "simulated": "Simulation (development environment): these are test answers, not written by AI.",
     "unavailable": "The plant assistant isn't available right now.",
-    "usage": "Today: {used} of {limit} shop questions",
-    "limitReached": "The shop has reached today's limit ({limit} questions). Try again tomorrow.",
     "aiNotice": "AI-generated answer: check it before acting.",
     "new": {
       "title": "New question",
-      "plant": "Contract plant",
-      "plantNone": "Not specified",
+      "plant": "Which plant is it?",
+      "plantNone": "Another one or I don't know",
       "photo": "Plant photo",
       "choosePhoto": "Take or choose a photo",
       "changePhoto": "Change photo",
       "previewAlt": "Preview of the chosen photo",
       "tip": "In daylight, with the leaves in view and, if there's a problem, the damaged part.",
       "submit": "Analyze photo",
-      "analyzing": "Analyzing the photo… this can take about 20 seconds.",
+      "analyzing": "Analyzing the photo… this takes a few seconds.",
       "photoRequired": "Choose a photo.",
       "networkError": "Couldn't send. Check your connection and try again.",
-      "recentTitle": "Previous questions",
-      "recentEmpty": "No questions on this contract yet.",
+      "recentTitle": "Your questions",
+      "recentEmpty": "You haven't asked any questions yet.",
       "answers": "{count, plural, =0 {No answer} one {# answer} other {# answers}}",
-      "unknownSpecies": "Unidentified plant"
+      "unknownSpecies": "Unidentified plant",
+      "free": "Analyzing the photo doesn't use a question: each answer uses 1."
     },
     "case": {
       "title": "Question from {date}",
@@ -4722,9 +4752,8 @@
       "unusable": "The plant isn't clear in the photo. Take another one with more light, closer up.",
       "retakePhoto": "Take another photo",
       "condition": "What the photo shows",
-      "notInList": "It looks like a plant that isn't on our list: choose “Other” or “I don't know”.",
-      "full": "You've asked all {count} questions for this photo. For another one, take a new photo.",
-      "askedBy": "Asked by {name}"
+      "notInList": "It may not be on our list: choose “Other” or “I don't know”.",
+      "full": "You've asked all {count} questions for this photo. For another one, take a new photo."
     },
     "ask": {
       "speciesLegend": "Is it one of these?",
@@ -4734,26 +4763,37 @@
       "otherSelect": "Which one?",
       "otherPlaceholder": "Choose the plant…",
       "unknown": "I don't know",
-      "question": "What's wrong with it?",
+      "question": "Your question",
       "questionAgain": "Another question",
-      "placeholder": "E.g.: its leaves are yellow with dry tips. What should I do?",
       "remaining": "{count, plural, one {# question} other {# questions}} left for this photo.",
       "submit": "Ask",
-      "thinking": "Preparing the answer… this can take about 20 seconds.",
+      "thinking": "Preparing the answer… this takes a few seconds.",
       "answered": "Answer ready.",
       "likelihood": {
         "high": "Very likely",
         "medium": "Likely",
         "low": "Possible"
       },
-      "otherRequired": "Choose the plant from the list."
+      "otherRequired": "Choose the plant from the list.",
+      "kindLegend": "What would you like to know?",
+      "kind": {
+        "CARE": "How to care for it",
+        "PROBLEM": "It has a problem"
+      },
+      "kindHint": {
+        "CARE": "Watering, light, where to put it.",
+        "PROBLEM": "Yellow leaves, spots, pests…"
+      },
+      "placeholderCare": "E.g.: how often should I water it, and where does it get the best light?",
+      "placeholderProblem": "E.g.: its leaves are yellow with dry tips. What should I do?",
+      "cost": "Uses 1 question. If the assistant can't answer, it doesn't count."
     },
     "answer": {
       "question": "Question",
       "species": "Plant: {name}",
       "speciesUnknown": "Plant: unidentified",
       "steps": "Steps",
-      "unsure": "The assistant isn't sure: check the plant in person.",
+      "unsure": "The assistant isn't sure: send the question to your flower shop.",
       "careTitle": "Care according to Gardelia",
       "light": "Light",
       "watering": "Watering",
@@ -4761,7 +4801,7 @@
     },
     "care": {
       "light": {
-        "LOW": "Tolerates low light, away from windows",
+        "LOW": "Tolerates low light; grows best in bright indirect light",
         "MEDIUM": "Bright indirect light",
         "HIGH": "Direct sun for part of the day"
       },
@@ -4787,17 +4827,38 @@
     },
     "conflict": {
       "unavailable": "The plant assistant isn't available right now.",
-      "daily_limit": "The shop has reached today's question limit. Try again tomorrow.",
+      "daily_limit": "This service has reached today's question limit. Try again tomorrow.",
       "budget_reached": "The assistant has reached its limit for this month. Try again next month.",
       "photo_unusable": "The plant isn't clear in that photo: take another one.",
       "case_full": "You've asked all the questions for this photo. Take a new photo.",
-      "failed": "The assistant couldn't answer, and it didn't count as a question. Try again."
+      "failed": "The assistant couldn't answer, and it didn't count as a question. Try again.",
+      "no_credits": "You have no questions left: ask your flower shop for more.",
+      "shop_credits": "You don't have enough credits: buy more in Settings → Floral Care.",
+      "contract_closed": "The service isn't active: questions can't be used or given.",
+      "nothing_to_send": "Ask a question first."
     },
-    "card": {
-      "description": "Take a photo of a contract plant and ask what's wrong.",
-      "empty": "No questions yet.",
-      "askPlant": "Ask the assistant about {name}",
-      "askVisitPlant": "Ask the assistant"
-    }
+    "credits": "{count, plural, =0 {You have no questions left} one {You have # question left} other {You have # questions left}}",
+    "creditsHint": "Each answer uses 1 question. Analyzing the photo doesn't count, and neither does an answer that fails.",
+    "answersLimit": "This service has reached today's limit ({limit} answers). Try again tomorrow.",
+    "photosLimit": "This service has reached today's photo limit ({limit}). Try again tomorrow.",
+    "closed": "The service has ended: you can see your questions, but you can't ask new ones.",
+    "noCredits": "You have no questions left. Ask {shop} for more.",
+    "none": "{shop} hasn't given you any assistant questions yet.",
+    "sectionDescription": "Ask how to care for your plants or what's wrong with them, between visits.",
+    "seeAll": "See my questions",
+    "share": {
+      "title": "Want {shop} to see it?",
+      "description": "We'll send them the photo, your questions and the answers in Messages.",
+      "action": "Send to the flower shop",
+      "sent": "Sent to your flower shop: you'll see it in Messages.",
+      "already": "You had already sent it."
+    },
+    "more": {
+      "action": "Ask for more questions",
+      "sent": "We asked your flower shop for more questions.",
+      "already": "You already asked today.",
+      "first": "Ask for questions"
+    },
+    "simulatedBadge": "Simulation"
   }
 }

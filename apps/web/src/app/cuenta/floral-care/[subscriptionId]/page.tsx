@@ -10,10 +10,11 @@ import {
 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getFormatter, getTranslations } from 'next-intl/server';
+import { getFormatter, getLocale, getTranslations } from 'next-intl/server';
 import { getMyCareContract, type MyCareVisitDto } from '@floral/core';
-import { careMessagePages } from '@floral/domain';
+import { careMessagePages, resolveLocale } from '@floral/domain';
 import { ChargeStatusBadge } from '@/components/care/charge-ui';
+import { MyAssistantCard } from '@/components/care/my-assistant-card';
 import { MyCareMessagesCard } from '@/components/care/my-care-messages-card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * Un servizio di Floral Care visto dal cliente (ADR-084): le prossime visite con "Cambiar fecha",
- * i messaggi con la fioreria (blocco 5b), cosa comprende, i cobros (solo con i soldi), le piante con le indicazioni, i resoconti, le regole
+ * i messaggi con la fioreria (blocco 5b), l'Asistente de plantas (blocco 6b), cosa comprende, i cobros (solo con i soldi), le piante con le indicazioni, i resoconti, le regole
  * e i termini della fioreria. Un contratto che la persona non vede risponde 404.
  */
 export default async function MyCareContractPage({
@@ -45,6 +46,7 @@ export default async function MyCareContractPage({
   const contract = await orNotFound(getMyCareContract(ctx, subscriptionId));
   const t = await getTranslations();
   const format = await getFormatter();
+  const locale = resolveLocale(await getLocale());
   const changedId = typeof query.cambiada === 'string' ? query.cambiada : null;
   const changed = changedId ? contract.upcoming.find((visit) => visit.id === changedId) : null;
 
@@ -195,6 +197,8 @@ export default async function MyCareContractPage({
         pages={careMessagePages(query.mensajes)}
         timeZone={contract.shop.timezone}
       />
+
+      <MyAssistantCard ctx={ctx} subscriptionId={contract.subscriptionId} locale={locale} />
 
       <Card>
         <CardHeader>
