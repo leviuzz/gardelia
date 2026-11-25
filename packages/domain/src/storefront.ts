@@ -14,6 +14,12 @@ import {
   earliestMarketplaceDate,
   marketplaceDateProblem,
 } from './marketplace-order';
+import {
+  CATALOG_OCCASIONS,
+  OCCASION_SLUG_VALUES,
+  occasionFromSlug,
+  type CatalogOccasion,
+} from './occasions';
 import { STORE_LIMITS, type ONLINE_ITEM_TYPES } from './online-store';
 import { normalizeSpeciesText } from './species';
 
@@ -52,11 +58,14 @@ export const STOREFRONT_LIMITS = {
 const firstValue = (value: unknown) => (Array.isArray(value) ? value[0] : value);
 
 /**
- * Parametri della vetrina dall'indirizzo (`?categoria=ramos&q=rosa&orden=precio-asc&pagina=2`).
- * Mai un errore: un valore sbagliato torna al suo predefinito (è un link che chiunque può scrivere).
+ * Parametri della vetrina dall'indirizzo (`?categoria=ramos&ocasion=cumpleanos&q=rosa&orden=
+ * precio-asc&pagina=2`). Mai un errore: un valore sbagliato torna al suo predefinito (è un link che
+ * chiunque può scrivere).
  */
 export const storefrontQuerySchema = z.object({
   categoria: z.preprocess(firstValue, z.enum(STOREFRONT_CATEGORIES).optional()).catch(undefined),
+  /** Occasione (M1-2), col nome in spagnolo dell'indirizzo. */
+  ocasion: z.preprocess(firstValue, z.enum(OCCASION_SLUG_VALUES).optional()).catch(undefined),
   q: z
     .preprocess(firstValue, z.string().optional())
     .transform((value) => value?.trim().slice(0, STOREFRONT_LIMITS.query) || undefined)
@@ -72,7 +81,7 @@ export function parseStorefrontQuery(raw: unknown): StorefrontQuery {
 
 /** I filtri che cambiano l'elenco (la pagina e l'ordine no). */
 export function storefrontFiltered(query: StorefrontQuery): boolean {
-  return query.categoria !== undefined || query.q !== undefined;
+  return query.categoria !== undefined || query.ocasion !== undefined || query.q !== undefined;
 }
 
 /** Riga leggera di un prodotto online, quanto basta per filtrare, ordinare e impaginare. */
@@ -83,11 +92,15 @@ export interface StorefrontRow {
   readonly priceMinor: number;
   readonly availability: string;
   readonly featuredAt: Date | null;
+  /** Occasioni scelte dalla fioreria (M1-2). */
+  readonly occasions?: readonly string[];
 }
 
 export interface StorefrontPlan {
   /** Schede con almeno un prodotto (su tutta la vetrina), nell'ordine di `STOREFRONT_CATEGORIES`. */
   readonly categories: readonly { readonly category: StorefrontCategory; readonly count: number }[];
+  /** Occasioni con almeno un prodotto (su tutta la vetrina), nell'ordine di `CATALOG_OCCASIONS`. */
+  readonly occasions: readonly { readonly occasion: CatalogOccasion; readonly count: number }[];
   /** Prodotti che corrispondono ai filtri (in evidenza compresi). */
   readonly total: number;
   /** Pagina mostrata (dentro i limiti) e quante sono. */
@@ -123,11 +136,17 @@ export function planStorefront(
   const categories = STOREFRONT_CATEGORIES.filter((category) => counts.has(category)).map(
     (category) => ({ category, count: counts.get(category)! }),
   );
+  const occasions = CATALOG_OCCASIONS.map((occasion) => ({
+    occasion,
+    count: keyed.filter((row) => row.occasions?.includes(occasion)).length,
+  })).filter((entry) => entry.count > 0);
 
   const needle = query.q ? normalizeSpeciesText(query.q) : '';
+  const occasion = occasionFromSlug(query.ocasion);
   const matching = keyed.filter(
     (row) =>
       (!query.categoria || row.type === CATEGORY_TYPE[query.categoria]) &&
+      (!occasion || (row.occasions?.includes(occasion) ?? false)) &&
       (!needle || row.key.includes(needle)),
   );
 
@@ -167,6 +186,7 @@ export function planStorefront(
   const start = (page - 1) * STOREFRONT_LIMITS.pageSize;
   return {
     categories,
+    occasions,
     total: matching.length,
     page,
     pageCount,
@@ -193,6 +213,37 @@ export function firstOrderableDate(
     if (marketplaceDateProblem(date, { today, ...rules }) === null) return date;
   }
   return null;
+}
+
+/**
+ * Il costo di consegna nella scheda della ricerca delle fiorerie (M1-2): con la distanza
+ * dall'indirizzo cercato, quello della fascia che ci arriva (`exact`, la stessa regola del modulo
+ * d'ordine); altrimenti il riassunto della vetrina. Mai «gratis» per un costo a 0.
+ */
+export function directoryFee(input: {
+  readonly tiers: readonly { readonly maxMeters: number; readonly feeMinor: number }[];
+  readonly defaultFeeMinor: number;
+  readonly distanceKm: number | null;
+}): { readonly summary: DeliveryFeeSummary; readonly exact: boolean } {
+  const tiers = [...input.tiers].sort((a, b) => a.maxMeters - b.maxMeters);
+  if (input.distanceKm !== null) {
+    const meters = Math.round(input.distanceKm * 1000);
+    const tier = tiers.find((candidate) => meters <= candidate.maxMeters);
+    if (tier) {
+      return {
+        summary:
+          tier.feeMinor > 0 ? { kind: 'fixed', feeMinor: tier.feeMinor } : { kind: 'to_confirm' },
+        exact: true,
+      };
+    }
+  }
+  return {
+    summary: deliveryFeeSummary({
+      defaultFeeMinor: input.defaultFeeMinor,
+      tierFeesMinor: tiers.map((tier) => tier.feeMinor),
+    }),
+    exact: false,
+  };
 }
 
 /**

@@ -45,6 +45,9 @@ export const serverEnvSchema = z
     GOOGLE_CLIENT_SECRET: optionalText,
     // Fase di prova (D-29): WhatsApp della piattaforma per comprare i crediti delle immagini AI.
     PLATFORM_WHATSAPP: optionalWhatsapp,
+    // Google (M1-2, ADR-087): `on` solo nel progetto di produzione; spento, ogni pagina è
+    // `noindex` e robots.txt chiude tutto (staging resta nascosto).
+    PUBLIC_INDEXING: optionalText.pipe(z.enum(['on', 'off']).default('off')),
   })
   .superRefine((env, ctx) => {
     // Una sola delle due chiavi Google è quasi sempre un errore di configurazione: meglio

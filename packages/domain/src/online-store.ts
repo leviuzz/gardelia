@@ -111,6 +111,62 @@ export function storePublishBlockers(input: {
   return blockers;
 }
 
+/**
+ * «Completa la tua vetrina» (M1-2, ADR-087, PROPOSTO): i passi che rendono la vetrina utile a chi
+ * compra. Non bloccano la pubblicazione (per quella valgono `storePublishBlockers`): dicono al
+ * fiorista che cosa manca, e la pagina porta al punto dove si fa.
+ */
+export const STORE_READINESS_STEPS = [
+  'images',
+  'description',
+  'products',
+  'photos',
+  'featured',
+  'deliveryFee',
+  'payment',
+  'policies',
+] as const;
+export type StoreReadinessStep = (typeof STORE_READINESS_STEPS)[number];
+
+/** Prodotti online consigliati (PROPOSTO): una riga piena di «Destacados» e una vetrina da sfogliare. */
+export const STORE_READINESS_MIN_ITEMS = 8;
+
+export interface StoreReadinessInput {
+  readonly hasLogo: boolean;
+  readonly hasCover: boolean;
+  readonly hasDescription: boolean;
+  readonly onlineItems: number;
+  readonly onlineWithoutPhoto: number;
+  readonly featuredItems: number;
+  /** Chi compra vede un costo di consegna (non «por confirmar»). */
+  readonly hasDeliveryFee: boolean;
+  readonly paymentMethods: number;
+  /** Politiche scritte (0–3). */
+  readonly policies: number;
+}
+
+export interface StoreReadiness {
+  readonly steps: readonly { readonly step: StoreReadinessStep; readonly done: boolean }[];
+  /** Passi ancora da fare (0 = vetrina completa). */
+  readonly missing: number;
+}
+
+export function storeReadiness(input: StoreReadinessInput): StoreReadiness {
+  const done: Record<StoreReadinessStep, boolean> = {
+    images: input.hasLogo && input.hasCover,
+    description: input.hasDescription,
+    products: input.onlineItems >= STORE_READINESS_MIN_ITEMS,
+    // Senza prodotti online non c'è niente da fotografare: il passo resta da fare.
+    photos: input.onlineItems > 0 && input.onlineWithoutPhoto === 0,
+    featured: input.featuredItems > 0,
+    deliveryFee: input.hasDeliveryFee,
+    payment: input.paymentMethods > 0,
+    policies: input.policies > 0,
+  };
+  const steps = STORE_READINESS_STEPS.map((step) => ({ step, done: done[step] }));
+  return { steps, missing: steps.filter((entry) => !entry.done).length };
+}
+
 /** Immagini della tienda: logo (piccolo, accanto al nome) e copertina (larga, in alto). */
 export const STORE_IMAGE_KINDS = ['LOGO', 'COVER'] as const;
 export type StoreImageKind = (typeof STORE_IMAGE_KINDS)[number];

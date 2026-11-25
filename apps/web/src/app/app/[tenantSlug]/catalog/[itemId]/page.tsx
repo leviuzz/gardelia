@@ -100,6 +100,7 @@ export default async function ItemPage({
     serviceRadiusKm: item.serviceRadiusKm?.toString() ?? '',
     isBuilderEnabled: item.isBuilderEnabled,
     isOnline: item.isOnline,
+    occasions: item.occasions,
   };
 
   return (

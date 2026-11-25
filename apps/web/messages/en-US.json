@@ -193,7 +193,9 @@
     "step3Body": "The flower shop confirms your order and you pay them directly, with no middleman.",
     "floristTitle": "Do you own a flower shop?",
     "floristBody": "Manage orders, customers and deliveries, and open your online shop.",
-    "floristCta": "Gardelia for flower shops"
+    "floristCta": "Gardelia for flower shops",
+    "occasionsTitle": "What’s the occasion?",
+    "occasionsBody": "Find shops with products for your occasion."
   },
   "search": {
     "title": "Flower shops",
@@ -209,7 +211,15 @@
     "distance": "{km} km away · {count, plural, one {# product} other {# products}}",
     "products": "{count, plural, one {# product} other {# products}}",
     "titleCity": "Flower shops in {city}",
-    "sameCityBodyCity": "Ask them on WhatsApp whether they deliver to your neighborhood."
+    "sameCityBodyCity": "Ask them on WhatsApp whether they deliver to your neighborhood.",
+    "ordersOnline": "Online orders",
+    "whatsappOnly": "Orders on WhatsApp",
+    "feeToAddress": "Delivery to your address: {fee}",
+    "occasionsLabel": "Occasion",
+    "occasionTitle": "Occasion: {occasion}",
+    "clearOccasion": "Remove the occasion {occasion}",
+    "chooseCity": "Which city should we deliver to?",
+    "noOccasionStores": "No shops have products for this occasion yet."
   },
   "auth": {
     "loginTitle": "Sign in",
@@ -627,7 +637,49 @@
     "featured": {
       "title": "Featured: {count} of {max}",
       "hint": "Pick them with the star in the catalog: they show first in your shop."
-    }
+    },
+    "readiness": {
+      "title": "Complete your online shop",
+      "subtitle": "The more buyers find, the more orders come in. {missing, plural, one {# step left.} other {# steps left.}}",
+      "complete": "Your shop is complete: every step is done.",
+      "steps": {
+        "images": "Logo and cover photo",
+        "description": "A short introduction to your shop",
+        "products": "At least {min} products in your shop (now {count})",
+        "photos": "A photo on every online product",
+        "photosMissing": "{count, plural, one {# without a photo} other {# without a photo}}",
+        "featured": "At least one featured product (with the star)",
+        "deliveryFee": "The delivery fee (otherwise buyers read that you will confirm it)",
+        "payment": "Payment methods",
+        "policies": "Your shop policies"
+      },
+      "actions": {
+        "images": "Upload",
+        "description": "Write",
+        "products": "Add products",
+        "photos": "See which",
+        "featured": "Choose",
+        "deliveryFee": "Set up",
+        "payment": "Choose",
+        "policies": "Write"
+      }
+    },
+    "preview": {
+      "title": "Preview",
+      "back": "Back to Online shop",
+      "banner": "This is how buyers will see your shop. Order buttons are off.",
+      "notPublished": "Your shop isn’t published yet: buyers can’t see it.",
+      "itemOffTitle": "This product isn’t in your online shop",
+      "itemOffBody": "It’s off, archived or a material: buyers don’t see it.",
+      "openItem": "Open in the catalog",
+      "open": "Preview"
+    },
+    "linkPending": "It will work once you publish your shop. You can already copy it and print the QR.",
+    "qrTitle": "Shop QR code",
+    "qrHint": "For your window, cards and bags: the link never changes, so a printed QR keeps working.",
+    "qrDownload": "Download the QR",
+    "qrAlt": "QR code that opens {url}",
+    "qrFailed": "Couldn’t create the QR image."
   },
   "publicStore": {
     "demoNotice": "Demo flower shop: products and prices are examples.",
@@ -750,7 +802,10 @@
     "policyChanges": "Changes",
     "policyCancellations": "Cancellations",
     "policySubstitutions": "Flower substitutions",
-    "policiesByShop": "Written by {shop}."
+    "policiesByShop": "Written by {shop}.",
+    "occasionsLabel": "Occasions",
+    "accountOrders": "My orders",
+    "accountSignIn": "Sign in"
   },
   "timezones": {
     "America/Mexico_City": "Central Time (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -1100,7 +1155,9 @@
       "serviceDurationNone": "Not set",
       "serviceDurationHint": "Approximate. Shown on the quote and the order.",
       "serviceRadius": "How far you go (km)",
-      "serviceRadiusHint": "Straight-line distance from your shop. We'll warn you if an order is farther."
+      "serviceRadiusHint": "Straight-line distance from your shop. We'll warn you if an order is farther.",
+      "occasions": "Occasions",
+      "occasionsHint": "They help buyers find it in your online shop and in Gardelia’s search."
     },
     "wizard": {
       "stepWhat": "What it is",
@@ -1136,7 +1193,30 @@
     "radiusKm": "Up to {km} km",
     "featuredToggle": "Feature {name} in your online shop",
     "featuredOn": "Now featured in your shop.",
-    "featuredOff": "No longer featured."
+    "featuredOff": "No longer featured.",
+    "filterOnline": "Online shop",
+    "onlineAll": "Online shop: all",
+    "onlineYes": "In the online shop",
+    "onlineNo": "Not in the online shop",
+    "onlineNoPhoto": "In the shop, no photo",
+    "noPhotoBadge": "No photo",
+    "noPhotoWarning": "{count, plural, one {# online product has no photo} other {# online products have no photo}}: buyers only see an icon.",
+    "noPhotoAction": "See which",
+    "bulk": {
+      "selectItem": "Select {name}",
+      "selectPage": "Select the products on this page",
+      "selected": "{count, plural, one {# selected} other {# selected}}",
+      "show": "Show in the shop",
+      "hide": "Remove from the shop",
+      "cancel": "Cancel",
+      "shown": "{count, plural, =0 {No product changed.} one {# product is now in your shop.} other {# products are now in your shop.}}",
+      "hidden": "{count, plural, =0 {No product changed.} one {# product is no longer in your shop.} other {# products are no longer in your shop.}}",
+      "skipped": "{count, plural, one {# can’t be shown (archived or a material).} other {# can’t be shown (archived or materials).}}"
+    },
+    "validation": {
+      "bulk_empty": "Choose at least one product.",
+      "bulk_too_many": "You can change up to 20 products at a time."
+    }
   },
   "recipe": {
     "title": "Bouquet recipe",
@@ -1192,7 +1272,7 @@
     "legalReadOnly": "Only the owner can change these details.",
     "locationTitle": "Main store",
     "locationSubtitle": "The address you prepare and deliver from.",
-    "shopUrl": "Web address on Gardelia",
+    "shopUrl": "Online shop link",
     "currency": "Currency",
     "saved": "Changes saved",
     "delivery": {
@@ -4999,5 +5079,16 @@
       "first": "Ask for questions"
     },
     "simulatedBadge": "Simulation"
+  },
+  "occasions": {
+    "BIRTHDAY": "Birthday",
+    "ANNIVERSARY": "Anniversary",
+    "LOVE": "Love",
+    "MOTHERS_DAY": "Mother’s Day",
+    "SYMPATHY": "Sympathy",
+    "NEW_BABY": "New baby",
+    "GRADUATION": "Graduation",
+    "THANK_YOU": "Thank you",
+    "GET_WELL": "Get well soon"
   }
 }

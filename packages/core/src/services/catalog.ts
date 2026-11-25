@@ -18,17 +18,20 @@ import {
   AVAILABILITY_STATES,
   CATALOG_PAGE_SIZE,
   INGREDIENT_TYPES,
+  ONLINE_ITEM_TYPES,
   canShowOnline,
   catalogItemInputSchema,
   catalogListFiltersSchema,
   diffFields,
   isUuid,
+  normalizeOccasions,
   resolveLocale,
   speciesOption,
   toFieldErrors,
   type Availability,
   type CatalogItemInput,
   type CatalogItemType,
+  type CatalogOccasion,
   type RecordStatus,
   type SaleUnit,
   type SpeciesOption,
@@ -72,6 +75,8 @@ export interface CatalogItemDto {
   readonly isOnline: boolean;
   /** «In evidenza» nella riga «Destacados» della vetrina (M1). */
   readonly featured: boolean;
+  /** Occasioni per la vetrina (M1-2). */
+  readonly occasions: readonly CatalogOccasion[];
   readonly status: RecordStatus;
   readonly archivedAt: Date | null;
   readonly updatedAt: Date;
@@ -131,6 +136,7 @@ function toDto(item: ItemWithRelations, ctx: TenantContext): CatalogItemDto {
     isBuilderEnabled: item.isBuilderEnabled,
     isOnline: item.isOnline,
     featured: item.featuredAt !== null,
+    occasions: normalizeOccasions(item.occasions),
     status: item.status,
     archivedAt: item.archivedAt,
     updatedAt: item.updatedAt,
@@ -146,6 +152,14 @@ export interface CatalogListResult {
   readonly pageCount: number;
   readonly canViewCosts: boolean;
   readonly canWrite: boolean;
+  /** Prodotti online senza nessuna foto, in tutto il catalogo (avviso «Senza foto», M1-2). */
+  readonly onlineWithoutPhoto: number;
+}
+
+/** Con «Negozio online: no» il tipo scelto resta, purché sia uno che la vetrina può vendere. */
+function onlineTypeFilter(type: CatalogItemType | null): Prisma.CatalogItemWhereInput['type'] {
+  if (type) return canShowOnline(type) ? type : { in: [] };
+  return { in: [...ONLINE_ITEM_TYPES] };
 }
 
 export async function listCatalogItems(
@@ -159,6 +173,12 @@ export async function listCatalogItems(
     status: filters.status,
     ...(filters.type ? { type: filters.type } : {}),
     ...(filters.availability ? { availability: filters.availability } : {}),
+    // «Negozio online» (M1-2): «no» guarda solo i tipi che la vetrina può vendere.
+    ...(filters.online === 'yes' ? { isOnline: true } : {}),
+    ...(filters.online === 'no' ? { isOnline: false, type: onlineTypeFilter(filters.type) } : {}),
+    ...(filters.online === 'no_photo'
+      ? { isOnline: true, photos: { none: { status: 'ACTIVE' as const } } }
+      : {}),
     ...(filters.q
       ? {
           OR: [
@@ -172,6 +192,15 @@ export async function listCatalogItems(
 
   return withTenantContext(getDb(), ctx, async (tx) => {
     const total = await tx.catalogItem.count({ where });
+    const onlineWithoutPhoto = await tx.catalogItem.count({
+      where: {
+        tenantId: ctx.tenantId,
+        isOnline: true,
+        status: 'ACTIVE',
+        type: { in: [...ONLINE_ITEM_TYPES] },
+        photos: { none: { status: 'ACTIVE' } },
+      },
+    });
     const pageCount = Math.max(1, Math.ceil(total / CATALOG_PAGE_SIZE));
     const page = Math.min(filters.page, pageCount);
     const items = await tx.catalogItem.findMany({
@@ -188,6 +217,7 @@ export async function listCatalogItems(
       pageCount,
       canViewCosts: hasPermission(ctx, 'catalog:costs:read'),
       canWrite: hasPermission(ctx, 'catalog:write'),
+      onlineWithoutPhoto,
     };
   });
 }
@@ -258,6 +288,7 @@ function optionalItemData(input: CatalogItemInput) {
       ? { serviceDurationMinutes: input.serviceDurationMinutes }
       : {}),
     ...(input.serviceRadiusKm !== undefined ? { serviceRadiusKm: input.serviceRadiusKm } : {}),
+    ...(input.occasions !== undefined ? { occasions: [...input.occasions] } : {}),
   };
 }
 
@@ -341,6 +372,7 @@ const AUDITED_FIELDS = [
   'tags',
   'isBuilderEnabled',
   'isOnline',
+  'occasions',
 ] as const;
 
 export async function updateCatalogItem(

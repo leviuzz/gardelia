@@ -23,6 +23,7 @@ import {
   todayInTimeZone,
   type Availability,
   type CartLine,
+  type CatalogOccasion,
   type CatalogItemType,
   type DeliveryFeeSummary,
   type OpeningDay,
@@ -133,6 +134,11 @@ export interface PublicStorefrontDto {
     readonly category: StorefrontCategory;
     readonly count: number;
   }[];
+  /** Occasioni con prodotti, su tutta la vetrina (M1-2). */
+  readonly occasions: readonly {
+    readonly occasion: CatalogOccasion;
+    readonly count: number;
+  }[];
   /** Prodotti che corrispondono ai filtri; tutti quelli online della fioreria. */
   readonly total: number;
   readonly onlineCount: number;
@@ -229,8 +235,15 @@ function itemDto(item: {
   return { ...rest, photoId: photos[0]?.id ?? null, featured: featuredAt !== null };
 }
 
-/** La testata pubblica della fioreria: chi è, dove, consegne, pagamenti e politiche. */
-async function readStoreHeader(tx: TransactionClient, tenantId: string): Promise<PublicStoreDto> {
+/**
+ * La testata pubblica della fioreria: chi è, dove, consegne, pagamenti e politiche. La usa anche
+ * l'anteprima della fioreria (M1-2) nel suo contesto, dove il negozio può non essere ancora
+ * configurato: senza la riga del negozio valgono i valori iniziali.
+ */
+export async function readStoreHeaderTx(
+  tx: TransactionClient,
+  tenantId: string,
+): Promise<PublicStoreDto> {
   const [tenant, store, location, windows, feeTiers, openingHours] = await Promise.all([
     tx.tenant.findUniqueOrThrow({
       where: { id: tenantId },
@@ -246,7 +259,7 @@ async function readStoreHeader(tx: TransactionClient, tenantId: string): Promise
         defaultDeliveryFeeMinor: true,
       },
     }),
-    tx.onlineStore.findUniqueOrThrow({ where: { tenantId } }),
+    tx.onlineStore.findUnique({ where: { tenantId } }),
     tx.location.findFirst({
       where: { tenantId, isPrimary: true },
       select: {
@@ -272,7 +285,7 @@ async function readStoreHeader(tx: TransactionClient, tenantId: string): Promise
   const region = (code: string) => MX_REGIONS.find((item) => item.code === code)?.name ?? code;
   const today = todayInTimeZone(tenant.timezone);
   const firstDate = firstOrderableDate(today, {
-    minLeadDays: store.minLeadDays,
+    minLeadDays: store?.minLeadDays ?? 1,
     closedWeekdays: tenant.deliveryClosedWeekdays,
   });
   return {
@@ -282,9 +295,9 @@ async function readStoreHeader(tx: TransactionClient, tenantId: string): Promise
     currency: tenant.currency,
     isDemo: tenant.mode === 'DEMO',
     phone: tenant.contactPhone,
-    logoId: store.logoId,
-    coverId: store.coverId,
-    description: store.description,
+    logoId: store?.logoId ?? null,
+    coverId: store?.coverId ?? null,
+    description: store?.description ?? null,
     address: location
       ? {
           line: location.addressLine1,
@@ -313,20 +326,20 @@ async function readStoreHeader(tx: TransactionClient, tenantId: string): Promise
       firstDate: firstDate ? toIsoDate(firstDate) : null,
       today: toIsoDate(today),
     },
-    paymentMethods: store.paymentMethods as StorePaymentMethod[],
-    paymentInstructions: store.paymentInstructions,
-    ordersEnabled: store.ordersEnabled,
+    paymentMethods: (store?.paymentMethods ?? []) as StorePaymentMethod[],
+    paymentInstructions: store?.paymentInstructions ?? null,
+    ordersEnabled: store?.ordersEnabled ?? false,
     policies: {
-      changes: store.policyChanges,
-      cancellations: store.policyCancellations,
-      substitutions: store.policySubstitutions,
+      changes: store?.policyChanges ?? null,
+      cancellations: store?.policyCancellations ?? null,
+      substitutions: store?.policySubstitutions ?? null,
     },
   };
 }
 
 /** La testata della fioreria (pagine del prodotto, del modulo d'ordine, prodotto tolto). */
 export async function getPublicStore(slug: unknown): Promise<PublicStoreDto | null> {
-  return withPublishedStore(slug, (tx, tenantId) => readStoreHeader(tx, tenantId));
+  return withPublishedStore(slug, (tx, tenantId) => readStoreHeaderTx(tx, tenantId));
 }
 
 /**
@@ -347,6 +360,7 @@ export async function readStorefrontTx(
       priceMinor: true,
       availability: true,
       featuredAt: true,
+      occasions: true,
     },
   });
   const plan = planStorefront(rows, query);
@@ -366,6 +380,7 @@ export async function readStorefrontTx(
     });
   return {
     categories: plan.categories,
+    occasions: plan.occasions,
     total: plan.total,
     onlineCount: rows.length,
     page: plan.page,
@@ -409,12 +424,66 @@ export async function getPublicStorefront(
   const query = parseStorefrontQuery(rawQuery);
   return withPublishedStore(slug, async (tx, tenantId) => {
     const [store, catalog, cart] = await Promise.all([
-      readStoreHeader(tx, tenantId),
+      readStoreHeaderTx(tx, tenantId),
       readStorefrontTx(tx, tenantId, query),
       readCartSummaryTx(tx, tenantId, options.cart ?? []),
     ]);
     return { store, query, ...catalog, cart };
   });
+}
+
+/**
+ * Un prodotto della vetrina con le foto, di cosa è fatto e (per le piante) la cura; null se non è
+ * online. La usa anche l'anteprima della fioreria (M1-2), nel suo contesto.
+ */
+export async function readStoreItemTx(
+  tx: TransactionClient,
+  tenantId: string,
+  itemId: string,
+  cartLines: readonly CartLine[],
+): Promise<PublicStoreItemDetailDto | null> {
+  const item = await tx.catalogItem.findFirst({
+    where: { ...onlineItemWhere(tenantId), id: itemId },
+    select: {
+      ...ITEM_SELECT,
+      photos: {
+        where: { status: 'ACTIVE' },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        select: { id: true },
+      },
+      canonicalFlower: { select: FLOWER_SELECT },
+      recipe: {
+        select: {
+          lines: {
+            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+            select: { quantity: true, ingredient: { select: { name: true } } },
+          },
+        },
+      },
+    },
+  });
+  if (!item) return null;
+  const [store, cart] = await Promise.all([
+    readStoreHeaderTx(tx, tenantId),
+    readCartSummaryTx(tx, tenantId, cartLines),
+  ]);
+  const { recipe, canonicalFlower, ...rest } = item;
+  const species =
+    item.type === 'PLANT' && canonicalFlower ? speciesDto(canonicalFlower, store.locale) : null;
+  return {
+    store,
+    cart,
+    item: {
+      ...itemDto(rest),
+      photoIds: rest.photos.map((photo) => photo.id),
+      includes: (recipe?.lines ?? []).map((line) => ({
+        name: line.ingredient.name,
+        quantity: line.quantity,
+      })),
+      // Senza dati di cura non si dice niente (né «tossica» né «sicura»).
+      species: species?.care ? species : null,
+    },
+  };
 }
 
 /** Un prodotto della pagina, con le foto e (per i ramos) di cosa è fatto. */
@@ -424,50 +493,9 @@ export async function getPublicStoreItem(
   options: { readonly cart?: readonly CartLine[] } = {},
 ): Promise<PublicStoreItemDetailDto | null> {
   if (!isUuid(itemId)) return null;
-  return withPublishedStore(slug, async (tx, tenantId) => {
-    const item = await tx.catalogItem.findFirst({
-      where: { ...onlineItemWhere(tenantId), id: itemId },
-      select: {
-        ...ITEM_SELECT,
-        photos: {
-          where: { status: 'ACTIVE' },
-          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-          select: { id: true },
-        },
-        canonicalFlower: { select: FLOWER_SELECT },
-        recipe: {
-          select: {
-            lines: {
-              orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-              select: { quantity: true, ingredient: { select: { name: true } } },
-            },
-          },
-        },
-      },
-    });
-    if (!item) return null;
-    const [store, cart] = await Promise.all([
-      readStoreHeader(tx, tenantId),
-      readCartSummaryTx(tx, tenantId, options.cart ?? []),
-    ]);
-    const { recipe, canonicalFlower, ...rest } = item;
-    const species =
-      item.type === 'PLANT' && canonicalFlower ? speciesDto(canonicalFlower, store.locale) : null;
-    return {
-      store,
-      cart,
-      item: {
-        ...itemDto(rest),
-        photoIds: rest.photos.map((photo) => photo.id),
-        includes: (recipe?.lines ?? []).map((line) => ({
-          name: line.ingredient.name,
-          quantity: line.quantity,
-        })),
-        // Senza dati di cura non si dice niente (né «tossica» né «sicura»).
-        species: species?.care ? species : null,
-      },
-    };
-  });
+  return withPublishedStore(slug, (tx, tenantId) =>
+    readStoreItemTx(tx, tenantId, itemId, options.cart ?? []),
+  );
 }
 
 /** Foto di un prodotto visibile della pagina (`thumb` = miniatura). */

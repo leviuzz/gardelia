@@ -16,18 +16,22 @@ import {
   whatsappLink,
   type CartLine,
 } from '@floral/domain';
-import { publicStoreRoutes } from './routes';
+import { publicStoreLinks, type StoreLinks } from './routes';
 
-/** Testi della cornice comuni a pagina e prodotto, nella lingua del mercato della fioreria. */
+/**
+ * Testi della cornice comuni a pagina e prodotto, nella lingua del mercato della fioreria. I link
+ * sono quelli pubblici, o quelli dell'anteprima della fioreria (M1-2).
+ */
 export async function storeShellProps(
   store: Pick<PublicStoreDto, 'slug' | 'name' | 'locale' | 'isDemo' | 'phone' | 'logoId'>,
   whatsappText: string,
+  links: StoreLinks = publicStoreLinks(store.slug),
 ) {
   const t = await getTranslations({ locale: store.locale, namespace: 'publicStore' });
   return {
     name: store.name,
-    logoSrc: store.logoId ? publicStoreRoutes(store.slug).image('LOGO', store.logoId) : null,
-    homeHref: publicStoreRoutes(store.slug).home,
+    logoSrc: store.logoId ? links.image('LOGO', store.logoId) : null,
+    homeHref: links.home,
     demoNotice: store.isDemo ? t('demoNotice') : null,
     contact: store.phone
       ? {

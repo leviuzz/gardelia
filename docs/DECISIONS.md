@@ -3174,7 +3174,7 @@ niente codice nuovo»):**
   con la consegna a 0; pagina del prodotto tolto; link di stato fino a 30 giorni dopo la consegna,
   allungato se la consegna si sposta. Dettagli in `docs/MARKETPLACE_FLOWS.md` §4.
 
-### ADR-087 — Marketplace M1: la vetrina che vende — IN CORSO (M1-1 fatto, 25/11/2026)
+### ADR-087 — Marketplace M1: la vetrina che vende — FATTO (M1-1 su staging, M1-2 sul ramo di lavoro, 25/11/2026)
 
 - **Perché:** blocco M1 del giro del marketplace (ADR-086), piano approvato dal founder il 25/11:
   la pagina della fioreria era scarna (al massimo 120 prodotti per nome, niente categorie,
@@ -3198,13 +3198,50 @@ niente codice nuovo»):**
   «Usa come copertina» e frecce sulle foto (vale anche nel Diseñador), tre politiche della
   fioreria (cambi, cancellazioni, sostituzioni) mostrate nella vetrina e nel riepilogo,
   limite di 500 prodotti online (niente tagli silenziosi).
-- **PROPOSTO (da confermare dal founder):** carrello in un cookie per fioreria di 30 giorni; 8
-  prodotti in evidenza e 500 online; politiche in tre testi della fioreria senza testi legali di
-  esempio; «Mi cuenta / Mis pedidos» nella testata della tienda (M1-2); cache delle foto sulla
-  rete di Vercel come decisione a parte (non in M1).
+- **«Completa la tua vetrina» (M1-2):** `storeReadiness` in `packages/domain/src/online-store.ts`,
+  otto passi calcolati dai dati che ci sono (logo e copertina, presentazione, almeno 8 prodotti
+  online, una foto su ognuno, un prodotto in evidenza, costo di consegna, forme di pagamento,
+  politiche), ognuno con il link al punto dove si fa. Non blocca la pubblicazione.
+- **Catalogo (M1-2):** filtro «Negozio online» (sì, no fra i tipi vendibili, online senza foto) e
+  fino a 20 prodotti accesi o spenti insieme (`setCatalogItemsOnline`). Archiviati e materiali si
+  saltano e si contano; vale il limite dei 500 sotto lo stesso lock; spenti perdono la stella; una
+  riga del registro per prodotto; un ID di un'altra fioreria respinge tutto (404 con l'evento).
+- **Link, QR e anteprima (M1-2):** il link si vede sempre e il QR si scarica in PNG, disegnato nel
+  browser con il componente che c'era già. L'«Anteprima» (solo proprietario e gerente) usa le
+  stesse viste della pagina pubblica (`StorefrontView`, `ProductView` con link pubblici o
+  dell'app) e le stesse letture (`readStoreHeaderTx`, `readStorefrontTx`, `readStoreItemTx`) nel
+  contesto della fioreria con la sua RLS: nessuna funzione DEFINER nuova. Foto dalle pagine
+  private, pulsanti d'ordine spenti.
+- **Ricerca delle fiorerie (M1-2):** `app_public_store_directory` rifatta con ordini online,
+  anticipo, giorni chiusi, fuso, valuta, costo e fasce, occasioni dei prodotti online: solo dati
+  che la vetrina mostra già. Le schede dicono «Pedidos en línea» o «Pedidos por WhatsApp», il
+  primo giorno e il costo, preciso per l'indirizzo cercato (`directoryFee`).
+- **Google (M1-2):** `PUBLIC_INDEXING`, spento di default, da accendere solo nel progetto di
+  produzione. Da acceso si indicizzano home, `/floristas`, la vetrina intera e i prodotti; le viste
+  filtrate e le pagine dopo la prima sono `noindex, follow` con il canonico alla vetrina.
+  `robots.txt` e `sitemap.xml` (DEFINER `app_public_sitemap`: fiorerie attive e pubblicate,
+  prodotti online e attivi; una vetrina senza prodotti resta fuori); dati strutturati schema.org
+  (Florist, Product) con `<`, `>`, `&` scritti come `\u…`. Da spento, `robots.txt` chiude tutto.
+- **Occasioni (M1-2):** `CatalogItem.occasions` con 9 identificativi in inglese (CHECK),
+  nell'indirizzo il nome spagnolo (`?ocasion=cumpleanos`). Voce «Occasioni» nella scheda del
+  prodotto (assente dal modulo = invariata), chip nella vetrina con i conteggi, scorciatoie nella
+  home e nella ricerca, che apre la vetrina già filtrata.
+- **Testata della vetrina (M1-2):** «Mis pedidos» per chi ha il conto, «Entrar» per gli altri, con
+  il ritorno alla pagina; le pagine della vetrina contano come percorsi di chi compra per login e
+  registrazione.
+- **PROPOSTO (da confermare dal founder):**
+  - carrello in un cookie per fioreria di 30 giorni;
+  - 8 prodotti in evidenza e 500 online;
+  - politiche in tre testi della fioreria, senza testi legali di esempio;
+  - gli 8 passi di «Completa la tua vetrina», con almeno 8 prodotti online;
+  - le 9 occasioni e i loro nomi nelle tre lingue;
+  - Google acceso solo in produzione;
+  - fino a 20 prodotti alla volta; QR in PNG;
+  - «Mis pedidos / Entrar» nella testata della vetrina;
+  - cache delle foto sulla rete di Vercel come decisione a parte (non in M1).
 - **DA VALIDARE:** politiche verso i consumatori (PROFECO), scritte dalla fioreria; il cookie del
   carrello nell'aviso de privacidad §7 (bozza aggiornata); dati di cura e tossicità (già «da
-  rivedere»).
+  rivedere»). M1-2 non aggiunge cookie né dati personali nuovi.
 
 ## 3. Proposte da approvare
 

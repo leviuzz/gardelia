@@ -193,7 +193,9 @@
     "step3Body": "La florería confirma tu pedido y le pagas directo, sin intermediarios.",
     "floristTitle": "¿Tienes una florería?",
     "floristBody": "Lleva pedidos, clientes y entregas, y abre tu tienda en línea.",
-    "floristCta": "Gardelia para florerías"
+    "floristCta": "Gardelia para florerías",
+    "occasionsTitle": "¿Para qué ocasión?",
+    "occasionsBody": "Encuentra florerías con productos para tu ocasión."
   },
   "search": {
     "title": "Florerías",
@@ -209,7 +211,15 @@
     "distance": "A {km} km · {count, plural, one {# producto} other {# productos}}",
     "products": "{count, plural, one {# producto} other {# productos}}",
     "titleCity": "Florerías en {city}",
-    "sameCityBodyCity": "Pregúntales por WhatsApp si entregan en tu colonia."
+    "sameCityBodyCity": "Pregúntales por WhatsApp si entregan en tu colonia.",
+    "ordersOnline": "Pedidos en línea",
+    "whatsappOnly": "Pedidos por WhatsApp",
+    "feeToAddress": "Envío a tu dirección: {fee}",
+    "occasionsLabel": "Ocasión",
+    "occasionTitle": "Ocasión: {occasion}",
+    "clearOccasion": "Quitar la ocasión {occasion}",
+    "chooseCity": "¿En qué ciudad lo entregamos?",
+    "noOccasionStores": "Todavía no hay florerías con productos para esta ocasión."
   },
   "auth": {
     "loginTitle": "Inicia sesión",
@@ -627,7 +637,49 @@
     "featured": {
       "title": "En «Destacados»: {count} de {max}",
       "hint": "Elígelos con la estrella en el catálogo: salen primero en tu tienda."
-    }
+    },
+    "readiness": {
+      "title": "Completa tu tienda en línea",
+      "subtitle": "Mientras más encuentra el cliente, más pedidos llegan. {missing, plural, one {Te falta # paso.} other {Te faltan # pasos.}}",
+      "complete": "Tu tienda está completa: hiciste todos los pasos.",
+      "steps": {
+        "images": "Logo y foto de portada",
+        "description": "Una presentación de tu florería",
+        "products": "Al menos {min} productos en tu tienda (ahora {count})",
+        "photos": "Una foto en cada producto en línea",
+        "photosMissing": "{count, plural, one {# sin foto} other {# sin foto}}",
+        "featured": "Al menos un producto destacado (con la estrella)",
+        "deliveryFee": "El costo de envío (si no, el cliente lee que lo confirmas tú)",
+        "payment": "Las formas de pago",
+        "policies": "Las políticas de tu tienda"
+      },
+      "actions": {
+        "images": "Subir",
+        "description": "Escribir",
+        "products": "Agregar productos",
+        "photos": "Ver cuáles",
+        "featured": "Elegir",
+        "deliveryFee": "Configurar",
+        "payment": "Elegir",
+        "policies": "Escribir"
+      }
+    },
+    "preview": {
+      "title": "Vista previa",
+      "back": "Volver a Tienda en línea",
+      "banner": "Así verán tu tienda tus clientes. Los botones para pedir están apagados.",
+      "notPublished": "Tu tienda todavía no está publicada: los clientes aún no la ven.",
+      "itemOffTitle": "Este producto no está en tu tienda en línea",
+      "itemOffBody": "Está apagado, archivado o es un material: los clientes no lo ven.",
+      "openItem": "Abrir en el catálogo",
+      "open": "Vista previa"
+    },
+    "linkPending": "Funcionará cuando publiques tu tienda. Ya puedes copiarlo e imprimir el QR.",
+    "qrTitle": "Código QR de tu tienda",
+    "qrHint": "Para tu aparador, tarjetas y bolsas: el enlace no cambia, así que un QR impreso sigue funcionando.",
+    "qrDownload": "Descargar el QR",
+    "qrAlt": "Código QR que abre {url}",
+    "qrFailed": "No se pudo crear la imagen del QR."
   },
   "publicStore": {
     "demoNotice": "Florería de demostración: los productos y precios son de prueba.",
@@ -750,7 +802,10 @@
     "policyChanges": "Cambios",
     "policyCancellations": "Cancelaciones",
     "policySubstitutions": "Sustitución de flores",
-    "policiesByShop": "Las escribe {shop}."
+    "policiesByShop": "Las escribe {shop}.",
+    "occasionsLabel": "Ocasiones",
+    "accountOrders": "Mis pedidos",
+    "accountSignIn": "Entrar"
   },
   "timezones": {
     "America/Mexico_City": "Tiempo del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -1100,7 +1155,9 @@
       "serviceDurationNone": "Sin indicar",
       "serviceDurationHint": "Aproximada. Se muestra en la cotización y en el pedido.",
       "serviceRadius": "Hasta cuántos km lo haces",
-      "serviceRadiusHint": "En línea recta desde tu florería. Si un pedido queda más lejos, te avisamos."
+      "serviceRadiusHint": "En línea recta desde tu florería. Si un pedido queda más lejos, te avisamos.",
+      "occasions": "Ocasiones",
+      "occasionsHint": "Ayudan a encontrarlo en tu tienda en línea y en la búsqueda de Gardelia."
     },
     "wizard": {
       "stepWhat": "Qué es",
@@ -1136,7 +1193,30 @@
     "radiusKm": "Hasta {km} km",
     "featuredToggle": "Destacar {name} en tu tienda en línea",
     "featuredOn": "Ahora sale en «Destacados» de tu tienda.",
-    "featuredOff": "Ya no sale en «Destacados»."
+    "featuredOff": "Ya no sale en «Destacados».",
+    "filterOnline": "Tienda en línea",
+    "onlineAll": "Tienda en línea: todos",
+    "onlineYes": "En la tienda en línea",
+    "onlineNo": "Fuera de la tienda en línea",
+    "onlineNoPhoto": "En la tienda, sin foto",
+    "noPhotoBadge": "Sin foto",
+    "noPhotoWarning": "{count, plural, one {# producto en línea no tiene foto} other {# productos en línea no tienen foto}}: quien compra ve solo un ícono.",
+    "noPhotoAction": "Ver cuáles",
+    "bulk": {
+      "selectItem": "Seleccionar {name}",
+      "selectPage": "Seleccionar los productos de esta página",
+      "selected": "{count, plural, one {# seleccionado} other {# seleccionados}}",
+      "show": "Mostrar en la tienda",
+      "hide": "Quitar de la tienda",
+      "cancel": "Cancelar",
+      "shown": "{count, plural, =0 {Ningún producto cambió.} one {# producto ahora se ve en tu tienda.} other {# productos ahora se ven en tu tienda.}}",
+      "hidden": "{count, plural, =0 {Ningún producto cambió.} one {# producto ya no aparece en tu tienda.} other {# productos ya no aparecen en tu tienda.}}",
+      "skipped": "{count, plural, one {# no se puede mostrar (archivado o material).} other {# no se pueden mostrar (archivados o materiales).}}"
+    },
+    "validation": {
+      "bulk_empty": "Elige al menos un producto.",
+      "bulk_too_many": "Puedes cambiar hasta 20 productos a la vez."
+    }
   },
   "recipe": {
     "title": "Receta del ramo",
@@ -1192,7 +1272,7 @@
     "legalReadOnly": "Solo la persona propietaria puede modificar estos datos.",
     "locationTitle": "Tienda principal",
     "locationSubtitle": "Dirección desde la que preparas y entregas.",
-    "shopUrl": "Dirección en Gardelia",
+    "shopUrl": "Enlace de tu tienda en línea",
     "currency": "Moneda",
     "saved": "Cambios guardados",
     "delivery": {
@@ -4999,5 +5079,16 @@
       "first": "Pedir consultas"
     },
     "simulatedBadge": "Simulación"
+  },
+  "occasions": {
+    "BIRTHDAY": "Cumpleaños",
+    "ANNIVERSARY": "Aniversario",
+    "LOVE": "Amor",
+    "MOTHERS_DAY": "Día de las Madres",
+    "SYMPATHY": "Condolencias",
+    "NEW_BABY": "Nacimiento",
+    "GRADUATION": "Graduación",
+    "THANK_YOU": "Agradecimiento",
+    "GET_WELL": "Recupérate pronto"
   }
 }

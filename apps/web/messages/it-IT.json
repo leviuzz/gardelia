@@ -193,7 +193,9 @@
     "step3Body": "La fioreria conferma il tuo ordine e la paghi direttamente, senza intermediari.",
     "floristTitle": "Hai una fioreria?",
     "floristBody": "Gestisci ordini, clienti e consegne, e apri il tuo negozio online.",
-    "floristCta": "Gardelia per le fiorerie"
+    "floristCta": "Gardelia per le fiorerie",
+    "occasionsTitle": "Per quale occasione?",
+    "occasionsBody": "Trova le fiorerie con prodotti per la tua occasione."
   },
   "search": {
     "title": "Fiorerie",
@@ -209,7 +211,15 @@
     "distance": "A {km} km · {count, plural, one {# prodotto} other {# prodotti}}",
     "products": "{count, plural, one {# prodotto} other {# prodotti}}",
     "titleCity": "Fiorerie a {city}",
-    "sameCityBodyCity": "Chiedi su WhatsApp se consegnano nel tuo quartiere."
+    "sameCityBodyCity": "Chiedi su WhatsApp se consegnano nel tuo quartiere.",
+    "ordersOnline": "Ordini online",
+    "whatsappOnly": "Ordini su WhatsApp",
+    "feeToAddress": "Consegna al tuo indirizzo: {fee}",
+    "occasionsLabel": "Occasione",
+    "occasionTitle": "Occasione: {occasion}",
+    "clearOccasion": "Togli l’occasione {occasion}",
+    "chooseCity": "In quale città lo consegniamo?",
+    "noOccasionStores": "Non ci sono ancora fiorerie con prodotti per questa occasione."
   },
   "auth": {
     "loginTitle": "Accedi",
@@ -603,7 +613,7 @@
       "notPublished": "Il tuo negozio non è ancora pubblicato: gli ordini arriveranno quando lo pubblichi.",
       "save": "Salva ordini online"
     },
-    "offMap": "Chi cerca il proprio indirizzo non trova ancora la tua tienda, perché il negozio principale non è sulla mappa. Ti trova solo chi cerca la tua città.",
+    "offMap": "Chi cerca il proprio indirizzo non trova ancora il tuo negozio online, perché il negozio principale non è sulla mappa. Ti trova solo chi cerca la tua città.",
     "offMapAction": "Scegli l’indirizzo sulla mappa",
     "publishedBodyOrders": "Chiunque abbia il link vede i tuoi prodotti visibili online e ti manda ordini, che accetti o rifiuti qui.",
     "policies": {
@@ -627,7 +637,49 @@
     "featured": {
       "title": "In evidenza: {count} su {max}",
       "hint": "Li scegli con la stella nel catalogo: escono per primi nel negozio."
-    }
+    },
+    "readiness": {
+      "title": "Completa la tua vetrina",
+      "subtitle": "Più cose trova il cliente, più ordini arrivano. {missing, plural, one {Ti manca # passo.} other {Ti mancano # passi.}}",
+      "complete": "Vetrina completa: hai fatto tutti i passi.",
+      "steps": {
+        "images": "Logo e foto di copertina",
+        "description": "Una presentazione della fioreria",
+        "products": "Almeno {min} prodotti nel negozio (ora {count})",
+        "photos": "Una foto per ogni prodotto online",
+        "photosMissing": "{count, plural, one {# senza foto} other {# senza foto}}",
+        "featured": "Almeno un prodotto in evidenza (con la stella)",
+        "deliveryFee": "Il costo di consegna (se manca, il cliente legge che lo confermi tu)",
+        "payment": "Le forme di pagamento",
+        "policies": "Le politiche del negozio"
+      },
+      "actions": {
+        "images": "Carica",
+        "description": "Scrivi",
+        "products": "Aggiungi prodotti",
+        "photos": "Vedi quali",
+        "featured": "Scegli",
+        "deliveryFee": "Imposta",
+        "payment": "Scegli",
+        "policies": "Scrivi"
+      }
+    },
+    "preview": {
+      "title": "Anteprima",
+      "back": "Torna a Negozio online",
+      "banner": "Così vedranno il negozio i tuoi clienti. I pulsanti per ordinare sono spenti.",
+      "notPublished": "Il negozio non è ancora pubblicato: i clienti non lo vedono.",
+      "itemOffTitle": "Questo prodotto non è nel negozio online",
+      "itemOffBody": "È spento, archiviato oppure è un materiale: i clienti non lo vedono.",
+      "openItem": "Apri nel catalogo",
+      "open": "Anteprima"
+    },
+    "linkPending": "Funzionerà quando pubblichi il negozio. Puoi già copiarlo e stampare il QR.",
+    "qrTitle": "QR del negozio",
+    "qrHint": "Per la vetrina, i biglietti e i sacchetti: il link non cambia, quindi un QR stampato resta valido.",
+    "qrDownload": "Scarica il QR",
+    "qrAlt": "QR che apre {url}",
+    "qrFailed": "Non è stato possibile creare l’immagine del QR."
   },
   "publicStore": {
     "demoNotice": "Fioreria di prova: prodotti e prezzi sono di esempio.",
@@ -750,7 +802,10 @@
     "policyChanges": "Cambi",
     "policyCancellations": "Cancellazioni",
     "policySubstitutions": "Sostituzione dei fiori",
-    "policiesByShop": "Le scrive {shop}."
+    "policiesByShop": "Le scrive {shop}.",
+    "occasionsLabel": "Occasioni",
+    "accountOrders": "I miei ordini",
+    "accountSignIn": "Accedi"
   },
   "timezones": {
     "America/Mexico_City": "Ora del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -1100,7 +1155,9 @@
       "serviceDurationNone": "Non indicata",
       "serviceDurationHint": "Indicativa. Compare nel preventivo e nell'ordine.",
       "serviceRadius": "Fino a quanti km lo fai",
-      "serviceRadiusHint": "In linea d'aria dalla tua fioreria. Se un ordine è più lontano, ti avvisiamo."
+      "serviceRadiusHint": "In linea d'aria dalla tua fioreria. Se un ordine è più lontano, ti avvisiamo.",
+      "occasions": "Occasioni",
+      "occasionsHint": "Aiutano a trovarlo nel negozio online e nella ricerca di Gardelia."
     },
     "wizard": {
       "stepWhat": "Che cos’è",
@@ -1136,7 +1193,30 @@
     "radiusKm": "Fino a {km} km",
     "featuredToggle": "Metti {name} in evidenza nel tuo negozio online",
     "featuredOn": "Ora è in evidenza nel tuo negozio.",
-    "featuredOff": "Non è più in evidenza."
+    "featuredOff": "Non è più in evidenza.",
+    "filterOnline": "Negozio online",
+    "onlineAll": "Negozio online: tutti",
+    "onlineYes": "Nel negozio online",
+    "onlineNo": "Fuori dal negozio online",
+    "onlineNoPhoto": "Nel negozio, senza foto",
+    "noPhotoBadge": "Senza foto",
+    "noPhotoWarning": "{count, plural, one {# prodotto online non ha foto} other {# prodotti online non hanno foto}}: chi compra vede solo un’icona.",
+    "noPhotoAction": "Vedi quali",
+    "bulk": {
+      "selectItem": "Seleziona {name}",
+      "selectPage": "Seleziona i prodotti di questa pagina",
+      "selected": "{count, plural, one {# selezionato} other {# selezionati}}",
+      "show": "Mostra nel negozio",
+      "hide": "Togli dal negozio",
+      "cancel": "Annulla",
+      "shown": "{count, plural, =0 {Nessun prodotto è cambiato.} one {# prodotto ora si vede nel negozio.} other {# prodotti ora si vedono nel negozio.}}",
+      "hidden": "{count, plural, =0 {Nessun prodotto è cambiato.} one {# prodotto non compare più nel negozio.} other {# prodotti non compaiono più nel negozio.}}",
+      "skipped": "{count, plural, one {# non si può mostrare (archiviato o materiale).} other {# non si possono mostrare (archiviati o materiali).}}"
+    },
+    "validation": {
+      "bulk_empty": "Scegli almeno un prodotto.",
+      "bulk_too_many": "Puoi cambiare fino a 20 prodotti alla volta."
+    }
   },
   "recipe": {
     "title": "Ricetta del bouquet",
@@ -1192,7 +1272,7 @@
     "legalReadOnly": "Solo chi è titolare può modificare questi dati.",
     "locationTitle": "Negozio principale",
     "locationSubtitle": "Indirizzo da cui prepari e consegni.",
-    "shopUrl": "Indirizzo su Gardelia",
+    "shopUrl": "Link del negozio online",
     "currency": "Valuta",
     "saved": "Modifiche salvate",
     "delivery": {
@@ -4999,5 +5079,16 @@
       "first": "Chiedi le domande"
     },
     "simulatedBadge": "Simulazione"
+  },
+  "occasions": {
+    "BIRTHDAY": "Compleanno",
+    "ANNIVERSARY": "Anniversario",
+    "LOVE": "Amore",
+    "MOTHERS_DAY": "Festa della mamma",
+    "SYMPATHY": "Condoglianze",
+    "NEW_BABY": "Nascita",
+    "GRADUATION": "Diploma e laurea",
+    "THANK_YOU": "Ringraziamento",
+    "GET_WELL": "Pronta guarigione"
   }
 }

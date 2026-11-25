@@ -6,7 +6,14 @@ import {
   addToCart,
   dayOfWeek,
   deliveryFeeSummary,
+  directoryFee,
   firstOrderableDate,
+  isCatalogOccasion,
+  normalizeOccasions,
+  occasionFromSlug,
+  OCCASION_SLUGS,
+  CATALOG_OCCASIONS,
+  storefrontFiltered,
   marketplaceDateProblem,
   movePhotoId,
   parseCart,
@@ -312,5 +319,84 @@ describe('politiche della fioreria', () => {
     expect(
       storePoliciesSchema.safeParse({ policyChanges: 'x'.repeat(STORE_LIMITS.policy + 1) }).success,
     ).toBe(false);
+  });
+});
+
+/** Occasioni (M1-2, ADR-087): valori, indirizzi in spagnolo, filtro e chip della vetrina. */
+describe('occasioni', () => {
+  it('nove occasioni con un indirizzo in spagnolo senza accenti, una per una', () => {
+    expect(CATALOG_OCCASIONS).toHaveLength(9);
+    const slugs = CATALOG_OCCASIONS.map((occasion) => OCCASION_SLUGS[occasion]);
+    expect(new Set(slugs).size).toBe(9);
+    expect(slugs.every((slug) => /^[a-z]+(?:-[a-z]+)*$/.test(slug))).toBe(true);
+    expect(occasionFromSlug('cumpleanos')).toBe('BIRTHDAY');
+    expect(occasionFromSlug('dia-de-las-madres')).toBe('MOTHERS_DAY');
+    expect(occasionFromSlug('BIRTHDAY')).toBeNull();
+    expect(occasionFromSlug(undefined)).toBeNull();
+    expect(isCatalogOccasion('LOVE')).toBe(true);
+    expect(isCatalogOccasion('love')).toBe(false);
+  });
+
+  it('senza doppioni né valori sconosciuti, nell’ordine fisso', () => {
+    expect(normalizeOccasions(['LOVE', 'BIRTHDAY', 'LOVE', 'NOPE'])).toEqual(['BIRTHDAY', 'LOVE']);
+  });
+
+  it('la vetrina filtra per occasione e mostra solo i chip con prodotti', () => {
+    const rows = [
+      row(1, { occasions: ['BIRTHDAY', 'LOVE'] }),
+      row(2, { occasions: ['BIRTHDAY'] }),
+      row(3, { type: 'PLANT', occasions: ['GET_WELL'] }),
+      row(4),
+    ];
+    const all = planStorefront(rows, query());
+    expect(all.occasions).toEqual([
+      { occasion: 'BIRTHDAY', count: 2 },
+      { occasion: 'LOVE', count: 1 },
+      { occasion: 'GET_WELL', count: 1 },
+    ]);
+    const birthday = planStorefront(rows, query({ ocasion: 'cumpleanos' }));
+    expect(birthday.itemIds).toEqual([uuid(1), uuid(2)]);
+    expect(birthday.total).toBe(2);
+    // I chip restano quelli di tutta la vetrina; il filtro si somma alla scheda.
+    expect(birthday.occasions).toEqual(all.occasions);
+    expect(planStorefront(rows, query({ ocasion: 'cumpleanos', categoria: 'plantas' })).total).toBe(
+      0,
+    );
+    expect(storefrontFiltered(query({ ocasion: 'cumpleanos' }))).toBe(true);
+    // Un valore sconosciuto si ignora.
+    expect(query({ ocasion: 'boda' }).ocasion).toBeUndefined();
+  });
+});
+
+describe('costo nella scheda della ricerca (M1-2)', () => {
+  const tiers = [
+    { maxMeters: 3000, feeMinor: 5000 },
+    { maxMeters: 8000, feeMinor: 9000 },
+  ];
+
+  it('con la distanza: la fascia che ci arriva; oltre: il riassunto', () => {
+    expect(directoryFee({ tiers, defaultFeeMinor: 0, distanceKm: 2.4 })).toEqual({
+      summary: { kind: 'fixed', feeMinor: 5000 },
+      exact: true,
+    });
+    expect(directoryFee({ tiers, defaultFeeMinor: 0, distanceKm: 12 })).toEqual({
+      summary: { kind: 'range', minMinor: 5000, maxMinor: 9000 },
+      exact: false,
+    });
+  });
+
+  it('senza distanza o senza fasce il riassunto; mai «gratis» per un costo a 0', () => {
+    expect(directoryFee({ tiers, defaultFeeMinor: 0, distanceKm: null }).exact).toBe(false);
+    expect(directoryFee({ tiers: [], defaultFeeMinor: 0, distanceKm: 1 })).toEqual({
+      summary: { kind: 'to_confirm' },
+      exact: false,
+    });
+    expect(
+      directoryFee({
+        tiers: [{ maxMeters: 5000, feeMinor: 0 }],
+        defaultFeeMinor: 0,
+        distanceKm: 1,
+      }),
+    ).toEqual({ summary: { kind: 'to_confirm' }, exact: true });
   });
 });

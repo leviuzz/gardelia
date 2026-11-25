@@ -1,6 +1,7 @@
 'use client';
 
-import { Copy, ExternalLink, ImageIcon, MessageCircle, Trash } from 'lucide-react';
+import { Copy, Download, Eye, ExternalLink, ImageIcon, MessageCircle, Trash } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
 import { toast } from 'sonner';
@@ -15,6 +16,7 @@ import {
 import { ActionButton } from '@/components/form/action-button';
 import { PhotoFilesField, PhotoUploadFooter } from '@/components/photos/photo-upload-parts';
 import { usePhotoUpload } from '@/components/photos/use-photo-upload';
+import { QrCode, qrPngBlob } from '@/components/security/qr-code';
 import { Field, controlProps } from '@/components/form/field';
 import { SubmitButton } from '@/components/form/submit-button';
 import { Button } from '@/components/ui/button';
@@ -210,9 +212,16 @@ export function OnlineOrdersForm({
 export function StoreLinkCard({
   url,
   whatsappHref,
+  published,
+  previewHref,
+  qrFileName,
 }: {
   readonly url: string;
   readonly whatsappHref: string;
+  /** Prima di pubblicare il link si prepara (copia, QR) ma non si apre né si condivide. */
+  readonly published: boolean;
+  readonly previewHref: string;
+  readonly qrFileName: string;
 }) {
   const t = useTranslations('store');
 
@@ -225,34 +234,72 @@ export function StoreLinkCard({
     }
   }
 
+  async function downloadQr() {
+    try {
+      const href = URL.createObjectURL(await qrPngBlob(url));
+      const link = document.createElement('a');
+      link.href = href;
+      link.download = qrFileName;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(href), 1000);
+    } catch {
+      toast.error(t('qrFailed'));
+    }
+  }
+
   return (
-    <div className="grid gap-3">
-      <div className="flex gap-2">
-        <Input
-          readOnly
-          value={url}
-          aria-label={t('linkLabel')}
-          onFocus={(event) => event.currentTarget.select()}
-          className="min-w-0 flex-1 font-mono text-xs"
-        />
-        <Button type="button" variant="outline" onClick={() => void copy()}>
-          <Copy />
-          {t('copy')}
-        </Button>
+    <div className="grid gap-4" data-testid="store-link">
+      <div className="grid gap-2">
+        <div className="flex gap-2">
+          <Input
+            readOnly
+            value={url}
+            aria-label={t('linkLabel')}
+            onFocus={(event) => event.currentTarget.select()}
+            className="min-w-0 flex-1 font-mono text-xs"
+          />
+          <Button type="button" variant="outline" onClick={() => void copy()}>
+            <Copy />
+            {t('copy')}
+          </Button>
+        </div>
+        {published ? null : <p className="text-sm text-muted-foreground">{t('linkPending')}</p>}
       </div>
       <div className="flex flex-wrap gap-2">
+        {published ? (
+          <>
+            <Button asChild variant="secondary">
+              <a href={url} target="_blank" rel="noopener noreferrer">
+                <ExternalLink />
+                {t('open')}
+              </a>
+            </Button>
+            <Button asChild variant="secondary">
+              <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
+                <MessageCircle />
+                {t('shareWhatsapp')}
+              </a>
+            </Button>
+          </>
+        ) : null}
         <Button asChild variant="secondary">
-          <a href={url} target="_blank" rel="noopener noreferrer">
-            <ExternalLink />
-            {t('open')}
-          </a>
+          <Link href={previewHref}>
+            <Eye />
+            {t('preview.open')}
+          </Link>
         </Button>
-        <Button asChild variant="secondary">
-          <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
-            <MessageCircle />
-            {t('shareWhatsapp')}
-          </a>
-        </Button>
+      </div>
+      {/* QR del negozio (M1-2): il link non cambia mai, quindi un QR stampato resta valido. */}
+      <div className="flex flex-col gap-3 rounded-xl border p-3 sm:flex-row sm:items-center">
+        <QrCode value={url} label={t('qrAlt', { url })} size={128} />
+        <div className="min-w-0 flex-1 space-y-2">
+          <p className="text-sm font-medium">{t('qrTitle')}</p>
+          <p className="text-sm text-muted-foreground">{t('qrHint')}</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => void downloadQr()}>
+            <Download />
+            {t('qrDownload')}
+          </Button>
+        </div>
       </div>
     </div>
   );

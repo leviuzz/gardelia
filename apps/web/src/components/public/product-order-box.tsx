@@ -12,18 +12,21 @@ import { useStoreCart } from './storefront-cart';
 
 /**
  * Quantità, «Agregar al pedido» e «Pedir ahora» nella pagina del prodotto (M1): il carrello è il
- * cookie della fioreria; «Pedir ahora» lo aggiorna e apre il modulo d'ordine.
+ * cookie della fioreria; «Pedir ahora» lo aggiorna e apre il modulo d'ordine. Nell'anteprima della
+ * fioreria (M1-2, `disabled`) si vede tutto ma niente si preme.
  */
 export function ProductOrderBox({
   slug,
   itemId,
   name,
   checkoutHref,
+  disabled = false,
 }: {
   readonly slug: string;
   readonly itemId: string;
   readonly name: string;
   readonly checkoutHref: string;
+  readonly disabled?: boolean;
 }) {
   const t = useTranslations('publicStore');
   const router = useRouter();
@@ -42,7 +45,7 @@ export function ProductOrderBox({
           variant="outline"
           size="icon"
           aria-label={t('quantityLess', { name })}
-          disabled={quantity <= 1}
+          disabled={disabled || quantity <= 1}
           onClick={() => setQuantity((value) => clamp(value - 1))}
         >
           <Minus />
@@ -55,6 +58,7 @@ export function ProductOrderBox({
           max={max}
           step={1}
           value={quantity}
+          disabled={disabled}
           onChange={(event) => setQuantity(clamp(Number(event.target.value)))}
           className="w-16 text-center tabular-nums"
         />
@@ -63,7 +67,7 @@ export function ProductOrderBox({
           variant="outline"
           size="icon"
           aria-label={t('quantityMore', { name })}
-          disabled={quantity >= max}
+          disabled={disabled || quantity >= max}
           onClick={() => setQuantity((value) => clamp(value + 1))}
         >
           <Plus />
@@ -73,7 +77,7 @@ export function ProductOrderBox({
         <Button
           type="button"
           size="lg"
-          disabled={pending}
+          disabled={disabled || pending}
           onClick={() => {
             if (add(itemId, quantity)) toast.success(t('added'));
           }}
@@ -85,7 +89,7 @@ export function ProductOrderBox({
           type="button"
           size="lg"
           variant="outline"
-          disabled={pending}
+          disabled={disabled || pending}
           onClick={() => {
             if (add(itemId, quantity)) router.push(checkoutHref);
           }}

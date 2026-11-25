@@ -8,6 +8,7 @@ import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
   ONLINE_ITEM_TYPES,
+  deliveryFeeSummary,
   freshCoordinates,
   isStoreImageKind,
   newId,
@@ -15,7 +16,9 @@ import {
   onlineOrdersBlockers,
   onlineStoreFormSchema,
   storePublishBlockers,
+  storeReadiness,
   type OnlineOrdersBlocker,
+  type StoreReadiness,
   toFieldErrors,
   type StoreImageKind,
   type StorePaymentMethod,
@@ -58,6 +61,10 @@ export interface OnlineStoreSettingsDto {
    * tienda e le distanze si misurano da lì (ADR-066, ADR-069). Senza, la trova solo chi cerca la città.
    */
   readonly onMap: boolean;
+  /** Prodotti online senza nessuna foto (M1-2): l'avviso e il filtro del Catalogo. */
+  readonly onlineWithoutPhoto: number;
+  /** «Completa la tua vetrina» (M1-2): i passi fatti e quelli da fare. */
+  readonly readiness: StoreReadiness;
 }
 
 async function readState(tx: TransactionClient, ctx: TenantContext) {
@@ -90,14 +97,42 @@ async function readState(tx: TransactionClient, ctx: TenantContext) {
   };
 }
 
+/** I conteggi di «Completa la tua vetrina» che `readState` non ha già. */
+async function readReadinessCounts(tx: TransactionClient, ctx: TenantContext) {
+  const online = {
+    tenantId: ctx.tenantId,
+    isOnline: true,
+    status: 'ACTIVE' as const,
+    type: { in: [...ONLINE_ITEM_TYPES] },
+  };
+  const [onlineWithoutPhoto, featuredItems, tenant, feeTiers] = await Promise.all([
+    tx.catalogItem.count({ where: { ...online, photos: { none: { status: 'ACTIVE' } } } }),
+    tx.catalogItem.count({ where: { ...online, featuredAt: { not: null } } }),
+    tx.tenant.findUniqueOrThrow({
+      where: { id: ctx.tenantId },
+      select: { defaultDeliveryFeeMinor: true },
+    }),
+    tx.deliveryFeeTier.findMany({ where: { tenantId: ctx.tenantId }, select: { feeMinor: true } }),
+  ]);
+  const fee = deliveryFeeSummary({
+    defaultFeeMinor: tenant.defaultDeliveryFeeMinor,
+    tierFeesMinor: feeTiers.map((tier) => tier.feeMinor),
+  });
+  return { onlineWithoutPhoto, featuredItems, hasDeliveryFee: fee.kind !== 'to_confirm' };
+}
+
 export async function getOnlineStoreSettings(ctx: TenantContext): Promise<OnlineStoreSettingsDto> {
   requirePermission(ctx, 'tenant:read');
-  const { store, onlineItems, contactPhone, pendingOrders, onMap } = await withTenantContext(
-    getDb(),
-    ctx,
-    (tx) => readState(tx, ctx),
-  );
+  const [{ store, onlineItems, contactPhone, pendingOrders, onMap }, counts] =
+    await withTenantContext(getDb(), ctx, (tx) =>
+      Promise.all([readState(tx, ctx), readReadinessCounts(tx, ctx)]),
+    );
   const paymentMethods = (store?.paymentMethods ?? []) as StorePaymentMethod[];
+  const policies = {
+    policyChanges: store?.policyChanges ?? null,
+    policyCancellations: store?.policyCancellations ?? null,
+    policySubstitutions: store?.policySubstitutions ?? null,
+  };
   return {
     isPublished: store?.isPublished ?? false,
     publishedAt: store?.publishedAt ?? null,
@@ -113,11 +148,19 @@ export async function getOnlineStoreSettings(ctx: TenantContext): Promise<Online
     ordersBlockers: onlineOrdersBlockers({ paymentMethods, contactPhone }),
     pendingOrders,
     onMap,
-    policies: {
-      policyChanges: store?.policyChanges ?? null,
-      policyCancellations: store?.policyCancellations ?? null,
-      policySubstitutions: store?.policySubstitutions ?? null,
-    },
+    policies,
+    onlineWithoutPhoto: counts.onlineWithoutPhoto,
+    readiness: storeReadiness({
+      hasLogo: Boolean(store?.logoId),
+      hasCover: Boolean(store?.coverId),
+      hasDescription: Boolean(store?.description?.trim()),
+      onlineItems,
+      onlineWithoutPhoto: counts.onlineWithoutPhoto,
+      featuredItems: counts.featuredItems,
+      hasDeliveryFee: counts.hasDeliveryFee,
+      paymentMethods: paymentMethods.length,
+      policies: Object.values(policies).filter((text) => text !== null).length,
+    }),
   };
 }
 

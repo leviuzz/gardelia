@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import sharp from 'sharp';
-import { disconnectDb, getDb, withTenantContext } from '@floral/db';
+import { disconnectDb, getDb, withSystemContext, withTenantContext } from '@floral/db';
 import { STORE_LIMITS, newId, toIsoDate, todayInTimeZone } from '@floral/domain';
 import {
   ConflictError,
@@ -9,14 +9,19 @@ import {
   NotFoundError,
   addCatalogItemPhoto,
   createCatalogItem,
+  getOnlineStoreSettings,
   getPublicStore,
   getPublicStoreItem,
   getPublicStorefront,
+  getStorePreview,
+  getStorePreviewItem,
+  listCatalogItems,
   listFeaturedItems,
   moveCatalogItemPhoto,
   setCatalogItemArchived,
   setCatalogItemFeatured,
   setCatalogItemOnline,
+  setCatalogItemsOnline,
   setObjectStorage,
   setOnlineStorePublished,
   updateCatalogItem,
@@ -368,5 +373,232 @@ describe('limite dei prodotti online', () => {
     await expect(setCatalogItemOnline(big.owner, offline.id, true)).rejects.toMatchObject({
       reason: 'store_online_limit',
     });
+  });
+});
+
+/** Più prodotti insieme e filtro «Negozio online» del Catalogo (M1-2, ADR-087). */
+describe('più prodotti insieme', () => {
+  it('«Mostra nel negozio» accende i vendibili, salta archiviati e materiali, registra ognuno', async () => {
+    const offline = await createCatalogItem(
+      shop.owner,
+      bouquetInput('Ramo por encender', 30000, { isOnline: false }),
+    );
+    const archived = await createCatalogItem(
+      shop.owner,
+      bouquetInput('Ramo archivado', 30000, { isOnline: false }),
+    );
+    await setCatalogItemArchived(shop.owner, archived.id, true);
+    const foliage = await createCatalogItem(
+      shop.owner,
+      itemInput({ type: 'FOLIAGE', name: 'Eucalipto', canonicalFlowerId: null, isOnline: false }),
+    );
+    const result = await setCatalogItemsOnline(
+      shop.owner,
+      [offline.id, archived.id, foliage.id, bouquets[0]!.id, offline.id],
+      true,
+    );
+    expect(result).toEqual({ changed: 1, skipped: 2 });
+    const rows = await withTenantContext(db, shop.owner, (tx) =>
+      tx.catalogItem.findMany({
+        where: { id: { in: [offline.id, archived.id, foliage.id] } },
+        select: { id: true, isOnline: true },
+      }),
+    );
+    expect(Object.fromEntries(rows.map((row) => [row.id, row.isOnline]))).toEqual({
+      [offline.id]: true,
+      [archived.id]: false,
+      [foliage.id]: false,
+    });
+    const audit = await withTenantContext(db, shop.owner, (tx) =>
+      tx.auditLog.findMany({
+        where: { entityId: offline.id, action: 'catalog_item.updated' },
+        select: { metadata: true },
+      }),
+    );
+    expect(audit.map((entry) => entry.metadata)).toContainEqual({
+      name: 'Ramo por encender',
+      changes: { isOnline: { from: false, to: true } },
+    });
+    // Spento insieme: torna fuori e il registro lo dice.
+    expect(await setCatalogItemsOnline(shop.owner, [offline.id], false)).toEqual({
+      changed: 1,
+      skipped: 0,
+    });
+  });
+
+  it('«Togli dal negozio» toglie anche la stella «Destacados»', async () => {
+    // Una fioreria a parte: in questa le 8 stelle sono già usate dai test sopra.
+    const lone = await createTestShop('Florería Una Estrella');
+    const starred = await createCatalogItem(lone.owner, bouquetInput('Ramo con estrella', 30000));
+    await setCatalogItemFeatured(lone.owner, starred.id, true);
+    await setCatalogItemsOnline(lone.owner, [starred.id], false);
+    const row = await withTenantContext(db, lone.owner, (tx) =>
+      tx.catalogItem.findUniqueOrThrow({
+        where: { id: starred.id },
+        select: { isOnline: true, featuredAt: true },
+      }),
+    );
+    expect(row).toEqual({ isOnline: false, featuredAt: null });
+    // Riacceso, non torna in evidenza da solo.
+    await setCatalogItemsOnline(lone.owner, [starred.id], true);
+    expect(await listFeaturedItems(lone.owner)).toEqual([]);
+  });
+
+  it('oltre i 500 non accende niente; lo staff non può; scelte vuote o troppe respinte', async () => {
+    const full = await createTestShop('Florería Casi Llena');
+    await withTenantContext(db, full.owner, (tx) =>
+      tx.catalogItem.createMany({
+        data: Array.from({ length: STORE_LIMITS.onlineItems - 1 }, (_, index) => ({
+          id: newId(),
+          tenantId: full.owner.tenantId,
+          type: 'BOUQUET' as const,
+          name: `Ramo ${index}`,
+          saleUnit: 'PIECE' as const,
+          priceMinor: 10000,
+          currency: 'MXN',
+          isOnline: true,
+        })),
+      }),
+    );
+    const first = await createCatalogItem(
+      full.owner,
+      bouquetInput('Último lugar', 10000, { isOnline: false }),
+    );
+    const second = await createCatalogItem(
+      full.owner,
+      bouquetInput('Sin lugar', 10000, { isOnline: false }),
+    );
+    await expect(
+      setCatalogItemsOnline(full.owner, [first.id, second.id], true),
+    ).rejects.toMatchObject({ reason: 'store_online_limit' });
+    // Tutto o niente: nemmeno il primo si è acceso.
+    expect(
+      (await listCatalogItems(full.owner, { online: 'no' })).items.map((item) => item.name).sort(),
+    ).toEqual(['Sin lugar', 'Último lugar']);
+    expect(await setCatalogItemsOnline(full.owner, [first.id], true)).toEqual({
+      changed: 1,
+      skipped: 0,
+    });
+
+    await expect(
+      setCatalogItemsOnline(shop.staff, [bouquets[0]!.id], false),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(setCatalogItemsOnline(shop.owner, [], true)).rejects.toMatchObject({
+      fieldErrors: { items: 'catalog_bulk_empty' },
+    });
+    await expect(
+      setCatalogItemsOnline(
+        shop.owner,
+        bouquets.slice(0, 21).map((item) => item.id),
+        true,
+      ),
+    ).rejects.toMatchObject({ fieldErrors: { items: 'catalog_bulk_too_many' } });
+  });
+
+  it('un ID di un’altra fioreria respinge tutto con l’evento di sicurezza (A↔B)', async () => {
+    const states = () =>
+      withSystemContext(db, { reason: 'test: stato dei prodotti di A e B' }, (tx) =>
+        tx.catalogItem.findMany({
+          where: { id: { in: [bouquets[3]!.id, foreign.id] } },
+          orderBy: { id: 'asc' },
+          select: { id: true, isOnline: true, updatedAt: true },
+        }),
+      );
+    const before = await states();
+    await expect(
+      setCatalogItemsOnline(shop.owner, [bouquets[3]!.id, foreign.id], false),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      setCatalogItemsOnline(other.owner, [bouquets[3]!.id], false),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    // Né il prodotto di A né quello di B sono stati toccati.
+    expect(await states()).toEqual(before);
+    const events = await withSystemContext(db, { reason: 'test: eventi di sicurezza' }, (tx) =>
+      tx.auditLog.findMany({ where: { tenantId: null, entityId: foreign.id } }),
+    );
+    expect(events.some((event) => event.action === 'security.cross_tenant_access_attempt')).toBe(
+      true,
+    );
+  });
+});
+
+describe('filtro «Negozio online» e vetrina completa', () => {
+  it('sì, no (solo i vendibili) e online senza foto', async () => {
+    const yes = await listCatalogItems(shop.owner, { online: 'yes' });
+    expect(yes.items.every((item) => item.isOnline)).toBe(true);
+    const no = await listCatalogItems(shop.owner, { online: 'no' });
+    expect(no.items.map((item) => item.name)).toContain('Ramo de mostrador');
+    expect(no.items.some((item) => item.type === 'FOLIAGE')).toBe(false);
+    const noPhoto = await listCatalogItems(shop.owner, { online: 'no_photo' });
+    expect(noPhoto.items.every((item) => item.isOnline && item.coverPhotoId === null)).toBe(true);
+    const [target] = (await listCatalogItems(shop.owner, { online: 'no_photo', q: 'Globo' })).items;
+    expect(target?.name).toBe('Globo metálico');
+    await addCatalogItemPhoto(shop.owner, target!.id, await jpeg('#c62828'), {});
+    const after = await listCatalogItems(shop.owner, { online: 'no_photo' });
+    expect(after.total).toBe(noPhoto.total - 1);
+    expect((await listCatalogItems(shop.owner, { online: 'no_photo', q: 'Globo' })).total).toBe(0);
+    // Un'altra fioreria non vede i prodotti di questa (A↔B).
+    const theirs = await listCatalogItems(other.owner, { online: 'yes' });
+    expect(theirs.items.map((item) => item.id)).toEqual([foreign.id]);
+  });
+
+  it('i passi di «Completa la tua vetrina» seguono i dati della fioreria', async () => {
+    const before = await getOnlineStoreSettings(shop.owner);
+    const done = (step: string) =>
+      before.readiness.steps.find((entry) => entry.step === step)!.done;
+    expect(done('products')).toBe(true);
+    expect(done('payment')).toBe(true);
+    expect(done('description')).toBe(false);
+    expect(done('photos')).toBe(false);
+    expect(before.onlineWithoutPhoto).toBe(
+      (await listCatalogItems(shop.owner, { online: 'no_photo' })).total,
+    );
+    await updateOnlineStore(shop.owner, {
+      description: 'Flores de temporada.',
+      paymentMethods: ['TRANSFER'],
+      paymentInstructions: null,
+    });
+    const after = await getOnlineStoreSettings(shop.owner);
+    expect(after.readiness.steps.find((entry) => entry.step === 'description')!.done).toBe(true);
+    expect(after.readiness.missing).toBe(before.readiness.missing - 1);
+  });
+});
+
+/** «Anteprima» della vetrina (M1-2): permessi della fioreria, anche prima di pubblicare. */
+describe('anteprima della vetrina', () => {
+  it('proprietario e gerente la vedono anche non pubblicata; il pubblico no; lo staff no', async () => {
+    const draft = await createTestShop('Florería Borrador');
+    await openShop(draft, 'Florería Borrador');
+    const item = await createCatalogItem(draft.owner, bouquetInput('Ramo de prueba', 40000));
+    // Negozio mai configurato né pubblicato: per il pubblico non esiste.
+    expect(await getPublicStorefront(draft.tenant.slug, {})).toBeNull();
+    const preview = await getStorePreview(draft.owner, { q: 'prueba' });
+    expect(preview.isPublished).toBe(false);
+    expect(preview.store.name).toBe('Florería Borrador');
+    expect(preview.store.ordersEnabled).toBe(false);
+    expect(preview.items.map((entry) => entry.id)).toEqual([item.id]);
+    expect(preview.cart).toBeNull();
+    expect((await getStorePreview(draft.manager, {})).onlineCount).toBe(1);
+    await expect(getStorePreview(draft.staff, {})).rejects.toBeInstanceOf(ForbiddenError);
+    const detail = await getStorePreviewItem(draft.owner, item.id);
+    expect(detail.detail?.item.name).toBe('Ramo de prueba');
+    await expect(getStorePreviewItem(draft.staff, item.id)).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it('un prodotto spento si dice; un ID di un’altra fioreria è un 404 con l’evento (A↔B)', async () => {
+    const off = await getStorePreviewItem(shop.owner, hidden.id);
+    expect(off).toEqual({ detail: null, isPublished: true });
+    await expect(getStorePreviewItem(shop.owner, foreign.id)).rejects.toBeInstanceOf(NotFoundError);
+    const events = await withSystemContext(db, { reason: 'test: eventi di sicurezza' }, (tx) =>
+      tx.auditLog.findMany({
+        where: { tenantId: null, entityId: foreign.id, actorUserId: shop.owner.userId },
+      }),
+    );
+    expect(events.some((event) => event.action === 'security.cross_tenant_access_attempt')).toBe(
+      true,
+    );
+    // L'anteprima di B non mostra i prodotti di A.
+    const theirs = await getStorePreview(other.owner, {});
+    expect(theirs.items.some((entry) => bouquets.some((own) => own.id === entry.id))).toBe(false);
   });
 });

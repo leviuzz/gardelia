@@ -76,9 +76,12 @@ export {
 export type { OrderMailDeps } from './order-mail';
 export {
   listPublicStoreCities,
+  listPublicStoreOccasions,
+  listSitemapEntries,
   refreshStoreCoordinates,
   searchPublicStores,
   type DirectoryStoreDto,
+  type SitemapEntryDto,
   type StoreSearchResultDto,
 } from './public-directory';
 export {
@@ -94,10 +97,18 @@ export {
   type PublicStoreItemDto,
 } from './public-store';
 export {
+  getStorePreview,
+  getStorePreviewItem,
+  type StorePreviewDto,
+  type StorePreviewItemDto,
+} from './services/store-preview';
+export {
   listFeaturedItems,
   moveCatalogItemPhoto,
   setCatalogItemFeatured,
+  setCatalogItemsOnline,
   updateStorePolicies,
+  type CatalogBulkOnlineResult,
   type FeaturedItemDto,
 } from './services/storefront-tools';
 export {

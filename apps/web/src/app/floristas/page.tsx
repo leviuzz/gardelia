@@ -6,11 +6,24 @@ import { Logo } from '@/components/brand/logo';
 import { LanguageSwitcher } from '@/components/i18n/language-switcher';
 import { LegalLinks } from '@/components/legal/legal-links';
 import { Button } from '@/components/ui/button';
+import { serverEnv } from '@/lib/env';
+import { publicPageIndexing } from '@/lib/indexing';
+import { buyerRoutes } from '@/lib/routes';
 import { getSession } from '@/lib/session';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('landing');
-  return { title: t('metaTitle') };
+  const env = serverEnv();
+  return {
+    title: t('metaTitle'),
+    // Google (M1-2): solo con PUBLIC_INDEXING acceso.
+    ...publicPageIndexing({
+      enabled: env.PUBLIC_INDEXING === 'on',
+      appUrl: env.APP_URL,
+      canonicalPath: buyerRoutes.florists,
+      indexable: true,
+    }),
+  };
 }
 
 /**

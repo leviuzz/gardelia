@@ -34,6 +34,31 @@ function sized(path: string, size: string): string {
   return size === 'full' ? path : withQuery(path, { size });
 }
 
+/** Scheda, ricerca, ordine, pagina e occasione della vetrina (M1). */
+export interface StorefrontLinkQuery {
+  readonly categoria?: string;
+  /** Occasione (M1-2), col nome in spagnolo: `cumpleanos`. */
+  readonly ocasion?: string;
+  readonly q?: string;
+  readonly orden?: string;
+  readonly pagina?: number;
+}
+
+/**
+ * Indirizzo di una vista della vetrina: i valori predefiniti (ordine consigliato, prima pagina) non
+ * vanno nell'indirizzo, così ogni vista ha un solo link. Vale per la vetrina pubblica e per
+ * l'anteprima della fioreria (M1-2).
+ */
+function storefrontHref(base: string, query?: StorefrontLinkQuery): string {
+  return withQuery(base, {
+    categoria: query?.categoria,
+    ocasion: query?.ocasion,
+    q: query?.q,
+    orden: query?.orden === 'recomendados' ? undefined : query?.orden,
+    pagina: query?.pagina && query.pagina > 1 ? query.pagina : undefined,
+  });
+}
+
 /** Tutti i percorsi di una fioreria, a partire dallo slug dell'URL. */
 export function tenantRoutes(slug: string) {
   const home = `/app/${segment(slug)}`;
@@ -247,6 +272,10 @@ export function tenantRoutes(slug: string) {
       /** Anteprima di logo o copertina nelle impostazioni (`v` = ID attuale, contro la cache). */
       storeImage: (kind: 'LOGO' | 'COVER', imageId: string) =>
         withQuery(`${settings}/store/image/${kind === 'LOGO' ? 'logo' : 'cover'}`, { v: imageId }),
+      /** «Anteprima» della vetrina (M1-2): come la vedranno i clienti, anche non pubblicata. */
+      storePreview: (query?: StorefrontLinkQuery) =>
+        storefrontHref(`${settings}/store/preview`, query),
+      storePreviewItem: (itemId: string) => `${settings}/store/preview/p/${segment(itemId)}`,
     },
   } as const;
 }
@@ -341,8 +370,9 @@ export function isAccountPath(path: string): boolean {
   return (
     path === accountRoutes.home ||
     path.startsWith(`${accountRoutes.home}/`) ||
-    // "Hacer pedido" in una tienda en línea (ADR-067): chi accede sta comprando.
-    /^\/f\/[^/]+\/pedido(?:[/?]|$)/.test(path)
+    // Una tienda en línea, il suo prodotto o «Hacer pedido» (ADR-067; «Entrar» della vetrina,
+    // M1-2): chi accede da lì sta comprando.
+    /^\/f\/[^/?]+(?:[/?]|$)/.test(path)
   );
 }
 
@@ -355,22 +385,8 @@ export function publicStoreRoutes(slug: string) {
   const item = (itemId: string) => `${home}/p/${segment(itemId)}`;
   return {
     home,
-    /**
-     * La vetrina con scheda, ricerca, ordine e pagina (M1); i valori predefiniti (ordine consigliato,
-     * prima pagina) non vanno nell'indirizzo, così ogni vista ha un solo link.
-     */
-    storefront: (query?: {
-      readonly categoria?: string;
-      readonly q?: string;
-      readonly orden?: string;
-      readonly pagina?: number;
-    }) =>
-      withQuery(home, {
-        categoria: query?.categoria,
-        q: query?.q,
-        orden: query?.orden === 'recomendados' ? undefined : query?.orden,
-        pagina: query?.pagina && query.pagina > 1 ? query.pagina : undefined,
-      }),
+    /** La vetrina con scheda, ricerca, ordine e pagina (M1). */
+    storefront: (query?: StorefrontLinkQuery) => storefrontHref(home, query),
     item,
     /** Logo o copertina della tienda: l'ID attuale è nell'indirizzo. */
     image: (kind: 'LOGO' | 'COVER', imageId: string) =>
@@ -395,5 +411,49 @@ export const buyerRoutes = {
    * Dalla ricerca alla tienda: segna che chi compra è arrivato da Gardelia (origine degli ordini,
    * fee D-24) e porta alla pagina della fioreria.
    */
-  fromSearch: (slug: string) => `/buscar/ir/${segment(slug)}`,
+  fromSearch: (slug: string, query?: { readonly ocasion?: string }) =>
+    withQuery(`/buscar/ir/${segment(slug)}`, { ocasion: query?.ocasion }),
 } as const;
+
+/**
+ * I link di una vetrina (M1-2): quelli pubblici per chi compra, o quelli dell'anteprima della
+ * fioreria, che restano nell'app e prendono le foto dalle pagine private.
+ */
+export interface StoreLinks {
+  readonly home: string;
+  readonly storefront: (query?: StorefrontLinkQuery) => string;
+  readonly item: (itemId: string) => string;
+  readonly photo: (
+    itemId: string,
+    photoId: string,
+    options?: { readonly thumb?: boolean },
+  ) => string;
+  readonly image: (kind: 'LOGO' | 'COVER', imageId: string) => string;
+  readonly checkout: (query?: QueryValues) => string;
+}
+
+export function publicStoreLinks(slug: string): StoreLinks {
+  const routes = publicStoreRoutes(slug);
+  return {
+    home: routes.home,
+    storefront: routes.storefront,
+    item: routes.item,
+    photo: routes.photo,
+    image: routes.image,
+    checkout: routes.checkout,
+  };
+}
+
+export function previewStoreLinks(tenantSlug: string): StoreLinks {
+  const settings = tenantRoutes(tenantSlug).settings;
+  const catalog = tenantRoutes(tenantSlug).catalog;
+  return {
+    home: settings.storePreview(),
+    storefront: settings.storePreview,
+    item: settings.storePreviewItem,
+    photo: (_itemId, photoId, options) => catalog.photo(photoId, options?.thumb ? 'thumb' : 'full'),
+    image: settings.storeImage,
+    // In anteprima gli ordini sono spenti: il modulo non si apre.
+    checkout: () => settings.storePreview(),
+  };
+}

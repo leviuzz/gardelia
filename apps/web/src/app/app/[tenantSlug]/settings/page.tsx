@@ -30,7 +30,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { money, phoneForInput } from '@/lib/format';
-import { tenantRoutes } from '@/lib/routes';
+import { serverEnv } from '@/lib/env';
+import { publicStoreRoutes, tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
   addDeliveryFeeTierAction,
@@ -160,7 +161,15 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
           <dl className="grid gap-3 rounded-xl bg-muted/50 p-4 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-muted-foreground">{t('settings.shopUrl')}</dt>
-              <dd className="font-mono text-xs">{tenantRoutes(tenant.slug).home}</dd>
+              <dd>
+                {/* Il link del negozio online (M1-2): si gestisce in Impostazioni → Negozio online. */}
+                <Link
+                  href={tenantRoutes(tenant.slug).settings.store}
+                  className="font-mono text-xs break-all text-primary hover:underline"
+                >
+                  {`${serverEnv().APP_URL.replace(/\/+$/, '')}${publicStoreRoutes(tenant.slug).home}`}
+                </Link>
+              </dd>
             </div>
             <div>
               <dt className="text-muted-foreground">{t('settings.currency')}</dt>
@@ -248,7 +257,7 @@ export default async function SettingsPage({ params }: PageProps<'/app/[tenantSl
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="delivery" className="scroll-mt-24">
         <CardHeader>
           <CardTitle>{t('settings.delivery.title')}</CardTitle>
           <CardDescription>{t('settings.delivery.subtitle')}</CardDescription>

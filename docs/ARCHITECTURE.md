@@ -127,6 +127,13 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
   per fioreria (`gardelia_cart`, percorso `/f/<slug>`, solo ID e quantità): lo scrive il browser,
   lo legge il server per la barra «Tu pedido» e per il modulo d'ordine, che lo riconcilia nel
   contesto della fioreria; prezzi e disponibilità li decide sempre il server.
+  Vetrina e prodotto sono viste condivise (`components/public/storefront-view.tsx`) che ricevono i
+  link (`publicStoreLinks` o `previewStoreLinks` di `lib/routes.ts`): l'«Anteprima» della fioreria
+  (M1-2) usa le stesse letture (`readStoreHeaderTx`, `readStorefrontTx`, `readStoreItemTx`) nel
+  contesto della fioreria con la sua RLS, anche a negozio non pubblicato, con le foto dalle pagine
+  private e i pulsanti d'ordine spenti. Google (M1-2): `PUBLIC_INDEXING` decide `robots`,
+  `robots.txt` e `sitemap.xml` (`app_public_sitemap`, SECURITY DEFINER come la ricerca), regole pure
+  in `lib/indexing.ts`; dati strutturati in `lib/structured-data.ts`.
 - **Per persona** (`app_enable_user_rls`, ADR-064): le tabelle del conto cliente del marketplace
   (`BuyerProfile`, `BuyerAddress`) non hanno `tenantId`; righe visibili/modificabili solo se
   `userId = app_current_user_id()`. Le usano solo i servizi `buyer-account` dentro

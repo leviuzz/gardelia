@@ -4,6 +4,8 @@ import {
   buyerRoutes,
   isAccountPath,
   legalRoutes,
+  previewStoreLinks,
+  publicStoreLinks,
   publicStoreRoutes,
   tenantRoutes,
   withQuery,
@@ -178,8 +180,11 @@ describe('conto del cliente (routes.ts)', () => {
     expect(store.checkout({ producto: 'p1' })).toBe('/f/las-camelias/pedido?producto=p1');
     expect(isAccountPath(store.checkout())).toBe(true);
     expect(isAccountPath(store.checkout({ producto: 'p1' }))).toBe(true);
-    expect(isAccountPath(store.home)).toBe(false);
-    expect(isAccountPath('/f/las-camelias/pedidos')).toBe(false);
+    // Chi accede da una vetrina sta comprando («Entrar», M1-2).
+    expect(isAccountPath(store.home)).toBe(true);
+    expect(isAccountPath(store.item('i1'))).toBe(true);
+    expect(isAccountPath('/fx/las-camelias')).toBe(false);
+    expect(isAccountPath('/app/las-camelias')).toBe(false);
     expect(buyerRoutes.fromSearch('las-camelias')).toBe('/buscar/ir/las-camelias');
   });
 
@@ -190,6 +195,28 @@ describe('conto del cliente (routes.ts)', () => {
     expect(
       store.storefront({ categoria: 'plantas', q: 'orquídea', orden: 'precio-asc', pagina: 2 }),
     ).toBe('/f/las-camelias?categoria=plantas&q=orqu%C3%ADdea&orden=precio-asc&pagina=2');
+  });
+
+  it('anteprima della vetrina (M1-2): stessa vista, link dell’app e foto private', () => {
+    const settings = tenantRoutes('las-camelias').settings;
+    expect(settings.storePreview()).toBe('/app/las-camelias/settings/store/preview');
+    expect(settings.storePreview({ q: 'rosa', orden: 'recomendados', pagina: 2 })).toBe(
+      '/app/las-camelias/settings/store/preview?q=rosa&pagina=2',
+    );
+    expect(settings.storePreviewItem('i 1')).toBe(
+      '/app/las-camelias/settings/store/preview/p/i%201',
+    );
+    const preview = previewStoreLinks('las-camelias');
+    expect(preview.home).toBe(settings.storePreview());
+    expect(preview.item('i1')).toBe(settings.storePreviewItem('i1'));
+    expect(preview.photo('i1', 'p1', { thumb: true })).toBe(
+      '/app/las-camelias/catalog/photos/p1?size=thumb',
+    );
+    expect(preview.image('COVER', 'c1')).toBe('/app/las-camelias/settings/store/image/cover?v=c1');
+    // I link pubblici restano quelli di sempre.
+    const store = publicStoreLinks('las-camelias');
+    expect(store.photo('i1', 'p1')).toBe('/f/las-camelias/p/i1/foto/p1');
+    expect(store.storefront({ categoria: 'ramos' })).toBe('/f/las-camelias?categoria=ramos');
   });
 
   it('privacy di chi compra e documenti legali (ADR-068)', () => {

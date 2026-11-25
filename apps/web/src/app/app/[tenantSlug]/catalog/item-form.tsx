@@ -17,6 +17,7 @@ import {
   ALLOWED_UNITS_BY_TYPE,
   AVAILABILITY_STATES,
   CATALOG_COLORS,
+  CATALOG_OCCASIONS,
   CATALOG_ITEM_TYPES,
   CATALOG_LIMITS,
   DEFAULT_UNIT_BY_TYPE,
@@ -71,6 +72,8 @@ export interface ItemFormDefaults {
   readonly isBuilderEnabled: boolean;
   /** "Mostrar en mi tienda en línea" (ADR-065). */
   readonly isOnline: boolean;
+  /** Occasioni per la vetrina (M1-2). */
+  readonly occasions: readonly string[];
 }
 
 /** Specie della tassonomia pronta per la ricerca (ADR-043). */
@@ -107,6 +110,7 @@ const EMPTY: ItemFormDefaults = {
   serviceRadiusKm: '',
   isBuilderEnabled: true,
   isOnline: false,
+  occasions: [],
 };
 
 /** Campi di ogni passo della creazione guidata: un errore del server riporta al suo passo. */
@@ -121,6 +125,7 @@ const STEP_FIELDS: readonly (readonly string[])[] = [
     'serviceDurationMinutes',
     'serviceRadiusKm',
     'isOnline',
+    'occasions',
     'supplierId',
     'sku',
     'description',
@@ -168,6 +173,7 @@ export function ItemForm({
   defaults?: ItemFormDefaults;
 }) {
   const t = useTranslations('catalog');
+  const tOccasion = useTranslations('occasions');
   const ts = useTranslations('steps');
   const tDuration = useTranslations('duration');
   const [state, formAction] = useActionState(action, idleState);
@@ -494,6 +500,33 @@ export function ItemForm({
             <span className="block text-muted-foreground">{t('form.onlineHint')}</span>
           </span>
         </label>
+      ) : null}
+      {/* Occasioni (M1-2): scorciatoie nella vetrina e nella ricerca delle fiorerie. */}
+      {canShowOnline(type) ? (
+        <fieldset className="grid gap-2 sm:col-span-2" data-testid="item-occasions">
+          <legend className="text-sm font-medium">{t('form.occasions')}</legend>
+          <p className="text-sm text-muted-foreground">{t('form.occasionsHint')}</p>
+          {/* Il modulo mostra la voce: senza caselle spuntate le occasioni si tolgono. */}
+          <input type="hidden" name="occasionsShown" value="1" />
+          <div className="flex flex-wrap gap-2">
+            {CATALOG_OCCASIONS.map((occasion) => (
+              <label
+                key={occasion}
+                className="flex cursor-pointer items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-sm transition-colors has-[:checked]:border-primary has-[:checked]:bg-secondary has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/30"
+              >
+                <input
+                  type="checkbox"
+                  name="occasions"
+                  value={occasion}
+                  defaultChecked={defaults.occasions.includes(occasion)}
+                  className="sr-only"
+                />
+                {tOccasion(occasion)}
+              </label>
+            ))}
+          </div>
+          {err('occasions') ? <p className="text-sm text-destructive">{err('occasions')}</p> : null}
+        </fieldset>
       ) : null}
     </>
   );
