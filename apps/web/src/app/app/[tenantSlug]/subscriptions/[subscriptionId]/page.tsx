@@ -7,7 +7,6 @@ import {
   Leaf,
   Pencil,
   Plus,
-  ScanSearch,
   Sprout,
   Trash2,
 } from 'lucide-react';
@@ -24,7 +23,6 @@ import {
   getCareExtraVisitOptions,
   getCarePortalPanel,
   hasPermission,
-  isPlantAssistantAvailable,
   listCanonicalFlowers,
   listCareAssignees,
   listCareContractQuotes,
@@ -46,7 +44,6 @@ import {
 import { ContractStatusBadge, ExtraVisitBadge, VisitStatusBadge } from '@/components/care/care-ui';
 import { CareMessagesCard } from '@/components/care/care-messages-card';
 import { ContractChargesCard } from '@/components/care/contract-charges-card';
-import { PlantAssistantCard } from '@/components/care/plant-assistant-card';
 import { CareUpsell } from '@/components/care/care-upsell';
 import { PortalAccessCard } from '@/components/care/portal-access-card';
 import {
@@ -158,9 +155,6 @@ export default async function CareContractPage({
   const isDraft = contract.status === 'DRAFT';
   const isActive = contract.status === 'ACTIVE' || contract.status === 'PAUSED';
   const canWrite = contract.canWrite;
-  // Asistente de plantas (ADR-085): solo se configurato; le consultas nuove sui contratti aperti.
-  const assistantOn = hasPermission(ctx, 'care:assistant') && isPlantAssistantAvailable();
-  const canConsult = assistantOn && (isDraft || isActive);
   const dayName = await weekdayNamer();
   const day = (iso: string) =>
     format.dateTime(new Date(`${iso}T12:00:00Z`), {
@@ -553,81 +547,50 @@ export default async function CareContractPage({
                           <p className="text-xs whitespace-pre-line">{plant.instructions}</p>
                         ) : null}
                       </div>
-                      {canWrite || canConsult ? (
+                      {canWrite ? (
                         <span className="flex shrink-0 gap-1">
-                          {canConsult ? (
-                            <Button
-                              asChild
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t('assistant.card.askPlant', { name: plant.name })}
-                              title={t('assistant.card.askPlant', { name: plant.name })}
-                            >
-                              <Link
-                                href={routes.subscriptions.assistant(contract.id, {
-                                  plant: plant.id,
-                                })}
+                          <CarePlantDialog
+                            action={updateCarePlantAction.bind(null, slug, contract.id, plant.id)}
+                            idPrefix={`plant-${plant.id}`}
+                            species={species}
+                            title={t('care.plants.editTitle', { name: plant.name })}
+                            submitLabel={t('common.saveChanges')}
+                            defaults={{
+                              name: plant.name,
+                              speciesId: plant.speciesId ?? '',
+                              quantity: String(plant.quantity),
+                              size: plant.size,
+                              location: plant.location ?? '',
+                              light: plant.light ?? '',
+                              watering: plant.watering ?? '',
+                              instructions: plant.instructions ?? '',
+                              seasonal: plant.seasonal,
+                            }}
+                            trigger={
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t('care.plants.editLabel', { name: plant.name })}
                               >
-                                <ScanSearch />
-                              </Link>
-                            </Button>
-                          ) : null}
-                          {canWrite ? (
-                            <>
-                              <CarePlantDialog
-                                action={updateCarePlantAction.bind(
-                                  null,
-                                  slug,
-                                  contract.id,
-                                  plant.id,
-                                )}
-                                idPrefix={`plant-${plant.id}`}
-                                species={species}
-                                title={t('care.plants.editTitle', { name: plant.name })}
-                                submitLabel={t('common.saveChanges')}
-                                defaults={{
-                                  name: plant.name,
-                                  speciesId: plant.speciesId ?? '',
-                                  quantity: String(plant.quantity),
-                                  size: plant.size,
-                                  location: plant.location ?? '',
-                                  light: plant.light ?? '',
-                                  watering: plant.watering ?? '',
-                                  instructions: plant.instructions ?? '',
-                                  seasonal: plant.seasonal,
-                                }}
-                                trigger={
-                                  <Button
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    aria-label={t('care.plants.editLabel', { name: plant.name })}
-                                  >
-                                    <Pencil />
-                                  </Button>
-                                }
-                              />
-                              <ConfirmActionDialog
-                                action={removeCarePlantAction.bind(
-                                  null,
-                                  slug,
-                                  contract.id,
-                                  plant.id,
-                                )}
-                                trigger={
-                                  <Button
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    aria-label={t('care.plants.removeLabel', { name: plant.name })}
-                                  >
-                                    <Trash2 />
-                                  </Button>
-                                }
-                                title={t('care.plants.removeTitle', { name: plant.name })}
-                                description={t('care.plants.removeBody')}
-                                confirmLabel={t('care.plants.removeSubmit')}
-                              />
-                            </>
-                          ) : null}
+                                <Pencil />
+                              </Button>
+                            }
+                          />
+                          <ConfirmActionDialog
+                            action={removeCarePlantAction.bind(null, slug, contract.id, plant.id)}
+                            trigger={
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t('care.plants.removeLabel', { name: plant.name })}
+                              >
+                                <Trash2 />
+                              </Button>
+                            }
+                            title={t('care.plants.removeTitle', { name: plant.name })}
+                            description={t('care.plants.removeBody')}
+                            confirmLabel={t('care.plants.removeSubmit')}
+                          />
                         </span>
                       ) : null}
                     </li>
@@ -676,9 +639,6 @@ export default async function CareContractPage({
           {isDraft ? null : (
             <CareMessagesCard ctx={ctx} subscriptionId={contract.id} pages={messagePages} />
           )}
-          {assistantOn ? (
-            <PlantAssistantCard ctx={ctx} subscriptionId={contract.id} canStart={canConsult} />
-          ) : null}
           {contract.canPayments ? (
             <ContractChargesCard
               ctx={ctx}

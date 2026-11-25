@@ -1,10 +1,14 @@
 /**
  * Floral Care, blocco 6 (ADR-085) — l'Asistente de plantas: regole pure.
  *
- *  - Due passi. Riconoscimento: una foto → fino a 3 specie della NOSTRA lista e ciò che si vede
- *    (foglie gialle, punte secche…). Risposta: solo testo (la foto non si rimanda) con la specie
- *    confermata da chi chiede, i nostri dati di cura e la domanda.
- *  - Una consulta è una risposta riuscita; un errore o un rifiuto non si conta.
+ *  - È per i clienti della fioreria, in Mi Floral Care: la fioreria compra crediti da Gardelia e li
+ *    dà ai suoi contratti (founder, 25/11). 1 credito = 1 risposta riuscita; un errore o un rifiuto
+ *    non usa crediti.
+ *  - Due passi. Riconoscimento: una foto → fino a 3 specie della NOSTRA lista, ciò che si vede
+ *    (foglie gialle, punte secche…) e se sembra avere un problema. Risposta: solo testo (la foto non
+ *    si rimanda) con la specie confermata da chi chiede, i nostri dati di cura e la domanda.
+ *  - Mix dei modelli (prova pagata, docs/AI_BENCHMARK.md): il riconoscimento e le domande su un
+ *    problema con il modello principale, le domande di cura con quello leggero.
  *  - Il modello non dà mai dosi di prodotti chimici e non parla di tossicità: l'avviso viene solo
  *    dai nostri dati (`plant-care.ts`).
  *  - Il costo di ogni chiamata si calcola dai token veri (`usage`) con il listino qui sotto.
@@ -14,17 +18,17 @@ import { zonedDateTime } from './ai';
 import { todayInTimeZone } from './customer';
 import type { SupportedLocale } from './i18n';
 import type { PlantCare } from './plant-care';
-import { toTrimmedString } from './validation';
+import { requiredInteger, toTrimmedString } from './validation';
 
 export const ASSISTANT_LIMITS = {
   /** Caratteri della domanda. */
   question: 500,
   /** Risposte per caso («Otra pregunta» senza rifare la foto). */
   answersPerCase: 3,
-  /** Consultas (risposte) al giorno per fioreria, pagate da Gardelia (founder, 25/11). */
-  shopAnswersPerDay: 20,
-  /** Foto riconosciute al giorno per fioreria: argine agli abusi. */
-  shopCasesPerDay: 40,
+  /** Risposte al giorno per contratto, anche con crediti: argine agli abusi. */
+  contractAnswersPerDay: 10,
+  /** Foto riconosciute al giorno per contratto: argine agli abusi. */
+  contractCasesPerDay: 10,
   /** Specie proposte dal riconoscimento. */
   candidates: 3,
   /** Caratteri salvati della condizione vista nella foto, della risposta e di ogni passo. */
@@ -36,9 +40,39 @@ export const ASSISTANT_LIMITS = {
   modelImageSide: 1092,
   /** Tetto di una chiamata al modello. */
   timeoutMs: 45_000,
-  /** Budget mensile delle consultas pagate da Gardelia finché il founder non lo fissa. */
+  /** Budget mensile di piattaforma (rete di sicurezza) finché il founder non lo fissa. */
   defaultMonthlyBudgetUsd: 20,
 } as const;
+
+/**
+ * Crediti dell'assistente (founder, 25/11): la fioreria li compra da Gardelia come i crediti delle
+ * immagini (WhatsApp, poi accredito della piattaforma) e li dà ai contratti quando vuole. Il
+ * prezzo non sta nel codice (D-16/17): lo dice la piattaforma quando si comprano.
+ */
+export const ASSISTANT_CREDITS = {
+  /** Crediti usati da una risposta riuscita (l'analisi della foto è compresa nella prima). */
+  perAnswer: 1,
+  /** Crediti dati a un contratto in una volta. */
+  maxGive: 500,
+  /** Una riserva fatta prima di chiamare il modello vale al massimo 2 minuti. */
+  holdSeconds: 120,
+} as const;
+
+/** Crediti ancora da dare della fioreria: comprati meno quelli dati ai contratti (resi compresi). */
+export function assistantShopAvailable(purchased: number, allocated: number): number {
+  return Math.max(0, purchased - allocated);
+}
+
+/** Crediti ancora usabili di un contratto: dati meno risposte riuscite e riserve in corso. */
+export function assistantContractAvailable(allocated: number, used: number, held: number): number {
+  return Math.max(0, allocated - used - held);
+}
+
+/** «Dar créditos» a un contratto. */
+export const assistantCreditGiveSchema = z.object({
+  credits: requiredInteger({ min: 1, max: ASSISTANT_CREDITS.maxGive }),
+});
+export type AssistantCreditGiveInput = z.infer<typeof assistantCreditGiveSchema>;
 
 export const ASSISTANT_MODELS = [
   'claude-opus-5-5',
@@ -49,6 +83,38 @@ export type AssistantModel = (typeof ASSISTANT_MODELS)[number];
 
 export function isAssistantModel(value: unknown): value is AssistantModel {
   return typeof value === 'string' && (ASSISTANT_MODELS as readonly string[]).includes(value);
+}
+
+/**
+ * Che cosa vuole sapere chi chiede: CARE = come curarla (acqua, luce, posto), PROBLEM = le succede
+ * qualcosa (foglie, macchie, parassiti). Sceglie il modello della risposta.
+ */
+export const ASSISTANT_QUESTION_KINDS = ['CARE', 'PROBLEM'] as const;
+export type AssistantQuestionKind = (typeof ASSISTANT_QUESTION_KINDS)[number];
+
+/**
+ * I due modelli configurati (o i loro adattatori): il principale (foto e problemi) e quello
+ * leggero (cura).
+ */
+export interface AssistantModels<T = AssistantModel> {
+  readonly main: T;
+  readonly care: T;
+}
+
+/** Chi risponde: le domande di cura al modello leggero, i problemi al principale. */
+export function assistantAnswerModel<T>(
+  models: AssistantModels<T>,
+  kind: AssistantQuestionKind,
+): T {
+  return kind === 'CARE' ? models.care : models.main;
+}
+
+/** La scelta proposta: «Tiene un problema» se la foto lo mostra o se la specie non si sa. */
+export function assistantDefaultKind(input: {
+  readonly looksUnhealthy: boolean;
+  readonly speciesKnown: boolean;
+}): AssistantQuestionKind {
+  return input.looksUnhealthy || !input.speciesKnown ? 'PROBLEM' : 'CARE';
 }
 
 interface ModelRates {
@@ -174,6 +240,7 @@ export function assistantDayStart(timeZone: string, now: Date = new Date()): Dat
 // -----------------------------------------------------------------------------
 
 export const assistantQuestionSchema = z.object({
+  kind: z.enum(ASSISTANT_QUESTION_KINDS, { error: 'required' }),
   question: z.preprocess(
     toTrimmedString,
     z
@@ -196,7 +263,15 @@ export type AssistantProblem =
   | 'assistant_budget_reached'
   | 'assistant_photo_unusable'
   | 'assistant_case_full'
-  | 'assistant_failed';
+  | 'assistant_failed'
+  /** Il contratto non ha più crediti: si chiedono alla fioreria. */
+  | 'assistant_no_credits'
+  /** La fioreria non ha abbastanza crediti da dare. */
+  | 'assistant_shop_credits'
+  /** Il contratto non è attivo né in pausa. */
+  | 'assistant_contract_closed'
+  /** «Enviar a la florería» su un caso ancora senza risposte. */
+  | 'assistant_nothing_to_send';
 
 // -----------------------------------------------------------------------------
 // Output del modello (output strutturato) e pulizia
@@ -214,6 +289,8 @@ export const assistantRecognitionOutputSchema = z.object({
   candidates: z.array(z.object({ slug: z.string(), likelihood: z.enum(ASSISTANT_LIKELIHOODS) })),
   notInList: z.boolean(),
   condition: z.string(),
+  /** La foto mostra segni di un problema (propone «Tiene un problema»). */
+  looksUnhealthy: z.boolean(),
 });
 export type AssistantRecognitionOutput = z.infer<typeof assistantRecognitionOutputSchema>;
 
@@ -235,6 +312,7 @@ export interface AssistantRecognition {
   readonly candidates: readonly AssistantCandidate[];
   readonly notInList: boolean;
   readonly condition: string;
+  readonly looksUnhealthy: boolean;
 }
 
 function clip(text: string, max: number): string {
@@ -261,6 +339,7 @@ export function cleanRecognition(
     candidates,
     notInList: raw.notInList,
     condition: clip(raw.condition, ASSISTANT_LIMITS.conditionChars),
+    looksUnhealthy: raw.photoUsable && raw.looksUnhealthy,
   };
 }
 
@@ -288,7 +367,7 @@ export function cleanAnswer(raw: AssistantAnswerOutput): AssistantAnswer {
 // Prompt (versionati: la versione va in ogni chiamata registrata)
 // -----------------------------------------------------------------------------
 
-export const ASSISTANT_PROMPT_VERSION = 'v1';
+export const ASSISTANT_PROMPT_VERSION = 'v2';
 
 /** La lingua in cui il modello scrive, con il nome che capisce meglio. */
 const LANGUAGE_NAMES: Record<SupportedLocale, string> = {
@@ -312,10 +391,11 @@ export function assistantRecognitionSystem(species: readonly AssistantSpecies[])
     .map((item) => `${item.slug} | ${item.name} | ${item.scientificName}`)
     .join('\n');
   return [
-    'You are the identification step of "Asistente de plantas", an assistant for indoor potted plants that florists in Mexico care for in homes, offices and hotels.',
-    'You receive one photo. Do two things:',
+    'You are the identification step of "Asistente de plantas", an assistant for indoor plants (in pots or planters) that a florist in Mexico cares for under a maintenance contract in homes, offices and hotels. The photo comes from the florist\'s customer.',
+    'You receive one photo. Do three things:',
     '1. Identify the plant among the species in the LIST below. Return up to 3 candidates, best first, using only slugs from the LIST, each with a likelihood (high, medium or low). If the plant is clearly not in the LIST, set notInList to true and return only plausible candidates (or none).',
-    '2. In `condition`, describe in at most two short sentences what is visibly notable about the plant: leaf color, spots, dry or brown tips, drooping, pests, mold, soil and pot. Describe only what you see; do not guess causes and do not give advice.',
+    '2. In `condition`, describe in at most two short sentences what is visibly notable about the plant: leaf color, spots, dry or brown tips, drooping, pests, mold, soil and pot or planter. Describe only what you see; do not guess causes and do not give advice.',
+    '3. Set `looksUnhealthy` to true if the photo shows signs of a problem (yellow or brown leaves, spots, dry tips, drooping, pests, mold, rot), false if the plant looks healthy.',
     'If the photo does not clearly show a plant (too dark, blurry, not a plant), set photoUsable to false, return no candidates and explain why in `condition`.',
     'Write `condition` in the language requested in the message.',
     '',
@@ -343,20 +423,21 @@ export function assistantRecognitionPrompt(input: {
 /** Il sistema della risposta: le regole, uguali a ogni chiamata (cache). */
 export function assistantAnswerSystem(): string {
   return [
-    'You are "Asistente de plantas", a brief and careful assistant for indoor potted plants that florists in Mexico care for in homes, offices and hotels. You answer one question about one plant.',
+    'You are "Asistente de plantas", a brief and careful assistant for indoor plants (in pots or planters) that a florist in Mexico cares for under a maintenance contract in homes, offices and hotels. You answer one question about one plant from the florist\'s customer, between the florist\'s visits.',
     'Rules:',
-    '- Be brief: `answer` at most about 120 words; `steps` at most 5 short, concrete actions (or none if not needed).',
-    '- Write in the language requested in the message.',
+    '- Be brief: `answer` at most about 70 words; `steps` at most 4 short, concrete actions (or none if not needed).',
+    '- Write in the language requested in the message. In Spanish always use the informal "tú".',
+    '- If the photo description shows the plant in the ground or in a large planter, do not give pot-specific steps (saucer, drainage holes, moving the pot).',
     '- Use the species care data given in the message as the reference for that species. Never give fixed schedules ("water every 7 days"): explain how to check when the plant needs water or light.',
-    '- Never give doses, concentrations, mixtures or brand names of pesticides, fungicides, fertilizers or other chemicals. If a product may be needed, say to ask the florist.',
+    '- Never give doses, concentrations, mixtures or brand names of pesticides, fungicides, fertilizers or other chemicals. If a product may be needed, say to ask their florist.',
     '- Do not talk about toxicity for people or pets: the app shows its own verified warning.',
-    '- Base the answer only on the information given. If the symptoms are unclear, could have several causes, look serious or involve pests that can spread, say so, set `unsure` to true and set `askFlorist` to true.',
+    '- Base the answer only on the information given. If the symptoms are unclear, could have several causes, look serious or involve pests that can spread, say so, set `unsure` to true and set `askFlorist` to true (the customer can send the case to their florist).',
     '- If the question is not about caring for this plant, say briefly that you can only help with the plant and set `askFlorist` to true.',
   ].join('\n');
 }
 
 const LIGHT_TEXT: Record<PlantCare['light'], string> = {
-  LOW: 'tolerates low light, away from windows',
+  LOW: 'tolerates low light, but grows best in bright indirect light; no strong direct sun',
   MEDIUM: 'bright indirect light',
   HIGH: 'some direct sun during the day',
 };
@@ -371,8 +452,15 @@ const HUMIDITY_TEXT: Record<PlantCare['humidity'], string> = {
   HIGH: 'likes high air humidity',
 };
 
+const KIND_TEXT: Record<AssistantQuestionKind, string> = {
+  CARE: 'to know how to care for the plant (water, light, place)',
+  PROBLEM: 'help with a problem they see on the plant',
+};
+
 export interface AssistantAnswerPromptInput {
   readonly locale: SupportedLocale;
+  /** Che cosa vuole sapere chi chiede (non c'è nelle domande della prova pagata). */
+  readonly kind?: AssistantQuestionKind;
   /** La specie confermata (null = «No sé»). */
   readonly species: (AssistantSpecies & { readonly care: PlantCare | null }) | null;
   /** La scheda della pianta nel contratto, se la consulta parte da lì. */
@@ -393,6 +481,7 @@ export interface AssistantAnswerPromptInput {
 /** Il messaggio della risposta: dati della specie, della pianta, della foto e la domanda. */
 export function assistantAnswerPrompt(input: AssistantAnswerPromptInput): string {
   const lines: string[] = [`Language: ${LANGUAGE_NAMES[input.locale]}.`];
+  if (input.kind) lines.push(`The person wants: ${KIND_TEXT[input.kind]}.`);
   if (input.species) {
     lines.push(`Species: ${input.species.name} (${input.species.scientificName}).`);
     if (input.species.care) {

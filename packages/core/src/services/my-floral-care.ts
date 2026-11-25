@@ -359,7 +359,11 @@ function noticeOf(value: number | null): number {
   return value ?? CARE_PORTAL_LIMITS.defaultNoticeHours;
 }
 
-function openPortal<T>(
+/**
+ * Apre il contratto della persona in modalità portale (null senza accesso). Interno al core: lo usa
+ * anche l'Asistente de plantas del cliente (`my-plant-assistant.ts`).
+ */
+export function openPortal<T>(
   buyer: BuyerContext,
   subscriptionId: string,
   fn: (tx: TransactionClient, entry: PortalEntry) => Promise<T>,

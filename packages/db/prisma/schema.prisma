@@ -53,22 +53,24 @@ model User {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  sessions           Session[]
-  twoFactors         TwoFactor[]
-  accounts           Account[]
-  memberships        Membership[]       @relation("MembershipUser")
-  invitedMemberships Membership[]       @relation("MembershipInviter")
-  sentInvitations    Invitation[]       @relation("InvitationInviter")
-  buyerProfile       BuyerProfile?
-  buyerOrders        Order[]            @relation("BuyerOrders")
+  sessions                   Session[]
+  twoFactors                 TwoFactor[]
+  accounts                   Account[]
+  memberships                Membership[]                @relation("MembershipUser")
+  invitedMemberships         Membership[]                @relation("MembershipInviter")
+  sentInvitations            Invitation[]                @relation("InvitationInviter")
+  buyerProfile               BuyerProfile?
+  buyerOrders                Order[]                     @relation("BuyerOrders")
   /// Floral Care, pagina del cliente (ADR-084): i contratti che la persona vede.
-  carePortalAccesses CarePortalAccess[] @relation("CarePortalAccessUser")
+  carePortalAccesses         CarePortalAccess[]          @relation("CarePortalAccessUser")
   /// Floral Care, messaggi (ADR-084): quelli scritti dalla persona (restano senza autore se il
   /// conto si elimina) e fin dove li ha letti.
-  careMessages       CareMessage[]      @relation("CareMessageAuthor")
-  carePortalReads    CarePortalRead[]   @relation("CarePortalReadUser")
-  assistantCases     AssistantCase[]    @relation("AssistantCaseAskedBy")
-  assistantAnswers   AssistantAnswer[]  @relation("AssistantAnswerAskedBy")
+  careMessages               CareMessage[]               @relation("CareMessageAuthor")
+  carePortalReads            CarePortalRead[]            @relation("CarePortalReadUser")
+  assistantCases             AssistantCase[]             @relation("AssistantCaseAskedBy")
+  assistantAnswers           AssistantAnswer[]           @relation("AssistantAnswerAskedBy")
+  assistantCreditAllocations AssistantCreditAllocation[] @relation("AssistantCreditGivenBy")
+  assistantCreditHolds       AssistantCreditHold[]
 }
 
 model Session {
@@ -262,76 +264,78 @@ model Tenant {
   createdAt               DateTime     @default(now())
   updatedAt               DateTime     @updatedAt
 
-  locations            Location[]
-  memberships          Membership[]
-  invitations          Invitation[]
-  catalogItems         CatalogItem[]
-  recipes              BouquetRecipe[]
-  recipeLines          BouquetRecipeLine[]
-  inventoryItems       InventoryItem[]
-  inventoryEntries     InventoryEntry[]
-  inventoryMoves       InventoryMovement[]
-  suppliers            Supplier[]
-  inventoryHolds       InventoryReservation[]
-  inventoryHoldRows    InventoryReservationLine[]
-  customers            Customer[]
-  customerAddresses    CustomerAddress[]
-  customerOccasions    CustomerOccasion[]
-  customerImports      CustomerImport[]
-  quotes               Quote[]
-  quoteLines           QuoteLine[]
-  orders               Order[]
-  deliveryWindows      DeliveryWindow[]
-  openingHours         OpeningHoursRange[]
-  deliveryFeeTiers     DeliveryFeeTier[]
-  orderLines           OrderLine[]
-  orderPayments        OrderPayment[]
-  orderEvents          OrderStatusEvent[]
-  counters             TenantCounter[]
-  aiJobs               AiJob[]
-  auditLogs            AuditLog[]
-  subscription         TenantSubscription?
-  builderConfigs       BouquetConfiguration[]
-  bouquetPhotos        BouquetPhoto[]
-  builderLines         BouquetConfigurationLine[]
-  aiCreditGrants       AiCreditGrant[]
-  catalogPhotos        CatalogItemPhoto[]
-  styleReferences      StyleReferencePhoto[]
-  promoEmails          OccasionPromoEmail[]
-  publicLinks          PublicLink[]
-  orderPhotos          OrderPhoto[]
-  onlineStore          OnlineStore?
-  careSettings         CareSettings?
-  careTravelTiers      CareTravelTier[]
-  careServices         CareService[]
-  careSlots            CareSlot[]
-  subscriptions        CustomerSubscription[]
-  subscriptionSlots    CustomerSubscriptionSlot[]
-  subscriptionServices CustomerSubscriptionService[]
-  carePlants           CarePlant[]
-  careVisits           CareVisit[]
-  careServiceResults   CareVisitServiceResult[]
-  carePlantResults     CareVisitPlantResult[]
-  careMaterials        CareVisitMaterial[]
-  carePhotos           CarePhoto[]
-  careFollowUps        CareFollowUp[]
-  careEmails           CareEmail[]
-  careCharges          CareCharge[]
-  careChargeLines      CareChargeLine[]
-  careVisitBilling     CareVisitBilling[]
-  carePayments         CarePayment[]
-  careAllocations      CarePaymentAllocation[]
-  careAdjustments      CareChargeAdjustment[]
-  careBlocks           CareBlock[]
-  careBlockVisits      CareBlockVisit[]
-  carePortalInvites    CarePortalInvite[]
-  carePortalAccesses   CarePortalAccess[]
-  careMessages         CareMessage[]
-  carePortalReads      CarePortalRead[]
-  careMessageDigests   CareMessageDigest[]
-  assistantCases       AssistantCase[]
-  assistantAnswers     AssistantAnswer[]
-  assistantCalls       AssistantCall[]
+  locations                  Location[]
+  memberships                Membership[]
+  invitations                Invitation[]
+  catalogItems               CatalogItem[]
+  recipes                    BouquetRecipe[]
+  recipeLines                BouquetRecipeLine[]
+  inventoryItems             InventoryItem[]
+  inventoryEntries           InventoryEntry[]
+  inventoryMoves             InventoryMovement[]
+  suppliers                  Supplier[]
+  inventoryHolds             InventoryReservation[]
+  inventoryHoldRows          InventoryReservationLine[]
+  customers                  Customer[]
+  customerAddresses          CustomerAddress[]
+  customerOccasions          CustomerOccasion[]
+  customerImports            CustomerImport[]
+  quotes                     Quote[]
+  quoteLines                 QuoteLine[]
+  orders                     Order[]
+  deliveryWindows            DeliveryWindow[]
+  openingHours               OpeningHoursRange[]
+  deliveryFeeTiers           DeliveryFeeTier[]
+  orderLines                 OrderLine[]
+  orderPayments              OrderPayment[]
+  orderEvents                OrderStatusEvent[]
+  counters                   TenantCounter[]
+  aiJobs                     AiJob[]
+  auditLogs                  AuditLog[]
+  subscription               TenantSubscription?
+  builderConfigs             BouquetConfiguration[]
+  bouquetPhotos              BouquetPhoto[]
+  builderLines               BouquetConfigurationLine[]
+  aiCreditGrants             AiCreditGrant[]
+  catalogPhotos              CatalogItemPhoto[]
+  styleReferences            StyleReferencePhoto[]
+  promoEmails                OccasionPromoEmail[]
+  publicLinks                PublicLink[]
+  orderPhotos                OrderPhoto[]
+  onlineStore                OnlineStore?
+  careSettings               CareSettings?
+  careTravelTiers            CareTravelTier[]
+  careServices               CareService[]
+  careSlots                  CareSlot[]
+  subscriptions              CustomerSubscription[]
+  subscriptionSlots          CustomerSubscriptionSlot[]
+  subscriptionServices       CustomerSubscriptionService[]
+  carePlants                 CarePlant[]
+  careVisits                 CareVisit[]
+  careServiceResults         CareVisitServiceResult[]
+  carePlantResults           CareVisitPlantResult[]
+  careMaterials              CareVisitMaterial[]
+  carePhotos                 CarePhoto[]
+  careFollowUps              CareFollowUp[]
+  careEmails                 CareEmail[]
+  careCharges                CareCharge[]
+  careChargeLines            CareChargeLine[]
+  careVisitBilling           CareVisitBilling[]
+  carePayments               CarePayment[]
+  careAllocations            CarePaymentAllocation[]
+  careAdjustments            CareChargeAdjustment[]
+  careBlocks                 CareBlock[]
+  careBlockVisits            CareBlockVisit[]
+  carePortalInvites          CarePortalInvite[]
+  carePortalAccesses         CarePortalAccess[]
+  careMessages               CareMessage[]
+  carePortalReads            CarePortalRead[]
+  careMessageDigests         CareMessageDigest[]
+  assistantCases             AssistantCase[]
+  assistantAnswers           AssistantAnswer[]
+  assistantCalls             AssistantCall[]
+  assistantCreditAllocations AssistantCreditAllocation[]
+  assistantCreditHolds       AssistantCreditHold[]
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -1223,6 +1227,9 @@ enum AiFeature {
   ROOM_PREVIEW
   /// Scontorno delle foto del catalogo (ADR-033): costo della piattaforma, non consuma crediti.
   PHOTO_CUTOUT
+  /// Crediti dell'Asistente de plantas comprati dalla fioreria (ADR-085): 1 credito = 1 risposta
+  /// per un suo cliente. Solo crediti concessi, nessun job.
+  PLANT_ASSISTANT
 }
 
 enum AiJobStatus {
@@ -2231,6 +2238,9 @@ model CustomerSubscription {
   portalReads     CarePortalRead[]
   assistantCases  AssistantCase[]
 
+  assistantCreditAllocations AssistantCreditAllocation[]
+  assistantCreditHolds       AssistantCreditHold[]
+
   @@unique([tenantId, id])
   /// Per le FK dei cargos: il cargo è dello stesso cliente del contratto.
   @@unique([tenantId, id, customerId])
@@ -3031,6 +3041,18 @@ enum AssistantCallStatus {
   REFUSED
 }
 
+/// Che cosa vuole sapere chi chiede: come curarla o che cosa le succede (sceglie il modello).
+enum AssistantQuestionKind {
+  CARE
+  PROBLEM
+}
+
+/// Movimento dei crediti di un contratto: dati dalla fioreria o tornati a fine contratto.
+enum AssistantCreditKind {
+  GIVE
+  RETURN_ENDED
+}
+
 /// Un caso: una foto riconosciuta (fino a 3 specie della lista e ciò che si vede). Si scrive una
 /// volta, dopo il riconoscimento riuscito; le risposte sono righe a parte.
 model AssistantCase {
@@ -3049,6 +3071,8 @@ model AssistantCase {
   notInList      Boolean          @default(false)
   /// Ciò che si vede nella foto, scritto dal modello (al massimo 300 caratteri).
   condition      String           @default("")
+  /// La foto mostra segni di un problema: propone «Tiene un problema» (prompt v2).
+  looksUnhealthy Boolean          @default(false)
   storageKey     String
   thumbKey       String
   /// File cancellati (fine del contratto + 30 giorni, come le foto delle visite): il testo resta.
@@ -3072,21 +3096,23 @@ model AssistantCase {
 
 /// Una consulta: la risposta a una domanda su un caso (una riga per risposta riuscita).
 model AssistantAnswer {
-  id             String           @id @default(uuid(7)) @db.Uuid
-  tenantId       String           @db.Uuid
-  caseId         String           @db.Uuid
-  subscriptionId String           @db.Uuid
+  id             String                @id @default(uuid(7)) @db.Uuid
+  tenantId       String                @db.Uuid
+  caseId         String                @db.Uuid
+  subscriptionId String                @db.Uuid
   channel        AssistantChannel
-  askedByUserId  String?          @db.Uuid
+  askedByUserId  String?               @db.Uuid
   /// La specie confermata o corretta da chi chiede; null = «No sé».
-  speciesId      String?          @db.Uuid
+  speciesId      String?               @db.Uuid
+  /// Cura (risponde il modello leggero) o problema (il principale).
+  kind           AssistantQuestionKind @default(PROBLEM)
   question       String
   answer         String
   /// Al massimo 5 passi brevi.
-  steps          Json             @default("[]")
-  unsure         Boolean          @default(false)
-  askFlorist     Boolean          @default(false)
-  createdAt      DateTime         @default(now())
+  steps          Json                  @default("[]")
+  unsure         Boolean               @default(false)
+  askFlorist     Boolean               @default(false)
+  createdAt      DateTime              @default(now())
 
   tenant  Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   case    AssistantCase    @relation(fields: [tenantId, caseId, subscriptionId], references: [tenantId, id, subscriptionId], onDelete: Restrict)
@@ -3129,4 +3155,43 @@ model AssistantCall {
   @@index([createdAt])
   @@index([tenantId, createdAt])
   @@index([tenantId, caseId])
+}
+
+/// Crediti dati a un contratto dalla fioreria (positivi) o tornati alla fioreria a fine contratto
+/// (negativi). Solo inserimenti: i saldi si calcolano (ADR-085).
+model AssistantCreditAllocation {
+  id              String              @id @default(uuid(7)) @db.Uuid
+  tenantId        String              @db.Uuid
+  subscriptionId  String              @db.Uuid
+  kind            AssistantCreditKind
+  credits         Int
+  /// Chi li ha dati; null per il ritorno automatico o se ha eliminato il conto.
+  createdByUserId String?             @db.Uuid
+  createdAt       DateTime            @default(now())
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
+  createdBy    User?                @relation("AssistantCreditGivenBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, subscriptionId, createdAt])
+  @@index([createdByUserId])
+}
+
+/// Un credito riservato prima di chiamare il modello per una domanda del cliente: si toglie con la
+/// risposta (che lo usa) o se la chiamata fallisce; scade da solo dopo 2 minuti.
+model AssistantCreditHold {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  tenantId       String   @db.Uuid
+  subscriptionId String   @db.Uuid
+  userId         String   @db.Uuid
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Cascade)
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, subscriptionId, expiresAt])
+  @@index([userId])
 }

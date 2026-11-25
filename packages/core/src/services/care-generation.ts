@@ -32,6 +32,7 @@ import {
 } from '../scope';
 import { lockCareSlots, openSlotBook, type SlotBook } from './care-booking';
 import { dbDate, laterDate, lockSubscription, requiredParts } from './care-internals';
+import { returnAssistantCreditsTx } from './assistant-credits-internals';
 import { revokeContractPortalInvitesTx } from './care-portal-internals';
 import { dateToParts } from './quote-internals';
 
@@ -500,6 +501,8 @@ export async function closeEndedCareContractTx(
   });
   // Un contratto finito non si apre più con un invito (la pagina del cliente, ADR-084).
   await revokeContractPortalInvitesTx(tx, tenantId, subscriptionId);
+  // I crediti dell'assistente non usati tornano alla fioreria (ADR-085).
+  const returned = await returnAssistantCreditsTx(tx, tenantId, subscriptionId, scopeUserId(scope));
   await recordScopeAudit(tx, scope, {
     action: AUDIT_ACTIONS.subscriptionEnded,
     entityType: 'CustomerSubscription',
@@ -509,6 +512,7 @@ export async function closeEndedCareContractTx(
       endDate: toIsoDate(end),
       ended: true,
       cancelled,
+      ...(returned > 0 ? { assistantCreditsReturned: returned } : {}),
     },
   });
   return true;

@@ -363,60 +363,81 @@ export interface BuyerDataExport {
       readonly text: string;
       readonly withPhoto: boolean;
     }[];
+    /** Le consultas della persona all'Asistente de plantas (ADR-085, blocco 6b). */
+    readonly assistant: readonly {
+      readonly shop: string;
+      readonly contract: string;
+      readonly askedAt: string;
+      /** CARE = come curarla, PROBLEM = un problema. */
+      readonly kind: string;
+      readonly question: string;
+      readonly answer: string;
+    }[];
   };
 }
 
 export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExport> {
   assertBuyer(ctx);
   return withUserContext(getDb(), ctx.userId, async (tx) => {
-    const [user, profile, addresses, orders, careAccesses, careMessages] = await Promise.all([
-      tx.user.findUniqueOrThrow({
-        where: { id: ctx.userId },
-        select: { name: true, email: true, locale: true, createdAt: true },
-      }),
-      tx.buyerProfile.findUnique({ where: { userId: ctx.userId }, select: { phone: true } }),
-      // Tutti, anche quelli tolti dalla rubrica: sono dati che conserviamo.
-      tx.buyerAddress.findMany({
-        where: { userId: ctx.userId },
-        orderBy: { createdAt: 'asc' },
-        select: {
-          label: true,
-          recipientName: true,
-          recipientPhone: true,
-          addressLine1: true,
-          addressLine2: true,
-          neighborhood: true,
-          city: true,
-          region: true,
-          postalCode: true,
-          deliveryNotes: true,
-          isDefault: true,
-          status: true,
-          createdAt: true,
-        },
-      }),
-      buyerOrderRows(tx),
-      tx.$queryRaw<
-        {
-          shop_name: string;
-          customer_name: string;
-          contract_number: number | null;
-          can_see_money: boolean;
-          created_at: Date;
-          revoked_at: Date | null;
-          revoked_reason: string | null;
-        }[]
-      >`SELECT * FROM app_buyer_care_access()`,
-      tx.$queryRaw<
-        {
-          shop_name: string;
-          contract_number: number;
-          created_at: Date;
-          body: string;
-          has_photo: boolean;
-        }[]
-      >`SELECT * FROM app_buyer_care_messages()`,
-    ]);
+    const [user, profile, addresses, orders, careAccesses, careMessages, assistantAnswers] =
+      await Promise.all([
+        tx.user.findUniqueOrThrow({
+          where: { id: ctx.userId },
+          select: { name: true, email: true, locale: true, createdAt: true },
+        }),
+        tx.buyerProfile.findUnique({ where: { userId: ctx.userId }, select: { phone: true } }),
+        // Tutti, anche quelli tolti dalla rubrica: sono dati che conserviamo.
+        tx.buyerAddress.findMany({
+          where: { userId: ctx.userId },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            label: true,
+            recipientName: true,
+            recipientPhone: true,
+            addressLine1: true,
+            addressLine2: true,
+            neighborhood: true,
+            city: true,
+            region: true,
+            postalCode: true,
+            deliveryNotes: true,
+            isDefault: true,
+            status: true,
+            createdAt: true,
+          },
+        }),
+        buyerOrderRows(tx),
+        tx.$queryRaw<
+          {
+            shop_name: string;
+            customer_name: string;
+            contract_number: number | null;
+            can_see_money: boolean;
+            created_at: Date;
+            revoked_at: Date | null;
+            revoked_reason: string | null;
+          }[]
+        >`SELECT * FROM app_buyer_care_access()`,
+        tx.$queryRaw<
+          {
+            shop_name: string;
+            contract_number: number;
+            created_at: Date;
+            body: string;
+            has_photo: boolean;
+          }[]
+        >`SELECT * FROM app_buyer_care_messages()`,
+        tx.$queryRaw<
+          {
+            shop_name: string;
+            contract_number: number;
+            created_at: Date;
+            kind: string;
+            question: string;
+            answer: string;
+          }[]
+        >`SELECT * FROM app_buyer_assistant_answers()`,
+      ]);
     return {
       exportedAt: new Date().toISOString(),
       account: {
@@ -459,6 +480,14 @@ export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExpor
           sentAt: row.created_at.toISOString(),
           text: row.body,
           withPhoto: row.has_photo,
+        })),
+        assistant: assistantAnswers.map((row) => ({
+          shop: row.shop_name,
+          contract: formatSubscriptionNumber(row.contract_number),
+          askedAt: row.created_at.toISOString(),
+          kind: row.kind,
+          question: row.question,
+          answer: row.answer,
         })),
       },
     };

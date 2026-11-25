@@ -47,6 +47,7 @@ export class SimulatedPlantAssistant implements PlantAssistant {
       })),
       notInList: false,
       condition: 'Simulación: hojas con puntas secas y algunas manchas amarillas.',
+      looksUnhealthy: true,
     });
   }
 

@@ -15,6 +15,7 @@ on:
           - bootstrap-admin
           - assign-plan
           - grant-ai-credits
+          - grant-assistant-credits
           - test-data
           - confirm-user
           - reset-two-factor
@@ -27,7 +28,7 @@ on:
         required: false
         type: string
       tenant:
-        description: Indirizzo della fioreria, la parte dopo /app/, non un'email (assign-plan, grant-ai-credits, test-data; facoltativo in confirm-user)
+        description: Indirizzo della fioreria, la parte dopo /app/, non un'email (assign-plan, grant-ai-credits, grant-assistant-credits, test-data; facoltativo in confirm-user)
         required: false
         type: string
       role:
@@ -57,7 +58,7 @@ on:
           - ACTIVE
           - CANCELLED
       units:
-        description: Anteprime AI extra da sbloccare (grant-ai-credits)
+        description: Quanti crediti sbloccare (grant-ai-credits = anteprime AI; grant-assistant-credits = risposte dell'Asistente de plantas)
         required: false
         type: string
       note:
@@ -140,6 +141,9 @@ jobs:
             grant-ai-credits)
               pnpm -s platform:grant-ai-credits --operator "${EMAIL}" --tenant "${TENANT}" \
                 --units "${UNITS}" "${note_args[@]}" ;;
+            grant-assistant-credits)
+              pnpm -s platform:grant-ai-credits --operator "${EMAIL}" --tenant "${TENANT}" \
+                --units "${UNITS}" --feature plant-assistant "${note_args[@]}" ;;
             confirm-user)
               tenant_args=()
               if [ -n "${TENANT}" ]; then tenant_args=(--tenant "${TENANT}" --role "${ROLE}"); fi

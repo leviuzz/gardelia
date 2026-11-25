@@ -813,7 +813,8 @@
       "preview_requested": "{actor} requested an AI preview"
     },
     "ai_credits": {
-      "granted": "{units} extra previews were added"
+      "granted": "{units} extra previews were added",
+      "assistant_granted": "{units} Asistente de plantas credits were added"
     },
     "promo": {
       "redeemed": "{actor} marked a discount as used",
@@ -3258,7 +3259,7 @@
       "portal_access_revoked": "{actor} removed access to Mi Floral Care",
       "visit_moved_by_customer": "{actor} changed the date of a visit of {number} from Mi Floral Care",
       "message_photo_removed": "{actor} removed the photo of a message on {number}",
-      "assistant_answered": "{actor} asked the Asistente de plantas about a plant of {number}"
+      "assistant_credits_given": "{actor} gave {count, plural, one {# credit} other {# credits}} of the Asistente de plantas to {number}"
     },
     "notice": {
       "label": "Yes, I let the customer know"

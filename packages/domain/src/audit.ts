@@ -164,6 +164,8 @@ export const AUDIT_ACTIONS = {
   styleReferenceAdded: 'builder.style_reference_added',
   styleReferenceArchived: 'builder.style_reference_archived',
   aiCreditsGranted: 'ai_credits.granted',
+  /** Crediti dell'Asistente de plantas comprati dalla fioreria (ADR-085, blocco 6b). */
+  assistantCreditsGranted: 'ai_credits.assistant_granted',
   /** La fioreria è stata cancellata davvero (evento di piattaforma, senza dati personali). */
   platformTenantPurged: 'platform.tenant_purged',
   securityTenantAccessDenied: 'security.tenant_access_denied',
@@ -245,8 +247,12 @@ export const AUDIT_ACTIONS = {
   careVisitMovedByCustomer: 'care.visit_moved_by_customer',
   /** Blocco 5b (ADR-084): la fioreria toglie la foto di un messaggio (il file si cancella). */
   careMessagePhotoRemoved: 'care.message_photo_removed',
-  /** Asistente de plantas (ADR-085): una consulta con risposta; mai i testi nei metadati. */
-  careAssistantAnswered: 'care.assistant_answered',
+  /**
+   * Asistente de plantas (ADR-085, blocco 6b): la fioreria dà crediti a un contratto (costano soldi
+   * alla fioreria). Le consultas del cliente non vanno nel registro della fioreria: i testi sono
+   * suoi, la fioreria vede solo quante.
+   */
+  careAssistantCreditsGiven: 'care.assistant_credits_given',
   /**
    * Contratti con i clienti (CustomerSubscription): `customer_subscription.*`, da non confondere con
    * `subscription.assigned`, il piano della fioreria su Gardelia.
