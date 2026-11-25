@@ -77,7 +77,11 @@ che si registra con ogni ordine online.
     una visita. Confermare i ruoli: la fioreria responsabile dei dati del servizio, Gardelia del
     conto e dell'accesso. La persona invitata può essere diversa dal cliente (per esempio una
     recepcionista): basta che sia la fioreria a decidere chi invitare, o serve il consenso del
-    cliente? L'accesso si chiude 30 giorni dopo la fine del contratto, come le foto.
+    cliente? L'accesso si chiude 30 giorni dopo la fine del contratto, come le foto. Dal 25/11 (5b)
+    la persona scrive messaggi con una foto alla fioreria: restano alla fioreria anche se la persona
+    elimina il conto (senza il suo nome), le foto si cancellano con quelle del servizio; l'avviso
+    per email non contiene il testo. Va bene che i messaggi restino alla fioreria come parte del
+    servizio, o la persona deve poterli far cancellare?
 
 ## Prima del lancio (V1, `docs/V1_SCOPE.md` §2.15)
 
