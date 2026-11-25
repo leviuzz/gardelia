@@ -70,24 +70,30 @@ export async function StoreReadinessCard({
                 key={step}
                 data-step={step}
                 data-done={done}
-                className="flex flex-wrap items-center gap-3 rounded-xl border p-3 text-sm"
+                className="flex items-start gap-3 rounded-xl border p-3 text-sm"
               >
                 {done ? (
-                  <Check className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                  <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
                 ) : (
-                  <CircleAlert className="size-4 shrink-0 text-warning" aria-hidden="true" />
+                  <CircleAlert className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
                 )}
-                <span className={done ? 'min-w-0 flex-1 text-muted-foreground' : 'min-w-0 flex-1'}>
-                  {label(step)}
-                  <span className="sr-only">
-                    {done ? ` · ${tStore('done')}` : ` · ${tStore('missing')}`}
-                  </span>
-                </span>
-                {done || !href ? null : (
-                  <Link href={href} className="font-medium text-primary hover:underline">
-                    {t(`actions.${step}`)}
-                  </Link>
-                )}
+                {/* Il link sotto il testo: a 320 px il testo non va a capo parola per parola. */}
+                <div className="min-w-0 flex-1">
+                  <p className={done ? 'text-muted-foreground' : undefined}>
+                    {label(step)}
+                    <span className="sr-only">
+                      {done ? ` · ${tStore('done')}` : ` · ${tStore('missing')}`}
+                    </span>
+                  </p>
+                  {done || !href ? null : (
+                    <Link
+                      href={href}
+                      className="mt-1 inline-block font-medium text-primary hover:underline"
+                    >
+                      {t(`actions.${step}`)}
+                    </Link>
+                  )}
+                </div>
               </li>
             );
           })}

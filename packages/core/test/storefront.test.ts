@@ -13,6 +13,8 @@ import {
   getPublicStore,
   getPublicStoreItem,
   getPublicStorefront,
+  getStorePreview,
+  getStorePreviewItem,
   listCatalogItems,
   listFeaturedItems,
   moveCatalogItemPhoto,
@@ -559,5 +561,44 @@ describe('filtro «Negozio online» e vetrina completa', () => {
     const after = await getOnlineStoreSettings(shop.owner);
     expect(after.readiness.steps.find((entry) => entry.step === 'description')!.done).toBe(true);
     expect(after.readiness.missing).toBe(before.readiness.missing - 1);
+  });
+});
+
+/** «Anteprima» della vetrina (M1-2): permessi della fioreria, anche prima di pubblicare. */
+describe('anteprima della vetrina', () => {
+  it('proprietario e gerente la vedono anche non pubblicata; il pubblico no; lo staff no', async () => {
+    const draft = await createTestShop('Florería Borrador');
+    await openShop(draft, 'Florería Borrador');
+    const item = await createCatalogItem(draft.owner, bouquetInput('Ramo de prueba', 40000));
+    // Negozio mai configurato né pubblicato: per il pubblico non esiste.
+    expect(await getPublicStorefront(draft.tenant.slug, {})).toBeNull();
+    const preview = await getStorePreview(draft.owner, { q: 'prueba' });
+    expect(preview.isPublished).toBe(false);
+    expect(preview.store.name).toBe('Florería Borrador');
+    expect(preview.store.ordersEnabled).toBe(false);
+    expect(preview.items.map((entry) => entry.id)).toEqual([item.id]);
+    expect(preview.cart).toBeNull();
+    expect((await getStorePreview(draft.manager, {})).onlineCount).toBe(1);
+    await expect(getStorePreview(draft.staff, {})).rejects.toBeInstanceOf(ForbiddenError);
+    const detail = await getStorePreviewItem(draft.owner, item.id);
+    expect(detail.detail?.item.name).toBe('Ramo de prueba');
+    await expect(getStorePreviewItem(draft.staff, item.id)).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it('un prodotto spento si dice; un ID di un’altra fioreria è un 404 con l’evento (A↔B)', async () => {
+    const off = await getStorePreviewItem(shop.owner, hidden.id);
+    expect(off).toEqual({ detail: null, isPublished: true });
+    await expect(getStorePreviewItem(shop.owner, foreign.id)).rejects.toBeInstanceOf(NotFoundError);
+    const events = await withSystemContext(db, { reason: 'test: eventi di sicurezza' }, (tx) =>
+      tx.auditLog.findMany({
+        where: { tenantId: null, entityId: foreign.id, actorUserId: shop.owner.userId },
+      }),
+    );
+    expect(events.some((event) => event.action === 'security.cross_tenant_access_attempt')).toBe(
+      true,
+    );
+    // L'anteprima di B non mostra i prodotti di A.
+    const theirs = await getStorePreview(other.owner, {});
+    expect(theirs.items.some((entry) => bouquets.some((own) => own.id === entry.id))).toBe(false);
   });
 });

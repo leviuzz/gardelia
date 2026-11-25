@@ -653,7 +653,23 @@
         "payment": "Scegli",
         "policies": "Scrivi"
       }
-    }
+    },
+    "preview": {
+      "title": "Anteprima",
+      "back": "Torna a Negozio online",
+      "banner": "Così vedranno il negozio i tuoi clienti. I pulsanti per ordinare sono spenti.",
+      "notPublished": "Il negozio non è ancora pubblicato: i clienti non lo vedono.",
+      "itemOffTitle": "Questo prodotto non è nel negozio online",
+      "itemOffBody": "È spento, archiviato oppure è un materiale: i clienti non lo vedono.",
+      "openItem": "Apri nel catalogo",
+      "open": "Anteprima"
+    },
+    "linkPending": "Funzionerà quando pubblichi il negozio. Puoi già copiarlo e stampare il QR.",
+    "qrTitle": "QR del negozio",
+    "qrHint": "Per la vetrina, i biglietti e i sacchetti: il link non cambia, quindi un QR stampato resta valido.",
+    "qrDownload": "Scarica il QR",
+    "qrAlt": "QR che apre {url}",
+    "qrFailed": "Non è stato possibile creare l’immagine del QR."
   },
   "publicStore": {
     "demoNotice": "Fioreria di prova: prodotti e prezzi sono di esempio.",
@@ -1241,7 +1257,7 @@
     "legalReadOnly": "Solo chi è titolare può modificare questi dati.",
     "locationTitle": "Negozio principale",
     "locationSubtitle": "Indirizzo da cui prepari e consegni.",
-    "shopUrl": "Indirizzo su Gardelia",
+    "shopUrl": "Link del negozio online",
     "currency": "Valuta",
     "saved": "Modifiche salvate",
     "delivery": {

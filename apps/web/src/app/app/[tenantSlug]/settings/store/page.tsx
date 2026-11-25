@@ -126,10 +126,6 @@ export default async function StoreSettingsPage({
           ) : null}
           {settings.isPublished ? (
             <>
-              <StoreLinkCard
-                url={url}
-                whatsappHref={whatsappShareLink(t('store.shareText', { url }))}
-              />
               <ConfirmActionDialog
                 action={setOnlineStorePublishedAction.bind(null, slug, false)}
                 title={t('store.unpublishTitle')}
@@ -179,6 +175,14 @@ export default async function StoreSettingsPage({
               </ActionButton>
             </>
           )}
+          {/* Il link si vede sempre (M1-2): prima di pubblicare si prepara il QR. */}
+          <StoreLinkCard
+            url={url}
+            whatsappHref={whatsappShareLink(t('store.shareText', { url }))}
+            published={settings.isPublished}
+            previewHref={routes.settings.storePreview()}
+            qrFileName={`${slug}-qr.png`}
+          />
         </CardContent>
       </Card>
 

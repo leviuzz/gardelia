@@ -653,7 +653,23 @@
         "payment": "Elegir",
         "policies": "Escribir"
       }
-    }
+    },
+    "preview": {
+      "title": "Vista previa",
+      "back": "Volver a Tienda en línea",
+      "banner": "Así verán tu tienda tus clientes. Los botones para pedir están apagados.",
+      "notPublished": "Tu tienda todavía no está publicada: los clientes aún no la ven.",
+      "itemOffTitle": "Este producto no está en tu tienda en línea",
+      "itemOffBody": "Está apagado, archivado o es un material: los clientes no lo ven.",
+      "openItem": "Abrir en el catálogo",
+      "open": "Vista previa"
+    },
+    "linkPending": "Funcionará cuando publiques tu tienda. Ya puedes copiarlo e imprimir el QR.",
+    "qrTitle": "Código QR de tu tienda",
+    "qrHint": "Para tu aparador, tarjetas y bolsas: el enlace no cambia, así que un QR impreso sigue funcionando.",
+    "qrDownload": "Descargar el QR",
+    "qrAlt": "Código QR que abre {url}",
+    "qrFailed": "No se pudo crear la imagen del QR."
   },
   "publicStore": {
     "demoNotice": "Florería de demostración: los productos y precios son de prueba.",
@@ -1241,7 +1257,7 @@
     "legalReadOnly": "Solo la persona propietaria puede modificar estos datos.",
     "locationTitle": "Tienda principal",
     "locationSubtitle": "Dirección desde la que preparas y entregas.",
-    "shopUrl": "Dirección en Gardelia",
+    "shopUrl": "Enlace de tu tienda en línea",
     "currency": "Moneda",
     "saved": "Cambios guardados",
     "delivery": {

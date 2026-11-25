@@ -653,7 +653,23 @@
         "payment": "Choose",
         "policies": "Write"
       }
-    }
+    },
+    "preview": {
+      "title": "Preview",
+      "back": "Back to Online shop",
+      "banner": "This is how buyers will see your shop. Order buttons are off.",
+      "notPublished": "Your shop isn’t published yet: buyers can’t see it.",
+      "itemOffTitle": "This product isn’t in your online shop",
+      "itemOffBody": "It’s off, archived or a material: buyers don’t see it.",
+      "openItem": "Open in the catalog",
+      "open": "Preview"
+    },
+    "linkPending": "It will work once you publish your shop. You can already copy it and print the QR.",
+    "qrTitle": "Shop QR code",
+    "qrHint": "For your window, cards and bags: the link never changes, so a printed QR keeps working.",
+    "qrDownload": "Download the QR",
+    "qrAlt": "QR code that opens {url}",
+    "qrFailed": "Couldn’t create the QR image."
   },
   "publicStore": {
     "demoNotice": "Demo flower shop: products and prices are examples.",
@@ -1241,7 +1257,7 @@
     "legalReadOnly": "Only the owner can change these details.",
     "locationTitle": "Main store",
     "locationSubtitle": "The address you prepare and deliver from.",
-    "shopUrl": "Web address on Gardelia",
+    "shopUrl": "Online shop link",
     "currency": "Currency",
     "saved": "Changes saved",
     "delivery": {

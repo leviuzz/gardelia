@@ -94,6 +94,12 @@ export {
   type PublicStoreItemDto,
 } from './public-store';
 export {
+  getStorePreview,
+  getStorePreviewItem,
+  type StorePreviewDto,
+  type StorePreviewItemDto,
+} from './services/store-preview';
+export {
   listFeaturedItems,
   moveCatalogItemPhoto,
   setCatalogItemFeatured,
