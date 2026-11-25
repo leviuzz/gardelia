@@ -1529,13 +1529,45 @@ ramo, M4 calendario e capienza, M8 clienti, marketing e report, M7 Fiori ogni se
 - **CI e staging:** CI run 260 verde su `969bcda`, E2E compreso. Con il via libera del founder
   (approvazione del piano di M1-2, 25/11): merge `7e7308d` su `staging`, CI run 261 verde. La
   migrazione `storefront` la applica il deploy di Vercel.
-- **Prossimo:** M1-2 «Strumenti e visibilità», piano approvato il 25/11:
-  - «Completa la tua vetrina»;
-  - Catalogo con filtro e più prodotti insieme;
-  - link, QR e anteprima;
-  - schede della ricerca;
-  - Google;
-  - occasioni.
+- **Prossimo:** M1-2 «Strumenti e visibilità», piano approvato il 25/11 (nota sotto).
+
+**M1-2 «Strumenti e visibilità» (25/11 notte, ADR-087, fatto sul ramo di lavoro):**
+
+- **Dominio:** `storeReadiness` (8 passi), filtro «Negozio online» e `parseCatalogBulkIds` (fino a
+  20), occasioni (`occasions.ts`: 9 identificativi, nomi nell'indirizzo in spagnolo), filtro e chip
+  della vetrina per occasione, `directoryFee` per le schede della ricerca.
+- **Database:** migrazione `storefront_visibility`: `CatalogItem.occasions` con CHECK;
+  `app_public_store_directory` con ordini online, anticipo, giorni chiusi, fuso, valuta, costo e
+  occasioni; `app_public_sitemap`. Nessuna tabella nuova.
+- **Core:**
+  - `setCatalogItemsOnline` (salta e conta, limite dei 500, stella tolta, registro, A↔B);
+  - conteggi di «Completa la tua vetrina» in `getOnlineStoreSettings`;
+  - anteprima (`getStorePreview`, `getStorePreviewItem`) con le letture della vetrina nel
+    contesto della fioreria;
+  - schede della ricerca e occasioni in `public-directory.ts`;
+  - `listSitemapEntries`, `listPublicStoreOccasions`.
+- **Web:**
+  - Impostazioni → Negozio online: lista «Completa la tua vetrina», link sempre visibile con QR in
+    PNG e «Anteprima» (pagine `settings/store/preview`);
+  - Catalogo: filtro, caselle e barra «Mostra nel negozio / Togli dal negozio», «Senza foto»;
+  - vetrina e prodotto come viste condivise; chip delle occasioni; «Mis pedidos / Entrar»;
+  - `/buscar`: schede, occasioni, scelta della città; home: scorciatoie per occasione;
+  - Google: `PUBLIC_INDEXING`, `robots.ts`, `sitemap.ts`, canonici, dati strutturati;
+  - correzioni: «tienda» nel testo italiano della mappa, scheda della ricerca larga a 320 px.
+- **Test:**
+  - dominio: passi della lista, filtro e ID, occasioni, costo della scheda;
+  - web: indicizzazione, dati strutturati, percorsi;
+  - integrazione: più prodotti insieme, anteprima con i permessi, ricerca con occasioni e
+    schede, sitemap, CHECK delle occasioni, A↔B;
+  - E2E `storefront-tools.spec.ts`: link e QR prima di pubblicare, anteprima (sì il
+    proprietario, no lo staff), 25 prodotti accesi e spenti insieme con la pagina 2, filtro
+    «senza foto», occasioni nella vetrina, nella home e nella ricerca, «Entrar», staging fuori da
+    Google, 320 px.
+  - In locale 1313 test; E2E toccati verdi (18/18).
+- **Da fare per Google in produzione:** `PUBLIC_INDEXING=on` solo nel progetto Vercel di
+  produzione, quando ci sarà (staging resta `off`).
+- **Prossimo:** CI, poi staging con il via libera del founder; poi il piano di dettaglio di M3
+  («Ordine tutto nell'app»).
 
 Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,

@@ -160,6 +160,7 @@ ricomponi `DATABASE_URL`.
    | `ENABLE_EXPERIMENTAL_COREPACK`                                           | `1` (la build usa la stessa versione di pnpm del repository) |
    | `GOOGLE_MAPS_API_KEY`                                                    | facoltativa, sezione 9 (si può aggiungere anche dopo)        |
    | `PLATFORM_WHATSAPP`                                                      | facoltativa: il tuo WhatsApp col prefisso, es. `+39 3…`      |
+   | `PUBLIC_INDEXING`                                                        | `off` su staging; `on` solo nel progetto di produzione       |
 
    Elenco completo e regole: `docs/CONFIGURATION.md`.
 

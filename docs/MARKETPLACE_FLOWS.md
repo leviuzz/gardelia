@@ -320,7 +320,7 @@ A↔B, E2E a 320 px), CI verde, staging con il via libera del founder.
   accanto al prodotto), E2E dell'ordine online (riga del cliente, finestra della consegna gratis a
   320 px, ramo tolto mentre si ordina, prodotto che non c'è più).
 
-## 5. M1, la vetrina che vende (M1-1 fatto il 25/11)
+## 5. M1, la vetrina che vende (fatto il 25/11)
 
 Piano approvato il 25/11 (ADR-087), in due rilasci.
 
@@ -335,10 +335,19 @@ Piano approvato il 25/11 (ADR-087), in due rilasci.
     aperto e il riepilogo completo (chi riceve, tarjeta, commenti, politiche);
   - per il fiorista: stella «In evidenza» nel Catalogo, copertina e ordine delle foto, schede
     «Politiche del negozio» e «In evidenza» in Impostazioni → Negozio online.
-- **M1-2 «Strumenti e visibilità» (da fare):** link sempre visibile, QR e anteprima; Catalogo con
-  filtro «Negozio online» e accensione insieme; schede della ricerca; Google (indicizzazione solo
-  in produzione, sitemap, dati strutturati); occasioni. L'E2E della pagina 2 della vetrina arriva
-  qui, quando l'accensione insieme rende semplice avere più di 24 prodotti online.
+- **M1-2 «Strumenti e visibilità» (fatto):**
+  - Impostazioni → Negozio online: «Completa la tua vetrina» (8 passi con il link al punto dove si
+    fanno), link sempre visibile, QR da scaricare e «Anteprima» per proprietario e gerente;
+  - Catalogo: filtro «Negozio online» (sì, no, senza foto), fino a 20 prodotti accesi o spenti
+    insieme, segno «Senza foto» e avviso;
+  - ricerca delle fiorerie: schede con ordini online o WhatsApp, primo giorno e costo (preciso per
+    l'indirizzo cercato);
+  - Google solo con `PUBLIC_INDEXING` acceso in produzione: robots.txt, sitemap.xml, canonici e
+    dati strutturati; staging resta fuori;
+  - occasioni: voce nella scheda del prodotto, chip nella vetrina, scorciatoie nella home e nella
+    ricerca;
+  - «Mis pedidos / Entrar» nella testata della vetrina.
+  - L'E2E della pagina 2 della vetrina accende 25 prodotti insieme e poi li rispegne.
 
 ## PROPOSTO (da confermare)
 
