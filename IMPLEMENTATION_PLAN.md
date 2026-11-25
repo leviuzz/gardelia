@@ -1526,7 +1526,16 @@ ramo, M4 calendario e capienza, M8 clienti, marketing e report, M7 Fiori ogni se
   E2E `storefront.spec.ts` (fiorista e cliente, galleria, cura della pianta, carrello attraverso
   la registrazione, prodotto tolto, riepilogo, 320 px) e `marketplace-orders.spec.ts` con
   «Pedir ahora». In locale 1284 test e gli E2E toccati verdi.
-- **Prossimo:** CI, poi staging con il via libera del founder; poi M1-2.
+- **CI e staging:** CI run 260 verde su `969bcda`, E2E compreso. Con il via libera del founder
+  (approvazione del piano di M1-2, 25/11): merge `7e7308d` su `staging`, CI run 261 verde. La
+  migrazione `storefront` la applica il deploy di Vercel.
+- **Prossimo:** M1-2 «Strumenti e visibilità», piano approvato il 25/11:
+  - «Completa la tua vetrina»;
+  - Catalogo con filtro e più prodotti insieme;
+  - link, QR e anteprima;
+  - schede della ricerca;
+  - Google;
+  - occasioni.
 
 Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,
