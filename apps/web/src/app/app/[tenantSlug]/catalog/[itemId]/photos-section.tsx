@@ -1,4 +1,4 @@
-import { ImageIcon, LoaderCircle, Scissors } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ImageIcon, LoaderCircle, Scissors, Star } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import {
   hasPermission,
@@ -10,6 +10,7 @@ import {
 import { PHOTO_LIMITS, allowsPhotos, canRequestCutout, photoByColor } from '@floral/domain';
 import { ColorSwatch } from '@/components/common/color-swatch';
 import { CutoutAutoRefresh, RequestCutoutButton } from '@/components/photos/cutout-parts';
+import { ActionButton } from '@/components/form/action-button';
 import { RemovePhotoButton } from '@/components/photos/photo-upload-parts';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +18,7 @@ import { tenantRoutes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import {
   archiveCatalogPhotoAction,
+  moveCatalogPhotoAction,
   requestPhotoCutoutAction,
   uploadCatalogPhotoAction,
 } from '../photo-actions';
@@ -78,7 +80,7 @@ export async function PhotosSection({ ctx, item }: { ctx: TenantContext; item: C
               className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"
               data-testid="item-photos"
             >
-              {photos.map((photo) => {
+              {photos.map((photo, index) => {
                 const view = t(`photos.views.${photo.view}`);
                 const alt = photo.color
                   ? t('photos.altColor', { name: item.name, color: colorLabel(photo.color), view })
@@ -107,6 +109,13 @@ export async function PhotosSection({ ctx, item }: { ctx: TenantContext; item: C
                       />
                       <figcaption className="space-y-1.5">
                         <div className="flex flex-wrap items-center gap-1.5">
+                          {/* La prima foto è la copertina (vetrina, catalogo, Diseñador). */}
+                          {index === 0 && photos.length > 1 ? (
+                            <Badge className="gap-1">
+                              <Star className="size-3" aria-hidden="true" />
+                              {t('photos.cover')}
+                            </Badge>
+                          ) : null}
                           <Badge variant="secondary">{view}</Badge>
                           {photo.color ? (
                             <Badge variant="outline" className="gap-1.5">
@@ -143,6 +152,38 @@ export async function PhotosSection({ ctx, item }: { ctx: TenantContext; item: C
                                 : t('photos.cutoutRetry')
                             }
                           />
+                        ) : null}
+                        {/* Ordine delle foto (M1): copertina e frecce, senza trascinare. */}
+                        {canWrite && photos.length > 1 ? (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <ActionButton
+                              action={moveCatalogPhotoAction.bind(null, slug, photo.id, 'earlier')}
+                              variant="outline"
+                              size="icon"
+                              icon={<ArrowLeft />}
+                              disabled={index === 0}
+                              aria-label={t('photos.moveEarlier', { index: index + 1 })}
+                            />
+                            <ActionButton
+                              action={moveCatalogPhotoAction.bind(null, slug, photo.id, 'later')}
+                              variant="outline"
+                              size="icon"
+                              icon={<ArrowRight />}
+                              disabled={index === photos.length - 1}
+                              aria-label={t('photos.moveLater', { index: index + 1 })}
+                            />
+                            {index > 0 ? (
+                              <ActionButton
+                                action={moveCatalogPhotoAction.bind(null, slug, photo.id, 'first')}
+                                variant="outline"
+                                size="sm"
+                                icon={<Star />}
+                                aria-label={t('photos.makeCoverAria', { index: index + 1 })}
+                              >
+                                {t('photos.makeCover')}
+                              </ActionButton>
+                            ) : null}
+                          </div>
                         ) : null}
                       </figcaption>
                     </figure>

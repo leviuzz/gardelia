@@ -355,6 +355,22 @@ export function publicStoreRoutes(slug: string) {
   const item = (itemId: string) => `${home}/p/${segment(itemId)}`;
   return {
     home,
+    /**
+     * La vetrina con scheda, ricerca, ordine e pagina (M1); i valori predefiniti (ordine consigliato,
+     * prima pagina) non vanno nell'indirizzo, così ogni vista ha un solo link.
+     */
+    storefront: (query?: {
+      readonly categoria?: string;
+      readonly q?: string;
+      readonly orden?: string;
+      readonly pagina?: number;
+    }) =>
+      withQuery(home, {
+        categoria: query?.categoria,
+        q: query?.q,
+        orden: query?.orden === 'recomendados' ? undefined : query?.orden,
+        pagina: query?.pagina && query.pagina > 1 ? query.pagina : undefined,
+      }),
     item,
     /** Logo o copertina della tienda: l'ID attuale è nell'indirizzo. */
     image: (kind: 'LOGO' | 'COVER', imageId: string) =>

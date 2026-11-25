@@ -38,6 +38,7 @@ import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { requireEntitlement } from './billing';
+import { assertOnlineRoomTx } from './storefront-tools';
 
 export interface CatalogItemDto {
   readonly id: string;
@@ -69,6 +70,8 @@ export interface CatalogItemDto {
   readonly isBuilderEnabled: boolean;
   /** Mostrato nella pagina pubblica della fioreria (ADR-065). */
   readonly isOnline: boolean;
+  /** «In evidenza» nella riga «Destacados» della vetrina (M1). */
+  readonly featured: boolean;
   readonly status: RecordStatus;
   readonly archivedAt: Date | null;
   readonly updatedAt: Date;
@@ -127,6 +130,7 @@ function toDto(item: ItemWithRelations, ctx: TenantContext): CatalogItemDto {
     tags: item.tags,
     isBuilderEnabled: item.isBuilderEnabled,
     isOnline: item.isOnline,
+    featured: item.featuredAt !== null,
     status: item.status,
     archivedAt: item.archivedAt,
     updatedAt: item.updatedAt,
@@ -289,6 +293,8 @@ export async function createCatalogItem(
     return await withTenantContext(getDb(), ctx, async (tx) => {
       await assertCanonicalCompatible(tx, input);
       await assertSupplierUsable(tx, ctx, input.supplierId, null);
+      // Al massimo 500 prodotti online (M1): la vetrina non ne taglia mai in silenzio.
+      if (input.isOnline) await assertOnlineRoomTx(tx, ctx.tenantId);
       const created = await tx.catalogItem.create({
         data: {
           tenantId: ctx.tenantId,
@@ -357,11 +363,15 @@ export async function updateCatalogItem(
       await assertCanonicalCompatible(tx, input);
       await assertSupplierUsable(tx, ctx, input.supplierId, existing.supplierId);
 
+      if (input.isOnline && !existing.isOnline && existing.status === 'ACTIVE') {
+        await assertOnlineRoomTx(tx, ctx.tenantId);
+      }
       const data = itemData(input);
       const changes = diffFields(existing, data, AUDITED_FIELDS);
       const updated = await tx.catalogItem.update({
         where: { id: existing.id },
-        data,
+        // Fuori dal negozio, fuori anche dalla riga «Destacados» (CHECK nel database).
+        data: { ...data, ...(input.isOnline ? {} : { featuredAt: null }) },
         include: itemInclude,
       });
       if (Object.keys(changes).length > 0) {
@@ -402,9 +412,18 @@ export async function setCatalogItemArchived(
       });
       return toDto(same, ctx);
     }
+    // Ripristinato e ancora «online»: torna nella vetrina, che ha un limite (M1).
+    if (!archived && existing.isOnline && canShowOnline(existing.type)) {
+      await assertOnlineRoomTx(tx, ctx.tenantId);
+    }
     const updated = await tx.catalogItem.update({
       where: { id: existing.id },
-      data: { status: targetStatus, archivedAt: archived ? new Date() : null },
+      data: {
+        status: targetStatus,
+        archivedAt: archived ? new Date() : null,
+        // Archiviato: fuori dalla riga «Destacados» (CHECK nel database).
+        ...(archived ? { featuredAt: null } : {}),
+      },
       include: itemInclude,
     });
     await recordAudit(tx, ctx, {
@@ -476,7 +495,12 @@ export async function setCatalogItemOnline(
     if (online && (!canShowOnline(existing.type) || existing.status !== 'ACTIVE')) {
       throw new ValidationError({ isOnline: 'invalid_option' });
     }
-    await tx.catalogItem.update({ where: { id: existing.id }, data: { isOnline: online } });
+    if (online) await assertOnlineRoomTx(tx, ctx.tenantId);
+    await tx.catalogItem.update({
+      where: { id: existing.id },
+      // Spento: fuori anche dalla riga «Destacados» (CHECK nel database).
+      data: online ? { isOnline: true } : { isOnline: false, featuredAt: null },
+    });
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.catalogItemUpdated,
       entityType: 'CatalogItem',

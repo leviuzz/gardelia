@@ -22,7 +22,8 @@ import { money } from '@/lib/format';
 import { tenantRoutes, type TenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { PrivateImage } from '@/components/common/private-image';
-import { setItemOnlineAction } from './actions';
+import { setItemFeaturedAction, setItemOnlineAction } from './actions';
+import { FeaturedToggle } from './featured-toggle';
 import { OnlineToggle } from './online-toggle';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -61,11 +62,21 @@ export default async function CatalogPage({
   const canToggleOnline = (item: CatalogItemDto) =>
     result.canWrite && canShowOnline(item.type) && item.status === 'ACTIVE';
   const onlineToggle = (item: CatalogItemDto) => (
-    <OnlineToggle
-      action={setItemOnlineAction.bind(null, ctx.tenantSlug, item.id)}
-      isOnline={item.isOnline}
-      name={item.name}
-    />
+    <span className="flex items-center gap-3">
+      <OnlineToggle
+        action={setItemOnlineAction.bind(null, ctx.tenantSlug, item.id)}
+        isOnline={item.isOnline}
+        name={item.name}
+      />
+      {/* «In evidenza» nella vetrina (M1): solo per chi è online. */}
+      {item.isOnline ? (
+        <FeaturedToggle
+          action={setItemFeaturedAction.bind(null, ctx.tenantSlug, item.id)}
+          featured={item.featured}
+          name={item.name}
+        />
+      ) : null}
+    </span>
   );
 
   function pageHref(page: number): string {

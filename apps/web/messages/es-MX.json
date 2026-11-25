@@ -131,7 +131,10 @@
       "session_is_current": "Para cerrar la sesión de este dispositivo usa «Cerrar sesión» en el menú.",
       "order_not_substitutable": "Este pedido ya no admite cambios de flores: el ramo ya está hecho o el pedido está cerrado.",
       "substitution_not_allowed": "Este ramo no admite sustituciones. Habla con el cliente para decidir qué hacer.",
-      "order_free_delivery_unconfirmed": "El envío está en $0: confirma que es gratis o cámbialo antes de aceptar."
+      "order_free_delivery_unconfirmed": "El envío está en $0: confirma que es gratis o cámbialo antes de aceptar.",
+      "store_featured_limit": "Puedes destacar hasta 8 productos: quítale la estrella a otro primero.",
+      "store_featured_not_online": "Solo un producto visible en tu tienda en línea puede ser destacado.",
+      "store_online_limit": "Tu tienda en línea ya tiene 500 productos: quita alguno antes de agregar otro."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -558,7 +561,8 @@
       "unpublished": "{actor} retiró la tienda en línea",
       "image_set": "{actor} cambió el logo o la portada de la tienda en línea",
       "image_removed": "{actor} quitó el logo o la portada de la tienda en línea",
-      "orders_updated": "{actor} cambió los pedidos en línea"
+      "orders_updated": "{actor} cambió los pedidos en línea",
+      "policies_updated": "{actor} cambió las políticas de la tienda en línea"
     },
     "imagesTitle": "Logo y portada",
     "imagesSubtitle": "Así reconocen tu florería en la página y cuando compartes el enlace.",
@@ -601,7 +605,29 @@
     },
     "offMap": "Quien busca su dirección todavía no encuentra tu tienda, porque tu tienda principal no está en el mapa. Solo te encuentra quien busca tu ciudad.",
     "offMapAction": "Elegir la dirección en el mapa",
-    "publishedBodyOrders": "Cualquiera con el enlace ve tus productos visibles en línea y te hace pedidos, que aceptas o rechazas aquí."
+    "publishedBodyOrders": "Cualquiera con el enlace ve tus productos visibles en línea y te hace pedidos, que aceptas o rechazas aquí.",
+    "policies": {
+      "title": "Políticas de tu tienda",
+      "subtitle": "Tus reglas para cambios, cancelaciones y sustituciones. Tus clientes las leen en tu tienda y antes de enviar el pedido. Las escribes tú: si tienes dudas, consúltalas con un asesor.",
+      "policyChanges": {
+        "label": "Cambios",
+        "hint": "Qué pasa si el ramo llega dañado o no es lo que el cliente esperaba."
+      },
+      "policyCancellations": {
+        "label": "Cancelaciones",
+        "hint": "Hasta cuándo se puede cancelar un pedido y qué pasa con lo pagado."
+      },
+      "policySubstitutions": {
+        "label": "Sustitución de flores",
+        "hint": "Qué haces si falta una flor del ramo (de temporada o agotada)."
+      },
+      "saved": "Políticas guardadas.",
+      "save": "Guardar políticas"
+    },
+    "featured": {
+      "title": "En «Destacados»: {count} de {max}",
+      "hint": "Elígelos con la estrella en el catálogo: salen primero en tu tienda."
+    }
   },
   "publicStore": {
     "demoNotice": "Florería de demostración: los productos y precios son de prueba.",
@@ -658,7 +684,6 @@
     "coverAlt": "Foto de {name}",
     "orderCta": "Hacer un pedido",
     "orderHow": "Eliges en línea, la florería confirma y le pagas directo.",
-    "orderOnline": "Pedir en línea",
     "feeByDistance": "Envío según la distancia: {tiers}.",
     "feeTier": "hasta {km} km {fee}",
     "hoursTitle": "Horario de atención",
@@ -666,7 +691,66 @@
     "hoursDays": "{first} a {last}",
     "itemGoneTitle": "Este producto ya no está disponible",
     "itemGoneBody": "La florería lo retiró de su tienda. Mira lo que tiene hoy.",
-    "itemGoneBack": "Ver los productos de {shop}"
+    "itemGoneBack": "Ver los productos de {shop}",
+    "factOrders": "Pedidos en línea",
+    "factFirstToday": "Entrega desde hoy",
+    "factFirstTomorrow": "Entrega desde mañana",
+    "factFirstDate": "Entrega desde el {date}",
+    "factFeeFixed": "Envío {fee}",
+    "factFeeRange": "Envío de {min} a {max}",
+    "factFeeUpTo": "Envío hasta {max} según la distancia",
+    "factFeeConfirm": "Costo de envío por confirmar",
+    "factPickup": "Recoger en tienda",
+    "featuredTitle": "Destacados",
+    "featuredBadge": "Destacado",
+    "categoriesLabel": "Categorías",
+    "tabAll": "Todo",
+    "categories": {
+      "ramos": "Ramos",
+      "flores": "Flores",
+      "plantas": "Plantas",
+      "accesorios": "Accesorios"
+    },
+    "searchLabel": "Buscar en la tienda",
+    "searchPlaceholder": "Busca un ramo, una flor…",
+    "searchButton": "Buscar",
+    "sortLabel": "Ordenar",
+    "sorts": {
+      "recomendados": "Recomendados",
+      "precio-asc": "Precio: de menor a mayor",
+      "precio-desc": "Precio: de mayor a menor",
+      "nombre": "Nombre"
+    },
+    "resultsCount": "{count, plural, one {# producto} other {# productos}}",
+    "resultsFor": "{count, plural, one {# resultado} other {# resultados}} para «{q}»",
+    "noResults": "No encontramos productos con esa búsqueda.",
+    "pagination": "Páginas",
+    "pageOf": "Página {page} de {pages}",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "add": "Agregar",
+    "addAria": "Agregar {name} a tu pedido",
+    "added": "Agregado a tu pedido.",
+    "cartFull": "Tu pedido ya tiene 20 productos distintos: termina este pedido o quita alguno.",
+    "cartBar": "Tu pedido · {units, plural, one {# pieza} other {# piezas}} · {total}",
+    "cartContinue": "Continuar",
+    "quantity": "Cantidad",
+    "quantityLess": "Uno menos de {name}",
+    "quantityMore": "Uno más de {name}",
+    "addToOrder": "Agregar al pedido",
+    "orderNow": "Pedir ahora",
+    "galleryOpen": "Ver la foto {index} de {count} en grande",
+    "galleryShow": "Mostrar la foto {index} de {count}",
+    "galleryTitle": "Fotos de {name}",
+    "galleryClose": "Cerrar",
+    "galleryPrevious": "Foto anterior",
+    "galleryNext": "Foto siguiente",
+    "galleryCounter": "{index} de {count}",
+    "policiesTitle": "Políticas de la florería",
+    "policyChanges": "Cambios",
+    "policyCancellations": "Cancelaciones",
+    "policySubstitutions": "Sustitución de flores",
+    "policiesByShop": "Las escribe {shop}."
   },
   "timezones": {
     "America/Mexico_City": "Tiempo del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -767,7 +851,8 @@
       "archived": "{actor} archivó «{name}»",
       "restored": "{actor} restauró «{name}»",
       "photo_added": "{actor} agregó una foto de «{name}»",
-      "photo_archived": "{actor} quitó una foto de «{name}»"
+      "photo_archived": "{actor} quitó una foto de «{name}»",
+      "photos_reordered": "{actor} cambió el orden de las fotos de «{name}»"
     },
     "recipe": {
       "updated": "{actor} actualizó la receta de «{name}»",
@@ -1048,7 +1133,10 @@
     "onlineShown": "Ahora se ve en tu tienda en línea.",
     "onlineHidden": "Ya no aparece en tu tienda en línea.",
     "onlineRow": "En tu tienda en línea",
-    "radiusKm": "Hasta {km} km"
+    "radiusKm": "Hasta {km} km",
+    "featuredToggle": "Destacar {name} en tu tienda en línea",
+    "featuredOn": "Ahora sale en «Destacados» de tu tienda.",
+    "featuredOff": "Ya no sale en «Destacados»."
   },
   "recipe": {
     "title": "Receta del ramo",
@@ -2399,7 +2487,14 @@
       "cutout_nothing_kept": "No encontramos el producto en la foto. Sube otra más de cerca, sobre un fondo liso.",
       "cutout_background_kept": "No pudimos separar el producto del fondo. Sube otra con un fondo liso que contraste.",
       "cutout_failed": "No pudimos quitar el fondo de esta foto."
-    }
+    },
+    "cover": "Portada",
+    "makeCover": "Usar como portada",
+    "makeCoverAria": "Usar la foto {index} como portada",
+    "moveEarlier": "Mover la foto {index} antes",
+    "moveLater": "Mover la foto {index} después",
+    "coverSet": "Portada cambiada: así se ve en tu tienda y en el catálogo.",
+    "moved": "Orden de las fotos cambiado."
   },
   "styleReferences": {
     "title": "Mis ramos",
@@ -3215,7 +3310,13 @@
     "feeByDistance": "Envío según la distancia: {tiers}.",
     "feeTier": "hasta {km} km {fee}",
     "feeFree": "Sin costo",
-    "feeDistance": "a {km} km"
+    "feeDistance": "a {km} km",
+    "moreProducts": "Agregar otros productos",
+    "chooseProducts": "Elige tus productos",
+    "filterProducts": "Buscar un producto",
+    "noProductMatch": "Ningún producto con ese nombre.",
+    "cartDropped": "{count, plural, one {Quitamos # producto de tu pedido porque ya no está disponible.} other {Quitamos # productos de tu pedido porque ya no están disponibles.}}",
+    "noDates": "Por ahora la florería no tiene días disponibles para pedidos en línea. Escríbele por WhatsApp."
   },
   "legal": {
     "linksLabel": "Documentos legales",

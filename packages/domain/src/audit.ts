@@ -63,6 +63,7 @@ export const AUDIT_ACTIONS = {
   catalogItemRestored: 'catalog_item.restored',
   catalogPhotoAdded: 'catalog_item.photo_added',
   catalogPhotoArchived: 'catalog_item.photo_archived',
+  catalogPhotosReordered: 'catalog_item.photos_reordered',
   recipeUpdated: 'recipe.updated',
   recipeLineAdded: 'recipe.line_added',
   recipeLineUpdated: 'recipe.line_updated',
@@ -127,6 +128,7 @@ export const AUDIT_ACTIONS = {
   storeImageSet: 'store.image_set',
   storeImageRemoved: 'store.image_removed',
   storeOrdersUpdated: 'store.orders_updated',
+  storePoliciesUpdated: 'store.policies_updated',
   /** Inventario (ADR-060): prodotti controllati e registri di magazzino. */
   inventoryTrackingStarted: 'inventory.tracking_started',
   inventoryTrackingStopped: 'inventory.tracking_stopped',

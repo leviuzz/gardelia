@@ -47,6 +47,12 @@ export interface OnlineStoreSettingsDto {
   readonly ordersBlockers: readonly OnlineOrdersBlocker[];
   /** Ordini online in attesa di risposta. */
   readonly pendingOrders: number;
+  /** Politiche della fioreria (M1): cambi, cancellazioni, sostituzioni; null se non scritte. */
+  readonly policies: {
+    readonly policyChanges: string | null;
+    readonly policyCancellations: string | null;
+    readonly policySubstitutions: string | null;
+  };
   /**
    * La sede principale ha la posizione di Google ancora valida: chi cerca per indirizzo trova la
    * tienda e le distanze si misurano da lì (ADR-066, ADR-069). Senza, la trova solo chi cerca la città.
@@ -107,6 +113,11 @@ export async function getOnlineStoreSettings(ctx: TenantContext): Promise<Online
     ordersBlockers: onlineOrdersBlockers({ paymentMethods, contactPhone }),
     pendingOrders,
     onMap,
+    policies: {
+      policyChanges: store?.policyChanges ?? null,
+      policyCancellations: store?.policyCancellations ?? null,
+      policySubstitutions: store?.policySubstitutions ?? null,
+    },
   };
 }
 

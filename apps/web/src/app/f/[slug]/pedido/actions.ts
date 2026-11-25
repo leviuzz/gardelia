@@ -8,6 +8,7 @@
  */
 import { cookies } from 'next/headers';
 import { placeMarketplaceOrder } from '@floral/core';
+import { STOREFRONT_CART_COOKIE } from '@floral/domain';
 import type { ActionState } from '@/lib/action-state';
 import { FOUND_COOKIE, foundSlugs } from '@/lib/attribution';
 import { runBuyerAction } from '@/lib/buyer';
@@ -32,6 +33,11 @@ export async function placeOrderAction(
         { fromSearch, request: await getRequestMeta() },
         orderMailDeps(),
       );
+      // Ordine inviato: il carrello di questa fioreria si svuota (M1).
+      (await cookies()).delete({
+        name: STOREFRONT_CART_COOKIE,
+        path: publicStoreRoutes(slug).home,
+      });
       return {
         revalidate: accountRoutes.home,
         redirectTo: withQuery(placed.trackingPath, { enviado: '1' }),

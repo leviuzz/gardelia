@@ -131,7 +131,10 @@
       "session_is_current": "To sign out of this device, use “Sign out” in the menu.",
       "order_not_substitutable": "This order no longer accepts flower changes: the bouquet is already made or the order is closed.",
       "substitution_not_allowed": "This bouquet doesn't allow substitutions. Talk to the customer to decide what to do.",
-      "order_free_delivery_unconfirmed": "Delivery is $0: confirm it’s free or change it before accepting."
+      "order_free_delivery_unconfirmed": "Delivery is $0: confirm it’s free or change it before accepting.",
+      "store_featured_limit": "You can feature up to 8 products: remove the star from another one first.",
+      "store_featured_not_online": "Only a product shown in your online shop can be featured.",
+      "store_online_limit": "Your online shop already has 500 products: remove some before adding another."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -558,7 +561,8 @@
       "unpublished": "{actor} took the online shop offline",
       "image_set": "{actor} changed the online shop logo or cover",
       "image_removed": "{actor} removed the online shop logo or cover",
-      "orders_updated": "{actor} changed online orders"
+      "orders_updated": "{actor} changed online orders",
+      "policies_updated": "{actor} changed the online shop policies"
     },
     "imagesTitle": "Logo and cover",
     "imagesSubtitle": "How people recognize your flower shop on the page and when you share the link.",
@@ -601,7 +605,29 @@
     },
     "offMap": "Buyers searching their address can’t find your store yet, because your main store isn’t on the map. Only people searching your city find you.",
     "offMapAction": "Pick the address on the map",
-    "publishedBodyOrders": "Anyone with the link sees your online products and sends you orders, which you accept or decline here."
+    "publishedBodyOrders": "Anyone with the link sees your online products and sends you orders, which you accept or decline here.",
+    "policies": {
+      "title": "Shop policies",
+      "subtitle": "Your rules for changes, cancellations and substitutions. Customers read them in your shop and before sending an order. You write them: if in doubt, check them with an advisor.",
+      "policyChanges": {
+        "label": "Changes",
+        "hint": "What happens if the bouquet arrives damaged or isn’t what the customer expected."
+      },
+      "policyCancellations": {
+        "label": "Cancellations",
+        "hint": "Until when an order can be cancelled and what happens to the payment."
+      },
+      "policySubstitutions": {
+        "label": "Flower substitutions",
+        "hint": "What you do if a flower in the bouquet is missing (seasonal or out of stock)."
+      },
+      "saved": "Policies saved.",
+      "save": "Save policies"
+    },
+    "featured": {
+      "title": "Featured: {count} of {max}",
+      "hint": "Pick them with the star in the catalog: they show first in your shop."
+    }
   },
   "publicStore": {
     "demoNotice": "Demo flower shop: products and prices are examples.",
@@ -658,7 +684,6 @@
     "coverAlt": "Photo of {name}",
     "orderCta": "Place an order",
     "orderHow": "Choose online, the shop confirms and you pay them directly.",
-    "orderOnline": "Order online",
     "feeByDistance": "Delivery by distance: {tiers}.",
     "feeTier": "up to {km} km {fee}",
     "hoursTitle": "Opening hours",
@@ -666,7 +691,66 @@
     "hoursDays": "{first} to {last}",
     "itemGoneTitle": "This product is no longer available",
     "itemGoneBody": "The flower shop removed it from its store. See what it has today.",
-    "itemGoneBack": "See {shop}’s products"
+    "itemGoneBack": "See {shop}’s products",
+    "factOrders": "Online orders",
+    "factFirstToday": "Delivery from today",
+    "factFirstTomorrow": "Delivery from tomorrow",
+    "factFirstDate": "Delivery from {date}",
+    "factFeeFixed": "Delivery {fee}",
+    "factFeeRange": "Delivery {min} to {max}",
+    "factFeeUpTo": "Delivery up to {max} by distance",
+    "factFeeConfirm": "Delivery fee to be confirmed",
+    "factPickup": "Store pickup",
+    "featuredTitle": "Featured",
+    "featuredBadge": "Featured",
+    "categoriesLabel": "Categories",
+    "tabAll": "All",
+    "categories": {
+      "ramos": "Bouquets",
+      "flores": "Flowers",
+      "plantas": "Plants",
+      "accesorios": "Accessories"
+    },
+    "searchLabel": "Search the store",
+    "searchPlaceholder": "Search a bouquet, a flower…",
+    "searchButton": "Search",
+    "sortLabel": "Sort",
+    "sorts": {
+      "recomendados": "Recommended",
+      "precio-asc": "Price: low to high",
+      "precio-desc": "Price: high to low",
+      "nombre": "Name"
+    },
+    "resultsCount": "{count, plural, one {# product} other {# products}}",
+    "resultsFor": "{count, plural, one {# result} other {# results}} for “{q}”",
+    "noResults": "No products match your search.",
+    "pagination": "Pages",
+    "pageOf": "Page {page} of {pages}",
+    "previous": "Previous",
+    "next": "Next",
+    "add": "Add",
+    "addAria": "Add {name} to your order",
+    "added": "Added to your order.",
+    "cartFull": "Your order already has 20 different products: finish this order or remove some.",
+    "cartBar": "Your order · {units, plural, one {# item} other {# items}} · {total}",
+    "cartContinue": "Continue",
+    "quantity": "Quantity",
+    "quantityLess": "One less {name}",
+    "quantityMore": "One more {name}",
+    "addToOrder": "Add to order",
+    "orderNow": "Order now",
+    "galleryOpen": "View photo {index} of {count} full size",
+    "galleryShow": "Show photo {index} of {count}",
+    "galleryTitle": "Photos of {name}",
+    "galleryClose": "Close",
+    "galleryPrevious": "Previous photo",
+    "galleryNext": "Next photo",
+    "galleryCounter": "{index} of {count}",
+    "policiesTitle": "Shop policies",
+    "policyChanges": "Changes",
+    "policyCancellations": "Cancellations",
+    "policySubstitutions": "Flower substitutions",
+    "policiesByShop": "Written by {shop}."
   },
   "timezones": {
     "America/Mexico_City": "Central Time (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -767,7 +851,8 @@
       "archived": "{actor} archived “{name}”",
       "restored": "{actor} restored “{name}”",
       "photo_added": "{actor} added a photo of “{name}”",
-      "photo_archived": "{actor} removed a photo of “{name}”"
+      "photo_archived": "{actor} removed a photo of “{name}”",
+      "photos_reordered": "{actor} changed the photo order of “{name}”"
     },
     "recipe": {
       "updated": "{actor} updated the recipe for “{name}”",
@@ -1048,7 +1133,10 @@
     "onlineShown": "Now shown in your online shop.",
     "onlineHidden": "No longer shown in your online shop.",
     "onlineRow": "In your online shop",
-    "radiusKm": "Up to {km} km"
+    "radiusKm": "Up to {km} km",
+    "featuredToggle": "Feature {name} in your online shop",
+    "featuredOn": "Now featured in your shop.",
+    "featuredOff": "No longer featured."
   },
   "recipe": {
     "title": "Bouquet recipe",
@@ -2399,7 +2487,14 @@
       "cutout_nothing_kept": "We couldn’t find the product in the photo. Upload another one taken closer up, on a plain background.",
       "cutout_background_kept": "We couldn’t separate the product from the background. Upload another one with a plain, contrasting background.",
       "cutout_failed": "We couldn’t remove the background from this photo."
-    }
+    },
+    "cover": "Cover",
+    "makeCover": "Use as cover",
+    "makeCoverAria": "Use photo {index} as cover",
+    "moveEarlier": "Move photo {index} earlier",
+    "moveLater": "Move photo {index} later",
+    "coverSet": "Cover changed: this is how it shows in your shop and catalog.",
+    "moved": "Photo order changed."
   },
   "styleReferences": {
     "title": "My bouquets",
@@ -3215,7 +3310,13 @@
     "feeByDistance": "Delivery by distance: {tiers}.",
     "feeTier": "up to {km} km {fee}",
     "feeFree": "Free",
-    "feeDistance": "{km} km away"
+    "feeDistance": "{km} km away",
+    "moreProducts": "Add other products",
+    "chooseProducts": "Choose your products",
+    "filterProducts": "Find a product",
+    "noProductMatch": "No product with that name.",
+    "cartDropped": "{count, plural, one {We removed # product from your order because it is no longer available.} other {We removed # products from your order because they are no longer available.}}",
+    "noDates": "For now the shop has no days available for online orders. Message them on WhatsApp."
   },
   "legal": {
     "linksLabel": "Legal documents",

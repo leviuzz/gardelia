@@ -83,13 +83,23 @@ export {
 } from './public-directory';
 export {
   getPublicStore,
+  getPublicStorefront,
   getPublicStoreImage,
   getPublicStoreItem,
   getPublicStoreItemPhoto,
   type PublicStoreDto,
+  type PublicStorefrontDto,
+  type PublicCartSummaryDto,
   type PublicStoreItemDetailDto,
   type PublicStoreItemDto,
 } from './public-store';
+export {
+  listFeaturedItems,
+  moveCatalogItemPhoto,
+  setCatalogItemFeatured,
+  updateStorePolicies,
+  type FeaturedItemDto,
+} from './services/storefront-tools';
 export {
   acceptPublicQuote,
   getPublicCareVisitPhoto,

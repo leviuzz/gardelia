@@ -12,6 +12,7 @@ import {
   createCatalogItem,
   removeRecipeLine,
   setCatalogItemArchived,
+  setCatalogItemFeatured,
   setCatalogItemOnline,
   updateCatalogItem,
   updateRecipeDetails,
@@ -132,6 +133,26 @@ export async function updateRecipeDetailsAction(
       parseForm(recipeDetailsFormSchema(ctx.currency), formData),
     );
     return { revalidate: routes.catalog.item(bouquetId), success: 'recipe.detailsSaved' };
+  });
+}
+
+/**
+ * Stella «In evidenza» dell'elenco del catalogo (M1): il valore arriva dal pulsante premuto
+ * (`featured=on|off`); il servizio ricontrolla permessi, prodotto online e il limite di 8.
+ */
+export async function setItemFeaturedAction(
+  slug: string,
+  itemId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    const featured = formData.get('featured') === 'on';
+    await setCatalogItemFeatured(ctx, itemId, featured);
+    return {
+      revalidate: [section(routes.catalog.list()), routes.settings.store],
+      success: featured ? 'catalog.featuredOn' : 'catalog.featuredOff',
+    };
   });
 }
 

@@ -183,6 +183,15 @@ describe('conto del cliente (routes.ts)', () => {
     expect(buyerRoutes.fromSearch('las-camelias')).toBe('/buscar/ir/las-camelias');
   });
 
+  it('la vetrina (M1): i valori predefiniti non vanno nell’indirizzo', () => {
+    const store = publicStoreRoutes('las-camelias');
+    expect(store.storefront()).toBe('/f/las-camelias');
+    expect(store.storefront({ orden: 'recomendados', pagina: 1 })).toBe('/f/las-camelias');
+    expect(
+      store.storefront({ categoria: 'plantas', q: 'orquídea', orden: 'precio-asc', pagina: 2 }),
+    ).toBe('/f/las-camelias?categoria=plantas&q=orqu%C3%ADdea&orden=precio-asc&pagina=2');
+  });
+
   it('privacy di chi compra e documenti legali (ADR-068)', () => {
     expect(accountRoutes.deleteConfirm('abc123')).toBe('/cuenta/eliminar?token=abc123');
     expect(isAccountPath(accountRoutes.deleteConfirm('abc123'))).toBe(true);

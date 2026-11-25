@@ -10,6 +10,7 @@ import {
   createCatalogItem,
   getOnlineStoreSettings,
   getPublicStore,
+  getPublicStorefront,
   getPublicStoreImage,
   getStoreImage,
   getPublicStoreItem,
@@ -229,8 +230,9 @@ describe('pagina pubblica', () => {
       isDemo: true,
       address: { line: 'Calle de prueba 1', city: 'Aguascalientes', region: 'Aguascalientes' },
     });
-    expect(store!.items.map((item) => item.name)).toEqual(['Ramo Primavera', 'Rosa roja']);
-    const json = JSON.stringify(store);
+    const storefront = await getPublicStorefront(shop.tenant.slug, {});
+    expect(storefront!.items.map((item) => item.name)).toEqual(['Ramo Primavera', 'Rosa roja']);
+    const json = JSON.stringify(storefront);
     expect(json).not.toMatch(/costMinor|"sku"|30000|1400/);
     expect(json).not.toContain('Orquídea');
   });
@@ -249,8 +251,8 @@ describe('pagina pubblica', () => {
 
   it('un prodotto archiviato sparisce dalla pagina', async () => {
     await setCatalogItemArchived(shop.owner, rose.id, true);
-    const store = await getPublicStore(shop.tenant.slug);
-    expect(store!.items.map((item) => item.name)).toEqual(['Ramo Primavera']);
+    const storefront = await getPublicStorefront(shop.tenant.slug, {});
+    expect(storefront!.items.map((item) => item.name)).toEqual(['Ramo Primavera']);
     expect(await getPublicStoreItem(shop.tenant.slug, rose.id)).toBeNull();
   });
 
