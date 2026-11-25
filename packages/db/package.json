@@ -6,7 +6,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./testing": "./src/testing.ts"
+    "./testing": "./src/testing.ts",
+    "./reference-data": "./src/reference-data.ts"
   },
   "scripts": {
     "generate": "prisma generate",

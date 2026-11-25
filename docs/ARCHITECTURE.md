@@ -373,6 +373,17 @@ messaggi. Il riassunto alla fioreria (`sendCareMessageDigests`, dentro il tetto 
 prende la riga del giorno prima di mandare: nasce SENDING con `skipDuplicates`, una FAILED si
 riprende con `updateManyAndReturn` finché ha tentativi, una SENDING ferma da un'ora diventa FAILED
 senza rimandarla.
+Asistente de plantas (ADR-085, blocco 6a; `services/plant-assistant.ts`, adattatori in
+`ai/plant-assistant/`): `ClaudePlantAssistant` è l'unico punto con `@anthropic-ai/sdk` (output
+strutturato con gli schemi Zod del dominio, effort basso, sistema in cache, fallback lato server);
+`SimulatedPlantAssistant` solo in locale. Le tabelle sono solo inserimenti: `AssistantCase` (foto e
+specie candidate), `AssistantAnswer` (domanda, specie confermata, risposta), `AssistantCall` (ogni
+chiamata con token e costo dai dati veri di `usage`). Il servizio controlla in una transazione il
+tetto del giorno e il budget del mese (`app_assistant_spend_since`, DEFINER, su tutta la
+piattaforma), chiama il modello FUORI dalle transazioni e scrive esito e chiamata dopo; un errore o
+un rifiuto si registra con il suo costo ma non conta come consulta. Cura e tossicità vengono da
+`CanonicalFlower.care`, mai dal modello. Le foto seguono la catena delle visite e si cancellano con
+loro (`app_care_photos_to_purge` include i casi).
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per

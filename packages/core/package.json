@@ -17,9 +17,11 @@
     "bootstrap-admin": "tsx scripts/bootstrap-admin.ts",
     "fill-test-shop": "tsx scripts/fill-test-shop.ts",
     "confirm-user": "tsx scripts/confirm-user.ts",
-    "reset-two-factor": "tsx scripts/reset-two-factor.ts"
+    "reset-two-factor": "tsx scripts/reset-two-factor.ts",
+    "assistant:benchmark": "tsx scripts/assistant-benchmark.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "1.14.0",
     "@floral/db": "workspace:*",
     "@floral/domain": "workspace:*",
     "aws4fetch": "1.0.20",

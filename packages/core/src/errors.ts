@@ -199,6 +199,13 @@ export type ConflictReason =
    */
   | 'care_message_closed'
   | 'care_message_daily_limit'
+  // Asistente de plantas (ADR-085): testi in `assistant.conflict.*`.
+  | 'assistant_unavailable'
+  | 'assistant_daily_limit'
+  | 'assistant_budget_reached'
+  | 'assistant_photo_unusable'
+  | 'assistant_case_full'
+  | 'assistant_failed'
   /** "Eliminar florería" con ordini ancora da consegnare o ritirare (ADR-074). */
   | 'tenant_deletion_open_orders'
   | 'session_is_current';

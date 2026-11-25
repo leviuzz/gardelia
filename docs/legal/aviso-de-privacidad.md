@@ -61,7 +61,8 @@ archiva al cliente y 30 días después del fin del contrato.
 3. **Datos de la florería:** nombre comercial y, si los proporcionas, razón social, RFC, domicilio,
    teléfono y correo de contacto.
 4. **Contenido que cargas:** catálogo, precios, recetas, fotos de flores y ramos (incluidas las de
-   "Mis ramos", que solo se guardan con tu autorización expresa), diseños y cotizaciones.
+   "Mis ramos", que solo se guardan con tu autorización expresa), diseños y cotizaciones; en Floral
+   Care, las fotos de plantas y las preguntas que haces al Asistente de plantas, con sus respuestas.
 5. **Datos técnicos y de uso:** dirección IP, navegador, fecha y hora de acceso y registros de
    seguridad, para proteger las cuentas y prevenir abusos.
 6. **Si compras:** teléfono de contacto, direcciones de entrega guardadas (con la ubicación que da
@@ -84,15 +85,18 @@ archiva al cliente y 30 días después del fin del contrato.
 2. Prestar el servicio: catálogo, clientes, cotizaciones y el Diseñador de ramos.
 3. Generar vistas previas e imágenes con inteligencia artificial a partir de tus diseños y de tus
    fotos (por ejemplo, quitar el fondo de una foto o crear la imagen de un ramo).
-4. Enviarte correos del servicio: verificación, invitaciones, restablecimiento de contraseña y, si
+4. Asistente de plantas de Floral Care: identificar una planta a partir de una foto y responder
+   preguntas sobre su cuidado con inteligencia artificial. [Borrador del 25/11/2026 — validar con
+   el abogado.]
+5. Enviarte correos del servicio: verificación, invitaciones, restablecimiento de contraseña y, si
    compras, los avisos de tus pedidos (recibido, aceptado, cancelado).
-5. Si compras: mostrarte florerías que entregan en tu zona, enviar tus pedidos a la florería que
+6. Si compras: mostrarte florerías que entregan en tu zona, enviar tus pedidos a la florería que
    elijas y mostrarte su estado.
-6. Mantener la seguridad de la plataforma, prevenir fraudes y accesos indebidos y conservar
+7. Mantener la seguridad de la plataforma, prevenir fraudes y accesos indebidos y conservar
    registros de auditoría.
-7. Darte soporte cuando lo pidas.
-8. Cobrar el servicio a las florerías y emitir comprobantes, cuando corresponda.
-9. Cumplir obligaciones legales y atender requerimientos de autoridades competentes.
+8. Darte soporte cuando lo pidas.
+9. Cobrar el servicio a las florerías y emitir comprobantes, cuando corresponda.
+10. Cumplir obligaciones legales y atender requerimientos de autoridades competentes.
 
 ### Finalidades adicionales (puedes negarte)
 
@@ -116,16 +120,17 @@ contraseña ni tus otras direcciones guardadas. Te lo recordamos en el formulari
 Para prestar el servicio usamos proveedores que tratan los datos por nuestra cuenta, con las medidas
 de seguridad y confidencialidad necesarias:
 
-| Proveedor                         | Para qué                                                                                                                       | Dónde              |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
-| Vercel Inc.                       | Alojamiento de la aplicación                                                                                                   | Estados Unidos     |
-| Neon (Databricks, Inc.)           | Base de datos                                                                                                                  | Estados Unidos     |
-| Cloudflare, Inc. (R2)             | Almacenamiento de fotos e imágenes                                                                                             | [región — validar] |
-| Resend                            | Envío de correos del servicio                                                                                                  | Estados Unidos     |
-| fal.ai (Features & Labels, Inc.)  | Procesamiento de imágenes con inteligencia artificial; puede usar modelos de terceros (por ejemplo, de Google y de Anthropic)  | Estados Unidos     |
-| Google LLC                        | Inicio de sesión, solo si eliges "Continuar con Google"                                                                        | Estados Unidos     |
-| Google LLC (Google Maps Platform) | Sugerencias y coordenadas de direcciones al escribirlas ("Buscar dirección"): recibe solo el texto que se escribe en ese campo | Estados Unidos     |
-| [Sentry — cuando se active]       | Diagnóstico de errores                                                                                                         | [validar]          |
+| Proveedor                         | Para qué                                                                                                                         | Dónde              |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| Vercel Inc.                       | Alojamiento de la aplicación                                                                                                     | Estados Unidos     |
+| Neon (Databricks, Inc.)           | Base de datos                                                                                                                    | Estados Unidos     |
+| Cloudflare, Inc. (R2)             | Almacenamiento de fotos e imágenes                                                                                               | [región — validar] |
+| Resend                            | Envío de correos del servicio                                                                                                    | Estados Unidos     |
+| fal.ai (Features & Labels, Inc.)  | Procesamiento de imágenes con inteligencia artificial; puede usar modelos de terceros (por ejemplo, de Google y de Anthropic)    | Estados Unidos     |
+| Google LLC                        | Inicio de sesión, solo si eliges "Continuar con Google"                                                                          | Estados Unidos     |
+| Anthropic, PBC                    | Asistente de plantas: recibe la foto de la planta, la pregunta y los datos de la planta del servicio, nunca nombres ni contactos | Estados Unidos     |
+| Google LLC (Google Maps Platform) | Sugerencias y coordenadas de direcciones al escribirlas ("Buscar dirección"): recibe solo el texto que se escribe en ese campo   | Estados Unidos     |
+| [Sentry — cuando se active]       | Diagnóstico de errores                                                                                                           | [validar]          |
 
 Por eso **tus datos se alojan y procesan en Estados Unidos.** [Validar con el abogado cómo informar
 estas remisiones y transferencias internacionales conforme a la ley vigente.]

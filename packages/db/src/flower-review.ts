@@ -30,6 +30,30 @@ const COLOR_ES: Record<string, string> = {
   transparent: 'transparente',
 };
 
+/** Dati di cura delle piante in vaso (ADR-085), con le parole dell'app in es-MX. */
+const LIGHT_ES: Record<string, string> = {
+  LOW: 'poca luz',
+  MEDIUM: 'luz indirecta brillante',
+  HIGH: 'sol directo parte del día',
+};
+const WATERING_ES: Record<string, string> = {
+  LITTLE: 'poco riego, dejar secar del todo',
+  DRY_BETWEEN: 'cuando los primeros centímetros estén secos',
+  SLIGHTLY_MOIST: 'tierra apenas húmeda, sin encharcar',
+};
+const HUMIDITY_ES: Record<string, string> = { LOW: 'baja', MEDIUM: 'media', HIGH: 'alta' };
+const PETS_ES: Record<string, string> = {
+  TOXIC: 'tóxica',
+  MILD: 'molestias leves',
+  NON_TOXIC: 'no tóxica',
+  VARIES: 'depende de la especie',
+};
+
+function petsCell(care: NonNullable<CanonicalFlowerSeed['care']>): string {
+  const source = care.toxicitySource ? `fuente: ${care.toxicitySource}` : 'sin fuente: confirmar';
+  return `${PETS_ES[care.petToxicity] ?? care.petToxicity} (${source})`;
+}
+
 const SECTIONS: readonly { category: CanonicalFlowerSeed['category']; title: string }[] = [
   { category: 'CUT_FLOWER', title: 'Flores de corte' },
   { category: 'FOLIAGE', title: 'Follaje' },
@@ -55,6 +79,10 @@ export function flowerReviewMarkdown(): string {
     'Aguascalientes se dice distinto, un sinónimo que confunde, un color que no existe en el',
     'mercado) y anote al final las flores que vende y no aparecen.',
     '',
+    'En las plantas, revise también la luz, el riego, la humedad y si son tóxicas para perros y',
+    'gatos: el Asistente de plantas usa estos datos y muestra el aviso de toxicidad tal como está',
+    'aquí (por ahora tomado de la lista de la ASPCA, sin revisar).',
+    '',
     `Total: ${CANONICAL_FLOWERS.length} especies.`,
     '',
   ];
@@ -63,15 +91,26 @@ export function flowerReviewMarkdown(): string {
       .slice()
       .sort((a, b) => a.names['es-MX'].localeCompare(b.names['es-MX'], 'es'));
     lines.push(`## ${section.title} (${flowers.length})`, '');
+    const plants = section.category === 'PLANT';
     lines.push(
-      '| Nombre | También se dice | Nombre científico | Colores | ¿Correcto? / Comentarios |',
+      plants
+        ? '| Nombre | También se dice | Nombre científico | Colores | Luz | Riego | Humedad | Perros y gatos | ¿Correcto? / Comentarios |'
+        : '| Nombre | También se dice | Nombre científico | Colores | ¿Correcto? / Comentarios |',
     );
-    lines.push('| --- | --- | --- | --- | --- |');
+    lines.push(
+      plants
+        ? '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+        : '| --- | --- | --- | --- | --- |',
+    );
     for (const flower of flowers) {
       const synonyms = (flower.synonyms['es-MX'] ?? []).join(', ') || '—';
       const colors = flower.colors.map((color) => COLOR_ES[color] ?? color).join(', ') || '—';
+      const base = `| ${cell(flower.names['es-MX'])} | ${cell(synonyms)} | *${cell(flower.scientificName)}* | ${cell(colors)} |`;
+      const care = flower.care;
       lines.push(
-        `| ${cell(flower.names['es-MX'])} | ${cell(synonyms)} | *${cell(flower.scientificName)}* | ${cell(colors)} |  |`,
+        plants && care
+          ? `${base} ${LIGHT_ES[care.light]} | ${WATERING_ES[care.watering]} | ${HUMIDITY_ES[care.humidity]} | ${petsCell(care)} |  |`
+          : `${base}  |`,
       );
     }
     lines.push('');

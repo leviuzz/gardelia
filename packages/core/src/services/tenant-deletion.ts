@@ -210,6 +210,7 @@ export async function purgeDeletedTenants(): Promise<number> {
         styleReferences,
         orderPhotos,
         carePhotos,
+        assistantPhotos,
       ] = await Promise.all([
         tx.onlineStore.findMany({ where, select: { logoKey: true, coverKey: true } }),
         tx.aiJob.findMany({ where, select: { outputKey: true } }),
@@ -225,14 +226,22 @@ export async function purgeDeletedTenants(): Promise<number> {
           where: { tenantId, deletedAt: null },
           select: { storageKey: true, thumbKey: true },
         }),
+        // Foto dei casi dell'Asistente de plantas (ADR-085).
+        tx.assistantCase.findMany({
+          where: { tenantId, photoDeletedAt: null },
+          select: { storageKey: true, thumbKey: true },
+        }),
       ]);
       const keys = [
         ...store.flatMap((row) => [row.logoKey, row.coverKey]),
         ...aiJobs.map((row) => row.outputKey),
-        ...[...bouquetPhotos, ...styleReferences, ...orderPhotos, ...carePhotos].flatMap((row) => [
-          row.storageKey,
-          row.thumbKey,
-        ]),
+        ...[
+          ...bouquetPhotos,
+          ...styleReferences,
+          ...orderPhotos,
+          ...carePhotos,
+          ...assistantPhotos,
+        ].flatMap((row) => [row.storageKey, row.thumbKey]),
         ...catalogPhotos.flatMap((row) => [row.storageKey, row.thumbKey, row.cutoutKey]),
       ].filter((key): key is string => typeof key === 'string' && key !== '');
       return { ...tenant, keys: [...new Set(keys)] };

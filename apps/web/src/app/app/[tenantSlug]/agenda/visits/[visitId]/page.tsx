@@ -23,6 +23,7 @@ import {
   getCareVisitSheet,
   getPublicLink,
   hasPermission,
+  isPlantAssistantAvailable,
   listCareAssignees,
   listCareMaterialOptions,
   listCareVisitCollections,
@@ -144,6 +145,8 @@ export default async function CareVisitPage({
   // Blocco 3b: gli incassi segnati in questa visita e, per una visita da recuperare, il modulo
   // della visita di recupero.
   const canCollect = hasPermission(ctx, 'care:visit');
+  // «Preguntar al asistente» (ADR-085) sulle piante che non stanno bene, solo se configurato.
+  const assistantOn = hasPermission(ctx, 'care:assistant') && isPlantAssistantAvailable();
   const scheduleRecovery = visit.recovery?.canSchedule ?? false;
   const [moveOptions, assignees, materialOptions, link, collections, recoveryOptions] =
     await Promise.all([
@@ -488,6 +491,12 @@ export default async function CareVisitPage({
                       affected: plant.affected,
                       note: plant.note,
                       seasonal: plant.seasonal,
+                      assistantHref: assistantOn
+                        ? routes.subscriptions.assistant(visit.subscriptionId, {
+                            plant: plant.plantId,
+                            visit: visit.id,
+                          })
+                        : null,
                     }}
                   />
                 ))}

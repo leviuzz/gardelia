@@ -418,9 +418,22 @@ rilascio su staging) e lascia qualcosa di usabile.
      accesso; riassunto giornaliero a proprietari e gerenti solo con novità; «Quitar foto» per chi
      gestisce; foto cancellate con quelle delle visite; messaggi nell'export, nei dati della
      persona e nell'eliminazione del conto («Cuenta eliminada»).
-6. **Asistente de plantas.**
-   - Prima per il fiorista, poi nel portale, con Stripe in modalità di prova e il banner.
-   - Prima del via: prova su circa 50 foto vere, pagata da te con il tuo ok, e i testi legali.
+6. **Asistente de plantas** (ADR-085), in tre rilasci (decisioni del founder del 25/11: solo foto
+   libere per la prova, Opus 5.5, Sonnet 5.5 e Haiku 5.5 con un tetto di 15 USD; le consultas del
+   fiorista le paga Gardelia, al massimo 20 al giorno per fioreria, dentro un budget mensile; per i
+   clienti la fioreria include 0–10 consultas al mese per contratto, 3 di default, poi il cliente le
+   compra con la carta).
+   - **6a (fatto, tranne la prova pagata):** dati di cura e tossicità per le 36 piante in vaso (19
+     nuove), tabelle solo inserimenti con RLS, adattatore di Claude e simulato, servizi con tetto
+     del giorno e budget del mese, pagina `subscriptions/[id]/assistant` (foto → specie → domanda →
+     risposta con cura e tossicità dai nostri dati), link dal contratto, da ogni pianta e dalle
+     piante con un problema nella visita; bozze legali con Anthropic. La prova pagata
+     (`docs/AI_BENCHMARK.md`) aspetta la chiave di Anthropic; poi il founder sceglie modello e
+     budget.
+   - **6b:** l'assistente in Mi Floral Care con le consultas incluse e «Enviar a la florería» nel
+     filo dei messaggi (piano di dettaglio da approvare).
+   - **6c:** acquisto di consultas con Stripe Checkout in modalità di prova, con il banner (piano di
+     dettaglio da approvare).
 7. **Consegne periodiche (piano a parte).**
    - Righe, cadenza, ordini creati 2 giorni prima e mai doppi.
    - Etichetta e filtro negli ordini, vista d'insieme, pausa e salti.

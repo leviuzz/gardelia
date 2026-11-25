@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 24 novembre 2026 (Floral Care, cargos e pagamenti, ADR-082; catalogo completo e sostituto, ADR-081; reportes, ADR-080; esportazione dei dati, ADR-079; Floral Care, la visita dal telefono e le visite extra, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 25 novembre 2026 (Floral Care, Asistente de plantas, ADR-085; Floral Care, cargos e pagamenti, ADR-082; catalogo completo e sostituto, ADR-081; reportes, ADR-080; esportazione dei dati, ADR-079; Floral Care, la visita dal telefono e le visite extra, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -2941,6 +2941,96 @@ un'email per ognuno").
 - **Non fatto:** la risposta all'avviso per email entra nel filo (oggi arriva al contatto della
   fioreria, fuori dall'app), notifiche push, allegati diversi dalle foto, ricerca nei messaggi. Le
   consultas a pagamento sono del blocco 6.
+
+### ADR-085 — Floral Care, blocco 6: Asistente de plantas (6a: dati, motore, prova pagata, assistente del fiorista) — IN CORSO (25/11/2026)
+
+Blocco 6 del piano approvato (`docs/FLORAL_CARE_PLAN.md` §4, §7.6), chiesto dal founder ("ok vai col
+blocco 6"), in tre rilasci: **6a** dati delle piante, motore, prova pagata e assistente del fiorista;
+**6b** l'assistente in Mi Floral Care con le consultas incluse e «Enviar a la florería»; **6c**
+l'acquisto di consultas con Stripe Checkout in modalità di prova. 6b e 6c hanno ciascuno un piano di
+dettaglio da approvare prima di partire.
+
+**Decisioni del founder (25/11/2026):**
+
+1. **Foto della prova:** solo foto a licenza libera (Wikimedia Commons).
+2. **Modelli della prova:** Opus 5.5, Sonnet 5.5 e Haiku 5.5, con un tetto di 15 USD.
+3. **Consultas del fiorista:** le paga Gardelia, al massimo 20 al giorno per fioreria, dentro un
+   budget mensile che fissa il founder.
+4. **Consultas dei clienti (6b–6c):** la fioreria sceglie quante includerne al mese per contratto
+   (0–10, 3 di default), pagate da Gardelia nella fase di prova; finite quelle, il cliente compra le
+   sue con la carta.
+
+**Come funziona (6a):**
+
+- **Dati delle piante:**
+  - 19 piante d'interno nuove (91 specie in tutto, 36 piante in vaso), DA VALIDARE da un fiorista
+    sul foglio di revisione;
+  - `CanonicalFlower.care` (Json, schema `plantCareSchema` del dominio), obbligatorio per le piante
+    in vaso: luce, acqua, umidità qualitative e mai intervalli fissi (spec §5.7);
+  - tossicità per cani e gatti (`TOXIC | MILD | NON_TOXIC | VARIES`) dalla lista dell'ASPCA, con la
+    fonte e `reviewed: false` finché un fiorista o un veterinario non la conferma.
+- **Tabelle, solo inserimenti** (così il portale del 6b ci scrive con policy `portal_insert`):
+  - `AssistantCase`: la foto di una pianta di un contratto (pianta e visita facoltative), le specie
+    candidate, ciò che si vede, chi ha chiesto e da dove;
+  - `AssistantAnswer`: domanda, specie confermata (o «No sé»), risposta breve e passi;
+  - `AssistantCall`: ogni chiamata al modello con token, costo in micro-USD, durata, esito e codice
+    d'errore (mai il testo del fornitore);
+  - RLS su tutte e tre, FK composite, CHECK su lunghezze e chiavi delle foto.
+- **Motore** (`packages/core/src/ai/plant-assistant/`):
+  - `ClaudePlantAssistant` è l'unico punto con `@anthropic-ai/sdk` (versione fissata): output
+    strutturato con schemi Zod, effort basso, sistema in cache (la lista delle piante è uguale per
+    tutti, in es-MX), timeout 45 s con un nuovo tentativo, fallback lato server sui rifiuti;
+  - il costo si calcola dai token veri di `usage` (anche passaggio per passaggio con il fallback),
+    col listino verificato sulla pagina dei prezzi il 25/11/2026;
+  - `SimulatedPlantAssistant` solo in locale e nei test, etichettato «Simulación» nella pagina;
+  - configurazione: `ASSISTANT_PROVIDER` (`none | simulated | anthropic`), `ANTHROPIC_API_KEY`,
+    `ASSISTANT_MODEL`, `ASSISTANT_MONTHLY_BUDGET_USD` (`docs/CONFIGURATION.md`).
+- **Regole della risposta** (nel prompt e nell'interfaccia):
+  - breve (circa 120 parole, al massimo 5 passi), nella lingua di chi chiede;
+  - mai dosi, concentrazioni, miscele o marche di prodotti chimici; mai calendari fissi;
+  - nessuna frase sulla tossicità: l'avviso per cani e gatti viene SOLO dai nostri dati, con la fonte;
+  - se non è sicuro lo dice («revisa la planta en persona»);
+  - ogni risposta porta «Respuesta generada con IA: revísala antes de actuar».
+- **Servizi** (`services/plant-assistant.ts`, permesso `care:assistant` per tutti i ruoli, poi
+  `requireEntitlement(ctx, 'floralCare')`):
+  - una consulta è una risposta: il riconoscimento della foto è compreso; «Otra pregunta» sullo
+    stesso caso è una consulta in più (al massimo 3 per foto); un errore o un rifiuto non si conta;
+  - prima della chiamata si controllano il tetto del giorno (20 risposte e 40 foto per fioreria,
+    giorno nell'ora della fioreria) e il budget del mese (`app_assistant_spend_since`, DEFINER, su
+    tutta la piattaforma); la chiamata avviene fuori dalle transazioni;
+  - le foto seguono la catena delle foto delle visite (`normalizeUploadedPhoto`, chiavi
+    `tenants/<id>/care-photos/…`); al modello va una copia di al massimo 1092 px; si cancellano con
+    le foto del contratto (fine + 30 giorni), il testo resta;
+  - registro `care.assistant_answered` senza testi; nei log solo ID, modello, token e costo.
+- **Interfaccia del fiorista** (`subscriptions/[id]/assistant`, segmento in inglese come gli altri
+  percorsi della fioreria):
+  - foto (fotocamera o galleria, ridotta nel browser) → «¿Es alguna de estas?» con le candidate (la
+    specie della scheda per prima), «Otra» dall'elenco o «No sé» → «¿Qué le pasa?» → la risposta con
+    i passi, i cuidados e l'avviso per cani e gatti dai nostri dati;
+  - contatore «Hoy: N de 20 consultas de la florería», limite e budget con un messaggio chiaro;
+  - link: la card «Asistente de plantas» del contratto (con le ultime consultas), l'icona su ogni
+    pianta, «Preguntar al asistente» sulle piante «Atención» o «Problema» della visita;
+  - senza assistente configurato i link non compaiono (CLAUDE.md §2);
+  - la foto passa da una route privata (`privateImageRoute`), del contratto del percorso.
+- **Nessun `withSystemContext` nuovo:** CLAUDE.md §4.8 non cambia.
+
+**La prova pagata (prima di accendere l'assistente su staging):**
+
+- circa 50 foto da Wikimedia Commons (licenze CC0, CC BY, CC BY-SA, pubblico dominio), più alcune
+  piante fuori dalla lista; restano fuori dal repo, con il manifest delle fonti;
+- script `packages/core/scripts/assistant-benchmark.ts`: stesso adattatore e stessi prompt
+  dell'app, riconoscimento senza indizi e risposta con la specie giusta per Opus 5.5, Sonnet 5.5 e
+  Haiku 5.5, un giudice con una griglia (Opus 5.5, effort alto) e un tetto di 15 USD;
+- resoconto in `docs/AI_BENCHMARK.md`; il founder sceglie il modello e il budget mensile. Fino ad
+  allora valgono Opus 5.5 e 20 USD al mese.
+
+**PROPOSTO** (da confermare guardandolo in staging): la definizione di consulta; le 19 piante nuove;
+i dati di cura qualitativi e la tossicità ASPCA; risposta breve; effort basso e foto ridotta; lo
+staff usa l'assistente come gli altri ruoli; la risposta nella stessa richiesta (fino a ~20 s).
+
+**DA VALIDARE con professionisti:** i dati di tossicità (fiorista o veterinario); l'aviso de
+privacidad (foto e domande vanno ad Anthropic, Stati Uniti, come fornitore); per il 6c la vendita
+di consultas ai consumatori in Messico (SAT, IVA, CFDI, PROFECO, chi incassa: O-02).
 
 ## 3. Proposte da approvare
 

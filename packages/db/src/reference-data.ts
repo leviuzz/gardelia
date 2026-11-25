@@ -12,12 +12,24 @@
  *
  * Elenco (22/11/2026, ADR-043): specie vendute dalle fiorerie messicane, con i nomi usati in
  * Messico e i sinonimi per lingua. PROPOSTO dal team, DA VALIDARE con un fiorista (spec §19.6).
+ * Il 25/11/2026 (ADR-085) si aggiungono 19 piante d'interno e i dati di cura delle piante in vaso
+ * (luce, acqua, umidità, tossicità per cani e gatti dalla lista ASPCA): anche questi DA VALIDARE.
  * Gli slug esistenti non si tolgono né si rinominano: articoli e seed vi sono collegati.
  * I sinonimi servono alla ricerca e a riconoscere la specie dal nome del prodotto: ognuno deve
  * indicare una sola specie della stessa categoria (lo controlla il test dei dati di riferimento).
  */
-import type { CatalogColor, SupportedLocale } from '@floral/domain';
+import type {
+  CatalogColor,
+  PetToxicity,
+  PetToxicitySource,
+  PlantCare,
+  PlantCareHumidity,
+  PlantCareWatering,
+  PlantLight,
+  SupportedLocale,
+} from '@floral/domain';
 import type { DbClient } from './client';
+import { Prisma } from './generated/prisma/client.ts';
 import { withSystemContext, type TransactionClient } from './tenancy';
 
 export interface CanonicalFlowerSeed {
@@ -29,6 +41,26 @@ export interface CanonicalFlowerSeed {
   /** Altri nomi con cui la si cerca o la si chiama nei prodotti, per lingua. */
   readonly synonyms: Readonly<Partial<Record<SupportedLocale, readonly string[]>>>;
   readonly colors: readonly CatalogColor[];
+  /**
+   * Solo per le piante in vaso (obbligatorio, lo controlla il test): luce, acqua, umidità e
+   * tossicità per cani e gatti, per l'Asistente de plantas (ADR-085). DA VALIDARE con un fiorista.
+   */
+  readonly care?: PlantCare;
+}
+
+/**
+ * I dati di cura di una pianta. La tossicità viene dalla lista ASPCA delle piante tossiche e non
+ * tossiche per cani e gatti; `source: null` = da confermare (nessuna fonte certa). Nessun dato è
+ * ancora rivisto da un fiorista (`reviewed: false`).
+ */
+function care(
+  light: PlantLight,
+  watering: PlantCareWatering,
+  humidity: PlantCareHumidity,
+  petToxicity: PetToxicity,
+  toxicitySource: PetToxicitySource | null = 'ASPCA',
+): PlantCare {
+  return { light, watering, humidity, petToxicity, toxicitySource, reviewed: false };
 }
 
 // -----------------------------------------------------------------------------
@@ -629,6 +661,7 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
       'en-US': ['Phalaenopsis'],
     },
     colors: ['white', 'purple', 'pink'],
+    care: care('MEDIUM', 'DRY_BETWEEN', 'HIGH', 'NON_TOXIC'),
   },
   {
     slug: 'monstera',
@@ -637,6 +670,7 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
     names: { 'es-MX': 'Monstera', 'it-IT': 'Monstera', 'en-US': 'Monstera' },
     synonyms: { 'es-MX': ['Costilla de Adán'], 'en-US': ['Swiss cheese plant'] },
     colors: ['green'],
+    care: care('MEDIUM', 'DRY_BETWEEN', 'MEDIUM', 'TOXIC'),
   },
   {
     slug: 'anturio-planta',
@@ -649,6 +683,7 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
       'en-US': ['Flamingo flower'],
     },
     colors: ['red', 'pink', 'white'],
+    care: care('MEDIUM', 'SLIGHTLY_MOIST', 'HIGH', 'TOXIC'),
   },
   {
     slug: 'cuna-de-moises',
@@ -661,6 +696,7 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
       'en-US': ['Spathiphyllum'],
     },
     colors: ['white', 'green'],
+    care: care('LOW', 'SLIGHTLY_MOIST', 'HIGH', 'TOXIC'),
   },
   {
     slug: 'nochebuena',
@@ -672,6 +708,7 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
       'it-IT': ['Poinsettia'],
     },
     colors: ['red', 'white', 'pink'],
+    care: care('MEDIUM', 'DRY_BETWEEN', 'MEDIUM', 'MILD'),
   },
   {
     slug: 'suculenta',
@@ -684,6 +721,7 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
       'en-US': ['Echeveria'],
     },
     colors: ['green'],
+    care: care('HIGH', 'LITTLE', 'LOW', 'VARIES', null),
   },
   {
     slug: 'cactus',
@@ -692,6 +730,7 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
     names: { 'es-MX': 'Cactus', 'it-IT': 'Cactus', 'en-US': 'Cactus' },
     synonyms: { 'es-MX': ['Cacto'], 'it-IT': ['Cactacea'], 'en-US': ['Cacti'] },
     colors: ['green'],
+    care: care('HIGH', 'LITTLE', 'LOW', 'VARIES', null),
   },
   {
     slug: 'lengua-de-suegra',
@@ -704,6 +743,7 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
       'en-US': ['Sansevieria'],
     },
     colors: ['green'],
+    care: care('LOW', 'LITTLE', 'LOW', 'TOXIC'),
   },
   {
     slug: 'telefono',
@@ -716,6 +756,7 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
       'en-US': ["Devil's ivy", 'Epipremnum'],
     },
     colors: ['green'],
+    care: care('LOW', 'DRY_BETWEEN', 'MEDIUM', 'TOXIC'),
   },
   {
     slug: 'kalanchoe',
@@ -724,6 +765,7 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
     names: { 'es-MX': 'Kalanchoe', 'it-IT': 'Kalanchoe', 'en-US': 'Kalanchoe' },
     synonyms: {},
     colors: ['red', 'orange', 'yellow', 'pink', 'white'],
+    care: care('HIGH', 'LITTLE', 'LOW', 'TOXIC'),
   },
   {
     slug: 'bromelia',
@@ -732,6 +774,7 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
     names: { 'es-MX': 'Bromelia', 'it-IT': 'Bromelia', 'en-US': 'Bromeliad' },
     synonyms: { 'es-MX': ['Guzmania'], 'it-IT': ['Guzmania'], 'en-US': ['Bromelia', 'Guzmania'] },
     colors: ['red', 'orange', 'yellow', 'pink'],
+    care: care('MEDIUM', 'SLIGHTLY_MOIST', 'HIGH', 'NON_TOXIC'),
   },
   {
     slug: 'zamioculca',
@@ -744,6 +787,7 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
       'en-US': ['Zamioculcas'],
     },
     colors: ['green'],
+    care: care('LOW', 'LITTLE', 'LOW', 'TOXIC', null),
   },
   {
     slug: 'ficus',
@@ -752,6 +796,7 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
     names: { 'es-MX': 'Ficus', 'it-IT': 'Ficus', 'en-US': 'Ficus' },
     synonyms: {},
     colors: ['green'],
+    care: care('MEDIUM', 'DRY_BETWEEN', 'MEDIUM', 'TOXIC'),
   },
   {
     slug: 'helecho-boston',
@@ -764,6 +809,7 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
       'en-US': ['Nephrolepis'],
     },
     colors: ['green'],
+    care: care('MEDIUM', 'SLIGHTLY_MOIST', 'HIGH', 'NON_TOXIC'),
   },
   {
     slug: 'begonia',
@@ -772,6 +818,7 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
     names: { 'es-MX': 'Begonia', 'it-IT': 'Begonia', 'en-US': 'Begonia' },
     synonyms: {},
     colors: ['red', 'pink', 'white', 'orange', 'yellow'],
+    care: care('MEDIUM', 'DRY_BETWEEN', 'HIGH', 'TOXIC'),
   },
   {
     slug: 'violeta-africana',
@@ -784,6 +831,7 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
     },
     synonyms: { 'es-MX': ['Saintpaulia'], 'it-IT': ['Saintpaulia'], 'en-US': ['Saintpaulia'] },
     colors: ['purple', 'pink', 'white', 'blue'],
+    care: care('MEDIUM', 'SLIGHTLY_MOIST', 'MEDIUM', 'NON_TOXIC'),
   },
   {
     slug: 'azalea',
@@ -792,6 +840,258 @@ const PLANTS: readonly CanonicalFlowerSeed[] = [
     names: { 'es-MX': 'Azalea', 'it-IT': 'Azalea', 'en-US': 'Azalea' },
     synonyms: {},
     colors: ['pink', 'white', 'red', 'purple'],
+    care: care('MEDIUM', 'SLIGHTLY_MOIST', 'HIGH', 'TOXIC'),
+  },
+  // Piante d'interno comuni in Messico (ADR-085, blocco 6): PROPOSTO, DA VALIDARE con un fiorista.
+  {
+    slug: 'palma-areca',
+    scientificName: 'Dypsis lutescens',
+    category: 'PLANT',
+    names: { 'es-MX': 'Palma areca', 'it-IT': 'Palma Areca', 'en-US': 'Areca palm' },
+    synonyms: {
+      'es-MX': ['Areca', 'Palma de areca'],
+      'it-IT': ['Areca', 'Crisalidocarpo'],
+      'en-US': ['Butterfly palm', 'Golden cane palm'],
+    },
+    colors: ['green'],
+    care: care('MEDIUM', 'SLIGHTLY_MOIST', 'MEDIUM', 'NON_TOXIC'),
+  },
+  {
+    slug: 'palma-camedor-planta',
+    scientificName: 'Chamaedorea elegans',
+    category: 'PLANT',
+    names: { 'es-MX': 'Palma camedor', 'it-IT': 'Palma da salotto', 'en-US': 'Parlor palm' },
+    synonyms: {
+      'es-MX': ['Palma de salón', 'Chamaedorea'],
+      'it-IT': ['Chamaedorea', 'Camedorea'],
+      'en-US': ['Chamaedorea', 'Neanthe bella palm'],
+    },
+    colors: ['green'],
+    care: care('LOW', 'DRY_BETWEEN', 'MEDIUM', 'NON_TOXIC'),
+  },
+  {
+    slug: 'palo-de-brasil',
+    scientificName: 'Dracaena fragrans',
+    category: 'PLANT',
+    names: {
+      'es-MX': 'Palo de Brasil',
+      'it-IT': 'Tronchetto della felicità',
+      'en-US': 'Corn plant',
+    },
+    synonyms: {
+      'es-MX': ['Tronco de Brasil', 'Palo de agua', 'Dracena fragrans'],
+      'it-IT': ['Dracena fragrans', 'Dracaena fragrans'],
+      'en-US': ['Dracaena fragrans', 'Happy plant'],
+    },
+    colors: ['green'],
+    care: care('LOW', 'DRY_BETWEEN', 'MEDIUM', 'TOXIC'),
+  },
+  {
+    slug: 'dracena-marginata',
+    scientificName: 'Dracaena marginata',
+    category: 'PLANT',
+    names: { 'es-MX': 'Dracena marginata', 'it-IT': 'Dracena marginata', 'en-US': 'Dragon tree' },
+    synonyms: {
+      'es-MX': ['Dracaena marginata', 'Dragón de Madagascar'],
+      'it-IT': ['Dracaena marginata'],
+      'en-US': ['Madagascar dragon tree', 'Dracaena marginata'],
+    },
+    colors: ['green'],
+    care: care('MEDIUM', 'DRY_BETWEEN', 'MEDIUM', 'TOXIC'),
+  },
+  {
+    slug: 'calathea',
+    scientificName: 'Goeppertia spp.',
+    category: 'PLANT',
+    names: { 'es-MX': 'Calathea', 'it-IT': 'Calathea', 'en-US': 'Calathea' },
+    synonyms: {
+      'es-MX': ['Calatea', 'Goeppertia'],
+      'it-IT': ['Calatea', 'Goeppertia'],
+      'en-US': ['Goeppertia'],
+    },
+    colors: ['green'],
+    care: care('MEDIUM', 'SLIGHTLY_MOIST', 'HIGH', 'NON_TOXIC'),
+  },
+  {
+    slug: 'aglaonema',
+    scientificName: 'Aglaonema spp.',
+    category: 'PLANT',
+    names: { 'es-MX': 'Aglaonema', 'it-IT': 'Aglaonema', 'en-US': 'Chinese evergreen' },
+    synonyms: {
+      'es-MX': ['Aglonema', 'Siempreverde chino'],
+      'it-IT': ['Aglonema'],
+      'en-US': ['Aglaonema'],
+    },
+    colors: ['green', 'pink', 'red'],
+    care: care('LOW', 'DRY_BETWEEN', 'MEDIUM', 'TOXIC'),
+  },
+  {
+    slug: 'filodendro',
+    scientificName: 'Philodendron spp.',
+    category: 'PLANT',
+    names: { 'es-MX': 'Filodendro', 'it-IT': 'Filodendro', 'en-US': 'Philodendron' },
+    synonyms: {
+      'es-MX': ['Philodendron'],
+      'it-IT': ['Philodendron'],
+      'en-US': ['Heartleaf philodendron'],
+    },
+    colors: ['green'],
+    care: care('LOW', 'DRY_BETWEEN', 'MEDIUM', 'TOXIC'),
+  },
+  {
+    slug: 'peperomia',
+    scientificName: 'Peperomia spp.',
+    category: 'PLANT',
+    names: { 'es-MX': 'Peperomia', 'it-IT': 'Peperomia', 'en-US': 'Peperomia' },
+    synonyms: {
+      'es-MX': ['Peperonia'],
+      'en-US': ['Baby rubber plant', 'Radiator plant'],
+    },
+    colors: ['green'],
+    care: care('MEDIUM', 'DRY_BETWEEN', 'MEDIUM', 'NON_TOXIC'),
+  },
+  {
+    slug: 'mala-madre',
+    scientificName: 'Chlorophytum comosum',
+    category: 'PLANT',
+    names: { 'es-MX': 'Mala madre', 'it-IT': 'Falangio', 'en-US': 'Spider plant' },
+    synonyms: {
+      'es-MX': ['Malamadre', 'Cinta', 'Lazo de amor', 'Chlorophytum'],
+      'it-IT': ['Clorofito', 'Chlorophytum', 'Nastrino'],
+      'en-US': ['Chlorophytum', 'Airplane plant'],
+    },
+    colors: ['green', 'white'],
+    care: care('MEDIUM', 'DRY_BETWEEN', 'MEDIUM', 'NON_TOXIC'),
+  },
+  {
+    slug: 'cheflera',
+    scientificName: 'Schefflera arboricola',
+    category: 'PLANT',
+    names: { 'es-MX': 'Cheflera', 'it-IT': 'Schefflera', 'en-US': 'Umbrella tree' },
+    synonyms: {
+      'es-MX': ['Schefflera', 'Chefflera', 'Árbol paraguas'],
+      'it-IT': ['Albero ombrello'],
+      'en-US': ['Schefflera', 'Dwarf umbrella tree'],
+    },
+    colors: ['green'],
+    care: care('MEDIUM', 'DRY_BETWEEN', 'MEDIUM', 'TOXIC'),
+  },
+  {
+    slug: 'croton',
+    scientificName: 'Codiaeum variegatum',
+    category: 'PLANT',
+    names: { 'es-MX': 'Crotón', 'it-IT': 'Croton', 'en-US': 'Croton' },
+    synonyms: {
+      'es-MX': ['Croto', 'Codiaeum'],
+      'it-IT': ['Crotone', 'Codiaeum'],
+      'en-US': ['Garden croton', 'Codiaeum'],
+    },
+    colors: ['green', 'yellow', 'red', 'orange', 'multicolor'],
+    care: care('HIGH', 'SLIGHTLY_MOIST', 'HIGH', 'TOXIC'),
+  },
+  {
+    slug: 'diefenbaquia',
+    scientificName: 'Dieffenbachia seguine',
+    category: 'PLANT',
+    names: { 'es-MX': 'Diefenbaquia', 'it-IT': 'Dieffenbachia', 'en-US': 'Dumb cane' },
+    synonyms: {
+      'es-MX': ['Dieffenbachia', 'Difenbaquia'],
+      'it-IT': ['Diffenbachia'],
+      'en-US': ['Dieffenbachia'],
+    },
+    colors: ['green', 'white'],
+    care: care('MEDIUM', 'DRY_BETWEEN', 'MEDIUM', 'TOXIC'),
+  },
+  {
+    slug: 'sabila',
+    scientificName: 'Aloe vera',
+    category: 'PLANT',
+    names: { 'es-MX': 'Sábila', 'it-IT': 'Aloe vera', 'en-US': 'Aloe vera' },
+    synonyms: {
+      'es-MX': ['Aloe vera', 'Áloe', 'Zábila'],
+      'it-IT': ['Aloe'],
+      'en-US': ['Aloe'],
+    },
+    colors: ['green'],
+    care: care('HIGH', 'LITTLE', 'LOW', 'TOXIC'),
+  },
+  {
+    slug: 'singonio',
+    scientificName: 'Syngonium podophyllum',
+    category: 'PLANT',
+    names: { 'es-MX': 'Singonio', 'it-IT': 'Syngonium', 'en-US': 'Arrowhead plant' },
+    synonyms: {
+      'es-MX': ['Syngonium', 'Singonium'],
+      'it-IT': ['Singonio'],
+      'en-US': ['Syngonium', 'Arrowhead vine'],
+    },
+    colors: ['green', 'pink'],
+    care: care('MEDIUM', 'DRY_BETWEEN', 'MEDIUM', 'TOXIC'),
+  },
+  {
+    slug: 'pata-de-elefante',
+    scientificName: 'Beaucarnea recurvata',
+    category: 'PLANT',
+    names: { 'es-MX': 'Pata de elefante', 'it-IT': 'Beaucarnea', 'en-US': 'Ponytail palm' },
+    synonyms: {
+      'es-MX': ['Beaucarnea', 'Nolina', 'Palma pata de elefante'],
+      'it-IT': ['Nolina', "Piede d'elefante"],
+      'en-US': ['Beaucarnea', "Elephant's foot"],
+    },
+    colors: ['green'],
+    care: care('HIGH', 'LITTLE', 'LOW', 'NON_TOXIC'),
+  },
+  {
+    slug: 'hule',
+    scientificName: 'Ficus elastica',
+    category: 'PLANT',
+    names: { 'es-MX': 'Hule', 'it-IT': 'Ficus elastica', 'en-US': 'Rubber plant' },
+    synonyms: {
+      'es-MX': ['Ficus elastica', 'Árbol del caucho', 'Gomero'],
+      'it-IT': ['Albero della gomma'],
+      'en-US': ['Rubber tree', 'Ficus elastica'],
+    },
+    colors: ['green', 'burgundy'],
+    care: care('MEDIUM', 'DRY_BETWEEN', 'MEDIUM', 'TOXIC'),
+  },
+  {
+    slug: 'ficus-lira',
+    scientificName: 'Ficus lyrata',
+    category: 'PLANT',
+    names: { 'es-MX': 'Ficus lira', 'it-IT': 'Ficus lyrata', 'en-US': 'Fiddle-leaf fig' },
+    synonyms: {
+      'es-MX': ['Ficus lyrata', 'Higuera hoja de violín'],
+      'it-IT': ['Ficus lira'],
+      'en-US': ['Ficus lyrata', 'Fiddle leaf fig'],
+    },
+    colors: ['green'],
+    care: care('MEDIUM', 'DRY_BETWEEN', 'MEDIUM', 'TOXIC'),
+  },
+  {
+    slug: 'yuca',
+    scientificName: 'Yucca elephantipes',
+    category: 'PLANT',
+    names: { 'es-MX': 'Yuca', 'it-IT': 'Yucca', 'en-US': 'Yucca' },
+    synonyms: {
+      'es-MX': ['Izote', 'Yucca'],
+      'it-IT': ['Yuca'],
+      'en-US': ['Spineless yucca', 'Yucca cane'],
+    },
+    colors: ['green'],
+    care: care('HIGH', 'LITTLE', 'LOW', 'TOXIC'),
+  },
+  {
+    slug: 'ave-del-paraiso-planta',
+    scientificName: 'Strelitzia reginae',
+    category: 'PLANT',
+    names: { 'es-MX': 'Ave del paraíso', 'it-IT': 'Sterlizia', 'en-US': 'Bird of paradise' },
+    synonyms: {
+      'es-MX': ['Strelitzia', 'Estrelitzia'],
+      'it-IT': ['Strelitzia', 'Uccello del paradiso'],
+      'en-US': ['Strelitzia'],
+    },
+    colors: ['orange', 'blue'],
+    care: care('HIGH', 'DRY_BETWEEN', 'MEDIUM', 'TOXIC'),
   },
 ];
 
@@ -810,6 +1110,7 @@ export async function upsertCanonicalFlowers(tx: TransactionClient): Promise<num
       names: flower.names,
       synonyms: flower.synonyms,
       colors: [...flower.colors],
+      care: flower.care ?? Prisma.DbNull,
     };
     await tx.canonicalFlower.upsert({
       where: { slug: flower.slug },

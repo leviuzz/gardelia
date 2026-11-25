@@ -3257,7 +3257,8 @@
       "portal_access_granted": "{actor} aceptó la invitación a Mi Floral Care",
       "portal_access_revoked": "{actor} quitó un acceso a Mi Floral Care",
       "visit_moved_by_customer": "{actor} cambió desde Mi Floral Care la fecha de una visita de {number}",
-      "message_photo_removed": "{actor} quitó la foto de un mensaje de {number}"
+      "message_photo_removed": "{actor} quitó la foto de un mensaje de {number}",
+      "assistant_answered": "{actor} consultó al Asistente de plantas sobre una planta de {number}"
     },
     "notice": {
       "label": "Sí, avisé al cliente"
@@ -4684,5 +4685,118 @@
     "hours": "{hours} h",
     "minutes": "{minutes} min",
     "hoursMinutes": "{hours} h {minutes} min"
+  },
+  "assistant": {
+    "title": "Asistente de plantas",
+    "subtitle": "Toma una foto de la planta y pregunta qué le pasa: la respuesta es breve, con los pasos a seguir.",
+    "back": "Volver al contrato {number}",
+    "simulated": "Simulación (entorno de desarrollo): las respuestas son de prueba, no las escribe la IA.",
+    "unavailable": "El asistente de plantas no está disponible por ahora.",
+    "usage": "Hoy: {used} de {limit} consultas de la florería",
+    "limitReached": "La florería llegó al límite de hoy ({limit} consultas). Vuelve a intentarlo mañana.",
+    "aiNotice": "Respuesta generada con IA: revísala antes de actuar.",
+    "new": {
+      "title": "Nueva consulta",
+      "plant": "Planta del contrato",
+      "plantNone": "Sin especificar",
+      "photo": "Foto de la planta",
+      "choosePhoto": "Tomar o elegir foto",
+      "changePhoto": "Cambiar foto",
+      "previewAlt": "Vista previa de la foto elegida",
+      "tip": "Con luz de día, que se vean las hojas y, si hay un problema, la parte dañada.",
+      "submit": "Analizar foto",
+      "analyzing": "Analizando la foto… puede tardar unos 20 segundos.",
+      "photoRequired": "Elige una foto.",
+      "networkError": "No se pudo enviar. Revisa la conexión y vuelve a intentarlo.",
+      "recentTitle": "Consultas anteriores",
+      "recentEmpty": "Aún no hay consultas en este contrato.",
+      "answers": "{count, plural, =0 {Sin respuesta} one {# respuesta} other {# respuestas}}",
+      "unknownSpecies": "Planta sin identificar"
+    },
+    "case": {
+      "title": "Consulta del {date}",
+      "photoAlt": "Foto de la planta de la consulta",
+      "openPhoto": "Ver la foto completa",
+      "photoDeleted": "La foto ya se eliminó (30 días después de terminar el contrato).",
+      "unusable": "En la foto no se distingue bien la planta. Toma otra con más luz y más cerca.",
+      "retakePhoto": "Tomar otra foto",
+      "condition": "Lo que se ve en la foto",
+      "notInList": "Parece una planta que no está en nuestra lista: elige «Otra» o «No sé».",
+      "full": "Ya hiciste las {count} preguntas de esta foto. Para otra, toma una foto nueva.",
+      "askedBy": "Preguntó {name}"
+    },
+    "ask": {
+      "speciesLegend": "¿Es alguna de estas?",
+      "speciesLegendAgain": "Planta",
+      "fromRecord": "Según la ficha de la planta",
+      "other": "Otra",
+      "otherSelect": "¿Cuál?",
+      "otherPlaceholder": "Elige la planta…",
+      "unknown": "No sé",
+      "question": "¿Qué le pasa?",
+      "questionAgain": "Otra pregunta",
+      "placeholder": "Ej.: tiene hojas amarillas y las puntas secas. ¿Qué hago?",
+      "remaining": "{count, plural, one {Queda # pregunta} other {Quedan # preguntas}} sobre esta foto.",
+      "submit": "Preguntar",
+      "thinking": "Preparando la respuesta… puede tardar unos 20 segundos.",
+      "answered": "Respuesta lista.",
+      "likelihood": {
+        "high": "Muy probable",
+        "medium": "Probable",
+        "low": "Posible"
+      },
+      "otherRequired": "Elige la planta de la lista."
+    },
+    "answer": {
+      "question": "Pregunta",
+      "species": "Planta: {name}",
+      "speciesUnknown": "Planta: sin identificar",
+      "steps": "Pasos",
+      "unsure": "El asistente no está seguro: revisa la planta en persona.",
+      "careTitle": "Cuidados según Gardelia",
+      "light": "Luz",
+      "watering": "Riego",
+      "humidity": "Humedad"
+    },
+    "care": {
+      "light": {
+        "LOW": "Tolera poca luz, lejos de las ventanas",
+        "MEDIUM": "Luz indirecta brillante",
+        "HIGH": "Sol directo parte del día"
+      },
+      "watering": {
+        "LITTLE": "Poca agua: deja secar la tierra por completo",
+        "DRY_BETWEEN": "Cuando los primeros centímetros de tierra estén secos",
+        "SLIGHTLY_MOIST": "Tierra apenas húmeda, nunca encharcada"
+      },
+      "humidity": {
+        "LOW": "Baja: tolera el aire seco",
+        "MEDIUM": "Media",
+        "HIGH": "Alta: le gusta el aire húmedo"
+      }
+    },
+    "toxicity": {
+      "TOXIC": "Tóxica para perros y gatos si la muerden o se la comen.",
+      "MILD": "Puede causar molestias leves a perros y gatos si la muerden.",
+      "NON_TOXIC": "No es tóxica para perros y gatos.",
+      "VARIES": "Depende de la especie: algunas son tóxicas para perros y gatos.",
+      "sourceASPCA": "Fuente: lista de plantas tóxicas y no tóxicas de la ASPCA.",
+      "noSource": "Dato por confirmar.",
+      "unreviewed": "Aún no lo revisa un especialista."
+    },
+    "conflict": {
+      "unavailable": "El asistente de plantas no está disponible por ahora.",
+      "daily_limit": "La florería llegó al límite de consultas de hoy. Vuelve a intentarlo mañana.",
+      "budget_reached": "El asistente llegó a su límite de este mes. Vuelve a intentarlo el mes que viene.",
+      "photo_unusable": "En esa foto no se distingue la planta: toma otra.",
+      "case_full": "Ya hiciste todas las preguntas de esta foto. Toma una foto nueva.",
+      "failed": "El asistente no pudo responder y no se contó como consulta. Vuelve a intentarlo."
+    },
+    "card": {
+      "description": "Toma una foto de una planta del contrato y pregunta qué le pasa.",
+      "empty": "Aún no hay consultas.",
+      "askPlant": "Preguntar al asistente sobre {name}",
+      "askVisitPlant": "Preguntar al asistente"
+    }
   }
 }

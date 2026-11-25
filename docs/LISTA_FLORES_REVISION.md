@@ -10,7 +10,11 @@ del catálogo, buscarlos en cualquier idioma y describirlos en las imágenes de 
 Aguascalientes se dice distinto, un sinónimo que confunde, un color que no existe en el
 mercado) y anote al final las flores que vende y no aparecen.
 
-Total: 72 especies.
+En las plantas, revise también la luz, el riego, la humedad y si son tóxicas para perros y
+gatos: el Asistente de plantas usa estos datos y muestra el aviso de toxicidad tal como está
+aquí (por ahora tomado de la lista de la ASPCA, sin revisar).
+
+Total: 91 especies.
 
 ## Flores de corte (45)
 
@@ -77,27 +81,46 @@ Total: 72 especies.
 | Pittosporum | Pitosporo | *Pittosporum tenuifolium* | verde |  |
 | Ruscus | — | *Ruscus hypophyllum* | verde |  |
 
-## Plantas (17)
+## Plantas (36)
 
-| Nombre | También se dice | Nombre científico | Colores | ¿Correcto? / Comentarios |
-| --- | --- | --- | --- | --- |
-| Anturio | Anthurium | *Anthurium andraeanum* | rojo, rosa, blanco |  |
-| Azalea | — | *Rhododendron simsii* | rosa, blanco, rojo, morado |  |
-| Begonia | — | *Begonia spp.* | rojo, rosa, blanco, naranja, amarillo |  |
-| Bromelia | Guzmania | *Guzmania spp.* | rojo, naranja, amarillo, rosa |  |
-| Cactus | Cacto | *Cactaceae* | verde |  |
-| Cuna de Moisés | Espatifilo, Spathiphyllum, Lirio de paz | *Spathiphyllum wallisii* | blanco, verde |  |
-| Ficus | — | *Ficus spp.* | verde |  |
-| Helecho Boston | Helecho de Boston, Nephrolepis | *Nephrolepis exaltata* | verde |  |
-| Kalanchoe | — | *Kalanchoe blossfeldiana* | rojo, naranja, amarillo, rosa, blanco |  |
-| Lengua de suegra | Sansevieria, Sanseviera | *Dracaena trifasciata* | verde |  |
-| Monstera | Costilla de Adán | *Monstera deliciosa* | verde |  |
-| Nochebuena | Flor de nochebuena, Poinsettia | *Euphorbia pulcherrima* | rojo, blanco, rosa |  |
-| Orquídea Phalaenopsis | Phalaenopsis, Orquídea mariposa | *Phalaenopsis spp.* | blanco, morado, rosa |  |
-| Suculenta | Crasa, Echeveria | *Crassulaceae* | verde |  |
-| Teléfono | Pothos, Potus, Poto | *Epipremnum aureum* | verde |  |
-| Violeta africana | Saintpaulia | *Streptocarpus ionanthus* | morado, rosa, blanco, azul |  |
-| Zamioculca | Zamioculcas, ZZ | *Zamioculcas zamiifolia* | verde |  |
+| Nombre | También se dice | Nombre científico | Colores | Luz | Riego | Humedad | Perros y gatos | ¿Correcto? / Comentarios |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Aglaonema | Aglonema, Siempreverde chino | *Aglaonema spp.* | verde, rosa, rojo | poca luz | cuando los primeros centímetros estén secos | media | tóxica (fuente: ASPCA) |  |
+| Anturio | Anthurium | *Anthurium andraeanum* | rojo, rosa, blanco | luz indirecta brillante | tierra apenas húmeda, sin encharcar | alta | tóxica (fuente: ASPCA) |  |
+| Ave del paraíso | Strelitzia, Estrelitzia | *Strelitzia reginae* | naranja, azul | sol directo parte del día | cuando los primeros centímetros estén secos | media | tóxica (fuente: ASPCA) |  |
+| Azalea | — | *Rhododendron simsii* | rosa, blanco, rojo, morado | luz indirecta brillante | tierra apenas húmeda, sin encharcar | alta | tóxica (fuente: ASPCA) |  |
+| Begonia | — | *Begonia spp.* | rojo, rosa, blanco, naranja, amarillo | luz indirecta brillante | cuando los primeros centímetros estén secos | alta | tóxica (fuente: ASPCA) |  |
+| Bromelia | Guzmania | *Guzmania spp.* | rojo, naranja, amarillo, rosa | luz indirecta brillante | tierra apenas húmeda, sin encharcar | alta | no tóxica (fuente: ASPCA) |  |
+| Cactus | Cacto | *Cactaceae* | verde | sol directo parte del día | poco riego, dejar secar del todo | baja | depende de la especie (sin fuente: confirmar) |  |
+| Calathea | Calatea, Goeppertia | *Goeppertia spp.* | verde | luz indirecta brillante | tierra apenas húmeda, sin encharcar | alta | no tóxica (fuente: ASPCA) |  |
+| Cheflera | Schefflera, Chefflera, Árbol paraguas | *Schefflera arboricola* | verde | luz indirecta brillante | cuando los primeros centímetros estén secos | media | tóxica (fuente: ASPCA) |  |
+| Crotón | Croto, Codiaeum | *Codiaeum variegatum* | verde, amarillo, rojo, naranja, multicolor | sol directo parte del día | tierra apenas húmeda, sin encharcar | alta | tóxica (fuente: ASPCA) |  |
+| Cuna de Moisés | Espatifilo, Spathiphyllum, Lirio de paz | *Spathiphyllum wallisii* | blanco, verde | poca luz | tierra apenas húmeda, sin encharcar | alta | tóxica (fuente: ASPCA) |  |
+| Diefenbaquia | Dieffenbachia, Difenbaquia | *Dieffenbachia seguine* | verde, blanco | luz indirecta brillante | cuando los primeros centímetros estén secos | media | tóxica (fuente: ASPCA) |  |
+| Dracena marginata | Dracaena marginata, Dragón de Madagascar | *Dracaena marginata* | verde | luz indirecta brillante | cuando los primeros centímetros estén secos | media | tóxica (fuente: ASPCA) |  |
+| Ficus | — | *Ficus spp.* | verde | luz indirecta brillante | cuando los primeros centímetros estén secos | media | tóxica (fuente: ASPCA) |  |
+| Ficus lira | Ficus lyrata, Higuera hoja de violín | *Ficus lyrata* | verde | luz indirecta brillante | cuando los primeros centímetros estén secos | media | tóxica (fuente: ASPCA) |  |
+| Filodendro | Philodendron | *Philodendron spp.* | verde | poca luz | cuando los primeros centímetros estén secos | media | tóxica (fuente: ASPCA) |  |
+| Helecho Boston | Helecho de Boston, Nephrolepis | *Nephrolepis exaltata* | verde | luz indirecta brillante | tierra apenas húmeda, sin encharcar | alta | no tóxica (fuente: ASPCA) |  |
+| Hule | Ficus elastica, Árbol del caucho, Gomero | *Ficus elastica* | verde, vino | luz indirecta brillante | cuando los primeros centímetros estén secos | media | tóxica (fuente: ASPCA) |  |
+| Kalanchoe | — | *Kalanchoe blossfeldiana* | rojo, naranja, amarillo, rosa, blanco | sol directo parte del día | poco riego, dejar secar del todo | baja | tóxica (fuente: ASPCA) |  |
+| Lengua de suegra | Sansevieria, Sanseviera | *Dracaena trifasciata* | verde | poca luz | poco riego, dejar secar del todo | baja | tóxica (fuente: ASPCA) |  |
+| Mala madre | Malamadre, Cinta, Lazo de amor, Chlorophytum | *Chlorophytum comosum* | verde, blanco | luz indirecta brillante | cuando los primeros centímetros estén secos | media | no tóxica (fuente: ASPCA) |  |
+| Monstera | Costilla de Adán | *Monstera deliciosa* | verde | luz indirecta brillante | cuando los primeros centímetros estén secos | media | tóxica (fuente: ASPCA) |  |
+| Nochebuena | Flor de nochebuena, Poinsettia | *Euphorbia pulcherrima* | rojo, blanco, rosa | luz indirecta brillante | cuando los primeros centímetros estén secos | media | molestias leves (fuente: ASPCA) |  |
+| Orquídea Phalaenopsis | Phalaenopsis, Orquídea mariposa | *Phalaenopsis spp.* | blanco, morado, rosa | luz indirecta brillante | cuando los primeros centímetros estén secos | alta | no tóxica (fuente: ASPCA) |  |
+| Palma areca | Areca, Palma de areca | *Dypsis lutescens* | verde | luz indirecta brillante | tierra apenas húmeda, sin encharcar | media | no tóxica (fuente: ASPCA) |  |
+| Palma camedor | Palma de salón, Chamaedorea | *Chamaedorea elegans* | verde | poca luz | cuando los primeros centímetros estén secos | media | no tóxica (fuente: ASPCA) |  |
+| Palo de Brasil | Tronco de Brasil, Palo de agua, Dracena fragrans | *Dracaena fragrans* | verde | poca luz | cuando los primeros centímetros estén secos | media | tóxica (fuente: ASPCA) |  |
+| Pata de elefante | Beaucarnea, Nolina, Palma pata de elefante | *Beaucarnea recurvata* | verde | sol directo parte del día | poco riego, dejar secar del todo | baja | no tóxica (fuente: ASPCA) |  |
+| Peperomia | Peperonia | *Peperomia spp.* | verde | luz indirecta brillante | cuando los primeros centímetros estén secos | media | no tóxica (fuente: ASPCA) |  |
+| Sábila | Aloe vera, Áloe, Zábila | *Aloe vera* | verde | sol directo parte del día | poco riego, dejar secar del todo | baja | tóxica (fuente: ASPCA) |  |
+| Singonio | Syngonium, Singonium | *Syngonium podophyllum* | verde, rosa | luz indirecta brillante | cuando los primeros centímetros estén secos | media | tóxica (fuente: ASPCA) |  |
+| Suculenta | Crasa, Echeveria | *Crassulaceae* | verde | sol directo parte del día | poco riego, dejar secar del todo | baja | depende de la especie (sin fuente: confirmar) |  |
+| Teléfono | Pothos, Potus, Poto | *Epipremnum aureum* | verde | poca luz | cuando los primeros centímetros estén secos | media | tóxica (fuente: ASPCA) |  |
+| Violeta africana | Saintpaulia | *Streptocarpus ionanthus* | morado, rosa, blanco, azul | luz indirecta brillante | tierra apenas húmeda, sin encharcar | media | no tóxica (fuente: ASPCA) |  |
+| Yuca | Izote, Yucca | *Yucca elephantipes* | verde | sol directo parte del día | poco riego, dejar secar del todo | baja | tóxica (fuente: ASPCA) |  |
+| Zamioculca | Zamioculcas, ZZ | *Zamioculcas zamiifolia* | verde | poca luz | poco riego, dejar secar del todo | baja | tóxica (sin fuente: confirmar) |  |
 
 ## Flores que faltan
 

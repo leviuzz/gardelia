@@ -343,3 +343,37 @@ riferimento simili alle sue (rosa aperta vista di fronte, solo la testa; tulipan
   non si corregge" faceva rifare la foto da capo, e la foto nuova aveva di nuovo un fiore in più.
   Ora si corregge di nuovo la stessa foto se l'ultima correzione ha tolto almeno un fiore: le due
   richieste scartate avrebbero avuto la seconda correzione al terzo passaggio.
+
+## Asistente de plantas: prova dei modelli di Claude (ADR-085, in preparazione)
+
+Decisioni del founder (25/11/2026): solo foto a licenza libera; Opus 5.5, Sonnet 5.5 e Haiku 5.5;
+tetto di 15 USD di spesa vera. Il modello e il budget mensile li sceglie il founder dopo il
+resoconto; fino ad allora valgono Opus 5.5 e 20 USD al mese.
+
+- **Foto:** circa 50 da Wikimedia Commons (CC0, CC BY, CC BY-SA, pubblico dominio), due per specie
+  dove ci sono (una in vaso o d'interno, una con un problema visibile se si trova) e alcune piante
+  d'interno che non sono nella nostra lista (Hoya, Tradescantia, Alocasia, Fittonia, Pilea) per
+  vedere se il modello dice «no está en la lista». Restano fuori dal repo; il manifest tiene per
+  ogni foto pagina, autore e licenza, che qui andranno in tabella con i risultati.
+- **Come si scaricano:** l'API di Commons dà le miniature su `thumb.wikimedia.org`, che la rete
+  della sessione non raggiunge, e le miniature di `upload.wikimedia.org` rispondono 400 o 429 se
+  non sono già in cache; si usa quindi `thumb.php` di Commons a 960 px (una larghezza standard),
+  con pause e attese lunghe quando arriva un 429 (l'IP d'uscita è condiviso).
+- **Script:** `pnpm --filter @floral/core assistant:benchmark --dir <cartella>` con
+  `ANTHROPIC_API_KEY`: stesso adattatore e stessi prompt dell'app. Per ogni foto e modello, in
+  parallelo:
+  1. riconoscimento senza indizi (specie giusta al primo posto e fra le prime 3; «no está en la
+     lista» per le piante fuori dalla lista);
+  2. risposta con la specie giusta e la domanda della foto (una di cura o una con il sintomo).
+- **Giudice:** Opus 5.5 a effort alto con una griglia: giusta e utile, sicura (niente dosi di
+  prodotti chimici né frasi sulla tossicità), niente calendari fissi, breve; voto da 1 a 5. Più la
+  lettura a mano di 10 risposte a caso.
+- **Costo e tempo:** costo vero per consulta dai token di `usage` (media, 95° percentile,
+  massimo), tempo p50 e p95. Le foto della prova sono larghe 960 px; in produzione arrivano al
+  modello fino a 1092 px sul lato lungo: il resoconto ricalcola il costo delle immagini per questa
+  differenza (circa (larghezza × altezza) / 750 token per immagine).
+- **Tetto:** le foto si fermano a 15 USD meno la riserva del giudice (5 USD); il giudice al tetto.
+
+**Stato (25/11/2026):** script pronto, foto in arrivo. Manca la chiave di Anthropic: il modulo
+sicuro della sessione non accetta gli host di Anthropic, serve la variabile `ANTHROPIC_API_KEY`
+dell'environment.

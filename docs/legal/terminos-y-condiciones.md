@@ -66,6 +66,13 @@ Podemos suspender una cuenta que incumpla estas reglas, avisando cuando sea posi
 3. **La referencia para vender es la receta y la cotización**, no la imagen. La florería revisa
    precios, cantidades e imágenes antes de enviarlos a su cliente.
 4. Las generaciones están sujetas a la cuota de cada plan; un intento fallido no consume créditos.
+5. **Asistente de plantas (Floral Care).** Identifica una planta a partir de una foto entre las de
+   la lista de Gardelia y responde preguntas de cuidado con respuestas breves generadas con
+   inteligencia artificial: son **orientativas** y pueden equivocarse. Los datos de cuidado y el
+   aviso sobre perros y gatos vienen de la lista de Gardelia, con su fuente, no de la inteligencia
+   artificial. El asistente no indica dosis de productos químicos. La florería revisa cada respuesta
+   antes de actuar o de compartirla con su cliente. Las consultas tienen un límite diario por
+   florería. [Borrador del 25/11/2026 — validar con el abogado.]
 
 ## 7. Datos de los clientes de la florería
 
