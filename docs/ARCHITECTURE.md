@@ -120,6 +120,13 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
 - **Pagina pubblica della fioreria** (ADR-065): senza sessione, `app_public_store_tenant(slug)`
   (SECURITY DEFINER) dà l'ID solo per una tienda pubblicata di una fioreria attiva; poi
   `core/src/public-store.ts` legge in `withTenantContext` (RLS attiva) solo i campi pubblici.
+  La vetrina (M1, ADR-087) legge le righe leggere di tutti i prodotti online (al massimo 500) e
+  `planStorefront` del dominio decide scheda, ricerca, ordine, pagina e «Destacados»; poi si
+  leggono i dettagli dei soli prodotti mostrati. Nel web `lib/public-store.ts` mette le letture in
+  `cache()`, così `generateMetadata` e la pagina leggono una volta sola. Il carrello è un cookie
+  per fioreria (`gardelia_cart`, percorso `/f/<slug>`, solo ID e quantità): lo scrive il browser,
+  lo legge il server per la barra «Tu pedido» e per il modulo d'ordine, che lo riconcilia nel
+  contesto della fioreria; prezzi e disponibilità li decide sempre il server.
 - **Per persona** (`app_enable_user_rls`, ADR-064): le tabelle del conto cliente del marketplace
   (`BuyerProfile`, `BuyerAddress`) non hanno `tenantId`; righe visibili/modificabili solo se
   `userId = app_current_user_id()`. Le usano solo i servizi `buyer-account` dentro

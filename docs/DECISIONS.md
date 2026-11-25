@@ -3174,6 +3174,38 @@ niente codice nuovo»):**
   con la consegna a 0; pagina del prodotto tolto; link di stato fino a 30 giorni dopo la consegna,
   allungato se la consegna si sposta. Dettagli in `docs/MARKETPLACE_FLOWS.md` §4.
 
+### ADR-087 — Marketplace M1: la vetrina che vende — IN CORSO (M1-1 fatto, 25/11/2026)
+
+- **Perché:** blocco M1 del giro del marketplace (ADR-086), piano approvato dal founder il 25/11:
+  la pagina della fioreria era scarna (al massimo 120 prodotti per nome, niente categorie,
+  ricerca, evidenza, pagine; miniature che non si aprivano; carrello perso cambiando pagina).
+- **Due rilasci:** M1-1 «Vetrina e prodotto» (chi compra, più gli strumenti del fiorista che
+  servono); M1-2 «Strumenti e visibilità» (link, QR e anteprima; Catalogo con filtro e accensione
+  insieme; schede della ricerca; Google; occasioni).
+- **Vetrina (M1-1):** le regole stanno in `packages/domain/src/storefront.ts` (`planStorefront`):
+  il core legge le righe leggere di tutti i prodotti online e poi i dettagli dei soli prodotti
+  da mostrare. Schede per tipo, ricerca senza accenti, ordini (consigliati, prezzo, nome) con gli
+  esauriti in fondo, pagine da 24, riga «Destacados» (al massimo 8, solo prima pagina senza
+  filtri, mai esauriti, non ripetuti nella griglia). Testata: ordini online, primo giorno
+  ordinabile che salta i giorni chiusi (`firstOrderableDate`, usato anche dal modulo d'ordine),
+  riassunto del costo (mai «gratis» per un costo a 0), ritiro.
+- **Carrello:** cookie per fioreria (`gardelia_cart`, percorso `/f/<slug>`, 30 giorni, solo ID e
+  quantità, al massimo 20 prodotti). Sopravvive a login e registrazione; il modulo d'ordine lo
+  riconcilia nel contesto della fioreria (prodotti ordinabili, avviso per quelli tolti) e lo
+  svuota dopo l'invio. Prezzi e disponibilità li decide sempre il server.
+- **Strumenti del fiorista:** stella «In evidenza» (`CatalogItem.featuredAt` con CHECK: solo
+  online e attivo; tolta in ogni uscita dal negozio; lock per fioreria contro il nono),
+  «Usa come copertina» e frecce sulle foto (vale anche nel Diseñador), tre politiche della
+  fioreria (cambi, cancellazioni, sostituzioni) mostrate nella vetrina e nel riepilogo,
+  limite di 500 prodotti online (niente tagli silenziosi).
+- **PROPOSTO (da confermare dal founder):** carrello in un cookie per fioreria di 30 giorni; 8
+  prodotti in evidenza e 500 online; politiche in tre testi della fioreria senza testi legali di
+  esempio; «Mi cuenta / Mis pedidos» nella testata della tienda (M1-2); cache delle foto sulla
+  rete di Vercel come decisione a parte (non in M1).
+- **DA VALIDARE:** politiche verso i consumatori (PROFECO), scritte dalla fioreria; il cookie del
+  carrello nell'aviso de privacidad §7 (bozza aggiornata); dati di cura e tossicità (già «da
+  rivedere»).
+
 ## 3. Proposte da approvare
 
 | ID   | Proposta                                                                                                                                                                               | Motivazione                                                                                                                                  | Quando serve                 |

@@ -320,6 +320,26 @@ A↔B, E2E a 320 px), CI verde, staging con il via libera del founder.
   accanto al prodotto), E2E dell'ordine online (riga del cliente, finestra della consegna gratis a
   320 px, ramo tolto mentre si ordina, prodotto che non c'è più).
 
+## 5. M1, la vetrina che vende (M1-1 fatto il 25/11)
+
+Piano approvato il 25/11 (ADR-087), in due rilasci.
+
+- **M1-1 «Vetrina e prodotto» (fatto):**
+  - vetrina con testata (ordini online, primo giorno, costo, ritiro), «Destacados», schede,
+    ricerca senza accenti, ordine, pagine da 24 e politiche della fioreria;
+  - prodotto con galleria a schermo intero, quantità, «Agregar al pedido» e «Pedir ahora», primo
+    giorno di consegna, cura e cani e gatti per le piante (solo dai nostri dati), anteprima su
+    WhatsApp con la foto;
+  - carrello nel cookie della fioreria con la barra «Tu pedido»; nel modulo d'ordine i prodotti del
+    carrello in cima, gli altri sotto «Agregar otros productos», il calendario dal primo giorno
+    aperto e il riepilogo completo (chi riceve, tarjeta, commenti, politiche);
+  - per il fiorista: stella «In evidenza» nel Catalogo, copertina e ordine delle foto, schede
+    «Politiche del negozio» e «In evidenza» in Impostazioni → Negozio online.
+- **M1-2 «Strumenti e visibilità» (da fare):** link sempre visibile, QR e anteprima; Catalogo con
+  filtro «Negozio online» e accensione insieme; schede della ricerca; Google (indicizzazione solo
+  in produzione, sitemap, dati strutturati); occasioni. L'E2E della pagina 2 della vetrina arriva
+  qui, quando l'accensione insieme rende semplice avere più di 24 prodotti online.
+
 ## PROPOSTO (da confermare)
 
 - In Floral Care i «Servizi» (irrigazione, pulizia delle foglie…) si chiamano «Lavori della visita»,

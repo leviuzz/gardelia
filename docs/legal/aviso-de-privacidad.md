@@ -173,6 +173,11 @@ por Gardelia: de eso depende la comisión que paga la florería, no lo que pagas
 abogado si esta cookie debe tratarse como técnica.] [Actualizar este
 apartado si en el futuro se agrega analítica.]
 
+Cuando agregas productos a tu pedido en la tienda en línea de una florería, una cookie guarda
+durante 30 días qué productos elegiste y cuántos (solo esos números, ni precios ni datos tuyos),
+para que no los pierdas al cambiar de página o al crear tu cuenta. Es solo de esa florería y se
+borra cuando envías el pedido. [Validar con el abogado si esta cookie debe tratarse como técnica.]
+
 ## 8. Cuánto tiempo conservamos tus datos
 
 Mientras tu cuenta esté activa. Si la cancelas, eliminaremos o anonimizaremos tus datos en un plazo
