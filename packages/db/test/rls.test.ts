@@ -3,6 +3,7 @@
  * i dati di un altro, anche se il codice applicativo dimenticasse un filtro.
  * Questi test usano il ruolo applicativo (DATABASE_URL → TEST_DATABASE_URL).
  */
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   checkRlsSafety,
@@ -529,8 +530,10 @@ const PORTAL_READ_TABLES = [
   'CustomerSubscriptionSlot',
   'CareCharge',
   'CareChargeLine',
+  'CareMessage',
   'CarePhoto',
   'CarePlant',
+  'CarePortalRead',
   'CareSlot',
   'CareVisit',
   'CareVisitPlantResult',
@@ -639,7 +642,7 @@ describe('pagina del cliente di Floral Care (ADR-084)', () => {
     await grantPortal(otherShop, person);
   });
 
-  it('ogni policy del portale è una lettura di una tabella ammessa, o la guardia delle visite', async () => {
+  it('ogni policy del portale è una lettura ammessa, un inserimento dei messaggi o la guardia delle visite', async () => {
     const policies = await withSystemContext(
       db,
       { reason: 'test: policy del portale' },
@@ -656,7 +659,20 @@ describe('pagina del cliente di Floral Care (ADR-084)', () => {
     expect(
       reads.every((policy) => policy.cmd === 'SELECT' && policy.permissive === 'PERMISSIVE'),
     ).toBe(true);
+    // Blocco 5b: il portale inserisce solo i propri messaggi e le loro foto (mai UPDATE o DELETE).
     expect(policies.filter((policy) => policy.policyname !== 'portal_read')).toEqual([
+      {
+        tablename: 'CareMessage',
+        policyname: 'portal_insert',
+        cmd: 'INSERT',
+        permissive: 'PERMISSIVE',
+      },
+      {
+        tablename: 'CarePhoto',
+        policyname: 'portal_insert',
+        cmd: 'INSERT',
+        permissive: 'PERMISSIVE',
+      },
       {
         tablename: 'CareVisit',
         policyname: 'portal_write_guard',
@@ -756,6 +772,178 @@ describe('pagina del cliente di Floral Care (ADR-084)', () => {
         SELECT app_portal_tenant_id()::text AS tenant, app_portal_subscription_id()::text AS sub`,
     );
     expect(after).toEqual([{ tenant: null, sub: null }]);
+  });
+
+  it('dal portale si inseriscono solo i propri messaggi, con la loro foto, sul contratto aperto', async () => {
+    // Un messaggio della fioreria sullo stesso contratto: la persona non ci attacca foto.
+    const shopMessage = await withSystemContext(db, { reason: 'test: messaggio fioreria' }, (tx) =>
+      tx.careMessage.create({
+        data: {
+          tenantId: tenantA.tenantId,
+          customerId: own.customerId,
+          subscriptionId: own.subscriptionId,
+          authorKind: 'SHOP',
+          body: 'Mañana pasamos a las 9.',
+          submitKey: randomUUID(),
+        },
+      }),
+    );
+    const base = {
+      tenantId: tenantA.tenantId,
+      customerId: own.customerId,
+      subscriptionId: own.subscriptionId,
+      authorKind: 'CUSTOMER' as const,
+      authorUserId: person.id,
+      body: 'Perfecto, gracias.',
+    };
+    const photoOf = (messageId: string) => ({
+      tenantId: tenantA.tenantId,
+      subscriptionId: own.subscriptionId,
+      messageId,
+      storageKey: `tenants/${tenantA.tenantId}/care-photos/${own.subscriptionId}-${randomUUID()}.jpg`,
+      thumbKey: `tenants/${tenantA.tenantId}/care-photos/${own.subscriptionId}-${randomUUID()}-thumb.jpg`,
+      contentType: 'image/jpeg',
+      width: 640,
+      height: 480,
+      sizeBytes: 1000,
+    });
+    const result = await withPortalContext(
+      db,
+      { userId: person.id, subscriptionId: own.subscriptionId },
+      async (tx) => {
+        const attempt = async (run: () => Promise<unknown>) => {
+          await tx.$executeRaw`SAVEPOINT m`;
+          try {
+            await run();
+            await tx.$executeRaw`RELEASE SAVEPOINT m`;
+            return 'ok';
+          } catch (error) {
+            await tx.$executeRaw`ROLLBACK TO SAVEPOINT m`;
+            if (isRlsViolation(error)) return 'rls';
+            throw error;
+          }
+        };
+        const mineKey = randomUUID();
+        const mine = await attempt(() =>
+          tx.careMessage.create({ data: { ...base, submitKey: mineKey } }),
+        );
+        const asShop = await attempt(() =>
+          tx.careMessage.create({ data: { ...base, authorKind: 'SHOP', submitKey: randomUUID() } }),
+        );
+        const asSomeoneElse = await attempt(() =>
+          tx.careMessage.create({
+            data: { ...base, authorUserId: stranger.id, submitKey: randomUUID() },
+          }),
+        );
+        const otherContract = await attempt(() =>
+          tx.careMessage.create({
+            data: {
+              ...base,
+              customerId: otherCustomer.customerId,
+              subscriptionId: otherCustomer.subscriptionId,
+              submitKey: randomUUID(),
+            },
+          }),
+        );
+        const alreadyRead = await attempt(() =>
+          tx.careMessage.create({
+            data: { ...base, readByShopAt: new Date(), submitKey: randomUUID() },
+          }),
+        );
+        const message = await tx.careMessage.findFirstOrThrow({
+          where: { tenantId: tenantA.tenantId, submitKey: mineKey },
+          select: { id: true },
+        });
+        const photo = await attempt(() =>
+          tx.carePhoto.create({ data: photoOf(message.id), select: { id: true } }),
+        );
+        const photoOnShopMessage = await attempt(() =>
+          tx.carePhoto.create({ data: photoOf(shopMessage.id), select: { id: true } }),
+        );
+        const updated = await tx.careMessage.updateMany({
+          where: { tenantId: tenantA.tenantId, id: message.id },
+          data: { body: 'cambiato' },
+        });
+        const deleted = await tx.carePhoto.deleteMany({
+          where: { tenantId: tenantA.tenantId, messageId: message.id },
+        });
+        const marked = await tx.$queryRaw<
+          { at: Date | null }[]
+        >`SELECT app_portal_mark_read() AS at`;
+        const reads = await tx.carePortalRead.findMany({ select: { userId: true } });
+        const thread = await tx.careMessage.count();
+        return {
+          mine,
+          asShop,
+          asSomeoneElse,
+          otherContract,
+          alreadyRead,
+          photo,
+          photoOnShopMessage,
+          updated: updated.count,
+          deleted: deleted.count,
+          marked: marked[0]?.at instanceof Date,
+          reads,
+          thread,
+        };
+      },
+    );
+    expect(result).toEqual({
+      mine: 'ok',
+      asShop: 'rls',
+      asSomeoneElse: 'rls',
+      otherContract: 'rls',
+      alreadyRead: 'rls',
+      photo: 'ok',
+      photoOnShopMessage: 'rls',
+      updated: 0,
+      deleted: 0,
+      marked: true,
+      reads: [{ userId: person.id }],
+      thread: 2,
+    });
+    // Fuori dal portale il segno di lettura non si scrive.
+    const outside = await withUserContext(
+      db,
+      person.id,
+      (tx) => tx.$queryRaw<{ at: Date | null }[]>`SELECT app_portal_mark_read() AS at`,
+    );
+    expect(outside).toEqual([{ at: null }]);
+  });
+
+  it('a contratto finito il portale non scrive più messaggi (il filo si legge e basta)', async () => {
+    const ended = await careContract(tenantA.tenantId, 'Consultorio Cerrado');
+    await grantPortal(ended, person, { onlyContract: true });
+    await withSystemContext(db, { reason: 'test: contratto finito' }, (tx) =>
+      tx.customerSubscription.update({
+        where: { id: ended.subscriptionId },
+        data: { status: 'ENDED', endDate: new Date(), endedAt: new Date() },
+      }),
+    );
+    const outcome = await withPortalContext(
+      db,
+      { userId: person.id, subscriptionId: ended.subscriptionId },
+      async (tx, entry) => {
+        try {
+          await tx.careMessage.create({
+            data: {
+              tenantId: tenantA.tenantId,
+              customerId: ended.customerId,
+              subscriptionId: ended.subscriptionId,
+              authorKind: 'CUSTOMER',
+              authorUserId: person.id,
+              body: '¿Siguen?',
+              submitKey: randomUUID(),
+            },
+          });
+          return { readOnly: entry.readOnly, inserted: true };
+        } catch (error) {
+          if (!isRlsViolation(error)) throw error;
+          return { readOnly: entry.readOnly, inserted: false };
+        }
+      },
+    );
+    expect(outcome).toEqual({ readOnly: true, inserted: false });
   });
 
   it('nel contesto di scrittura la fioreria deve essere quella del contratto', async () => {

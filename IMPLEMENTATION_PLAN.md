@@ -1269,9 +1269,55 @@ fascia · build ✅ · E2E del portale ✅ (invito, registrazione dal link con l
 accettazione, «Cambiar fecha», segno nell'Agenda, «Quitar acceso» → 404, link scaduto, conto
 sbagliato) · controllo a 320 px di invito, contratto, «Cambiar fecha» e card della fioreria: nessuno
 sbordo.
+E2E completo in locale 113/113. La CI 223 su `bbb753e` era rossa solo per `legal-content.test.ts`:
+la bozza dell'aviso con Mi Floral Care non era stata copiata nella pagina `/privacidad`
+(`legal:sync`). Corretto in `5391ba4`; test 1181/1181 in locale; CI verde su `5391ba4` (run 224,
+E2E compreso) e rilascio su staging (merge `61764cb`).
 
-Prossimo: il 5b di `docs/FLORAL_CARE_PLAN.md` (messaggi con foto, riassunto per la fioreria,
-avviso al cliente, messaggi nell'export e nell'eliminazione del conto).
+**Floral Care, blocco 5b (fatto il 25/11, ADR-084):** "ok vai col 5b" del founder dopo il rilascio
+del 5a. Messaggi fra cliente e fioreria, con le decisioni del 24/11 (li legge e risponde tutta la
+squadra; al cliente al massimo un'email al giorno per contratto).
+
+- **Fioreria:** card «Mensajes» nella pagina del contratto (gli ultimi 30, «Ver mensajes
+  anteriores», il modulo con una foto, l'avviso se nessuno del cliente ha accesso, «Quitar foto»
+  per chi gestisce); scheda «Mensajes (N)» accanto a Contratos e Cobros, per tutti i ruoli
+  (permesso nuovo `care:messages`), con i fili e prima quelli da leggere; riquadro «Mensajes sin
+  leer» in cima al pannello. Aprire il filo lo segna letto per tutta la squadra.
+- **Cliente:** sezione «Mensajes con …» nella pagina del contratto di Mi Floral Care, dopo le
+  prossime visite; «Nuevos» dopo l'ultima lettura; i nuovi nell'elenco e nella card di «Mi
+  cuenta»; a contratto finito si legge e basta. Massimo 30 messaggi al giorno per persona e
+  contratto.
+- **Avvisi:** al cliente un'email al giorno per contratto quando la fioreria scrive (solo LIVE,
+  solo a chi ha accesso, senza il testo); a proprietari e gerenti un riassunto giornaliero dei non
+  letti, solo con novità, fino a 3 tentativi, una volta al giorno anche con più giri della
+  manutenzione.
+- **Database:** due migrazioni (`care_messages_enum`, `care_messages`): `CareMessage`,
+  `CarePortalRead`, `CareMessageDigest` con RLS; la foto del messaggio in `CarePhoto`; dal portale
+  le policy `portal_insert` (solo i propri messaggi e le loro foto, sul contratto aperto) e la
+  DEFINER `app_portal_mark_read()`; nessun UPDATE né DELETE dal portale.
+- **Dati:** `floral_care_mensajes.csv` nell'export della fioreria; i messaggi in «Descargar mis
+  datos»; eliminando il conto i messaggi restano alla fioreria con «Cuenta eliminada»; le foto dei
+  messaggi si cancellano con quelle delle visite. Bozza dell'aviso de privacidad e domanda 19
+  aggiornate (`legal:sync` fatto).
+
+Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · migrazioni = schema ✅ · `pnpm audit` ✅ ·
+test 1200/1200 ✅ (nuovi: 5 di dominio su schema, limiti, pagine del filo, codici e il permesso per
+tutti i ruoli; 2 RLS: dal portale solo i propri messaggi CUSTOMER con la loro foto sul contratto
+aperto, mai SHOP, a nome di un altro o su un altro contratto, nessun UPDATE né DELETE, il segno di
+lettura solo per sé, niente più messaggi a contratto finito, più l'inventario delle policy; 10
+d'integrazione: tutti e due scrivono (staff compreso), letti e nuovi dai due lati, doppio invio,
+tetto al giorno, foto vista e tolta, isolamento A↔B con la sonda, contratto finito, avviso al
+cliente uno al giorno e solo con accesso e LIVE, nuovo tentativo dal lavoro, riassunto una volta
+al giorno solo con novità e ritentato, CSV, dati della persona, conto eliminato, cancellazione
+delle foto a fine contratto; 1 dei percorsi) · build ✅ · E2E dei messaggi e del portale ✅ (la
+persona scrive con una foto, la proprietaria vede il non letto nel pannello e in «Mensajes (1)»,
+risponde, la foto solo dalla route privata e 404 per chi non è della fioreria, lo staff vede il
+filo letto senza «Cobros» né «Quitar foto», la persona vede la risposta come nuova e poi letta,
+«Quitar foto» lascia il testo) · controllo a 320 px del filo nel portale, dell'elenco «Mensajes» e
+della card della fioreria: nessuno sbordo.
+
+Prossimo: il blocco 6 di `docs/FLORAL_CARE_PLAN.md` (Asistente de plantas), dopo le decisioni del
+founder sulla prova a pagamento.
 
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
@@ -1288,7 +1334,7 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
    (ADR-072) dagli ordini.
 4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
 5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078), 3 (ADR-082), 4
-   (ADR-083) e 5a (ADR-084) fatti; 5b e blocchi 6–7 in `docs/FLORAL_CARE_PLAN.md`.
+   (ADR-083) e 5 (ADR-084) fatti; blocchi 6–7 in `docs/FLORAL_CARE_PLAN.md`.
 6. Report: fatti (ADR-080); restano i P1 dello spec (funnel, retention, profitto per ramo).
    Catalogo completo (ADR-081): fatto; manca la revisione dell'elenco dei fiori da un fiorista.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.

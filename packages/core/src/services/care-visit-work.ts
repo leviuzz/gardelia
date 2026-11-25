@@ -48,8 +48,9 @@ import {
   type PlantSize,
   type SaleUnit,
 } from '@floral/domain';
-import { careBlockNoticeEmail, careVisitReportEmail } from '../care-email';
+import { careBlockNoticeEmail, careMessageNoticeEmail, careVisitReportEmail } from '../care-email';
 import { loadBlockNoticeTx } from './care-block-notice';
+import { myCareContractUrl, portalRecipientsTx } from './care-message-internals';
 import { notFound, recordAudit } from '../audit';
 import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
@@ -80,6 +81,10 @@ export interface CareMailDeps {
   readonly appUrl: string;
   /** Firma dei link pubblici (BETTER_AUTH_SECRET). */
   readonly secret: string;
+  /** Pagine del gestionale costruite dal web (ADR-084: «Mensajes» nel riassunto giornaliero). */
+  readonly links?: {
+    readonly careMessages?: (tenantSlug: string) => string;
+  };
 }
 
 /** Cosa è successo al resoconto per il cliente. */
@@ -1245,7 +1250,7 @@ export async function deliverCareEmail(
       };
       const email = await tx.careEmail.findFirst({
         where: { tenantId, id: emailId },
-        select: { visitId: true, blockId: true, subscriptionId: true },
+        select: { kind: true, visitId: true, blockId: true, subscriptionId: true },
       });
       const tenant = await tx.tenant.findFirst({
         where: { id: tenantId },
@@ -1266,6 +1271,18 @@ export async function deliverCareEmail(
         contactEmail: tenant.contactEmail,
         contactPhone: tenant.contactPhone,
       };
+      // L'avviso dei messaggi (ADR-084): a ogni persona con accesso, senza il testo del messaggio.
+      if (email?.kind === 'MESSAGE_NOTICE') {
+        const notice = await portalRecipientsTx(tx, tenantId, email.subscriptionId);
+        if (!notice || notice.emails.length === 0) return fail('no_email');
+        const url = myCareContractUrl(mail.appUrl, email.subscriptionId);
+        return {
+          kind: 'ready' as const,
+          messages: notice.emails.map((to) =>
+            careMessageNoticeEmail({ locale, to, shop, place: notice.place, url }),
+          ),
+        };
+      }
       // L'avviso di un blocco di giorni (ADR-083): i cambi del contratto, senza link.
       if (email?.blockId) {
         const notice = await loadBlockNoticeTx(tx, tenantId, email.blockId, email.subscriptionId);
@@ -1277,14 +1294,16 @@ export async function deliverCareEmail(
         if (!notice || !noticeTo) return fail('no_email');
         return {
           kind: 'ready' as const,
-          message: careBlockNoticeEmail({
-            locale,
-            to: noticeTo,
-            customerName: notice.customerName,
-            shop,
-            place: notice.place,
-            changes: notice.changes,
-          }),
+          messages: [
+            careBlockNoticeEmail({
+              locale,
+              to: noticeTo,
+              customerName: notice.customerName,
+              shop,
+              place: notice.place,
+              changes: notice.changes,
+            }),
+          ],
         };
       }
       if (!email?.visitId) return fail('no_visit');
@@ -1317,25 +1336,31 @@ export async function deliverCareEmail(
       const token = createPublicLinkToken(mail.secret, { tenantId, linkId: link.id });
       return {
         kind: 'ready' as const,
-        message: careVisitReportEmail({
-          locale,
-          to,
-          customerName: customer.displayName,
-          shop,
-          report,
-          reportUrl: publicLinkUrl(mail.appUrl, 'CARE_VISIT', token),
-        }),
+        messages: [
+          careVisitReportEmail({
+            locale,
+            to,
+            customerName: customer.displayName,
+            shop,
+            report,
+            reportUrl: publicLinkUrl(mail.appUrl, 'CARE_VISIT', token),
+          }),
+        ],
       };
     },
   );
   if (prepared.kind !== 'ready') return prepared.kind;
-  let sent = true;
-  try {
-    await mail.mailer.send(prepared.message);
-  } catch (error) {
-    sent = false;
-    logger.error({ err: error, emailId }, 'email di Floral Care non inviata');
+  // Più destinatari solo per l'avviso dei messaggi (un'email per persona): basta che ne parta una.
+  let delivered = 0;
+  for (const message of prepared.messages) {
+    try {
+      await mail.mailer.send(message);
+      delivered += 1;
+    } catch (error) {
+      logger.error({ err: error, emailId }, 'email di Floral Care non inviata');
+    }
   }
+  const sent = delivered > 0;
   await withTenantContext(getDb(), { tenantId, userId: context.userId }, (tx) =>
     tx.careEmail.updateMany({
       where: { tenantId, id: emailId, status: 'SENDING' },
@@ -1345,4 +1370,32 @@ export async function deliverCareEmail(
     }),
   );
   return sent ? 'sent' : 'failed';
+}
+
+/** Il tempo per mandare le email subito dopo il commit; le altre le riprova il lavoro giornaliero. */
+export const CARE_EMAIL_AFTER_COMMIT_MS = 8_000;
+
+/**
+ * Manda dopo il commit le email messe in coda, finché c'è tempo: quelle che restano (o che
+ * falliscono) le riprova il lavoro giornaliero. Mai un errore per chi chiama. Restituisce quante
+ * sono partite.
+ */
+export async function deliverCareEmailsWithin(
+  context: { readonly tenantId: string; readonly userId: string | null },
+  emailIds: readonly string[],
+  mail: CareMailDeps | null,
+  budgetMs: number = CARE_EMAIL_AFTER_COMMIT_MS,
+): Promise<number> {
+  if (!mail || emailIds.length === 0) return 0;
+  const deadline = Date.now() + budgetMs;
+  let sent = 0;
+  for (const emailId of emailIds) {
+    if (Date.now() > deadline) break;
+    try {
+      if ((await deliverCareEmail(context, emailId, mail)) === 'sent') sent += 1;
+    } catch (error) {
+      logger.error({ err: error, emailId }, 'email di Floral Care non inviata dopo il commit');
+    }
+  }
+  return sent;
 }

@@ -77,6 +77,7 @@ export function DeleteAccountButton() {
         <ul className="list-disc space-y-1.5 pl-5 text-sm">
           <li>{t('deleteWhat')}</li>
           <li>{t('deleteOrders')}</li>
+          <li>{t('deleteCare')}</li>
           <li>{t('deleteEmail')}</li>
         </ul>
         {error ? (

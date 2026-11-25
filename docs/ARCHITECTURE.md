@@ -90,13 +90,13 @@ Esempio: un gerente modifica il prezzo di un articolo.
 
 ### Contesti di accesso al DB (`packages/db/src/tenancy.ts`)
 
-| Helper                                                               | Imposta                                                 | Uso                                                                                                                          |
-| -------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `withTenantContext(db, {tenantId, userId}, fn)`                      | `app.tenant_id`, `app.user_id`                          | Tutte le operazioni di un utente dentro una fioreria; creazione di una nuova fioreria (con l'ID pre-generato)                |
-| `withUserContext(db, userId, fn)`                                    | `app.user_id`                                           | Elenco delle proprie fiorerie, risoluzione dello slug; conto del cliente del marketplace (ADR-064)                           |
-| `withSystemContext(db, {reason}, fn)`                                | `app.bypass_rls = on`                                   | Seed, inviti via token, verifiche di sicurezza (whitelist ESLint)                                                            |
-| `withPortalContext(db, {userId, subscriptionId}, fn)`                | `app.user_id`, poi `app.portal_*` da `app_portal_enter` | Pagina del cliente di Floral Care, in sola lettura: un contratto per transazione (ADR-084)                                   |
-| `withPortalWriteContext(db, {userId, tenantId, subscriptionId}, fn)` | contesto della fioreria più `app.portal_*`              | Solo «Cambiar fecha»: i posti si contano su tutte le visite, la guardia limita l'UPDATE a una visita del contratto (ADR-084) |
+| Helper                                                               | Imposta                                                 | Uso                                                                                                                                   |
+| -------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `withTenantContext(db, {tenantId, userId}, fn)`                      | `app.tenant_id`, `app.user_id`                          | Tutte le operazioni di un utente dentro una fioreria; creazione di una nuova fioreria (con l'ID pre-generato)                         |
+| `withUserContext(db, userId, fn)`                                    | `app.user_id`                                           | Elenco delle proprie fiorerie, risoluzione dello slug; conto del cliente del marketplace (ADR-064)                                    |
+| `withSystemContext(db, {reason}, fn)`                                | `app.bypass_rls = on`                                   | Seed, inviti via token, verifiche di sicurezza (whitelist ESLint)                                                                     |
+| `withPortalContext(db, {userId, subscriptionId}, fn)`                | `app.user_id`, poi `app.portal_*` da `app_portal_enter` | Pagina del cliente di Floral Care, un contratto per transazione: legge; scrive solo i propri messaggi e il segno di lettura (ADR-084) |
+| `withPortalWriteContext(db, {userId, tenantId, subscriptionId}, fn)` | contesto della fioreria più `app.portal_*`              | Solo «Cambiar fecha»: i posti si contano su tutte le visite, la guardia limita l'UPDATE a una visita del contratto (ADR-084)          |
 
 I valori sono impostati con `set_config(…, true)`: valgono solo per la transazione corrente,
 anche con pool di connessioni o PgBouncer in transaction mode. Un test verifica che il contesto non
@@ -144,14 +144,20 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
     `app.portal_customer_id`, `app.portal_subscription_id` e `app.portal_money`. Senza accesso non
     imposta nulla;
   - senza `app.tenant_id` la policy standard fallisce ovunque: danno righe solo le policy
-    `portal_read` (FOR SELECT) di 13 tabelle del contratto, i cargos solo con `app.portal_money`.
-    `Tenant`, `Membership`, pagamenti, registro e il resto non danno niente; ogni scrittura è
-    rifiutata;
-  - l'unica scrittura, «Cambiar fecha», passa da `withPortalWriteContext`, con la policy
-    RESTRICTIVE `portal_write_guard` su `CareVisit`;
-  - `app_buyer_care_contracts()` dà l'elenco di "Mi Floral Care" fra tutte le fiorerie,
-    `app_buyer_care_access()` gli accessi per "Descargar mis datos",
-    `app_care_portal_access_to_close(giorni, n)` gli accessi da chiudere alla manutenzione;
+    `portal_read` (FOR SELECT) di 15 tabelle del contratto (con i messaggi dal blocco 5b), i cargos
+    solo con `app.portal_money`. `Tenant`, `Membership`, pagamenti, registro e il resto non danno
+    niente;
+  - le sole scritture: «Cambiar fecha» passa da `withPortalWriteContext`, con la policy
+    RESTRICTIVE `portal_write_guard` su `CareVisit`; i messaggi (blocco 5b) entrano in
+    `withPortalContext` con le policy permissive `portal_insert` FOR INSERT di `CareMessage` (solo
+    un messaggio `CUSTOMER` della persona, sul contratto aperto, attivo o in pausa) e di `CarePhoto`
+    (solo la foto di un proprio messaggio); il segno di lettura con la DEFINER
+    `app_portal_mark_read()`. Nessun UPDATE né DELETE: ogni altra scrittura è rifiutata;
+  - `app_buyer_care_contracts()` dà l'elenco di "Mi Floral Care" fra tutte le fiorerie (con i
+    messaggi nuovi), `app_buyer_care_access()` e `app_buyer_care_messages()` gli accessi e i
+    messaggi per "Descargar mis datos", `app_care_portal_access_to_close(giorni, n)` gli accessi da
+    chiudere alla manutenzione, `app_care_message_digests_due(n)` le fiorerie LIVE a cui tocca il
+    riassunto dei messaggi;
   - `rls.test.ts` controlla che ogni policy con `app_portal_` sia una di queste, e che nessun GUC
     del portale passi alla transazione dopo.
 - Vincoli aggiuntivi nel SQL: CHECK su importi/quantità/valute/slug, indici univoci parziali
@@ -355,6 +361,18 @@ dell'anteprima (`placeInMonth`, il giorno libero più
 vicino del mese): se l'impronta è cambiata chiede di rivedere. Le visite cambiate restano in
 `CareBlockVisit` (elenco e testo dell'avviso); l'avviso è una riga di `CareEmail` con `blockId`,
 mandata dopo il commit o dal lavoro giornaliero. La generazione segue la scelta del blocco.
+Messaggi (ADR-084, blocco 5b; `services/care-messages.ts` per la fioreria, `my-floral-care.ts` per
+il cliente): un filo per contratto (`CareMessage`), una foto facoltativa con la catena delle foto
+delle visite (prima i file, poi la riga; un `submitKey` unico rende innocuo il doppio invio e
+cancella i file del doppione). "Letto" per la fioreria è `readByShopAt` sui messaggi del cliente,
+per la persona una riga `CarePortalRead`; il segno parte dal browser dopo il caricamento. Quando la
+fioreria scrive, la stessa transazione crea al massimo un `CareEmail` `MESSAGE_NOTICE` per
+contratto e giorno (`createManyAndReturn` + `skipDuplicates` sull'indice unico), solo se qualcuno
+ha accesso; la consegna dopo il commit (`deliverCareEmailsWithin`) la condividono avvisi di blocco e
+messaggi. Il riassunto alla fioreria (`sendCareMessageDigests`, dentro il tetto della manutenzione)
+prende la riga del giorno prima di mandare: nasce SENDING con `skipDuplicates`, una FAILED si
+riprende con `updateManyAndReturn` finché ha tentativi, una SENDING ferma da un'ora diventa FAILED
+senza rimandarla.
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per

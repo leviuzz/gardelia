@@ -211,6 +211,7 @@ describe('esportazione dei dati della fioreria', () => {
         'floral_care_cargos.csv',
         'floral_care_cargos_conceptos.csv',
         'floral_care_contratos.csv',
+        'floral_care_mensajes.csv',
         'floral_care_pagos.csv',
         'floral_care_plantas.csv',
         'floral_care_visitas.csv',

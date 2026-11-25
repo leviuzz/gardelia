@@ -2673,10 +2673,10 @@ spostamento o credito di tutte le visite insieme, email facoltativa, casella obb
 - **Non fatto:** il cliente che vede i giorni bloccati nel suo portale (blocco 5); date chiuse per
   i pedidos; scegliere visita per visita dentro un blocco (si cambia a mano dopo, dalla visita).
 
-### ADR-084 — Floral Care, blocco 5a: la pagina del cliente (accesso, Mi Floral Care, «Cambiar fecha») — ADOTTATO (25/11/2026)
+### ADR-084 — Floral Care, blocco 5: la pagina del cliente (5a: accesso, Mi Floral Care, «Cambiar fecha»; 5b: messaggi) — ADOTTATO (25/11/2026)
 
 Blocco 5 del piano approvato (`docs/FLORAL_CARE_PLAN.md` §7), chiesto dal founder ("ok vai col
-blocco 5"), in due rilasci: **5a** (questo) accesso, lettura e «Cambiar fecha»; **5b** messaggi
+blocco 5"), in due rilasci: **5a** accesso, lettura e «Cambiar fecha»; **5b** (in fondo) messaggi
 con foto, riassunto per la fioreria, messaggi nell'export e nell'eliminazione del conto.
 
 **Decisioni del founder (24/11/2026):**
@@ -2839,9 +2839,108 @@ con foto, riassunto per la fioreria, messaggi nell'export e nell'eliminazione de
 7. **Resoconti per email:** vanno ancora all'email del cliente nel CRM, non alle persone del
    portale.
 
-- **Non fatto (5b):** messaggi con foto, riassunto per la fioreria, avviso al cliente, messaggi
-  nell'export e nell'eliminazione del conto. Fuori dal blocco: il cliente che vede i giorni
-  bloccati prima di sceglierli (oggi le fasce bloccate semplicemente non compaiono).
+- **Fuori dal blocco:** il cliente che vede i giorni bloccati prima di sceglierli (oggi le fasce
+  bloccate semplicemente non compaiono).
+
+#### 5b — Messaggi fra cliente e fioreria (25/11/2026)
+
+Chiesto dal founder ("ok vai col 5b") dopo il rilascio del 5a; valgono le decisioni 3 e 4 qui sopra
+e il piano (`docs/FLORAL_CARE_PLAN.md` §1: "il fiorista riceve un riassunto dei messaggi, non
+un'email per ognuno").
+
+**Come funziona:**
+
+- **Un filo per contratto**, testo (fino a 2000 caratteri) e al massimo una foto per messaggio:
+  - **fioreria:** la card «Mensajes» nella pagina del contratto (ancora `#mensajes`, gli ultimi
+    30 messaggi e «Ver mensajes anteriores»), la scheda «Mensajes (N)» accanto a Contratos e Cobros
+    con i fili (prima quelli da leggere) e il riquadro «Mensajes sin leer» nel pannello, solo se ce
+    ne sono. Permesso nuovo `care:messages` per tutti i ruoli (decisione 3), poi
+    `requireEntitlement(ctx, 'floralCare')`; «Cobros» resta a chi gestisce i soldi;
+  - **cliente:** la sezione «Mensajes con …» nella pagina del contratto di Mi Floral Care, subito
+    dopo le prossime visite; i messaggi nuovi nell'elenco e nella card di «Mi cuenta»;
+  - si scrive solo con il contratto attivo o in pausa; dopo, il filo si legge e basta (per il
+    cliente finché vede il contratto, 30 giorni);
+  - lo stesso invio ripetuto (doppio clic, rete lenta) non scrive due messaggi: chiave `submitKey`
+    unica per fioreria; i file di un doppione si cancellano subito.
+- **Letto / nuovo:**
+  - per la fioreria un messaggio del cliente è letto quando qualcuno della squadra apre il filo
+    (`readByShopAt`, uno per tutti);
+  - per la persona del cliente sono nuovi i messaggi della fioreria dopo la sua ultima lettura
+    (`CarePortalRead`, uno per persona e contratto);
+  - il segno parte da un piccolo componente client dopo il caricamento, mai durante il render; la
+    pagina non si ricarica, così il separatore «Sin leer» / «Nuevos» resta finché si legge.
+- **Foto:** la stessa catena delle foto delle visite (ridotta nel browser, ricodificata senza EXIF
+  sul server, chiavi `tenants/<id>/care-photos/…`, route private: la fioreria da
+  `subscriptions/[id]/messages/photos/[photoId]`, il cliente dalla route del 5a). Chi gestisce i
+  contratti (`subscriptions:write`) può togliere la foto di un messaggio: il file si cancella
+  subito, il testo resta, il registro ha `care.message_photo_removed`. A fine contratto + 30 giorni
+  si cancellano con le altre foto (eccezione di ADR-078, CLAUDE.md §5).
+- **Avviso al cliente** (decisione 4): quando la fioreria scrive, al massimo un'email al giorno per
+  contratto (`CareEmail` di tipo `MESSAGE_NOTICE`, indice unico per contratto e giorno nel fuso
+  della fioreria), una per ogni persona con accesso attivo. Dice solo "{fioreria} te escribió" con
+  il link al contratto, mai il testo; mittente il nome della fioreria, risposta al suo contatto;
+  solo da una fioreria LIVE, nella lingua del mercato. Senza nessuna persona con accesso, nessun
+  avviso (la card lo dice e rimanda a «Acceso del cliente»). Parte dopo il commit con il tetto
+  comune di 8 secondi; se non parte la riprova il lavoro delle email di Floral Care.
+- **Riassunto alla fioreria:** dal lavoro giornaliero (`sendCareMessageDigests` dentro
+  `runCareMaintenance`), un'email a proprietari e gerenti: "N mensajes sin leer en M contratos",
+  con il link a «Mensajes» e senza testi. Parte solo se è arrivato un messaggio del cliente dopo
+  l'ultimo riassunto mandato, una volta al giorno per fioreria (`CareMessageDigest`, unico per
+  giorno: la manutenzione può girare più volte), solo LIVE, fino a 3 tentativi; la riga nasce già
+  "in invio" prima di mandare, quella ferma da un'ora si chiude come fallita (forse è partita: non
+  si rimanda). Al massimo 20 fiorerie e 10 secondi per giro.
+- **Portale nel database** (estende la modalità del 5a, sempre in `withPortalContext`):
+  - `portal_read` su `CareMessage` (il contratto aperto) e su `CarePortalRead` (solo le righe della
+    persona);
+  - `portal_insert` (FOR INSERT, permissiva) su `CareMessage`: solo un messaggio `CUSTOMER` della
+    persona stessa, sul contratto e cliente del portale, non letto, con il contratto attivo o in
+    pausa; su `CarePhoto`: solo la foto di un proprio messaggio, senza visita né pianta;
+  - il segno di lettura con la SECURITY DEFINER `app_portal_mark_read()` (persona e contratto solo
+    dal contesto del portale);
+  - nessun UPDATE né DELETE dal portale: i messaggi non si modificano né si cancellano;
+  - `app_buyer_care_contracts()` aggiunge i nuovi per contratto; `app_buyer_care_messages()` dà a
+    «Descargar mis datos» i messaggi scritti dalla persona; `app_care_message_digests_due()` dà al
+    lavoro solo gli ID delle fiorerie a cui tocca il riassunto.
+  - CLAUDE.md §4.3 lo dice: il portale scrive solo «Cambiar fecha», i messaggi, le loro foto e il
+    segno di lettura.
+- **Dati:**
+  - due migrazioni: `care_messages_enum` (solo `ALTER TYPE "CareEmailKind" ADD VALUE
+'MESSAGE_NOTICE'`, che Postgres non lascia usare nella stessa transazione, come ADR-083) e
+    `care_messages`;
+  - tabelle `CareMessage`, `CarePortalRead`, `CareMessageDigest` con RLS; `CareMessage` ha la FK
+    composita verso contratto e cliente, l'autore in FK verso `User` ON DELETE SET NULL, CHECK
+    "testo o foto", testo ≤ 2000, "letto" solo sui messaggi del cliente;
+  - `CarePhoto.messageId` (una foto per messaggio) e la CHECK riscritta: foto di un messaggio → né
+    visita né pianta, altrimenti visita o pianta come prima;
+  - `CareEmail.noticeDay` e la CHECK per tipo (resoconto: solo visita; blocco: solo blocco;
+    messaggio: solo giorno).
+- **Export, dati della persona, conto eliminato:**
+  - lo ZIP della fioreria aggiunge `floral_care_mensajes.csv` (data, contratto, cliente, chi ha
+    scritto, testo, foto sì/no, letto il);
+  - «Descargar mis datos» aggiunge `floralCare.messages` (fioreria, contratto, data, testo, foto),
+    senza ID interni;
+  - chi elimina il conto perde accessi e segni di lettura; i suoi messaggi restano alla fioreria
+    senza nome («Cuenta eliminada»), lo dice il dialogo di «Eliminar mi cuenta».
+- **Errori:** dal portale sempre 404; dal lato fioreria un contratto o un messaggio di un'altra
+  fioreria passa da `notFound` con l'evento di sicurezza; codici nuovi `care_message_empty`,
+  `care_message_closed`, `care_message_daily_limit`.
+
+**PROPOSTO nel 5b** (da confermare guardandolo in staging):
+
+1. Il cliente scrive con il contratto attivo o in pausa; a contratto finito il filo è in sola
+   lettura per tutti e due.
+2. I messaggi non si modificano né si cancellano; chi gestisce i contratti può togliere la foto di
+   un messaggio.
+3. Per la fioreria un messaggio è letto quando qualcuno della squadra apre il filo.
+4. Il cliente vede chi della fioreria ha scritto, come nei resoconti.
+5. L'avviso al cliente parte solo se qualcuno ha accesso; il riassunto solo se c'è qualcosa di
+   nuovo, e va a proprietari e gerenti (lo staff vede i non letti nell'app).
+6. Limiti: 2000 caratteri, una foto, 30 messaggi al giorno per persona del cliente e contratto (la
+   squadra della fioreria non ha un tetto).
+
+- **Non fatto:** la risposta all'avviso per email entra nel filo (oggi arriva al contatto della
+  fioreria, fuori dall'app), notifiche push, allegati diversi dalle foto, ricerca nei messaggi. Le
+  consultas a pagamento sono del blocco 6.
 
 ## 3. Proposte da approvare
 

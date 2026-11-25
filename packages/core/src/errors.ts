@@ -193,6 +193,12 @@ export type ConflictReason =
   | 'care_portal_email_mismatch'
   | 'care_portal_move_not_allowed'
   | 'care_portal_move_notice'
+  /**
+   * Messaggi di Floral Care (ADR-084): il contratto non è più attivo né in pausa; troppi messaggi
+   * oggi dalla stessa persona sullo stesso contratto.
+   */
+  | 'care_message_closed'
+  | 'care_message_daily_limit'
   /** "Eliminar florería" con ordini ancora da consegnare o ritirare (ADR-074). */
   | 'tenant_deletion_open_orders'
   | 'session_is_current';

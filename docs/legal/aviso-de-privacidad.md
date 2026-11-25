@@ -45,9 +45,12 @@ abogado.] La florería que cuida las plantas de un lugar (tu casa, tu oficina, t
 con tu correo. Al aceptar con tu cuenta, ves los datos del servicio que la florería registra: la
 dirección del lugar, las visitas, los reportes con fotos, las plantas y, solo si la florería lo
 elige, precios y cargos. Esos datos son responsabilidad de la florería. La florería sabe qué
-cuentas tienen acceso (nombre y correo) y recibe los cambios de fecha que haces. La florería puede
-quitarte el acceso en cualquier momento; se cierra solo si archiva al cliente y 30 días después del
-fin del contrato.
+cuentas tienen acceso (nombre y correo) y recibe los cambios de fecha que haces. También puedes
+escribirle mensajes sobre el servicio, con una foto: los lee todo el equipo de la florería, que te
+responde ahí mismo, y quedan en la florería como parte del servicio (son responsabilidad de la
+florería). Te avisamos por correo, como máximo una vez al día, cuando la florería te escribe, sin el
+texto del mensaje. La florería puede quitarte el acceso en cualquier momento; se cierra solo si
+archiva al cliente y 30 días después del fin del contrato.
 
 ## 3. Datos personales que tratamos
 
@@ -67,8 +70,9 @@ fin del contrato.
 7. **Datos de la persona que recibe las flores** (nombre, teléfono y dirección): nos los das tú para
    la entrega. Compártelos solo si esa persona está de acuerdo.
 8. **Si una florería te invita a "Mi Floral Care":** el correo de la invitación, a qué florería y
-   a qué cliente tienes acceso, si puedes ver precios, cuándo lo aceptaste o se cerró, y los
-   cambios de fecha de visita que haces.
+   a qué cliente tienes acceso, si puedes ver precios, cuándo lo aceptaste o se cerró, los cambios
+   de fecha de visita que haces, los mensajes y fotos que envías a la florería y cuándo leíste los
+   suyos.
 
 **No tratamos datos personales sensibles.** Te pedimos no subir fotos en las que aparezcan personas.
 
@@ -144,10 +148,10 @@ costos de reproducción o envío previstos por la ley.
 
 Muchas acciones las puedes hacer tú mismo desde la app: editar tu perfil, eliminar fotos y
 desactivar usuarios de tu equipo. **Si compras o tienes "Mi Floral Care",** desde "Mi cuenta"
-puedes **descargar tus datos** (también tus accesos a Mi Floral Care) y **eliminar tu cuenta** (te
-pedimos confirmarlo por correo). Los pedidos que ya hiciste siguen en las
-florerías que los atendieron: para esos datos, contacta a la florería. [Pendiente: exportar y
-cancelar desde la app las cuentas de las florerías.]
+puedes **descargar tus datos** (también tus accesos y tus mensajes de Mi Floral Care) y **eliminar
+tu cuenta** (te pedimos confirmarlo por correo). Los pedidos que ya hiciste siguen en las florerías
+que los atendieron: para esos datos, contacta a la florería. [Pendiente: exportar y cancelar desde
+la app las cuentas de las florerías.]
 
 ## 7. Cookies y tecnologías similares
 
@@ -170,7 +174,9 @@ contables, durante el tiempo que estas exijan.
 Si compras y eliminas tu cuenta desde "Mi cuenta", borramos de inmediato tu cuenta, tu teléfono y tus
 direcciones guardadas. Los pedidos quedan en las florerías que los atendieron (son responsables de
 esos datos) sin el vínculo con tu cuenta. Tus accesos a "Mi Floral Care" se borran con la cuenta;
-el servicio de cuidado sigue en la florería. En nuestros registros de seguridad solo queda un
+el servicio de cuidado sigue en la florería, y los mensajes que le escribiste se quedan ahí sin tu
+nombre. Las fotos de los mensajes se borran con las del servicio: 30 días después del fin del
+contrato, o antes si la florería las quita. En nuestros registros de seguridad solo queda un
 identificador técnico, sin tu nombre ni tu correo. Las copias de seguridad se borran automáticamente en
 un máximo de [7 a 30 días, según el plan de la base de datos — validar].
 

@@ -372,7 +372,7 @@
       "title": "Your data and privacy",
       "subtitle": "How we use your data is in the <privacy>Privacy notice</privacy>. Here you can download it or delete your account.",
       "download": "Download my data",
-      "downloadHint": "A file with your account, your addresses and your orders.",
+      "downloadHint": "A file with your account, your addresses, your orders and your Mi Floral Care data.",
       "delete": "Delete my account",
       "deleteTitle": "Delete your account?",
       "deleteIntro": "Before you do, keep in mind:",
@@ -399,7 +399,8 @@
         "tooMany": "You recently asked to delete your account. Check your email or try again in a few minutes.",
         "invalidLink": "This link is no longer valid. Ask for a new one from My account.",
         "generic": "We couldn’t complete the request. Try again."
-      }
+      },
+      "deleteCare": "If you have access to Mi Floral Care, you lose it; your messages stay with the shop without your name."
     },
     "care": {
       "title": "Mi Floral Care",
@@ -489,7 +490,13 @@
         "accepted": "You’ve already accepted this invitation.",
         "invalid": "This link isn’t valid.",
         "goToCare": "Go to Mi Floral Care"
-      }
+      },
+      "messages": {
+        "title": "Messages with {shop}",
+        "subtitle": "Write to the shop about your plants; they’ll reply here.",
+        "closed": "The service has ended: you can read the messages, but not send new ones."
+      },
+      "unread": "{count, plural, one {# new message} other {# new messages}}"
     }
   },
   "store": {
@@ -3249,7 +3256,8 @@
       "portal_invite_revoked": "{actor} revoked an invitation to Mi Floral Care",
       "portal_access_granted": "{actor} accepted the invitation to Mi Floral Care",
       "portal_access_revoked": "{actor} removed access to Mi Floral Care",
-      "visit_moved_by_customer": "{actor} changed the date of a visit of {number} from Mi Floral Care"
+      "visit_moved_by_customer": "{actor} changed the date of a visit of {number} from Mi Floral Care",
+      "message_photo_removed": "{actor} removed the photo of a message on {number}"
     },
     "notice": {
       "label": "Yes, I let the customer know"
@@ -3443,7 +3451,8 @@
       "portal_move_other_month": "You can only change it within the same month.",
       "portal_move_busy_day": "There’s already another visit of this service that day.",
       "portal_move_same": "That’s the same time as now.",
-      "portal_move_notice": "That time is too soon: choose a later one."
+      "portal_move_notice": "That time is too soon: choose a later one.",
+      "message_empty": "Write a message or add a photo."
     },
     "conflict": {
       "not_configured": "Save your Floral Care rates first (Settings → Floral Care).",
@@ -3490,7 +3499,9 @@
       "portal_invite_expired": "The invitation has expired. Ask the shop for another one.",
       "portal_email_mismatch": "The invitation is for another email.",
       "portal_move_not_allowed": "This visit can’t be changed here.",
-      "portal_move_notice": "It can’t be changed anymore: the visit is too close."
+      "portal_move_notice": "It can’t be changed anymore: the visit is too close.",
+      "message_closed": "The service is no longer active: messages can’t be sent.",
+      "message_daily_limit": "You’ve sent many messages today. Try again tomorrow or call the flower shop."
     },
     "contracts": {
       "title": "Floral Care",
@@ -4055,7 +4066,9 @@
     "tabs": {
       "label": "Floral Care",
       "contracts": "Contracts",
-      "charges": "Billing"
+      "charges": "Billing",
+      "messages": "Messages",
+      "messagesCount": "Messages ({count})"
     },
     "chargeStatus": {
       "PENDING": "Unpaid",
@@ -4442,6 +4455,56 @@
       "notOpen": "You can only invite from an active contract of an active customer.",
       "customerLine": "Mi Floral Care: {people, plural, =0 {nobody yet} one {# person} other {# people}}{pending, plural, =0 {} one { · # pending invitation} other { · # pending invitations}}",
       "movedByCustomer": "Changed by the customer"
+    },
+    "messages": {
+      "title": "Messages",
+      "subtitle": "What the shop and the customer write about this service. The whole team reads it.",
+      "empty": "No messages yet.",
+      "noAccess": "Nobody from the customer sees this service in Mi Floral Care: they’ll read your messages once they accept an invitation from «Acceso del cliente».",
+      "closed": "The service has ended: the messages stay available to read.",
+      "older": "See earlier messages",
+      "unreadDivider": "Unread",
+      "newDivider": "New",
+      "customer": "Customer",
+      "deletedAccount": "Deleted account",
+      "you": "You",
+      "photoAlt": "Message photo",
+      "photoGone": "The photo is no longer available.",
+      "removePhoto": "Remove photo",
+      "removePhotoTitle": "Remove the photo?",
+      "removePhotoBody": "The photo is deleted for everyone, the customer included. The message text stays.",
+      "photoRemoved": "Photo removed",
+      "sent": "Message sent",
+      "composer": {
+        "label": "Message",
+        "placeholder": "Write a message…",
+        "addPhoto": "Add photo",
+        "photoChosen": "Photo: {name}",
+        "removeChosen": "Remove the chosen photo",
+        "send": "Send",
+        "hint": "Up to 2,000 characters and one photo.",
+        "empty": "Write a message or add a photo.",
+        "networkError": "It couldn’t be sent. Check your connection and try again."
+      },
+      "list": {
+        "title": "Messages",
+        "subtitle": "Messages from your Floral Care customers, unread first.",
+        "empty": "No messages yet. When a customer writes to you from Mi Floral Care, it will show up here.",
+        "fromCustomer": "Customer: {text}",
+        "fromShop": "Shop: {text}",
+        "photo": "Photo",
+        "unread": "{count, plural, one {# unread} other {# unread}}",
+        "ended": "Ended",
+        "previous": "Previous",
+        "next": "Next",
+        "emptyTitle": "No messages",
+        "photoOnly": "Sent a photo"
+      }
+    },
+    "messagesCard": {
+      "title": "Unread messages",
+      "body": "{unread, plural, one {# message} other {# messages}} from Floral Care customers on {threads, plural, one {# contract} other {# contracts}}.",
+      "link": "See messages"
     }
   },
   "letterhead": {

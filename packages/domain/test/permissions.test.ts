@@ -41,6 +41,14 @@ describe('matrice dei permessi', () => {
     expect(can('STAFF', 'inventory:write')).toBe(false);
   });
 
+  it('messaggi di Floral Care: li legge e risponde tutta la squadra (ADR-084)', () => {
+    for (const role of ['OWNER', 'MANAGER', 'STAFF'] as const) {
+      expect(can(role, 'care:messages')).toBe(true);
+    }
+    // Togliere la foto di un messaggio resta di chi gestisce i contratti.
+    expect(can('STAFF', 'subscriptions:write')).toBe(false);
+  });
+
   it('limita i ruoli assegnabili via invito', () => {
     expect(invitableRoles('OWNER')).toEqual(['OWNER', 'MANAGER', 'STAFF']);
     expect(invitableRoles('MANAGER')).toEqual(['STAFF']);

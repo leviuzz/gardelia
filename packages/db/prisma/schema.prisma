@@ -63,6 +63,10 @@ model User {
   buyerOrders        Order[]            @relation("BuyerOrders")
   /// Floral Care, pagina del cliente (ADR-084): i contratti che la persona vede.
   carePortalAccesses CarePortalAccess[] @relation("CarePortalAccessUser")
+  /// Floral Care, messaggi (ADR-084): quelli scritti dalla persona (restano senza autore se il
+  /// conto si elimina) e fin dove li ha letti.
+  careMessages       CareMessage[]      @relation("CareMessageAuthor")
+  carePortalReads    CarePortalRead[]   @relation("CarePortalReadUser")
 }
 
 model Session {
@@ -320,6 +324,9 @@ model Tenant {
   careBlockVisits      CareBlockVisit[]
   carePortalInvites    CarePortalInvite[]
   carePortalAccesses   CarePortalAccess[]
+  careMessages         CareMessage[]
+  carePortalReads      CarePortalRead[]
+  careMessageDigests   CareMessageDigest[]
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -1993,6 +2000,9 @@ enum CareEmailKind {
   VISIT_REPORT
   /// Blocco 4 (ADR-083): le visite spostate o cancellate da un blocco di giorni.
   BLOCK_NOTICE
+  /// Blocco 5b (ADR-084): la fioreria ha scritto un messaggio; al massimo uno al giorno per
+  /// contratto, alle persone con accesso a Mi Floral Care.
+  MESSAGE_NOTICE
 }
 
 enum CareEmailStatus {
@@ -2208,6 +2218,8 @@ model CustomerSubscription {
   blockChanges    CareBlockVisit[]
   portalInvites   CarePortalInvite[]
   portalAccess    CarePortalAccess[]
+  messages        CareMessage[]
+  portalReads     CarePortalRead[]
 
   @@unique([tenantId, id])
   /// Per le FK dei cargos: il cargo è dello stesso cliente del contratto.
@@ -2453,6 +2465,8 @@ model CarePhoto {
   subscriptionId String    @db.Uuid
   visitId        String?   @db.Uuid
   plantId        String?   @db.Uuid
+  /// Blocco 5b (ADR-084): la foto di un messaggio (allora senza visita né pianta). Una per messaggio.
+  messageId      String?   @db.Uuid
   storageKey     String
   thumbKey       String
   contentType    String
@@ -2472,9 +2486,11 @@ model CarePhoto {
   subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
   visit        CareVisit?           @relation(fields: [tenantId, visitId], references: [tenantId, id], onDelete: Restrict)
   plant        CarePlant?           @relation(fields: [tenantId, plantId], references: [tenantId, id], onDelete: Restrict)
+  message      CareMessage?         @relation(fields: [tenantId, messageId], references: [tenantId, id], onDelete: Restrict)
 
   @@unique([tenantId, id])
   @@unique([tenantId, visitId, uploadKey])
+  @@unique([tenantId, messageId])
   @@index([tenantId, visitId])
 }
 
@@ -2525,6 +2541,8 @@ model CareEmail {
   visitId        String?         @db.Uuid
   /// Blocco 4 (ADR-083): l'avviso dei cambi di un blocco, uno per contratto (senza visita).
   blockId        String?         @db.Uuid
+  /// Blocco 5b (ADR-084): il giorno (della fioreria) dell'avviso dei messaggi, uno per contratto.
+  noticeDay      DateTime?       @db.Date
   status         CareEmailStatus @default(PENDING)
   attempts       Int             @default(0)
   sentAt         DateTime?
@@ -2899,4 +2917,80 @@ enum CarePortalRevokeReason {
   MANUAL
   CUSTOMER_ARCHIVED
   CONTRACT_ENDED
+}
+
+/// Floral Care, blocco 5b (ADR-084): un messaggio del filo di un contratto. Lo scrive la persona
+/// invitata (dal portale) o qualcuno della fioreria; non si modifica né si cancella (la fioreria
+/// può togliere la foto). Il testo non va mai nel registro né nelle email.
+model CareMessage {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  tenantId       String            @db.Uuid
+  customerId     String            @db.Uuid
+  subscriptionId String            @db.Uuid
+  authorKind     CareMessageAuthor
+  /// Chi ha scritto; null se ha eliminato il conto ("Cuenta eliminada").
+  authorUserId   String?           @db.Uuid
+  body           String            @default("")
+  hasPhoto       Boolean           @default(false)
+  /// Chiave dell'invio: lo stesso modulo inviato due volte non scrive due messaggi.
+  submitKey      String            @db.Uuid
+  /// Letto dalla fioreria (basta una persona della squadra); solo per i messaggi del cliente.
+  readByShopAt   DateTime?
+  createdAt      DateTime          @default(now())
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId, customerId], references: [tenantId, id, customerId], onDelete: Restrict)
+  author       User?                @relation("CareMessageAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  photo        CarePhoto?
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, submitKey])
+  @@index([tenantId, subscriptionId, createdAt])
+  @@index([authorUserId])
+}
+
+enum CareMessageAuthor {
+  CUSTOMER
+  SHOP
+}
+
+/// Fin dove una persona ha letto il filo di un contratto (per i "nuevos" di Mi Floral Care). Lo
+/// scrive solo `app_portal_mark_read()`.
+model CarePortalRead {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  tenantId       String   @db.Uuid
+  subscriptionId String   @db.Uuid
+  userId         String   @db.Uuid
+  readAt         DateTime @default(now())
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
+  user         User                 @relation("CarePortalReadUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, subscriptionId, userId])
+  @@index([userId])
+}
+
+/// Il riassunto giornaliero dei messaggi per proprietari e gerenti (ADR-084): al massimo uno per
+/// fioreria e giorno (della fioreria), anche se la manutenzione gira più volte.
+model CareMessageDigest {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  tenantId    String          @db.Uuid
+  day         DateTime        @db.Date
+  status      CareEmailStatus @default(SENDING)
+  attempts    Int             @default(1)
+  /// Messaggi del cliente non letti e contratti, quando il riassunto è partito.
+  unreadCount Int
+  threadCount Int
+  sentAt      DateTime?
+  /// Codice dell'ultimo errore (mai il testo del provider).
+  lastError   String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, day])
 }

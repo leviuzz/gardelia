@@ -74,6 +74,21 @@ describe('percorsi della fioreria (routes.ts)', () => {
     expect(routes.customers.statement('c1')).toBe('/app/las-camelias/customers/c1/statement');
   });
 
+  it('Floral Care: i messaggi della fioreria e del cliente (ADR-084)', () => {
+    expect(routes.subscriptions.messages()).toBe('/app/las-camelias/subscriptions/messages');
+    expect(routes.subscriptions.messages({ page: 2 })).toBe(
+      '/app/las-camelias/subscriptions/messages?page=2',
+    );
+    expect(routes.subscriptions.thread('s1')).toBe('/app/las-camelias/subscriptions/s1#mensajes');
+    expect(routes.subscriptions.thread('s1', { mensajes: 2 })).toBe(
+      '/app/las-camelias/subscriptions/s1?mensajes=2#mensajes',
+    );
+    expect(routes.subscriptions.messagePhoto('s1', 'p/1', { thumb: true })).toBe(
+      '/app/las-camelias/subscriptions/s1/messages/photos/p%2F1?size=thumb',
+    );
+    expect(accountRoutes.care.thread('s1')).toBe('/cuenta/floral-care/s1#mensajes');
+  });
+
   it('la query contiene solo i valori presenti, nell’ordine dato', () => {
     expect(
       routes.catalog.list({ q: 'rosa roja', type: undefined, status: 'ARCHIVED', page: 2 }),

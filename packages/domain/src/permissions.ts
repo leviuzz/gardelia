@@ -96,6 +96,11 @@ export const PERMISSIONS = {
   'subscriptions:payments': MANAGEMENT,
   /** Fare le visite: segnarle fatte o non realizzate (anche lo staff). */
   'care:visit': ALL,
+  /**
+   * Leggere e scrivere i messaggi dei clienti di Floral Care (ADR-084): tutta la squadra, staff
+   * compreso (decisione del founder del 24/11).
+   */
+  'care:messages': ALL,
 } as const satisfies Record<string, readonly MembershipRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarClock, ChevronRight, Leaf } from 'lucide-react';
+import { ArrowLeft, CalendarClock, ChevronRight, Leaf, MessageSquare } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -94,6 +94,12 @@ export default async function MyFloralCarePage() {
                         {t('account.care.due', {
                           amount: money(contract.dueMinor, contract.currency),
                         })}
+                      </Badge>
+                    ) : null}
+                    {contract.unreadMessages > 0 ? (
+                      <Badge variant="info">
+                        <MessageSquare className="size-3" aria-hidden="true" />
+                        {t('account.care.unread', { count: contract.unreadMessages })}
                       </Badge>
                     ) : null}
                   </span>

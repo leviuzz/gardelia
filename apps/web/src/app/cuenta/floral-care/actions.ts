@@ -6,13 +6,19 @@
  * il servizio apre il contratto solo se la persona ha l'accesso (404 altrimenti) e accetta
  * l'invito solo con la stessa email.
  */
-import { acceptCarePortalInvite, changeMyCareVisitDate } from '@floral/core';
+import {
+  acceptCarePortalInvite,
+  changeMyCareVisitDate,
+  markMyCareThreadRead,
+  postMyCareMessage,
+} from '@floral/core';
 import type { ActionState } from '@/lib/action-state';
 import { runBuyerAction } from '@/lib/buyer';
 import { careChangeDeps, carePortalSecret } from '@/lib/care-portal';
 import { getRequestMeta } from '@/lib/request-meta';
 import { accountRoutes, withQuery } from '@/lib/routes';
 import { requireUser } from '@/lib/session';
+import { optionalUploadedBytes } from '@/lib/uploads';
 
 export async function changeMyCareVisitDateAction(
   subscriptionId: string,
@@ -66,5 +72,39 @@ export async function acceptCarePortalInviteAction(
       };
     },
     { next: invitePath },
+  );
+}
+
+/** Un messaggio della persona alla fioreria (testo e/o una foto, ridotta nel browser). */
+export async function postMyCareMessageAction(
+  subscriptionId: string,
+  formData: FormData,
+): Promise<ActionState> {
+  return runBuyerAction(
+    async ({ ctx }) => {
+      const photo = await optionalUploadedBytes(formData);
+      await postMyCareMessage(
+        ctx,
+        subscriptionId,
+        { body: formData.get('body'), submitKey: formData.get('submitKey') },
+        photo,
+      );
+      return {
+        revalidate: [accountRoutes.care.contract(subscriptionId), accountRoutes.care.home],
+        success: 'care.messages.sent',
+      };
+    },
+    { next: accountRoutes.care.thread(subscriptionId) },
+  );
+}
+
+/** La persona ha visto il filo: i messaggi della fioreria non sono più nuovi (senza ricaricare). */
+export async function markMyCareThreadReadAction(subscriptionId: string): Promise<ActionState> {
+  return runBuyerAction(
+    async ({ ctx }) => {
+      await markMyCareThreadRead(ctx, subscriptionId);
+      return {};
+    },
+    { next: accountRoutes.care.thread(subscriptionId) },
   );
 }

@@ -7,7 +7,9 @@
  *  - chiude gli accessi alla pagina del cliente dei contratti finiti da 30 giorni (ADR-084);
  *  - cancella dallo storage le foto dei contratti finiti da 30 giorni (e quelle tolte i cui file
  *    non si erano cancellati), poi le segna; dopo 7 giorni di errori lo scrive come errore;
- *  - riprova le email dei resoconti rimaste indietro (al massimo 3 tentativi in 3 giorni).
+ *  - riprova le email dei resoconti rimaste indietro (al massimo 3 tentativi in 3 giorni);
+ *  - manda il riassunto dei messaggi dei clienti da leggere a proprietari e gerenti (ADR-084): al
+ *    massimo uno al giorno per fioreria, anche se la manutenzione gira più volte.
  *
  * Le funzioni SQL `SECURITY DEFINER` danno solo gli ID fra le fiorerie (come gli altri lavori). Poi
  * ogni contratto si lavora nella sua transazione, nel contesto della sua fioreria e senza utente
@@ -20,19 +22,25 @@ import {
   CARE_CHARGE_LIMITS,
   CARE_EMAIL_RETRY,
   CARE_LIMITS,
+  CARE_MESSAGE_LIMITS,
   CARE_PHOTO_PURGE,
   CARE_PHOTO_RETENTION_DAYS,
   CARE_PORTAL_LIMITS,
   formatSubscriptionNumber,
   isCarePhotoPurgeDue,
   isCarePhotoPurgeOverdue,
+  getMarket,
+  resolveLocale,
   todayInTimeZone,
   type CalendarDate,
 } from '@floral/domain';
+import { careMessageDigestEmail } from '../care-email';
 import { logger } from '../logger';
 import { jobWriteScope, loadJobScope, recordJobAudit } from '../scope';
 import { issueNextCareChargeTx } from '../services/care-charges';
 import { closeEndedCareContractTx, extendCareVisitsTx } from '../services/care-generation';
+import { dbDate } from '../services/care-internals';
+import { shopManagerEmailsTx } from '../services/care-message-internals';
 import { deleteCarePhotoFiles } from '../services/care-photos';
 import { deliverCareEmail, type CareMailDeps } from '../services/care-visit-work';
 import { dateToParts } from '../services/quote-internals';
@@ -54,6 +62,8 @@ export interface CareMaintenanceResult {
   readonly photosDeleted: number;
   /** Resoconti mandati dal lavoro (rimasti indietro dopo "Terminar"). */
   readonly emailsSent: number;
+  /** Riassunti dei messaggi mandati alle fiorerie (ADR-084). */
+  readonly messageDigestsSent: number;
 }
 
 interface Candidate {
@@ -143,6 +153,9 @@ export async function runCareMaintenance(
   const emails = await retryCareEmails(mail, {
     deadline: stepDeadline(until, CARE_EMAIL_RETRY.budgetMs),
   });
+  const digests = await sendCareMessageDigests(mail, {
+    deadline: stepDeadline(until, CARE_MESSAGE_LIMITS.digestBudgetMs),
+  });
   return {
     chargesIssued: charges.issued,
     chargesPending: charges.pending,
@@ -153,6 +166,7 @@ export async function runCareMaintenance(
     portalAccessClosed,
     photosDeleted: photos.deleted,
     emailsSent: emails.sent,
+    messageDigestsSent: digests.sent,
   };
 }
 
@@ -414,6 +428,128 @@ export async function retryCareEmails(
     } catch (error) {
       failed += 1;
       logger.error({ err: error, emailId }, 'resoconto di Floral Care non riprovato');
+    }
+  }
+  return { sent, failed };
+}
+
+interface DigestCandidate {
+  readonly tenant_id: string;
+}
+
+/**
+ * Il riassunto giornaliero dei messaggi (ADR-084) a proprietari e gerenti delle fiorerie LIVE con
+ * messaggi del cliente da leggere arrivati dopo l'ultimo riassunto. Solo conteggi e il link a
+ * «Mensajes», mai i testi. La riga del giorno nasce già SENDING: due giri insieme non mandano due
+ * riassunti; uno fallito si riprova (al massimo 3 tentativi), uno fermo da un'ora si chiude.
+ */
+export async function sendCareMessageDigests(
+  mail: CareMailDeps | null,
+  options: { readonly deadline?: number } = {},
+): Promise<{ readonly sent: number; readonly failed: number }> {
+  if (!mail) return { sent: 0, failed: 0 };
+  const deadline = options.deadline ?? Date.now() + CARE_MESSAGE_LIMITS.digestBudgetMs;
+  const due = await getDb().$queryRaw<DigestCandidate[]>`
+    SELECT tenant_id FROM app_care_message_digests_due(${CARE_MESSAGE_LIMITS.digestPerRun}::int)`;
+  let sent = 0;
+  let failed = 0;
+  for (const { tenant_id: tenantId } of due) {
+    if (Date.now() > deadline) break;
+    try {
+      const claim = await withTenantContext(getDb(), { tenantId, userId: null }, async (tx) => {
+        const job = await loadJobScope(tx, tenantId, 'care.messages.digest');
+        if (!job || job.mode !== 'LIVE') return null;
+        const day = dbDate(todayInTimeZone(job.timezone));
+        const staleBefore = new Date(Date.now() - CARE_MESSAGE_LIMITS.digestStaleMinutes * 60_000);
+        await tx.careMessageDigest.updateMany({
+          where: { tenantId, day, status: 'SENDING', updatedAt: { lt: staleBefore } },
+          data: {
+            status: 'FAILED',
+            lastError: 'interrupted',
+            attempts: CARE_MESSAGE_LIMITS.digestAttempts,
+          },
+        });
+        const counts = await tx.$queryRaw<{ unread: number; threads: number }[]>`
+          SELECT count(*)::int AS unread, count(DISTINCT m."subscriptionId")::int AS threads
+          FROM "CareMessage" m
+          WHERE m."tenantId" = ${tenantId}::uuid
+            AND m."authorKind" = 'CUSTOMER'
+            AND m."readByShopAt" IS NULL`;
+        const unread = counts[0]?.unread ?? 0;
+        const threads = counts[0]?.threads ?? 0;
+        if (unread === 0) return null;
+        const created = await tx.careMessageDigest.createManyAndReturn({
+          data: [{ tenantId, day, unreadCount: unread, threadCount: threads }],
+          skipDuplicates: true,
+          select: { id: true },
+        });
+        let digestId = created[0]?.id ?? null;
+        if (!digestId) {
+          const retried = await tx.careMessageDigest.updateManyAndReturn({
+            where: {
+              tenantId,
+              day,
+              status: 'FAILED',
+              attempts: { lt: CARE_MESSAGE_LIMITS.digestAttempts },
+            },
+            data: {
+              status: 'SENDING',
+              attempts: { increment: 1 },
+              unreadCount: unread,
+              threadCount: threads,
+              lastError: null,
+            },
+            select: { id: true },
+          });
+          digestId = retried[0]?.id ?? null;
+        }
+        if (!digestId) return null;
+        const tenant = await tx.tenant.findFirst({
+          where: { id: tenantId },
+          select: { slug: true, displayName: true, marketCountry: true },
+        });
+        if (!tenant) return null;
+        const emails = await shopManagerEmailsTx(tx, tenantId);
+        return { digestId, unread, threads, tenant, emails };
+      });
+      if (!claim) continue;
+      const locale = resolveLocale(getMarket(claim.tenant.marketCountry).defaultLocale);
+      const url = mail.links?.careMessages?.(claim.tenant.slug) ?? mail.appUrl;
+      let delivered = 0;
+      for (const to of claim.emails) {
+        try {
+          await mail.mailer.send(
+            careMessageDigestEmail({
+              locale,
+              to,
+              shopName: claim.tenant.displayName,
+              unread: claim.unread,
+              threads: claim.threads,
+              url,
+            }),
+          );
+          delivered += 1;
+        } catch (error) {
+          logger.error({ err: error, tenantId }, 'riassunto dei messaggi non inviato');
+        }
+      }
+      const ok = delivered > 0;
+      await withTenantContext(getDb(), { tenantId, userId: null }, (tx) =>
+        tx.careMessageDigest.updateMany({
+          where: { tenantId, id: claim.digestId, status: 'SENDING' },
+          data: ok
+            ? { status: 'SENT', sentAt: new Date(), lastError: null }
+            : {
+                status: 'FAILED',
+                lastError: claim.emails.length === 0 ? 'no_email' : 'send_failed',
+              },
+        }),
+      );
+      if (ok) sent += 1;
+      else failed += 1;
+    } catch (error) {
+      failed += 1;
+      logger.error({ err: error, tenantId }, 'riassunto dei messaggi di Floral Care non mandato');
     }
   }
   return { sent, failed };

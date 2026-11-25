@@ -108,8 +108,12 @@ export function suggestedCareReplacement(policy: DeadPlantPolicy): 'FREE_VISIT' 
   return policy === 'INCLUDED' ? 'FREE_VISIT' : 'QUOTED';
 }
 
-/** Email di Floral Care al cliente (tabella d'uscita: una per visita e tipo). */
-export const CARE_EMAIL_KINDS = ['VISIT_REPORT'] as const;
+/**
+ * Email di Floral Care al cliente (tabella d'uscita): il resoconto di una visita, l'avviso dei
+ * cambi di un blocco di giorni (ADR-083) e l'avviso dei messaggi della fioreria, al massimo uno al
+ * giorno per contratto (ADR-084).
+ */
+export const CARE_EMAIL_KINDS = ['VISIT_REPORT', 'BLOCK_NOTICE', 'MESSAGE_NOTICE'] as const;
 export type CareEmailKind = (typeof CARE_EMAIL_KINDS)[number];
 export const CARE_EMAIL_STATUSES = ['PENDING', 'SENDING', 'SENT', 'FAILED'] as const;
 export type CareEmailStatus = (typeof CARE_EMAIL_STATUSES)[number];

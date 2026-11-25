@@ -16,6 +16,7 @@
  */
 import {
   getDb,
+  isRlsViolation,
   withPortalContext,
   withPortalWriteContext,
   withTenantContext,
@@ -25,6 +26,7 @@ import {
 } from '@floral/db';
 import {
   AUDIT_ACTIONS,
+  CARE_MESSAGE_LIMITS,
   CARE_PORTAL_LIMITS,
   CARE_VISIT_HOLDING_STATUSES,
   addDays,
@@ -32,6 +34,11 @@ import {
   careCustomerChangeUntil,
   careCustomerEarliestStart,
   careCustomerTargetProblem,
+  careMessageDayStart,
+  careMessagePages,
+  careMessageProblem,
+  careMessageSchema,
+  careMessagesOpen,
   careEmailsAllowed,
   careMonthBounds,
   carePhotoPurgeDate,
@@ -44,6 +51,7 @@ import {
   formatTimeOfDay,
   getMarket,
   isUuid,
+  newId,
   normalizeEmail,
   resolveLocale,
   toFieldErrors,
@@ -70,7 +78,12 @@ import type { RequestMeta } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { logger } from '../logger';
 import type { Mailer } from '../mailer';
-import { readStoredImage, type StoredImage } from '../media/stored-files';
+import {
+  deleteUnusedFiles,
+  readStoredImage,
+  storeFilesThenCommit,
+  type StoredImage,
+} from '../media/stored-files';
 import { recordPortalAudit } from '../scope';
 import { openBuyerAccount, type BuyerContext } from './buyer-account';
 import { openSlotBook } from './care-booking';
@@ -89,6 +102,8 @@ import {
   requiredParts,
 } from './care-internals';
 import { readCarePortalInviteToken } from './care-portal';
+import { shopManagerEmailsTx } from './care-message-internals';
+import { careMessageSelect, prepareCareMessagePhoto, toCareMessageDto } from './care-messages';
 import { loadCareVisitReportTx, type CareVisitReportDto } from './care-report';
 import { lockCareVisitTx } from './care-visit-internals';
 import { dateToParts } from './quote-internals';
@@ -118,6 +133,8 @@ export interface MyCareContractListItemDto {
   /** Quanto c'è da pagare (solo con i soldi). */
   readonly dueMinor: number | null;
   readonly currency: string;
+  /** Messaggi della fioreria dopo l'ultima lettura della persona (ADR-084, blocco 5b). */
+  readonly unreadMessages: number;
 }
 
 interface ContractRow {
@@ -138,6 +155,7 @@ interface ContractRow {
   next_visit_start: number | null;
   due_minor: number | null;
   currency: string;
+  unread_count: number;
 }
 
 async function contractRows(buyer: BuyerContext): Promise<ContractRow[]> {
@@ -174,6 +192,7 @@ export async function listMyCareContracts(
       : null,
     dueMinor: row.can_see_money ? (row.due_minor ?? 0) : null,
     currency: row.currency.trim(),
+    unreadMessages: row.unread_count,
   }));
 }
 
@@ -655,6 +674,231 @@ export async function getMyCarePhoto(
 }
 
 // -----------------------------------------------------------------------------
+// Messaggi (blocco 5b)
+// -----------------------------------------------------------------------------
+
+export interface MyCareMessageDto {
+  readonly id: string;
+  /** Scritto dalla fioreria (altrimenti da una persona del cliente). */
+  readonly fromShop: boolean;
+  /** Scritto da questa persona. */
+  readonly mine: boolean;
+  /** Chi ha scritto; null = conto eliminato. */
+  readonly authorName: string | null;
+  readonly body: string;
+  readonly photoId: string | null;
+  /** C'era una foto che non si vede più (tolta dalla fioreria o cancellata). */
+  readonly photoGone: boolean;
+  readonly createdAt: Date;
+  /** Della fioreria, arrivato dopo l'ultima lettura della persona. */
+  readonly isNew: boolean;
+}
+
+export interface MyCareThreadDto {
+  readonly subscriptionId: string;
+  readonly shopName: string;
+  /** Si scrive solo con il contratto attivo o in pausa. */
+  readonly open: boolean;
+  /** Dal più vecchio al più recente (gli ultimi `pages` × 30). */
+  readonly messages: readonly MyCareMessageDto[];
+  readonly hasOlder: boolean;
+  readonly newCount: number;
+}
+
+/** Il filo del contratto per la persona, con i messaggi nuovi della fioreria. */
+export async function getMyCareThread(
+  buyer: BuyerContext,
+  subscriptionId: string,
+  pages = 1,
+): Promise<MyCareThreadDto> {
+  const take = CARE_MESSAGE_LIMITS.page * careMessagePages(pages);
+  const found = await openPortal(buyer, subscriptionId, async (tx, entry) => {
+    const contract = await tx.customerSubscription.findFirst({
+      where: { tenantId: entry.tenantId, id: subscriptionId },
+      select: { status: true },
+    });
+    const rows = await tx.careMessage.findMany({
+      where: { tenantId: entry.tenantId, subscriptionId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: take + 1,
+      select: careMessageSelect,
+    });
+    const read = await tx.carePortalRead.findFirst({
+      where: { tenantId: entry.tenantId, subscriptionId, userId: buyer.userId },
+      select: { readAt: true },
+    });
+    return { entry, contract, rows, readAt: read?.readAt ?? null };
+  });
+  if (!found?.contract) throw new NotFoundError('CustomerSubscription');
+  const { rows, readAt } = found;
+  const messages = rows
+    .slice(0, take)
+    .reverse()
+    .map((row) => {
+      const dto = toCareMessageDto(row);
+      const fromShop = row.authorKind === 'SHOP';
+      return {
+        id: dto.id,
+        fromShop,
+        mine: !fromShop && row.author !== null && row.authorUserId === buyer.userId,
+        authorName: dto.authorName,
+        body: dto.body,
+        photoId: dto.photoId,
+        photoGone: dto.photoGone,
+        createdAt: dto.createdAt,
+        isNew: fromShop && (readAt === null || row.createdAt > readAt),
+      };
+    });
+  return {
+    subscriptionId,
+    shopName: found.entry.shop.name,
+    open: careMessagesOpen(found.contract.status) && !found.entry.readOnly,
+    messages,
+    hasOlder: rows.length > take,
+    newCount: messages.filter((message) => message.isNew).length,
+  };
+}
+
+export interface MyCareMessagePostResult {
+  readonly id: string;
+  /** Lo stesso invio era già arrivato: nessun messaggio in più. */
+  readonly duplicate: boolean;
+}
+
+/**
+ * Scrive un messaggio della persona (testo e/o una foto) sul contratto, solo se è attivo o in
+ * pausa e al massimo 30 al giorno. Scrive in modalità portale: le policy `portal_insert` del
+ * database lasciano passare solo i propri messaggi sul contratto aperto. Alla fioreria nessuna
+ * email: c'è il riassunto del giorno.
+ */
+export async function postMyCareMessage(
+  buyer: BuyerContext,
+  subscriptionId: string,
+  rawInput: unknown,
+  photo: Uint8Array | null,
+): Promise<MyCareMessagePostResult> {
+  assertBuyer(buyer);
+  if (!isUuid(subscriptionId)) throw new NotFoundError('CustomerSubscription');
+  const parsed = careMessageSchema.safeParse(rawInput);
+  if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
+  const input = parsed.data;
+  const hasPhoto = photo !== null && photo.byteLength > 0;
+  // La fioreria del contratto (per la chiave della foto): solo dalle righe della persona.
+  const tenantId = await contractTenant(buyer, subscriptionId);
+
+  const check = async (tx: TransactionClient, entry: PortalEntry) => {
+    const existing = await tx.careMessage.findFirst({
+      where: { tenantId: entry.tenantId, submitKey: input.submitKey },
+      select: { id: true },
+    });
+    if (existing) return { duplicate: existing.id };
+    const contract = await tx.customerSubscription.findFirst({
+      where: { tenantId: entry.tenantId, id: subscriptionId },
+      select: { status: true },
+    });
+    if (!contract) return null;
+    const problem = careMessageProblem({
+      status: entry.readOnly ? 'ENDED' : contract.status,
+      body: input.body,
+      hasPhoto,
+    });
+    if (problem === 'care_message_closed') throw new ConflictError(problem);
+    if (problem === 'care_message_empty') throw new ValidationError({ body: problem });
+    const today = await tx.careMessage.count({
+      where: {
+        tenantId: entry.tenantId,
+        subscriptionId,
+        authorUserId: buyer.userId,
+        createdAt: { gte: careMessageDayStart(entry.shop.timezone) },
+      },
+    });
+    if (today >= CARE_MESSAGE_LIMITS.perPersonPerDay) {
+      throw new ConflictError('care_message_daily_limit');
+    }
+    return { duplicate: null };
+  };
+
+  // Prima un controllo veloce, così un messaggio rifiutato non elabora né carica la foto.
+  const precheck = await openPortal(buyer, subscriptionId, check);
+  if (!precheck) throw new NotFoundError('CustomerSubscription');
+  if (precheck.duplicate) return { id: precheck.duplicate, duplicate: true };
+
+  const prepared = hasPhoto ? await prepareCareMessagePhoto(tenantId, subscriptionId, photo) : null;
+  const id = newId();
+  const commit = () =>
+    openPortal(buyer, subscriptionId, async (tx, entry) => {
+      if (entry.tenantId !== tenantId) return null;
+      // Di nuovo dentro la transazione: un doppio invio o il contratto chiuso nel frattempo.
+      const again = await check(tx, entry);
+      if (!again) return null;
+      if (again.duplicate) return { id: again.duplicate, duplicate: true };
+      try {
+        const created = await tx.careMessage.createManyAndReturn({
+          data: [
+            {
+              id,
+              tenantId: entry.tenantId,
+              customerId: entry.customerId,
+              subscriptionId,
+              authorKind: 'CUSTOMER',
+              authorUserId: buyer.userId,
+              body: input.body,
+              hasPhoto,
+              submitKey: input.submitKey,
+            },
+          ],
+          skipDuplicates: true,
+          select: { id: true },
+        });
+        if (created.length === 0) {
+          const existing = await tx.careMessage.findFirst({
+            where: { tenantId: entry.tenantId, submitKey: input.submitKey },
+            select: { id: true },
+          });
+          return { id: existing?.id ?? id, duplicate: true };
+        }
+        if (prepared) {
+          await tx.carePhoto.create({
+            data: {
+              id: prepared.id,
+              tenantId: entry.tenantId,
+              subscriptionId,
+              messageId: id,
+              ...prepared.row,
+              createdById: buyer.userId,
+            },
+            select: { id: true },
+          });
+        }
+      } catch (error) {
+        // La policy del portale rifiuta: il contratto non è più aperto (finito nel frattempo).
+        if (isRlsViolation(error)) throw new ConflictError('care_message_closed');
+        throw error;
+      }
+      return { id, duplicate: false };
+    });
+  const saved = prepared ? await storeFilesThenCommit(prepared.files, commit) : await commit();
+  if (!saved) throw new NotFoundError('CustomerSubscription');
+  if (saved.duplicate && prepared) {
+    await deleteUnusedFiles(prepared.files.map((file) => file.key));
+  }
+  return saved;
+}
+
+/** "Letto": il segno della persona sul filo del contratto (lo scrive solo il database). */
+export async function markMyCareThreadRead(
+  buyer: BuyerContext,
+  subscriptionId: string,
+): Promise<void> {
+  const marked = await openPortal(
+    buyer,
+    subscriptionId,
+    (tx) => tx.$queryRaw<{ at: Date | null }[]>`SELECT app_portal_mark_read() AS at`,
+  );
+  if (!marked?.[0]?.at) throw new NotFoundError('CustomerSubscription');
+}
+
+// -----------------------------------------------------------------------------
 // "Cambiar fecha"
 // -----------------------------------------------------------------------------
 
@@ -937,26 +1181,23 @@ async function notifyShopOfChange(
         select: { slug: true, displayName: true, mode: true, status: true, marketCountry: true },
       });
       if (!tenant || !careEmailsAllowed(tenant)) return null;
-      const [customer, members] = await Promise.all([
+      const [customer, emails] = await Promise.all([
         tx.customer.findFirst({
           where: { tenantId, id: change.customerId },
           select: { displayName: true },
         }),
-        tx.membership.findMany({
-          where: { tenantId, status: 'ACTIVE', role: { in: ['OWNER', 'MANAGER'] } },
-          select: { user: { select: { email: true } } },
-        }),
+        shopManagerEmailsTx(tx, tenantId),
       ]);
-      return { tenant, customerName: customer?.displayName ?? '', members };
+      return { tenant, customerName: customer?.displayName ?? '', emails };
     });
     if (!facts) return;
     const locale = resolveLocale(getMarket(facts.tenant.marketCountry).defaultLocale);
     const url = deps.visitUrl(facts.tenant.slug, visitId);
-    for (const member of facts.members) {
+    for (const to of facts.emails) {
       await deps.mailer.send(
         careVisitMovedByCustomerEmail({
           locale,
-          to: member.user.email,
+          to,
           shopName: facts.tenant.displayName,
           customerName: facts.customerName,
           numberLabel: change.numberLabel,

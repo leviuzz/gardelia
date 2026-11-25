@@ -17,6 +17,7 @@ export * from './floral-care-extras';
 export * from './floral-care-charges';
 export * from './floral-care-blocks';
 export * from './floral-care-portal';
+export * from './floral-care-messages';
 export * from './i18n';
 export * from './ids';
 export * from './inventory';

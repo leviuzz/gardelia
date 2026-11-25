@@ -12,7 +12,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { getMyCareContract, type MyCareVisitDto } from '@floral/core';
+import { careMessagePages } from '@floral/domain';
 import { ChargeStatusBadge } from '@/components/care/charge-ui';
+import { MyCareMessagesCard } from '@/components/care/my-care-messages-card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,7 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * Un servizio di Floral Care visto dal cliente (ADR-084): le prossime visite con "Cambiar fecha",
- * cosa comprende, i cobros (solo con i soldi), le piante con le indicazioni, i resoconti, le regole
+ * i messaggi con la fioreria (blocco 5b), cosa comprende, i cobros (solo con i soldi), le piante con le indicazioni, i resoconti, le regole
  * e i termini della fioreria. Un contratto che la persona non vede risponde 404.
  */
 export default async function MyCareContractPage({
@@ -186,6 +188,13 @@ export default async function MyCareContractPage({
           ) : null}
         </CardContent>
       </Card>
+
+      <MyCareMessagesCard
+        ctx={ctx}
+        subscriptionId={contract.subscriptionId}
+        pages={careMessagePages(query.mensajes)}
+        timeZone={contract.shop.timezone}
+      />
 
       <Card>
         <CardHeader>
