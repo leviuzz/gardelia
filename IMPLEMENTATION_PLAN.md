@@ -1315,6 +1315,8 @@ risponde, la foto solo dalla route privata e 404 per chi non è della fioreria, 
 filo letto senza «Cobros» né «Quitar foto», la persona vede la risposta come nuova e poi letta,
 «Quitar foto» lascia il testo) · controllo a 320 px del filo nel portale, dell'elenco «Mensajes» e
 della card della fioreria: nessuno sbordo.
+E2E completo in locale 114/114. CI verde su `ad9b1d0` (run 230, E2E compreso) e rilascio su
+staging (merge `4b0c3d6`).
 
 Prossimo: il blocco 6 di `docs/FLORAL_CARE_PLAN.md` (Asistente de plantas), dopo le decisioni del
 founder sulla prova a pagamento.
