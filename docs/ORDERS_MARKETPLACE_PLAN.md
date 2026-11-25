@@ -190,6 +190,19 @@ sull'indirizzo dell'ordine: si riempiono con Google Places (ADR-059), le coordin
 | **C3** | ✅ Home per chi compra, `/floristas` e ricerca delle fiorerie per città o indirizzo (ADR-066)                                                 |
 | **C4** | ✅ Ordine del cliente, accettazione del fiorista, pagamento diretto, stato, email, scadenza e attribuzione (ADR-067)                          |
 | **C5** | ✅ Pagine legali (bozze da rivedere) per chi compra e privacy nell'app: scaricare i dati ed eliminare il conto (ADR-068)                      |
+| **M0** | ✅ Correzioni subito: telefono del cliente online, canale «online», testi, errori, link di stato                                              |
+| **M1** | ⬜ Vetrina che vende: categorie, ricerca, evidenza, info in alto, galleria, carrello, anteprima e QR                                          |
+| **M3** | ⬜ Ordine tutto nell'app: messaggi, avvisi a ogni passo, cambi accettati dal cliente, prova di pagamento                                      |
+| **M5** | ⬜ Servizi della fioreria in vetrina e richieste con preventivo accettato nell'app                                                            |
+| **M6** | ⬜ Floral Care prenotabile: prezzo dalle piante dichiarate, fasce libere, assistente                                                          |
+| **M2** | ⬜ Opzioni ed extra (misure, colori, vasi, globos), «Armalo en ramo», upsell nell'ordine                                                      |
+| **M9** | ⬜ Disegna il tuo ramo per il cliente, con l'IA sui crediti della fioreria e limiti                                                           |
+| **M4** | ⬜ Calendario e capienza: giorni pieni e chiusi, festivi, ora limite, raggio                                                                  |
+| **M8** | ⬜ Clienti e marketing (consenso, date speciali, promo online, recensioni) e report online                                                    |
+| **M7** | ⬜ Fiori ogni settimana come abbonamento con ordini automatici                                                                                |
+
+I blocchi M0–M9 (25/11/2026, D-30, ADR-086) vengono dallo studio del giro completo di chi compra e
+di chi vende in `docs/MARKETPLACE_FLOWS.md`, nell'ordine scritto lì.
 
 Ogni blocco segue la definizione di finito di CLAUDE.md §7 (test con isolamento A↔B, testi in tre
 lingue, 320 px, CI verde) e va su staging quando è finito. Dopo la V1: "Diseña tu ramo" pubblico,

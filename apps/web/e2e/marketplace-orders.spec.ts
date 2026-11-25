@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { expectFitsAt320 } from './support/floral-care';
 import { linkFrom, uniqueEmail, waitForEmail } from './support/mailbox';
 
 /**
@@ -11,19 +12,23 @@ import { linkFrom, uniqueEmail, waitForEmail } from './support/mailbox';
 
 const OWNER_EMAIL = 'duena@lascamelias.test';
 
-async function ensurePublishedWithOrders(page: Page): Promise<void> {
-  // Il ramo si mostra in linea (idempotente).
+/** Il ramo del test in vetrina o no (idempotente). */
+async function setBouquetOnline(page: Page, online: boolean): Promise<void> {
   await page.goto('/app/las-camelias/catalog?q=Ramo+Cl%C3%A1sico');
   await page
     .getByRole('link', { name: /Ramo Clásico 12 rosas/ })
     .first()
     .click();
-  const online = page.getByRole('checkbox', { name: /Mostrar en mi tienda en línea/ });
-  if (!(await online.isChecked())) {
-    await online.check();
+  const box = page.getByRole('checkbox', { name: /Mostrar en mi tienda en línea/ });
+  if ((await box.isChecked()) !== online) {
+    await box.setChecked(online);
     await page.getByRole('button', { name: 'Guardar cambios' }).click();
     await expect(page.getByText('Cambios guardados')).toBeVisible();
   }
+}
+
+async function ensurePublishedWithOrders(page: Page): Promise<void> {
+  await setBouquetOnline(page, true);
 
   await page.goto('/app/las-camelias/settings/store');
   const transfer = page.getByRole('checkbox', { name: 'Transferencia' });
@@ -140,8 +145,24 @@ test.describe('pedido en línea (cliente y florería)', () => {
     const panel = page.getByTestId('online-pending');
     await expect(panel.getByText('Pedido en línea por aceptar')).toBeVisible();
     await expect(panel.getByText('Colores pastel, por favor.')).toBeVisible();
+    // Chi ha ordinato, con telefono ed email per chiamarlo o scrivergli (M0).
+    const contact = panel.getByTestId('online-contact');
+    await expect(contact).toContainText('Mariana Ruiz');
+    await expect(contact.getByRole('link', { name: '449 555 0177' })).toHaveAttribute(
+      'href',
+      'tel:+524495550177',
+    );
+    await expect(contact.getByRole('link', { name: email })).toHaveAttribute(
+      'href',
+      `mailto:${email}`,
+    );
     await expect(page.getByText('En línea', { exact: true })).toBeVisible();
+    // La fioreria di prova non ha un costo di consegna: prima di accettare conferma che è gratis.
     await panel.getByRole('button', { name: 'Aceptar pedido' }).click();
+    const freeDelivery = page.getByRole('dialog');
+    await expect(freeDelivery.getByText('¿Envío sin costo?')).toBeVisible();
+    await expectFitsAt320(page, 'online-free-delivery');
+    await freeDelivery.getByRole('button', { name: 'Aceptar con envío gratis' }).click();
     await expect(
       page.getByText('Pedido aceptado: le avisamos al cliente por correo.'),
     ).toBeVisible();
@@ -177,6 +198,21 @@ test.describe('pedido en línea (cliente y florería)', () => {
     await shopper.getByRole('button', { name: 'Continuar' }).click();
     await shopper.getByRole('button', { name: 'Continuar' }).click();
     await shopper.getByLabel('Tu teléfono').fill('449 555 0177');
+    // Mentre ordina, la fioreria toglie il ramo dalla vetrina: l'errore lo dice accanto al
+    // prodotto, non «no se puede cotizar» (M0). Rimesso in vetrina, l'ordine parte.
+    await setBouquetOnline(page, false);
+    await shopper.getByRole('button', { name: 'Enviar pedido' }).click();
+    await expect(
+      shopper.getByText('Un producto que elegiste ya no está disponible', { exact: false }),
+    ).toBeVisible();
+    await expect(shopper.getByText('Ya no está disponible: pon 0 para quitarlo.')).toBeVisible();
+    await expect(
+      shopper.getByRole('spinbutton', { name: 'Ramo Clásico 12 rosas' }),
+    ).toHaveAttribute('aria-invalid', 'true');
+    await setBouquetOnline(page, true);
+    for (let next = 0; next < 3; next += 1) {
+      await shopper.getByRole('button', { name: 'Continuar' }).click();
+    }
     await shopper.getByRole('button', { name: 'Enviar pedido' }).click();
     await expect(shopper).toHaveURL(/\/pedido\/[\w-]+\?enviado=1$/);
 
@@ -194,6 +230,15 @@ test.describe('pedido en línea (cliente y florería)', () => {
     await expect(shopper.getByText('Cancelado', { exact: true })).toBeVisible();
     await waitForEmail(email, { subject: 'Cancelaste tu pedido' });
     await waitForEmail(OWNER_EMAIL, { subject: 'canceló el pedido' });
+
+    // Un prodotto che non c'è più (link vecchio): lo si dice e si torna alla tienda (M0).
+    await shopper.goto('/f/las-camelias/p/0192f5c1-6b2f-7000-8000-00000000dead');
+    await expect(shopper.getByTestId('item-gone')).toBeVisible();
+    await expect(
+      shopper.getByRole('heading', { name: 'Este producto ya no está disponible' }),
+    ).toBeVisible();
+    await shopper.getByRole('link', { name: 'Ver los productos de Florería Las Camelias' }).click();
+    await expect(shopper).toHaveURL(/\/f\/las-camelias$/);
     await visitor.close();
 
     // Si rimette la tienda com'era per gli altri test.

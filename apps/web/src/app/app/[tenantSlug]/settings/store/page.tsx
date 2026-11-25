@@ -85,7 +85,11 @@ export default async function StoreSettingsPage({
             )}
           </CardTitle>
           <CardDescription>
-            {settings.isPublished ? t('store.publishedBody') : t('store.notPublishedBody')}
+            {settings.isPublished
+              ? settings.ordersEnabled
+                ? t('store.publishedBodyOrders')
+                : t('store.publishedBody')
+              : t('store.notPublishedBody')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">

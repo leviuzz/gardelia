@@ -196,7 +196,7 @@ export default async function CareSettingsPage({
               {activeSlots.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t('care.slots.empty')}</p>
               ) : (
-                <ul className="divide-y rounded-xl border">
+                <ul className="divide-y rounded-xl border" data-testid="care-slots-active">
                   {activeSlots.map((slot) => {
                     const view = { ...slot, label: slotLabel(slot) };
                     return (

@@ -130,7 +130,8 @@
       "tenant_deletion_open_orders": "Ci sono ordini in corso: consegnali o annullali prima di eliminare la fioreria.",
       "session_is_current": "Per chiudere la sessione di questo dispositivo usa «Esci» nel menu.",
       "order_not_substitutable": "Questo ordine non accetta più cambi di fiori: il mazzo è già fatto o l'ordine è chiuso.",
-      "substitution_not_allowed": "Questo mazzo non ammette sostituzioni. Parla con il cliente per decidere cosa fare."
+      "substitution_not_allowed": "Questo mazzo non ammette sostituzioni. Parla con il cliente per decidere cosa fare.",
+      "order_free_delivery_unconfirmed": "La consegna è a $0: conferma che è gratis o cambiala prima di accettare."
     },
     "pageNotFoundTitle": "Pagina non trovata",
     "pageNotFoundBody": "La pagina non esiste o non hai accesso.",
@@ -185,8 +186,8 @@
     "step1Body": "La tua città o l'indirizzo di chi riceve i fiori.",
     "step2Title": "Scegli una fioreria",
     "step2Body": "Guarda composizioni, prezzi, consegne e forme di pagamento.",
-    "step3Title": "Ordina su WhatsApp",
-    "step3Body": "La fioreria ti conferma composizione, consegna e pagamento, direttamente.",
+    "step3Title": "Ordina online o su WhatsApp",
+    "step3Body": "La fioreria conferma il tuo ordine e la paghi direttamente, senza intermediari.",
     "floristTitle": "Hai una fioreria?",
     "floristBody": "Gestisci ordini, clienti e consegne, e apri il tuo negozio online.",
     "floristCta": "Gardelia per le fiorerie"
@@ -599,7 +600,8 @@
       "save": "Salva ordini online"
     },
     "offMap": "Chi cerca il proprio indirizzo non trova ancora la tua tienda, perché il negozio principale non è sulla mappa. Ti trova solo chi cerca la tua città.",
-    "offMapAction": "Scegli l’indirizzo sulla mappa"
+    "offMapAction": "Scegli l’indirizzo sulla mappa",
+    "publishedBodyOrders": "Chiunque abbia il link vede i tuoi prodotti visibili online e ti manda ordini, che accetti o rifiuti qui."
   },
   "publicStore": {
     "demoNotice": "Fioreria di prova: prodotti e prezzi sono di esempio.",
@@ -661,7 +663,10 @@
     "feeTier": "fino a {km} km {fee}",
     "hoursTitle": "Orari di apertura",
     "hoursClosed": "Chiuso",
-    "hoursDays": "Da {first} a {last}"
+    "hoursDays": "Da {first} a {last}",
+    "itemGoneTitle": "Questo prodotto non è più disponibile",
+    "itemGoneBody": "La fioreria l’ha tolto dal negozio. Guarda cosa ha oggi.",
+    "itemGoneBack": "Vedi i prodotti di {shop}"
   },
   "timezones": {
     "America/Mexico_City": "Ora del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -1269,7 +1274,8 @@
       "website": "Sito web",
       "referral": "Passaparola",
       "event": "Evento",
-      "other": "Altro"
+      "other": "Altro",
+      "online_store": "Negozio online"
     },
     "form": {
       "createTitle": "Nuovo cliente",
@@ -2008,7 +2014,7 @@
       "accepted": "Ordine accettato: abbiamo avvisato il cliente per email.",
       "badge": "Online",
       "panelTitle": "Ordine online da accettare",
-      "panelBody": "Controlla prodotti, data e costo di consegna (se qualcosa cambia, modificalo qui sotto d’accordo con il cliente). Accettandolo gli mandiamo il totale e come pagarti. Se nessuno risponde entro {days} giorni, si annulla da solo.",
+      "panelBody": "Controlla data, modalità e costo della consegna: se qualcosa cambia, modificalo qui sotto d’accordo con il cliente (i prodotti non si cambiano). Accettandolo gli mandiamo il totale e come pagarti. Se nessuno risponde entro {days} giorni, si annulla da solo.",
       "accept": "Accetta l’ordine",
       "reject": "Rifiuta",
       "rejectTitle": "Rifiutare l’ordine",
@@ -2018,7 +2024,11 @@
       "cancelNotice": "Il cliente ha fatto questo ordine online: gli manderemo un’email con il motivo.",
       "buyerNotes": "Commenti del cliente",
       "askManager": "Solo proprietari e manager possono accettare o rifiutare gli ordini online.",
-      "stepsAfter": "Prima accettalo o rifiutalo qui sopra; poi qui segni come procede."
+      "stepsAfter": "Prima accettalo o rifiutalo qui sopra; poi qui segni come procede.",
+      "contact": "Cliente:",
+      "freeDeliveryTitle": "Consegna gratis?",
+      "freeDeliveryBody": "La consegna di questo ordine è a $0. Se ha un costo, annulla e cambialo in «Cambia consegna e biglietto» prima di accettare. Se è gratis, accettalo così: il cliente riceve il totale con la consegna gratis.",
+      "freeDeliveryConfirm": "Accetta con consegna gratis"
     },
     "inventory": {
       "title": "Inventario",
@@ -3191,7 +3201,9 @@
       "date_too_soon": "Quel giorno non è più possibile: scegli una data successiva.",
       "date_too_far": "Scegli una data entro i prossimi 60 giorni.",
       "closed_day": "La fioreria è chiusa quel giorno: scegline un altro.",
-      "out_of_zone": "La fioreria non consegna così lontano: scegli un altro indirizzo o il ritiro in negozio."
+      "out_of_zone": "La fioreria non consegna così lontano: scegli un altro indirizzo o il ritiro in negozio.",
+      "item_unavailable": "Un prodotto che hai scelto non è più disponibile: toglilo e invia di nuovo l’ordine.",
+      "item_gone": "Non è più disponibile: metti 0 per toglierlo."
     },
     "conflict": {
       "closed": "Questa fioreria per ora non riceve ordini online.",

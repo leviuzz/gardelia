@@ -369,6 +369,15 @@ export function CheckoutForm({
                           {tStore(`availability.${item.availability}`)}
                         </Badge>
                       ) : null}
+                      {/* Tolto o esaurito mentre si ordinava: l'errore accanto al prodotto (M0). */}
+                      {err(`qty.${item.id}`) ? (
+                        <span
+                          id={`${inputId}-error`}
+                          className="mt-1 block text-sm text-destructive"
+                        >
+                          {err(`qty.${item.id}`)}
+                        </span>
+                      ) : null}
                     </span>
                     {/* Su un telefono stretto va sotto il nome, a destra. */}
                     <span className="ml-auto flex shrink-0 items-center gap-1">
@@ -392,6 +401,8 @@ export function CheckoutForm({
                         step={1}
                         value={quantity}
                         onChange={(event) => setQuantity(item.id, Number(event.target.value))}
+                        aria-invalid={err(`qty.${item.id}`) ? true : undefined}
+                        aria-describedby={err(`qty.${item.id}`) ? `${inputId}-error` : undefined}
                         className="w-14 text-center tabular-nums"
                       />
                       <Button

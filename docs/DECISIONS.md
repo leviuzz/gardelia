@@ -39,6 +39,7 @@ Ultimo aggiornamento: 25 novembre 2026 (Floral Care, Asistente de plantas, ADR-0
 | D-27       | **Ruta del día gratuita**: fermate ordinate per fascia oraria e vicinanza con un calcolo nostro, navigazione con i link di Google Maps; niente tracciamento in tempo reale né ottimizzazione a pagamento                                                                                                                          | DECISO (founder, 23/11/2026)                                                                             | Coordinate facoltative negli indirizzi; senza coordinate solo ordine per fascia (`docs/ORDERS_MARKETPLACE_PLAN.md` §4)                                                                                          |
 | D-28       | **Organizzazioni per le catene**: un account crea organizzazioni e sotto ognuna più fiorerie, gestite dall'organizzazione                                                                                                                                                                                                         | DECISO come direzione (founder, 23/11/2026), da progettare dopo la V1                                    | Oggi più fiorerie indipendenti per account; inventario per fioreria (ADR-060). Da progettare: ruoli, catalogo condiviso, trasferimenti, report (spec §8.6)                                                      |
 | D-29       | **Fase di prova senza piani** (founder, 24/11/2026): con poche fiorerie tester ognuna ha **tutte le funzioni** (`PLAN_FEATURES_ENFORCED`); le **anteprime con IA si pagano sempre**, con crediti assegnati dalla piattaforma dopo il pagamento, chiesti su WhatsApp. I livelli di D-23 tornano prima della produzione             | DECISO come direzione (founder, 23/11/2026), da progettare dopo la V1                                    | Oggi più fiorerie indipendenti per account; inventario per fioreria (ADR-060). Da progettare: ruoli, catalogo condiviso, trasferimenti, report (spec §8.6)                                                      |
+| D-30       | **Marketplace completo** (founder, 25/11/2026): tutto nell'app per chi compra e chi vende; servizi della fioreria in vetrina (Floral Care, eventi e matrimoni, decorazione di locali, fiori ogni settimana, più i suoi); Floral Care prenotabile col prezzo dalle piante dichiarate                                               | DECISO (founder, 25/11/2026)                                                                             | Studio e blocchi M0–M9 in `docs/MARKETPLACE_FLOWS.md` (ADR-086)                                                                                                                                                 |
 
 ---
 
@@ -3141,6 +3142,37 @@ niente codice nuovo»):**
 - **DECISO:** le domande comprate e non usate **non si rimborsano** a fine contratto, e il cliente
   lo legge prima di chiederle. **DA VALIDARE** con l'avvocato (PROFECO) e nei termini della
   fioreria; IVA della rivendita con il contador della fioreria.
+
+### ADR-086 — Marketplace completo: il giro di chi compra e di chi vende — IN CORSO (25/11/2026)
+
+- **Perché:** il founder, provando staging, trova la parte del cliente «scarna»: vuole che il
+  cliente scelga ramos e fiori, crei il suo ramo, chieda i servizi della fioreria (Floral Care è
+  uno) e che ordini e prenotazioni arrivino al fiorista, che approva; tutto nell'app (D-30).
+- **Studio:** `docs/MARKETPLACE_FLOWS.md`, fatto leggendo pagina per pagina il codice di chi compra e
+  del fiorista: per ogni passo oggi, manca, proposta. Fra i fatti: l'ordine online con accettazione
+  esiste già (ADR-067) ma si vede solo con «Ordini online» acceso; dopo l'accettazione il cliente
+  non riceve avvisi e parla con la fioreria solo su WhatsApp; i cambi del fiorista non arrivano al
+  cliente; due errori (telefono del cliente online perso se l'email esiste già, canale «online»
+  cancellato modificando il cliente).
+- **Decisioni del founder (25/11):** prezzo di Floral Care subito dalle piante dichiarate, con
+  correzione alla prima visita accettata dal cliente; pagamento diretto (D-26); servizi predefiniti
+  Floral Care, Eventi e matrimoni, Decorazione di locali, Fiori ogni settimana, più quelli del
+  fiorista; «Disegna il tuo ramo» dopo servizi e Floral Care. I rilasci 2 e 3 del feedback sul
+  contratto (assistente fra i servizi, date scelte a mano) entrano in M6.
+- **Blocchi, in ordine:** M0 correzioni; M1 vetrina che vende; M3 ordine tutto nell'app (messaggi,
+  avvisi, cambi accettati dal cliente, prova di pagamento); M5 servizi e richieste con preventivo;
+  M6 Floral Care prenotabile; M2 opzioni ed extra; M9 Disegna il tuo ramo; M4 calendario e
+  capienza; M8 clienti, marketing e report; M7 Fiori ogni settimana come abbonamento.
+- **PROPOSTO:** «Lavori della visita» al posto di «Servizi» in Floral Care; richieste e
+  prenotazioni non tengono posti finché il fiorista non accetta; pagine pubbliche indicizzate solo
+  in produzione.
+- **DA VALIDARE:** termini per i consumatori (PROFECO), aviso de privacidad per le foto della prova
+  di pagamento e delle piante, fatture della fioreria al cliente.
+- **M0 fatto (25/11):** telefono dell'ordine salvato sul cliente che non ne aveva uno, mai
+  sovrascritto; canale `online_store` fra quelli del cliente; testi della home, del negozio e del
+  pannello «Da accettare»; errore accanto al prodotto non più disponibile; conferma per accettare
+  con la consegna a 0; pagina del prodotto tolto; link di stato fino a 30 giorni dopo la consegna,
+  allungato se la consegna si sposta. Dettagli in `docs/MARKETPLACE_FLOWS.md` §4.
 
 ## 3. Proposte da approvare
 

@@ -108,6 +108,7 @@ export type ConflictReason =
   /** La fioreria: l'ordine online non è (più) da accettare, o il suo giorno è già passato. */
   | 'order_not_pending'
   | 'order_date_passed'
+  | 'order_free_delivery_unconfirmed'
   /** Un ordine "Por aceptar" si conferma solo con "Aceptar pedido" (che lo scrive al cliente). */
   | 'order_needs_acceptance'
   /** "Listo": i materiali dell'ordine non bastano nell'inventario (ADR-071). */

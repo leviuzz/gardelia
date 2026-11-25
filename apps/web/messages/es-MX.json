@@ -130,7 +130,8 @@
       "tenant_deletion_open_orders": "Hay pedidos en curso: entrégalos o cancélalos antes de eliminar la florería.",
       "session_is_current": "Para cerrar la sesión de este dispositivo usa «Cerrar sesión» en el menú.",
       "order_not_substitutable": "Este pedido ya no admite cambios de flores: el ramo ya está hecho o el pedido está cerrado.",
-      "substitution_not_allowed": "Este ramo no admite sustituciones. Habla con el cliente para decidir qué hacer."
+      "substitution_not_allowed": "Este ramo no admite sustituciones. Habla con el cliente para decidir qué hacer.",
+      "order_free_delivery_unconfirmed": "El envío está en $0: confirma que es gratis o cámbialo antes de aceptar."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -185,8 +186,8 @@
     "step1Body": "Tu ciudad o la dirección de quien recibe las flores.",
     "step2Title": "Escoge una florería",
     "step2Body": "Mira sus arreglos, precios, entregas y formas de pago.",
-    "step3Title": "Pide por WhatsApp",
-    "step3Body": "La florería te confirma el arreglo, la entrega y el pago, directo con ella.",
+    "step3Title": "Pide en línea o por WhatsApp",
+    "step3Body": "La florería confirma tu pedido y le pagas directo, sin intermediarios.",
     "floristTitle": "¿Tienes una florería?",
     "floristBody": "Lleva pedidos, clientes y entregas, y abre tu tienda en línea.",
     "floristCta": "Gardelia para florerías"
@@ -599,7 +600,8 @@
       "save": "Guardar pedidos en línea"
     },
     "offMap": "Quien busca su dirección todavía no encuentra tu tienda, porque tu tienda principal no está en el mapa. Solo te encuentra quien busca tu ciudad.",
-    "offMapAction": "Elegir la dirección en el mapa"
+    "offMapAction": "Elegir la dirección en el mapa",
+    "publishedBodyOrders": "Cualquiera con el enlace ve tus productos visibles en línea y te hace pedidos, que aceptas o rechazas aquí."
   },
   "publicStore": {
     "demoNotice": "Florería de demostración: los productos y precios son de prueba.",
@@ -661,7 +663,10 @@
     "feeTier": "hasta {km} km {fee}",
     "hoursTitle": "Horario de atención",
     "hoursClosed": "Cerrado",
-    "hoursDays": "{first} a {last}"
+    "hoursDays": "{first} a {last}",
+    "itemGoneTitle": "Este producto ya no está disponible",
+    "itemGoneBody": "La florería lo retiró de su tienda. Mira lo que tiene hoy.",
+    "itemGoneBack": "Ver los productos de {shop}"
   },
   "timezones": {
     "America/Mexico_City": "Tiempo del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -1269,7 +1274,8 @@
       "website": "Sitio web",
       "referral": "Recomendación",
       "event": "Evento",
-      "other": "Otro"
+      "other": "Otro",
+      "online_store": "Tienda en línea"
     },
     "form": {
       "createTitle": "Nuevo cliente",
@@ -2008,7 +2014,7 @@
       "accepted": "Pedido aceptado: le avisamos al cliente por correo.",
       "badge": "En línea",
       "panelTitle": "Pedido en línea por aceptar",
-      "panelBody": "Revisa productos, fecha y costo de envío (si algo cambia, ajústalo abajo de acuerdo con el cliente). Al aceptarlo le enviamos el total y cómo pagarte. Si nadie responde en {days} días, se cancela solo.",
+      "panelBody": "Revisa fecha, entrega y costo de envío: si algo cambia, ajústalo abajo de acuerdo con el cliente (los productos no se cambian). Al aceptarlo le enviamos el total y cómo pagarte. Si nadie responde en {days} días, se cancela solo.",
       "accept": "Aceptar pedido",
       "reject": "Rechazar",
       "rejectTitle": "Rechazar el pedido",
@@ -2018,7 +2024,11 @@
       "cancelNotice": "El cliente hizo este pedido en línea: le enviaremos un correo con el motivo.",
       "buyerNotes": "Comentarios del cliente",
       "askManager": "Solo propietarios y gerentes pueden aceptar o rechazar los pedidos en línea.",
-      "stepsAfter": "Primero acéptalo o recházalo arriba; luego aquí marcas cómo avanza."
+      "stepsAfter": "Primero acéptalo o recházalo arriba; luego aquí marcas cómo avanza.",
+      "contact": "Cliente:",
+      "freeDeliveryTitle": "¿Envío sin costo?",
+      "freeDeliveryBody": "El envío de este pedido está en $0. Si tiene costo, cancela y cámbialo en «Cambiar entrega y tarjeta» antes de aceptar. Si es gratis, acéptalo así: el cliente recibe el total con envío gratis.",
+      "freeDeliveryConfirm": "Aceptar con envío gratis"
     },
     "inventory": {
       "title": "Inventario",
@@ -3191,7 +3201,9 @@
       "date_too_soon": "Ese día ya no se puede: elige una fecha posterior.",
       "date_too_far": "Elige una fecha dentro de los próximos 60 días.",
       "closed_day": "La florería no abre ese día: elige otro.",
-      "out_of_zone": "La florería no entrega tan lejos: elige otra dirección o recoger en la tienda."
+      "out_of_zone": "La florería no entrega tan lejos: elige otra dirección o recoger en la tienda.",
+      "item_unavailable": "Un producto que elegiste ya no está disponible: quítalo y vuelve a enviar el pedido.",
+      "item_gone": "Ya no está disponible: pon 0 para quitarlo."
     },
     "conflict": {
       "closed": "Esta florería no está recibiendo pedidos en línea por ahora.",
