@@ -1269,6 +1269,10 @@ fascia · build ✅ · E2E del portale ✅ (invito, registrazione dal link con l
 accettazione, «Cambiar fecha», segno nell'Agenda, «Quitar acceso» → 404, link scaduto, conto
 sbagliato) · controllo a 320 px di invito, contratto, «Cambiar fecha» e card della fioreria: nessuno
 sbordo.
+E2E completo in locale 113/113. La CI 223 su `bbb753e` era rossa solo per `legal-content.test.ts`:
+la bozza dell'aviso con Mi Floral Care non era stata copiata nella pagina `/privacidad`
+(`legal:sync`). Corretto in `5391ba4`; test 1181/1181 in locale; CI verde su `5391ba4` (run 224,
+E2E compreso) e rilascio su staging (merge `61764cb`).
 
 Prossimo: il 5b di `docs/FLORAL_CARE_PLAN.md` (messaggi con foto, riassunto per la fioreria,
 avviso al cliente, messaggi nell'export e nell'eliminazione del conto).
