@@ -1420,6 +1420,18 @@ CI verde su `a169c06` (run 245, E2E compreso) e rilascio su staging con il via l
 (merge `5142e81`, CI run 246 verde): l'assistente resta spento finché su Vercel non ci sono le sue
 variabili.
 
+**Floral Care, «Nuevo contrato» senza giri a vuoto (25/11 sera):** il founder non riusciva ad aprire
+un contratto su staging: «Nuevo contrato» dell'elenco portava a Clientes, il riquadro Floral Care
+della scheda del cliente è in basso e, senza tarifas o horarios, il modulo rimandava ad Ajustes →
+Floral Care, che sembrava la pagina di partenza. Ora «Nuevo contrato» apre «¿Para qué cliente es?»
+(ricerca ed elenco dei clienti attivi, come per una cotización, più «Registrar cliente»); finché
+l'offerta non è pronta, l'elenco dei contratti, la scelta del cliente e il modulo mostrano «Antes
+del primer contrato» con i due passi (tarifas, almeno un horario), fatti o da fare, e il link ad
+Ajustes (`getCareSetupStatus`, `CareSetupChecklist`). Nessun cambio al database. Test del servizio
+nel test dell'offerta, percorso in `routes.test.ts`, E2E `floral-care-new-contract.spec.ts` (le due
+strade, controllo a 320 px). Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test 1236/1236 ✅ ·
+build ✅ · E2E completo 117/117 ✅.
+
 Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,
 `ASSISTANT_MONTHLY_BUDGET_USD=2`, 10 a dicembre), i crediti alla sua fioreria di prova con

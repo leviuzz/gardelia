@@ -3507,7 +3507,7 @@
     },
     "contracts": {
       "title": "Floral Care",
-      "subtitle": "I tuoi contratti di cura delle piante. Un contratto nuovo si fa dalla scheda del cliente.",
+      "subtitle": "I tuoi contratti di cura delle piante. Per uno nuovo, tocca «Nuovo contratto» e scegli il cliente.",
       "offerLink": "Tariffe e fasce",
       "newFromCustomer": "Nuovo contratto",
       "viewsLabel": "Contratti per stato",
@@ -3573,9 +3573,6 @@
       "editTitle": "Modifica bozza",
       "backToCustomer": "Torna al cliente",
       "backToContract": "Torna a {number}",
-      "needsOfferTitle": "Prima prepara la tua offerta",
-      "needsOfferBody": "Salva le tariffe e crea almeno una fascia di visita in Impostazioni → Floral Care.",
-      "needsOfferAction": "Vai a Floral Care",
       "needsAddressTitle": "Il cliente non ha indirizzi",
       "needsAddressBody": "Aggiungi l’indirizzo del posto dove sono le piante nella scheda del cliente.",
       "needsAddressAction": "Vai alla scheda del cliente",
@@ -3602,7 +3599,14 @@
       "servicesTitle": "Servizi",
       "servicesHint": "Gli inclusi si fanno a ogni visita; gli extra si sommano al prezzo.",
       "notes": "Note interne",
-      "notesHint": "Solo per la tua squadra."
+      "notesHint": "Solo per la tua squadra.",
+      "pick": {
+        "subtitle": "Per quale cliente è? Sceglilo dal tuo elenco; se è nuovo, registralo prima.",
+        "hint": "Scegli il cliente per creare il contratto.",
+        "contractFor": "Contratto per {name}",
+        "createCustomer": "Registra cliente",
+        "back": "Torna a Floral Care"
+      }
     },
     "plants": {
       "title": "{count, plural, =0 {Piante} one {Piante (#)} other {Piante (#)}}",
@@ -4539,6 +4543,16 @@
         "onlyManagers": "Solo il titolare o un responsabile può dare crediti.",
         "closed": "Il servizio non è attivo: non riceve più crediti."
       }
+    },
+    "setup": {
+      "title": "Prima del primo contratto",
+      "description": "Per creare contratti mancano questi passi in Impostazioni → Floral Care.",
+      "tariffs": "Salva le tue tariffe: prezzo per visita, cura per pianta e frequenze.",
+      "slots": "Crea almeno un orario di visita (compare dopo aver salvato le tariffe).",
+      "done": "Fatto",
+      "todo": "Da fare",
+      "action": "Vai a Impostazioni → Floral Care",
+      "askManager": "Chiedi al titolare o a un responsabile di prepararlo."
     }
   },
   "letterhead": {

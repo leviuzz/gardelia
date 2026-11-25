@@ -228,6 +228,43 @@ export async function getCareSettings(ctx: TenantContext): Promise<CareSettingsD
   });
 }
 
+/** Che cosa manca per fare il primo contratto (le stesse condizioni del modulo del contratto). */
+export interface CareSetupStatusDto {
+  /** L'offerta è stata salvata almeno una volta. */
+  readonly tariffsSaved: boolean;
+  /** Fasce di visita attive. */
+  readonly activeSlots: number;
+  /** Frequenze offerte. */
+  readonly frequencies: number;
+  /** Si può fare un contratto: tarifas salvate, almeno una fascia e una frequenza. */
+  readonly ready: boolean;
+  /** Chi gestisce può sistemare l'offerta. */
+  readonly canWrite: boolean;
+}
+
+/**
+ * Lo stato dell'offerta in due passi («Guarda tus tarifas», «Crea al menos un horario de visita»):
+ * leggero, per l'elenco dei contratti e la scelta del cliente.
+ */
+export async function getCareSetupStatus(ctx: TenantContext): Promise<CareSetupStatusDto> {
+  requirePermission(ctx, 'subscriptions:read');
+  return withTenantContext(getDb(), ctx, async (tx) => {
+    await requireEntitlement(ctx, 'floralCare', tx);
+    const [settings, activeSlots] = await Promise.all([
+      loadCareSettings(tx, ctx.tenantId),
+      tx.careSlot.count({ where: { tenantId: ctx.tenantId, status: 'ACTIVE' } }),
+    ]);
+    const frequencies = settings?.frequencies.length ?? 0;
+    return {
+      tariffsSaved: settings !== null,
+      activeSlots,
+      frequencies,
+      ready: settings !== null && activeSlots > 0 && frequencies > 0,
+      canWrite: hasPermission(ctx, 'subscriptions:write'),
+    };
+  });
+}
+
 /**
  * Salva l'offerta. La prima volta crea anche i servizi inclusi della nostra lista (riego, limpieza
  * de hojas…): gli extra restano proposte da aggiungere con il prezzo del fiorista.

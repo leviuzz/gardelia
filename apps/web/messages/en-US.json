@@ -3507,7 +3507,7 @@
     },
     "contracts": {
       "title": "Floral Care",
-      "subtitle": "Your plant care contracts. A new contract starts from the customer’s page.",
+      "subtitle": "Your plant care contracts. For a new one, tap “New contract” and choose the customer.",
       "offerLink": "Rates and time slots",
       "newFromCustomer": "New contract",
       "viewsLabel": "Contracts by status",
@@ -3573,9 +3573,6 @@
       "editTitle": "Edit draft",
       "backToCustomer": "Back to the customer",
       "backToContract": "Back to {number}",
-      "needsOfferTitle": "Set up your offer first",
-      "needsOfferBody": "Save your rates and create at least one visit time slot in Settings → Floral Care.",
-      "needsOfferAction": "Go to Floral Care",
       "needsAddressTitle": "The customer has no addresses",
       "needsAddressBody": "Add the address of the place with the plants on the customer’s page.",
       "needsAddressAction": "Go to the customer’s page",
@@ -3602,7 +3599,14 @@
       "servicesTitle": "Services",
       "servicesHint": "Included ones are done at every visit; extras add to the price.",
       "notes": "Internal notes",
-      "notesHint": "Only for your team."
+      "notesHint": "Only for your team.",
+      "pick": {
+        "subtitle": "Which customer is it for? Choose them from your list; if they're new, add them first.",
+        "hint": "Choose the customer to create the contract.",
+        "contractFor": "Contract for {name}",
+        "createCustomer": "Add customer",
+        "back": "Back to Floral Care"
+      }
     },
     "plants": {
       "title": "{count, plural, =0 {Plants} one {Plants (#)} other {Plants (#)}}",
@@ -4539,6 +4543,16 @@
         "onlyManagers": "Only the owner or a manager can give credits.",
         "closed": "The service isn't active: it no longer receives credits."
       }
+    },
+    "setup": {
+      "title": "Before your first contract",
+      "description": "To create contracts, these steps are missing in Settings → Floral Care.",
+      "tariffs": "Save your rates: price per visit, care per plant and frequencies.",
+      "slots": "Create at least one visit time slot (it appears once your rates are saved).",
+      "done": "Done",
+      "todo": "To do",
+      "action": "Go to Settings → Floral Care",
+      "askManager": "Ask the owner or a manager to set it up."
     }
   },
   "letterhead": {

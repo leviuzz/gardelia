@@ -86,6 +86,8 @@ describe('percorsi della fioreria (routes.ts)', () => {
     expect(routes.subscriptions.messagePhoto('s1', 'p/1', { thumb: true })).toBe(
       '/app/las-camelias/subscriptions/s1/messages/photos/p%2F1?size=thumb',
     );
+    expect(routes.subscriptions.new()).toBe('/app/las-camelias/subscriptions/new');
+    expect(routes.subscriptions.new('c1')).toBe('/app/las-camelias/subscriptions/new?customer=c1');
     expect(accountRoutes.care.thread('s1')).toBe('/cuenta/floral-care/s1#mensajes');
     // Asistente de plantas del cliente (ADR-085, blocco 6b).
     expect(accountRoutes.care.assistant('s1')).toBe('/cuenta/floral-care/s1/asistente');

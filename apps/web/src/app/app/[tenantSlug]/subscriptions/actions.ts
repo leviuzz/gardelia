@@ -49,6 +49,23 @@ function generatedMessage(
   };
 }
 
+/**
+ * «¿Para qué cliente es el contrato?»: con il cliente scelto si apre il modulo. Il cliente arriva dal
+ * browser: la pagina del modulo lo cerca solo nella fioreria della sessione (404 altrimenti).
+ */
+export async function chooseCareContractCustomerAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ routes }) => {
+    const customerId = formData.get('customerId');
+    return {
+      redirectTo: routes.subscriptions.new(typeof customerId === 'string' ? customerId : ''),
+    };
+  });
+}
+
 export async function createCareContractAction(
   slug: string,
   customerId: string,

@@ -35,6 +35,7 @@ import {
   getCareAgendaMonth,
   getCareContract,
   getCareSettings,
+  getCareSetupStatus,
   getCareVisitMoveOptions,
   listCareContracts,
   listCareVisitsToReschedule,
@@ -234,6 +235,14 @@ describe('offerta della fioreria', () => {
   it('prima va salvata l’offerta; la prima volta crea i servizi inclusi della nostra lista', async () => {
     const before = await getCareSettings(shop.owner);
     expect(before).toMatchObject({ configured: false, maxDistanceKm: 15, hasOrigin: true });
+    // Che cosa manca per il primo contratto: tutto (lo vede anche lo staff, senza poterlo fare).
+    expect(await getCareSetupStatus(shop.staff)).toEqual({
+      tariffsSaved: false,
+      activeSlots: 0,
+      frequencies: 0,
+      ready: false,
+      canWrite: false,
+    });
     await expect(createCareSlot(shop.owner, slotInput(2, '09:00', '12:00', 2))).rejects.toThrow(
       new ConflictError('care_not_configured'),
     );
@@ -264,6 +273,13 @@ describe('offerta della fioreria', () => {
       'repotting',
     ]);
     wateringId = after.services.find((service) => service.presetKey === 'watering')!.id;
+    // Le tarifas ci sono, manca ancora un horario de visita.
+    expect(await getCareSetupStatus(shop.owner)).toMatchObject({
+      tariffsSaved: true,
+      activeSlots: 0,
+      ready: false,
+      canWrite: true,
+    });
   });
 
   it('servizi extra con il prezzo del fiorista; la stessa proposta due volte no', async () => {
@@ -303,6 +319,8 @@ describe('offerta della fioreria', () => {
     const settings = await getCareSettings(shop.owner);
     expect(settings.travelTiers.map((tier) => tier.maxKm)).toEqual([2, 5]);
     expect(settings.slots.filter((slot) => slot.active)).toHaveLength(2);
+    // Con tarifas e horarios si può fare il primo contratto.
+    expect(await getCareSetupStatus(shop.owner)).toMatchObject({ activeSlots: 2, ready: true });
   });
 });
 
