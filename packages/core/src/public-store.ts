@@ -10,22 +10,36 @@ import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
 import {
   MX_REGIONS,
   ONLINE_ITEM_TYPES,
-  STORE_LIMITS,
+  deliveryFeeSummary,
+  firstOrderableDate,
   formatTimeOfDay,
   hasOpeningHours,
   isStoreImageKind,
   isUuid,
+  parseStorefrontQuery,
+  planStorefront,
   resolveLocale,
+  toIsoDate,
+  todayInTimeZone,
   type Availability,
+  type CartLine,
   type CatalogItemType,
+  type DeliveryFeeSummary,
   type OpeningDay,
   type SaleUnit,
+  type StorefrontCategory,
+  type StorefrontQuery,
   type StorePaymentMethod,
   type SupportedLocale,
 } from '@floral/domain';
 import { NotFoundError } from './errors';
 import { logger } from './logger';
 import { loadOpeningHours } from './services/opening-hours';
+import {
+  FLOWER_SELECT,
+  speciesDto,
+  type AssistantSpeciesDto,
+} from './services/plant-assistant-internals';
 import { readStoredImage, type StoredImage } from './media/stored-files';
 
 const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
@@ -43,6 +57,8 @@ export interface PublicStoreItemDto {
   readonly widthCm: number | null;
   /** Prima foto (copertina), o null. */
   readonly photoId: string | null;
+  /** «In evidenza» nella vetrina (M1). */
+  readonly featured: boolean;
 }
 
 export interface PublicStoreDto {
@@ -75,32 +91,74 @@ export interface PublicStoreDto {
     /** Costo per distanza (ADR-069), dalla fascia più vicina; vuoto se la fioreria non lo usa. */
     readonly feeTiers: readonly { readonly maxKm: number; readonly feeMinor: number }[];
     readonly radiusKm: number | null;
+    /** Il costo in una riga per la testata (M1): mai «gratis» per un costo a 0. */
+    readonly feeSummary: DeliveryFeeSummary;
+    /**
+     * Primo giorno che si può scegliere in un ordine online (`YYYY-MM-DD`, ora della fioreria),
+     * saltando i giorni chiusi; null se non ce n'è uno nei prossimi 60 giorni.
+     */
+    readonly firstDate: string | null;
+    /** Oggi nell'ora della fioreria (`YYYY-MM-DD`): «desde hoy», «desde mañana». */
+    readonly today: string;
   };
   readonly paymentMethods: readonly StorePaymentMethod[];
   readonly paymentInstructions: string | null;
   /** Chi compra può fare l'ordine dalla pagina (ADR-067). */
   readonly ordersEnabled: boolean;
+  /** Politiche della fioreria (M1): testi suoi, null se non le ha scritte. */
+  readonly policies: {
+    readonly changes: string | null;
+    readonly cancellations: string | null;
+    readonly substitutions: string | null;
+  };
+}
+
+/**
+ * Il carrello di chi compra (cookie, M1) ai prezzi di oggi: solo i prodotti ancora ordinabili.
+ * Serve alla barra «Tu pedido»; il modulo d'ordine e il server rifanno sempre tutto.
+ */
+export interface PublicCartSummaryDto {
+  /** Prodotti diversi e pezzi in tutto. */
+  readonly lines: number;
+  readonly units: number;
+  readonly subtotalMinor: number;
+}
+
+/** La vetrina (M1): scheda, ricerca, ordine e pagina scelti da chi compra. */
+export interface PublicStorefrontDto {
+  readonly store: PublicStoreDto;
+  readonly query: StorefrontQuery;
+  /** Schede con prodotti, su tutta la vetrina. */
+  readonly categories: readonly {
+    readonly category: StorefrontCategory;
+    readonly count: number;
+  }[];
+  /** Prodotti che corrispondono ai filtri; tutti quelli online della fioreria. */
+  readonly total: number;
+  readonly onlineCount: number;
+  readonly page: number;
+  readonly pageCount: number;
   readonly items: readonly PublicStoreItemDto[];
+  /** Riga «Destacados» (solo la prima pagina senza filtri). */
+  readonly featured: readonly PublicStoreItemDto[];
+  /** Il carrello di chi guarda, o null se è vuoto. */
+  readonly cart: PublicCartSummaryDto | null;
 }
 
 export interface PublicStoreItemDetailDto {
-  readonly store: Pick<
-    PublicStoreDto,
-    | 'slug'
-    | 'name'
-    | 'locale'
-    | 'currency'
-    | 'isDemo'
-    | 'phone'
-    | 'paymentMethods'
-    | 'logoId'
-    | 'ordersEnabled'
-  >;
+  readonly store: PublicStoreDto;
+  /** Il carrello di chi guarda, o null se è vuoto. */
+  readonly cart: PublicCartSummaryDto | null;
   readonly item: PublicStoreItemDto & {
     /** Tutte le foto, nell'ordine del catalogo. */
     readonly photoIds: readonly string[];
     /** Di cosa è fatto un ramo (dalla sua distinta), senza costi. */
     readonly includes: readonly { readonly name: string; readonly quantity: number }[];
+    /**
+     * Solo per le piante con la specie: luce, acqua e cani e gatti dai nostri dati, con la fonte
+     * (ADR-085). Null se mancano: la pagina allora non dice niente (mai «sicura»).
+     */
+    readonly species: AssistantSpeciesDto | null;
   };
 }
 
@@ -143,10 +201,37 @@ const ITEM_SELECT = {
   colors: true,
   heightCm: true,
   widthCm: true,
+  featuredAt: true,
 } as const;
 
-async function readStoreHeader(tx: TransactionClient, tenantId: string) {
-  const [tenant, store] = await Promise.all([
+const COVER_PHOTO = {
+  where: { status: 'ACTIVE' as const },
+  orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
+  take: 1,
+  select: { id: true },
+};
+
+function itemDto(item: {
+  readonly id: string;
+  readonly type: CatalogItemType;
+  readonly name: string;
+  readonly description: string | null;
+  readonly priceMinor: number;
+  readonly saleUnit: SaleUnit;
+  readonly availability: Availability;
+  readonly colors: string[];
+  readonly heightCm: number | null;
+  readonly widthCm: number | null;
+  readonly featuredAt: Date | null;
+  readonly photos: readonly { readonly id: string }[];
+}): PublicStoreItemDto {
+  const { photos, featuredAt, ...rest } = item;
+  return { ...rest, photoId: photos[0]?.id ?? null, featured: featuredAt !== null };
+}
+
+/** La testata pubblica della fioreria: chi è, dove, consegne, pagamenti e politiche. */
+async function readStoreHeader(tx: TransactionClient, tenantId: string): Promise<PublicStoreDto> {
+  const [tenant, store, location, windows, feeTiers, openingHours] = await Promise.all([
     tx.tenant.findUniqueOrThrow({
       where: { id: tenantId },
       select: {
@@ -154,6 +239,7 @@ async function readStoreHeader(tx: TransactionClient, tenantId: string) {
         displayName: true,
         defaultLocale: true,
         currency: true,
+        timezone: true,
         mode: true,
         contactPhone: true,
         deliveryClosedWeekdays: true,
@@ -161,95 +247,173 @@ async function readStoreHeader(tx: TransactionClient, tenantId: string) {
       },
     }),
     tx.onlineStore.findUniqueOrThrow({ where: { tenantId } }),
+    tx.location.findFirst({
+      where: { tenantId, isPrimary: true },
+      select: {
+        addressLine1: true,
+        neighborhood: true,
+        city: true,
+        region: true,
+        deliveryRadiusKm: true,
+      },
+    }),
+    tx.deliveryWindow.findMany({
+      where: { tenantId },
+      orderBy: [{ startMinutes: 'asc' }, { endMinutes: 'asc' }],
+      select: { startMinutes: true, endMinutes: true },
+    }),
+    tx.deliveryFeeTier.findMany({
+      where: { tenantId },
+      orderBy: { maxMeters: 'asc' },
+      select: { maxMeters: true, feeMinor: true },
+    }),
+    loadOpeningHours(tx, tenantId),
   ]);
+  const region = (code: string) => MX_REGIONS.find((item) => item.code === code)?.name ?? code;
+  const today = todayInTimeZone(tenant.timezone);
+  const firstDate = firstOrderableDate(today, {
+    minLeadDays: store.minLeadDays,
+    closedWeekdays: tenant.deliveryClosedWeekdays,
+  });
   return {
-    tenant,
-    store,
-    header: {
-      slug: tenant.slug,
-      name: tenant.displayName,
-      locale: resolveLocale(tenant.defaultLocale),
-      currency: tenant.currency,
-      isDemo: tenant.mode === 'DEMO',
-      phone: tenant.contactPhone,
-      paymentMethods: store.paymentMethods as StorePaymentMethod[],
-      logoId: store.logoId,
-      ordersEnabled: store.ordersEnabled,
+    slug: tenant.slug,
+    name: tenant.displayName,
+    locale: resolveLocale(tenant.defaultLocale),
+    currency: tenant.currency,
+    isDemo: tenant.mode === 'DEMO',
+    phone: tenant.contactPhone,
+    logoId: store.logoId,
+    coverId: store.coverId,
+    description: store.description,
+    address: location
+      ? {
+          line: location.addressLine1,
+          neighborhood: location.neighborhood,
+          city: location.city,
+          region: region(location.region),
+        }
+      : null,
+    openingHours: hasOpeningHours(openingHours) ? openingHours : null,
+    delivery: {
+      windows: windows.map((window) => ({
+        start: formatTimeOfDay(window.startMinutes),
+        end: formatTimeOfDay(window.endMinutes),
+      })),
+      closedWeekdays: tenant.deliveryClosedWeekdays,
+      defaultFeeMinor: tenant.defaultDeliveryFeeMinor,
+      feeTiers: feeTiers.map((tier) => ({
+        maxKm: tier.maxMeters / 1000,
+        feeMinor: tier.feeMinor,
+      })),
+      radiusKm: location?.deliveryRadiusKm ?? null,
+      feeSummary: deliveryFeeSummary({
+        defaultFeeMinor: tenant.defaultDeliveryFeeMinor,
+        tierFeesMinor: feeTiers.map((tier) => tier.feeMinor),
+      }),
+      firstDate: firstDate ? toIsoDate(firstDate) : null,
+      today: toIsoDate(today),
+    },
+    paymentMethods: store.paymentMethods as StorePaymentMethod[],
+    paymentInstructions: store.paymentInstructions,
+    ordersEnabled: store.ordersEnabled,
+    policies: {
+      changes: store.policyChanges,
+      cancellations: store.policyCancellations,
+      substitutions: store.policySubstitutions,
     },
   };
 }
 
-/** La pagina della fioreria: dati pubblici e prodotti visibili. */
+/** La testata della fioreria (pagine del prodotto, del modulo d'ordine, prodotto tolto). */
 export async function getPublicStore(slug: unknown): Promise<PublicStoreDto | null> {
+  return withPublishedStore(slug, (tx, tenantId) => readStoreHeader(tx, tenantId));
+}
+
+/**
+ * Le righe leggere di tutti i prodotti online e i dettagli dei soli prodotti da mostrare. La usa
+ * anche l'anteprima della fioreria (M1-2), nel contesto della fioreria.
+ */
+export async function readStorefrontTx(
+  tx: TransactionClient,
+  tenantId: string,
+  query: StorefrontQuery,
+) {
+  const rows = await tx.catalogItem.findMany({
+    where: onlineItemWhere(tenantId),
+    select: {
+      id: true,
+      type: true,
+      name: true,
+      priceMinor: true,
+      availability: true,
+      featuredAt: true,
+    },
+  });
+  const plan = planStorefront(rows, query);
+  const ids = [...plan.featuredIds, ...plan.itemIds];
+  const details =
+    ids.length === 0
+      ? []
+      : await tx.catalogItem.findMany({
+          where: { ...onlineItemWhere(tenantId), id: { in: ids } },
+          select: { ...ITEM_SELECT, photos: COVER_PHOTO },
+        });
+  const byId = new Map(details.map((item) => [item.id, itemDto(item)]));
+  const pick = (list: readonly string[]) =>
+    list.flatMap((id) => {
+      const item = byId.get(id);
+      return item ? [item] : [];
+    });
+  return {
+    categories: plan.categories,
+    total: plan.total,
+    onlineCount: rows.length,
+    page: plan.page,
+    pageCount: plan.pageCount,
+    items: pick(plan.itemIds),
+    featured: pick(plan.featuredIds),
+  };
+}
+
+/** Il carrello ai prezzi di oggi, solo con i prodotti ancora ordinabili (non esauriti). */
+async function readCartSummaryTx(
+  tx: TransactionClient,
+  tenantId: string,
+  cart: readonly CartLine[],
+): Promise<PublicCartSummaryDto | null> {
+  if (cart.length === 0) return null;
+  const items = await tx.catalogItem.findMany({
+    where: {
+      ...onlineItemWhere(tenantId),
+      availability: { not: 'OUT_OF_STOCK' },
+      id: { in: cart.map((line) => line.itemId) },
+    },
+    select: { id: true, priceMinor: true },
+  });
+  const prices = new Map(items.map((item) => [item.id, item.priceMinor]));
+  const valid = cart.filter((line) => prices.has(line.itemId));
+  if (valid.length === 0) return null;
+  return {
+    lines: valid.length,
+    units: valid.reduce((sum, line) => sum + line.quantity, 0),
+    subtotalMinor: valid.reduce((sum, line) => sum + prices.get(line.itemId)! * line.quantity, 0),
+  };
+}
+
+/** La vetrina della fioreria: testata e prodotti della scheda, ricerca, ordine e pagina scelti. */
+export async function getPublicStorefront(
+  slug: unknown,
+  rawQuery: unknown,
+  options: { readonly cart?: readonly CartLine[] } = {},
+): Promise<PublicStorefrontDto | null> {
+  const query = parseStorefrontQuery(rawQuery);
   return withPublishedStore(slug, async (tx, tenantId) => {
-    const { tenant, store, header } = await readStoreHeader(tx, tenantId);
-    const [location, windows, items, feeTiers, openingHours] = await Promise.all([
-      tx.location.findFirst({
-        where: { tenantId, isPrimary: true },
-        select: {
-          addressLine1: true,
-          neighborhood: true,
-          city: true,
-          region: true,
-          deliveryRadiusKm: true,
-        },
-      }),
-      tx.deliveryWindow.findMany({
-        where: { tenantId },
-        orderBy: [{ startMinutes: 'asc' }, { endMinutes: 'asc' }],
-        select: { startMinutes: true, endMinutes: true },
-      }),
-      tx.catalogItem.findMany({
-        where: onlineItemWhere(tenantId),
-        orderBy: [{ name: 'asc' }, { id: 'asc' }],
-        take: STORE_LIMITS.publicItems,
-        select: {
-          ...ITEM_SELECT,
-          photos: {
-            where: { status: 'ACTIVE' },
-            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-            take: 1,
-            select: { id: true },
-          },
-        },
-      }),
-      tx.deliveryFeeTier.findMany({
-        where: { tenantId },
-        orderBy: { maxMeters: 'asc' },
-        select: { maxMeters: true, feeMinor: true },
-      }),
-      loadOpeningHours(tx, tenantId),
+    const [store, catalog, cart] = await Promise.all([
+      readStoreHeader(tx, tenantId),
+      readStorefrontTx(tx, tenantId, query),
+      readCartSummaryTx(tx, tenantId, options.cart ?? []),
     ]);
-    const region = (code: string) => MX_REGIONS.find((item) => item.code === code)?.name ?? code;
-    return {
-      ...header,
-      coverId: store.coverId,
-      description: store.description,
-      address: location
-        ? {
-            line: location.addressLine1,
-            neighborhood: location.neighborhood,
-            city: location.city,
-            region: region(location.region),
-          }
-        : null,
-      openingHours: hasOpeningHours(openingHours) ? openingHours : null,
-      delivery: {
-        windows: windows.map((window) => ({
-          start: formatTimeOfDay(window.startMinutes),
-          end: formatTimeOfDay(window.endMinutes),
-        })),
-        closedWeekdays: tenant.deliveryClosedWeekdays,
-        defaultFeeMinor: tenant.defaultDeliveryFeeMinor,
-        feeTiers: feeTiers.map((tier) => ({
-          maxKm: tier.maxMeters / 1000,
-          feeMinor: tier.feeMinor,
-        })),
-        radiusKm: location?.deliveryRadiusKm ?? null,
-      },
-      paymentInstructions: store.paymentInstructions,
-      items: items.map(({ photos, ...item }) => ({ ...item, photoId: photos[0]?.id ?? null })),
-    };
+    return { store, query, ...catalog, cart };
   });
 }
 
@@ -257,6 +421,7 @@ export async function getPublicStore(slug: unknown): Promise<PublicStoreDto | nu
 export async function getPublicStoreItem(
   slug: unknown,
   itemId: unknown,
+  options: { readonly cart?: readonly CartLine[] } = {},
 ): Promise<PublicStoreItemDetailDto | null> {
   if (!isUuid(itemId)) return null;
   return withPublishedStore(slug, async (tx, tenantId) => {
@@ -269,6 +434,7 @@ export async function getPublicStoreItem(
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
           select: { id: true },
         },
+        canonicalFlower: { select: FLOWER_SELECT },
         recipe: {
           select: {
             lines: {
@@ -280,18 +446,25 @@ export async function getPublicStoreItem(
       },
     });
     if (!item) return null;
-    const { header } = await readStoreHeader(tx, tenantId);
-    const { photos, recipe, ...rest } = item;
+    const [store, cart] = await Promise.all([
+      readStoreHeader(tx, tenantId),
+      readCartSummaryTx(tx, tenantId, options.cart ?? []),
+    ]);
+    const { recipe, canonicalFlower, ...rest } = item;
+    const species =
+      item.type === 'PLANT' && canonicalFlower ? speciesDto(canonicalFlower, store.locale) : null;
     return {
-      store: header,
+      store,
+      cart,
       item: {
-        ...rest,
-        photoId: photos[0]?.id ?? null,
-        photoIds: photos.map((photo) => photo.id),
+        ...itemDto(rest),
+        photoIds: rest.photos.map((photo) => photo.id),
         includes: (recipe?.lines ?? []).map((line) => ({
           name: line.ingredient.name,
           quantity: line.quantity,
         })),
+        // Senza dati di cura non si dice niente (né «tossica» né «sicura»).
+        species: species?.care ? species : null,
       },
     };
   });

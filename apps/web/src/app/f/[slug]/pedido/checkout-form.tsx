@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useActionState, useRef, useState, type FormEvent } from 'react';
+import { useActionState, useEffect, useRef, useState, type FormEvent } from 'react';
 import { flushSync } from 'react-dom';
 import {
   MARKETPLACE_ORDER_LIMITS,
@@ -42,6 +42,7 @@ import { firstInvalidControl, firstStepWithError, focusFirstControl } from '@/li
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
 import { calendarDate } from '@/lib/quote-ui';
 import { legalRoutes } from '@/lib/routes';
+import { writeCartInBrowser } from '@/lib/storefront-cart';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -73,15 +74,18 @@ function stepOfField(name: string): number {
  */
 export function CheckoutForm({
   action,
+  slug,
   locale,
   store,
   items,
   delivery,
   buyer,
   regions,
-  preselected,
+  initialQuantities,
 }: {
   readonly action: Action;
+  /** Per tenere allineato il carrello (cookie della fioreria) mentre si cambiano le quantità. */
+  readonly slug: string;
   readonly locale: string;
   readonly store: {
     readonly name: string;
@@ -89,6 +93,8 @@ export function CheckoutForm({
     readonly pickupAddress: string | null;
     readonly paymentMethods: readonly StorePaymentMethod[];
     readonly paymentInstructions: string | null;
+    /** Politiche scritte dalla fioreria, nel riepilogo (M1). */
+    readonly policies: readonly { readonly title: string; readonly text: string }[];
   };
   readonly items: readonly CheckoutItem[];
   readonly delivery: {
@@ -111,7 +117,11 @@ export function CheckoutForm({
     }[];
   };
   readonly regions: readonly { readonly code: string; readonly name: string }[];
-  readonly preselected: string | null;
+  /**
+   * Il carrello già riconciliato dal server (prodotti ordinabili, nell'ordine del carrello): questi
+   * prodotti vanno in cima, gli altri sotto «Agregar otros productos».
+   */
+  readonly initialQuantities: readonly { readonly itemId: string; readonly quantity: number }[];
 }) {
   const t = useTranslations('checkout');
   const ts = useTranslations('steps');
@@ -123,8 +133,47 @@ export function CheckoutForm({
 
   const [step, setStep] = useState(0);
   const [quantities, setQuantities] = useState<Record<string, number>>(() =>
-    preselected && items.some((item) => item.id === preselected) ? { [preselected]: 1 } : {},
+    Object.fromEntries(
+      initialQuantities
+        .filter((line) => items.some((item) => item.id === line.itemId))
+        .map((line) => [line.itemId, line.quantity]),
+    ),
   );
+  // I prodotti del carrello in cima (ordine stabile per tutta la visita), gli altri sotto.
+  const [cartIds] = useState(() => initialQuantities.map((line) => line.itemId));
+  const cartItems = cartIds.flatMap((id) => items.filter((item) => item.id === id));
+  const otherItems = items.filter((item) => !cartIds.includes(item.id));
+  const [othersFilter, setOthersFilter] = useState('');
+  const fold = (text: string) =>
+    text
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase();
+  const visibleOthers = othersFilter.trim()
+    ? otherItems.filter((item) => fold(item.name).includes(fold(othersFilter.trim())))
+    : otherItems;
+  const [summary, setSummary] = useState({
+    recipientName: '',
+    recipientPhone: '',
+    cardMessage: '',
+    cardSignature: '',
+    buyerNotes: '',
+  });
+
+  // Il carrello (cookie della fioreria) segue le quantità: tornando alla tienda resta com'è.
+  useEffect(() => {
+    const order = [
+      ...cartIds,
+      ...items.map((item) => item.id).filter((id) => !cartIds.includes(id)),
+    ];
+    writeCartInBrowser(
+      slug,
+      order
+        .filter((id) => (quantities[id] ?? 0) > 0)
+        .slice(0, MARKETPLACE_ORDER_LIMITS.lines)
+        .map((id) => ({ itemId: id, quantity: quantities[id]! })),
+    );
+  }, [quantities, cartIds, items, slug]);
   const [productsError, setProductsError] = useState(false);
   const [mode, setMode] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
   const [date, setDate] = useState('');
@@ -207,6 +256,14 @@ export function CheckoutForm({
       setNewAddressText(
         [value('addressLine1'), value('neighborhood'), value('city')].filter(Boolean).join(', '),
       );
+      // Chi riceve, la tarjeta e i commenti come li ha scritti chi compra (M1).
+      setSummary({
+        recipientName: value('recipientName'),
+        recipientPhone: value('recipientPhone'),
+        cardMessage: value('cardMessage'),
+        cardSignature: value('cardSignature'),
+        buyerNotes: value('buyerNotes'),
+      });
     }
     flushSync(() => setStep(next));
     top.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -280,6 +337,93 @@ export function CheckoutForm({
     preserveOnSubmit(formAction)(event);
   }
 
+  /** Una riga del passo «Productos»: foto, nome, prezzo, errore e quantità. */
+  function productRowContent(item: CheckoutItem) {
+    const quantity = quantities[item.id] ?? 0;
+    const inputId = `qty-${item.id}`;
+    return (
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted">
+          {item.photoSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element -- foto servite dall'app, già ridotte.
+            <img src={item.photoSrc} alt="" loading="lazy" className="size-full object-cover" />
+          ) : (
+            <Flower2 className="size-6 text-muted-foreground" aria-hidden="true" />
+          )}
+        </span>
+        <span className="min-w-0 flex-1 basis-36">
+          <label htmlFor={inputId} className="block text-sm font-medium">
+            {item.name}
+          </label>
+          <span className="block text-sm text-muted-foreground tabular-nums">
+            {item.saleUnit === 'PIECE'
+              ? fmt(item.priceMinor)
+              : tStore('pricePerUnit', {
+                  price: fmt(item.priceMinor),
+                  unit: tStore(`units.${item.saleUnit}`),
+                })}
+          </span>
+          {item.availability !== 'AVAILABLE' ? (
+            <Badge variant="warning" className="mt-1">
+              {tStore(`availability.${item.availability}`)}
+            </Badge>
+          ) : null}
+          {/* Tolto o esaurito mentre si ordinava: l'errore accanto al prodotto (M0). */}
+          {err(`qty.${item.id}`) ? (
+            <span id={`${inputId}-error`} className="mt-1 block text-sm text-destructive">
+              {err(`qty.${item.id}`)}
+            </span>
+          ) : null}
+        </span>
+        {/* Su un telefono stretto va sotto il nome, a destra. */}
+        <span className="ml-auto flex shrink-0 items-center gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label={t('less', { name: item.name })}
+            disabled={quantity === 0}
+            onClick={() => setQuantity(item.id, quantity - 1)}
+          >
+            <Minus />
+          </Button>
+          <Input
+            id={inputId}
+            name={`qty.${item.id}`}
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={MARKETPLACE_ORDER_LIMITS.quantityMax}
+            step={1}
+            value={quantity}
+            onChange={(event) => setQuantity(item.id, Number(event.target.value))}
+            aria-invalid={err(`qty.${item.id}`) ? true : undefined}
+            aria-describedby={err(`qty.${item.id}`) ? `${inputId}-error` : undefined}
+            className="w-14 text-center tabular-nums"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label={t('more', { name: item.name })}
+            disabled={quantity >= MARKETPLACE_ORDER_LIMITS.quantityMax}
+            onClick={() => setQuantity(item.id, quantity + 1)}
+          >
+            <Plus />
+          </Button>
+        </span>
+      </div>
+    );
+  }
+
+  function productRow(item: CheckoutItem) {
+    return (
+      <li key={item.id} className="py-3 first:pt-0">
+        {productRowContent(item)}
+      </li>
+    );
+  }
+
   const nav = (index: number) => (
     <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
       {index > 0 ? (
@@ -333,93 +477,48 @@ export function CheckoutForm({
             <CardTitle>{t('steps.products')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ul className="divide-y">
-              {items.map((item) => {
-                const quantity = quantities[item.id] ?? 0;
-                const inputId = `qty-${item.id}`;
-                return (
-                  <li key={item.id} className="flex flex-wrap items-center gap-3 py-3 first:pt-0">
-                    <span className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted">
-                      {item.photoSrc ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- foto servite dall'app, già ridotte.
-                        <img
-                          src={item.photoSrc}
-                          alt=""
-                          loading="lazy"
-                          className="size-full object-cover"
-                        />
-                      ) : (
-                        <Flower2 className="size-6 text-muted-foreground" aria-hidden="true" />
-                      )}
-                    </span>
-                    <span className="min-w-0 flex-1 basis-36">
-                      <label htmlFor={inputId} className="block text-sm font-medium">
-                        {item.name}
-                      </label>
-                      <span className="block text-sm text-muted-foreground tabular-nums">
-                        {item.saleUnit === 'PIECE'
-                          ? fmt(item.priceMinor)
-                          : tStore('pricePerUnit', {
-                              price: fmt(item.priceMinor),
-                              unit: tStore(`units.${item.saleUnit}`),
-                            })}
-                      </span>
-                      {item.availability !== 'AVAILABLE' ? (
-                        <Badge variant="warning" className="mt-1">
-                          {tStore(`availability.${item.availability}`)}
-                        </Badge>
-                      ) : null}
-                      {/* Tolto o esaurito mentre si ordinava: l'errore accanto al prodotto (M0). */}
-                      {err(`qty.${item.id}`) ? (
-                        <span
-                          id={`${inputId}-error`}
-                          className="mt-1 block text-sm text-destructive"
-                        >
-                          {err(`qty.${item.id}`)}
-                        </span>
-                      ) : null}
-                    </span>
-                    {/* Su un telefono stretto va sotto il nome, a destra. */}
-                    <span className="ml-auto flex shrink-0 items-center gap-1">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        aria-label={t('less', { name: item.name })}
-                        disabled={quantity === 0}
-                        onClick={() => setQuantity(item.id, quantity - 1)}
+            {cartItems.length > 0 ? (
+              <ul className="divide-y" data-testid="checkout-cart-items">
+                {cartItems.map((item) => productRow(item))}
+              </ul>
+            ) : null}
+            {otherItems.length > 0 ? (
+              <details
+                className="group rounded-xl border"
+                open={cartItems.length === 0}
+                data-testid="checkout-other-items"
+              >
+                <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+                  {cartItems.length > 0 ? t('moreProducts') : t('chooseProducts')}
+                </summary>
+                <div className="space-y-3 px-4 pb-3">
+                  {otherItems.length > 8 ? (
+                    <Input
+                      type="search"
+                      value={othersFilter}
+                      onChange={(event) => setOthersFilter(event.target.value)}
+                      placeholder={t('filterProducts')}
+                      aria-label={t('filterProducts')}
+                    />
+                  ) : null}
+                  {/* Le righe filtrate restano nel modulo (nascoste): nessuna quantità si perde. */}
+                  <ul className="divide-y">
+                    {otherItems.map((item) => (
+                      <li
+                        key={item.id}
+                        hidden={!visibleOthers.includes(item)}
+                        className="py-3 first:pt-0"
                       >
-                        <Minus />
-                      </Button>
-                      <Input
-                        id={inputId}
-                        name={`qty.${item.id}`}
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        max={MARKETPLACE_ORDER_LIMITS.quantityMax}
-                        step={1}
-                        value={quantity}
-                        onChange={(event) => setQuantity(item.id, Number(event.target.value))}
-                        aria-invalid={err(`qty.${item.id}`) ? true : undefined}
-                        aria-describedby={err(`qty.${item.id}`) ? `${inputId}-error` : undefined}
-                        className="w-14 text-center tabular-nums"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        aria-label={t('more', { name: item.name })}
-                        disabled={quantity >= MARKETPLACE_ORDER_LIMITS.quantityMax}
-                        onClick={() => setQuantity(item.id, quantity + 1)}
-                      >
-                        <Plus />
-                      </Button>
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
+                        {productRowContent(item)}
+                      </li>
+                    ))}
+                  </ul>
+                  {visibleOthers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">{t('noProductMatch')}</p>
+                  ) : null}
+                </div>
+              </details>
+            ) : null}
             {productsError || err('lines') ? (
               <p className="text-sm text-destructive" role="alert">
                 {err('lines') ?? t('chooseProduct')}
@@ -768,7 +867,54 @@ export function CheckoutForm({
                       : (savedAddress?.label ?? '—')}
                 </dd>
               </div>
+              {mode === 'DELIVERY' && summary.recipientName ? (
+                <div>
+                  <dt className="text-muted-foreground">{t('recipientName')}</dt>
+                  <dd className="break-words">
+                    {summary.recipientName}
+                    {summary.recipientPhone ? ` · ${summary.recipientPhone}` : ''}
+                  </dd>
+                </div>
+              ) : null}
+              {summary.cardMessage ? (
+                <div className="sm:col-span-2">
+                  <dt className="text-muted-foreground">{t('cardMessage')}</dt>
+                  <dd className="break-words whitespace-pre-line italic">
+                    {summary.cardMessage}
+                    <span className="block text-muted-foreground not-italic">
+                      {anonymous
+                        ? t('cardAnonymous')
+                        : summary.cardSignature
+                          ? `— ${summary.cardSignature}`
+                          : ''}
+                    </span>
+                  </dd>
+                </div>
+              ) : null}
+              {summary.buyerNotes ? (
+                <div className="sm:col-span-2">
+                  <dt className="text-muted-foreground">{t('buyerNotes')}</dt>
+                  <dd className="break-words whitespace-pre-line">{summary.buyerNotes}</dd>
+                </div>
+              ) : null}
             </dl>
+
+            {store.policies.length > 0 ? (
+              <div
+                className="space-y-2 rounded-xl border p-4 text-sm"
+                data-testid="checkout-policies"
+              >
+                <p className="font-medium">{tStore('policiesTitle')}</p>
+                {store.policies.map((policy) => (
+                  <p key={policy.title} className="break-words whitespace-pre-line">
+                    <span className="font-medium">{policy.title}:</span> {policy.text}
+                  </p>
+                ))}
+                <p className="text-xs text-muted-foreground">
+                  {tStore('policiesByShop', { shop: store.name })}
+                </p>
+              </div>
+            ) : null}
 
             <Field
               id="checkout-phone"

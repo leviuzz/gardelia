@@ -22,6 +22,7 @@ import {
   updateDeliverySettings,
   updateOnlineOrderSettings,
   updateOnlineStore,
+  updateStorePolicies,
   updateOpeningHours,
   updatePrimaryLocation,
   updateQuoteSettings,
@@ -251,6 +252,18 @@ export async function updateOnlineStoreAction(
   return runTenantAction(slug, async ({ ctx, routes }) => {
     await updateOnlineStore(ctx, formDataToObject(formData, ['paymentMethods']));
     return { revalidate: routes.settings.store, success: 'store.saved' };
+  });
+}
+
+/** Politiche della fioreria verso chi compra (M1): testi suoi, nella vetrina e nell'ordine. */
+export async function updateStorePoliciesAction(
+  slug: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await updateStorePolicies(ctx, formDataToObject(formData));
+    return { revalidate: routes.settings.store, success: 'store.policies.saved' };
   });
 }
 

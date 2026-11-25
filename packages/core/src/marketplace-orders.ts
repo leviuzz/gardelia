@@ -23,6 +23,7 @@ import {
   addDays,
   deliveryAddressSchema,
   earliestMarketplaceDate,
+  firstOrderableDate,
   formatOrderNumber,
   freshCoordinates,
   formatTimeOfDay,
@@ -42,6 +43,7 @@ import {
   toIsoDate,
   todayInTimeZone,
   type Availability,
+  type CartLine,
   type CatalogItemType,
   type Coordinates,
   type DeliveryAddressInput,
@@ -102,6 +104,12 @@ export interface CheckoutFormDto {
     readonly pickupAddress: string | null;
     readonly paymentMethods: readonly StorePaymentMethod[];
     readonly paymentInstructions: string | null;
+    /** Politiche della fioreria (M1), nel riepilogo prima di inviare; null se non le ha scritte. */
+    readonly policies: {
+      readonly changes: string | null;
+      readonly cancellations: string | null;
+      readonly substitutions: string | null;
+    };
   };
   readonly delivery: {
     /** Fasce proposte dalla fioreria ("HH:MM"); nessuna = in giornata. */
@@ -115,12 +123,24 @@ export interface CheckoutFormDto {
      */
     readonly feeTiers: readonly { readonly maxKm: number; readonly feeMinor: number }[];
     readonly origin: Coordinates | null;
-    /** Primo e ultimo giorno che si possono scegliere ("AAAA-MM-GG"). */
+    /**
+     * Primo e ultimo giorno che si possono scegliere ("AAAA-MM-GG"). Il primo salta i giorni chiusi
+     * (M1); `firstDate` è null se nei prossimi 60 giorni la fioreria non apre mai.
+     */
     readonly minDate: string;
     readonly maxDate: string;
+    readonly firstDate: string | null;
   };
   /** Prodotti visibili e non esauriti, in ordine di nome. */
   readonly items: readonly CheckoutItemDto[];
+  /**
+   * Il carrello di chi compra (cookie, M1) riconciliato con i prodotti ordinabili: le righe che
+   * valgono, nell'ordine del carrello, e quante se ne sono tolte (tolte dalla vetrina o esaurite).
+   */
+  readonly cart: {
+    readonly lines: readonly CartLine[];
+    readonly dropped: number;
+  };
   readonly buyer: {
     readonly name: string;
     readonly email: string;
@@ -143,6 +163,7 @@ function assertBuyer(buyer: BuyerContext): void {
 export async function getCheckoutForm(
   buyer: BuyerContext,
   slug: unknown,
+  options: { readonly cart?: readonly CartLine[] } = {},
 ): Promise<CheckoutFormDto | null> {
   assertBuyer(buyer);
   const tenantId = await publishedTenantId(slug);
@@ -175,10 +196,10 @@ export async function getCheckoutForm(
           orderBy: [{ startMinutes: 'asc' }, { endMinutes: 'asc' }],
           select: { startMinutes: true, endMinutes: true },
         }),
+        // Tutti gli ordinabili (al massimo 500 online per fioreria, M1): niente tagli.
         tx.catalogItem.findMany({
           where: { ...onlineItemWhere(tenantId), availability: { not: 'OUT_OF_STOCK' } },
           orderBy: [{ name: 'asc' }, { id: 'asc' }],
-          take: 120,
           select: {
             id: true,
             type: true,
@@ -228,6 +249,14 @@ export async function getCheckoutForm(
     const today = todayInTimeZone(tenant.timezone);
     const pricing = await loadDeliveryPricing(tx, tenantId);
     const now = new Date();
+    const firstDate = firstOrderableDate(today, {
+      minLeadDays: store.minLeadDays,
+      closedWeekdays: tenant.deliveryClosedWeekdays,
+    });
+    // Il carrello vale solo per i prodotti ordinabili di QUESTA fioreria (RLS + tenantId sopra).
+    const orderable = new Set(items.map((item) => item.id));
+    const cart = options.cart ?? [];
+    const cartLines = cart.filter((line) => orderable.has(line.itemId));
     return {
       store: {
         slug: tenant.slug,
@@ -242,6 +271,11 @@ export async function getCheckoutForm(
           : null,
         paymentMethods: store.paymentMethods as StorePaymentMethod[],
         paymentInstructions: store.paymentInstructions,
+        policies: {
+          changes: store.policyChanges,
+          cancellations: store.policyCancellations,
+          substitutions: store.policySubstitutions,
+        },
       },
       delivery: {
         windows: windows.map((window) => ({
@@ -255,10 +289,13 @@ export async function getCheckoutForm(
           feeMinor: tier.feeMinor,
         })),
         origin: pricing.origin,
-        minDate: toIsoDate(earliestMarketplaceDate(today, store.minLeadDays)),
+        // Il calendario parte da un giorno aperto (prima poteva partire da uno chiuso).
+        minDate: toIsoDate(firstDate ?? earliestMarketplaceDate(today, store.minLeadDays)),
         maxDate: toIsoDate(addDays(today, MARKETPLACE_ORDER_LIMITS.scheduleDaysMax)),
+        firstDate: firstDate ? toIsoDate(firstDate) : null,
       },
       items: items.map(({ photos, ...item }) => ({ ...item, photoId: photos[0]?.id ?? null })),
+      cart: { lines: cartLines, dropped: cart.length - cartLines.length },
       buyer: {
         name: user.name,
         email: user.email,

@@ -102,6 +102,54 @@ export function StoreInfoForm({
 }
 
 /**
+ * Politiche della fioreria (M1): cambi, cancellazioni e sostituzioni, scritte da lei. Chi compra le
+ * legge nella vetrina e nel riepilogo prima di inviare l'ordine. Gardelia non propone testi legali.
+ */
+export function StorePoliciesForm({
+  action,
+  defaults,
+}: {
+  readonly action: Action;
+  readonly defaults: {
+    readonly policyChanges: string;
+    readonly policyCancellations: string;
+    readonly policySubstitutions: string;
+  };
+}) {
+  const t = useTranslations('store.policies');
+  const [state, formAction] = useActionState(action, idleState);
+  useActionToast(state);
+  const err = (field: string) => fieldError(state, field);
+  const fields = [
+    { name: 'policyChanges', id: 'store-policy-changes' },
+    { name: 'policyCancellations', id: 'store-policy-cancellations' },
+    { name: 'policySubstitutions', id: 'store-policy-substitutions' },
+  ] as const;
+  return (
+    <form action={formAction} onSubmit={preserveOnSubmit(formAction)} className="grid gap-5">
+      {fields.map((field) => (
+        <Field
+          key={field.name}
+          id={field.id}
+          label={t(`${field.name}.label`)}
+          hint={t(`${field.name}.hint`)}
+          error={err(field.name)}
+        >
+          <Textarea
+            {...controlProps(field.id, err(field.name), true)}
+            name={field.name}
+            defaultValue={defaults[field.name]}
+            maxLength={STORE_LIMITS.policy}
+            rows={3}
+          />
+        </Field>
+      ))}
+      <SubmitButton className="w-fit">{t('save')}</SubmitButton>
+    </form>
+  );
+}
+
+/**
  * "Pedidos en línea" (ADR-067): se chi compra può ordinare dalla pagina e con quanto anticipo.
  * Accenderli richiede un modo di pagare e il telefono (il servizio lo ricontrolla).
  */

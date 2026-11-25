@@ -249,12 +249,40 @@ describe("modulo d'ordine", () => {
       windows: [{ start: '09:00', end: '12:00' }],
       closedWeekdays: [0],
       feeMinor: 8000,
-      minDate: toIsoDate(addDays(todayInTimeZone('America/Mexico_City'), 1)),
+      // Il primo giorno aperto (la domenica è chiusa): mai un giorno chiuso come minimo (M1).
+      minDate: toIsoDate(openDay()),
+      firstDate: toIsoDate(openDay()),
     });
     expect(form!.store.paymentMethods).toEqual(['TRANSFER', 'CASH']);
+    expect(form!.store.policies).toEqual({
+      changes: null,
+      cancellations: null,
+      substitutions: null,
+    });
     expect(form!.buyer).toMatchObject({ email: ana.email, phone: null, addresses: [] });
+    expect(form!.cart).toEqual({ lines: [], dropped: 0 });
     // Nessun costo nel modulo.
     expect(JSON.stringify(form)).not.toContain('costMinor');
+  });
+
+  it('il carrello del cookie vale solo per i prodotti ordinabili di questa fioreria (M1)', async () => {
+    const form = await getCheckoutForm(ana, shop.tenant.slug, {
+      cart: [
+        { itemId: rose.id, quantity: 3 },
+        { itemId: hidden.id, quantity: 1 },
+        { itemId: soldOut.id, quantity: 1 },
+        // L'ID di un'altra fioreria (A↔B): non c'è.
+        { itemId: foreign.id, quantity: 2 },
+        { itemId: bouquet.id, quantity: 1 },
+      ],
+    });
+    expect(form!.cart).toEqual({
+      lines: [
+        { itemId: rose.id, quantity: 3 },
+        { itemId: bouquet.id, quantity: 1 },
+      ],
+      dropped: 3,
+    });
   });
 });
 

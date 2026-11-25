@@ -1,18 +1,19 @@
-import { ArrowLeft, Hourglass } from 'lucide-react';
+import { ArrowLeft, Hourglass, Info } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
-import { getCheckoutForm, getPlacesProvider, getPublicStore } from '@floral/core';
-import { MARKETPLACE_ORDER_LIMITS, MX_REGIONS } from '@floral/domain';
+import { getCheckoutForm, getPlacesProvider } from '@floral/core';
+import { MARKETPLACE_ORDER_LIMITS, MX_REGIONS, isUuid, setCartLine } from '@floral/domain';
 import { PlacesConfigProvider } from '@/components/form/address-search';
 import { StoreShell } from '@/components/public/store-shell';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getBuyerContext } from '@/lib/buyer';
 import { phoneForInput } from '@/lib/format';
-import { storeShellProps } from '@/lib/public-store';
+import { loadPublicStore, readCartCookie, storeShellProps } from '@/lib/public-store';
 import { accountRoutes, publicStoreRoutes } from '@/lib/routes';
+import { storePolicies } from '@/lib/storefront-ui';
 import { placeOrderAction } from './actions';
 import { CheckoutForm } from './checkout-form';
 
@@ -34,15 +35,22 @@ export default async function CheckoutPage({
 }: PageProps<'/f/[slug]/pedido'>) {
   const { slug } = await params;
   const query = await searchParams;
-  const preselected = typeof query.producto === 'string' ? query.producto : null;
+  const preselected =
+    typeof query.producto === 'string' && isUuid(query.producto) ? query.producto : null;
   const routes = publicStoreRoutes(slug);
   const buyer = await getBuyerContext(
     routes.checkout(preselected ? { producto: preselected } : undefined),
   );
-  const form = await getCheckoutForm(buyer, slug);
+  // Il carrello della vetrina (cookie, M1); un link con `?producto=` (es. condiviso su WhatsApp)
+  // aggiunge quel prodotto se non c'è già.
+  let cart = await readCartCookie();
+  if (preselected && !cart.some((line) => line.itemId === preselected)) {
+    cart = setCartLine(cart, preselected, 1).lines;
+  }
+  const form = await getCheckoutForm(buyer, slug, { cart });
   if (!form) {
     // Tienda pubblicata ma senza ordini online: la sua pagina (dove si scrive su WhatsApp).
-    if (await getPublicStore(slug)) redirect(routes.home);
+    if (await loadPublicStore(slug)) redirect(routes.home);
     notFound();
   }
   const { store } = form;
@@ -82,12 +90,21 @@ export default async function CheckoutPage({
         </Alert>
       ) : form.items.length === 0 ? (
         <p className="mt-6 text-muted-foreground">{t('noItems')}</p>
+      ) : form.delivery.firstDate === null ? (
+        <p className="mt-6 text-muted-foreground">{t('noDates')}</p>
       ) : (
         // I componenti del modulo parlano la lingua della fioreria, come la pagina.
         <NextIntlClientProvider locale={locale} messages={await getMessages({ locale })}>
+          {form.cart.dropped > 0 ? (
+            <Alert variant="info" className="mt-6 max-w-3xl" data-testid="cart-dropped">
+              <Info aria-hidden="true" />
+              <AlertDescription>{t('cartDropped', { count: form.cart.dropped })}</AlertDescription>
+            </Alert>
+          ) : null}
           <PlacesConfigProvider enabled={getPlacesProvider() !== null} near={null}>
             <CheckoutForm
               action={placeOrderAction.bind(null, store.slug)}
+              slug={store.slug}
               locale={locale}
               store={{
                 name: store.name,
@@ -95,6 +112,7 @@ export default async function CheckoutPage({
                 pickupAddress: store.pickupAddress,
                 paymentMethods: store.paymentMethods,
                 paymentInstructions: store.paymentInstructions,
+                policies: storePolicies(store, tStore),
               }}
               items={form.items.map((item) => ({
                 id: item.id,
@@ -119,7 +137,7 @@ export default async function CheckoutPage({
                 })),
               }}
               regions={REGIONS}
-              preselected={preselected}
+              initialQuantities={form.cart.lines}
             />
           </PlacesConfigProvider>
         </NextIntlClientProvider>

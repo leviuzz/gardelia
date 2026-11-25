@@ -131,7 +131,10 @@
       "session_is_current": "Per chiudere la sessione di questo dispositivo usa «Esci» nel menu.",
       "order_not_substitutable": "Questo ordine non accetta più cambi di fiori: il mazzo è già fatto o l'ordine è chiuso.",
       "substitution_not_allowed": "Questo mazzo non ammette sostituzioni. Parla con il cliente per decidere cosa fare.",
-      "order_free_delivery_unconfirmed": "La consegna è a $0: conferma che è gratis o cambiala prima di accettare."
+      "order_free_delivery_unconfirmed": "La consegna è a $0: conferma che è gratis o cambiala prima di accettare.",
+      "store_featured_limit": "Puoi mettere in evidenza fino a 8 prodotti: togli prima la stella a un altro.",
+      "store_featured_not_online": "Solo un prodotto visibile nel negozio online può essere in evidenza.",
+      "store_online_limit": "Il tuo negozio online ha già 500 prodotti: togline qualcuno prima di aggiungerne un altro."
     },
     "pageNotFoundTitle": "Pagina non trovata",
     "pageNotFoundBody": "La pagina non esiste o non hai accesso.",
@@ -558,7 +561,8 @@
       "unpublished": "{actor} ha ritirato il negozio online",
       "image_set": "{actor} ha cambiato il logo o la copertina del negozio online",
       "image_removed": "{actor} ha tolto il logo o la copertina del negozio online",
-      "orders_updated": "{actor} ha cambiato gli ordini online"
+      "orders_updated": "{actor} ha cambiato gli ordini online",
+      "policies_updated": "{actor} ha cambiato le politiche del negozio online"
     },
     "imagesTitle": "Logo e copertina",
     "imagesSubtitle": "Così riconoscono la tua fioreria sulla pagina e quando condividi il link.",
@@ -601,7 +605,29 @@
     },
     "offMap": "Chi cerca il proprio indirizzo non trova ancora la tua tienda, perché il negozio principale non è sulla mappa. Ti trova solo chi cerca la tua città.",
     "offMapAction": "Scegli l’indirizzo sulla mappa",
-    "publishedBodyOrders": "Chiunque abbia il link vede i tuoi prodotti visibili online e ti manda ordini, che accetti o rifiuti qui."
+    "publishedBodyOrders": "Chiunque abbia il link vede i tuoi prodotti visibili online e ti manda ordini, che accetti o rifiuti qui.",
+    "policies": {
+      "title": "Politiche del negozio",
+      "subtitle": "Le tue regole per cambi, cancellazioni e sostituzioni. I clienti le leggono nel negozio e prima di inviare l’ordine. Le scrivi tu: se hai dubbi, falle vedere a un consulente.",
+      "policyChanges": {
+        "label": "Cambi",
+        "hint": "Cosa succede se il mazzo arriva rovinato o non è come il cliente si aspettava."
+      },
+      "policyCancellations": {
+        "label": "Cancellazioni",
+        "hint": "Fino a quando si può annullare un ordine e cosa succede a quanto pagato."
+      },
+      "policySubstitutions": {
+        "label": "Sostituzione dei fiori",
+        "hint": "Cosa fai se manca un fiore del mazzo (di stagione o esaurito)."
+      },
+      "saved": "Politiche salvate.",
+      "save": "Salva le politiche"
+    },
+    "featured": {
+      "title": "In evidenza: {count} su {max}",
+      "hint": "Li scegli con la stella nel catalogo: escono per primi nel negozio."
+    }
   },
   "publicStore": {
     "demoNotice": "Fioreria di prova: prodotti e prezzi sono di esempio.",
@@ -658,7 +684,6 @@
     "coverAlt": "Foto di {name}",
     "orderCta": "Fai un ordine",
     "orderHow": "Scegli online, la fioreria conferma e la paghi direttamente.",
-    "orderOnline": "Ordina online",
     "feeByDistance": "Consegna in base alla distanza: {tiers}.",
     "feeTier": "fino a {km} km {fee}",
     "hoursTitle": "Orari di apertura",
@@ -666,7 +691,66 @@
     "hoursDays": "Da {first} a {last}",
     "itemGoneTitle": "Questo prodotto non è più disponibile",
     "itemGoneBody": "La fioreria l’ha tolto dal negozio. Guarda cosa ha oggi.",
-    "itemGoneBack": "Vedi i prodotti di {shop}"
+    "itemGoneBack": "Vedi i prodotti di {shop}",
+    "factOrders": "Ordini online",
+    "factFirstToday": "Consegna da oggi",
+    "factFirstTomorrow": "Consegna da domani",
+    "factFirstDate": "Consegna da {date}",
+    "factFeeFixed": "Consegna {fee}",
+    "factFeeRange": "Consegna da {min} a {max}",
+    "factFeeUpTo": "Consegna fino a {max} secondo la distanza",
+    "factFeeConfirm": "Costo di consegna da confermare",
+    "factPickup": "Ritiro in negozio",
+    "featuredTitle": "In evidenza",
+    "featuredBadge": "In evidenza",
+    "categoriesLabel": "Categorie",
+    "tabAll": "Tutto",
+    "categories": {
+      "ramos": "Mazzi",
+      "flores": "Fiori",
+      "plantas": "Piante",
+      "accesorios": "Accessori"
+    },
+    "searchLabel": "Cerca nel negozio",
+    "searchPlaceholder": "Cerca un mazzo, un fiore…",
+    "searchButton": "Cerca",
+    "sortLabel": "Ordina",
+    "sorts": {
+      "recomendados": "Consigliati",
+      "precio-asc": "Prezzo: dal più basso",
+      "precio-desc": "Prezzo: dal più alto",
+      "nombre": "Nome"
+    },
+    "resultsCount": "{count, plural, one {# prodotto} other {# prodotti}}",
+    "resultsFor": "{count, plural, one {# risultato} other {# risultati}} per «{q}»",
+    "noResults": "Nessun prodotto corrisponde alla ricerca.",
+    "pagination": "Pagine",
+    "pageOf": "Pagina {page} di {pages}",
+    "previous": "Precedente",
+    "next": "Successiva",
+    "add": "Aggiungi",
+    "addAria": "Aggiungi {name} al tuo ordine",
+    "added": "Aggiunto al tuo ordine.",
+    "cartFull": "Il tuo ordine ha già 20 prodotti diversi: completa questo ordine o togline qualcuno.",
+    "cartBar": "Il tuo ordine · {units, plural, one {# pezzo} other {# pezzi}} · {total}",
+    "cartContinue": "Continua",
+    "quantity": "Quantità",
+    "quantityLess": "Uno in meno di {name}",
+    "quantityMore": "Uno in più di {name}",
+    "addToOrder": "Aggiungi all’ordine",
+    "orderNow": "Ordina ora",
+    "galleryOpen": "Vedi la foto {index} di {count} in grande",
+    "galleryShow": "Mostra la foto {index} di {count}",
+    "galleryTitle": "Foto di {name}",
+    "galleryClose": "Chiudi",
+    "galleryPrevious": "Foto precedente",
+    "galleryNext": "Foto successiva",
+    "galleryCounter": "{index} di {count}",
+    "policiesTitle": "Politiche della fioreria",
+    "policyChanges": "Cambi",
+    "policyCancellations": "Cancellazioni",
+    "policySubstitutions": "Sostituzione dei fiori",
+    "policiesByShop": "Le scrive {shop}."
   },
   "timezones": {
     "America/Mexico_City": "Ora del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -767,7 +851,8 @@
       "archived": "{actor} ha archiviato «{name}»",
       "restored": "{actor} ha ripristinato «{name}»",
       "photo_added": "{actor} ha aggiunto una foto di «{name}»",
-      "photo_archived": "{actor} ha rimosso una foto di «{name}»"
+      "photo_archived": "{actor} ha rimosso una foto di «{name}»",
+      "photos_reordered": "{actor} ha cambiato l’ordine delle foto di «{name}»"
     },
     "recipe": {
       "updated": "{actor} ha aggiornato la ricetta di «{name}»",
@@ -1048,7 +1133,10 @@
     "onlineShown": "Ora si vede nel tuo negozio online.",
     "onlineHidden": "Non compare più nel tuo negozio online.",
     "onlineRow": "Nel tuo negozio online",
-    "radiusKm": "Fino a {km} km"
+    "radiusKm": "Fino a {km} km",
+    "featuredToggle": "Metti {name} in evidenza nel tuo negozio online",
+    "featuredOn": "Ora è in evidenza nel tuo negozio.",
+    "featuredOff": "Non è più in evidenza."
   },
   "recipe": {
     "title": "Ricetta del bouquet",
@@ -2399,7 +2487,14 @@
       "cutout_nothing_kept": "Non abbiamo trovato il prodotto nella foto. Caricane un’altra più da vicino, su uno sfondo uniforme.",
       "cutout_background_kept": "Non siamo riusciti a separare il prodotto dallo sfondo. Caricane un’altra con uno sfondo uniforme che faccia contrasto.",
       "cutout_failed": "Non siamo riusciti a rimuovere lo sfondo di questa foto."
-    }
+    },
+    "cover": "Copertina",
+    "makeCover": "Usa come copertina",
+    "makeCoverAria": "Usa la foto {index} come copertina",
+    "moveEarlier": "Sposta prima la foto {index}",
+    "moveLater": "Sposta dopo la foto {index}",
+    "coverSet": "Copertina cambiata: così si vede nel negozio e nel catalogo.",
+    "moved": "Ordine delle foto cambiato."
   },
   "styleReferences": {
     "title": "I miei bouquet",
@@ -3215,7 +3310,13 @@
     "feeByDistance": "Consegna in base alla distanza: {tiers}.",
     "feeTier": "fino a {km} km {fee}",
     "feeFree": "Gratis",
-    "feeDistance": "a {km} km"
+    "feeDistance": "a {km} km",
+    "moreProducts": "Aggiungi altri prodotti",
+    "chooseProducts": "Scegli i tuoi prodotti",
+    "filterProducts": "Cerca un prodotto",
+    "noProductMatch": "Nessun prodotto con questo nome.",
+    "cartDropped": "{count, plural, one {Abbiamo tolto # prodotto dal tuo ordine perché non è più disponibile.} other {Abbiamo tolto # prodotti dal tuo ordine perché non sono più disponibili.}}",
+    "noDates": "Per ora la fioreria non ha giorni disponibili per gli ordini online. Scrivile su WhatsApp."
   },
   "legal": {
     "linksLabel": "Documenti legali",

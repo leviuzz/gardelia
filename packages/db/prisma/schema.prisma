@@ -568,6 +568,10 @@ model OnlineStore {
   ordersEnabled       Boolean   @default(false)
   /// Giorni di anticipo minimo per un ordine online (0 = anche per oggi).
   minLeadDays         Int       @default(1)
+  /// Politiche della fioreria verso chi compra (M1, ADR-087): testi suoi, facoltativi, ≤1000.
+  policyChanges       String?
+  policyCancellations String?
+  policySubstitutions String?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
@@ -607,6 +611,9 @@ model CatalogItem {
   isBuilderEnabled       Boolean         @default(false)
   /// Mostrato nella pagina pubblica della fioreria ("Mi tienda en línea", blocco C2).
   isOnline               Boolean         @default(false)
+  /// «In evidenza» nella vetrina (M1, ADR-087): quando la fioreria l'ha scelto, NULL = no. Solo per
+  /// prodotti online e attivi (CHECK); indice parziale nel SQL della migrazione.
+  featuredAt             DateTime?
   status                 RecordStatus    @default(ACTIVE)
   archivedAt             DateTime?
   createdAt              DateTime        @default(now())

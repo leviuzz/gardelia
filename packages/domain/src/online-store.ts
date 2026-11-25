@@ -27,8 +27,15 @@ export type StorePaymentMethod = (typeof STORE_PAYMENT_METHODS)[number];
 export const STORE_LIMITS = {
   description: 600,
   paymentInstructions: 500,
-  /** Prodotti mostrati sulla pagina (in ordine di nome). */
-  publicItems: 120,
+  /**
+   * Prodotti online per fioreria (M1, PROPOSTO): si controlla quando se ne accende uno, così la
+   * vetrina non ne taglia mai in silenzio (fino a M0 ne mostrava solo i primi 120 per nome).
+   */
+  onlineItems: 500,
+  /** Prodotti in evidenza nella riga «Destacados» della vetrina (M1, PROPOSTO). */
+  featured: 8,
+  /** Ognuna delle politiche della fioreria (cambi, cancellazioni, sostituzioni). */
+  policy: 1000,
 } as const;
 
 /** Modulo "Tienda en línea" delle impostazioni (la pubblicazione ha un pulsante a parte). */
@@ -41,6 +48,25 @@ export const onlineStoreFormSchema = z.object({
   paymentInstructions: optionalText(STORE_LIMITS.paymentInstructions),
 });
 export type OnlineStoreInput = z.infer<typeof onlineStoreFormSchema>;
+
+/**
+ * Politiche della fioreria verso chi compra (M1): testi suoi, facoltativi, mostrati nella vetrina e
+ * nel riepilogo dell'ordine. Gardelia non scrive condizioni legali per la fioreria (PROFECO: DA
+ * VALIDARE con un professionista, dalla fioreria).
+ */
+export const STORE_POLICY_FIELDS = [
+  'policyChanges',
+  'policyCancellations',
+  'policySubstitutions',
+] as const;
+export type StorePolicyField = (typeof STORE_POLICY_FIELDS)[number];
+
+export const storePoliciesSchema = z.object({
+  policyChanges: optionalText(STORE_LIMITS.policy),
+  policyCancellations: optionalText(STORE_LIMITS.policy),
+  policySubstitutions: optionalText(STORE_LIMITS.policy),
+});
+export type StorePoliciesInput = z.infer<typeof storePoliciesSchema>;
 
 /**
  * "Pedidos en línea" (ADR-067): se chi compra può ordinare dalla pagina e con quanti giorni di

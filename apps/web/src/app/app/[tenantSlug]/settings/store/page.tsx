@@ -1,9 +1,14 @@
-import { ArrowLeft, Check, CircleAlert, EyeOff, Globe, MapPinOff } from 'lucide-react';
+import { ArrowLeft, Check, CircleAlert, EyeOff, Globe, MapPinOff, Star } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { getOnlineStoreSettings, getPlacesProvider, hasPermission } from '@floral/core';
-import { whatsappShareLink } from '@floral/domain';
+import {
+  getOnlineStoreSettings,
+  getPlacesProvider,
+  hasPermission,
+  listFeaturedItems,
+} from '@floral/core';
+import { STORE_LIMITS, whatsappShareLink } from '@floral/domain';
 import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import { ActionButton } from '@/components/form/action-button';
 import { Forbidden } from '@/components/forbidden';
@@ -20,9 +25,16 @@ import {
   setOnlineStorePublishedAction,
   updateOnlineOrderSettingsAction,
   updateOnlineStoreAction,
+  updateStorePoliciesAction,
   uploadStoreImageAction,
 } from '../actions';
-import { OnlineOrdersForm, StoreImageField, StoreInfoForm, StoreLinkCard } from './store-forms';
+import {
+  OnlineOrdersForm,
+  StoreImageField,
+  StoreInfoForm,
+  StoreLinkCard,
+  StorePoliciesForm,
+} from './store-forms';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('store');
@@ -39,7 +51,10 @@ export default async function StoreSettingsPage({
   const { tenantSlug } = await params;
   const ctx = await getTenantContext(tenantSlug);
   if (!hasPermission(ctx, 'tenant:settings:update')) return <Forbidden />;
-  const settings = await getOnlineStoreSettings(ctx);
+  const [settings, featured] = await Promise.all([
+    getOnlineStoreSettings(ctx),
+    listFeaturedItems(ctx),
+  ]);
   const t = await getTranslations();
   const slug = ctx.tenantSlug;
   const routes = tenantRoutes(slug);
@@ -263,14 +278,56 @@ export default async function StoreSettingsPage({
         </CardContent>
       </Card>
 
+      <Card id="store-policies" className="scroll-mt-20">
+        <CardHeader>
+          <CardTitle>{t('store.policies.title')}</CardTitle>
+          <CardDescription>{t('store.policies.subtitle')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <StorePoliciesForm
+            action={updateStorePoliciesAction.bind(null, slug)}
+            defaults={{
+              policyChanges: settings.policies.policyChanges ?? '',
+              policyCancellations: settings.policies.policyCancellations ?? '',
+              policySubstitutions: settings.policies.policySubstitutions ?? '',
+            }}
+          />
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>{t('store.productsTitle')}</CardTitle>
           <CardDescription>{t('store.productsBody')}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <p className="text-sm">{t('store.productsCount', { count: settings.onlineItems })}</p>
-          <Button asChild variant="outline" className="mt-3">
+          {/* «In evidenza» (M1): la riga «Destacados» della vetrina, scelta con la stella. */}
+          <div className="space-y-2" data-testid="store-featured">
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <Star className="size-4 text-warning" aria-hidden="true" />
+              {t('store.featured.title', {
+                count: featured.length,
+                max: STORE_LIMITS.featured,
+              })}
+            </p>
+            {featured.length > 0 ? (
+              <ol className="list-decimal space-y-1 pl-6 text-sm">
+                {featured.map((item) => (
+                  <li key={item.id}>
+                    <Link
+                      href={routes.catalog.item(item.id)}
+                      className="text-primary hover:underline"
+                    >
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            ) : null}
+            <p className="text-xs text-muted-foreground">{t('store.featured.hint')}</p>
+          </div>
+          <Button asChild variant="outline">
             <Link href={routes.catalog.list()}>{t('store.goToCatalog')}</Link>
           </Button>
         </CardContent>

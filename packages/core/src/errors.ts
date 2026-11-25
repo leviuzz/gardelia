@@ -102,6 +102,10 @@ export type ConflictReason =
   | 'store_needs_contact'
   /** Ordini online (ADR-067): per riceverli serve un modo di pagare. */
   | 'store_needs_payment'
+  /** Vetrina (M1): al massimo 8 prodotti in evidenza e 500 online; in evidenza solo se online. */
+  | 'store_featured_limit'
+  | 'store_featured_not_online'
+  | 'store_online_limit'
   /** Chi compra: la tienda non riceve ordini, o ne ha già troppi in attesa da questa persona. */
   | 'checkout_closed'
   | 'checkout_pending_limit'

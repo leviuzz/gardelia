@@ -1497,8 +1497,10 @@ ramo, M4 calendario e capienza, M8 clienti, marketing e report, M7 Fiori ogni se
   prodotto che non c'è più). In locale 1254 test ed E2E 119/119. Gli helper `addSlot` degli E2E di
   Floral Care guardano solo gli orari attivi (`care-slots-active`): su un database locale usato a
   lungo gli archiviati non bloccano più la scelta di un orario libero.
-- **Prossimo:** staging di M0 con il via libera del founder; poi il piano di dettaglio di M1
-  («Vetrina che vende»), da approvare.
+- **Su staging** con il via libera del founder (approvazione del piano di M1, 25/11): merge
+  `74e47d7` (CI run 258 verde); nessuna migrazione.
+- **Prossimo:** M1 «Vetrina che vende», piano approvato il 25/11 (due rilasci: M1-1 «Vetrina e
+  prodotto», M1-2 «Strumenti e visibilità»).
 
 Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,
