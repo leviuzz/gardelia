@@ -355,13 +355,21 @@ export interface BuyerDataExport {
       readonly closedAt: string | null;
       readonly closedReason: string | null;
     }[];
+    /** I messaggi scritti dalla persona nei fili dei contratti (ADR-084, blocco 5b). */
+    readonly messages: readonly {
+      readonly shop: string;
+      readonly contract: string;
+      readonly sentAt: string;
+      readonly text: string;
+      readonly withPhoto: boolean;
+    }[];
   };
 }
 
 export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExport> {
   assertBuyer(ctx);
   return withUserContext(getDb(), ctx.userId, async (tx) => {
-    const [user, profile, addresses, orders, careAccesses] = await Promise.all([
+    const [user, profile, addresses, orders, careAccesses, careMessages] = await Promise.all([
       tx.user.findUniqueOrThrow({
         where: { id: ctx.userId },
         select: { name: true, email: true, locale: true, createdAt: true },
@@ -399,6 +407,15 @@ export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExpor
           revoked_reason: string | null;
         }[]
       >`SELECT * FROM app_buyer_care_access()`,
+      tx.$queryRaw<
+        {
+          shop_name: string;
+          contract_number: number;
+          created_at: Date;
+          body: string;
+          has_photo: boolean;
+        }[]
+      >`SELECT * FROM app_buyer_care_messages()`,
     ]);
     return {
       exportedAt: new Date().toISOString(),
@@ -435,6 +452,13 @@ export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExpor
           since: row.created_at.toISOString(),
           closedAt: row.revoked_at ? row.revoked_at.toISOString() : null,
           closedReason: row.revoked_reason,
+        })),
+        messages: careMessages.map((row) => ({
+          shop: row.shop_name,
+          contract: formatSubscriptionNumber(row.contract_number),
+          sentAt: row.created_at.toISOString(),
+          text: row.body,
+          withPhoto: row.has_photo,
         })),
       },
     };

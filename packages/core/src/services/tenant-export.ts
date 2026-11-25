@@ -108,6 +108,7 @@ export async function exportTenantData(
       careBlocks,
       portalInvites,
       portalAccesses,
+      careMessages,
     ] = await Promise.all([
       tx.customer.findMany({ where, orderBy: { createdAt: 'asc' } }),
       tx.customerAddress.findMany({ where, orderBy: { createdAt: 'asc' } }),
@@ -164,6 +165,14 @@ export async function exportTenantData(
         orderBy: { createdAt: 'asc' },
         include: { user: { select: { name: true, email: true } } },
       }),
+      tx.careMessage.findMany({
+        where,
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        include: {
+          author: { select: { name: true } },
+          photo: { select: { removedAt: true, deletedAt: true } },
+        },
+      }),
     ]);
     return {
       customers,
@@ -189,6 +198,7 @@ export async function exportTenantData(
       careBlocks,
       portalInvites,
       portalAccesses,
+      careMessages,
     };
   });
 
@@ -230,6 +240,7 @@ export async function exportTenantData(
   type PortalRow =
     | { readonly kind: 'invite'; readonly row: (typeof data.portalInvites)[number] }
     | { readonly kind: 'access'; readonly row: (typeof data.portalAccesses)[number] };
+  type CareMessageRow = (typeof data.careMessages)[number];
 
   const sections: Section[] = [
     section<Customer>(
@@ -701,6 +712,37 @@ export async function exportTenantData(
         ...data.portalInvites.map((row) => ({ kind: 'invite' as const, row })),
         ...data.portalAccesses.map((row) => ({ kind: 'access' as const, row })),
       ],
+    ),
+    section<CareMessageRow>(
+      'floral_care_mensajes.csv',
+      'mensajes entre la florería y sus clientes en Mi Floral Care (texto completo)',
+      [
+        { header: 'id', value: (r) => r.id },
+        { header: 'Fecha', value: (r) => dateTime(r.createdAt) },
+        { header: 'Contrato', value: (r) => contractNumber.get(r.subscriptionId) },
+        { header: 'Cliente', value: (r) => customerName.get(r.customerId) },
+        {
+          header: 'Escribió',
+          value: (r) => LABELS.careMessageAuthor[r.authorKind],
+        },
+        {
+          header: 'Persona',
+          // Chi ha eliminato il conto resta senza nome (ADR-084).
+          value: (r) => r.author?.name ?? LABELS.careMessageDeletedAuthor,
+        },
+        { header: 'Mensaje', value: (r) => r.body },
+        {
+          header: 'Foto',
+          value: (r) =>
+            !r.hasPhoto
+              ? NO
+              : r.photo && !r.photo.removedAt && !r.photo.deletedAt
+                ? YES
+                : LABELS.careMessagePhotoGone,
+        },
+        { header: 'Leído por la florería', value: (r) => dateTime(r.readByShopAt) },
+      ],
+      data.careMessages,
     ),
   ];
 

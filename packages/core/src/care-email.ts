@@ -562,3 +562,185 @@ export function careVisitMovedByCustomerEmail(
     html,
   };
 }
+
+// -----------------------------------------------------------------------------
+// Messaggi (blocco 5b, ADR-084)
+// -----------------------------------------------------------------------------
+
+export interface CareMessageNoticeEmailInput {
+  readonly locale: SupportedLocale;
+  readonly to: string;
+  readonly shop: {
+    readonly name: string;
+    readonly contactEmail: string | null;
+    readonly contactPhone: string | null;
+  };
+  /** La sede del contratto (etichetta o indirizzo), se c'è. */
+  readonly place: string | null;
+  /** La pagina del contratto in Mi Floral Care. */
+  readonly url: string;
+}
+
+interface MessageNoticeCopy {
+  readonly subject: (shop: string) => string;
+  readonly greeting: string;
+  readonly body: (shop: string, place: string | null) => string;
+  readonly button: string;
+  readonly reason: (shop: string) => string;
+}
+
+const MESSAGE_NOTICE_COPY: Readonly<Record<SupportedLocale, MessageNoticeCopy>> = {
+  'es-MX': {
+    subject: (shop) => `${shop} te escribió`,
+    greeting: 'Hola:',
+    body: (shop, place) =>
+      `${shop} te escribió sobre el cuidado de tus plantas${place ? ` en ${place}` : ''}. Entra a Mi Floral Care para leer el mensaje y responder.`,
+    button: 'Leer el mensaje',
+    reason: (shop) =>
+      `Recibes este correo porque tienes acceso a Mi Floral Care de ${shop}. Te avisamos como máximo una vez al día.`,
+  },
+  'it-IT': {
+    subject: (shop) => `${shop} ti ha scritto`,
+    greeting: 'Ciao,',
+    body: (shop, place) =>
+      `${shop} ti ha scritto sulla cura delle tue piante${place ? ` in ${place}` : ''}. Entra in Mi Floral Care per leggere il messaggio e rispondere.`,
+    button: 'Leggi il messaggio',
+    reason: (shop) =>
+      `Ricevi questa email perché hai accesso a Mi Floral Care di ${shop}. Ti avvisiamo al massimo una volta al giorno.`,
+  },
+  'en-US': {
+    subject: (shop) => `${shop} sent you a message`,
+    greeting: 'Hi,',
+    body: (shop, place) =>
+      `${shop} wrote to you about your plant care${place ? ` at ${place}` : ''}. Open Mi Floral Care to read the message and reply.`,
+    button: 'Read the message',
+    reason: (shop) =>
+      `You’re receiving this email because you have access to Mi Floral Care from ${shop}. We notify you at most once a day.`,
+  },
+};
+
+/**
+ * Al cliente (alle persone con accesso): la fioreria ha scritto. Mai il testo del messaggio, che
+ * si legge solo entrando; al massimo una al giorno per contratto (decisione del founder).
+ */
+export function careMessageNoticeEmail(input: CareMessageNoticeEmailInput): EmailMessage {
+  const copy = MESSAGE_NOTICE_COPY[input.locale];
+  const contacts = [input.shop.contactPhone, input.shop.contactEmail].filter(
+    (value): value is string => Boolean(value),
+  );
+  const body = copy.body(input.shop.name, input.place);
+  const lines = [
+    copy.greeting,
+    '',
+    body,
+    '',
+    `${copy.button}: ${input.url}`,
+    '',
+    input.shop.name,
+    ...contacts,
+    '',
+    '—',
+    copy.reason(input.shop.name),
+  ];
+  const html = `<!doctype html><html lang="${input.locale}"><body style="margin:0;padding:16px 12px;background:#f6f4ef;font-family:Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px">
+<tr><td style="padding:28px 24px">
+<p style="margin:0 0 24px;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#3f6b4f">${escapeHtml(input.shop.name)}</p>
+<p style="margin:0 0 16px;line-height:1.6;color:#2f3b33">${escapeHtml(copy.greeting)}</p>
+<p style="margin:0 0 16px;line-height:1.6;color:#2f3b33">${escapeHtml(body)}</p>
+<p style="margin:24px 0 16px"><a href="${escapeHtml(input.url)}" style="display:inline-block;background:#3f6b4f;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:600">${escapeHtml(copy.button)}</a></p>
+<p style="margin:24px 0 0;line-height:1.6;color:#2f3b33"><strong>${escapeHtml(input.shop.name)}</strong>${
+    contacts.length > 0 ? `<br>${escapeHtml(contacts.join(' · '))}` : ''
+  }</p>
+<hr style="margin:24px 0;border:none;border-top:1px solid #e6e2d8">
+<p style="margin:0;font-size:12px;color:#8a918b">${escapeHtml(copy.reason(input.shop.name))}</p>
+</td></tr></table></body></html>`;
+  return {
+    to: input.to,
+    category: 'care_message_notice',
+    subject: copy.subject(input.shop.name),
+    text: lines.join('\n'),
+    html,
+    fromName: input.shop.name,
+    ...(input.shop.contactEmail ? { replyTo: input.shop.contactEmail } : {}),
+  };
+}
+
+export interface CareMessageDigestEmailInput {
+  readonly locale: SupportedLocale;
+  readonly to: string;
+  readonly shopName: string;
+  /** Messaggi dei clienti non letti e contratti con almeno uno. */
+  readonly unread: number;
+  readonly threads: number;
+  /** La pagina «Mensajes» del gestionale. */
+  readonly url: string;
+}
+
+interface MessageDigestCopy {
+  readonly subject: (unread: number) => string;
+  readonly body: (unread: number, threads: number) => string;
+  readonly button: string;
+  readonly reason: (shop: string) => string;
+}
+
+const MESSAGE_DIGEST_COPY: Readonly<Record<SupportedLocale, MessageDigestCopy>> = {
+  'es-MX': {
+    subject: (unread) =>
+      unread === 1 ? 'Floral Care: 1 mensaje sin leer' : `Floral Care: ${unread} mensajes sin leer`,
+    body: (unread, threads) =>
+      `Tienes ${unread === 1 ? '1 mensaje' : `${unread} mensajes`} de clientes sin leer en ${
+        threads === 1 ? '1 contrato' : `${threads} contratos`
+      }.`,
+    button: 'Ver mensajes',
+    reason: (shop) =>
+      `Recibes este resumen una vez al día porque administras Floral Care en ${shop}.`,
+  },
+  'it-IT': {
+    subject: (unread) =>
+      unread === 1
+        ? 'Floral Care: 1 messaggio da leggere'
+        : `Floral Care: ${unread} messaggi da leggere`,
+    body: (unread, threads) =>
+      `Hai ${unread === 1 ? '1 messaggio' : `${unread} messaggi`} dei clienti da leggere in ${
+        threads === 1 ? '1 contratto' : `${threads} contratti`
+      }.`,
+    button: 'Vedi i messaggi',
+    reason: (shop) =>
+      `Ricevi questo riassunto una volta al giorno perché gestisci Floral Care in ${shop}.`,
+  },
+  'en-US': {
+    subject: (unread) =>
+      unread === 1 ? 'Floral Care: 1 unread message' : `Floral Care: ${unread} unread messages`,
+    body: (unread, threads) =>
+      `You have ${unread === 1 ? '1 unread message' : `${unread} unread messages`} from customers on ${
+        threads === 1 ? '1 contract' : `${threads} contracts`
+      }.`,
+    button: 'See messages',
+    reason: (shop) =>
+      `You’re receiving this summary once a day because you manage Floral Care at ${shop}.`,
+  },
+};
+
+/** Alla fioreria (proprietari e gerenti): il riassunto del giorno, solo conteggi e il link. */
+export function careMessageDigestEmail(input: CareMessageDigestEmailInput): EmailMessage {
+  const copy = MESSAGE_DIGEST_COPY[input.locale];
+  const body = copy.body(input.unread, input.threads);
+  const lines = [body, '', `${copy.button}: ${input.url}`, '', '—', copy.reason(input.shopName)];
+  const html = `<!doctype html><html lang="${input.locale}"><body style="margin:0;padding:16px 12px;background:#f6f4ef;font-family:Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px">
+<tr><td style="padding:28px 24px">
+<p style="margin:0 0 24px;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#3f6b4f">${escapeHtml(input.shopName)} · Floral Care</p>
+<p style="margin:0 0 16px;line-height:1.6;color:#2f3b33">${escapeHtml(body)}</p>
+<p style="margin:24px 0 16px"><a href="${escapeHtml(input.url)}" style="display:inline-block;background:#3f6b4f;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:600">${escapeHtml(copy.button)}</a></p>
+<hr style="margin:24px 0;border:none;border-top:1px solid #e6e2d8">
+<p style="margin:0;font-size:12px;color:#8a918b">${escapeHtml(copy.reason(input.shopName))}</p>
+</td></tr></table></body></html>`;
+  return {
+    to: input.to,
+    category: 'care_message_digest',
+    subject: copy.subject(input.unread),
+    text: lines.join('\n'),
+    html,
+  };
+}

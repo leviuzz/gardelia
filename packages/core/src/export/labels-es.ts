@@ -11,6 +11,7 @@ import type {
   CareChargeLineKind,
   CareCreditReason,
   CareFrequency,
+  CareMessageAuthor,
   CarePaymentKind,
   CarePaymentStatus,
   CarePortalInviteStatus,
@@ -209,6 +210,12 @@ export const LABELS = {
     CONTRACT_ENDED: 'Contrato terminado',
   } satisfies Record<CarePortalRevokeReason, string>,
   carePortalAllContracts: 'Todos los contratos del cliente',
+  careMessageAuthor: {
+    CUSTOMER: 'Cliente',
+    SHOP: 'Florería',
+  } satisfies Record<CareMessageAuthor, string>,
+  careMessageDeletedAuthor: 'Cuenta eliminada',
+  careMessagePhotoGone: 'quitada',
   carePaymentKind: {
     PAYMENT: 'Pago',
     REVERSAL: 'Anulación',

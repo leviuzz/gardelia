@@ -44,6 +44,8 @@ export interface OrderMailDeps {
     readonly account: string;
     /** Ricerca delle fiorerie (per chi deve cercarne un'altra). */
     readonly search: string;
+    /** «Mensajes» di Floral Care nel gestionale (riassunto giornaliero, ADR-084). */
+    readonly careMessages?: (tenantSlug: string) => string;
   };
 }
 

@@ -53,16 +53,12 @@ import { notFound, recordAudit } from '../audit';
 import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
-import { logger } from '../logger';
 import { requireEntitlement } from './billing';
 import { lockCareSlots, openSlotBook, type SlotBook } from './care-booking';
 import { busyDays } from './care-generation';
 import { dbDate, isoOf, laterDate, requiredParts } from './care-internals';
-import { deliverCareEmail, type CareMailDeps } from './care-visit-work';
+import { deliverCareEmail, deliverCareEmailsWithin, type CareMailDeps } from './care-visit-work';
 import { dateToParts } from './quote-internals';
-
-/** Le email dopo il commit: oltre questo tempo le manda il lavoro giornaliero. */
-const EMAIL_BUDGET_MS = 8_000;
 
 // -----------------------------------------------------------------------------
 // DTO
@@ -719,32 +715,13 @@ export async function getCareBlock(
 // Scritture
 // -----------------------------------------------------------------------------
 
-/**
- * Manda dopo il commit gli avvisi messi in coda, finché c'è tempo: quelli che restano (o che
- * falliscono) li riprova il lavoro giornaliero. Mai un errore per chi chiama.
- */
-async function deliverNotices(
+/** Gli avvisi dopo il commit, con il tetto di tempo comune delle email di Floral Care. */
+function deliverNotices(
   ctx: TenantContext,
   emailIds: readonly string[],
   mail: CareMailDeps | null,
 ): Promise<number> {
-  if (!mail || emailIds.length === 0) return 0;
-  const deadline = Date.now() + EMAIL_BUDGET_MS;
-  let sent = 0;
-  for (const emailId of emailIds) {
-    if (Date.now() > deadline) break;
-    try {
-      const outcome = await deliverCareEmail(
-        { tenantId: ctx.tenantId, userId: ctx.userId },
-        emailId,
-        mail,
-      );
-      if (outcome === 'sent') sent += 1;
-    } catch (error) {
-      logger.error({ err: error, emailId }, 'avviso di un blocco di Floral Care non inviato');
-    }
-  }
-  return sent;
+  return deliverCareEmailsWithin({ tenantId: ctx.tenantId, userId: ctx.userId }, emailIds, mail);
 }
 
 /**

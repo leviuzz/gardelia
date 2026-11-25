@@ -46,6 +46,8 @@ export interface MaintenanceResult {
   /** Floral Care (ADR-078): foto cancellate e resoconti mandati dal lavoro. */
   readonly carePhotosDeleted: number;
   readonly careEmailsSent: number;
+  /** Floral Care (ADR-084): riassunti dei messaggi dei clienti mandati alle fiorerie. */
+  readonly careMessageDigestsSent: number;
   /** Fiorerie cancellate davvero, 30 giorni dopo "Eliminar florería" (ADR-074). */
   readonly tenantsPurged: number;
 }
@@ -91,6 +93,7 @@ export async function runDailyMaintenance(
     carePortalAccessClosed: care.portalAccessClosed,
     carePhotosDeleted: care.photosDeleted,
     careEmailsSent: care.emailsSent,
+    careMessageDigestsSent: care.messageDigestsSent,
     tenantsPurged,
   };
   logger.info(result, 'manutenzione giornaliera completata');

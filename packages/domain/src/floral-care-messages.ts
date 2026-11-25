@@ -26,6 +26,11 @@ export const CARE_MESSAGE_LIMITS = {
   threadsPage: 25,
   /** Tentativi del riassunto giornaliero alla fioreria (come le altre email di Floral Care). */
   digestAttempts: 3,
+  /** Fiorerie per giro del lavoro giornaliero, e il suo tetto di tempo. */
+  digestPerRun: 20,
+  digestBudgetMs: 10_000,
+  /** Un riassunto "in invio" da più di un'ora si chiude senza rimandarlo (forse è partito). */
+  digestStaleMinutes: 60,
 } as const;
 
 /** Chi ha scritto: la persona del cliente (dal portale) o qualcuno della fioreria. */
