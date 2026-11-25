@@ -8,9 +8,13 @@ export {
 export {
   checkRlsSafety,
   onSystemContext,
+  withPortalContext,
+  withPortalWriteContext,
   withSystemContext,
   withTenantContext,
   withUserContext,
+  type PortalEntry,
+  type PortalScope,
   type RlsSafetyReport,
   type TenantScope,
   type TransactionClient,

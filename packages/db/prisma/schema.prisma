@@ -56,11 +56,13 @@ model User {
   sessions           Session[]
   twoFactors         TwoFactor[]
   accounts           Account[]
-  memberships        Membership[]  @relation("MembershipUser")
-  invitedMemberships Membership[]  @relation("MembershipInviter")
-  sentInvitations    Invitation[]  @relation("InvitationInviter")
+  memberships        Membership[]       @relation("MembershipUser")
+  invitedMemberships Membership[]       @relation("MembershipInviter")
+  sentInvitations    Invitation[]       @relation("InvitationInviter")
   buyerProfile       BuyerProfile?
-  buyerOrders        Order[]       @relation("BuyerOrders")
+  buyerOrders        Order[]            @relation("BuyerOrders")
+  /// Floral Care, pagina del cliente (ADR-084): i contratti che la persona vede.
+  carePortalAccesses CarePortalAccess[] @relation("CarePortalAccessUser")
 }
 
 model Session {
@@ -316,6 +318,8 @@ model Tenant {
   careAdjustments      CareChargeAdjustment[]
   careBlocks           CareBlock[]
   careBlockVisits      CareBlockVisit[]
+  carePortalInvites    CarePortalInvite[]
+  carePortalAccesses   CarePortalAccess[]
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -907,6 +911,8 @@ model Customer {
   subscriptions CustomerSubscription[]
   careCharges   CareCharge[]
   carePayments  CarePayment[]
+  portalInvites CarePortalInvite[]
+  portalAccess  CarePortalAccess[]
 
   @@unique([tenantId, id])
   @@index([tenantId, status])
@@ -2175,6 +2181,8 @@ model CustomerSubscription {
   deadPlantPolicy      CareDeadPlantPolicy?
   /// Ore di preavviso per cancellare senza pagare, copiate alla conferma (ADR-082).
   lateCancelHours      Int?
+  /// Ore di preavviso per cambiare la data dal portale, copiate alla conferma (ADR-084).
+  minNoticeHours       Int?
   acquisitionSource    AcquisitionSource          @default(MERCHANT_DIRECT)
   /// Chi ha confermato il contratto: da lui viene il permesso dei lavori automatici.
   confirmedById        String?                    @db.Uuid
@@ -2198,6 +2206,8 @@ model CustomerSubscription {
   charges         CareCharge[]
   adjustments     CareChargeAdjustment[]
   blockChanges    CareBlockVisit[]
+  portalInvites   CarePortalInvite[]
+  portalAccess    CarePortalAccess[]
 
   @@unique([tenantId, id])
   /// Per le FK dei cargos: il cargo è dello stesso cliente del contratto.
@@ -2319,6 +2329,9 @@ model CareVisit {
   quoteId              String?                @db.Uuid
   /// Blocco 3b: la visita mancata (cliente) che questa visita extra gratis recupera.
   recoveryOfVisitId    String?                @db.Uuid
+  /// Blocco 5a (ADR-084): l'ultima data l'ha scelta il cliente dal portale; la fioreria che la
+  /// sposta di nuovo lo azzera.
+  customerMovedAt      DateTime?
   createdById          String?                @db.Uuid
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
@@ -2810,4 +2823,80 @@ model CarePaymentAllocation {
   @@unique([tenantId, id])
   @@unique([tenantId, paymentId, chargeId])
   @@index([tenantId, chargeId])
+}
+
+/// Floral Care, pagina del cliente (ADR-084): l'invito di una persona (email) a vedere i contratti
+/// di un cliente, uno solo (`subscriptionId`) o tutti (NULL). Il link è firmato con la fioreria e
+/// l'id; vale 7 giorni e solo per la stessa email.
+model CarePortalInvite {
+  id             String                 @id @default(uuid(7)) @db.Uuid
+  tenantId       String                 @db.Uuid
+  customerId     String                 @db.Uuid
+  subscriptionId String?                @db.Uuid
+  /// Minuscola: si confronta con l'email (verificata) di chi accetta.
+  email          String
+  /// "Puede ver precios y cobros" (deciso dal founder il 24/11).
+  canSeeMoney    Boolean                @default(true)
+  status         CarePortalInviteStatus @default(PENDING)
+  expiresAt      DateTime
+  emailSentAt    DateTime?
+  createdById    String?                @db.Uuid
+  acceptedAt     DateTime?
+  acceptedUserId String?                @db.Uuid
+  revokedAt      DateTime?
+  revokedById    String?                @db.Uuid
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  tenant       Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer     Customer              @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
+  subscription CustomerSubscription? @relation(fields: [tenantId, subscriptionId, customerId], references: [tenantId, id, customerId], onDelete: Restrict)
+  accesses     CarePortalAccess[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, id, customerId])
+  @@index([tenantId, customerId, status])
+  @@index([tenantId, subscriptionId])
+}
+
+/// Il collegamento cliente ↔ persona nato da un invito: la persona vede i contratti del cliente
+/// (uno o tutti). Non si cancella: si chiude (`revokedAt`). Sparisce con il conto della persona.
+model CarePortalAccess {
+  id             String                  @id @default(uuid(7)) @db.Uuid
+  tenantId       String                  @db.Uuid
+  customerId     String                  @db.Uuid
+  subscriptionId String?                 @db.Uuid
+  userId         String                  @db.Uuid
+  inviteId       String                  @db.Uuid
+  canSeeMoney    Boolean                 @default(true)
+  revokedAt      DateTime?
+  revokedReason  CarePortalRevokeReason?
+  revokedById    String?                 @db.Uuid
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  tenant       Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer     Customer              @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
+  subscription CustomerSubscription? @relation(fields: [tenantId, subscriptionId, customerId], references: [tenantId, id, customerId], onDelete: Restrict)
+  invite       CarePortalInvite      @relation(fields: [tenantId, inviteId, customerId], references: [tenantId, id, customerId], onDelete: Restrict)
+  user         User                  @relation("CarePortalAccessUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@index([userId])
+  @@index([tenantId, customerId])
+  @@index([tenantId, subscriptionId])
+  @@index([tenantId, inviteId])
+}
+
+enum CarePortalInviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum CarePortalRevokeReason {
+  MANUAL
+  CUSTOMER_ARCHIVED
+  CONTRACT_ENDED
 }
