@@ -355,25 +355,32 @@ resoconto; fino ad allora valgono Opus 5.5 e 20 USD al mese.
   d'interno che non sono nella nostra lista (Hoya, Tradescantia, Alocasia, Fittonia, Pilea) per
   vedere se il modello dice «no está en la lista». Restano fuori dal repo; il manifest tiene per
   ogni foto pagina, autore e licenza, che qui andranno in tabella con i risultati.
-- **Come si scaricano:** l'API di Commons dà le miniature su `thumb.wikimedia.org`, che la rete
-  della sessione non raggiunge, e le miniature di `upload.wikimedia.org` rispondono 400 o 429 se
-  non sono già in cache; si usa quindi `thumb.php` di Commons a 960 px (una larghezza standard),
-  con pause e attese lunghe quando arriva un 429 (l'IP d'uscita è condiviso).
+- **Come si scaricano:** `pnpm --filter @floral/core assistant:photos --dir <cartella>` (scrive
+  `photos/` e `manifest.json`, riprende da dove era rimasto). Usa `thumb.php` di Commons a 960 px
+  (una larghezza standard): le miniature di `upload.wikimedia.org` rispondono 400 o 429 se non sono
+  già in cache e `thumb.wikimedia.org` non è raggiungibile dalle sessioni cloud. Pause di 2 s e
+  attese lunghe sui 429. In una sessione cloud Node passa dal proxy solo con
+  `NODE_USE_ENV_PROXY=1`.
 - **Script:** `pnpm --filter @floral/core assistant:benchmark --dir <cartella>` con
-  `ANTHROPIC_API_KEY`: stesso adattatore e stessi prompt dell'app. Per ogni foto e modello, in
-  parallelo:
+  `ANTHROPIC_API_KEY` (la lancia il founder sul suo computer, 25/11): stesso adattatore e stessi
+  prompt dell'app. Per ogni foto e modello, in parallelo:
   1. riconoscimento senza indizi (specie giusta al primo posto e fra le prime 3; «no está en la
      lista» per le piante fuori dalla lista);
   2. risposta con la specie giusta e la domanda della foto (una di cura o una con il sintomo).
-- **Giudice:** Opus 5.5 a effort alto con una griglia: giusta e utile, sicura (niente dosi di
-  prodotti chimici né frasi sulla tossicità), niente calendari fissi, breve; voto da 1 a 5. Più la
-  lettura a mano di 10 risposte a caso.
+- **Giudice:** Opus 5.5 con una griglia: giusta e utile, sicura (niente dosi di prodotti chimici né
+  frasi sulla tossicità), niente calendari fissi, breve; voto da 1 a 5. Effort medio di default
+  (`--judge-effort`), per stare nel credito; più la lettura a mano di 10 risposte a caso.
 - **Costo e tempo:** costo vero per consulta dai token di `usage` (media, 95° percentile,
   massimo), tempo p50 e p95. Le foto della prova sono larghe 960 px; in produzione arrivano al
   modello fino a 1092 px sul lato lungo: il resoconto ricalcola il costo delle immagini per questa
   differenza (circa (larghezza × altezza) / 750 token per immagine).
-- **Tetto:** le foto si fermano a 15 USD meno la riserva del giudice (5 USD); il giudice al tetto.
+- **Tetto:** 5 USD di default (`--cap-usd`), sotto i 15 decisi dal founder perché il conto ha
+  6,56 USD di credito (25/11); le foto si fermano al tetto meno la riserva del giudice (1,5 USD,
+  `--judge-reserve-usd`), il giudice al tetto. Se tutte le chiamate di una foto sono rifiutate
+  (chiave, permesso o credito finito) lo script si ferma subito: provato con una chiave finta, 0
+  USD spesi.
+- **Stima:** circa 0,05 USD a foto per i tre modelli insieme (Opus ~0,03, Sonnet ~0,017, Haiku
+  ~0,001), quindi ~2,5 USD per 50 foto, più il giudice dentro la riserva.
 
-**Stato (25/11/2026):** script pronto, foto in arrivo. Manca la chiave di Anthropic: il modulo
-sicuro della sessione non accetta gli host di Anthropic, serve la variabile `ANTHROPIC_API_KEY`
-dell'environment.
+**Stato (25/11/2026):** script pronti e provati; la prova la lancia il founder con la sua chiave.
+Risultati: `summary.md` e `results.json` nella cartella, da riportare qui.

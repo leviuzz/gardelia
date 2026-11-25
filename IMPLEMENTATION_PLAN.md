@@ -1363,9 +1363,17 @@ E2E dell'assistente ✅ (dalla pianta del contratto: foto → candidate → «Ot
 tossicità ASPCA → «Otra pregunta», contatore, card del contratto) · controllo a 320 px del caso e
 del contratto: nessuno sbordo.
 
-Prossimo: la prova pagata appena c'è la chiave, il resoconto in `docs/AI_BENCHMARK.md` e la scelta
-del founder; poi il rilascio del 6a su staging con il suo via libera e le variabili dell'assistente
-su Vercel. Dopo, i piani di dettaglio del 6b e del 6c.
+E2E completo in locale 115/115. CI verde su `0acc4cd` (run 239, E2E compreso) e rilascio su
+staging con il via libera del founder (merge `cbdfa5c`): l'assistente resta spento finché su Vercel
+non ci sono `ASSISTANT_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` e `ASSISTANT_MODEL`.
+
+Prova pagata: la lancia il founder sul suo computer (25/11), con 6,56 USD di credito: script
+`assistant:photos` per le foto (Commons, `thumb.php` a 960 px) e `assistant:benchmark` con tetto
+predefinito 5 USD, giudice a effort medio e stop subito se la chiave o il credito non vanno.
+
+Prossimo: i risultati della prova in `docs/AI_BENCHMARK.md` e la scelta del founder (modello e
+budget), poi le variabili su Vercel e una consulta vera su staging. Dopo, i piani di dettaglio del
+6b e del 6c.
 
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 

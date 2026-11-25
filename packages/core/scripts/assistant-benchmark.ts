@@ -3,8 +3,11 @@
  * domande a più modelli, con lo stesso adattatore e gli stessi prompt dell'app.
  *
  *   ANTHROPIC_API_KEY=… pnpm --filter @floral/core assistant:benchmark \
- *     --dir <cartella con manifest.json e photos/> [--models opus,sonnet,haiku] [--cap-usd 15] \
- *     [--judge-reserve-usd 5]
+ *     --dir <cartella con manifest.json e photos/> [--models opus,sonnet,haiku] [--cap-usd 5] \
+ *     [--judge-reserve-usd 1.5] [--judge-effort medium]
+ *
+ * Le foto le prepara `assistant:photos` (stessa cartella). Il tetto predefinito (5 USD) sta sotto
+ * quello deciso dal founder (15 USD) per restare dentro il credito del conto; si alza con --cap-usd.
  *
  * Per ogni foto e modello (i modelli in parallelo): riconoscimento senza indizi (specie giusta al
  * primo posto e fra le prime 3? «no está en la lista» per le piante fuori dalla lista?), poi la
@@ -55,6 +58,8 @@ interface ManifestItem {
   readonly question?: string;
   /** Il problema visibile nella foto, annotato a mano (null = pianta sana). */
   readonly problem?: string | null;
+  /** Parola di un problema nel titolo o nella descrizione su Commons (solo un indizio). */
+  readonly hint?: string | null;
 }
 
 interface Row {
@@ -124,10 +129,16 @@ async function main(): Promise<void> {
     options: {
       dir: { type: 'string' },
       models: { type: 'string', default: 'opus,sonnet,haiku' },
-      'cap-usd': { type: 'string', default: '15' },
-      'judge-reserve-usd': { type: 'string', default: '5' },
+      'cap-usd': { type: 'string', default: '5' },
+      'judge-reserve-usd': { type: 'string', default: '1.5' },
+      'judge-effort': { type: 'string', default: 'medium' },
     },
   });
+  const judgeEffort = values['judge-effort'];
+  if (judgeEffort !== 'low' && judgeEffort !== 'medium' && judgeEffort !== 'high') {
+    console.error('--judge-effort: low, medium o high.');
+    process.exit(1);
+  }
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || !values.dir) {
     console.error('Servono ANTHROPIC_API_KEY e --dir <cartella>.');
@@ -153,8 +164,9 @@ async function main(): Promise<void> {
   const allowed = new Set(species.map((item) => item.slug));
   const judge = new Anthropic({ apiKey, timeout: 60_000, maxRetries: 2 });
   let spent = 0;
+  let stopped = false;
   const rows: Row[] = [];
-  const stop = () => spent >= capMicros;
+  const stop = () => stopped || spent >= capMicros;
 
   for (const [index, item] of manifest.entries()) {
     if (spent >= photosCapMicros) {
@@ -172,7 +184,9 @@ async function main(): Promise<void> {
     }
     const plant = item.species ? plants.find((flower) => flower.slug === item.species) : undefined;
     if (item.species && !plant) throw new Error(`Specie sconosciuta nel manifest: ${item.species}`);
-    const question = item.question ?? QUESTIONS[index % QUESTIONS.length]!;
+    // La domanda: quella scelta per la foto; con un indizio di problema, quella col sintomo.
+    const question =
+      item.question ?? (item.hint ? QUESTIONS[1]! : QUESTIONS[index % QUESTIONS.length]!);
     const runModel = async (model: AssistantModel): Promise<Row> => {
       const assistant = new ClaudePlantAssistant(model, {
         apiKey,
@@ -239,12 +253,22 @@ async function main(): Promise<void> {
         errors,
       };
     };
-    for (const row of await Promise.all(models.map(runModel))) {
+    const photoRows = await Promise.all(models.map(runModel));
+    for (const row of photoRows) {
       spent += row.recognitionMicros + row.answerMicros;
       rows.push(row);
       console.info(
         `${row.file} ${row.model}: top1=${row.top1} notInList=${row.notInList} cost=${usd(row.recognitionMicros + row.answerMicros)} spent=${usd(spent)}${row.errors.length ? ` errors=${row.errors.join(',')}` : ''}`,
       );
+    }
+    // Chiave sbagliata, permesso o credito finito: inutile continuare (nessun costo).
+    const blocked = /:(auth|permission|bad_request)$/;
+    if (photoRows.every((row) => row.errors.some((error) => blocked.test(error)))) {
+      stopped = true;
+      console.error(
+        'Tutte le chiamate di questa foto sono state rifiutate (chiave, permesso o credito): mi fermo.',
+      );
+      break;
     }
   }
 
@@ -270,7 +294,7 @@ async function main(): Promise<void> {
             ].join('\n'),
           },
         ],
-        output_config: { effort: 'high', format: zodOutputFormat(verdictSchema) },
+        output_config: { effort: judgeEffort, format: zodOutputFormat(verdictSchema) },
       });
       spent += assistantCallCostMicros('claude-opus-5-5', {
         inputTokens: response.usage.input_tokens,
