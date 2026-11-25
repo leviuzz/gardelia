@@ -269,13 +269,17 @@ const assistantFields = {
   // test (etichettate); `none` = assistente spento (i link non compaiono).
   ASSISTANT_PROVIDER: z.enum(['none', 'simulated', 'anthropic']).default('none'),
   ANTHROPIC_API_KEY: optionalText,
-  // Il modello scelto dal founder dopo la prova (docs/AI_BENCHMARK.md).
+  // Mix scelto dal founder dopo la prova (docs/AI_BENCHMARK.md): il modello principale riconosce
+  // la foto e risponde ai problemi, quello leggero alle domande di cura.
   ASSISTANT_MODEL: optionalText,
-  // Tetto mensile delle consultas pagate da Gardelia, in USD (fuori dal tetto delle immagini).
+  ASSISTANT_CARE_MODEL: optionalText,
+  // Tetto mensile di spesa dell'assistente su tutta la piattaforma, in USD (rete di sicurezza:
+  // i crediti li paga la fioreria; fuori dal tetto delle immagini).
   ASSISTANT_MONTHLY_BUDGET_USD: optionalText,
 };
 
 const DEFAULT_ASSISTANT_MODEL: AssistantModel = 'claude-opus-5-5';
+const DEFAULT_ASSISTANT_CARE_MODEL: AssistantModel = 'claude-haiku-5-5';
 
 function assistantBudgetUsd(value: string | undefined): number | null {
   if (value === undefined) return ASSISTANT_LIMITS.defaultMonthlyBudgetUsd;
@@ -289,6 +293,7 @@ function assistantRules(
     ASSISTANT_PROVIDER: string;
     ANTHROPIC_API_KEY?: string | undefined;
     ASSISTANT_MODEL?: string | undefined;
+    ASSISTANT_CARE_MODEL?: string | undefined;
     ASSISTANT_MONTHLY_BUDGET_USD?: string | undefined;
   },
   ctx: RefinementContext,
@@ -309,15 +314,15 @@ function assistantRules(
         'obbligatoria con ASSISTANT_PROVIDER=anthropic (nelle variabili dell’hosting, mai nel repo)',
     });
   }
-  if (
-    config.ASSISTANT_MODEL !== undefined &&
-    !(ASSISTANT_MODELS as readonly string[]).includes(config.ASSISTANT_MODEL)
-  ) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['ASSISTANT_MODEL'],
-      message: `deve essere uno di: ${ASSISTANT_MODELS.join(', ')}`,
-    });
+  for (const key of ['ASSISTANT_MODEL', 'ASSISTANT_CARE_MODEL'] as const) {
+    const model = config[key];
+    if (model !== undefined && !(ASSISTANT_MODELS as readonly string[]).includes(model)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [key],
+        message: `deve essere uno di: ${ASSISTANT_MODELS.join(', ')}`,
+      });
+    }
   }
   if (assistantBudgetUsd(config.ASSISTANT_MONTHLY_BUDGET_USD) === null) {
     ctx.addIssue({
@@ -328,24 +333,30 @@ function assistantRules(
   }
 }
 
-/** Converte modello e budget dopo le regole (un valore non valido è già un errore). */
+function modelOr(value: string | undefined, fallback: AssistantModel): AssistantModel {
+  return (ASSISTANT_MODELS as readonly string[]).includes(value ?? '')
+    ? (value as AssistantModel)
+    : fallback;
+}
+
+/** Converte modelli e budget dopo le regole (un valore non valido è già un errore). */
 function withAssistantValues<
   T extends {
     ASSISTANT_MODEL?: string | undefined;
+    ASSISTANT_CARE_MODEL?: string | undefined;
     ASSISTANT_MONTHLY_BUDGET_USD?: string | undefined;
   },
 >(
   config: T,
-): Omit<T, 'ASSISTANT_MODEL' | 'ASSISTANT_MONTHLY_BUDGET_USD'> & {
+): Omit<T, 'ASSISTANT_MODEL' | 'ASSISTANT_CARE_MODEL' | 'ASSISTANT_MONTHLY_BUDGET_USD'> & {
   ASSISTANT_MODEL: AssistantModel;
+  ASSISTANT_CARE_MODEL: AssistantModel;
   ASSISTANT_MONTHLY_BUDGET_USD: number;
 } {
-  const model = config.ASSISTANT_MODEL;
   return {
     ...config,
-    ASSISTANT_MODEL: (ASSISTANT_MODELS as readonly string[]).includes(model ?? '')
-      ? (model as AssistantModel)
-      : DEFAULT_ASSISTANT_MODEL,
+    ASSISTANT_MODEL: modelOr(config.ASSISTANT_MODEL, DEFAULT_ASSISTANT_MODEL),
+    ASSISTANT_CARE_MODEL: modelOr(config.ASSISTANT_CARE_MODEL, DEFAULT_ASSISTANT_CARE_MODEL),
     ASSISTANT_MONTHLY_BUDGET_USD:
       assistantBudgetUsd(config.ASSISTANT_MONTHLY_BUDGET_USD) ??
       ASSISTANT_LIMITS.defaultMonthlyBudgetUsd,

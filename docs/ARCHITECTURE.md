@@ -373,17 +373,28 @@ messaggi. Il riassunto alla fioreria (`sendCareMessageDigests`, dentro il tetto 
 prende la riga del giorno prima di mandare: nasce SENDING con `skipDuplicates`, una FAILED si
 riprende con `updateManyAndReturn` finché ha tentativi, una SENDING ferma da un'ora diventa FAILED
 senza rimandarla.
-Asistente de plantas (ADR-085, blocco 6a; `services/plant-assistant.ts`, adattatori in
-`ai/plant-assistant/`): `ClaudePlantAssistant` è l'unico punto con `@anthropic-ai/sdk` (output
-strutturato con gli schemi Zod del dominio, effort basso, sistema in cache, fallback lato server);
-`SimulatedPlantAssistant` solo in locale. Le tabelle sono solo inserimenti: `AssistantCase` (foto e
-specie candidate), `AssistantAnswer` (domanda, specie confermata, risposta), `AssistantCall` (ogni
-chiamata con token e costo dai dati veri di `usage`). Il servizio controlla in una transazione il
-tetto del giorno e il budget del mese (`app_assistant_spend_since`, DEFINER, su tutta la
-piattaforma), chiama il modello FUORI dalle transazioni e scrive esito e chiamata dopo; un errore o
-un rifiuto si registra con il suo costo ma non conta come consulta. Cura e tossicità vengono da
-`CanonicalFlower.care`, mai dal modello. Le foto seguono la catena delle visite e si cancellano con
-loro (`app_care_photos_to_purge` include i casi).
+Asistente de plantas (ADR-085, blocco 6b): è per i clienti della fioreria, in Mi Floral Care
+(`services/my-plant-assistant.ts`, solo modalità portale), con i crediti che la fioreria compra e dà
+ai contratti (`services/plant-assistant.ts`; saldi e ritorno a fine contratto in
+`services/assistant-credits-internals.ts`, che chi chiude i contratti usa senza caricare l'SDK).
+Adattatori in `ai/plant-assistant/`: `ClaudePlantAssistant` è l'unico punto con
+`@anthropic-ai/sdk` (output strutturato con gli schemi Zod del dominio, effort basso, sistema in
+cache, fallback lato server); due istanze dalla configurazione, `main` (foto e problemi) e `care`
+(domande di cura), scelte da `assistantAnswerModel`; `SimulatedPlantAssistant` solo in locale. Le
+tabelle sono solo inserimenti: `AssistantCase` (foto e specie candidate), `AssistantAnswer`
+(domanda, tipo, specie confermata, risposta), `AssistantCall` (ogni chiamata con token e costo dai
+dati veri di `usage`), `AssistantCreditAllocation` (crediti dati e resi), `AssistantCreditHold`
+(riserve di 2 minuti). Una risposta: in una transazione del portale i controlli (caso proprio,
+contratto aperto, tetto del giorno per contratto, budget del mese con `app_assistant_spend_since`)
+e per ultima la riserva del credito (`app_portal_assistant_reserve`, DEFINER, sotto lock del
+contratto); il modello FUORI dalle transazioni; poi una transazione che scrive risposta e chiamata
+e toglie la riserva (il credito è usato), oppure, se qualcosa va storto, registra la chiamata e
+rende la riserva. Il portale scrive solo con le policy `portal_insert` (i propri casi, risposte e
+chiamate) e legge solo i propri casi e risposte; i crediti e l'uso del giorno del contratto li
+legge con `app_portal_assistant_credits(since)`. «Enviar a la florería» e «Pedir más consultas»
+passano da `postMyCareMessage` (5b) con una chiave d'invio calcolata (`uuidFromSeed`). Cura e
+tossicità vengono da `CanonicalFlower.care`, mai dal modello. Le foto seguono la catena delle visite
+e si cancellano con loro (`app_care_photos_to_purge` include i casi).
 
 Convenzioni: UUID v7, importi in unità minime + valuta, date in UTC, indirizzi strutturati,
 archiviazione invece di cancellazione, `AcquisitionSource` su clienti/preventivi per

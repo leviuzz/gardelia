@@ -206,6 +206,11 @@ export type ConflictReason =
   | 'assistant_photo_unusable'
   | 'assistant_case_full'
   | 'assistant_failed'
+  /** Blocco 6b: crediti del contratto finiti, della fioreria insufficienti, contratto chiuso. */
+  | 'assistant_no_credits'
+  | 'assistant_shop_credits'
+  | 'assistant_contract_closed'
+  | 'assistant_nothing_to_send'
   /** "Eliminar florería" con ordini ancora da consegnare o ritirare (ADR-074). */
   | 'tenant_deletion_open_orders'
   | 'session_is_current';

@@ -85,8 +85,8 @@ quaderni; il cliente ha una pagina sua; ogni visita lascia la prova (ora, checkl
    - resoconti con foto, chi è venuto e quando;
    - le piante con le istruzioni fra una visita e l'altra;
    - messaggi con la fioreria (con foto);
-   - l'asistente de plantas: prima le consultas incluse dalla fioreria, poi le sue, comprate
-     con la carta.
+   - l'asistente de plantas, con i crediti che gli dà la fioreria (ADR-085: li compra la
+     fioreria da Gardelia e li rivende come vuole).
 2. Senza email o senza conto: il fiorista gli manda il resoconto con un link firmato, come quello
    per seguire un ordine (ADR-056), oppure lo stampa.
 3. A fine contratto: avviso che le foto si cancellano 30 giorni dopo.
@@ -235,7 +235,8 @@ Con tre cautele:
    - Le consultas pagate dai clienti hanno un budget loro, fuori dal tetto di 50 USD delle
      immagini.
    - Limiti al giorno per persona; una risposta rifiutata o in errore non si conta.
-2. **Pagamenti dei clienti a Gardelia (tua decisione).**
+2. **Pagamenti dei clienti a Gardelia (tua decisione).** Superato il 25/11 (ADR-085): i crediti
+   li compra la fioreria, i clienti non pagano Gardelia.
    - Stripe Checkout ospitato da Stripe:
      - l'acquisto si scrive prima di mandare il cliente a pagare;
      - le consultas arrivano solo dal webhook firmato, una volta sola per evento;
@@ -418,22 +419,21 @@ rilascio su staging) e lascia qualcosa di usabile.
      accesso; riassunto giornaliero a proprietari e gerenti solo con novità; «Quitar foto» per chi
      gestisce; foto cancellate con quelle delle visite; messaggi nell'export, nei dati della
      persona e nell'eliminazione del conto («Cuenta eliminada»).
-6. **Asistente de plantas** (ADR-085), in tre rilasci (decisioni del founder del 25/11: solo foto
-   libere per la prova, Opus 5.5, Sonnet 5.5 e Haiku 5.5 con un tetto di 15 USD; le consultas del
-   fiorista le paga Gardelia, al massimo 20 al giorno per fioreria, dentro un budget mensile; per i
-   clienti la fioreria include 0–10 consultas al mese per contratto, 3 di default, poi il cliente le
-   compra con la carta).
-   - **6a (fatto, tranne la prova pagata):** dati di cura e tossicità per le 36 piante in vaso (19
-     nuove), tabelle solo inserimenti con RLS, adattatore di Claude e simulato, servizi con tetto
-     del giorno e budget del mese, pagina `subscriptions/[id]/assistant` (foto → specie → domanda →
-     risposta con cura e tossicità dai nostri dati), link dal contratto, da ogni pianta e dalle
-     piante con un problema nella visita; bozze legali con Anthropic. La prova pagata
-     (`docs/AI_BENCHMARK.md`) aspetta la chiave di Anthropic; poi il founder sceglie modello e
-     budget.
-   - **6b:** l'assistente in Mi Floral Care con le consultas incluse e «Enviar a la florería» nel
-     filo dei messaggi (piano di dettaglio da approvare).
-   - **6c:** acquisto di consultas con Stripe Checkout in modalità di prova, con il banner (piano di
-     dettaglio da approvare).
+6. **Asistente de plantas** (ADR-085). Dopo la prova pagata il founder (25/11) ha deciso che
+   l'assistente è per i clienti della fioreria, con crediti che la fioreria compra da Gardelia (1
+   credito = 1 risposta, 100 crediti = 199 MXN) e dà ai contratti quando vuole; il fiorista non lo
+   usa. Mix: riconoscimento Opus 5.5, cura Haiku 5.5, problemi Opus 5.5.
+   - **6a (fatto, su staging spento):** dati di cura e tossicità per le 36 piante in vaso,
+     tabelle e motore, prova pagata (`docs/AI_BENCHMARK.md`), una prima pagina per il fiorista che
+     il 6b toglie.
+   - **6b (fatto sul ramo, 25/11; staging con il via libera del founder):** crediti della
+     fioreria (saldo in Ajustes, «Comprar créditos por WhatsApp», «Dar créditos» nel contratto per
+     proprietario e gerente, ritorno a fine contratto) e l'assistente in Mi Floral Care (foto →
+     specie → «Cómo cuidarla» o «Tiene un problema» → risposta; 1 credito per risposta riuscita,
+     riserva sotto lock, 10 foto e 10 risposte al giorno per contratto), con «Enviar a la
+     florería» e «Pedir más consultas» nel filo dei messaggi; prompt v2; consultas in «Descargar
+     mis datos».
+   - **6c (Stripe per i clienti):** non si fa.
 7. **Consegne periodiche (piano a parte).**
    - Righe, cadenza, ordini creati 2 giorni prima e mai doppi.
    - Etichetta e filtro negli ordini, vista d'insieme, pausa e salti.

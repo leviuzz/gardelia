@@ -5,8 +5,7 @@
  * segnale può mancare: quello già salvato resta). La pagina si ricarica dal server dopo ogni passo,
  * quindi le righe mostrano sempre lo stato salvato; durante l'invio la riga è in attesa.
  */
-import { Check, CheckCheck, Flag, Plus, ScanSearch, Send, Trash2, X } from 'lucide-react';
-import Link from 'next/link';
+import { Check, CheckCheck, Flag, Plus, Send, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import {
@@ -144,8 +143,6 @@ export interface PlantItemView {
   readonly note: string | null;
   /** Pianta del cambio di stagione (ADR-078). */
   readonly seasonal?: boolean;
-  /** «Preguntar al asistente» (ADR-085) se la pianta non sta bene; null senza assistente. */
-  readonly assistantHref?: string | null;
 }
 
 const CONDITION_STYLE: Record<CarePlantCondition, string> = {
@@ -165,7 +162,6 @@ export function PlantChecklistItem({
   readonly plant: PlantItemView;
 }) {
   const t = useTranslations('care.visitWork');
-  const tAssistant = useTranslations('assistant.card');
   const [state, formAction, pending] = useToastActionState(action);
   const affectedError = fieldError(state, 'affected');
   const noteError = fieldError(state, 'note');
@@ -209,14 +205,6 @@ export function PlantChecklistItem({
           </Button>
         ))}
       </form>
-      {plant.assistantHref && (plant.condition === 'ATTENTION' || plant.condition === 'PROBLEM') ? (
-        <Button asChild size="sm" variant="secondary" className="justify-self-start">
-          <Link href={plant.assistantHref}>
-            <ScanSearch aria-hidden="true" />
-            {tAssistant('askVisitPlant')}
-          </Link>
-        </Button>
-      ) : null}
       {showDetails ? (
         <form
           action={formAction}

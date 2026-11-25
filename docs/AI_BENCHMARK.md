@@ -355,25 +355,91 @@ resoconto; fino ad allora valgono Opus 5.5 e 20 USD al mese.
   d'interno che non sono nella nostra lista (Hoya, Tradescantia, Alocasia, Fittonia, Pilea) per
   vedere se il modello dice «no está en la lista». Restano fuori dal repo; il manifest tiene per
   ogni foto pagina, autore e licenza, che qui andranno in tabella con i risultati.
-- **Come si scaricano:** l'API di Commons dà le miniature su `thumb.wikimedia.org`, che la rete
-  della sessione non raggiunge, e le miniature di `upload.wikimedia.org` rispondono 400 o 429 se
-  non sono già in cache; si usa quindi `thumb.php` di Commons a 960 px (una larghezza standard),
-  con pause e attese lunghe quando arriva un 429 (l'IP d'uscita è condiviso).
+- **Come si scaricano:** `pnpm --filter @floral/core assistant:photos --dir <cartella>` (scrive
+  `photos/` e `manifest.json`, riprende da dove era rimasto). Usa `thumb.php` di Commons a 960 px
+  (una larghezza standard): le miniature di `upload.wikimedia.org` rispondono 400 o 429 se non sono
+  già in cache e `thumb.wikimedia.org` non è raggiungibile dalle sessioni cloud. Pause di 2 s e
+  attese lunghe sui 429. In una sessione cloud Node passa dal proxy solo con
+  `NODE_USE_ENV_PROXY=1`.
 - **Script:** `pnpm --filter @floral/core assistant:benchmark --dir <cartella>` con
-  `ANTHROPIC_API_KEY`: stesso adattatore e stessi prompt dell'app. Per ogni foto e modello, in
-  parallelo:
+  `ANTHROPIC_API_KEY` (la lancia il founder sul suo computer, 25/11): stesso adattatore e stessi
+  prompt dell'app. Per ogni foto e modello, in parallelo:
   1. riconoscimento senza indizi (specie giusta al primo posto e fra le prime 3; «no está en la
      lista» per le piante fuori dalla lista);
   2. risposta con la specie giusta e la domanda della foto (una di cura o una con il sintomo).
-- **Giudice:** Opus 5.5 a effort alto con una griglia: giusta e utile, sicura (niente dosi di
-  prodotti chimici né frasi sulla tossicità), niente calendari fissi, breve; voto da 1 a 5. Più la
-  lettura a mano di 10 risposte a caso.
+- **Giudice:** Opus 5.5 con una griglia: giusta e utile, sicura (niente dosi di prodotti chimici né
+  frasi sulla tossicità), niente calendari fissi, breve; voto da 1 a 5. Effort medio di default
+  (`--judge-effort`), per stare nel credito; più la lettura a mano di 10 risposte a caso.
 - **Costo e tempo:** costo vero per consulta dai token di `usage` (media, 95° percentile,
   massimo), tempo p50 e p95. Le foto della prova sono larghe 960 px; in produzione arrivano al
   modello fino a 1092 px sul lato lungo: il resoconto ricalcola il costo delle immagini per questa
   differenza (circa (larghezza × altezza) / 750 token per immagine).
-- **Tetto:** le foto si fermano a 15 USD meno la riserva del giudice (5 USD); il giudice al tetto.
+- **Tetto:** 5 USD di default (`--cap-usd`), sotto i 15 decisi dal founder perché il conto ha
+  6,56 USD di credito (25/11); le foto si fermano al tetto meno la riserva del giudice (1,5 USD,
+  `--judge-reserve-usd`), il giudice al tetto. Se tutte le chiamate di una foto sono rifiutate
+  (chiave, permesso o credito finito) lo script si ferma subito: provato con una chiave finta, 0
+  USD spesi.
+- **Stima:** circa 0,05 USD a foto per i tre modelli insieme (Opus ~0,03, Sonnet ~0,017, Haiku
+  ~0,001), quindi ~2,5 USD per 50 foto, più il giudice dentro la riserva.
 
-**Stato (25/11/2026):** script pronto, foto in arrivo. Manca la chiave di Anthropic: il modulo
-sicuro della sessione non accetta gli host di Anthropic, serve la variabile `ANTHROPIC_API_KEY`
-dell'environment.
+### Risultati (25/11/2026, lanciata dal founder sul suo computer, 3,94 USD)
+
+53 foto (48 di 29 specie della lista, 5 di piante fuori dalla lista), tre modelli, 159 risposte
+tutte giudicate. Una consulta = riconoscimento della foto + una risposta.
+
+| Modello    | Specie al 1º posto | Fra le prime 3 | «No está» giusto (5) | «No está» sbagliato | Voto medio (1–5) | Errori di contenuto | Troppo lunghe | Costo medio | 95º perc. | Massimo  | Tempo p50 |
+| ---------- | ------------------ | -------------- | -------------------- | ------------------- | ---------------- | ------------------- | ------------- | ----------- | --------- | -------- | --------- |
+| Opus 5.5   | 94%                | 100%           | 100%                 | 4                   | 4,28             | 2                   | 25/53         | 0,0170 $    | 0,0197 $  | 0,0268 $ | 8,3 s     |
+| Sonnet 5.5 | 94%                | 98%            | 100%                 | 1                   | 4,02             | 6                   | 22/53         | 0,0082 $    | 0,0089 $  | 0,0132 $ | 7,6 s     |
+| Haiku 5.5  | 92%                | 94%            | 100%                 | 6                   | 4,15             | 4                   | 6/53          | 0,0004 $    | 0,0006 $  | 0,0006 $ | 5,2 s     |
+
+Per tipo di domanda (voto medio, errori di contenuto, costo della sola risposta):
+
+| Domanda                                          | Opus 5.5            | Sonnet 5.5          | Haiku 5.5           |
+| ------------------------------------------------ | ------------------- | ------------------- | ------------------- |
+| Cura («¿Cada cuándo la riego y dónde la pongo?») | 4,33 · 2 · 0,0091 $ | 4,04 · 3 · 0,0044 $ | 4,37 · 2 · 0,0002 $ |
+| Sintomo («hojas amarillas y puntas secas»)       | 4,23 · 0 · 0,0092 $ | 4,00 · 3 · 0,0043 $ | 3,92 · 2 · 0,0002 $ |
+
+Il riconoscimento costa da solo circa 0,0078 $ con Opus, 0,0038 $ con Sonnet e 0,0002 $ con
+Haiku.
+
+**Cosa ho visto leggendo le risposte:**
+
+- **Nessuna risposta pericolosa.** Le 2 «non sicure» di Opus sono un errore del giudice: le
+  risposte non hanno dosi di prodotti chimici, ma il giudice ha sbagliato il doppio negativo
+  `noChemicalDoses` (le ha votate 5). La griglia dello script passa a domande in positivo.
+- **Gli errori di riconoscimento sono fra piante che si somigliano:** hule e ficus benjamina,
+  aglaonema e diefenbaquia o cuna de Moisés, dracena fragrans e marginata. Una foto di palma areca
+  non è utilizzabile per Sonnet e Haiku.
+- **«No está en la lista» a torto:** Opus a volte lo segnala anche con la specie giusta al primo
+  posto. La pagina lo dirà come «puede que no esté en la lista».
+- **Molti voti bassi venivano dai nostri dati:** per 8 piante (teléfono, zamioculca, filodendro,
+  palo de Brasil, palma camedor, aglaonema, cuna de Moisés, lengua de suegra) la luce «LOW» si
+  diceva «tolera poca luz, lejos de las ventanas». I tre modelli l'hanno ripetuto, ma queste piante
+  crescono meglio con luce indiretta brillante. Si corregge il testo, nel prompt e nella pagina.
+- **Le foto di Commons mostrano spesso piante in terra o all'aperto:** alcune risposte danno passi
+  «da vaso» (sottovaso, drenaggio) fuori luogo. Il prompt lo dirà esplicitamente.
+- **Lunghezza e registro:** Opus e Sonnet superano spesso le 120 parole; Sonnet a volte dà del
+  «usted». Il prompt v2 chiede risposte più brevi e il «tú».
+- **`unsure` alto sulle domande di sintomo** (24–25 su 26 per i tre modelli): le foto erano quasi
+  tutte di piante sane, quindi domanda e foto non coincidevano. Non è un difetto dei modelli.
+
+**Costo in produzione:** le foto dei telefoni arrivano al modello fino a 1092 px sul lato lungo,
+circa il 16% di pixel in più delle foto della prova (771 mila in media): circa +5% sul costo del
+riconoscimento, trascurabile.
+
+**Limiti della prova:** poche foto con un problema visibile; foto spesso all'aperto; un solo
+giudice (Opus), più la mia lettura di un campione di risposte.
+
+### Decisione del founder (25/11/2026)
+
+- **Mix dei modelli:** il riconoscimento della foto sempre con **Opus 5.5** (specie fra le prime 3
+  nel 100% dei casi: da lì vengono cura e avviso per cani e gatti); le risposte sulla **cura** con
+  **Haiku 5.5** (alla pari con Opus, costo quasi zero); le risposte su un **problema** con **Opus
+  5.5** (0 errori). Sonnet non serve: peggio di Haiku e 20 volte più caro.
+- **Costo per risposta con il mix:** circa 0,008 $ (cura, con la foto), 0,017 $ (problema, con la
+  foto), 0,0002 $ o 0,009 $ per una domanda successiva sulla stessa foto; caso peggiore ~0,03 $.
+- **Crediti:** 1 credito = 1 risposta; 100 crediti = 199 MXN alla fioreria (IVA da validare). Con
+  circa 18 MXN per dollaro (da verificare) a Gardelia resta ~70% nel caso peggiore e ~90% in media.
+- **Budget di piattaforma:** 2 USD fino al 1° dicembre, poi 10 USD al mese (rete di sicurezza: i
+  crediti li paga la fioreria).

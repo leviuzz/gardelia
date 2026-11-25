@@ -1318,7 +1318,7 @@ della card della fioreria: nessuno sbordo.
 E2E completo in locale 114/114. CI verde su `ad9b1d0` (run 230, E2E compreso) e rilascio su
 staging (merge `4b0c3d6`).
 
-**Floral Care, blocco 6a (25/11, ADR-085, in corso: manca la prova pagata):** "ok vai col blocco 6"
+**Floral Care, blocco 6a (25/11, ADR-085):** "ok vai col blocco 6"
 del founder, con le decisioni del 25/11 (solo foto libere per la prova; Opus 5.5, Sonnet 5.5 e Haiku
 5.5 con un tetto di 15 USD; consultas del fiorista pagate da Gardelia, al massimo 20 al giorno per
 fioreria dentro un budget mensile; per i clienti 0–10 incluse al mese per contratto, poi a
@@ -1363,9 +1363,65 @@ E2E dell'assistente ✅ (dalla pianta del contratto: foto → candidate → «Ot
 tossicità ASPCA → «Otra pregunta», contatore, card del contratto) · controllo a 320 px del caso e
 del contratto: nessuno sbordo.
 
-Prossimo: la prova pagata appena c'è la chiave, il resoconto in `docs/AI_BENCHMARK.md` e la scelta
-del founder; poi il rilascio del 6a su staging con il suo via libera e le variabili dell'assistente
-su Vercel. Dopo, i piani di dettaglio del 6b e del 6c.
+E2E completo in locale 115/115. CI verde su `0acc4cd` (run 239, E2E compreso) e rilascio su
+staging con il via libera del founder (merge `cbdfa5c`): l'assistente resta spento finché su Vercel
+non ci sono `ASSISTANT_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` e `ASSISTANT_MODEL`.
+
+Prova pagata: la lancia il founder sul suo computer (25/11), con 6,56 USD di credito: script
+`assistant:photos` per le foto (Commons, `thumb.php` a 960 px) e `assistant:benchmark` con tetto
+predefinito 5 USD, giudice a effort medio e stop subito se la chiave o il credito non vanno.
+
+Prova fatta dal founder (3,94 USD, `docs/AI_BENCHMARK.md`) e sue decisioni del 25/11 pomeriggio:
+l'assistente è per i clienti della fioreria, con crediti che la fioreria compra da Gardelia; mix
+dei modelli (foto e problemi Opus 5.5, cura Haiku 5.5); budget di piattaforma 2 USD fino a
+dicembre, poi 10; niente 6c.
+
+**Floral Care, blocco 6b (25/11, ADR-085): l'Asistente de plantas per i clienti, con i crediti
+della fioreria.**
+
+- **Dominio:** regole dei crediti (saldi calcolati, 1–500 per volta, riserva di 2 minuti), tipo di
+  domanda «Cómo cuidarla» / «Tiene un problema» che sceglie il modello (`assistantAnswerModel`),
+  proposta dalla foto (`assistantDefaultKind`), tetto di 10 foto e 10 risposte al giorno per
+  contratto, prompt v2 (luce bassa corretta, «tú», ~70 parole e 4 passi, piante in terra, la riga
+  del tipo); `care:assistant` solo a proprietario e gerente.
+- **Database:** migrazioni `assistant_credits_enum` e `assistant_credits`:
+  `AssistantCreditAllocation` (dati e resi, solo inserimenti) e `AssistantCreditHold` con RLS;
+  `portal_read`/`portal_insert` sui propri casi, risposte e chiamate; DEFINER
+  `app_portal_assistant_credits(since)`, `_reserve` (sotto lock del contratto, mai sotto zero),
+  `_release`; `app_buyer_assistant_answers()` per «Descargar mis datos».
+- **Core:** crediti della fioreria (`getAssistantCreditsPanel`, `getContractAssistantCredits`,
+  `giveAssistantCredits` in fila con un lock per fioreria); servizi del portale
+  (`my-plant-assistant.ts`: foto, risposta con riserva e resa, caso e foto della persona,
+  «Enviar a la florería» e «Pedir (más) consultas» con `postMyCareMessage` e una chiave d'invio
+  calcolata); ritorno dei crediti non usati a fine contratto (a mano e dal lavoro giornaliero);
+  operazione di piattaforma `grant-ai-credits --feature plant-assistant` (workflow:
+  `grant-assistant-credits`); due modelli dalla configurazione (`ASSISTANT_CARE_MODEL`).
+- **Interfaccia:** card «Asistente de plantas» nel contratto (dati, usati, rimasti, «Dar
+  créditos», avviso senza accesso al portale) e in Ajustes → Floral Care (comprati, dati,
+  disponibili, «Comprar créditos por WhatsApp», nessun prezzo nel codice); in Mi Floral Care la
+  sezione del contratto e la pagina `/cuenta/floral-care/[id]/asistente`; tolta la consulta del
+  fiorista del 6a. Testi nelle tre lingue; crediti di prova nel seed della fioreria demo.
+- **Legale (bozze):** aviso (foto e domande dei clienti, chi vede cosa), termini della fioreria
+  (crediti, rivendita a suo carico, ritorno a fine servizio), termini per chi compra (risposte
+  orientative), domande per l'avvocato; `legal:sync` fatto.
+
+Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · migrazioni = schema ✅ · test 1236/1236 ✅
+(dominio: crediti, tipo e modello, prompt v2; RLS: solo i propri casi e risposte, crediti solo con
+le funzioni, due riserve insieme sull'ultimo credito; integrazione: «Dar créditos» fino al saldo e
+in fila, staff escluso, isolamento A↔B con la sonda, foto → risposta con il modello giusto, 1
+credito solo se riesce, gara sull'ultimo credito, solo i propri casi, tetto del giorno per
+contratto, rifiuti e budget senza crediti usati, «Enviar a la florería» una volta, «Pedir más
+consultas» una volta al giorno, dati della persona, crediti resi a fine contratto a mano e dal
+lavoro, foto cancellate dopo 30 giorni) · build ✅ · E2E completo 115/115 ✅ (dall'Ajustes ai
+crediti dati, alla consulta del cliente, a «Enviar a la florería» e alla card della fioreria) ·
+controllo a 320 px di Ajustes, del caso, del contratto del cliente e della card: nessuno sbordo.
+
+Prossimo: CI verde sul commit e rilascio del 6b su staging con il via libera del founder; poi da lui
+le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
+`ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,
+`ASSISTANT_MONTHLY_BUDGET_USD=2`, 10 a dicembre), i crediti alla sua fioreria di prova con
+l'operazione `grant-assistant-credits` e una consulta vera da un conto cliente invitato. Serve
+ancora `~/gardelia-prova/manifest.json` per le fonti delle foto in `docs/AI_BENCHMARK.md`.
 
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
@@ -1382,8 +1438,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
    (ADR-072) dagli ordini.
 4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
 5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078), 3 (ADR-082), 4
-   (ADR-083) e 5 (ADR-084) fatti; 6a (ADR-085) fatto tranne la prova pagata; 6b, 6c e 7 in
-   `docs/FLORAL_CARE_PLAN.md`.
+   (ADR-083) e 5 (ADR-084) fatti; 6a e 6b (ADR-085) fatti, il 6b da rilasciare su staging; il 6c
+   non si fa; il 7 (consegne periodiche) in `docs/FLORAL_CARE_PLAN.md`.
 6. Report: fatti (ADR-080); restano i P1 dello spec (funnel, retention, profitto per ramo).
    Catalogo completo (ADR-081): fatto; manca la revisione dell'elenco dei fiori da un fiorista.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.

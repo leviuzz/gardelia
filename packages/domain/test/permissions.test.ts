@@ -49,10 +49,10 @@ describe('matrice dei permessi', () => {
     expect(can('STAFF', 'subscriptions:write')).toBe(false);
   });
 
-  it('Asistente de plantas: lo usa tutta la squadra, staff compreso (ADR-085)', () => {
-    for (const role of ['OWNER', 'MANAGER', 'STAFF'] as const) {
-      expect(can(role, 'care:assistant')).toBe(true);
-    }
+  it('Asistente de plantas: i crediti ai clienti li danno proprietario e gerente (ADR-085)', () => {
+    expect(can('OWNER', 'care:assistant')).toBe(true);
+    expect(can('MANAGER', 'care:assistant')).toBe(true);
+    expect(can('STAFF', 'care:assistant')).toBe(false);
   });
 
   it('limita i ruoli assegnabili via invito', () => {

@@ -86,20 +86,15 @@ describe('percorsi della fioreria (routes.ts)', () => {
     expect(routes.subscriptions.messagePhoto('s1', 'p/1', { thumb: true })).toBe(
       '/app/las-camelias/subscriptions/s1/messages/photos/p%2F1?size=thumb',
     );
-    // Asistente de plantas (ADR-085).
-    expect(routes.subscriptions.assistant('s1')).toBe(
-      '/app/las-camelias/subscriptions/s1/assistant',
-    );
-    expect(routes.subscriptions.assistant('s1', { plant: 'p1', visit: 'v1' })).toBe(
-      '/app/las-camelias/subscriptions/s1/assistant?plant=p1&visit=v1',
-    );
-    expect(routes.subscriptions.assistant('s1', { case: 'c/1' })).toBe(
-      '/app/las-camelias/subscriptions/s1/assistant?case=c%2F1',
-    );
-    expect(routes.subscriptions.assistantPhoto('s1', 'c/1', { thumb: true })).toBe(
-      '/app/las-camelias/subscriptions/s1/assistant/photos/c%2F1?size=thumb',
-    );
     expect(accountRoutes.care.thread('s1')).toBe('/cuenta/floral-care/s1#mensajes');
+    // Asistente de plantas del cliente (ADR-085, blocco 6b).
+    expect(accountRoutes.care.assistant('s1')).toBe('/cuenta/floral-care/s1/asistente');
+    expect(accountRoutes.care.assistant('s1', { caso: 'c/1' })).toBe(
+      '/cuenta/floral-care/s1/asistente?caso=c%2F1',
+    );
+    expect(accountRoutes.care.assistantPhoto('s1', 'c/1', { thumb: true })).toBe(
+      '/cuenta/floral-care/s1/asistente/foto/c%2F1?size=thumb',
+    );
   });
 
   it('la query contiene solo i valori presenti, nell’ordine dato', () => {

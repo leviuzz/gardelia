@@ -1,15 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ASSISTANT_CREDITS,
   ASSISTANT_LIMITS,
   ASSISTANT_MODELS,
+  assistantAnswerModel,
   assistantAnswerPrompt,
   assistantAnswerSystem,
   assistantCallCostMicros,
+  assistantContractAvailable,
+  assistantCreditGiveSchema,
   assistantDayStart,
+  assistantDefaultKind,
   assistantEstimatedCostMicros,
   assistantQuestionSchema,
   assistantRecognitionPrompt,
   assistantRecognitionSystem,
+  assistantShopAvailable,
   cleanAnswer,
   cleanRecognition,
   isAssistantModel,
@@ -82,21 +88,57 @@ describe('Asistente de plantas: costo dai token veri', () => {
   });
 });
 
+describe('Asistente de plantas: crediti della fioreria e mix dei modelli', () => {
+  it('saldo della fioreria e del contratto, mai negativi', () => {
+    expect(assistantShopAvailable(100, 30)).toBe(70);
+    // I resi a fine contratto sono assegnazioni negative: tornano disponibili.
+    expect(assistantShopAvailable(100, 30 - 10)).toBe(80);
+    expect(assistantShopAvailable(10, 12)).toBe(0);
+    expect(assistantContractAvailable(20, 5, 1)).toBe(14);
+    expect(assistantContractAvailable(3, 3, 1)).toBe(0);
+    expect(ASSISTANT_CREDITS.perAnswer).toBe(1);
+  });
+
+  it('«Dar créditos»: un intero da 1 al massimo', () => {
+    expect(assistantCreditGiveSchema.parse({ credits: ' 20 ' })).toEqual({ credits: 20 });
+    for (const credits of ['', '0', '2.5', 'abc', String(ASSISTANT_CREDITS.maxGive + 1)]) {
+      expect(assistantCreditGiveSchema.safeParse({ credits }).success, credits).toBe(false);
+    }
+  });
+
+  it('cura al modello leggero, problemi al principale; la scelta proposta dalla foto', () => {
+    const models = { main: 'claude-opus-5-5', care: 'claude-haiku-5-5' } as const;
+    expect(assistantAnswerModel(models, 'CARE')).toBe('claude-haiku-5-5');
+    expect(assistantAnswerModel(models, 'PROBLEM')).toBe('claude-opus-5-5');
+    expect(assistantDefaultKind({ looksUnhealthy: false, speciesKnown: true })).toBe('CARE');
+    expect(assistantDefaultKind({ looksUnhealthy: true, speciesKnown: true })).toBe('PROBLEM');
+    expect(assistantDefaultKind({ looksUnhealthy: false, speciesKnown: false })).toBe('PROBLEM');
+  });
+});
+
 describe('Asistente de plantas: domanda e output del modello', () => {
   it('domanda ripulita, obbligatoria, al massimo 500 caratteri; specie vuota = «No sé»', () => {
     expect(
       assistantQuestionSchema.parse({
+        kind: 'PROBLEM',
         question: '  ¿Por qué tiene hojas amarillas? ',
         speciesSlug: '',
       }),
-    ).toEqual({ question: '¿Por qué tiene hojas amarillas?', speciesSlug: null });
-    expect(assistantQuestionSchema.safeParse({ question: '   ' }).success).toBe(false);
+    ).toEqual({ kind: 'PROBLEM', question: '¿Por qué tiene hojas amarillas?', speciesSlug: null });
+    expect(assistantQuestionSchema.safeParse({ kind: 'CARE', question: '   ' }).success).toBe(
+      false,
+    );
     expect(
-      assistantQuestionSchema.safeParse({ question: 'a'.repeat(ASSISTANT_LIMITS.question + 1) })
-        .success,
+      assistantQuestionSchema.safeParse({
+        kind: 'CARE',
+        question: 'a'.repeat(ASSISTANT_LIMITS.question + 1),
+      }).success,
     ).toBe(false);
+    // Il tipo è obbligatorio: sceglie il modello.
+    expect(assistantQuestionSchema.safeParse({ question: 'Hola' }).success).toBe(false);
     expect(
-      assistantQuestionSchema.parse({ question: 'Hola', speciesSlug: 'telefono' }).speciesSlug,
+      assistantQuestionSchema.parse({ kind: 'CARE', question: 'Hola', speciesSlug: 'telefono' })
+        .speciesSlug,
     ).toBe('telefono');
   });
 
@@ -115,9 +157,24 @@ describe('Asistente de plantas: domanda e output del modello', () => {
         ],
         notInList: false,
         condition: `  Hojas   amarillas ${'x'.repeat(400)}`,
+        looksUnhealthy: true,
       },
       allowed,
     );
+    expect(clean.looksUnhealthy).toBe(true);
+    // Una foto inutilizzabile non propone mai «Tiene un problema».
+    expect(
+      cleanRecognition(
+        {
+          photoUsable: false,
+          candidates: [],
+          notInList: false,
+          condition: 'Muy oscura.',
+          looksUnhealthy: true,
+        },
+        allowed,
+      ).looksUnhealthy,
+    ).toBe(false);
     expect(clean.candidates.map((candidate) => candidate.slug)).toEqual([
       'telefono',
       'filodendro',
@@ -151,6 +208,7 @@ describe('Asistente de plantas: prompt', () => {
     expect(system).toContain('calathea | Calathea | Goeppertia spp.');
     expect(system).toContain('telefono | Teléfono | Epipremnum aureum');
     expect(system).toContain('only slugs from the LIST');
+    expect(system).toContain('looksUnhealthy');
     expect(assistantRecognitionPrompt({ locale: 'it-IT', recordSlug: 'telefono' })).toContain(
       'Italian',
     );
@@ -159,11 +217,16 @@ describe('Asistente de plantas: prompt', () => {
     );
   });
 
-  it('le regole della risposta vietano dosi e frasi sulla tossicità', () => {
+  it('le regole della risposta vietano dosi e frasi sulla tossicità (prompt v2)', () => {
     const system = assistantAnswerSystem();
     expect(system).toContain('Never give doses');
     expect(system).toContain('Do not talk about toxicity');
     expect(system).toContain('Never give fixed schedules');
+    // Dopo la prova: il cliente come pubblico, il «tú», risposte brevi, piante in terra.
+    expect(system).toContain("florist's customer");
+    expect(system).toContain('"tú"');
+    expect(system).toContain('at most about 70 words');
+    expect(system).toContain('in the ground');
   });
 
   it('la domanda porta specie, dati di cura, scheda, foto e risposte precedenti', () => {
@@ -177,6 +240,7 @@ describe('Asistente de plantas: prompt', () => {
     });
     const prompt = assistantAnswerPrompt({
       locale: 'es-MX',
+      kind: 'CARE',
       species: { ...species[0]!, care },
       plant: {
         size: 'MEDIUM',
@@ -190,8 +254,11 @@ describe('Asistente de plantas: prompt', () => {
       question: '¿Y la luz?',
     });
     expect(prompt).toContain('Spanish as spoken in Mexico');
+    expect(prompt).toContain('The person wants: to know how to care for the plant');
     expect(prompt).toContain('Teléfono (Epipremnum aureum)');
-    expect(prompt).toContain('tolerates low light');
+    // Luce bassa: tollera poca luce ma cresce meglio con luce indiretta (mai «lontano dalle finestre»).
+    expect(prompt).toContain('tolerates low light, but grows best in bright indirect light');
+    expect(prompt).not.toContain('away from windows');
     expect(prompt).toContain('location: Recepción');
     expect(prompt).toContain('Hojas amarillas en la base.');
     expect(prompt).toContain('Earlier question 1: ¿Riego?');
@@ -207,6 +274,17 @@ describe('Asistente de plantas: prompt', () => {
         question: 'Help',
       }),
     ).toContain('Species: unknown');
+    // Senza il tipo (le domande della prova pagata) la riga non c'è.
+    expect(
+      assistantAnswerPrompt({
+        locale: 'en-US',
+        species: null,
+        plant: null,
+        condition: '',
+        previous: [],
+        question: 'Help',
+      }),
+    ).not.toContain('The person wants');
   });
 });
 

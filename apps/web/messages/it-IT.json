@@ -813,7 +813,8 @@
       "preview_requested": "{actor} ha richiesto un’anteprima con IA"
     },
     "ai_credits": {
-      "granted": "Sono state aggiunte {units} anteprime extra"
+      "granted": "Sono state aggiunte {units} anteprime extra",
+      "assistant_granted": "Sono stati aggiunti {units} crediti dell'assistente delle piante"
     },
     "promo": {
       "redeemed": "{actor} ha segnato come usato uno sconto",
@@ -3258,7 +3259,7 @@
       "portal_access_revoked": "{actor} ha tolto un accesso a Mi Floral Care",
       "visit_moved_by_customer": "{actor} ha cambiato da Mi Floral Care la data di una visita di {number}",
       "message_photo_removed": "{actor} ha tolto la foto di un messaggio di {number}",
-      "assistant_answered": "{actor} ha consultato l'Asistente de plantas su una pianta di {number}"
+      "assistant_credits_given": "{actor} ha dato {count, plural, one {# credito} other {# crediti}} dell'assistente delle piante a {number}"
     },
     "notice": {
       "label": "Sì, ho avvisato il cliente"
@@ -4506,6 +4507,38 @@
       "title": "Messaggi da leggere",
       "body": "{unread, plural, one {# messaggio} other {# messaggi}} di clienti di Floral Care in {threads, plural, one {# contratto} other {# contratti}}.",
       "link": "Vedi i messaggi"
+    },
+    "assistant": {
+      "settings": {
+        "title": "Assistente delle piante per i tuoi clienti",
+        "description": "I tuoi clienti di Floral Care chiedono all'IA come curare le loro piante fra una visita e l'altra, da Mi Floral Care. Tu dai loro le domande come parte del tuo servizio, al prezzo che vuoi.",
+        "rule": "1 credito = 1 risposta per il tuo cliente. Analizzare la foto non costa, e nemmeno una risposta non riuscita.",
+        "purchased": "Comprati",
+        "allocated": "Dati ai tuoi servizi",
+        "remaining": "Disponibili",
+        "howTo": "Dai i crediti dalla pagina di ogni servizio. Quelli che il cliente non usa tornano a te quando il servizio finisce.",
+        "buy": "Compra crediti su WhatsApp",
+        "buyText": "Ciao, vorrei comprare crediti dell'assistente delle piante per {shop}.",
+        "noContact": "Per comprare crediti, scrivi a Gardelia.",
+        "notAvailable": "L'assistente non è ancora attivo su Gardelia: ti avviseremo quando lo sarà."
+      },
+      "card": {
+        "title": "Assistente delle piante",
+        "description": "Il tuo cliente chiede all'IA delle sue piante da Mi Floral Care. Vedi quante domande usa, non cosa chiede.",
+        "given": "Dati",
+        "used": "Usati",
+        "remaining": "Gli restano",
+        "lastUsed": "Ultima domanda: {date}",
+        "returned": "{count, plural, one {# credito è tornato} other {# crediti sono tornati}} alla tua fioreria alla fine del servizio.",
+        "noAccess": "Nessuno di questo cliente entra in Mi Floral Care: invitalo perché possa usare le domande.",
+        "credits": "Crediti",
+        "give": "Dai crediti",
+        "done": "Crediti dati.",
+        "shopRemaining": "{count, plural, =0 {Non hai crediti disponibili.} one {Hai # credito disponibile.} other {Hai # crediti disponibili.}}",
+        "buyHint": "Compra crediti in Impostazioni → Floral Care.",
+        "onlyManagers": "Solo il titolare o un responsabile può dare crediti.",
+        "closed": "Il servizio non è attivo: non riceve più crediti."
+      }
     }
   },
   "letterhead": {
@@ -4688,30 +4721,28 @@
   },
   "assistant": {
     "title": "Assistente delle piante",
-    "subtitle": "Fotografa la pianta e chiedi che cos'ha: la risposta è breve, con i passi da seguire.",
-    "back": "Torna al contratto {number}",
+    "subtitle": "Fotografa la tua pianta e chiedi come curarla o che cos'ha. La risposta è breve, con i passi da seguire.",
     "simulated": "Simulazione (ambiente di sviluppo): le risposte sono di prova, non le scrive l'IA.",
     "unavailable": "L'assistente delle piante per ora non è disponibile.",
-    "usage": "Oggi: {used} di {limit} domande della fioreria",
-    "limitReached": "La fioreria ha raggiunto il limite di oggi ({limit} domande). Riprova domani.",
     "aiNotice": "Risposta generata con l'IA: controllala prima di agire.",
     "new": {
       "title": "Nuova domanda",
-      "plant": "Pianta del contratto",
-      "plantNone": "Non specificata",
+      "plant": "Quale pianta è?",
+      "plantNone": "Un'altra o non lo so",
       "photo": "Foto della pianta",
       "choosePhoto": "Scatta o scegli una foto",
       "changePhoto": "Cambia foto",
       "previewAlt": "Anteprima della foto scelta",
       "tip": "Con la luce del giorno, che si vedano le foglie e, se c'è un problema, la parte rovinata.",
       "submit": "Analizza la foto",
-      "analyzing": "Sto analizzando la foto… può volerci una ventina di secondi.",
+      "analyzing": "Sto analizzando la foto… ci vuole qualche secondo.",
       "photoRequired": "Scegli una foto.",
       "networkError": "Invio non riuscito. Controlla la connessione e riprova.",
-      "recentTitle": "Domande precedenti",
-      "recentEmpty": "Ancora nessuna domanda in questo contratto.",
+      "recentTitle": "Le tue domande",
+      "recentEmpty": "Non hai ancora fatto domande.",
       "answers": "{count, plural, =0 {Senza risposta} one {# risposta} other {# risposte}}",
-      "unknownSpecies": "Pianta non identificata"
+      "unknownSpecies": "Pianta non identificata",
+      "free": "Analizzare la foto non usa domande: se ne usa 1 per ogni risposta."
     },
     "case": {
       "title": "Domanda del {date}",
@@ -4721,9 +4752,8 @@
       "unusable": "Nella foto la pianta non si distingue bene. Scattane un'altra con più luce e più da vicino.",
       "retakePhoto": "Scatta un'altra foto",
       "condition": "Cosa si vede nella foto",
-      "notInList": "Sembra una pianta che non è nella nostra lista: scegli «Altra» o «Non lo so».",
-      "full": "Hai già fatto le {count} domande di questa foto. Per un'altra, scatta una foto nuova.",
-      "askedBy": "Ha chiesto {name}"
+      "notInList": "Forse non è nella nostra lista: scegli «Altra» o «Non lo so».",
+      "full": "Hai già fatto le {count} domande di questa foto. Per un'altra, scatta una foto nuova."
     },
     "ask": {
       "speciesLegend": "È una di queste?",
@@ -4733,26 +4763,37 @@
       "otherSelect": "Quale?",
       "otherPlaceholder": "Scegli la pianta…",
       "unknown": "Non lo so",
-      "question": "Che cos'ha?",
+      "question": "La tua domanda",
       "questionAgain": "Un'altra domanda",
-      "placeholder": "Es.: ha foglie gialle e le punte secche. Cosa faccio?",
       "remaining": "{count, plural, one {Resta # domanda} other {Restano # domande}} su questa foto.",
       "submit": "Chiedi",
-      "thinking": "Sto preparando la risposta… può volerci una ventina di secondi.",
+      "thinking": "Sto preparando la risposta… ci vuole qualche secondo.",
       "answered": "Risposta pronta.",
       "likelihood": {
         "high": "Molto probabile",
         "medium": "Probabile",
         "low": "Possibile"
       },
-      "otherRequired": "Scegli la pianta dall'elenco."
+      "otherRequired": "Scegli la pianta dall'elenco.",
+      "kindLegend": "Cosa vuoi sapere?",
+      "kind": {
+        "CARE": "Come curarla",
+        "PROBLEM": "Ha un problema"
+      },
+      "kindHint": {
+        "CARE": "Acqua, luce, dove metterla.",
+        "PROBLEM": "Foglie gialle, macchie, parassiti…"
+      },
+      "placeholderCare": "Es.: ogni quanto la annaffio e dove sta meglio con la luce?",
+      "placeholderProblem": "Es.: ha foglie gialle e le punte secche. Cosa faccio?",
+      "cost": "Usa 1 domanda. Se l'assistente non riesce a rispondere, non si conta."
     },
     "answer": {
       "question": "Domanda",
       "species": "Pianta: {name}",
       "speciesUnknown": "Pianta: non identificata",
       "steps": "Passi",
-      "unsure": "L'assistente non è sicuro: controlla la pianta di persona.",
+      "unsure": "L'assistente non è sicuro: manda la domanda alla tua fioreria.",
       "careTitle": "Cure secondo Gardelia",
       "light": "Luce",
       "watering": "Acqua",
@@ -4760,7 +4801,7 @@
     },
     "care": {
       "light": {
-        "LOW": "Tollera poca luce, lontano dalle finestre",
+        "LOW": "Tollera poca luce; cresce meglio con luce indiretta brillante",
         "MEDIUM": "Luce indiretta brillante",
         "HIGH": "Sole diretto per parte del giorno"
       },
@@ -4786,17 +4827,38 @@
     },
     "conflict": {
       "unavailable": "L'assistente delle piante per ora non è disponibile.",
-      "daily_limit": "La fioreria ha raggiunto il limite di domande di oggi. Riprova domani.",
+      "daily_limit": "Questo servizio ha raggiunto il limite di domande di oggi. Riprova domani.",
       "budget_reached": "L'assistente ha raggiunto il suo limite di questo mese. Riprova il mese prossimo.",
       "photo_unusable": "In quella foto la pianta non si distingue: scattane un'altra.",
       "case_full": "Hai già fatto tutte le domande di questa foto. Scatta una foto nuova.",
-      "failed": "L'assistente non è riuscito a rispondere e non conta come domanda. Riprova."
+      "failed": "L'assistente non è riuscito a rispondere e non conta come domanda. Riprova.",
+      "no_credits": "Non ti restano domande: chiedine altre alla tua fioreria.",
+      "shop_credits": "Non hai abbastanza crediti: comprane altri in Impostazioni → Floral Care.",
+      "contract_closed": "Il servizio non è attivo: non si possono usare né dare domande.",
+      "nothing_to_send": "Prima fai una domanda."
     },
-    "card": {
-      "description": "Fotografa una pianta del contratto e chiedi che cos'ha.",
-      "empty": "Ancora nessuna domanda.",
-      "askPlant": "Chiedi all'assistente di {name}",
-      "askVisitPlant": "Chiedi all'assistente"
-    }
+    "credits": "{count, plural, =0 {Non ti restano domande} one {Ti resta # domanda} other {Ti restano # domande}}",
+    "creditsHint": "Ogni risposta usa 1 domanda. Analizzare la foto non conta, e nemmeno una risposta non riuscita.",
+    "answersLimit": "Questo servizio ha raggiunto il limite di oggi ({limit} risposte). Riprova domani.",
+    "photosLimit": "Questo servizio ha raggiunto il limite di foto di oggi ({limit}). Riprova domani.",
+    "closed": "Il servizio è finito: puoi vedere le tue domande, ma non farne di nuove.",
+    "noCredits": "Non ti restano domande. Chiedine altre a {shop}.",
+    "none": "{shop} non ti ha ancora dato domande dell'assistente.",
+    "sectionDescription": "Chiedi come curare le tue piante o che cos'hanno, fra una visita e l'altra.",
+    "seeAll": "Vedi le mie domande",
+    "share": {
+      "title": "Vuoi che {shop} la veda?",
+      "description": "Le mandiamo la foto, le tue domande e le risposte nei Messaggi.",
+      "action": "Manda alla fioreria",
+      "sent": "Mandato alla tua fioreria: lo vedi nei Messaggi.",
+      "already": "Gliel'avevi già mandato."
+    },
+    "more": {
+      "action": "Chiedi altre domande",
+      "sent": "Abbiamo chiesto altre domande alla tua fioreria.",
+      "already": "Le hai già chieste oggi.",
+      "first": "Chiedi le domande"
+    },
+    "simulatedBadge": "Simulazione"
   }
 }

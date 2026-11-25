@@ -80,6 +80,7 @@ import {
   requireCareSettings,
   requiredParts,
 } from './care-internals';
+import { returnAssistantCreditsTx } from './assistant-credits-internals';
 import { revokeContractPortalInvitesTx } from './care-portal-internals';
 import { dateToParts, nextTenantCounter } from './quote-internals';
 
@@ -1278,8 +1279,13 @@ export async function endCareContract(
         ...(endsNow ? { status: 'ENDED', endedAt: new Date() } : {}),
       },
     });
-    // Un contratto finito non si apre più con un invito (la pagina del cliente, ADR-084).
-    if (endsNow) await revokeContractPortalInvitesTx(tx, ctx.tenantId, subscription.id);
+    // Un contratto finito non si apre più con un invito (la pagina del cliente, ADR-084), e i
+    // crediti dell'assistente non usati tornano alla fioreria (ADR-085).
+    let returned = 0;
+    if (endsNow) {
+      await revokeContractPortalInvitesTx(tx, ctx.tenantId, subscription.id);
+      returned = await returnAssistantCreditsTx(tx, ctx.tenantId, subscription.id, ctx.userId);
+    }
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.subscriptionEnded,
       entityType: 'CustomerSubscription',
@@ -1290,6 +1296,7 @@ export async function endCareContract(
         ended: endsNow,
         cancelled,
         customerNotified: touched > 0,
+        ...(returned > 0 ? { assistantCreditsReturned: returned } : {}),
       },
     });
     return { cancelled, ended: endsNow };

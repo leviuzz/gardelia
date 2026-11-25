@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * Asistente de plantas (ADR-085), lato fioreria: la foto da riconoscere e la domanda sul caso.
- * La foto si riduce nel browser prima dell'invio (il server la ricodifica comunque); specie,
- * domanda, limiti e budget li ricontrolla il servizio.
+ * Asistente de plantas (ADR-085), in Mi Floral Care: la foto da riconoscere e la domanda sul caso.
+ * La foto si riduce nel browser prima dell'invio (il server la ricodifica comunque); tipo di
+ * domanda, specie, crediti, limiti e budget li ricontrolla il servizio.
  */
 import { ImagePlus, LoaderCircle, ScanSearch } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -15,7 +15,12 @@ import {
   useState,
   type FormEvent,
 } from 'react';
-import { ASSISTANT_LIMITS, PHOTO_LIMITS } from '@floral/domain';
+import {
+  ASSISTANT_LIMITS,
+  ASSISTANT_QUESTION_KINDS,
+  PHOTO_LIMITS,
+  type AssistantQuestionKind,
+} from '@floral/domain';
 import { PrivateImage } from '@/components/common/private-image';
 import { Field, controlProps } from '@/components/form/field';
 import { FormAlert } from '@/components/form/form-alert';
@@ -37,7 +42,7 @@ export interface AssistantPlantOption {
 
 /**
  * «Analizar foto»: una foto (fotocamera o galleria) e, se si sa, la pianta del contratto. Va al
- * caso appena creato (redirect dell'azione); errori, limiti e budget restano qui.
+ * caso appena creato (redirect dell'azione); errori, crediti, limiti e budget restano qui.
  */
 export function AssistantPhotoForm({
   action,
@@ -197,14 +202,16 @@ export interface AssistantCandidateOption extends AssistantSpeciesOption {
 const OTHER = '__other';
 
 /**
- * La domanda sul caso: la specie (le candidate, «Otra» dall'elenco o «No sé») e che cosa le
- * succede. La prima volta la specie si sceglie; dopo resta quella dell'ultima risposta.
+ * La domanda sul caso: che cosa vuole sapere (cura o problema: sceglie il modello), la specie (le
+ * candidate, «Otra» dall'elenco o «No sé») e la domanda. La prima volta la specie si sceglie; dopo
+ * restano quelle dell'ultima risposta.
  */
 export function AssistantQuestionForm({
   action,
   candidates,
   species,
   defaultSlug,
+  defaultKind,
   again,
   remaining,
 }: {
@@ -214,16 +221,19 @@ export function AssistantQuestionForm({
   readonly species: readonly AssistantSpeciesOption[];
   /** La specie scelta all'inizio ('' = «No sé»). */
   readonly defaultSlug: string;
+  /** Proposta dalla foto (un problema visibile o la specie che non si sa) o dall'ultima risposta. */
+  readonly defaultKind: AssistantQuestionKind;
   /** È «Otra pregunta» (il caso ha già una risposta). */
   readonly again: boolean;
   readonly remaining: number;
 }) {
   const t = useTranslations('assistant.ask');
   const question = useRef<HTMLTextAreaElement>(null);
-  // Fatta la domanda, il campo si svuota per «Otra pregunta» (la specie scelta resta).
+  // Fatta la domanda, il campo si svuota per «Otra pregunta» (tipo e specie scelti restano).
   const [state, formAction] = useToastActionState(action, () => {
     if (question.current) question.current.value = '';
   });
+  const [kind, setKind] = useState<AssistantQuestionKind>(defaultKind);
   const inCandidates = defaultSlug === '' || candidates.some((item) => item.slug === defaultSlug);
   const [choice, setChoice] = useState(inCandidates ? defaultSlug : OTHER);
   const [other, setOther] = useState(inCandidates ? '' : defaultSlug);
@@ -250,6 +260,26 @@ export function AssistantQuestionForm({
       data-testid="assistant-ask"
     >
       <input type="hidden" name="speciesSlug" value={resolved} />
+      <input type="hidden" name="kind" value={kind} />
+      <fieldset className="grid gap-2">
+        <legend className="mb-2 text-sm font-medium">{t('kindLegend')}</legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {ASSISTANT_QUESTION_KINDS.map((value) => (
+            <RadioCard
+              key={value}
+              name="kindChoice"
+              value={value}
+              checked={kind === value}
+              onChange={() => setKind(value)}
+            >
+              <span className="block">{t(`kind.${value}`)}</span>
+              <span className="block text-xs font-normal text-muted-foreground">
+                {t(`kindHint.${value}`)}
+              </span>
+            </RadioCard>
+          ))}
+        </div>
+      </fieldset>
       <fieldset className="grid gap-2">
         <legend className="mb-2 text-sm font-medium">
           {again ? t('speciesLegendAgain') : t('speciesLegend')}
@@ -317,13 +347,17 @@ export function AssistantQuestionForm({
           required
           maxLength={ASSISTANT_LIMITS.question}
           rows={3}
-          placeholder={t('placeholder')}
+          placeholder={kind === 'CARE' ? t('placeholderCare') : t('placeholderProblem')}
         />
       </Field>
-      <div>
-        <SubmitButton className="w-full sm:w-auto" pendingLabel={t('thinking')}>
+      <div className="grid gap-2">
+        <SubmitButton
+          className="w-full sm:w-auto sm:justify-self-start"
+          pendingLabel={t('thinking')}
+        >
           {t('submit')}
         </SubmitButton>
+        <p className="text-xs text-muted-foreground">{t('cost')}</p>
       </div>
     </form>
   );

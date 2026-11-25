@@ -102,10 +102,10 @@ export const PERMISSIONS = {
    */
   'care:messages': ALL,
   /**
-   * Asistente de plantas (ADR-085): tutta la squadra, staff compreso (lo usa durante le visite).
-   * Le consultas le paga Gardelia nella fase di prova, con un tetto al giorno per fioreria.
+   * Asistente de plantas (ADR-085): l'assistente è per i clienti (Mi Floral Care); qui si danno i
+   * crediti comprati dalla fioreria ai contratti, quindi proprietario e gerente (costa soldi).
    */
-  'care:assistant': ALL,
+  'care:assistant': MANAGEMENT,
 } as const satisfies Record<string, readonly MembershipRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

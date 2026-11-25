@@ -523,6 +523,9 @@ describe('anteprime AI: crediti e coda', () => {
 
 /** Le sole tabelle che danno righe in modalità portale (policy `portal_read`). */
 const PORTAL_READ_TABLES = [
+  // Blocco 6b (ADR-085): solo i propri casi e le proprie risposte dell'assistente.
+  'AssistantAnswer',
+  'AssistantCase',
   'Customer',
   'CustomerAddress',
   'CustomerSubscription',
@@ -659,8 +662,27 @@ describe('pagina del cliente di Floral Care (ADR-084)', () => {
     expect(
       reads.every((policy) => policy.cmd === 'SELECT' && policy.permissive === 'PERMISSIVE'),
     ).toBe(true);
-    // Blocco 5b: il portale inserisce solo i propri messaggi e le loro foto (mai UPDATE o DELETE).
+    // Blocco 5b: il portale inserisce solo i propri messaggi e le loro foto; blocco 6b: i propri
+    // casi, risposte e chiamate dell'assistente (mai UPDATE o DELETE).
     expect(policies.filter((policy) => policy.policyname !== 'portal_read')).toEqual([
+      {
+        tablename: 'AssistantAnswer',
+        policyname: 'portal_insert',
+        cmd: 'INSERT',
+        permissive: 'PERMISSIVE',
+      },
+      {
+        tablename: 'AssistantCall',
+        policyname: 'portal_insert',
+        cmd: 'INSERT',
+        permissive: 'PERMISSIVE',
+      },
+      {
+        tablename: 'AssistantCase',
+        policyname: 'portal_insert',
+        cmd: 'INSERT',
+        permissive: 'PERMISSIVE',
+      },
       {
         tablename: 'CareMessage',
         policyname: 'portal_insert',
@@ -944,6 +966,187 @@ describe('pagina del cliente di Floral Care (ADR-084)', () => {
       },
     );
     expect(outcome).toEqual({ readOnly: true, inserted: false });
+  });
+
+  it('assistente (6b): solo i propri casi e risposte; i crediti solo con le funzioni, mai sotto zero', async () => {
+    const tenantId = tenantA.tenantId;
+    await withSystemContext(db, { reason: 'test: crediti dell’assistente' }, (tx) =>
+      tx.assistantCreditAllocation.create({
+        data: { tenantId, subscriptionId: own.subscriptionId, kind: 'GIVE', credits: 2 },
+      }),
+    );
+    const key = () =>
+      `tenants/${tenantId}/care-photos/${own.subscriptionId}-assistant-${randomUUID()}`;
+    const caseOf = (overrides: Record<string, unknown> = {}) => ({
+      tenantId,
+      customerId: own.customerId,
+      subscriptionId: own.subscriptionId,
+      channel: 'PORTAL' as const,
+      askedByUserId: person.id,
+      photoUsable: true,
+      storageKey: `${key()}.jpg`,
+      thumbKey: `${key()}-thumb.jpg`,
+      ...overrides,
+    });
+    // Un caso della fioreria sullo stesso contratto: la persona non lo vede.
+    await withSystemContext(db, { reason: 'test: caso della fioreria' }, (tx) =>
+      tx.assistantCase.create({ data: caseOf({ channel: 'SHOP', askedByUserId: null }) }),
+    );
+    const result = await withPortalContext(
+      db,
+      { userId: person.id, subscriptionId: own.subscriptionId },
+      async (tx) => {
+        const attempt = async (run: () => Promise<unknown>) => {
+          await tx.$executeRaw`SAVEPOINT a`;
+          try {
+            await run();
+            await tx.$executeRaw`RELEASE SAVEPOINT a`;
+            return 'ok';
+          } catch (error) {
+            await tx.$executeRaw`ROLLBACK TO SAVEPOINT a`;
+            if (isRlsViolation(error)) return 'rls';
+            throw error;
+          }
+        };
+        const mine = await tx.assistantCase.create({ data: caseOf(), select: { id: true } });
+        const asShop = await attempt(() =>
+          tx.assistantCase.create({ data: caseOf({ channel: 'SHOP' }) }),
+        );
+        const forSomeoneElse = await attempt(() =>
+          tx.assistantCase.create({ data: caseOf({ askedByUserId: stranger.id }) }),
+        );
+        const dayStart = new Date(Date.now() - 60_000);
+        const credits = () =>
+          tx.$queryRaw<
+            {
+              allocated: number;
+              used: number;
+              held: number;
+              answers_since: number;
+              cases_since: number;
+            }[]
+          >`SELECT * FROM app_portal_assistant_credits(${dayStart})`;
+        const reserve = async () =>
+          (
+            await tx.$queryRaw<{ hold: string | null }[]>`
+            SELECT app_portal_assistant_reserve(120) AS hold`
+          )[0]?.hold ?? null;
+        const before = (await credits())[0];
+        const first = await reserve();
+        const second = await reserve();
+        const third = await reserve();
+        // La risposta usa la prima riserva nella stessa transazione; la seconda si rende.
+        const answer = await attempt(() =>
+          tx.assistantAnswer.create({
+            data: {
+              tenantId,
+              caseId: mine.id,
+              subscriptionId: own.subscriptionId,
+              channel: 'PORTAL',
+              askedByUserId: person.id,
+              kind: 'CARE',
+              question: '¿Cada cuándo la riego?',
+              answer: 'Cuando la tierra esté seca.',
+            },
+          }),
+        );
+        const answerForSomeoneElse = await attempt(() =>
+          tx.assistantAnswer.create({
+            data: {
+              tenantId,
+              caseId: mine.id,
+              subscriptionId: own.subscriptionId,
+              channel: 'PORTAL',
+              askedByUserId: stranger.id,
+              question: '¿?',
+              answer: 'No.',
+            },
+          }),
+        );
+        // La chiamata si scrive senza RETURNING: il portale non legge le chiamate.
+        await tx.assistantCall.createMany({
+          data: [
+            {
+              tenantId,
+              caseId: mine.id,
+              kind: 'ANSWER',
+              status: 'SUCCEEDED',
+              model: 'claude-haiku-5-5',
+              promptVersion: 'v2',
+              costMicros: 200,
+            },
+          ],
+        });
+        const released = await tx.$queryRaw<{ ok: boolean }[]>`
+          SELECT app_portal_assistant_release(${first}::uuid) AS ok`;
+        await tx.$queryRaw`SELECT app_portal_assistant_release(${second}::uuid)`;
+        return {
+          asShop,
+          forSomeoneElse,
+          before,
+          first,
+          second,
+          third,
+          answer,
+          answerForSomeoneElse,
+          released: released[0]?.ok,
+          after: (await credits())[0],
+          visibleCases: await tx.assistantCase.count(),
+          visibleCalls: await tx.assistantCall.count(),
+        };
+      },
+    );
+    expect(result).toMatchObject({
+      asShop: 'rls',
+      forSomeoneElse: 'rls',
+      before: { allocated: 2, used: 0, held: 0, answers_since: 0, cases_since: 1 },
+      third: null,
+      answer: 'ok',
+      answerForSomeoneElse: 'rls',
+      released: true,
+      after: { allocated: 2, used: 1, held: 0, answers_since: 1, cases_since: 1 },
+      visibleCases: 1,
+      visibleCalls: 0,
+    });
+    expect(result?.first).toBeTruthy();
+    expect(result?.second).toBeTruthy();
+    // Fuori dal portale le funzioni non danno niente.
+    const outside = await withTenantContext(
+      db,
+      { tenantId: tenantA.tenantId, userId: null },
+      (tx) =>
+        tx.$queryRaw<{ hold: string | null }[]>`SELECT app_portal_assistant_reserve(120) AS hold`,
+    );
+    expect(outside[0]?.hold).toBeNull();
+  });
+
+  it('assistente (6b): due domande insieme sull’ultimo credito, una sola riserva passa', async () => {
+    const race = await careContract(tenantA.tenantId, 'Oficinas Carrera');
+    await grantPortal(race, person);
+    await withSystemContext(db, { reason: 'test: un credito' }, (tx) =>
+      tx.assistantCreditAllocation.create({
+        data: {
+          tenantId: race.tenantId,
+          subscriptionId: race.subscriptionId,
+          kind: 'GIVE',
+          credits: 1,
+        },
+      }),
+    );
+    const attemptReserve = () =>
+      withPortalContext(
+        db,
+        { userId: person.id, subscriptionId: race.subscriptionId },
+        async (tx) => {
+          const rows = await tx.$queryRaw<{ hold: string | null }[]>`
+            SELECT app_portal_assistant_reserve(120) AS hold`;
+          // Tiene aperta la transazione: l'altra aspetta il lock del contratto.
+          await tx.$executeRaw`SELECT pg_sleep(0.3)`;
+          return rows[0]?.hold ?? null;
+        },
+      );
+    const holds = await Promise.all([attemptReserve(), attemptReserve()]);
+    expect(holds.filter((hold) => hold !== null)).toHaveLength(1);
   });
 
   it('nel contesto di scrittura la fioreria deve essere quella del contratto', async () => {

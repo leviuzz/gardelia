@@ -1,8 +1,10 @@
 /**
- * CLI di piattaforma: sblocca anteprime AI extra (pacchetto pagato alla piattaforma).
+ * CLI di piattaforma: sblocca crediti pagati alla piattaforma. Predefinito: anteprime AI extra;
+ * con `--feature plant-assistant` le consultas dell'Asistente de plantas (ADR-085).
  *
  *   pnpm platform:grant-ai-credits --operator <email SUPER_ADMIN> --tenant <slug> \
- *     --units 50 [--note "Paquete 50 · transferencia 2026-11-21"]
+ *     --units 50 [--feature bouquet-preview|plant-assistant] \
+ *     [--note "Paquete 50 · transferencia 2026-11-21"]
  *
  * Non inserire dati personali nella nota: finisce nel registro di audit.
  */
@@ -11,11 +13,16 @@ import { parseArgs } from 'node:util';
 import { config as loadEnv } from 'dotenv';
 import { disconnectDb } from '@floral/db';
 import { AppError, ValidationError } from '../src/errors';
-import { grantAiCredits } from '../src/platform';
+import { grantAiCredits, type GrantableAiFeature } from '../src/platform';
 
 const USAGE = `Uso:
   pnpm platform:grant-ai-credits --operator <email> --tenant <slug> --units <1-10000>
-                                 [--note "testo"]`;
+                                 [--feature bouquet-preview|plant-assistant] [--note "testo"]`;
+
+const FEATURES: Record<string, GrantableAiFeature> = {
+  'bouquet-preview': 'BOUQUET_PREVIEW',
+  'plant-assistant': 'PLANT_ASSISTANT',
+};
 
 async function main(): Promise<void> {
   loadEnv({ path: fileURLToPath(new URL('../../../.env', import.meta.url)), quiet: true });
@@ -24,6 +31,7 @@ async function main(): Promise<void> {
       operator: { type: 'string' },
       tenant: { type: 'string' },
       units: { type: 'string' },
+      feature: { type: 'string' },
       note: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
     },
@@ -38,15 +46,24 @@ async function main(): Promise<void> {
     process.exitCode = 2;
     return;
   }
+  const feature = FEATURES[values.feature ?? 'bouquet-preview'];
+  if (!feature) {
+    console.error(USAGE);
+    process.exitCode = 2;
+    return;
+  }
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL non configurata.');
   const result = await grantAiCredits({
     operatorEmail: values.operator,
     tenantSlug: values.tenant,
     units: Number(values.units),
+    feature,
     note: values.note ?? null,
   });
+  const what =
+    result.feature === 'PLANT_ASSISTANT' ? "crediti dell'Asistente de plantas" : 'anteprime extra';
   console.info(
-    `Sbloccate ${result.units} anteprime extra per "${result.tenantSlug}" (totale concesso: ${result.totalGranted}).`,
+    `Sbloccati ${result.units} ${what} per "${result.tenantSlug}" (totale concesso: ${result.totalGranted}).`,
   );
 }
 

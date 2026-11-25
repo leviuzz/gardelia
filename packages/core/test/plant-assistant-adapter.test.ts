@@ -4,7 +4,7 @@ import { assistantConfig, ConfigurationError } from '../src/config';
 import {
   ClaudePlantAssistant,
   SimulatedPlantAssistant,
-  createPlantAssistantFromEnv,
+  createPlantAssistantsFromEnv,
 } from '../src/index';
 
 /**
@@ -37,6 +37,7 @@ describe('Asistente de plantas: adattatore di Claude', () => {
         candidates: [{ slug: 'telefono', likelihood: 'high' }],
         notInList: false,
         condition: 'Hojas amarillas.',
+        looksUnhealthy: true,
       },
       usage: {
         input_tokens: 1_000,
@@ -169,25 +170,28 @@ describe('Asistente de plantas: adattatore di Claude', () => {
 describe('Asistente de plantas: configurazione', () => {
   const publicUrl = 'https://gardelia.example.test';
 
-  it('anthropic con la chiave e il modello scelto; spento senza provider', () => {
-    const assistant = createPlantAssistantFromEnv({
+  it('anthropic con la chiave e i due modelli del mix; spento senza provider', () => {
+    const assistants = createPlantAssistantsFromEnv({
       APP_URL: publicUrl,
       ASSISTANT_PROVIDER: 'anthropic',
       ANTHROPIC_API_KEY: 'sk-test',
       ASSISTANT_MODEL: 'claude-sonnet-5-5',
     });
-    expect(assistant).toBeInstanceOf(ClaudePlantAssistant);
-    expect(assistant?.model).toBe('claude-sonnet-5-5');
-    expect(createPlantAssistantFromEnv({ APP_URL: publicUrl })).toBeNull();
-    expect(
-      createPlantAssistantFromEnv({
-        APP_URL: 'http://localhost:3000',
-        ASSISTANT_PROVIDER: 'simulated',
-      }),
-    ).toBeInstanceOf(SimulatedPlantAssistant);
-    // Opus 5.5 e 20 USD finché il founder non sceglie.
+    expect(assistants?.main).toBeInstanceOf(ClaudePlantAssistant);
+    expect(assistants?.main.model).toBe('claude-sonnet-5-5');
+    // Le domande di cura vanno al modello leggero (Haiku 5.5 se non si sceglie altro).
+    expect(assistants?.care.model).toBe('claude-haiku-5-5');
+    expect(createPlantAssistantsFromEnv({ APP_URL: publicUrl })).toBeNull();
+    const simulated = createPlantAssistantsFromEnv({
+      APP_URL: 'http://localhost:3000',
+      ASSISTANT_PROVIDER: 'simulated',
+    });
+    expect(simulated?.main).toBeInstanceOf(SimulatedPlantAssistant);
+    expect(simulated?.care).toBe(simulated?.main);
+    // Il mix scelto dal founder dopo la prova; 20 USD finché non si fissa il budget.
     const defaults = assistantConfig({ APP_URL: publicUrl });
     expect(defaults.ASSISTANT_MODEL).toBe('claude-opus-5-5');
+    expect(defaults.ASSISTANT_CARE_MODEL).toBe('claude-haiku-5-5');
     expect(defaults.ASSISTANT_MONTHLY_BUDGET_USD).toBe(20);
   });
 
@@ -196,6 +200,7 @@ describe('Asistente de plantas: configurazione', () => {
       { APP_URL: publicUrl, ASSISTANT_PROVIDER: 'simulated' },
       { APP_URL: publicUrl, ASSISTANT_PROVIDER: 'anthropic' },
       { APP_URL: publicUrl, ASSISTANT_MODEL: 'gpt-5' },
+      { APP_URL: publicUrl, ASSISTANT_CARE_MODEL: 'claude-2' },
       { APP_URL: publicUrl, ASSISTANT_MONTHLY_BUDGET_USD: '-1' },
     ];
     for (const env of invalid) {

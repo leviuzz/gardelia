@@ -73,6 +73,16 @@ Puedes ver el estado de tus pedidos en "Mi cuenta" y en el enlace que te enviamo
 No está permitido hacer pedidos falsos, usar datos de otras personas sin su permiso ni intentar
 acceder a cuentas ajenas. Podemos suspender una cuenta que incumpla estas reglas.
 
+## 7 bis. Asistente de plantas (Floral Care)
+
+Si una florería te da acceso a "Mi Floral Care" y consultas del Asistente de plantas, puedes
+fotografiar tus plantas y preguntar cómo cuidarlas. Las respuestas las genera una inteligencia
+artificial: son **orientativas**, breves y pueden equivocarse; no sustituyen la revisión de tu
+florería, a la que puedes enviar cada consulta. Los datos de cuidado y el aviso sobre perros y gatos
+vienen de la lista de Gardelia, con su fuente. El asistente no indica dosis de productos químicos.
+Las consultas te las da tu florería, con sus condiciones. [Borrador del 25/11/2026 — validar con el
+abogado.]
+
 ## 8. Responsabilidad
 
 Gardelia responde por el funcionamiento de la plataforma. La florería responde por los productos,
