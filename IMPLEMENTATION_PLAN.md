@@ -1225,8 +1225,53 @@ isolamento A↔B con evento, blocco e spostamento insieme, "Enviar aviso", cambi
 anteprima, pagina del blocco e mese: nessuno sbordo (la barra delle schede dell'Agenda scorre).
 Il test di concorrenza nella suite completa ha trovato uno stallo possibile (le righe nuove puntano
 ai contratti): ora il blocco tiene prima i contratti toccati, poi le fasce, poi le visite.
+E2E completo in locale 111/112: l'unico fallito era il test dei sostituti del catalogo (ADR-081),
+solo sul database locale già usato. A parità di specie e prezzo i sostituti si ordinano per nome, e
+le rose di prova delle esecuzioni precedenti (stesso prezzo) riempivano i 4 posti proposti. Ora il
+test usa un prezzo diverso a ogni esecuzione: 6/6 due volte di seguito sullo stesso database. CI
+verde su `59f8701` (run 218, E2E compreso) e rilascio su staging.
 
-Prossimo: il blocco 5 di `docs/FLORAL_CARE_PLAN.md` (la pagina del cliente).
+**Floral Care, blocco 5a (fatto il 25/11, ADR-084):** "ok vai col blocco 5" del founder, con le
+sue risposte del 24/11: il contratto finito resta visibile 30 giorni in sola lettura, la fioreria
+sceglie in ogni invito se la persona vede prezzi e cobros, i messaggi (5b) li legge tutta la
+squadra, al cliente al massimo un'email al giorno (5b).
+
+- **Invito:** card «Acceso del cliente» nella pagina del contratto (proprietario e gerente): email,
+  «Solo este contrato» o «Todos sus contratos», «Puede ver precios y cobros». Link firmato di 7
+  giorni sempre da copiare o mandare per WhatsApp; l'email solo da una fioreria LIVE. «Reenviar»,
+  «Revocar», «Quitar acceso»; la riga «Mi Floral Care» nella scheda del cliente.
+- **Accettazione:** `/cuenta/floral-care/invitacion/[token]`, anche senza sessione (login,
+  registrazione e Google tornano al link); solo con la stessa email; apre il conto cliente.
+- **Mi Floral Care** (`/cuenta/floral-care`): i contratti fra tutte le fiorerie, la pagina del
+  contratto (cosa comprende, regole, visite, resoconti con foto, piante, contatti e termini),
+  cargos con le righe solo se la fioreria lo sceglie. Contratto finito: sola lettura fino alla
+  cancellazione delle foto.
+- **«Cambiar fecha»:** nello stesso mese, fra le fasce libere, dopo il preavviso del contratto
+  (`minNoticeHours`, ora copiato alla conferma). La fioreria riceve un'email e vede «Cambiada por
+  el cliente» nell'Agenda e nella visita.
+- **Sicurezza:** modalità portale nel database, chiusa di default (`withPortalContext`,
+  `app_portal_enter`, policy `portal_read` su 13 tabelle, `portal_write_guard`); dal portale
+  sempre 404. Revoche a mano, con il cliente archiviato e dal lavoro giornaliero 30 giorni dopo la
+  fine.
+- **Dati:** migrazione `care_portal`; `floral_care_accesos.csv` nell'export della fioreria; gli
+  accessi in «Descargar mis datos»; eliminando il conto l'accesso sparisce. Bozza dell'aviso de
+  privacidad e domanda 19 per l'avvocato in `docs/legal/`.
+
+Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · migrazioni = schema ✅ · `pnpm audit` ✅ ·
+test 1180/1180 ✅ (nuovi: 10 di dominio su invito, stato, confine dei 30 giorni nell'ora della
+fioreria, termine per cambiare anche con l'ora legale, stesso mese; 5 RLS su inventario delle
+policy del portale, nessun accesso, solo le righe ammesse, nessuna scrittura né GUC che passa,
+fioreria del contesto di scrittura; 15 d'integrazione su inviti, accettazione, visibilità e
+isolamento A↔B, soldi nascosti anche nel database, resoconto e foto, regole di «Cambiar fecha»,
+concorrenza, revoche, sola lettura e chiusura dal lavoro, fioreria cancellata, dati della persona),
+poi il portale 16/16 ✅ con l'export della fioreria e il blocco creato mentre il cliente sceglie la
+fascia · build ✅ · E2E del portale ✅ (invito, registrazione dal link con la verifica dell'email,
+accettazione, «Cambiar fecha», segno nell'Agenda, «Quitar acceso» → 404, link scaduto, conto
+sbagliato) · controllo a 320 px di invito, contratto, «Cambiar fecha» e card della fioreria: nessuno
+sbordo.
+
+Prossimo: il 5b di `docs/FLORAL_CARE_PLAN.md` (messaggi con foto, riassunto per la fioreria,
+avviso al cliente, messaggi nell'export e nell'eliminazione del conto).
 
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
@@ -1242,8 +1287,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 3. Inventario: fatto (blocchi 1–4, ADR-060…063), con lo scarico (ADR-071) e gli apartados
    (ADR-072) dagli ordini.
 4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
-5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078), 3 (ADR-082) e 4
-   (ADR-083) fatti; blocchi 5–7 in `docs/FLORAL_CARE_PLAN.md`.
+5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078), 3 (ADR-082), 4
+   (ADR-083) e 5a (ADR-084) fatti; 5b e blocchi 6–7 in `docs/FLORAL_CARE_PLAN.md`.
 6. Report: fatti (ADR-080); restano i P1 dello spec (funnel, retention, profitto per ramo).
    Catalogo completo (ADR-081): fatto; manca la revisione dell'elenco dei fiori da un fiorista.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.

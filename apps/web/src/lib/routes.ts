@@ -252,7 +252,34 @@ export const accountRoutes = {
   deleteConfirm: (token?: string) => withQuery('/cuenta/eliminar', { token }),
   /** Dopo la cancellazione: pagina pubblica (non c'è più una sessione). */
   deleted: '/cuenta-eliminada',
+  /** Floral Care, la pagina del cliente (ADR-084): i contratti che la persona vede. */
+  care: careAccountRoutes(),
 } as const;
+
+function careAccountRoutes() {
+  const home = '/cuenta/floral-care';
+  const contract = (subscriptionId: string) => `${home}/${segment(subscriptionId)}`;
+  const visit = (subscriptionId: string, visitId: string) =>
+    `${contract(subscriptionId)}/visitas/${segment(visitId)}`;
+  return {
+    home,
+    contract,
+    charge: (subscriptionId: string, chargeId: string) =>
+      `${contract(subscriptionId)}/cargos/${segment(chargeId)}`,
+    /** Il resoconto di una visita fatta o "No se pudo". */
+    visit,
+    /** "Cambiar fecha" di una visita programmata. */
+    changeDate: (subscriptionId: string, visitId: string) =>
+      `${visit(subscriptionId, visitId)}/cambiar`,
+    /** Una foto del contratto (`thumb` = miniatura). */
+    photo: (subscriptionId: string, photoId: string, options?: { readonly thumb?: boolean }) =>
+      withQuery(`${contract(subscriptionId)}/foto/${segment(photoId)}`, {
+        size: options?.thumb ? 'thumb' : undefined,
+      }),
+    /** L'invito della fioreria: si apre anche senza sessione. */
+    invite: (token: string) => `${home}/invitacion/${segment(token)}`,
+  };
+}
 
 /** Sicurezza del conto (ADR-077): vale per tutti, fioristi e chi compra. */
 export const securityRoutes = {

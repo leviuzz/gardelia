@@ -4,6 +4,7 @@
  *    fino a 3 mesi per un contratto rimasto indietro; quelli che restano li prende il giro dopo;
  *  - allunga le visite dei contratti attivi che coprono meno di 45 giorni, fino a 60 da oggi;
  *  - chiude i contratti il cui ultimo giorno è passato;
+ *  - chiude gli accessi alla pagina del cliente dei contratti finiti da 30 giorni (ADR-084);
  *  - cancella dallo storage le foto dei contratti finiti da 30 giorni (e quelle tolte i cui file
  *    non si erano cancellati), poi le segna; dopo 7 giorni di errori lo scrive come errore;
  *  - riprova le email dei resoconti rimaste indietro (al massimo 3 tentativi in 3 giorni).
@@ -21,6 +22,7 @@ import {
   CARE_LIMITS,
   CARE_PHOTO_PURGE,
   CARE_PHOTO_RETENTION_DAYS,
+  CARE_PORTAL_LIMITS,
   formatSubscriptionNumber,
   isCarePhotoPurgeDue,
   isCarePhotoPurgeOverdue,
@@ -46,6 +48,8 @@ export interface CareMaintenanceResult {
   /** Visite nate senza posto nel mese ("Por reprogramar"). */
   readonly visitsToReschedule: number;
   readonly contractsEnded: number;
+  /** Accessi alla pagina del cliente chiusi: contratto finito da 30 giorni (ADR-084). */
+  readonly portalAccessClosed: number;
   /** Foto cancellate dallo storage (contratti finiti da 30 giorni o foto tolte). */
   readonly photosDeleted: number;
   /** Resoconti mandati dal lavoro (rimasti indietro dopo "Terminar"). */
@@ -57,12 +61,26 @@ interface Candidate {
   readonly subscription_id: string;
 }
 
+/**
+ * Il tempo di tutti i lavori di Floral Care in un giro: la route della manutenzione ha 60 secondi
+ * anche per gli altri lavori. Ogni passo prende il minimo fra il suo tetto e quello che resta; ciò
+ * che non entra lo prende il giro dopo.
+ */
+const CARE_MAINTENANCE_BUDGET_MS = 45_000;
+
+function stepDeadline(until: number, budgetMs: number): number {
+  return Math.min(until, Date.now() + budgetMs);
+}
+
 /** `mail`: per riprovare le email dei resoconti (null nei test senza email). */
 export async function runCareMaintenance(
   mail: CareMailDeps | null = null,
 ): Promise<CareMaintenanceResult> {
+  const until = Date.now() + CARE_MAINTENANCE_BUDGET_MS;
   // Prima i cargos: il giorno 1 sono il lavoro più importante e hanno il loro tetto di tempo.
-  const charges = await issueCareCharges();
+  const charges = await issueCareCharges({
+    deadline: stepDeadline(until, CARE_CHARGE_LIMITS.budgetMs),
+  });
   const toExtend = await getDb().$queryRaw<Candidate[]>`
     SELECT tenant_id, subscription_id
     FROM app_care_contracts_to_extend(${CARE_LIMITS.refillDays}::int, ${CARE_LIMITS.jobBatch}::int)`;
@@ -70,6 +88,7 @@ export async function runCareMaintenance(
   let visitsScheduled = 0;
   let visitsToReschedule = 0;
   for (const candidate of toExtend) {
+    if (Date.now() > until) break;
     try {
       const result = await withTenantContext(
         getDb(),
@@ -98,6 +117,7 @@ export async function runCareMaintenance(
     FROM app_care_contracts_to_close(${CARE_LIMITS.jobBatch}::int)`;
   let contractsEnded = 0;
   for (const candidate of toClose) {
+    if (Date.now() > until) break;
     try {
       const closed = await withTenantContext(
         getDb(),
@@ -116,8 +136,13 @@ export async function runCareMaintenance(
       );
     }
   }
-  const photos = await purgeCarePhotos();
-  const emails = await retryCareEmails(mail);
+  const portalAccessClosed = await closeCarePortalAccess(until);
+  const photos = await purgeCarePhotos({
+    deadline: stepDeadline(until, CARE_PHOTO_PURGE.budgetMs),
+  });
+  const emails = await retryCareEmails(mail, {
+    deadline: stepDeadline(until, CARE_EMAIL_RETRY.budgetMs),
+  });
   return {
     chargesIssued: charges.issued,
     chargesPending: charges.pending,
@@ -125,9 +150,59 @@ export async function runCareMaintenance(
     visitsScheduled,
     visitsToReschedule,
     contractsEnded,
+    portalAccessClosed,
     photosDeleted: photos.deleted,
     emailsSent: emails.sent,
   };
+}
+
+interface AccessCandidate {
+  readonly tenant_id: string;
+  readonly access_id: string;
+}
+
+/**
+ * La pagina del cliente (ADR-084): l'accesso a un contratto finito resta in sola lettura 30 giorni
+ * (decisione del founder), poi si chiude; uno per tutti i contratti quando il cliente non ha più
+ * nulla in corso. Un accesso per transazione, come i contratti.
+ */
+async function closeCarePortalAccess(until: number): Promise<number> {
+  const candidates = await getDb().$queryRaw<AccessCandidate[]>`
+    SELECT tenant_id, access_id
+    FROM app_care_portal_access_to_close(${CARE_PORTAL_LIMITS.readOnlyDays}::int, ${CARE_LIMITS.jobBatch}::int)`;
+  let closed = 0;
+  for (const candidate of candidates) {
+    if (Date.now() > until) break;
+    try {
+      const done = await withTenantContext(
+        getDb(),
+        { tenantId: candidate.tenant_id, userId: null },
+        async (tx) => {
+          const job = await loadJobScope(tx, candidate.tenant_id, 'care.portal.close');
+          if (!job) return false;
+          const updated = await tx.carePortalAccess.updateMany({
+            where: { tenantId: candidate.tenant_id, id: candidate.access_id, revokedAt: null },
+            data: { revokedAt: new Date(), revokedReason: 'CONTRACT_ENDED' },
+          });
+          if (updated.count !== 1) return false;
+          await recordJobAudit(tx, job, {
+            action: AUDIT_ACTIONS.carePortalAccessRevoked,
+            entityType: 'CarePortalAccess',
+            entityId: candidate.access_id,
+            metadata: { reason: 'CONTRACT_ENDED' },
+          });
+          return true;
+        },
+      );
+      if (done) closed += 1;
+    } catch (error) {
+      logger.error(
+        { err: error, accessId: candidate.access_id },
+        'accesso alla pagina del cliente non chiuso',
+      );
+    }
+  }
+  return closed;
 }
 
 export interface CareChargeRunResult {

@@ -235,6 +235,15 @@ export const AUDIT_ACTIONS = {
   careBlockRemoved: 'care.block_removed',
   careVisitsReassigned: 'care.visits_reassigned',
   /**
+   * Blocco 5a (ADR-084): la pagina del cliente. Invito, accesso dato o tolto, data cambiata dal
+   * cliente (attore = la persona, `source: 'portal'`). Mai l'email nei metadati.
+   */
+  carePortalInvited: 'care.portal_invited',
+  carePortalInviteRevoked: 'care.portal_invite_revoked',
+  carePortalAccessGranted: 'care.portal_access_granted',
+  carePortalAccessRevoked: 'care.portal_access_revoked',
+  careVisitMovedByCustomer: 'care.visit_moved_by_customer',
+  /**
    * Contratti con i clienti (CustomerSubscription): `customer_subscription.*`, da non confondere con
    * `subscription.assigned`, il piano della fioreria su Gardelia.
    */

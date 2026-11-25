@@ -328,10 +328,14 @@ Tabelle della fioreria (con `tenantId`, RLS e FK composite), salvo dove indicato
 - Risultati per pianta e per servizio; `CarePhoto` (tipo, chiavi, chi, cancellata il);
   `CareMessage`.
 - Cargos e pagamenti con storni (uno per contratto e mese, regole copiate da `OrderPayment`).
-- Accesso al portale:
-  - inviti e collegamenti cliente ↔ persona;
-  - le tabelle del portale portano anche `customerId` per la regola RLS restrittiva;
-  - funzione `app_buyer_care_access()`.
+- Accesso al portale (fatto nel 5a, ADR-084):
+  - `CarePortalInvite` (email, un contratto o tutti, prezzi sì o no, 7 giorni) e
+    `CarePortalAccess` (persona ↔ cliente), entrambe con `customerId`;
+  - la "regola RLS restrittiva" è diventata la modalità portale, chiusa di default: danno righe
+    solo le policy `portal_read` di 13 tabelle, e solo per il contratto aperto da
+    `app_portal_enter`;
+  - funzioni `app_buyer_care_contracts()` (Mi Floral Care) e `app_buyer_care_access()` (dati della
+    persona).
 - Email in uscita con chiave unica.
 - Assistente:
   - conversazioni e messaggi con il costo vero, nella fioreria;
@@ -390,11 +394,18 @@ rilascio su staging) e lascia qualcosa di usabile.
      «Cancelar» senza cobrar; anteprima con l'impronta del piano; le visite che nascono dopo
      seguono la scelta; "Quitar"; "Alguien no puede ir" per dare le visite di una persona a
      un'altra.
-5. **Pagina del cliente.**
-   - Invito e collegamenti, regola RLS restrittiva.
-   - Mi Floral Care, "Cambiar fecha", messaggi con foto e riassunto per il fiorista.
-   - Cancellazione delle foto a fine contratto, dati nell'export e regole di eliminazione del
-     conto.
+5. **Pagina del cliente**, in due rilasci (decisioni del founder del 24/11: il contratto finito
+   resta visibile 30 giorni in sola lettura; la fioreria sceglie in ogni invito se la persona vede
+   prezzi e cobros; i messaggi li legge e risponde tutta la squadra; al cliente al massimo
+   un'email al giorno per contratto quando la fioreria scrive).
+   - **5a (fatto, ADR-084):** invito dalla pagina del contratto (link sempre, email dalle fiorerie
+     LIVE) e accettazione con la stessa email; Mi Floral Care in lettura (contratto, visite con il
+     resoconto, piante, regole, cargos se scelto); "Cambiar fecha" nello stesso mese con il
+     preavviso del contratto e l'avviso alla fioreria; revoche a mano, con il cliente archiviato e
+     30 giorni dopo la fine; accessi nell'export e nei dati della persona.
+   - **5b:** messaggi con foto, riassunto giornaliero per la fioreria e avviso al cliente; i
+     messaggi nell'export, nei dati della persona e nell'eliminazione del conto. La cancellazione
+     delle foto a fine contratto c'è già (2a).
 6. **Asistente de plantas.**
    - Prima per il fiorista, poi nel portale, con Stripe in modalità di prova e il banner.
    - Prima del via: prova su circa 50 foto vere, pagata da te con il tuo ok, e i testi legali.

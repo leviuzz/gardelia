@@ -82,6 +82,8 @@ export interface CareAgendaVisitDto {
   } | null;
   /** Non è più nel suo giorno originale. */
   readonly moved: boolean;
+  /** L'ultima data l'ha scelta il cliente dalla pagina "Mi Floral Care" (ADR-084). */
+  readonly movedByCustomer: boolean;
   readonly assignee: { readonly membershipId: string; readonly name: string } | null;
   /** È assegnata a chi guarda ("Mis visitas"). */
   readonly assignedToMe: boolean;
@@ -588,7 +590,13 @@ export async function moveCareVisit(
     }
     await tx.careVisit.update({
       where: { id: visit.id, tenantId: ctx.tenantId },
-      data: { status: 'SCHEDULED', scheduledDate: dbDate(input.date), ...target },
+      // La data ora la sceglie la fioreria: il segno "Cambiada por el cliente" si toglie.
+      data: {
+        status: 'SCHEDULED',
+        scheduledDate: dbDate(input.date),
+        ...target,
+        customerMovedAt: null,
+      },
     });
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.careVisitMoved,

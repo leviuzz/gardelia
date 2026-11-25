@@ -12,6 +12,7 @@ import { getDb, withTenantContext, type Prisma, type TransactionClient } from '@
 import {
   AUDIT_ACTIONS,
   CARE_CHARGE_LIMITS,
+  CARE_PORTAL_LIMITS,
   CARE_LIMITS,
   CARE_PAGE_SIZE,
   addDays,
@@ -79,6 +80,7 @@ import {
   requireCareSettings,
   requiredParts,
 } from './care-internals';
+import { revokeContractPortalInvitesTx } from './care-portal-internals';
 import { dateToParts, nextTenantCounter } from './quote-internals';
 
 export type { CareGenerationResult } from './care-generation';
@@ -205,6 +207,8 @@ export interface CareContractDetailDto {
     readonly deadPlantPolicy: DeadPlantPolicy;
     /** Cancelación del cliente: si paga con meno di queste ore di preavviso; 0 = mai. */
     readonly lateCancelHours: number;
+    /** "Cambiar fecha" dalla pagina del cliente: fino a queste ore prima (ADR-084). */
+    readonly minNoticeHours: number;
   } | null;
   /** Chi guarda vede e registra i soldi (cargos, pagamenti). */
   readonly canPayments: boolean;
@@ -1010,6 +1014,8 @@ export async function confirmCareContract(
         missedVisitPolicy: settings.missedVisitPolicy,
         deadPlantPolicy: settings.deadPlantPolicy,
         lateCancelHours: settings.lateCancelHours,
+        // "Cambiar fecha" dalla pagina del cliente (ADR-084).
+        minNoticeHours: settings.minNoticeHours,
       },
     });
     const scope = memberScope(ctx);
@@ -1272,6 +1278,8 @@ export async function endCareContract(
         ...(endsNow ? { status: 'ENDED', endedAt: new Date() } : {}),
       },
     });
+    // Un contratto finito non si apre più con un invito (la pagina del cliente, ADR-084).
+    if (endsNow) await revokeContractPortalInvitesTx(tx, ctx.tenantId, subscription.id);
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.subscriptionEnded,
       entityType: 'CustomerSubscription',
@@ -1564,6 +1572,7 @@ export async function getCareContract(
             deadPlantPolicy: subscription.deadPlantPolicy,
             lateCancelHours:
               subscription.lateCancelHours ?? CARE_CHARGE_LIMITS.lateCancelHoursDefault,
+            minNoticeHours: subscription.minNoticeHours ?? CARE_PORTAL_LIMITS.defaultNoticeHours,
           }
         : null,
     canPayments: hasPermission(ctx, 'subscriptions:payments') && confirmed,

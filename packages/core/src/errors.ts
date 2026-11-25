@@ -180,6 +180,19 @@ export type ConflictReason =
   | 'care_block_changed'
   | 'care_block_too_many_visits'
   | 'care_block_limit'
+  /**
+   * Blocco 5a (ADR-084), la pagina del cliente: contratto non aperto, cliente archiviato, troppi
+   * inviti o persone, invito già usato o revocato, scaduto, per un'altra email; dal portale, una
+   * visita che non si può più cambiare.
+   */
+  | 'care_portal_contract_not_open'
+  | 'care_portal_customer_archived'
+  | 'care_portal_invite_limit'
+  | 'care_portal_invite_not_pending'
+  | 'care_portal_invite_expired'
+  | 'care_portal_email_mismatch'
+  | 'care_portal_move_not_allowed'
+  | 'care_portal_move_notice'
   /** "Eliminar florería" con ordini ancora da consegnare o ritirare (ADR-074). */
   | 'tenant_deletion_open_orders'
   | 'session_is_current';

@@ -44,6 +44,7 @@ La logica di business sta in `domain`/`core`, **mai** nelle pagine o nelle serve
    (il test `packages/db/test/rls.test.ts` fallisce se lo dimentichi).
 2. Relazioni fra entità dello stesso tenant: **FK composite** `(tenantId, xId) → (tenantId, id)` con `@@unique([tenantId, id])` sul target.
 3. Accesso ai dati: solo dentro `withTenantContext(db, ctx, fn)`; **in più** filtra sempre esplicitamente `where: { tenantId: ctx.tenantId, ... }` e imposta `tenantId: ctx.tenantId` nelle create (difesa in profondità).
+   La pagina del cliente di Floral Care legge solo con `withPortalContext` (un contratto, sola lettura) e scrive solo «Cambiar fecha» con `withPortalWriteContext`: una tabella nuova si apre al portale solo con una policy `portal_read` nella migrazione (ADR-084).
 4. I servizi ricevono un `TenantContext` ottenuto **solo** da `resolveTenantContext` (sessione + membership attiva). Mai accettare `tenantId` dal client.
 5. Ogni servizio chiama `requirePermission(ctx, '...')` come prima istruzione. I permessi sono definiti SOLO in `packages/domain/src/permissions.ts`.
 6. Ogni pagina e **ogni server action** sotto `/app/[tenantSlug]` chiama `getTenantContext(slug)` (il layout non protegge le action). Le server action lo fanno passando da `runTenantAction(slug, …)` di `apps/web/src/lib/tenant-action.ts` (il test `apps/web/test/conventions.test.ts` fallisce se un'azione lo salta).

@@ -108,10 +108,13 @@ test('falta una flor del ramo: se propone una parecida y se cambia con el ok del
   const original = `Rosa sust A ${stamp}`;
   const substitute = `Rosa sust B ${stamp}`;
   const bouquet = `Ramo sust ${stamp}`;
-  // Un prezzo insolito: fra le rose di prova il sostituto più vicino è proprio quello.
+  // Un prezzo insolito e diverso a ogni esecuzione: a parità di specie vince il prezzo più vicino,
+  // poi il nome, e con un prezzo fisso le rose rimaste dalle esecuzioni precedenti (stesso prezzo,
+  // nomi più "piccoli") riempirebbero i posti dei sostituti proposti.
+  const price = ((4000 + (stamp % 1000)) / 100).toFixed(2);
   for (const name of [original, substitute]) {
     await page.goto(`${SHOP}/catalog/new`);
-    await createProduct(page, { name, price: '47.50', colors: ['Rojo'] });
+    await createProduct(page, { name, price, colors: ['Rojo'] });
   }
   await page.goto(`${SHOP}/catalog/new`);
   await createProduct(page, { type: 'BOUQUET', name: bouquet, price: '600' });

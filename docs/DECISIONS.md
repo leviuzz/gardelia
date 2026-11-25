@@ -2673,6 +2673,176 @@ spostamento o credito di tutte le visite insieme, email facoltativa, casella obb
 - **Non fatto:** il cliente che vede i giorni bloccati nel suo portale (blocco 5); date chiuse per
   i pedidos; scegliere visita per visita dentro un blocco (si cambia a mano dopo, dalla visita).
 
+### ADR-084 — Floral Care, blocco 5a: la pagina del cliente (accesso, Mi Floral Care, «Cambiar fecha») — ADOTTATO (25/11/2026)
+
+Blocco 5 del piano approvato (`docs/FLORAL_CARE_PLAN.md` §7), chiesto dal founder ("ok vai col
+blocco 5"), in due rilasci: **5a** (questo) accesso, lettura e «Cambiar fecha»; **5b** messaggi
+con foto, riassunto per la fioreria, messaggi nell'export e nell'eliminazione del conto.
+
+**Decisioni del founder (24/11/2026):**
+
+1. **Contratto finito:** il cliente lo vede ancora 30 giorni, in sola lettura (finché si cancellano
+   le foto, ADR-078); poi l'accesso a quel contratto si chiude da solo.
+2. **Soldi:** la fioreria sceglie in ogni invito «Puede ver precios y cobros», spuntato di default.
+   Senza, la persona vede visite, resoconti, piante (e nel 5b i messaggi), ma nessun prezzo né
+   cargo.
+3. **Messaggi (5b):** li legge e risponde tutta la squadra, staff compreso.
+4. **Email al cliente quando la fioreria scrive (5b):** al massimo una al giorno per contratto.
+
+**Come funziona:**
+
+- **Invito** (card «Acceso del cliente» nella pagina del contratto; proprietario e gerente,
+  `subscriptions:write` e poi `requireEntitlement(ctx, 'floralCare')`):
+  - campi: email (precompilata dal cliente), «Solo este contrato» o «Todos sus contratos», la
+    casella dei soldi;
+  - solo da un contratto attivo o in pausa di un cliente attivo; al massimo 10 inviti in attesa e
+    20 accessi per cliente;
+  - link firmato (HMAC di fioreria e ID dell'invito, come i link pubblici, ADR-056): vale 7 giorni
+    e solo per la stessa email; «Copiar enlace» e WhatsApp sempre, l'email solo da una fioreria
+    LIVE, nella lingua del mercato;
+  - un invito nuovo per la stessa email sostituisce quello in attesa; ci sono anche «Reenviar»
+    (link nuovo) e «Revocar»;
+  - la scheda del cliente ha la riga «Mi Floral Care: N personas · N invitaciones pendientes».
+- **Accettazione** (`/cuenta/floral-care/invitacion/[token]`):
+  - si apre anche senza sessione; login, registrazione (con la verifica dell'email) e Google
+    tornano al link;
+  - con un altro conto chiede di cambiarlo; scaduto, revocato o già accettato lo dice;
+  - accettare crea l'accesso (`CarePortalAccess`) e apre il conto cliente (`openBuyerAccount`), così
+    chi non ha una fioreria arriva a «Mi cuenta».
+  - Il token si legge nel contesto della fioreria del token (`withTenantContext`): nessun
+    `withSystemContext` nuovo, CLAUDE.md §4.8 non cambia.
+- **Mi Floral Care** (`/cuenta/floral-care`, card in «Mi cuenta»):
+  - l'elenco dei contratti fra tutte le fiorerie, al massimo 100: fioreria, sede, prossima visita,
+    saldo se può vedere i soldi;
+  - la pagina del contratto: cosa comprende (frequenza, giorni e orari, servizi, piante) e le
+    regole (aviso para cambiar, cancelaciones, cliente que no abre); i contatti e i termini attuali
+    della fioreria;
+  - con i soldi, il prezzo per visita e i cargos (Pagado / Pendiente / Vencido) con le righe. Mai
+    referencias, note o incassi «por registrar»: i pagamenti restano alla fioreria;
+  - le prossime visite con «Cambiar fecha» e «puedes cambiarla hasta el …»;
+  - le visite fatte con il resoconto (`VisitReportView`: foto, chi è venuto, quando);
+  - contratto finito: il riquadro «Terminó el …; las fotos se borran el …», sola lettura;
+  - le foto passano da `/cuenta/floral-care/foto/[photoId]`: con la sessione, 404 senza accesso,
+    cache di 5 minuti (quella di un giorno sopravviverebbe a una revoca).
+- **«Cambiar fecha»** (una pagina, non un dialogo, così funziona a 320 px):
+  - **regole:**
+    - solo visite regolari programmate, mai extra né «Por reprogramar»;
+    - stesso mese della data attuale, dentro le date del contratto;
+    - sia l'inizio attuale sia il nuovo dopo adesso + il preavviso del contratto, nell'ora della
+      fioreria (`careVisitStartAt`);
+    - una fascia attiva del giorno giusto, non bloccata (ADR-083), con i posti della visita;
+    - nessun'altra visita del contratto quel giorno; solo fasce, mai «hora libre»;
+    - nessun «Sí, avisé al cliente», perché è il cliente che sposta;
+  - la pagina mostra solo le fasce libere, raggruppate per giorno, senza i posti né i nomi dei
+    blocchi;
+  - **dopo il cambio:**
+    - la fioreria vede «Cambiada por el cliente» nell'Agenda e nella visita
+      (`CareVisit.customerMovedAt`, azzerato quando la fioreria la sposta);
+    - proprietari e gerenti ricevono un'email, solo da una fioreria LIVE;
+    - il registro ha `care.visit_moved_by_customer`, con la persona come attore e
+      `source: 'portal'` (`recordPortalAudit`);
+  - **preavviso:** `CustomerSubscription.minNoticeHours` si copia alla conferma come
+    `lateCancelHours` (ADR-082). I contratti già confermati hanno preso il valore di oggi della
+    fioreria (24 se manca). Così `CareSettings.minNoticeHours`, salvato dal blocco 1, si applica
+    davvero, e il contratto lo mostra nelle regole.
+- **Modalità portale nel database** (chiusa di default):
+  - **ingresso:** `withPortalContext(db, {userId, subscriptionId}, fn)` imposta solo
+    `app.user_id`, poi chiama la SECURITY DEFINER `app_portal_enter(sub)`. La funzione:
+    - prende la persona solo dalla sessione e controlla l'accesso;
+    - imposta `app.portal_tenant_id`, `app.portal_customer_id`, `app.portal_subscription_id` e
+      `app.portal_money`;
+    - restituisce quello che il portale mostra ma non può leggere (la fioreria, i termini);
+    - senza accesso non imposta nulla, e la persona riceve un 404;
+  - **cosa si vede:**
+    - `app.tenant_id` non c'è, quindi la policy di tenant fallisce ovunque;
+    - danno righe solo le policy `portal_read` (FOR SELECT) di 13 tabelle: `CustomerSubscription`
+      e i suoi servizi e fasce, `CareVisit` e i suoi risultati, `CarePlant`, `CarePhoto` (non
+      tolte né cancellate), `CareSlot` del contratto, `Customer`, la sua `CustomerAddress` del
+      contratto, e `CareCharge` e `CareChargeLine` (solo con i soldi);
+    - tutto il resto non dà niente: `Tenant`, `Membership`, ordini, preventivi, inventario,
+      pagamenti, avvisi interni, blocchi, registro, le tabelle d'accesso;
+    - ogni scrittura è rifiutata; un contratto per transazione;
+  - **una sola regola di visibilità:** `app_portal_visible_contracts` richiede accessi attivi,
+    fioreria e cliente attivi e tipo CARE; il contratto deve essere attivo, in pausa, oppure finito
+    da meno di 30 giorni nel fuso della fioreria. Il dominio ha la stessa regola,
+    `carePortalContractState`, provata da tutti e due i lati;
+  - **scrittura di «Cambiar fecha»:** `withPortalWriteContext` è il contesto della fioreria (i
+    posti si contano su tutte le visite) più `app_portal_enter`. Il `tenantId` viene da
+    `app_buyer_care_contracts()`, come fa `cancelMarketplaceOrder`. In più c'è la policy
+    RESTRICTIVE `portal_write_guard` FOR UPDATE su `CareVisit`: in portale si tocca solo una
+    visita del contratto;
+  - **ordine dei blocchi:**
+    - spostamento: contratto → fasce (`openSlotBook`) → visita, come `moveCareVisit`;
+    - accettazione: cliente → contratto → invito → accesso;
+    - provati in concorrenza: il cliente insieme alla fioreria che sposta la stessa visita, alla
+      fine del contratto e a un blocco della stessa fascia; due clienti per l'ultimo posto.
+      Nessuno stallo, vince uno solo.
+- **Revoche:**
+  - «Quitar acceso» a mano;
+  - quando il cliente si archivia: accessi e inviti in attesa;
+  - quando il contratto finisce: gli inviti in attesa di quel contratto;
+  - il lavoro giornaliero chiude gli accessi 30 giorni dopo la fine
+    (`closeCarePortalAccess`, motivo `CONTRACT_ENDED`). Un accesso a tutti i contratti si chiude
+    quando il cliente non ha più nulla in corso;
+  - gli inviti scaduti con `app_expire_overdue()`.
+  - La manutenzione giornaliera di Floral Care ora ha un tetto unico di 45 secondi (la route ne ha
+    60).
+- **Errori e registro:**
+  - dal portale sempre 404 con un `NotFoundError` semplice: nessuna sonda fra fiorerie, come
+    ADR-064;
+  - dal lato fioreria, `notFound` con l'evento di sicurezza (`ProbeableEntity` aggiunge le due
+    tabelle);
+  - azioni nel registro: `care.portal_invited`, `care.portal_invite_revoked`,
+    `care.portal_access_granted`, `care.portal_access_revoked`, `care.visit_moved_by_customer`;
+    mai l'email nei metadati.
+- **Dati:**
+  - migrazione `care_portal`, con soli enum nuovi (`CarePortalInviteStatus`,
+    `CarePortalRevokeReason`);
+  - tabelle `CarePortalInvite` e `CarePortalAccess` con RLS, FK composite verso cliente e
+    contratto, la persona in FK verso `User` (ON DELETE CASCADE: chi elimina il conto perde il
+    collegamento);
+  - indici unici parziali: un invito in attesa per cliente ed email, un accesso attivo per persona
+    e ambito; CHECK sugli stati;
+  - colonne nuove: `CustomerSubscription.minNoticeHours` e `CareVisit.customerMovedAt`.
+- **Dati della persona e della fioreria:**
+  - «Descargar mis datos» (ADR-064) aggiunge gli accessi (`floralCare.accesses`);
+  - lo ZIP della fioreria (ADR-079) aggiunge `floral_care_accesos.csv` (inviti e accessi, con lo
+    stato vero anche prima del lavoro notturno);
+  - eliminando il conto, l'accesso sparisce.
+
+**PROPOSTO dal piano** (il founder ha approvato il piano; da confermare guardandolo in staging):
+
+1. **Inviti:** solo da un contratto confermato; di default «Solo este contrato»; «Reenviar» crea un
+   link nuovo.
+2. **«Cambiar fecha»:**
+   - solo visite regolari programmate;
+   - nessun limite al numero di cambi;
+   - il preavviso del contratto (24 h di default) vale per l'ora attuale e per la nuova.
+3. **Avviso alla fioreria:** un'email subito a proprietari e gerenti per ogni cambio del cliente
+   (solo LIVE). Il riassunto del 5b è solo per i messaggi.
+4. **Piano:** il portale funziona qualunque sia il piano della fioreria, come i cargos (ADR-082).
+   Invitare chiede Floral Care, oggi acceso per tutti.
+5. **Lingue:**
+   - pagine del portale nella lingua scelta dalla persona;
+   - email ai clienti e alla fioreria nella lingua del mercato;
+   - la pagina dell'invito segue la regola di tutte le pagine (ADR-042): la scelta della persona,
+     altrimenti es-MX.
+   - Il piano proponeva la lingua della fioreria quando la persona non ha scelto. Fatto solo lì,
+     login e registrazione resterebbero in es-MX e la persona vedrebbe due lingue di seguito.
+     Oggi il solo mercato aperto è il Messico, quindi il risultato è lo stesso. La lingua di
+     default per mercato va fatta per tutte le pagine senza scelta quando apre il mercato
+     italiano.
+6. **Soldi nel portale:**
+   - cargos per contratto, senza referencias né note;
+   - nessun estado de cuenta unico delle sedi;
+   - i termini mostrati sono il testo attuale della fioreria, non una copia di quando si è firmato.
+7. **Resoconti per email:** vanno ancora all'email del cliente nel CRM, non alle persone del
+   portale.
+
+- **Non fatto (5b):** messaggi con foto, riassunto per la fioreria, avviso al cliente, messaggi
+  nell'export e nell'eliminazione del conto. Fuori dal blocco: il cliente che vede i giorni
+  bloccati prima di sceglierli (oggi le fasce bloccate semplicemente non compaiono).
+
 ## 3. Proposte da approvare
 
 | ID   | Proposta                                                                                                                                                                               | Motivazione                                                                                                                                  | Quando serve                 |

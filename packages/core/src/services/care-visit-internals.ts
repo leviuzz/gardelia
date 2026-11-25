@@ -42,6 +42,7 @@ export const agendaSelect = {
   cancelReason: true,
   cancelCharged: true,
   notDoneCause: true,
+  customerMovedAt: true,
   assignedMembershipId: true,
   assignedTo: { select: { user: { select: { name: true } } } },
   // Blocco 3b: la visita mancata che questa recupera, e la visita di recupero ancora valida.
@@ -121,6 +122,7 @@ export function toAgendaVisit(
         : null,
     // Una visita extra non ha un "giorno originale" del calendario: non risulta mai spostata.
     moved: !row.isExtra && date !== null && compareDates(date, original) !== 0,
+    movedByCustomer: row.customerMovedAt !== null,
     assignee:
       row.assignedMembershipId && row.assignedTo
         ? { membershipId: row.assignedMembershipId, name: row.assignedTo.user.name }
@@ -183,11 +185,19 @@ function lateCancelOf(
 
 /** Blocca la visita fino alla fine della transazione e la rilegge con il suo contratto. */
 export async function lockCareVisit(tx: TransactionClient, ctx: TenantContext, visitId: string) {
+  return lockCareVisitTx(tx, ctx.tenantId, visitId);
+}
+
+/**
+ * Lo stesso blocco per chi scrive senza un `TenantContext` (la pagina del cliente, ADR-084): la
+ * fioreria arriva già controllata.
+ */
+export async function lockCareVisitTx(tx: TransactionClient, tenantId: string, visitId: string) {
   const rows = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "CareVisit"
-    WHERE "id" = ${visitId}::uuid AND "tenantId" = ${ctx.tenantId}::uuid FOR UPDATE`;
+    WHERE "id" = ${visitId}::uuid AND "tenantId" = ${tenantId}::uuid FOR UPDATE`;
   if (rows.length === 0) return null;
   return tx.careVisit.findFirst({
-    where: { tenantId: ctx.tenantId, id: visitId },
+    where: { tenantId, id: visitId },
     include: {
       subscription: {
         select: {
@@ -197,6 +207,7 @@ export async function lockCareVisit(tx: TransactionClient, ctx: TenantContext, v
           status: true,
           customerId: true,
           lateCancelHours: true,
+          minNoticeHours: true,
         },
       },
     },

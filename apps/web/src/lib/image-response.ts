@@ -6,14 +6,24 @@ import 'server-only';
  */
 export function privateImageResponse(
   image: { bytes: Uint8Array; contentType: string },
-  options: { readonly downloadName?: string } = {},
+  options: {
+    readonly downloadName?: string;
+    /**
+     * Secondi di cache del browser. Di default un giorno (il file di un ID non cambia); la pagina
+     * del cliente (ADR-084) ne usa pochi, così una revoca dell'accesso vale presto.
+     */
+    readonly maxAgeSeconds?: number;
+  } = {},
 ): Response {
   const extension =
     image.contentType === 'image/png' ? 'png' : image.contentType === 'image/webp' ? 'webp' : 'jpg';
   return new Response(Buffer.from(image.bytes), {
     headers: {
       'Content-Type': image.contentType,
-      'Cache-Control': 'private, max-age=86400, immutable',
+      'Cache-Control':
+        options.maxAgeSeconds === undefined
+          ? 'private, max-age=86400, immutable'
+          : `private, max-age=${options.maxAgeSeconds}`,
       'X-Content-Type-Options': 'nosniff',
       'Content-Security-Policy': "default-src 'none'; sandbox",
       // Nome del file per "Descargar": solo lettere, numeri e trattini.

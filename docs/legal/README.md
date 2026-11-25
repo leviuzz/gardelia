@@ -71,6 +71,13 @@ che si registra con ogni ordine online.
     subito e dopo 30 giorni si cancellano tutti i suoi dati (clienti, ordini, pagamenti registrati,
     foto). Gardelia deve conservare qualcosa per obblighi fiscali o reclami? E la fioreria va avvisata
     di scaricare prima i suoi dati (esportazione ancora da fare)?
+19. **"Mi Floral Care" (ADR-084, bozza nell'aviso del 25/11/2026):** la fioreria invita per email
+    una persona a vedere il servizio di cura delle piante di un suo cliente (visite, resoconti con
+    foto, piante e, se la fioreria lo sceglie, prezzi e cargos); la persona può cambiare la data di
+    una visita. Confermare i ruoli: la fioreria responsabile dei dati del servizio, Gardelia del
+    conto e dell'accesso. La persona invitata può essere diversa dal cliente (per esempio una
+    recepcionista): basta che sia la fioreria a decidere chi invitare, o serve il consenso del
+    cliente? L'accesso si chiude 30 giorni dopo la fine del contratto, come le foto.
 
 ## Prima del lancio (V1, `docs/V1_SCOPE.md` §2.15)
 

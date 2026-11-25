@@ -11,9 +11,12 @@ import {
   getDb,
   isForeignKeyViolation,
   isRlsViolation,
+  withPortalContext,
+  withPortalWriteContext,
   withSystemContext,
   withTenantContext,
   withUserContext,
+  type TransactionClient,
 } from '../src/index';
 import {
   addTestMember,
@@ -21,6 +24,7 @@ import {
   createTestTenant,
   createTestUser,
   type TestTenant,
+  type TestUser,
 } from '../src/testing';
 
 const db = getDb();
@@ -509,5 +513,270 @@ describe('anteprime AI: crediti e coda', () => {
       }),
     );
     expect(running).toEqual({ status: 'RUNNING', attempts: 1 });
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Floral Care, pagina del cliente (ADR-084)
+// -----------------------------------------------------------------------------
+
+/** Le sole tabelle che danno righe in modalità portale (policy `portal_read`). */
+const PORTAL_READ_TABLES = [
+  'Customer',
+  'CustomerAddress',
+  'CustomerSubscription',
+  'CustomerSubscriptionService',
+  'CustomerSubscriptionSlot',
+  'CareCharge',
+  'CareChargeLine',
+  'CarePhoto',
+  'CarePlant',
+  'CareSlot',
+  'CareVisit',
+  'CareVisitPlantResult',
+  'CareVisitServiceResult',
+];
+
+let contractCount = 1000;
+
+/** Un cliente con la sua sede e un contratto di Floral Care attivo (fixture di sistema). */
+async function careContract(tenantId: string, name: string) {
+  contractCount += 1;
+  const number = contractCount;
+  return withSystemContext(db, { reason: 'test fixture: care contract' }, async (tx) => {
+    const customer = await tx.customer.create({ data: { tenantId, displayName: name } });
+    const address = await tx.customerAddress.create({
+      data: {
+        tenantId,
+        customerId: customer.id,
+        addressLine1: 'Av. Siempre Viva 1',
+        city: 'Aguascalientes',
+        region: 'AGU',
+        postalCode: '20000',
+        countryCode: 'MX',
+      },
+    });
+    const subscription = await tx.customerSubscription.create({
+      data: {
+        tenantId,
+        number,
+        customerId: customer.id,
+        customerAddressId: address.id,
+        kind: 'CARE',
+        status: 'ACTIVE',
+        frequency: 'MONTHLY_1',
+        startDate: new Date('2026-11-01T00:00:00Z'),
+        currency: 'MXN',
+        confirmedAt: new Date(),
+        missedVisitPolicy: 'COUNTS',
+        deadPlantPolicy: 'INCLUDED',
+        lateCancelHours: 12,
+        minNoticeHours: 24,
+      },
+    });
+    return { customerId: customer.id, subscriptionId: subscription.id, tenantId };
+  });
+}
+
+/** Un accesso al portale già accettato da `person` (tutti i contratti del cliente, o uno). */
+async function grantPortal(
+  contract: { tenantId: string; customerId: string; subscriptionId: string },
+  person: TestUser,
+  options: { onlyContract?: boolean; canSeeMoney?: boolean } = {},
+) {
+  return withSystemContext(db, { reason: 'test fixture: portal access' }, async (tx) => {
+    const invite = await tx.carePortalInvite.create({
+      data: {
+        tenantId: contract.tenantId,
+        customerId: contract.customerId,
+        subscriptionId: options.onlyContract ? contract.subscriptionId : null,
+        email: person.email,
+        canSeeMoney: options.canSeeMoney ?? true,
+        status: 'ACCEPTED',
+        expiresAt: new Date(Date.now() + 86_400_000),
+        acceptedAt: new Date(),
+        acceptedUserId: person.id,
+      },
+    });
+    return tx.carePortalAccess.create({
+      data: {
+        tenantId: contract.tenantId,
+        customerId: contract.customerId,
+        subscriptionId: options.onlyContract ? contract.subscriptionId : null,
+        userId: person.id,
+        inviteId: invite.id,
+        canSeeMoney: options.canSeeMoney ?? true,
+      },
+    });
+  });
+}
+
+async function tenantTables(tx: TransactionClient): Promise<string[]> {
+  const rows = await tx.$queryRaw<{ table_name: string }[]>`
+    SELECT c.table_name
+    FROM information_schema.columns c
+    JOIN information_schema.tables t
+      ON t.table_schema = c.table_schema AND t.table_name = c.table_name
+    WHERE c.table_schema = 'public' AND c.column_name = 'tenantId' AND t.table_type = 'BASE TABLE'
+    ORDER BY c.table_name`;
+  return rows.map((row) => row.table_name);
+}
+
+describe('pagina del cliente di Floral Care (ADR-084)', () => {
+  let person: TestUser;
+  let stranger: TestUser;
+  let own: Awaited<ReturnType<typeof careContract>>;
+  let otherCustomer: Awaited<ReturnType<typeof careContract>>;
+  let otherShop: Awaited<ReturnType<typeof careContract>>;
+
+  beforeAll(async () => {
+    person = await createTestUser(db);
+    stranger = await createTestUser(db);
+    own = await careContract(tenantA.tenantId, 'Hotel Jardín');
+    otherCustomer = await careContract(tenantA.tenantId, 'Oficinas Centro');
+    otherShop = await careContract(tenantB.tenantId, 'Clínica Norte');
+    await grantPortal(own, person, { canSeeMoney: false });
+    await grantPortal(otherShop, person);
+  });
+
+  it('ogni policy del portale è una lettura di una tabella ammessa, o la guardia delle visite', async () => {
+    const policies = await withSystemContext(
+      db,
+      { reason: 'test: policy del portale' },
+      (tx) =>
+        tx.$queryRaw<{ tablename: string; policyname: string; cmd: string; permissive: string }[]>`
+        SELECT tablename, policyname, cmd, permissive
+        FROM pg_policies
+        WHERE schemaname = 'public'
+          AND (coalesce(qual, '') LIKE '%app_portal_%' OR coalesce(with_check, '') LIKE '%app_portal_%')
+        ORDER BY tablename, policyname`,
+    );
+    const reads = policies.filter((policy) => policy.policyname === 'portal_read');
+    expect(reads.map((policy) => policy.tablename).sort()).toEqual([...PORTAL_READ_TABLES].sort());
+    expect(
+      reads.every((policy) => policy.cmd === 'SELECT' && policy.permissive === 'PERMISSIVE'),
+    ).toBe(true);
+    expect(policies.filter((policy) => policy.policyname !== 'portal_read')).toEqual([
+      {
+        tablename: 'CareVisit',
+        policyname: 'portal_write_guard',
+        cmd: 'UPDATE',
+        permissive: 'RESTRICTIVE',
+      },
+    ]);
+  });
+
+  it('senza accesso il portale non si apre e non imposta niente', async () => {
+    const opened = await withPortalContext(
+      db,
+      { userId: stranger.id, subscriptionId: own.subscriptionId },
+      async () => 'aperto',
+    );
+    expect(opened).toBeNull();
+    // Lo stesso contratto da chi ha accesso solo in un'altra fioreria, o con un ID inventato.
+    expect(
+      await withPortalContext(
+        db,
+        { userId: person.id, subscriptionId: otherCustomer.subscriptionId },
+        async () => 'aperto',
+      ),
+    ).toBeNull();
+    const settings = await withUserContext(db, stranger.id, async (tx) => {
+      await tx.$queryRaw`SELECT * FROM app_portal_enter(${own.subscriptionId}::uuid)`;
+      return tx.$queryRaw<{ tenant: string | null; sub: string | null }[]>`
+        SELECT app_portal_tenant_id()::text AS tenant, app_portal_subscription_id()::text AS sub`;
+    });
+    expect(settings).toEqual([{ tenant: null, sub: null }]);
+  });
+
+  it('in modalità portale si vede solo il contratto aperto, e nient’altro della fioreria', async () => {
+    const seen = await withPortalContext(
+      db,
+      { userId: person.id, subscriptionId: own.subscriptionId },
+      async (tx, entry) => {
+        const counts: Record<string, number> = {};
+        for (const table of await tenantTables(tx)) {
+          const rows = await tx.$queryRawUnsafe<{ n: bigint }[]>(
+            `SELECT count(*)::bigint AS n FROM "${table}"`,
+          );
+          counts[table] = Number(rows[0]?.n ?? 0);
+        }
+        const contracts = await tx.customerSubscription.findMany({ select: { id: true } });
+        const customers = await tx.customer.findMany({ select: { id: true } });
+        return { entry, counts, contracts, customers };
+      },
+    );
+    expect(seen).not.toBeNull();
+    if (!seen) return;
+    expect(seen.entry).toMatchObject({
+      tenantId: tenantA.tenantId,
+      customerId: own.customerId,
+      subscriptionId: own.subscriptionId,
+      canSeeMoney: false,
+      readOnly: false,
+      shop: { name: 'Florería A', timezone: 'America/Mexico_City', currency: 'MXN' },
+    });
+    expect(seen.contracts).toEqual([{ id: own.subscriptionId }]);
+    expect(seen.customers).toEqual([{ id: own.customerId }]);
+    for (const [table, count] of Object.entries(seen.counts)) {
+      if (!PORTAL_READ_TABLES.includes(table))
+        expect({ table, count }).toEqual({ table, count: 0 });
+    }
+    expect(seen.counts.CustomerAddress).toBe(1);
+  });
+
+  it('dal portale non si scrive, e i GUC del portale non passano alla transazione dopo', async () => {
+    const attempt = await withPortalContext(
+      db,
+      { userId: person.id, subscriptionId: own.subscriptionId },
+      async (tx) => {
+        const updated = await tx.customerSubscription.updateMany({
+          where: { id: own.subscriptionId },
+          data: { notes: 'cambiata dal portale' },
+        });
+        let inserted = true;
+        try {
+          await tx.$executeRaw`SAVEPOINT p`;
+          await tx.customer.create({
+            data: { tenantId: tenantA.tenantId, displayName: 'Intrusa' },
+          });
+        } catch (error) {
+          inserted = !isRlsViolation(error);
+          await tx.$executeRaw`ROLLBACK TO SAVEPOINT p`;
+        }
+        return { updated: updated.count, inserted };
+      },
+    );
+    expect(attempt).toEqual({ updated: 0, inserted: false });
+    const after = await withUserContext(
+      db,
+      person.id,
+      (tx) =>
+        tx.$queryRaw<{ tenant: string | null; sub: string | null }[]>`
+        SELECT app_portal_tenant_id()::text AS tenant, app_portal_subscription_id()::text AS sub`,
+    );
+    expect(after).toEqual([{ tenant: null, sub: null }]);
+  });
+
+  it('nel contesto di scrittura la fioreria deve essere quella del contratto', async () => {
+    const wrongShop = await withPortalWriteContext(
+      db,
+      { userId: person.id, tenantId: tenantB.tenantId, subscriptionId: own.subscriptionId },
+      async () => 'aperto',
+    );
+    expect(wrongShop).toBeNull();
+    const guarded = await withPortalWriteContext(
+      db,
+      { userId: person.id, tenantId: tenantA.tenantId, subscriptionId: own.subscriptionId },
+      async (tx) => {
+        // Nel contesto di scrittura si legge tutta la fioreria (i posti si contano sulle visite di
+        // tutti i clienti); la guardia sulle visite la provano i test dei servizi.
+        const other = await tx.customerSubscription.count({
+          where: { id: otherCustomer.subscriptionId },
+        });
+        return { other };
+      },
+    );
+    expect(guarded).toEqual({ other: 1 });
   });
 });

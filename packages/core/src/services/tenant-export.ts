@@ -10,6 +10,7 @@ import {
   AUDIT_ACTIONS,
   MX_REGIONS,
   careChargeStatus,
+  carePortalInviteStatus,
   formatCareChargeNumber,
   formatOrderNumber,
   formatQuoteNumber,
@@ -105,6 +106,8 @@ export async function exportTenantData(
       chargeLines,
       carePayments,
       careBlocks,
+      portalInvites,
+      portalAccesses,
     ] = await Promise.all([
       tx.customer.findMany({ where, orderBy: { createdAt: 'asc' } }),
       tx.customerAddress.findMany({ where, orderBy: { createdAt: 'asc' } }),
@@ -155,6 +158,12 @@ export async function exportTenantData(
           _count: { select: { changes: true } },
         },
       }),
+      tx.carePortalInvite.findMany({ where, orderBy: { createdAt: 'asc' } }),
+      tx.carePortalAccess.findMany({
+        where,
+        orderBy: { createdAt: 'asc' },
+        include: { user: { select: { name: true, email: true } } },
+      }),
     ]);
     return {
       customers,
@@ -178,6 +187,8 @@ export async function exportTenantData(
       chargeLines,
       carePayments,
       careBlocks,
+      portalInvites,
+      portalAccesses,
     };
   });
 
@@ -216,6 +227,9 @@ export async function exportTenantData(
   type ChargeLine = (typeof data.chargeLines)[number];
   type CarePaymentRow = (typeof data.carePayments)[number];
   type CareBlockRow = (typeof data.careBlocks)[number];
+  type PortalRow =
+    | { readonly kind: 'invite'; readonly row: (typeof data.portalInvites)[number] }
+    | { readonly kind: 'access'; readonly row: (typeof data.portalAccesses)[number] };
 
   const sections: Section[] = [
     section<Customer>(
@@ -641,6 +655,52 @@ export async function exportTenantData(
         { header: 'Quitado', value: (r) => dateTime(r.removedAt) },
       ],
       data.careBlocks,
+    ),
+    section<PortalRow>(
+      'floral_care_accesos.csv',
+      'invitaciones y personas con acceso a la página del cliente (Mi Floral Care)',
+      [
+        { header: 'id', value: (r) => r.row.id },
+        { header: 'Tipo', value: (r) => (r.kind === 'invite' ? 'Invitación' : 'Acceso') },
+        { header: 'Cliente', value: (r) => customerName.get(r.row.customerId) },
+        {
+          header: 'Contrato',
+          value: (r) =>
+            r.row.subscriptionId
+              ? contractNumber.get(r.row.subscriptionId)
+              : LABELS.carePortalAllContracts,
+        },
+        {
+          header: 'Persona',
+          value: (r) => (r.kind === 'access' ? r.row.user.name : null),
+        },
+        {
+          header: 'Correo',
+          value: (r) => (r.kind === 'invite' ? r.row.email : r.row.user.email),
+        },
+        { header: 'Ve precios y cobros', value: (r) => yesNo(r.row.canSeeMoney) },
+        {
+          header: 'Estado',
+          value: (r) =>
+            r.kind === 'invite'
+              ? // Scaduto anche prima che il lavoro giornaliero lo segni.
+                LABELS.carePortalInviteStatus[carePortalInviteStatus(r.row, now)]
+              : r.row.revokedReason
+                ? LABELS.carePortalRevokeReason[r.row.revokedReason]
+                : 'Activo',
+        },
+        { header: 'Creado', value: (r) => dateTime(r.row.createdAt) },
+        {
+          // Quando l'invito ha smesso di attendere (accettato o revocato); l'accesso, se chiuso.
+          header: 'Cerrado',
+          value: (r) =>
+            dateTime(r.kind === 'invite' ? (r.row.acceptedAt ?? r.row.revokedAt) : r.row.revokedAt),
+        },
+      ],
+      [
+        ...data.portalInvites.map((row) => ({ kind: 'invite' as const, row })),
+        ...data.portalAccesses.map((row) => ({ kind: 'access' as const, row })),
+      ],
     ),
   ];
 

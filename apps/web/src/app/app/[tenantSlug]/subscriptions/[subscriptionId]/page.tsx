@@ -21,6 +21,7 @@ import {
   getCareContract,
   getCareContractForm,
   getCareExtraVisitOptions,
+  getCarePortalPanel,
   hasPermission,
   listCanonicalFlowers,
   listCareAssignees,
@@ -42,6 +43,7 @@ import {
 import { ContractStatusBadge, ExtraVisitBadge, VisitStatusBadge } from '@/components/care/care-ui';
 import { ContractChargesCard } from '@/components/care/contract-charges-card';
 import { CareUpsell } from '@/components/care/care-upsell';
+import { PortalAccessCard } from '@/components/care/portal-access-card';
 import {
   CareDetailsDialog,
   CareEndDialog,
@@ -59,6 +61,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { carePortalDeps } from '@/lib/care-portal';
 import { money, phoneForInput } from '@/lib/format';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
@@ -140,6 +143,10 @@ export default async function CareContractPage({
     );
   }
 
+  // "Acceso del cliente" (ADR-084): solo per chi gestisce i contratti.
+  const portal = hasPermission(ctx, 'subscriptions:write')
+    ? await getCarePortalPanel(ctx, subscriptionId, carePortalDeps())
+    : null;
   const currency = contract.currency;
   const isDraft = contract.status === 'DRAFT';
   const isActive = contract.status === 'ACTIVE' || contract.status === 'PAUSED';
@@ -897,6 +904,10 @@ export default async function CareContractPage({
             </CardContent>
           </Card>
 
+          {portal ? (
+            <PortalAccessCard slug={ctx.tenantSlug} panel={portal} draft={isDraft} />
+          ) : null}
+
           {contract.rules ? (
             <Card>
               <CardHeader>
@@ -910,6 +921,11 @@ export default async function CareContractPage({
                     {contract.rules.lateCancelHours > 0
                       ? t('care.rules.lateCancel', { hours: contract.rules.lateCancelHours })
                       : t('care.rules.lateCancelNever')}
+                  </li>
+                  <li>
+                    {contract.rules.minNoticeHours > 0
+                      ? t('care.rules.changeNotice', { hours: contract.rules.minNoticeHours })
+                      : t('care.rules.changeNoticeNone')}
                   </li>
                 </ul>
                 <p className="text-xs text-muted-foreground">{t('care.rules.subtitle')}</p>

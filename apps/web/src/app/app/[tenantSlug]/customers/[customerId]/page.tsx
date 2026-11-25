@@ -19,6 +19,7 @@ import {
   canRedeemPromoDiscounts,
   getCustomer,
   hasPermission,
+  getCustomerCarePortalSummary,
   listCustomerCareContracts,
   listCustomerOrders,
   listCustomerPromoDiscounts,
@@ -103,6 +104,8 @@ export default async function CustomerPage({
   const orders = await listCustomerOrders(ctx, customer.id);
   // Floral Care (ADR-075): i contratti del cliente (null = funzione non nel piano).
   const careContracts = await loadCareContracts(ctx, customer.id);
+  // "Mi Floral Care" (ADR-084): quante persone seguono i contratti del cliente (chi gestisce).
+  const portalSummary = careContracts ? await getCustomerCarePortalSummary(ctx, customer.id) : null;
   const canCare = hasPermission(ctx, 'subscriptions:write') && customer.status === 'ACTIVE';
   // Sconti della promo ricevuti dal cliente (ADR-048): quando scrive con un codice, si vede qui.
   const discounts = await listCustomerPromoDiscounts(ctx, customer.id);
@@ -375,6 +378,17 @@ export default async function CustomerPage({
                     ))}
                   </ul>
                 )}
+                {portalSummary && (portalSummary.people > 0 || portalSummary.pendingInvites > 0) ? (
+                  <p
+                    className="mt-3 text-xs text-muted-foreground"
+                    data-testid="customer-portal-line"
+                  >
+                    {t('care.portal.customerLine', {
+                      people: portalSummary.people,
+                      pending: portalSummary.pendingInvites,
+                    })}
+                  </p>
+                ) : null}
                 {/* Estado de cuenta (ADR-082): tutte le sedi, per chi gestisce i soldi. */}
                 {hasPermission(ctx, 'subscriptions:payments') &&
                 careContracts.some((contract) => contract.status !== 'DRAFT') ? (

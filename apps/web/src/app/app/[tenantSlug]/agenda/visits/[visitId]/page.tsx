@@ -255,6 +255,11 @@ export default async function CareVisitPage({
               {visit.moved ? (
                 <span>{t('care.agenda.movedFrom', { date: shortDay(visit.originalDate) })}</span>
               ) : null}
+              {visit.movedByCustomer ? (
+                <Badge variant="info" data-testid="visit-moved-by-customer">
+                  {t('care.portal.movedByCustomer')}
+                </Badge>
+              ) : null}
             </span>
           }
         />

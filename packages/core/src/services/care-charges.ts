@@ -511,7 +511,7 @@ export interface CareChargesOverviewDto {
   readonly currency: string;
 }
 
-const summarySelect = {
+export const careChargeSummarySelect = {
   id: true,
   number: true,
   period: true,
@@ -524,7 +524,7 @@ const summarySelect = {
   final: true,
 } satisfies Prisma.CareChargeSelect;
 
-type SummaryRow = Prisma.CareChargeGetPayload<{ select: typeof summarySelect }>;
+type SummaryRow = Prisma.CareChargeGetPayload<{ select: typeof careChargeSummarySelect }>;
 
 export function toCareChargeSummary(row: SummaryRow, today: CalendarDate): CareChargeSummaryDto {
   return {
@@ -614,7 +614,7 @@ export async function listCareCharges(
         skip: (page - 1) * CARE_CHARGE_PAGE_SIZE,
         take: CARE_CHARGE_PAGE_SIZE,
         select: {
-          ...summarySelect,
+          ...careChargeSummarySelect,
           subscription: {
             select: {
               id: true,
@@ -672,7 +672,7 @@ export async function getCareCharge(
     const charge = await tx.careCharge.findFirst({
       where: { tenantId: ctx.tenantId, id: chargeId, subscriptionId },
       select: {
-        ...summarySelect,
+        ...careChargeSummarySelect,
         unitPriceMinor: true,
         priceVersion: true,
         visitCount: true,
@@ -826,7 +826,7 @@ export async function listContractCharges(
         where,
         orderBy: [{ period: 'desc' }, { number: 'desc' }],
         take: 6,
-        select: summarySelect,
+        select: careChargeSummarySelect,
       }),
       tx.careCharge.count({ where }),
       tx.careCharge.aggregate({

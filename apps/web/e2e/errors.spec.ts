@@ -105,6 +105,7 @@ test('i lavori giornalieri rispondono solo con il segreto e dicono cosa hanno fa
     careChargesPending: expect.any(Number),
     careVisitsCreated: expect.any(Number),
     careContractsEnded: expect.any(Number),
+    carePortalAccessClosed: expect.any(Number),
     carePhotosDeleted: expect.any(Number),
     careEmailsSent: expect.any(Number),
     tenantsPurged: expect.any(Number),

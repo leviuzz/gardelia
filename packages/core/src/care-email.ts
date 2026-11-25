@@ -1,6 +1,7 @@
 /**
  * Email di Floral Care al cliente della fioreria. Il resoconto di una visita (ADR-078) e l'avviso
- * delle visite spostate o cancellate da un blocco di giorni (ADR-083).
+ * delle visite spostate o cancellate da un blocco di giorni (ADR-083), l'invito alla pagina del
+ * cliente e, alla fioreria, il cambio di data fatto dal cliente (ADR-084).
  *
  * Resoconto: la fioreria scrive al suo cliente,
  * nella lingua del mercato della fioreria (ADR-042), cosa si è fatto e come stanno le piante, con
@@ -373,5 +374,191 @@ ${paragraph(escapeHtml(copy.questions))}
     html,
     fromName: input.shop.name,
     ...(input.shop.contactEmail ? { replyTo: input.shop.contactEmail } : {}),
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Pagina del cliente (blocco 5a, ADR-084)
+// -----------------------------------------------------------------------------
+
+export interface CarePortalInviteEmailInput {
+  readonly locale: SupportedLocale;
+  readonly to: string;
+  readonly customerName: string;
+  readonly shop: {
+    readonly name: string;
+    readonly contactEmail: string | null;
+    readonly contactPhone: string | null;
+  };
+  readonly url: string;
+  readonly expiresInDays: number;
+}
+
+interface PortalInviteCopy {
+  readonly subject: (shop: string) => string;
+  readonly greeting: string;
+  readonly intro: (shop: string, customer: string) => string;
+  readonly button: string;
+  readonly account: (days: number) => string;
+  readonly reason: (shop: string) => string;
+}
+
+const PORTAL_INVITE_COPY: Readonly<Record<SupportedLocale, PortalInviteCopy>> = {
+  'es-MX': {
+    subject: (shop) => `${shop} te invita a ver el cuidado de tus plantas`,
+    greeting: 'Hola:',
+    intro: (shop, customer) =>
+      `${shop} te invita a Mi Floral Care, donde verás el servicio de ${customer}: las próximas visitas, los reportes con fotos y las indicaciones para tus plantas.`,
+    button: 'Aceptar la invitación',
+    account: (days) =>
+      `Entra o crea tu cuenta con este mismo correo. La invitación vence en ${days} días.`,
+    reason: (shop) => `Recibes este correo porque ${shop} te invitó a ver su servicio.`,
+  },
+  'it-IT': {
+    subject: (shop) => `${shop} ti invita a vedere la cura delle tue piante`,
+    greeting: 'Ciao,',
+    intro: (shop, customer) =>
+      `${shop} ti invita a Mi Floral Care, dove vedrai il servizio di ${customer}: le prossime visite, i resoconti con le foto e le indicazioni per le tue piante.`,
+    button: 'Accetta l’invito',
+    account: (days) =>
+      `Entra o crea il tuo account con questa stessa email. L’invito scade fra ${days} giorni.`,
+    reason: (shop) => `Ricevi questa email perché ${shop} ti ha invitato a vedere il suo servizio.`,
+  },
+  'en-US': {
+    subject: (shop) => `${shop} invites you to follow your plant care`,
+    greeting: 'Hi,',
+    intro: (shop, customer) =>
+      `${shop} invites you to Mi Floral Care, where you’ll see the service for ${customer}: upcoming visits, reports with photos and care tips for your plants.`,
+    button: 'Accept the invitation',
+    account: (days) =>
+      `Sign in or create your account with this same email. The invitation expires in ${days} days.`,
+    reason: (shop) => `You’re receiving this email because ${shop} invited you to see its service.`,
+  },
+};
+
+/** L'invito di una persona alla pagina del cliente, nella lingua del mercato della fioreria. */
+export function carePortalInviteEmail(input: CarePortalInviteEmailInput): EmailMessage {
+  const copy = PORTAL_INVITE_COPY[input.locale];
+  const contacts = [input.shop.contactPhone, input.shop.contactEmail].filter(
+    (value): value is string => Boolean(value),
+  );
+  const intro = copy.intro(input.shop.name, input.customerName);
+  const account = copy.account(input.expiresInDays);
+  const lines = [
+    copy.greeting,
+    '',
+    intro,
+    '',
+    `${copy.button}: ${input.url}`,
+    '',
+    account,
+    '',
+    input.shop.name,
+    ...contacts,
+    '',
+    '—',
+    copy.reason(input.shop.name),
+  ];
+  const paragraph = (content: string) =>
+    `<p style="margin:0 0 16px;line-height:1.6;color:#2f3b33">${content}</p>`;
+  const html = `<!doctype html><html lang="${input.locale}"><body style="margin:0;padding:16px 12px;background:#f6f4ef;font-family:Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px">
+<tr><td style="padding:28px 24px">
+<p style="margin:0 0 24px;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#3f6b4f">${escapeHtml(input.shop.name)}</p>
+${paragraph(escapeHtml(copy.greeting))}
+${paragraph(escapeHtml(intro))}
+<p style="margin:24px 0 16px"><a href="${escapeHtml(input.url)}" style="display:inline-block;background:#3f6b4f;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:600">${escapeHtml(copy.button)}</a></p>
+<p style="margin:0 0 16px;font-size:13px;color:#5f6b62">${escapeHtml(account)}</p>
+<p style="margin:24px 0 0;line-height:1.6;color:#2f3b33"><strong>${escapeHtml(input.shop.name)}</strong>${
+    contacts.length > 0 ? `<br>${escapeHtml(contacts.join(' · '))}` : ''
+  }</p>
+<hr style="margin:24px 0;border:none;border-top:1px solid #e6e2d8">
+<p style="margin:0;font-size:12px;color:#8a918b">${escapeHtml(copy.reason(input.shop.name))}</p>
+</td></tr></table></body></html>`;
+
+  return {
+    to: input.to,
+    category: 'care_portal_invite',
+    subject: copy.subject(input.shop.name),
+    text: lines.join('\n'),
+    html,
+    fromName: input.shop.name,
+    ...(input.shop.contactEmail ? { replyTo: input.shop.contactEmail } : {}),
+  };
+}
+
+export interface CareVisitMovedByCustomerEmailInput {
+  readonly locale: SupportedLocale;
+  readonly to: string;
+  readonly shopName: string;
+  readonly customerName: string;
+  readonly numberLabel: string;
+  readonly from: {
+    readonly date: string;
+    readonly start: string | null;
+    readonly end: string | null;
+  };
+  readonly to_: { readonly date: string; readonly start: string; readonly end: string };
+  /** La pagina della visita nell'Agenda. */
+  readonly url: string;
+}
+
+interface MovedByCustomerCopy {
+  readonly subject: (customer: string, number: string) => string;
+  readonly body: (customer: string, from: string, to: string) => string;
+  readonly button: string;
+  readonly reason: (shop: string) => string;
+}
+
+const MOVED_BY_CUSTOMER_COPY: Readonly<Record<SupportedLocale, MovedByCustomerCopy>> = {
+  'es-MX': {
+    subject: (customer, number) => `${customer} cambió la fecha de una visita · ${number}`,
+    body: (customer, from, to) =>
+      `${customer} cambió la fecha de su visita desde Mi Floral Care: ${from} → ${to}.`,
+    button: 'Ver la visita',
+    reason: (shop) => `Recibes este correo porque administras Floral Care en ${shop}.`,
+  },
+  'it-IT': {
+    subject: (customer, number) => `${customer} ha cambiato la data di una visita · ${number}`,
+    body: (customer, from, to) =>
+      `${customer} ha cambiato la data della sua visita da Mi Floral Care: ${from} → ${to}.`,
+    button: 'Vedi la visita',
+    reason: (shop) => `Ricevi questa email perché gestisci Floral Care in ${shop}.`,
+  },
+  'en-US': {
+    subject: (customer, number) => `${customer} changed the date of a visit · ${number}`,
+    body: (customer, from, to) =>
+      `${customer} changed the date of their visit from Mi Floral Care: ${from} → ${to}.`,
+    button: 'See the visit',
+    reason: (shop) => `You’re receiving this email because you manage Floral Care at ${shop}.`,
+  },
+};
+
+/** Alla fioreria (proprietari e gerenti): il cliente ha cambiato la data di una visita. */
+export function careVisitMovedByCustomerEmail(
+  input: CareVisitMovedByCustomerEmailInput,
+): EmailMessage {
+  const copy = MOVED_BY_CUSTOMER_COPY[input.locale];
+  const body = copy.body(
+    input.customerName,
+    slotLabel(input.locale, input.from),
+    slotLabel(input.locale, input.to_).replace(/^./, (c) => c.toLowerCase()),
+  );
+  const lines = [body, '', `${copy.button}: ${input.url}`, '', '—', copy.reason(input.shopName)];
+  const html = `<!doctype html><html lang="${input.locale}"><body style="margin:0;padding:16px 12px;background:#f6f4ef;font-family:Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px">
+<tr><td style="padding:28px 24px">
+<p style="margin:0 0 24px;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#3f6b4f">${escapeHtml(input.shopName)} · ${escapeHtml(input.numberLabel)}</p>
+<p style="margin:0 0 16px;line-height:1.6;color:#2f3b33">${escapeHtml(body)}</p>
+<p style="margin:24px 0 16px"><a href="${escapeHtml(input.url)}" style="display:inline-block;background:#3f6b4f;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:600">${escapeHtml(copy.button)}</a></p>
+<hr style="margin:24px 0;border:none;border-top:1px solid #e6e2d8">
+<p style="margin:0;font-size:12px;color:#8a918b">${escapeHtml(copy.reason(input.shopName))}</p>
+</td></tr></table></body></html>`;
+  return {
+    to: input.to,
+    category: 'care_visit_moved_by_customer',
+    subject: copy.subject(input.customerName, input.numberLabel),
+    text: lines.join('\n'),
+    html,
   };
 }

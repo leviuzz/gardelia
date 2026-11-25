@@ -13,6 +13,8 @@ import type {
   CareFrequency,
   CarePaymentKind,
   CarePaymentStatus,
+  CarePortalInviteStatus,
+  CarePortalRevokeReason,
   CareVisitStatus,
   CatalogItemType,
   CustomerSubscriptionKind,
@@ -195,6 +197,18 @@ export const LABELS = {
     CANCEL: 'Se cancelan sin cobrar',
   } satisfies Record<CareBlockAction, string>,
   careBlockWholeDay: 'Todo el día',
+  carePortalInviteStatus: {
+    PENDING: 'Pendiente',
+    ACCEPTED: 'Aceptada',
+    REVOKED: 'Revocada',
+    EXPIRED: 'Vencida',
+  } satisfies Record<CarePortalInviteStatus, string>,
+  carePortalRevokeReason: {
+    MANUAL: 'Quitado por la florería',
+    CUSTOMER_ARCHIVED: 'Cliente archivado',
+    CONTRACT_ENDED: 'Contrato terminado',
+  } satisfies Record<CarePortalRevokeReason, string>,
+  carePortalAllContracts: 'Todos los contratos del cliente',
   carePaymentKind: {
     PAYMENT: 'Pago',
     REVERSAL: 'Anulación',

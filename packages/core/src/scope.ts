@@ -11,7 +11,7 @@
 import type { Prisma, TenantMode, TransactionClient } from '@floral/db';
 import type { AuditAction } from '@floral/domain';
 import { recordAudit } from './audit';
-import type { TenantContext } from './context';
+import type { RequestMeta, TenantContext } from './context';
 
 declare const jobScopeBrand: unique symbol;
 
@@ -73,6 +73,31 @@ export interface ScopeAuditEntry {
   readonly entityType: string;
   readonly entityId?: string | null;
   readonly metadata?: Prisma.InputJsonObject;
+}
+
+/**
+ * Registro di chi scrive dalla pagina del cliente (ADR-084): la persona invitata, che non è un
+ * membro della fioreria, con `source: 'portal'`. Si scrive solo nel contesto di scrittura del
+ * portale (c'è la fioreria): mai l'email nei metadati.
+ */
+export async function recordPortalAudit(
+  tx: TransactionClient,
+  portal: { readonly tenantId: string; readonly userId: string },
+  entry: ScopeAuditEntry,
+  request?: RequestMeta,
+): Promise<void> {
+  await tx.auditLog.create({
+    data: {
+      tenantId: portal.tenantId,
+      actorUserId: portal.userId,
+      action: entry.action,
+      entityType: entry.entityType,
+      entityId: entry.entityId ?? null,
+      metadata: { ...entry.metadata, source: 'portal' },
+      requestId: request?.requestId ?? null,
+      ipAddress: request?.ipAddress ?? null,
+    },
+  });
 }
 
 /** Registro di un lavoro: attore nullo, il nome del lavoro nei metadati, nessuna richiesta. */

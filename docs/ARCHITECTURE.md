@@ -90,11 +90,13 @@ Esempio: un gerente modifica il prezzo di un articolo.
 
 ### Contesti di accesso al DB (`packages/db/src/tenancy.ts`)
 
-| Helper                                          | Imposta                        | Uso                                                                                                           |
-| ----------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `withTenantContext(db, {tenantId, userId}, fn)` | `app.tenant_id`, `app.user_id` | Tutte le operazioni di un utente dentro una fioreria; creazione di una nuova fioreria (con l'ID pre-generato) |
-| `withUserContext(db, userId, fn)`               | `app.user_id`                  | Elenco delle proprie fiorerie, risoluzione dello slug; conto del cliente del marketplace (ADR-064)            |
-| `withSystemContext(db, {reason}, fn)`           | `app.bypass_rls = on`          | Seed, inviti via token, verifiche di sicurezza (whitelist ESLint)                                             |
+| Helper                                                               | Imposta                                                 | Uso                                                                                                                          |
+| -------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `withTenantContext(db, {tenantId, userId}, fn)`                      | `app.tenant_id`, `app.user_id`                          | Tutte le operazioni di un utente dentro una fioreria; creazione di una nuova fioreria (con l'ID pre-generato)                |
+| `withUserContext(db, userId, fn)`                                    | `app.user_id`                                           | Elenco delle proprie fiorerie, risoluzione dello slug; conto del cliente del marketplace (ADR-064)                           |
+| `withSystemContext(db, {reason}, fn)`                                | `app.bypass_rls = on`                                   | Seed, inviti via token, verifiche di sicurezza (whitelist ESLint)                                                            |
+| `withPortalContext(db, {userId, subscriptionId}, fn)`                | `app.user_id`, poi `app.portal_*` da `app_portal_enter` | Pagina del cliente di Floral Care, in sola lettura: un contratto per transazione (ADR-084)                                   |
+| `withPortalWriteContext(db, {userId, tenantId, subscriptionId}, fn)` | contesto della fioreria più `app.portal_*`              | Solo «Cambiar fecha»: i posti si contano su tutte le visite, la guardia limita l'UPDATE a una visita del contratto (ADR-084) |
 
 I valori sono impostati con `set_config(…, true)`: valgono solo per la transazione corrente,
 anche con pool di connessioni o PgBouncer in transaction mode. Un test verifica che il contesto non
@@ -135,6 +137,23 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
   cancellare e `app_care_emails_due(n)` le email dei resoconti da riprovare, e (ADR-082)
   `app_care_contracts_to_charge(n)` quelli con un mese di cargo da emettere (prima di tutti gli
   altri lavori di Floral Care, con il suo tetto di tempo).
+- **Modalità portale** (ADR-084, pagina del cliente di Floral Care), chiusa di default:
+  - `app_portal_enter(sub)` (SECURITY DEFINER) prende la persona solo da `app.user_id`, controlla
+    l'accesso (`app_portal_visible_contracts`: accessi attivi, fioreria e cliente attivi,
+    contratto attivo, in pausa o finito da meno di 30 giorni) e imposta `app.portal_tenant_id`,
+    `app.portal_customer_id`, `app.portal_subscription_id` e `app.portal_money`. Senza accesso non
+    imposta nulla;
+  - senza `app.tenant_id` la policy standard fallisce ovunque: danno righe solo le policy
+    `portal_read` (FOR SELECT) di 13 tabelle del contratto, i cargos solo con `app.portal_money`.
+    `Tenant`, `Membership`, pagamenti, registro e il resto non danno niente; ogni scrittura è
+    rifiutata;
+  - l'unica scrittura, «Cambiar fecha», passa da `withPortalWriteContext`, con la policy
+    RESTRICTIVE `portal_write_guard` su `CareVisit`;
+  - `app_buyer_care_contracts()` dà l'elenco di "Mi Floral Care" fra tutte le fiorerie,
+    `app_buyer_care_access()` gli accessi per "Descargar mis datos",
+    `app_care_portal_access_to_close(giorni, n)` gli accessi da chiudere alla manutenzione;
+  - `rls.test.ts` controlla che ogni policy con `app_portal_` sia una di queste, e che nessun GUC
+    del portale passi alla transazione dopo.
 - Vincoli aggiuntivi nel SQL: CHECK su importi/quantità/valute/slug, indici univoci parziali
   (una sede primaria per tenant, un invito pendente per email).
 
