@@ -1458,10 +1458,23 @@ founder pagine e pulsanti si chiamano con i testi it-IT (`CLAUDE.md` §2).
   `floral-care-contract-details.spec.ts` (interruttore con due indirizzi e bozza; servizi in
   italiano con un servizio nuovo tradotto; controllo a 320 px). Backfill e CHECK provati anche a
   mano sul database di sviluppo.
-- **Rilasci 2 e 3** (piano approvato, decisioni in ADR-085 e ADR-075): assistente fra i servizi
-  del contratto con domande ogni mese e pacchetti chiesti dal cliente e approvati dal fiorista;
-  date scelte a mano. Prima di partire, al founder: l'assistente ha un canone suo al mese? Le date
-  a mano si scelgono già nella bozza o solo dopo la conferma?
+- **Su staging** con il via libera del founder (approvazione del piano, 25/11): merge `f475b61`
+  (CI run 254); la migrazione delle traduzioni parte con il deploy.
+- **Rilasci 2 e 3** (assistente fra i servizi, date scelte a mano): fermati il 25/11 sera ed entrati
+  nel blocco M6 del marketplace qui sotto. Il founder: l'assistente ha un prezzo al mese deciso dal
+  fiorista (Gardelia lo vende al fiorista come add-on).
+
+**Marketplace completo: il giro di chi compra e di chi vende (25/11 notte, D-30, ADR-086):** il
+founder vuole che il cliente faccia tutto nell'app (ramos e fiori, il suo ramo, i servizi della
+fioreria, Floral Care prenotato) e il fiorista gestisca tutto nell'app, senza WhatsApp né email
+avanti e indietro. Studio in `docs/MARKETPLACE_FLOWS.md`, fatto leggendo pagina per pagina il codice
+di chi compra e del fiorista (oggi, manca, proposta per ogni passo). Decisioni: prezzo di Floral
+Care dalle piante dichiarate, pagamento diretto (D-26), servizi predefiniti Floral Care, Eventi e
+matrimoni, Decorazione di locali, Fiori ogni settimana più quelli del fiorista, «Disegna il tuo
+ramo» dopo servizi e Floral Care. Blocchi in ordine: M0 correzioni, M1 vetrina, M3 ordine tutto
+nell'app, M5 servizi e richieste, M6 Floral Care prenotabile, M2 opzioni ed extra, M9 Disegna il tuo
+ramo, M4 calendario e capienza, M8 clienti, marketing e report, M7 Fiori ogni settimana. Prossimo:
+M0, poi il piano di dettaglio di M1.
 
 Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,
