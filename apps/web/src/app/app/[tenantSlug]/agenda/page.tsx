@@ -246,6 +246,9 @@ export default async function AgendaDayPage({
                           </div>
                           <span className="flex flex-wrap justify-end gap-1">
                             {visit.extra ? <ExtraVisitBadge kind={visit.extra.kind} /> : null}
+                            {visit.movedByCustomer ? (
+                              <Badge variant="info">{t('care.portal.movedByCustomer')}</Badge>
+                            ) : null}
                             <VisitStatusBadge status={visit.status} />
                           </span>
                         </div>

@@ -62,6 +62,29 @@ describe('convenzioni del web', () => {
     expect(problems).toEqual([]);
   });
 
+  it('ogni server action di "Mi cuenta" passa da runBuyerAction (persona dalla sessione per prima)', () => {
+    const actionFiles = sourceFiles(join(src, 'app/cuenta')).filter((file) =>
+      read(file).startsWith("'use server';"),
+    );
+    expect(actionFiles.length).toBeGreaterThanOrEqual(2);
+    const problems: string[] = [];
+    for (const file of actionFiles) {
+      const text = read(file);
+      const where = relative(src, file);
+      if (/^export (const|let|default|\{)/m.test(text)) {
+        problems.push(`${where}: export non ammesso`);
+      }
+      const actions = text.split(/^export async function /m).slice(1);
+      if (actions.length === 0) problems.push(`${where}: nessuna azione`);
+      for (const body of actions) {
+        const name = body.slice(0, body.indexOf('('));
+        // L'invito si accetta con il suo percorso: la riga prima del return lo calcola.
+        if (!/^\s*return runBuyerAction\(/m.test(body)) problems.push(`${where}: ${name}`);
+      }
+    }
+    expect(problems).toEqual([]);
+  });
+
   it('i moduli gestiti solo in JavaScript usano POST: prima dell’idratazione niente dati nell’URL', () => {
     // Un `<form onSubmit>` senza `action` inviato prima che React colleghi i gestori parte come
     // modulo HTML: con il GET predefinito email e password finirebbero nell'indirizzo (cronologia,

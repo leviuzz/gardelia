@@ -1,4 +1,12 @@
-import { ArrowRight, ChevronRight, Download, ShieldCheck, ShoppingBag, Store } from 'lucide-react';
+import {
+  ArrowRight,
+  ChevronRight,
+  Download,
+  Leaf,
+  ShieldCheck,
+  ShoppingBag,
+  Store,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -6,6 +14,7 @@ import {
   getBuyerAccountDeletionBlockers,
   getPlacesProvider,
   listBuyerOrders,
+  listMyCareContracts,
   listUserTenants,
   openBuyerAccount,
 } from '@floral/core';
@@ -54,11 +63,12 @@ const REGION_NAMES = new Map<string, string>(REGIONS.map((region) => [region.cod
  */
 export default async function AccountPage() {
   const ctx = await getBuyerContext();
-  const [account, shops, orders, deletionBlockers] = await Promise.all([
+  const [account, shops, orders, deletionBlockers, careContracts] = await Promise.all([
     openBuyerAccount(ctx),
     listUserTenants(ctx.userId),
     listBuyerOrders(ctx, serverEnv().BETTER_AUTH_SECRET),
     getBuyerAccountDeletionBlockers(ctx),
+    listMyCareContracts(ctx),
   ]);
   const t = await getTranslations();
   const format = await getFormatter();
@@ -148,6 +158,28 @@ export default async function AccountPage() {
           )}
         </CardContent>
       </Card>
+
+      {careContracts.length > 0 ? (
+        <Card data-testid="account-floral-care">
+          <CardContent className="flex flex-wrap items-center gap-3 pt-6">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-secondary text-primary">
+              <Leaf className="size-5" aria-hidden="true" />
+            </span>
+            <p className="min-w-0 flex-1 text-sm">
+              <span className="block font-medium">{t('account.care.title')}</span>
+              <span className="text-muted-foreground">
+                {t('account.care.cardBody', { count: careContracts.length })}
+              </span>
+            </p>
+            <Button asChild variant="outline" size="sm">
+              <Link href={accountRoutes.care.home}>
+                {t('account.care.open')}
+                <ArrowRight />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {shops.length > 0 ? (
         <Card>

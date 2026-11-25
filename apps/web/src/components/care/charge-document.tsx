@@ -14,7 +14,11 @@ export async function ChargeLines({
   locale,
   className,
 }: {
-  readonly charge: CareChargeDetailDto;
+  /** Anche il cargo visto dal cliente (ADR-084), senza i pagamenti. */
+  readonly charge: Pick<
+    CareChargeDetailDto,
+    'currency' | 'lines' | 'balanceMinor' | 'totalMinor' | 'paidMinor' | 'final'
+  > & { readonly carriedInto?: CareChargeDetailDto['carriedInto'] };
   readonly locale: string;
   readonly className?: string;
 }) {

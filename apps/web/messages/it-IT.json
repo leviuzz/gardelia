@@ -400,6 +400,96 @@
         "invalidLink": "Questo link non è più valido. Chiedine uno nuovo dal tuo account.",
         "generic": "Non siamo riusciti a completare la richiesta. Riprova."
       }
+    },
+    "care": {
+      "title": "Mi Floral Care",
+      "subtitle": "La cura delle tue piante: prossime visite, resoconti con le foto e indicazioni.",
+      "backAccount": "Il mio account",
+      "backContract": "Torna al servizio",
+      "empty": "Non segui ancora nessun servizio di cura delle piante. Quando una fioreria ti invita, comparirà qui.",
+      "ended": "Terminato",
+      "status": {
+        "DRAFT": "In preparazione",
+        "ACTIVE": "Attivo",
+        "PAUSED": "In pausa",
+        "ENDED": "Terminato",
+        "CANCELLED": "Annullato"
+      },
+      "nextVisit": "Prossima visita: {when}",
+      "noNextVisit": "Nessuna visita in programma",
+      "due": "Da pagare: {amount}",
+      "overdue": "Scaduto: {amount}",
+      "cardBody": "{count, plural, one {# servizio} other {# servizi}} di cura delle piante: visite, resoconti e piante.",
+      "open": "Apri",
+      "readOnly": "Questo servizio è finito il {end}. Puoi vedere resoconti e foto fino al {deleteOn}; poi si cancellano.",
+      "upcomingTitle": "Prossime visite",
+      "changeRule": "Puoi cambiare la data nello stesso mese, {hours, plural, =0 {quando vuoi} one {fino a # ora prima} other {fino a # ore prima}}.",
+      "noUpcoming": "Non ci sono visite in programma.",
+      "extra": "Visita extra",
+      "changedByYou": "Data scelta da te",
+      "changeUntil": "Puoi cambiarla fino al {when}.",
+      "toReschedule": "{count, plural, one {Una visita non ha ancora una data} other {# visite non hanno ancora una data}}: la fioreria ti avviserà.",
+      "includedTitle": "Cosa comprende",
+      "noFrequency": "Frequenza da definire",
+      "pricePerVisit": "Prezzo per visita: {amount}",
+      "oneTime": "una volta: {amount}",
+      "chargesTitle": "Addebiti",
+      "payHint": "I pagamenti si fanno direttamente con la fioreria.",
+      "noCharges": "Non ci sono ancora addebiti.",
+      "dueOn": "scade il {date}",
+      "plantsTitle": "Le tue piante",
+      "noPlants": "Non ci sono ancora piante registrate.",
+      "pastTitle": "Visite precedenti",
+      "noPast": "Non ci sono ancora resoconti di visite.",
+      "rulesTitle": "Regole del servizio",
+      "rules": {
+        "notice": "Puoi cambiare la data di una visita fino a {hours, plural, one {# ora} other {# ore}} prima.",
+        "noticeAnytime": "Puoi cambiare la data di una visita in qualsiasi momento prima che inizi.",
+        "lateCancel": "Se annulli una visita con meno di {hours, plural, one {# ora} other {# ore}} di preavviso, si paga.",
+        "lateCancelNever": "Se annulli una visita, non si paga.",
+        "missed": {
+          "COUNTS": "Se non possiamo entrare, la visita conta come fatta e si paga.",
+          "RECOVER": "Se non possiamo entrare, la visita si paga e se ne fissa un’altra gratis."
+        },
+        "deadPlant": {
+          "INCLUDED": "Se una pianta muore, la sostituzione è inclusa.",
+          "QUOTE": "Se una pianta muore, la sostituzione si preventiva a parte."
+        }
+      },
+      "termsTitle": "Termini della fioreria",
+      "contactTitle": "Contatti di {shop}",
+      "change": {
+        "title": "Cambia data",
+        "action": "Cambia data",
+        "rule": "Solo nello stesso mese, fra gli orari liberi della fioreria{hours, plural, =0 {} one {, fino a # ora prima} other {, fino a # ore prima}}.",
+        "choose": "Scegli il nuovo orario",
+        "noOptions": "Non ci sono orari liberi in questo mese. Scrivi alla fioreria per trovare un’altra data.",
+        "submit": "Cambia con questo orario",
+        "saving": "Cambio in corso…",
+        "done": "Fatto: la tua visita è il {when}. La fioreria è avvisata.",
+        "problems": {
+          "care_portal_contract_not_open": "Questo servizio non permette più di cambiare le date.",
+          "care_portal_move_not_allowed": "Questa visita non si può cambiare da qui. Scrivi alla fioreria.",
+          "care_portal_move_notice": "Non si può più cambiare: manca meno di {hours, plural, one {# ora} other {# ore}} alla visita. Scrivi alla fioreria."
+        }
+      },
+      "invite": {
+        "title": "{shop} ti invita a Mi Floral Care",
+        "body": "Vedrai le prossime visite, i resoconti con le foto e le indicazioni per le tue piante.",
+        "forEmail": "L’invito è per {email}.",
+        "loginToAccept": "Entra o crea il tuo account con {email} per accettarlo.",
+        "signup": "Crea il mio account",
+        "wrongAccount": "Sei entrato come {current}, ma l’invito è per {email}.",
+        "switchAccount": "Entra con un altro account",
+        "accept": "Accetta l’invito",
+        "accepting": "Accettazione…",
+        "invalidTitle": "Invito non disponibile",
+        "expired": "L’invito è scaduto. Chiedi alla fioreria di mandartene un altro.",
+        "revoked": "La fioreria ha ritirato questo invito.",
+        "accepted": "Hai già accettato questo invito.",
+        "invalid": "Questo link non è valido.",
+        "goToCare": "Vai a Mi Floral Care"
+      }
     }
   },
   "store": {
@@ -3154,7 +3244,12 @@
       "adjustment_removed": "{actor} ha tolto una rettifica di {number}",
       "block_created": "{actor} ha bloccato giorni di Floral Care",
       "block_removed": "{actor} ha tolto un blocco di Floral Care",
-      "visits_reassigned": "{actor} ha cambiato chi fa varie visite"
+      "visits_reassigned": "{actor} ha cambiato chi fa varie visite",
+      "portal_invited": "{actor} ha invitato qualcuno a Mi Floral Care ({number})",
+      "portal_invite_revoked": "{actor} ha revocato un invito a Mi Floral Care",
+      "portal_access_granted": "{actor} ha accettato l’invito a Mi Floral Care",
+      "portal_access_revoked": "{actor} ha tolto un accesso a Mi Floral Care",
+      "visit_moved_by_customer": "{actor} ha cambiato da Mi Floral Care la data di una visita di {number}"
     },
     "notice": {
       "label": "Sì, ho avvisato il cliente"
@@ -3344,7 +3439,11 @@
       "block_past": "Scegli un giorno da oggi in poi.",
       "block_too_far": "Puoi bloccare fino a un anno da oggi.",
       "day_blocked": "Quel giorno (o orario) è bloccato.",
-      "reassign_same": "Scegli un'altra persona."
+      "reassign_same": "Scegli un'altra persona.",
+      "portal_move_other_month": "Puoi cambiarla solo nello stesso mese.",
+      "portal_move_busy_day": "Quel giorno c’è già un’altra visita di questo servizio.",
+      "portal_move_same": "È lo stesso orario di adesso.",
+      "portal_move_notice": "Quell’orario è troppo vicino: scegline uno più avanti."
     },
     "conflict": {
       "not_configured": "Prima salva le tariffe di Floral Care (Impostazioni → Floral Care).",
@@ -3383,7 +3482,15 @@
       "visit_already_recovered": "Questa visita ha già la sua visita di recupero.",
       "block_changed": "Le visite di quei giorni sono cambiate mentre controllavi. Rivedi le visite toccate prima di salvare.",
       "block_too_many_visits": "Sono troppe visite per un blocco solo: dividilo in periodi più brevi.",
-      "block_limit": "Hai troppi blocchi attivi: togline qualcuno che non serve più."
+      "block_limit": "Hai troppi blocchi attivi: togline qualcuno che non serve più.",
+      "portal_contract_not_open": "Questo servizio non è attivo.",
+      "portal_customer_archived": "Il cliente è archiviato.",
+      "portal_invite_limit": "Questo cliente ha già troppi inviti o persone con accesso.",
+      "portal_invite_not_pending": "Questo invito non è più in attesa.",
+      "portal_invite_expired": "L’invito è scaduto. Chiedine un altro alla fioreria.",
+      "portal_email_mismatch": "L’invito è per un’altra email.",
+      "portal_move_not_allowed": "Questa visita non si può cambiare da qui.",
+      "portal_move_notice": "Non si può più cambiare: manca troppo poco alla visita."
     },
     "contracts": {
       "title": "Floral Care",
@@ -4093,7 +4200,9 @@
         "QUOTE": "Se una pianta muore, la sostituzione si fa con un preventivo a parte."
       },
       "lateCancel": "Se il cliente cancella con meno di {hours, plural, one {# ora} other {# ore}} di preavviso, la visita si paga.",
-      "lateCancelNever": "Se il cliente cancella una visita, non si paga."
+      "lateCancelNever": "Se il cliente cancella una visita, non si paga.",
+      "changeNotice": "Il cliente può cambiare la data da Mi Floral Care fino a {hours, plural, one {# ora} other {# ore}} prima, nello stesso mese.",
+      "changeNoticeNone": "Il cliente può cambiare la data da Mi Floral Care finché la visita non inizia, nello stesso mese."
     },
     "statement": {
       "title": "Estratto conto",
@@ -4292,6 +4401,47 @@
       "monthDay": "Bloccato",
       "monthSlot": "Un orario",
       "legend": "Giorno bloccato"
+    },
+    "portal": {
+      "title": "Accesso del cliente",
+      "subtitle": "Invita chi vuole seguire questo servizio in Mi Floral Care: vedrà le visite, i resoconti con le foto e le piante, e potrà cambiare la data di una visita.",
+      "email": "Email",
+      "scope": "Cosa vede",
+      "scopeContract": "Solo questo contratto",
+      "scopeCustomer": "Tutti i suoi contratti",
+      "money": "Può vedere prezzi e addebiti",
+      "moneyHint": "Senza questa casella vedrà visite, resoconti e piante, ma non prezzi né addebiti.",
+      "invite": "Invita",
+      "inviting": "Invito in corso…",
+      "invitedEmail": "Abbiamo mandato l’invito per email.",
+      "invitedLink": "Invito pronto: copia il link e mandalo.",
+      "resentEmail": "Abbiamo mandato un invito nuovo.",
+      "resentLink": "Nuovo invito pronto: copia il link.",
+      "inviteRevoked": "Invito revocato.",
+      "accessRemoved": "Accesso tolto.",
+      "peopleTitle": "Persone con accesso",
+      "seesMoney": "Vede prezzi e addebiti",
+      "since": "Dal {date}",
+      "remove": "Togli accesso",
+      "removeTitle": "Togliere l’accesso a {name}?",
+      "removeBody": "Non vedrà più questo servizio in Mi Floral Care.",
+      "removeConfirm": "Togli accesso",
+      "invitesTitle": "Inviti",
+      "pending": "In attesa",
+      "expired": "Scaduto",
+      "expiresOn": "Scade il {date}",
+      "expiredOn": "Scaduto il {date}",
+      "whatsappText": "Ciao, ti invito a seguire la cura delle tue piante in Mi Floral Care: {url}",
+      "resend": "Rimanda",
+      "revoke": "Revoca",
+      "revokeTitle": "Revocare l’invito?",
+      "revokeBody": "Il link smetterà di funzionare.",
+      "revokeConfirm": "Revoca",
+      "demoNote": "In una fioreria demo non partono email: copia il link e mandalo tu.",
+      "notOpenDraft": "Conferma il contratto per invitare il cliente.",
+      "notOpen": "Si invita solo da un contratto attivo di un cliente attivo.",
+      "customerLine": "Mi Floral Care: {people, plural, =0 {ancora nessuno} one {# persona} other {# persone}}{pending, plural, =0 {} one { · # invito in attesa} other { · # inviti in attesa}}",
+      "movedByCustomer": "Cambiata dal cliente"
     }
   },
   "letterhead": {

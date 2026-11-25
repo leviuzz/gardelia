@@ -400,6 +400,96 @@
         "invalidLink": "This link is no longer valid. Ask for a new one from My account.",
         "generic": "We couldn’t complete the request. Try again."
       }
+    },
+    "care": {
+      "title": "Mi Floral Care",
+      "subtitle": "Your plant care: upcoming visits, reports with photos and care tips.",
+      "backAccount": "My account",
+      "backContract": "Back to the service",
+      "empty": "You’re not following any plant care service yet. When a flower shop invites you, it will show up here.",
+      "ended": "Ended",
+      "status": {
+        "DRAFT": "Being prepared",
+        "ACTIVE": "Active",
+        "PAUSED": "Paused",
+        "ENDED": "Ended",
+        "CANCELLED": "Cancelled"
+      },
+      "nextVisit": "Next visit: {when}",
+      "noNextVisit": "No upcoming visits",
+      "due": "To pay: {amount}",
+      "overdue": "Overdue: {amount}",
+      "cardBody": "{count, plural, one {# plant care service} other {# plant care services}}: visits, reports and plants.",
+      "open": "Open",
+      "readOnly": "This service ended on {end}. You can see the reports and photos until {deleteOn}; after that they are deleted.",
+      "upcomingTitle": "Upcoming visits",
+      "changeRule": "You can change the date within the same month, {hours, plural, =0 {any time} one {up to # hour before} other {up to # hours before}}.",
+      "noUpcoming": "There are no scheduled visits.",
+      "extra": "Extra visit",
+      "changedByYou": "Date chosen by you",
+      "changeUntil": "You can change it until {when}.",
+      "toReschedule": "{count, plural, one {One visit has no date yet} other {# visits have no date yet}}: the shop will let you know.",
+      "includedTitle": "What’s included",
+      "noFrequency": "Frequency to be set",
+      "pricePerVisit": "Price per visit: {amount}",
+      "oneTime": "one time: {amount}",
+      "chargesTitle": "Charges",
+      "payHint": "Payments are made directly to the flower shop.",
+      "noCharges": "There are no charges yet.",
+      "dueOn": "due {date}",
+      "plantsTitle": "Your plants",
+      "noPlants": "No plants recorded yet.",
+      "pastTitle": "Past visits",
+      "noPast": "There are no visit reports yet.",
+      "rulesTitle": "Service rules",
+      "rules": {
+        "notice": "You can change the date of a visit up to {hours, plural, one {# hour} other {# hours}} before.",
+        "noticeAnytime": "You can change the date of a visit any time before it starts.",
+        "lateCancel": "If you cancel a visit with less than {hours, plural, one {# hour} other {# hours}} notice, it is charged.",
+        "lateCancelNever": "If you cancel a visit, it isn’t charged.",
+        "missed": {
+          "COUNTS": "If we can’t get in, the visit counts as done and is charged.",
+          "RECOVER": "If we can’t get in, the visit is charged and another one is booked at no cost."
+        },
+        "deadPlant": {
+          "INCLUDED": "If a plant dies, the replacement is included.",
+          "QUOTE": "If a plant dies, the replacement is quoted separately."
+        }
+      },
+      "termsTitle": "The shop’s terms",
+      "contactTitle": "Contact {shop}",
+      "change": {
+        "title": "Change date",
+        "action": "Change date",
+        "rule": "Only within the same month, among the shop’s free time slots{hours, plural, =0 {} one {, up to # hour before} other {, up to # hours before}}.",
+        "choose": "Choose the new time",
+        "noOptions": "There are no free time slots this month. Contact the shop to find another date.",
+        "submit": "Change to this time",
+        "saving": "Changing…",
+        "done": "Done: your visit is now on {when}. The shop has been notified.",
+        "problems": {
+          "care_portal_contract_not_open": "This service no longer allows date changes.",
+          "care_portal_move_not_allowed": "This visit can’t be changed here. Contact the shop.",
+          "care_portal_move_notice": "It can’t be changed anymore: the visit is less than {hours, plural, one {# hour} other {# hours}} away. Contact the shop."
+        }
+      },
+      "invite": {
+        "title": "{shop} invites you to Mi Floral Care",
+        "body": "You’ll see upcoming visits, reports with photos and care tips for your plants.",
+        "forEmail": "The invitation is for {email}.",
+        "loginToAccept": "Sign in or create your account with {email} to accept it.",
+        "signup": "Create my account",
+        "wrongAccount": "You’re signed in as {current}, but the invitation is for {email}.",
+        "switchAccount": "Sign in with another account",
+        "accept": "Accept invitation",
+        "accepting": "Accepting…",
+        "invalidTitle": "Invitation not available",
+        "expired": "The invitation has expired. Ask the shop to send you another one.",
+        "revoked": "The shop withdrew this invitation.",
+        "accepted": "You’ve already accepted this invitation.",
+        "invalid": "This link isn’t valid.",
+        "goToCare": "Go to Mi Floral Care"
+      }
     }
   },
   "store": {
@@ -3154,7 +3244,12 @@
       "adjustment_removed": "{actor} removed an adjustment from {number}",
       "block_created": "{actor} blocked Floral Care days",
       "block_removed": "{actor} removed a Floral Care block",
-      "visits_reassigned": "{actor} changed who does several visits"
+      "visits_reassigned": "{actor} changed who does several visits",
+      "portal_invited": "{actor} invited someone to Mi Floral Care ({number})",
+      "portal_invite_revoked": "{actor} revoked an invitation to Mi Floral Care",
+      "portal_access_granted": "{actor} accepted the invitation to Mi Floral Care",
+      "portal_access_revoked": "{actor} removed access to Mi Floral Care",
+      "visit_moved_by_customer": "{actor} changed the date of a visit of {number} from Mi Floral Care"
     },
     "notice": {
       "label": "Yes, I let the customer know"
@@ -3344,7 +3439,11 @@
       "block_past": "Choose a day from today on.",
       "block_too_far": "You can block up to a year from today.",
       "day_blocked": "That day (or slot) is blocked.",
-      "reassign_same": "Choose someone else."
+      "reassign_same": "Choose someone else.",
+      "portal_move_other_month": "You can only change it within the same month.",
+      "portal_move_busy_day": "There’s already another visit of this service that day.",
+      "portal_move_same": "That’s the same time as now.",
+      "portal_move_notice": "That time is too soon: choose a later one."
     },
     "conflict": {
       "not_configured": "Save your Floral Care rates first (Settings → Floral Care).",
@@ -3383,7 +3482,15 @@
       "visit_already_recovered": "This visit already has its make-up visit.",
       "block_changed": "The visits on those days changed while you were reviewing. Check the affected visits again before saving.",
       "block_too_many_visits": "Too many visits for one block: split it into shorter periods.",
-      "block_limit": "You have too many active blocks: remove one you no longer need."
+      "block_limit": "You have too many active blocks: remove one you no longer need.",
+      "portal_contract_not_open": "This service isn’t active.",
+      "portal_customer_archived": "The customer is archived.",
+      "portal_invite_limit": "This customer already has too many invitations or people with access.",
+      "portal_invite_not_pending": "This invitation is no longer pending.",
+      "portal_invite_expired": "The invitation has expired. Ask the shop for another one.",
+      "portal_email_mismatch": "The invitation is for another email.",
+      "portal_move_not_allowed": "This visit can’t be changed here.",
+      "portal_move_notice": "It can’t be changed anymore: the visit is too close."
     },
     "contracts": {
       "title": "Floral Care",
@@ -4093,7 +4200,9 @@
         "QUOTE": "If a plant dies, the replacement is quoted separately."
       },
       "lateCancel": "If the customer cancels with less than {hours, plural, one {# hour} other {# hours}} notice, the visit is charged.",
-      "lateCancelNever": "If the customer cancels a visit, it isn't charged."
+      "lateCancelNever": "If the customer cancels a visit, it isn't charged.",
+      "changeNotice": "The customer can change the date from Mi Floral Care up to {hours, plural, one {# hour} other {# hours}} before, within the same month.",
+      "changeNoticeNone": "The customer can change the date from Mi Floral Care until the visit starts, within the same month."
     },
     "statement": {
       "title": "Account statement",
@@ -4292,6 +4401,47 @@
       "monthDay": "Blocked",
       "monthSlot": "One slot",
       "legend": "Blocked day"
+    },
+    "portal": {
+      "title": "Customer access",
+      "subtitle": "Invite whoever wants to follow this service in Mi Floral Care: they’ll see visits, reports with photos and plants, and can change a visit’s date.",
+      "email": "Email",
+      "scope": "What they see",
+      "scopeContract": "Only this contract",
+      "scopeCustomer": "All their contracts",
+      "money": "Can see prices and charges",
+      "moneyHint": "Without this box they’ll see visits, reports and plants, but no prices or charges.",
+      "invite": "Invite",
+      "inviting": "Inviting…",
+      "invitedEmail": "We emailed the invitation.",
+      "invitedLink": "Invitation ready: copy the link and send it.",
+      "resentEmail": "We sent a new invitation.",
+      "resentLink": "New invitation ready: copy the link.",
+      "inviteRevoked": "Invitation revoked.",
+      "accessRemoved": "Access removed.",
+      "peopleTitle": "People with access",
+      "seesMoney": "Sees prices and charges",
+      "since": "Since {date}",
+      "remove": "Remove access",
+      "removeTitle": "Remove {name}’s access?",
+      "removeBody": "They’ll no longer see this service in Mi Floral Care.",
+      "removeConfirm": "Remove access",
+      "invitesTitle": "Invitations",
+      "pending": "Pending",
+      "expired": "Expired",
+      "expiresOn": "Expires {date}",
+      "expiredOn": "Expired {date}",
+      "whatsappText": "Hi, I’m inviting you to follow your plant care in Mi Floral Care: {url}",
+      "resend": "Resend",
+      "revoke": "Revoke",
+      "revokeTitle": "Revoke the invitation?",
+      "revokeBody": "The link will stop working.",
+      "revokeConfirm": "Revoke",
+      "demoNote": "A demo shop doesn’t send emails: copy the link and send it yourself.",
+      "notOpenDraft": "Confirm the contract to invite the customer.",
+      "notOpen": "You can only invite from an active contract of an active customer.",
+      "customerLine": "Mi Floral Care: {people, plural, =0 {nobody yet} one {# person} other {# people}}{pending, plural, =0 {} one { · # pending invitation} other { · # pending invitations}}",
+      "movedByCustomer": "Changed by the customer"
     }
   },
   "letterhead": {

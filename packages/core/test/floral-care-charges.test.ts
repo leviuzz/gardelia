@@ -339,6 +339,7 @@ describe('cargos: emissione', () => {
       missedVisitPolicy: 'COUNTS',
       deadPlantPolicy: 'QUOTE',
       lateCancelHours: 12,
+      minNoticeHours: 24,
     });
     expect(contract.canPayments).toBe(true);
     const billed = await withSystemContext(db, { reason: 'test: visite cobrate' }, (tx) =>

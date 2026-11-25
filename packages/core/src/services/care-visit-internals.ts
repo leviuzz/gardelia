@@ -42,6 +42,7 @@ export const agendaSelect = {
   cancelReason: true,
   cancelCharged: true,
   notDoneCause: true,
+  customerMovedAt: true,
   assignedMembershipId: true,
   assignedTo: { select: { user: { select: { name: true } } } },
   // Blocco 3b: la visita mancata che questa recupera, e la visita di recupero ancora valida.
@@ -121,6 +122,7 @@ export function toAgendaVisit(
         : null,
     // Una visita extra non ha un "giorno originale" del calendario: non risulta mai spostata.
     moved: !row.isExtra && date !== null && compareDates(date, original) !== 0,
+    movedByCustomer: row.customerMovedAt !== null,
     assignee:
       row.assignedMembershipId && row.assignedTo
         ? { membershipId: row.assignedMembershipId, name: row.assignedTo.user.name }

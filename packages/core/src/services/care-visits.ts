@@ -82,6 +82,8 @@ export interface CareAgendaVisitDto {
   } | null;
   /** Non è più nel suo giorno originale. */
   readonly moved: boolean;
+  /** L'ultima data l'ha scelta il cliente dalla pagina "Mi Floral Care" (ADR-084). */
+  readonly movedByCustomer: boolean;
   readonly assignee: { readonly membershipId: string; readonly name: string } | null;
   /** È assegnata a chi guarda ("Mis visitas"). */
   readonly assignedToMe: boolean;
