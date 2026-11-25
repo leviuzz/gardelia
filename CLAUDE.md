@@ -25,6 +25,7 @@ Se trovi un conflitto fra richiesta dell'utente, spec e decisioni: **segnalalo p
 - Non inventare fiscalità messicana (IVA, CFDI), split payment o condizioni legali: prepara adattatori e segnala cosa va validato da professionisti.
 - A fine sessione aggiorna `IMPLEMENTATION_PLAN.md` (fatto/mancante/prossimi passi) e, se serve, `docs/DECISIONS.md`.
 - Lingue: **UI predefinita in spagnolo messicano (es-MX)**, con italiano (it-IT) e inglese (en-US) scelti da ogni persona (ADR-042): **ogni testo nuovo va scritto nelle tre lingue** (`apps/web/messages/*.json`, lo controlla `apps/web/test/messages.test.ts`). Ciò che arriva al cliente finale resta nella lingua del mercato della fioreria. Codice e identificatori in inglese, documentazione tecnica e commenti in italiano.
+- Messaggi al founder: il founder usa l'app **in italiano**, quindi pagine, sezioni e pulsanti si nominano con i testi di `apps/web/messages/it-IT.json` (es. «Impostazioni → Floral Care», «Nuovo contratto»), mai con quelli spagnoli.
 
 ## 3. Mappa del monorepo
 
