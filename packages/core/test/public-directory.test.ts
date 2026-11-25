@@ -277,8 +277,17 @@ describe('schede della ricerca e occasioni', () => {
   it('le occasioni si salvano senza doppioni; un valore sconosciuto è rifiutato, anche dal database', async () => {
     const item = await createCatalogItem(near.owner, ramo('Ramo de amor', ['LOVE', 'LOVE']));
     expect(item.occasions).toEqual(['LOVE']);
-    // Senza la voce nel modulo, le occasioni restano.
-    const { occasions: _omit, ...withoutOccasions } = ramo('Ramo de amor', []);
+    // Senza la voce nel modulo (nessun campo `occasions`), le occasioni restano.
+    const withoutOccasions = itemInput({
+      type: 'BOUQUET',
+      name: 'Ramo de amor',
+      saleUnit: 'PIECE',
+      canonicalFlowerId: null,
+      variety: null,
+      priceMinor: 50000,
+      isOnline: true,
+    });
+    expect('occasions' in withoutOccasions).toBe(false);
     const updated = await updateCatalogItem(near.owner, item.id, withoutOccasions);
     expect(updated.occasions).toEqual(['LOVE']);
     await expect(
