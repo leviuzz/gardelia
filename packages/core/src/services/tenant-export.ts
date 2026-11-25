@@ -10,6 +10,7 @@ import {
   AUDIT_ACTIONS,
   MX_REGIONS,
   careChargeStatus,
+  carePortalInviteStatus,
   formatCareChargeNumber,
   formatOrderNumber,
   formatQuoteNumber,
@@ -682,15 +683,18 @@ export async function exportTenantData(
           header: 'Estado',
           value: (r) =>
             r.kind === 'invite'
-              ? LABELS.carePortalInviteStatus[r.row.status]
+              ? // Scaduto anche prima che il lavoro giornaliero lo segni.
+                LABELS.carePortalInviteStatus[carePortalInviteStatus(r.row, now)]
               : r.row.revokedReason
                 ? LABELS.carePortalRevokeReason[r.row.revokedReason]
                 : 'Activo',
         },
         { header: 'Creado', value: (r) => dateTime(r.row.createdAt) },
         {
+          // Quando l'invito ha smesso di attendere (accettato o revocato); l'accesso, se chiuso.
           header: 'Cerrado',
-          value: (r) => dateTime(r.kind === 'invite' ? r.row.revokedAt : r.row.revokedAt),
+          value: (r) =>
+            dateTime(r.kind === 'invite' ? (r.row.acceptedAt ?? r.row.revokedAt) : r.row.revokedAt),
         },
       ],
       [

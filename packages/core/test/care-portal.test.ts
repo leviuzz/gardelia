@@ -1,8 +1,16 @@
+import { strFromU8, unzipSync } from 'fflate';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { disconnectDb, getDb, withPortalContext, withSystemContext } from '@floral/db';
 import { createTestUser, type TestUser } from '@floral/db/testing';
-import { addDays, dayOfWeek, todayInTimeZone, toIsoDate, type CalendarDate } from '@floral/domain';
+import {
+  addDays,
+  dayOfWeek,
+  parseCsv,
+  todayInTimeZone,
+  toIsoDate,
+  type CalendarDate,
+} from '@floral/domain';
 import {
   ConflictError,
   ForbiddenError,
@@ -21,6 +29,7 @@ import {
   createCustomer,
   endCareContract,
   exportBuyerData,
+  exportTenantData,
   finishCareVisit,
   getCarePortalInvitePreview,
   getCarePortalPanel,
@@ -787,6 +796,44 @@ describe('"Cambiar fecha"', () => {
         expect(String(result.reason)).not.toMatch(/deadlock/i);
       }
     }
+
+    // Il cliente sceglie una fascia mentre la fioreria la blocca: vince uno solo, senza stalli
+    // (o la visita è già lì e il piano del blocco è cambiato, o il giorno è già bloccato).
+    const fourth = await newContract(live.owner, 'Carrera Cuatro');
+    const p4 = await personWithAccess(live.owner, fourth);
+    const day4 = fourth.visits[0]!.date;
+    const free4 = await nextSlot(live.owner, dayOfWeek(day4));
+    const blockInput = {
+      startDate: iso(day4),
+      endDate: iso(day4),
+      slotId: free4,
+      label: 'Inventario',
+      action: 'MOVE',
+    };
+    const blockPreview = await previewCareBlock(live.owner, blockInput);
+    const [moved, blocked] = await Promise.allSettled([
+      changeMyCareVisitDate(
+        p4.buyer,
+        fourth.subscriptionId,
+        fourth.visits[0]!.id,
+        { date: iso(day4), slotId: free4 },
+        changeDeps,
+      ),
+      createCareBlock(
+        live.owner,
+        { ...blockInput, plan: blockPreview.plan, customerNotified: 'on' },
+        deps,
+      ),
+    ]);
+    expect([moved.status, blocked.status].filter((status) => status === 'fulfilled')).toHaveLength(
+      1,
+    );
+    if (moved.status === 'rejected') {
+      expect(moved.reason).toMatchObject({ fieldErrors: { slotId: 'care_day_blocked' } });
+    }
+    if (blocked.status === 'rejected') {
+      expect(blocked.reason).toEqual(new ConflictError('care_block_changed'));
+    }
   });
 });
 
@@ -929,5 +976,57 @@ describe('revoche, fine del contratto e dati della persona', () => {
       tx.carePortalAccess.count({ where: { userId: person.user.id } }),
     );
     expect(left).toBe(0);
+  });
+
+  it('l’export della fioreria ha inviti e accessi, con lo stato vero dell’invito', async () => {
+    const exporter = await createTestShop('Florería Portal Exporta');
+    await setUpOffer(exporter.owner);
+    const kit = await newContract(exporter.owner, 'Oficina Exporta Portal');
+    const person = await personWithAccess(exporter.owner, kit, { money: false });
+    const late = await inviteCarePortal(
+      exporter.owner,
+      kit.subscriptionId,
+      { email: `tarde-${STAMP}@portal.example.test`, scope: 'CUSTOMER' },
+      deps,
+    );
+    // Scaduto, ma il lavoro giornaliero non l'ha ancora segnato: nel file è già "Vencida".
+    await withSystemContext(db, { reason: 'test: invito scaduto' }, (tx) =>
+      tx.carePortalInvite.update({
+        where: { id: late.inviteId },
+        data: {
+          createdAt: new Date(Date.now() - 9 * 86_400_000),
+          expiresAt: new Date(Date.now() - 60_000),
+        },
+      }),
+    );
+    const file = await exportTenantData(exporter.owner);
+    const bytes = unzipSync(file.bytes)['floral_care_accesos.csv']!;
+    const [header, ...rows] = parseCsv(strFromU8(bytes).replace(/^\uFEFF/, ''), ',');
+    const table = rows.map((row) => Object.fromEntries(header!.map((key, i) => [key, row[i]])));
+    const minute = expect.stringMatching(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+    // In ordine di creazione: l'invito scaduto è di 9 giorni fa.
+    expect(table).toEqual([
+      expect.objectContaining({
+        Tipo: 'Invitación',
+        Contrato: 'Todos los contratos del cliente',
+        Estado: 'Vencida',
+        Cerrado: '',
+      }),
+      expect.objectContaining({
+        Tipo: 'Invitación',
+        Cliente: 'Oficina Exporta Portal',
+        Contrato: expect.stringMatching(/^SUS-/),
+        Correo: person.user.email,
+        'Ve precios y cobros': 'no',
+        Estado: 'Aceptada',
+        Cerrado: minute,
+      }),
+      expect.objectContaining({
+        Tipo: 'Acceso',
+        Correo: person.user.email,
+        Estado: 'Activo',
+        Cerrado: '',
+      }),
+    ]);
   });
 });

@@ -982,8 +982,6 @@ export interface CarePortalInvitePreviewDto {
   readonly email: string;
   readonly scope: CarePortalScope;
   readonly expiresAt: Date;
-  /** La lingua del mercato della fioreria (la pagina senza una scelta della persona). */
-  readonly locale: string;
 }
 
 /** Cosa mostra la pagina dell'invito prima di accettare; null se il link non vale. */
@@ -997,7 +995,7 @@ export async function getCarePortalInvitePreview(
   return withTenantContext(getDb(), { tenantId: ids.tenantId, userId: null }, async (tx) => {
     const tenant = await tx.tenant.findFirst({
       where: { id: ids.tenantId, status: 'ACTIVE' },
-      select: { displayName: true, marketCountry: true },
+      select: { displayName: true },
     });
     if (!tenant) return null;
     const invite = await tx.carePortalInvite.findFirst({
@@ -1011,7 +1009,6 @@ export async function getCarePortalInvitePreview(
       email: invite.email,
       scope: invite.subscriptionId === null ? 'CUSTOMER' : 'CONTRACT',
       expiresAt: invite.expiresAt,
-      locale: resolveLocale(getMarket(tenant.marketCountry).defaultLocale),
     };
   });
 }
