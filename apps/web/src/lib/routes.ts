@@ -161,7 +161,6 @@ export function tenantRoutes(slug: string) {
     subscriptions: {
       /** Elenco (`view`: active, draft, closed; `q`; `page`). */
       list: (query?: QueryValues) => withQuery(subscriptions, query),
-      /** Nuovo contratto (bozza) per un cliente. */
       /** Nuovo contratto: con il cliente il modulo, senza la scelta del cliente. */
       new: (customerId?: string) => withQuery(`${subscriptions}/new`, { customer: customerId }),
       detail: (subscriptionId: string, query?: QueryValues) =>

@@ -4546,7 +4546,7 @@
     },
     "setup": {
       "title": "Antes del primer contrato",
-      "description": "Para crear contratos faltan estos pasos en Ajustes → Floral Care.",
+      "description": "Para crear contratos necesitas estos dos pasos en Ajustes → Floral Care.",
       "tariffs": "Guarda tus tarifas: precio por visita, cuidado por planta y frecuencias.",
       "slots": "Crea al menos un horario de visita (aparece al guardar las tarifas).",
       "done": "Listo",

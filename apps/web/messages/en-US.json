@@ -4546,7 +4546,7 @@
     },
     "setup": {
       "title": "Before your first contract",
-      "description": "To create contracts, these steps are missing in Settings → Floral Care.",
+      "description": "To create contracts, you need these two steps in Settings → Floral Care.",
       "tariffs": "Save your rates: price per visit, care per plant and frequencies.",
       "slots": "Create at least one visit time slot (it appears once your rates are saved).",
       "done": "Done",
