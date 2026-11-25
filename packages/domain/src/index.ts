@@ -31,6 +31,8 @@ export * from './order';
 export * from './permissions';
 export * from './photos';
 export * from './places';
+export * from './plant-care';
+export * from './plant-assistant';
 export * from './production';
 export * from './plans';
 export * from './promotions';

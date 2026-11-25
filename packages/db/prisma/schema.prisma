@@ -67,6 +67,8 @@ model User {
   /// conto si elimina) e fin dove li ha letti.
   careMessages       CareMessage[]      @relation("CareMessageAuthor")
   carePortalReads    CarePortalRead[]   @relation("CarePortalReadUser")
+  assistantCases     AssistantCase[]    @relation("AssistantCaseAskedBy")
+  assistantAnswers   AssistantAnswer[]  @relation("AssistantAnswerAskedBy")
 }
 
 model Session {
@@ -327,6 +329,9 @@ model Tenant {
   careMessages         CareMessage[]
   carePortalReads      CarePortalRead[]
   careMessageDigests   CareMessageDigest[]
+  assistantCases       AssistantCase[]
+  assistantAnswers     AssistantAnswer[]
+  assistantCalls       AssistantCall[]
 }
 
 /// Sede operativa. Indirizzo strutturato (mai concatenato in una stringa unica).
@@ -499,11 +504,15 @@ model CanonicalFlower {
   /// Altri nomi per lingua (ricerca e specie suggerita dal nome): { "es-MX": ["Nube"] }.
   synonyms       Json              @default("{}")
   colors         String[]
+  /// Solo piante in vaso (ADR-085): luce, acqua, umidità, tossicità per cani e gatti con la fonte.
+  /// Schema in `packages/domain/src/plant-care.ts`; DA VALIDARE con un fiorista.
+  care           Json?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
-  catalogItems CatalogItem[]
-  carePlants   CarePlant[]
+  catalogItems     CatalogItem[]
+  carePlants       CarePlant[]
+  assistantAnswers AssistantAnswer[]
 }
 
 enum CatalogItemType {
@@ -2220,6 +2229,7 @@ model CustomerSubscription {
   portalAccess    CarePortalAccess[]
   messages        CareMessage[]
   portalReads     CarePortalRead[]
+  assistantCases  AssistantCase[]
 
   @@unique([tenantId, id])
   /// Per le FK dei cargos: il cargo è dello stesso cliente del contratto.
@@ -2288,14 +2298,17 @@ model CarePlant {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
-  tenant       Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  subscription CustomerSubscription   @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
-  species      CanonicalFlower?       @relation(fields: [canonicalFlowerId], references: [id], onDelete: Restrict)
-  visitResults CareVisitPlantResult[]
-  photos       CarePhoto[]
-  followUps    CareFollowUp[]
+  tenant         Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription   CustomerSubscription   @relation(fields: [tenantId, subscriptionId], references: [tenantId, id], onDelete: Restrict)
+  species        CanonicalFlower?       @relation(fields: [canonicalFlowerId], references: [id], onDelete: Restrict)
+  visitResults   CareVisitPlantResult[]
+  photos         CarePhoto[]
+  followUps      CareFollowUp[]
+  assistantCases AssistantCase[]
 
   @@unique([tenantId, id])
+  /// Per le consultas dell'Asistente (ADR-085): la pianta è del contratto del caso.
+  @@unique([tenantId, subscriptionId, id])
   @@index([tenantId, subscriptionId])
 }
 
@@ -2371,6 +2384,8 @@ model CareVisit {
   recoveries        CareVisit[]              @relation("CareVisitRecovery")
   /// Blocco 4 (ADR-083): i blocchi che l'hanno spostata o cancellata.
   blockChanges      CareBlockVisit[]
+  /// Consultas dell'Asistente fatte durante la visita (ADR-085).
+  assistantCases    AssistantCase[]
 
   @@unique([tenantId, id])
   /// Per la FK della visita di recupero: è dello stesso contratto della visita mancata.
@@ -2993,4 +3008,125 @@ model CareMessageDigest {
 
   @@unique([tenantId, id])
   @@unique([tenantId, day])
+}
+
+// -----------------------------------------------------------------------------
+// Floral Care, blocco 6 (ADR-085): Asistente de plantas
+// -----------------------------------------------------------------------------
+
+/// Da dove arriva la consulta: la squadra della fioreria o il cliente da Mi Floral Care (6b).
+enum AssistantChannel {
+  SHOP
+  PORTAL
+}
+
+enum AssistantCallKind {
+  RECOGNIZE
+  ANSWER
+}
+
+enum AssistantCallStatus {
+  SUCCEEDED
+  FAILED
+  REFUSED
+}
+
+/// Un caso: una foto riconosciuta (fino a 3 specie della lista e ciò che si vede). Si scrive una
+/// volta, dopo il riconoscimento riuscito; le risposte sono righe a parte.
+model AssistantCase {
+  id             String           @id @default(uuid(7)) @db.Uuid
+  tenantId       String           @db.Uuid
+  customerId     String           @db.Uuid
+  subscriptionId String           @db.Uuid
+  plantId        String?          @db.Uuid
+  visitId        String?          @db.Uuid
+  channel        AssistantChannel
+  /// Chi ha chiesto; null se ha eliminato il conto.
+  askedByUserId  String?          @db.Uuid
+  photoUsable    Boolean
+  /// [{ slug, likelihood }], solo specie della lista, al massimo 3.
+  candidates     Json             @default("[]")
+  notInList      Boolean          @default(false)
+  /// Ciò che si vede nella foto, scritto dal modello (al massimo 300 caratteri).
+  condition      String           @default("")
+  storageKey     String
+  thumbKey       String
+  /// File cancellati (fine del contratto + 30 giorni, come le foto delle visite): il testo resta.
+  photoDeletedAt DateTime?
+  createdAt      DateTime         @default(now())
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription CustomerSubscription @relation(fields: [tenantId, subscriptionId, customerId], references: [tenantId, id, customerId], onDelete: Restrict)
+  plant        CarePlant?           @relation(fields: [tenantId, subscriptionId, plantId], references: [tenantId, subscriptionId, id], onDelete: Restrict)
+  visit        CareVisit?           @relation(fields: [tenantId, subscriptionId, visitId], references: [tenantId, subscriptionId, id], onDelete: Restrict)
+  askedBy      User?                @relation("AssistantCaseAskedBy", fields: [askedByUserId], references: [id], onDelete: SetNull)
+  answers      AssistantAnswer[]
+  calls        AssistantCall[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, id, subscriptionId])
+  @@index([tenantId, subscriptionId, createdAt])
+  @@index([tenantId, createdAt])
+  @@index([askedByUserId])
+}
+
+/// Una consulta: la risposta a una domanda su un caso (una riga per risposta riuscita).
+model AssistantAnswer {
+  id             String           @id @default(uuid(7)) @db.Uuid
+  tenantId       String           @db.Uuid
+  caseId         String           @db.Uuid
+  subscriptionId String           @db.Uuid
+  channel        AssistantChannel
+  askedByUserId  String?          @db.Uuid
+  /// La specie confermata o corretta da chi chiede; null = «No sé».
+  speciesId      String?          @db.Uuid
+  question       String
+  answer         String
+  /// Al massimo 5 passi brevi.
+  steps          Json             @default("[]")
+  unsure         Boolean          @default(false)
+  askFlorist     Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+
+  tenant  Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  case    AssistantCase    @relation(fields: [tenantId, caseId, subscriptionId], references: [tenantId, id, subscriptionId], onDelete: Restrict)
+  species CanonicalFlower? @relation(fields: [speciesId], references: [id], onDelete: Restrict)
+  askedBy User?            @relation("AssistantAnswerAskedBy", fields: [askedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, caseId, createdAt])
+  @@index([tenantId, subscriptionId, createdAt])
+  @@index([tenantId, createdAt])
+  @@index([askedByUserId])
+}
+
+/// Ogni chiamata al modello, riuscita o no, con il costo vero dai token (budget e resoconti).
+model AssistantCall {
+  id                  String              @id @default(uuid(7)) @db.Uuid
+  tenantId            String              @db.Uuid
+  /// Null per un riconoscimento fallito (il caso non nasce).
+  caseId              String?             @db.Uuid
+  kind                AssistantCallKind
+  status              AssistantCallStatus
+  /// Il modello chiesto e quello che ha risposto (diverso con il fallback lato server).
+  model               String
+  servedModel         String?
+  promptVersion       String
+  inputTokens         Int                 @default(0)
+  outputTokens        Int                 @default(0)
+  cacheCreationTokens Int                 @default(0)
+  cacheReadTokens     Int                 @default(0)
+  costMicros          Int                 @default(0)
+  durationMs          Int                 @default(0)
+  stopReason          String?
+  errorCode           String?
+  createdAt           DateTime            @default(now())
+
+  tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  case   AssistantCase? @relation(fields: [tenantId, caseId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([createdAt])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, caseId])
 }

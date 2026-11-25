@@ -7,6 +7,7 @@ import {
   CATALOG_COLORS,
   SUPPORTED_LOCALES,
   normalizeSpeciesText,
+  parsePlantCare,
   speciesOption,
   suggestSpecies,
 } from '@floral/domain';
@@ -75,6 +76,23 @@ describe('elenco delle specie (ADR-043)', () => {
     }
   });
 
+  it('ogni pianta in vaso ha i dati di cura validi, non ancora rivisti; le altre no (ADR-085)', () => {
+    for (const flower of CANONICAL_FLOWERS) {
+      if (flower.category === 'PLANT') {
+        expect(parsePlantCare(flower.care), flower.slug).toEqual(flower.care);
+        expect(flower.care?.reviewed, flower.slug).toBe(false);
+      } else {
+        expect(flower.care, flower.slug).toBeUndefined();
+      }
+    }
+    // Le piante d'interno aggiunte per l'Asistente de plantas.
+    const plants = CANONICAL_FLOWERS.filter((flower) => flower.category === 'PLANT');
+    expect(plants.length).toBeGreaterThanOrEqual(36);
+    for (const slug of ['palma-areca', 'calathea', 'aglaonema', 'filodendro', 'hule']) {
+      expect(plants.map((flower) => flower.slug)).toContain(slug);
+    }
+  });
+
   it('il nome del prodotto uguale a un nome o sinonimo suggerisce proprio quella specie', () => {
     for (const category of ['CUT_FLOWER', 'FOLIAGE', 'PLANT'] as const) {
       const inCategory = CANONICAL_FLOWERS.filter((flower) => flower.category === category);
@@ -108,6 +126,22 @@ describe('dati di riferimento della piattaforma', () => {
     expect(rows.find((row) => row.slug === 'gypsophila')?.synonyms).toMatchObject({
       'es-MX': expect.arrayContaining(['Nube']),
     });
+  });
+
+  it('i dati di cura arrivano nel database con le piante (ADR-085)', async () => {
+    const rows = await withSystemContext(db, { reason: 'test: dati di cura' }, (tx) =>
+      tx.canonicalFlower.findMany({
+        where: { slug: { in: ['telefono', 'rosa'] } },
+        select: { slug: true, care: true },
+      }),
+    );
+    expect(parsePlantCare(rows.find((row) => row.slug === 'telefono')?.care)).toMatchObject({
+      light: 'LOW',
+      petToxicity: 'TOXIC',
+      toxicitySource: 'ASPCA',
+      reviewed: false,
+    });
+    expect(rows.find((row) => row.slug === 'rosa')?.care).toBeNull();
   });
 
   it('allineare di nuovo non duplica e riporta i valori a quelli del codice', async () => {

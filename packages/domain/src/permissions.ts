@@ -101,6 +101,11 @@ export const PERMISSIONS = {
    * compreso (decisione del founder del 24/11).
    */
   'care:messages': ALL,
+  /**
+   * Asistente de plantas (ADR-085): tutta la squadra, staff compreso (lo usa durante le visite).
+   * Le consultas le paga Gardelia nella fase di prova, con un tetto al giorno per fioreria.
+   */
+  'care:assistant': ALL,
 } as const satisfies Record<string, readonly MembershipRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
