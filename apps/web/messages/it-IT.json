@@ -3388,7 +3388,6 @@
       "suggestionsHint": "Servizi extra comuni: aggiungili con il tuo prezzo.",
       "archivedTitle": "{count, plural, one {# servizio archiviato} other {# servizi archiviati}}",
       "dialogBody": "I contratti tengono il nome e il prezzo del giorno in cui si confermano.",
-      "name": "Nome",
       "description": "Descrizione",
       "descriptionHint": "Facoltativa: la vedrà il cliente.",
       "pricing": "Come si fa pagare?",
@@ -3412,7 +3411,17 @@
       "created": "Servizio aggiunto",
       "updated": "Servizio salvato",
       "archived": "Servizio archiviato",
-      "restored": "Servizio riattivato"
+      "restored": "Servizio riattivato",
+      "nameMain": "Nome in {language}",
+      "nameMainHint": "Lo leggono i tuoi clienti: nel resoconto della visita e negli addebiti.",
+      "translationsTitle": "Traduzioni (facoltative)",
+      "translationsHint": "Per chi usa l’app in un’altra lingua. Se lasci vuoto, si vede il nome principale.",
+      "translationIn": "In {language}",
+      "languages": {
+        "es-MX": "spagnolo",
+        "it-IT": "italiano",
+        "en-US": "inglese"
+      }
     },
     "tiers": {
       "title": "Sovrapprezzo per distanza",
@@ -3606,7 +3615,10 @@
         "contractFor": "Contratto per {name}",
         "createCustomer": "Registra cliente",
         "back": "Torna a Floral Care"
-      }
+      },
+      "useCustomerContact": "Usa i dati del cliente",
+      "useCustomerContactHint": "Persona e telefono dell’indirizzo scelto o, se non li ha, quelli del cliente. Spegnilo per scriverli tu.",
+      "noCustomerPhone": "Il cliente non ha un telefono salvato: scrivilo qui."
     },
     "plants": {
       "title": "{count, plural, =0 {Piante} one {Piante (#)} other {Piante (#)}}",

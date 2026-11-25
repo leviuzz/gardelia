@@ -21,6 +21,7 @@ import {
   canShareCareVisit,
   canWorkOnCareVisit,
   careChecklist,
+  careServiceName,
   careEmailsAllowed,
   careFinishSchema,
   careFollowUpSchema,
@@ -47,6 +48,7 @@ import {
   type PlantLight,
   type PlantSize,
   type SaleUnit,
+  parseCareServiceTranslations,
 } from '@floral/domain';
 import { careBlockNoticeEmail, careMessageNoticeEmail, careVisitReportEmail } from '../care-email';
 import { loadBlockNoticeTx } from './care-block-notice';
@@ -247,7 +249,7 @@ export async function getCareVisitSheet(
         },
         services: {
           orderBy: { createdAt: 'asc' },
-          select: { serviceId: true, name: true, pricing: true, unit: true },
+          select: { serviceId: true, name: true, translations: true, pricing: true, unit: true },
         },
       },
     });
@@ -350,7 +352,11 @@ export async function getCareVisitSheet(
     : careChecklist(found.subscription.services, found.oneTimeDone);
   const checklist: CareChecklistItemDto[] = contractServices.map((service) => ({
     serviceId: service.serviceId,
-    name: service.name,
+    // Nella lingua di chi fa la visita; i servizi tolti dal contratto restano col nome copiato.
+    name: careServiceName(
+      { name: service.name, translations: parseCareServiceTranslations(service.translations) },
+      ctx.locale,
+    ),
     pricing: service.pricing,
     unit: service.unit,
     outcome: serviceResult.get(service.serviceId)?.outcome ?? null,

@@ -12,10 +12,13 @@ import {
   MISSED_VISIT_POLICIES,
   estimateCareMonth,
   priceCareVisit,
+  SUPPORTED_LOCALES,
   type CareFrequency,
   type CareServicePricing,
+  type CareServiceTranslations,
   type CareServiceUnit,
   type PlantSize,
+  type SupportedLocale,
 } from '@floral/domain';
 import { ActionButton } from '@/components/form/action-button';
 import { Field, controlProps } from '@/components/form/field';
@@ -646,18 +649,25 @@ export function CareSlotArchiveDialog({
 
 export interface CareServiceDefaults {
   readonly presetKey?: string;
+  /** Nome principale, nella lingua del mercato. */
   readonly name: string;
+  readonly translations: CareServiceTranslations;
   readonly description: string;
   readonly pricing: CareServicePricing;
   readonly unit: CareServiceUnit;
   readonly price: string;
 }
 
-/** Nuovo servizio o modifica: incluso nella tariffa, oppure extra con prezzo e unità. */
+/**
+ * Nuovo servizio o modifica: nome principale nella lingua del mercato (lo leggono i clienti), le
+ * traduzioni facoltative per chi usa l'app in un'altra lingua (ADR-042), poi incluso nella
+ * tariffa oppure extra con prezzo e unità.
+ */
 export function CareServiceDialog({
   action,
   idPrefix,
   currency,
+  mainLocale,
   defaults,
   title,
   trigger,
@@ -667,6 +677,8 @@ export function CareServiceDialog({
   /** Prefisso unico degli ID dei campi (più finestre nella stessa pagina). */
   readonly idPrefix: string;
   readonly currency: string;
+  /** Lingua del mercato della fioreria: quella del nome principale. */
+  readonly mainLocale: SupportedLocale;
   readonly defaults: CareServiceDefaults;
   readonly title: string;
   readonly trigger: ReactNode;
@@ -691,7 +703,13 @@ export function CareServiceDialog({
           {defaults.presetKey ? (
             <input type="hidden" name="presetKey" value={defaults.presetKey} />
           ) : null}
-          <Field id={`service-${id}-name`} label={t('name')} error={err('name')} required>
+          <Field
+            id={`service-${id}-name`}
+            label={t('nameMain', { language: t(`languages.${mainLocale}`) })}
+            hint={t('nameMainHint')}
+            error={err('name')}
+            required
+          >
             <Input
               {...controlProps(`service-${id}-name`, err('name'))}
               name="name"
@@ -701,6 +719,27 @@ export function CareServiceDialog({
               required
             />
           </Field>
+          <fieldset className="grid gap-3">
+            <legend className="text-sm font-medium">{t('translationsTitle')}</legend>
+            <p className="-mt-1 text-xs text-muted-foreground">{t('translationsHint')}</p>
+            {SUPPORTED_LOCALES.filter((locale) => locale !== mainLocale).map((locale) => (
+              <Field
+                key={locale}
+                id={`service-${id}-name-${locale}`}
+                label={t('translationIn', { language: t(`languages.${locale}`) })}
+                error={err(`translations.${locale}`)}
+              >
+                <Input
+                  {...controlProps(`service-${id}-name-${locale}`, err(`translations.${locale}`))}
+                  name={`translations.${locale}`}
+                  lang={locale}
+                  maxLength={CARE_LIMITS.serviceName}
+                  defaultValue={defaults.translations[locale] ?? ''}
+                  autoComplete="off"
+                />
+              </Field>
+            ))}
+          </fieldset>
           <Field
             id={`service-${id}-description`}
             label={t('description')}

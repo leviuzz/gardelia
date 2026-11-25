@@ -3388,7 +3388,6 @@
       "suggestionsHint": "Common extra services: add them with your price.",
       "archivedTitle": "{count, plural, one {# archived service} other {# archived services}}",
       "dialogBody": "Contracts keep the name and price of the day they’re confirmed.",
-      "name": "Name",
       "description": "Description",
       "descriptionHint": "Optional: your customer will see it.",
       "pricing": "How is it charged?",
@@ -3412,7 +3411,17 @@
       "created": "Service added",
       "updated": "Service saved",
       "archived": "Service archived",
-      "restored": "Service restored"
+      "restored": "Service restored",
+      "nameMain": "Name in {language}",
+      "nameMainHint": "Your customers read it in visit reports and charges.",
+      "translationsTitle": "Translations (optional)",
+      "translationsHint": "For people who use the app in another language. If you leave it empty, the main name is shown.",
+      "translationIn": "In {language}",
+      "languages": {
+        "es-MX": "Spanish",
+        "it-IT": "Italian",
+        "en-US": "English"
+      }
     },
     "tiers": {
       "title": "Distance charge",
@@ -3606,7 +3615,10 @@
         "contractFor": "Contract for {name}",
         "createCustomer": "Add customer",
         "back": "Back to Floral Care"
-      }
+      },
+      "useCustomerContact": "Use the customer’s details",
+      "useCustomerContactHint": "Contact and phone from the chosen address or, if it has none, from the customer. Turn it off to type them yourself.",
+      "noCustomerPhone": "The customer has no saved phone: type it here."
     },
     "plants": {
       "title": "{count, plural, =0 {Plants} one {Plants (#)} other {Plants (#)}}",

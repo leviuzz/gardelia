@@ -15,19 +15,26 @@ import {
   CARE_LIMITS,
   CARE_SERVICE_PRESETS,
   careNoticeSchema,
+  careServiceName,
+  careServicePresetNames,
   careServiceSchema,
   careSettingsSchema,
   careSlotSchema,
   deliveryFeeTierSchema,
   findCareServicePreset,
   formatTimeOfDay,
+  getMarket,
   isUuid,
+  parseCareServiceTranslations,
+  resolveLocale,
   todayInTimeZone,
   toFieldErrors,
   type CareFrequency,
   type CareServicePresetKey,
   type CareServicePricing,
+  type CareServiceTranslations,
   type CareServiceUnit,
+  type SupportedLocale,
   type DeadPlantPolicy,
   type MissedVisitPolicy,
   type PlantSize,
@@ -59,7 +66,12 @@ export interface CareServiceDto {
   readonly id: string;
   /** Della nostra lista, o null se l'ha scritto il fiorista. */
   readonly presetKey: string | null;
+  /** Nome principale, nella lingua del mercato: lo leggono i clienti. */
   readonly name: string;
+  /** Traduzioni del nome (le lingue diverse da quella del mercato). */
+  readonly translations: CareServiceTranslations;
+  /** Nome nella lingua di chi guarda. */
+  readonly displayName: string;
   readonly description: string | null;
   readonly pricing: CareServicePricing;
   readonly unit: CareServiceUnit;
@@ -90,7 +102,12 @@ export interface CareTravelTierDto {
 
 export interface CareServiceSuggestionDto {
   readonly key: CareServicePresetKey;
+  /** Nome principale proposto, nella lingua del mercato. */
   readonly name: string;
+  /** Traduzioni proposte (le altre lingue). */
+  readonly translations: CareServiceTranslations;
+  /** Nome nella lingua di chi guarda. */
+  readonly displayName: string;
   readonly pricing: CareServicePricing;
   readonly unit: CareServiceUnit;
 }
@@ -168,6 +185,7 @@ async function readSettings(tx: TransactionClient, ctx: TenantContext): Promise<
   const contractsBySlot = new Map(links.map((row) => [row.slotId, row._count._all]));
   const upcomingBySlot = new Map(upcoming.map((row) => [row.slotId, row._count._all]));
   const used = new Set(services.map((service) => service.presetKey).filter(Boolean));
+  const marketLocale = shopMarketLocale(ctx);
   return {
     configured: settings !== null,
     visitFeeMinor: settings?.visitFeeMinor ?? 0,
@@ -187,23 +205,33 @@ async function readSettings(tx: TransactionClient, ctx: TenantContext): Promise<
       maxKm: tier.maxMeters / 1000,
       feeMinor: tier.feeMinor,
     })),
-    services: services.map((service) => ({
-      id: service.id,
-      presetKey: service.presetKey,
-      name: service.name,
-      description: service.description,
-      pricing: service.pricing,
-      unit: service.unit,
-      priceMinor: service.priceMinor,
-      active: service.status === 'ACTIVE',
-    })),
+    services: services.map((service) => {
+      const translations = parseCareServiceTranslations(service.translations);
+      return {
+        id: service.id,
+        presetKey: service.presetKey,
+        name: service.name,
+        translations,
+        displayName: careServiceName({ name: service.name, translations }, ctx.locale),
+        description: service.description,
+        pricing: service.pricing,
+        unit: service.unit,
+        priceMinor: service.priceMinor,
+        active: service.status === 'ACTIVE',
+      };
+    }),
     suggestions: settings
-      ? CARE_SERVICE_PRESETS.filter((preset) => !used.has(preset.key)).map((preset) => ({
-          key: preset.key,
-          name: preset.name,
-          pricing: preset.pricing,
-          unit: preset.unit,
-        }))
+      ? CARE_SERVICE_PRESETS.filter((preset) => !used.has(preset.key)).map((preset) => {
+          const names = careServicePresetNames(preset, marketLocale);
+          return {
+            key: preset.key,
+            name: names.name,
+            translations: names.translations,
+            displayName: preset.names[ctx.locale],
+            pricing: preset.pricing,
+            unit: preset.unit,
+          };
+        })
       : [],
     slots: slots.map((slot) => ({
       id: slot.id,
@@ -295,12 +323,13 @@ export async function updateCareSettings(ctx: TenantContext, rawInput: unknown):
     };
     if (!before) {
       await tx.careSettings.create({ data: { tenantId: ctx.tenantId, ...data } });
+      const marketLocale = shopMarketLocale(ctx);
       await tx.careService.createMany({
         data: CARE_SERVICE_PRESETS.filter((preset) => preset.pricing === 'INCLUDED').map(
           (preset, index) => ({
             tenantId: ctx.tenantId,
             presetKey: preset.key,
-            name: preset.name,
+            ...careServicePresetNames(preset, marketLocale),
             pricing: preset.pricing,
             unit: preset.unit,
             priceMinor: 0,
@@ -413,6 +442,21 @@ export async function removeCareTravelTier(ctx: TenantContext, tierId: string): 
 // Servizi
 // -----------------------------------------------------------------------------
 
+/** Lingua del mercato della fioreria: quella del nome principale dei servizi. */
+function shopMarketLocale(ctx: TenantContext): SupportedLocale {
+  return resolveLocale(getMarket(ctx.country).defaultLocale);
+}
+
+/** Le traduzioni da salvare: senza la lingua del mercato, che è il nome principale. */
+function otherLanguages(
+  translations: CareServiceTranslations,
+  marketLocale: SupportedLocale,
+): CareServiceTranslations {
+  const result: CareServiceTranslations = { ...translations };
+  delete result[marketLocale];
+  return result;
+}
+
 /** Un servizio nuovo: della nostra lista (`presetKey`) con il prezzo del fiorista, o tutto suo. */
 export async function createCareService(
   ctx: TenantContext,
@@ -450,6 +494,7 @@ export async function createCareService(
           tenantId: ctx.tenantId,
           presetKey: preset?.key ?? null,
           name: input.name,
+          translations: otherLanguages(input.translations, shopMarketLocale(ctx)),
           description: input.description,
           pricing: input.pricing,
           unit: input.unit,
@@ -501,7 +546,11 @@ export async function updateCareService(
       unit: input.unit,
       priceMinor: input.price,
     };
-    const changes = Object.fromEntries(
+    const translations = otherLanguages(input.translations, shopMarketLocale(ctx));
+    const translationsChanged =
+      JSON.stringify(parseCareServiceTranslations(before.translations)) !==
+      JSON.stringify(translations);
+    const changes: Record<string, unknown> = Object.fromEntries(
       Object.entries(data)
         .filter(([field, value]) => before[field as keyof typeof data] !== value)
         .map(([field, value]) => [
@@ -512,8 +561,20 @@ export async function updateCareService(
             : { from: before[field as keyof typeof data], to: value },
         ]),
     );
+    if (translationsChanged) changes.translations = { changed: true };
     if (Object.keys(changes).length === 0) return true;
-    await tx.careService.update({ where: { id: before.id, tenantId: ctx.tenantId }, data });
+    await tx.careService.update({
+      where: { id: before.id, tenantId: ctx.tenantId },
+      data: { ...data, translations },
+    });
+    // Le copie sui contratti con lo stesso nome principale prendono le traduzioni nuove: Mi Floral
+    // Care legge solo le copie. Quelle con un nome di prima tengono le loro.
+    if (translationsChanged) {
+      await tx.customerSubscriptionService.updateMany({
+        where: { tenantId: ctx.tenantId, serviceId: before.id, name: input.name },
+        data: { translations },
+      });
+    }
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.careServiceUpdated,
       entityType: 'CareService',

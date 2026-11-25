@@ -12,7 +12,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getLocale, getTranslations } from 'next-intl/server';
 import { getMyCareContract, type MyCareVisitDto } from '@floral/core';
-import { careMessagePages, resolveLocale } from '@floral/domain';
+import { careMessagePages, careServiceName, resolveLocale } from '@floral/domain';
 import { ChargeStatusBadge } from '@/components/care/charge-ui';
 import { MyAssistantCard } from '@/components/care/my-assistant-card';
 import { MyCareMessagesCard } from '@/components/care/my-care-messages-card';
@@ -224,8 +224,9 @@ export default async function MyCareContractPage({
           {contract.services.length > 0 ? (
             <ul className="space-y-1">
               {contract.services.map((service) => (
-                <li key={service.name} className="flex flex-wrap justify-between gap-x-3">
-                  <span>{service.name}</span>
+                <li key={service.serviceId} className="flex flex-wrap justify-between gap-x-3">
+                  {/* Nella lingua scelta dalla persona, se la fioreria ha scritto la traduzione. */}
+                  <span>{careServiceName(service, locale)}</span>
                   {service.priceMinor !== null && service.priceMinor > 0 && contract.price ? (
                     <span className="text-muted-foreground tabular-nums">
                       {money(service.priceMinor, contract.price.currency)}

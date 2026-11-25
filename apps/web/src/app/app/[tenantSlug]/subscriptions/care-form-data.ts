@@ -1,7 +1,13 @@
 import 'server-only';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import type { CareContractFormDto } from '@floral/core';
-import type { CareServiceOption, CareSlotOption } from '@/components/care/contract-forms';
+import { careSiteContact, careSiteContactMatches } from '@floral/domain';
+import type {
+  CareServiceOption,
+  CareSiteContact,
+  CareSlotOption,
+} from '@/components/care/contract-forms';
+import { phoneForInput } from '@/lib/format';
 
 /** Nome del giorno nella lingua di chi guarda (22/11/2026 è una domenica, giorno 0). */
 export async function weekdayNamer(): Promise<(weekday: number) => string> {
@@ -23,6 +29,7 @@ export async function contractFormOptions(form: CareContractFormDto): Promise<{
     readonly id: string;
     readonly label: string;
     readonly line: string;
+    readonly contact: CareSiteContact;
   }[];
 }> {
   const t = await getTranslations();
@@ -42,6 +49,29 @@ export async function contractFormOptions(form: CareContractFormDto): Promise<{
       id: address.id,
       label: address.label ?? address.line,
       line: `${address.line}, ${address.city}`,
+      contact: { name: address.contactName, phone: phoneForInput(address.contactPhone) },
     })),
+  };
+}
+
+/**
+ * «Usa i dati del cliente» per la sede di un contratto già salvato (bozza o dettagli): persona e
+ * telefono proposti e se l'interruttore parte acceso (dati salvati vuoti o uguali, in E.164).
+ */
+export function siteContactFor(
+  form: CareContractFormDto,
+  addressId: string | null,
+  saved: { readonly contactName: string | null; readonly contactPhone: string | null },
+): { readonly contact: CareSiteContact; readonly useCustomerContact: boolean } {
+  const address = form.addresses.find((item) => item.id === addressId);
+  const proposed = address
+    ? { name: address.contactName, phone: address.contactPhone }
+    : careSiteContact({ name: form.customer.name, phone: form.customer.phone }, null);
+  return {
+    contact: { name: proposed.name, phone: phoneForInput(proposed.phone) },
+    useCustomerContact: careSiteContactMatches(
+      { name: saved.contactName, phone: saved.contactPhone },
+      proposed,
+    ),
   };
 }

@@ -10,7 +10,13 @@ import {
   type CareSettingsDto,
   type TenantContext,
 } from '@floral/core';
-import { WEEKDAYS_FROM_MONDAY, isCurrencyCode, minorToDecimalString } from '@floral/domain';
+import {
+  WEEKDAYS_FROM_MONDAY,
+  getMarket,
+  isCurrencyCode,
+  minorToDecimalString,
+  resolveLocale,
+} from '@floral/domain';
 import {
   CareOfferForm,
   CareServiceDialog,
@@ -94,6 +100,8 @@ export default async function CareSettingsPage({
   }
 
   const currency = settings.currency;
+  // Lingua del nome principale dei servizi: quella del mercato, che leggono i clienti.
+  const mainLocale = resolveLocale(getMarket(ctx.country).defaultLocale);
   const decimal = (minor: number) =>
     minor > 0 && isCurrencyCode(currency) ? minorToDecimalString(minor, currency) : '';
   // 22/11/2026 è una domenica (0): da lì i nomi dei giorni nella lingua di chi guarda.
@@ -272,7 +280,7 @@ export default async function CareSettingsPage({
                       className="flex items-center justify-between gap-3 px-4 py-2.5"
                     >
                       <div className="min-w-0">
-                        <p className="font-medium break-words">{service.name}</p>
+                        <p className="font-medium break-words">{service.displayName}</p>
                         {service.description ? (
                           <p className="text-xs text-muted-foreground">{service.description}</p>
                         ) : null}
@@ -287,10 +295,12 @@ export default async function CareSettingsPage({
                               action={updateCareServiceAction.bind(null, slug, service.id)}
                               idPrefix={`service-${service.id}`}
                               currency={currency}
-                              title={t('care.services.editTitle', { name: service.name })}
+                              mainLocale={mainLocale}
+                              title={t('care.services.editTitle', { name: service.displayName })}
                               submitLabel={t('common.saveChanges')}
                               defaults={{
                                 name: service.name,
+                                translations: service.translations,
                                 description: service.description ?? '',
                                 pricing: service.pricing,
                                 unit: service.unit,
@@ -300,7 +310,9 @@ export default async function CareSettingsPage({
                                 <Button
                                   variant="ghost"
                                   size="icon-sm"
-                                  aria-label={t('care.services.editLabel', { name: service.name })}
+                                  aria-label={t('care.services.editLabel', {
+                                    name: service.displayName,
+                                  })}
                                 >
                                   <Pencil />
                                 </Button>
@@ -314,7 +326,7 @@ export default async function CareSettingsPage({
                                 false,
                               )}
                               active
-                              name={service.name}
+                              name={service.displayName}
                             />
                           </>
                         ) : null}
@@ -329,10 +341,12 @@ export default async function CareSettingsPage({
                     action={createCareServiceAction.bind(null, slug)}
                     idPrefix="service-new"
                     currency={currency}
+                    mainLocale={mainLocale}
                     title={t('care.services.newTitle')}
                     submitLabel={t('care.services.add')}
                     defaults={{
                       name: '',
+                      translations: {},
                       description: '',
                       pricing: 'EXTRA',
                       unit: 'PER_VISIT',
@@ -360,11 +374,13 @@ export default async function CareSettingsPage({
                         action={createCareServiceAction.bind(null, slug)}
                         idPrefix={`service-${suggestion.key}`}
                         currency={currency}
+                        mainLocale={mainLocale}
                         title={t('care.services.newTitle')}
                         submitLabel={t('care.services.add')}
                         defaults={{
                           presetKey: suggestion.key,
                           name: suggestion.name,
+                          translations: suggestion.translations,
                           description: '',
                           pricing: suggestion.pricing,
                           unit: suggestion.unit,
@@ -373,7 +389,7 @@ export default async function CareSettingsPage({
                         trigger={
                           <Button variant="outline" size="sm">
                             <Plus />
-                            {suggestion.name}
+                            {suggestion.displayName}
                           </Button>
                         }
                       />
@@ -389,12 +405,12 @@ export default async function CareSettingsPage({
                   <ul className="mt-2 divide-y">
                     {archivedServices.map((service) => (
                       <li key={service.id} className="flex items-center justify-between gap-3 py-2">
-                        <span className="text-muted-foreground">{service.name}</span>
+                        <span className="text-muted-foreground">{service.displayName}</span>
                         {canWrite ? (
                           <CareServiceToggle
                             action={setCareServiceActiveAction.bind(null, slug, service.id, true)}
                             active={false}
-                            name={service.name}
+                            name={service.displayName}
                           />
                         ) : null}
                       </li>

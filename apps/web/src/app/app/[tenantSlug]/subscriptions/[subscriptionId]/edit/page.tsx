@@ -19,7 +19,7 @@ import { phoneForInput } from '@/lib/format';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { updateCareContractDraftAction } from '../../actions';
-import { contractFormOptions } from '../../care-form-data';
+import { contractFormOptions, siteContactFor } from '../../care-form-data';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('care.contractForm');
@@ -85,6 +85,8 @@ export default async function EditCareContractPage({
           serviceIds: contract.services.map((service) => service.serviceId),
           contactName: contract.contactName ?? '',
           contactPhone: phoneForInput(contract.contactPhone),
+          useCustomerContact: siteContactFor(form, contract.address?.id ?? null, contract)
+            .useCustomerContact,
           accessNotes: contract.accessNotes ?? '',
           notes: contract.notes ?? '',
           outOfRangeConfirmed: contract.outOfRange,

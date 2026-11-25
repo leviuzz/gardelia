@@ -324,6 +324,12 @@ resoconto (`services/care-report.ts`) è un solo DTO per la pagina interna, quel
 mette insieme consegne e visite; l'ordine è una funzione pura del dominio (`orderRouteStops`),
 usata anche dalla ruta dei Pedidos.
 
+Nomi dei servizi (ADR-042): `CareService.name` è nella lingua del mercato e lo usano rapporto,
+email, addebiti ed esportazioni; `translations` tiene le altre lingue ed è copiato con il nome in
+`CustomerSubscriptionService`, perché Mi Floral Care legge solo le copie del contratto. Le pagine
+della fioreria e del cliente scelgono il nome con `careServiceName(…, locale)` (dominio);
+`updateCareService` aggiorna le copie che hanno ancora lo stesso nome principale.
+
 Visite extra e cambio di stagione (ADR-078, blocco 2b, `services/care-extras.ts`): una visita extra
 in un orario passa da `SlotBook` come le altre; a un'ora libera ha giorno e ore senza fascia (il
 CHECK lo permette solo alle extra) e non entra nel conto dei posti. Il costo si calcola con la

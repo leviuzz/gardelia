@@ -17,6 +17,7 @@ import {
   type DeliveryFeeTier,
   type Weekday,
 } from './delivery';
+import { SUPPORTED_LOCALES, type SupportedLocale } from './i18n';
 import type { MarketCountry } from './markets';
 import { careDueDaysField, careLateCancelHoursField } from './floral-care-charges';
 import { MAX_AMOUNT_MINOR, type CurrencyCode } from './money';
@@ -117,27 +118,89 @@ export type CareServiceUnit = (typeof CARE_SERVICE_UNITS)[number];
 
 /**
  * La nostra lista di servizi, creata per ogni fioreria quando accende Floral Care: chiave stabile
- * e nome nella lingua del mercato (es-MX), perché lo legge il cliente. Il fiorista cambia prezzo
- * e modalità, archivia quelli che non offre e aggiunge i suoi.
+ * e nome nelle tre lingue. Il nome principale del servizio è quello della lingua del mercato,
+ * perché lo legge il cliente; gli altri sono le sue traduzioni, per chi usa l'app in un'altra
+ * lingua (ADR-042). Il fiorista cambia prezzo e modalità, archivia quelli che non offre e aggiunge
+ * i suoi.
  */
 export const CARE_SERVICE_PRESETS = [
-  { key: 'watering', name: 'Riego', pricing: 'INCLUDED', unit: 'PER_VISIT' },
-  { key: 'leaf_cleaning', name: 'Limpieza de hojas', pricing: 'INCLUDED', unit: 'PER_VISIT' },
-  { key: 'pruning', name: 'Poda y retiro de hojas secas', pricing: 'INCLUDED', unit: 'PER_VISIT' },
   {
-    key: 'pest_check',
-    name: 'Revisión de plagas y enfermedades',
+    key: 'watering',
+    names: { 'es-MX': 'Riego', 'it-IT': 'Irrigazione', 'en-US': 'Watering' },
     pricing: 'INCLUDED',
     unit: 'PER_VISIT',
   },
-  { key: 'rotation', name: 'Rotación de plantas', pricing: 'INCLUDED', unit: 'PER_VISIT' },
-  { key: 'pot_cleaning', name: 'Limpieza de macetas', pricing: 'INCLUDED', unit: 'PER_VISIT' },
-  { key: 'fertilizing', name: 'Fertilización', pricing: 'EXTRA', unit: 'PER_PLANT' },
-  { key: 'substrate', name: 'Reposición de sustrato', pricing: 'EXTRA', unit: 'PER_PLANT' },
-  { key: 'repotting', name: 'Trasplante', pricing: 'EXTRA', unit: 'PER_PLANT' },
+  {
+    key: 'leaf_cleaning',
+    names: {
+      'es-MX': 'Limpieza de hojas',
+      'it-IT': 'Pulizia delle foglie',
+      'en-US': 'Leaf cleaning',
+    },
+    pricing: 'INCLUDED',
+    unit: 'PER_VISIT',
+  },
+  {
+    key: 'pruning',
+    names: {
+      'es-MX': 'Poda y retiro de hojas secas',
+      'it-IT': 'Potatura e rimozione delle foglie secche',
+      'en-US': 'Pruning and dead leaf removal',
+    },
+    pricing: 'INCLUDED',
+    unit: 'PER_VISIT',
+  },
+  {
+    key: 'pest_check',
+    names: {
+      'es-MX': 'Revisión de plagas y enfermedades',
+      'it-IT': 'Controllo di parassiti e malattie',
+      'en-US': 'Pest and disease check',
+    },
+    pricing: 'INCLUDED',
+    unit: 'PER_VISIT',
+  },
+  {
+    key: 'rotation',
+    names: {
+      'es-MX': 'Rotación de plantas',
+      'it-IT': 'Rotazione delle piante',
+      'en-US': 'Plant rotation',
+    },
+    pricing: 'INCLUDED',
+    unit: 'PER_VISIT',
+  },
+  {
+    key: 'pot_cleaning',
+    names: { 'es-MX': 'Limpieza de macetas', 'it-IT': 'Pulizia dei vasi', 'en-US': 'Pot cleaning' },
+    pricing: 'INCLUDED',
+    unit: 'PER_VISIT',
+  },
+  {
+    key: 'fertilizing',
+    names: { 'es-MX': 'Fertilización', 'it-IT': 'Concimazione', 'en-US': 'Fertilizing' },
+    pricing: 'EXTRA',
+    unit: 'PER_PLANT',
+  },
+  {
+    key: 'substrate',
+    names: {
+      'es-MX': 'Reposición de sustrato',
+      'it-IT': 'Aggiunta di terriccio',
+      'en-US': 'Substrate top-up',
+    },
+    pricing: 'EXTRA',
+    unit: 'PER_PLANT',
+  },
+  {
+    key: 'repotting',
+    names: { 'es-MX': 'Trasplante', 'it-IT': 'Rinvaso', 'en-US': 'Repotting' },
+    pricing: 'EXTRA',
+    unit: 'PER_PLANT',
+  },
 ] as const satisfies readonly {
   readonly key: string;
-  readonly name: string;
+  readonly names: Readonly<Record<SupportedLocale, string>>;
   readonly pricing: CareServicePricing;
   readonly unit: CareServiceUnit;
 }[];
@@ -148,6 +211,81 @@ export type CareServicePreset = (typeof CARE_SERVICE_PRESETS)[number];
 export function findCareServicePreset(key: unknown): CareServicePreset | null {
   if (typeof key !== 'string') return null;
   return CARE_SERVICE_PRESETS.find((preset) => preset.key === key) ?? null;
+}
+
+/**
+ * Traduzioni del nome di un servizio, per le lingue diverse da quella del nome principale (che è
+ * la lingua del mercato). Facoltative: senza traduzione si vede il nome principale.
+ */
+export type CareServiceTranslations = Partial<Record<SupportedLocale, string>>;
+
+/** Le traduzioni lette dal database (JSON): solo lingue note e testi non vuoti. */
+export function parseCareServiceTranslations(value: unknown): CareServiceTranslations {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {};
+  const record = value as Record<string, unknown>;
+  const result: CareServiceTranslations = {};
+  for (const locale of SUPPORTED_LOCALES) {
+    const text = record[locale];
+    if (typeof text === 'string' && text.trim() !== '') result[locale] = text.trim();
+  }
+  return result;
+}
+
+/**
+ * Nome principale e traduzioni di un servizio della nostra lista per un mercato: il nome nella
+ * lingua del mercato, le altre lingue come traduzioni.
+ */
+export function careServicePresetNames(
+  preset: CareServicePreset,
+  marketLocale: SupportedLocale,
+): { readonly name: string; readonly translations: CareServiceTranslations } {
+  const translations: CareServiceTranslations = {};
+  for (const locale of SUPPORTED_LOCALES) {
+    if (locale !== marketLocale) translations[locale] = preset.names[locale];
+  }
+  return { name: preset.names[marketLocale], translations };
+}
+
+/**
+ * Nome di un servizio (o della sua copia in un contratto) nella lingua di chi guarda: la
+ * traduzione, se c'è, se no il nome principale. Solo per l'app della fioreria e per Mi Floral Care:
+ * rapporto pubblico, email e addebiti restano nella lingua del mercato (ADR-042).
+ */
+export function careServiceName(
+  service: { readonly name: string; readonly translations: CareServiceTranslations },
+  locale: SupportedLocale,
+): string {
+  return service.translations[locale] ?? service.name;
+}
+
+/**
+ * Persona e telefono della sede presi dal cliente («Usa i dati del cliente»): quelli del
+ * destinatario dell'indirizzo scelto, se ci sono, altrimenti nome e telefono del cliente.
+ * Telefono in E.164 o null.
+ */
+export function careSiteContact(
+  customer: { readonly name: string; readonly phone: string | null },
+  address: { readonly recipientName: string | null; readonly recipientPhone: string | null } | null,
+): { readonly name: string; readonly phone: string | null } {
+  return {
+    name: address?.recipientName?.trim() || customer.name,
+    phone: address?.recipientPhone || customer.phone || null,
+  };
+}
+
+/**
+ * «Usa i dati del cliente» parte acceso se i dati salvati della sede sono vuoti o sono proprio
+ * quelli del cliente (telefoni confrontati in E.164).
+ */
+export function careSiteContactMatches(
+  saved: { readonly name: string | null; readonly phone: string | null },
+  proposed: { readonly name: string; readonly phone: string | null },
+): boolean {
+  const name = saved.name?.trim() ?? '';
+  const phone = saved.phone ?? '';
+  return (
+    (name === '' || name === proposed.name) && (phone === '' || phone === (proposed.phone ?? ''))
+  );
 }
 
 /** Stati di un contratto (comune ai due tipi di suscripción). */
@@ -298,11 +436,34 @@ export function careSettingsSchema(currency: CurrencyCode) {
 }
 export type CareSettingsInput = z.infer<ReturnType<typeof careSettingsSchema>>;
 
-/** Un servizio della fioreria: nome, descrizione, incluso o extra con prezzo e unità. */
+/**
+ * Traduzioni del nome scritte dal fiorista (`translations.it-IT`, …): facoltative, lunghe al
+ * massimo quanto il nome. Le lingue vuote non si salvano.
+ */
+const careServiceTranslationsField = z.preprocess(
+  (value) => value ?? {},
+  z
+    .object({
+      'es-MX': optionalText(CARE_LIMITS.serviceName),
+      'it-IT': optionalText(CARE_LIMITS.serviceName),
+      'en-US': optionalText(CARE_LIMITS.serviceName),
+    })
+    .transform((value): CareServiceTranslations => {
+      const result: CareServiceTranslations = {};
+      for (const locale of SUPPORTED_LOCALES) {
+        const text = value[locale];
+        if (text) result[locale] = text;
+      }
+      return result;
+    }),
+);
+
+/** Un servizio della fioreria: nome, traduzioni, descrizione, incluso o extra con prezzo e unità. */
 export function careServiceSchema(currency: CurrencyCode) {
   return z
     .object({
       name: requiredText(CARE_LIMITS.serviceName),
+      translations: careServiceTranslationsField,
       description: optionalText(CARE_LIMITS.serviceDescription),
       pricing: enumField(CARE_SERVICE_PRICINGS),
       unit: enumField(CARE_SERVICE_UNITS),

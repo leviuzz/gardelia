@@ -174,9 +174,103 @@ export interface CareContractFormDefaults {
   readonly serviceIds: readonly string[];
   readonly contactName: string;
   readonly contactPhone: string;
+  /** «Usa i dati del cliente» acceso all'apertura. */
+  readonly useCustomerContact: boolean;
   readonly accessNotes: string;
   readonly notes: string;
   readonly outOfRangeConfirmed: boolean;
+}
+
+/** Persona e telefono della sede presi dal cliente, già pronti da mostrare nei campi. */
+export interface CareSiteContact {
+  readonly name: string;
+  /** Formato per l'input; vuoto se il cliente non ha telefono. */
+  readonly phone: string;
+}
+
+/**
+ * Persona di contatto e telefono della sede, con «Usa i dati del cliente»: accesa, i campi prendono
+ * i dati del cliente (o del destinatario dell'indirizzo) e non si scrivono; spenta, si scrivono a
+ * mano partendo da quello che c'era. Un campo senza dato del cliente resta sempre scrivibile.
+ * I campi sono `readOnly`, non `disabled`, così arrivano nel modulo come sempre.
+ */
+function SiteContactFields({
+  idPrefix,
+  contact,
+  defaults,
+  defaultOn,
+  errors,
+}: {
+  readonly idPrefix: string;
+  readonly contact: CareSiteContact;
+  readonly defaults: { readonly contactName: string; readonly contactPhone: string };
+  readonly defaultOn: boolean;
+  readonly errors: { readonly name?: string; readonly phone?: string };
+}) {
+  const t = useTranslations('care.contractForm');
+  const [on, setOn] = useState(defaultOn);
+  const [name, setName] = useState(defaultOn ? contact.name : defaults.contactName);
+  const [phone, setPhone] = useState(
+    defaultOn && contact.phone ? contact.phone : defaults.contactPhone,
+  );
+  const lockName = on && contact.name !== '';
+  const lockPhone = on && contact.phone !== '';
+  const shownName = lockName ? contact.name : name;
+  const shownPhone = lockPhone ? contact.phone : phone;
+  const toggle = (next: boolean) => {
+    // Spegnendo si parte da quello che si vedeva.
+    if (!next) {
+      setName(shownName);
+      setPhone(shownPhone);
+    }
+    setOn(next);
+  };
+  return (
+    <div className="grid gap-3">
+      <label className="flex cursor-pointer items-start gap-2.5 text-sm">
+        <Checkbox
+          checked={on}
+          onChange={(event) => toggle(event.target.checked)}
+          className="mt-0.5"
+          data-testid="use-customer-contact"
+        />
+        <span>
+          <span className="block font-medium">{t('useCustomerContact')}</span>
+          <span className="block text-xs text-muted-foreground">{t('useCustomerContactHint')}</span>
+        </span>
+      </label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field id={`${idPrefix}-contact`} label={t('contactName')} error={errors.name}>
+          <Input
+            {...controlProps(`${idPrefix}-contact`, errors.name)}
+            name="contactName"
+            maxLength={CARE_LIMITS.contactName}
+            autoComplete="off"
+            value={shownName}
+            readOnly={lockName}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </Field>
+        <Field
+          id={`${idPrefix}-phone`}
+          label={t('contactPhone')}
+          hint={on && contact.phone === '' ? t('noCustomerPhone') : undefined}
+          error={errors.phone}
+        >
+          <Input
+            {...controlProps(`${idPrefix}-phone`, errors.phone)}
+            name="contactPhone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="off"
+            value={shownPhone}
+            readOnly={lockPhone}
+            onChange={(event) => setPhone(event.target.value)}
+          />
+        </Field>
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -200,6 +294,8 @@ export function CareContractForm({
     readonly id: string;
     readonly label: string;
     readonly line: string;
+    /** Persona e telefono del cliente per questa sede («Usa i dati del cliente»). */
+    readonly contact: CareSiteContact;
   }[];
   readonly frequencies: readonly CareFrequency[];
   readonly slots: readonly CareSlotOption[];
@@ -210,8 +306,13 @@ export function CareContractForm({
 }) {
   const t = useTranslations('care.contractForm');
   const [state, formAction] = useToastActionState(action);
+  const [addressId, setAddressId] = useState(defaults.customerAddressId);
   const err = (field: string) => fieldError(state, field);
   const outOfRange = defaults.outOfRangeConfirmed || Boolean(err('outOfRangeConfirmed'));
+  const contact = addresses.find((address) => address.id === addressId)?.contact ?? {
+    name: '',
+    phone: '',
+  };
   return (
     <form action={formAction} onSubmit={preserveOnSubmit(formAction)} className="space-y-6">
       <section className="grid gap-4 rounded-2xl border bg-card p-4">
@@ -230,6 +331,7 @@ export function CareContractForm({
                 name="customerAddressId"
                 value={address.id}
                 defaultChecked={defaults.customerAddressId === address.id}
+                onChange={() => setAddressId(address.id)}
                 className="mt-0.5 size-4 accent-primary"
               />
               <span>
@@ -258,27 +360,13 @@ export function CareContractForm({
             ) : null}
           </div>
         ) : null}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field id="contract-contact" label={t('contactName')} error={err('contactName')}>
-            <Input
-              {...controlProps('contract-contact', err('contactName'))}
-              name="contactName"
-              maxLength={CARE_LIMITS.contactName}
-              autoComplete="off"
-              defaultValue={defaults.contactName}
-            />
-          </Field>
-          <Field id="contract-phone" label={t('contactPhone')} error={err('contactPhone')}>
-            <Input
-              {...controlProps('contract-phone', err('contactPhone'))}
-              name="contactPhone"
-              type="tel"
-              inputMode="tel"
-              autoComplete="off"
-              defaultValue={defaults.contactPhone}
-            />
-          </Field>
-        </div>
+        <SiteContactFields
+          idPrefix="contract"
+          contact={contact}
+          defaults={defaults}
+          defaultOn={defaults.useCustomerContact}
+          errors={{ name: err('contactName'), phone: err('contactPhone') }}
+        />
         <Field
           id="contract-access"
           label={t('accessNotes')}
@@ -667,15 +755,19 @@ export function CareDetailsDialog({
   action,
   currency,
   services,
+  contact,
   defaults,
 }: {
   readonly action: Action;
   readonly currency: string;
   readonly services: readonly CareServiceOption[];
+  /** Persona e telefono del cliente per la sede del contratto («Usa i dati del cliente»). */
+  readonly contact: CareSiteContact;
   readonly defaults: {
     readonly serviceIds: readonly string[];
     readonly contactName: string;
     readonly contactPhone: string;
+    readonly useCustomerContact: boolean;
     readonly accessNotes: string;
     readonly notes: string;
   };
@@ -720,27 +812,13 @@ export function CareDetailsDialog({
               <p className="text-sm text-destructive">{err('serviceIds')}</p>
             ) : null}
           </fieldset>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field id="details-contact" label={t('contactName')} error={err('contactName')}>
-              <Input
-                {...controlProps('details-contact', err('contactName'))}
-                name="contactName"
-                maxLength={CARE_LIMITS.contactName}
-                defaultValue={defaults.contactName}
-                autoComplete="off"
-              />
-            </Field>
-            <Field id="details-phone" label={t('contactPhone')} error={err('contactPhone')}>
-              <Input
-                {...controlProps('details-phone', err('contactPhone'))}
-                name="contactPhone"
-                type="tel"
-                inputMode="tel"
-                defaultValue={defaults.contactPhone}
-                autoComplete="off"
-              />
-            </Field>
-          </div>
+          <SiteContactFields
+            idPrefix="details"
+            contact={contact}
+            defaults={defaults}
+            defaultOn={defaults.useCustomerContact}
+            errors={{ name: err('contactName'), phone: err('contactPhone') }}
+          />
           <Field id="details-access" label={t('accessNotes')} error={err('accessNotes')}>
             <Textarea
               {...controlProps('details-access', err('accessNotes'))}

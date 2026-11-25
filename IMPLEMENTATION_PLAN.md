@@ -1430,7 +1430,38 @@ del primer contrato» con i due passi (tarifas, almeno un horario), fatti o da f
 Ajustes (`getCareSetupStatus`, `CareSetupChecklist`). Nessun cambio al database. Test del servizio
 nel test dell'offerta, percorso in `routes.test.ts`, E2E `floral-care-new-contract.spec.ts` (le due
 strade, controllo a 320 px). Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test 1236/1236 ✅ ·
-build ✅ · E2E completo 117/117 ✅.
+build ✅ · E2E completo 117/117 ✅. Poi i testi della lista allineati alle Impostazioni (`d8a3eb9`: in
+italiano «fascia di visita»; la frase in cima non dice più che mancano tutti e due i passi): CI verde
+su `d8a3eb9` (run 249, E2E compreso). **Su staging** con il via libera del founder (25/11): merge
+`fd10bce`, CI run 250 ✅, nessuna migrazione. Il founder usa l'app in italiano: nei messaggi al
+founder pagine e pulsanti si chiamano con i testi it-IT (`CLAUDE.md` §2).
+
+**Floral Care, feedback del founder sul modulo del contratto (25/11 sera), rilascio 1 di 3:**
+
+- **«Usa i dati del cliente»** nella sede del contratto (nuovo, bozza, dialogo dei dettagli):
+  persona e telefono del destinatario dell'indirizzo scelto o del cliente (`careSiteContact`),
+  campi bloccati mentre è acceso, aggiornati cambiando indirizzo, scrivibili a interruttore
+  spento; acceso di default nel contratto nuovo, nella bozza solo se i dati salvati sono quelli
+  del cliente (`careSiteContactMatches`). Il server non cambia.
+- **Servizi in tre lingue:** `CareService.translations` e la copia sul contratto
+  (`CustomerSubscriptionService.translations`), con CHECK (oggetto, sole lingue note, testi);
+  migrazione `care_service_translations` con le traduzioni dei servizi predefiniti già creati
+  (solo fiorerie MX e solo se non rinominati) e delle loro copie. I servizi della nostra lista
+  hanno i nomi nelle tre lingue (`CARE_SERVICE_PRESETS.names`); il dialogo del servizio chiede il
+  nome principale (lingua del mercato, lo leggono i clienti) e le traduzioni facoltative.
+  Impostazioni, modulo e pagina del contratto, lista della visita e Mi Floral Care mostrano la
+  lingua di chi guarda; rapporto pubblico, email, addebiti ed esportazioni restano nella lingua
+  del mercato (ADR-042).
+- **Test:** dominio (nomi nelle tre lingue, scelta della traduzione, JSON dal database, modulo,
+  contatto della sede); integrazione (Impostazioni in italiano, servizio con traduzione, copia sul
+  contratto che segue la traduzione, Mi Floral Care con le traduzioni); E2E
+  `floral-care-contract-details.spec.ts` (interruttore con due indirizzi e bozza; servizi in
+  italiano con un servizio nuovo tradotto; controllo a 320 px). Backfill e CHECK provati anche a
+  mano sul database di sviluppo.
+- **Rilasci 2 e 3** (piano approvato, decisioni in ADR-085 e ADR-075): assistente fra i servizi
+  del contratto con domande ogni mese e pacchetti chiesti dal cliente e approvati dal fiorista;
+  date scelte a mano. Prima di partire, al founder: l'assistente ha un canone suo al mese? Le date
+  a mano si scelgono già nella bozza o solo dopo la conferma?
 
 Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,
