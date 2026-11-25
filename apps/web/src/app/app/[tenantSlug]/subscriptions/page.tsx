@@ -1,9 +1,10 @@
-import { Contact, Settings, Sprout } from 'lucide-react';
+import { Plus, Settings, Sprout } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import {
   PlanRequiredError,
+  getCareSetupStatus,
   hasPermission,
   listCareContracts,
   type CareContractListResult,
@@ -11,6 +12,7 @@ import {
 } from '@floral/core';
 import { CARE_CONTRACT_VIEWS, careContractListFiltersSchema } from '@floral/domain';
 import { ContractStatusBadge } from '@/components/care/care-ui';
+import { CareSetupChecklist } from '@/components/care/care-setup-checklist';
 import { CareTabs } from '@/components/care/care-tabs';
 import { CareUpsell } from '@/components/care/care-upsell';
 import { FilterBar } from '@/components/common/list/filter-bar';
@@ -48,8 +50,8 @@ async function load(
 
 /**
  * Floral Care (ADR-075): i contratti di cura delle piante. Attivi (con la prossima visita),
- * borradores (da completare con le piante e confermare) e chiusi. Un contratto nasce dalla scheda
- * del cliente.
+ * borradores (da completare con le piante e confermare) e chiusi. «Nuevo contrato» fa scegliere il
+ * cliente; finché l'offerta non è pronta, in cima ci sono i passi che mancano.
  */
 export default async function CareContractsPage({
   params,
@@ -73,6 +75,7 @@ export default async function CareContractsPage({
     );
   }
   const filters = careContractListFiltersSchema.parse(query);
+  const setup = await getCareSetupStatus(ctx);
   const day = (iso: string) =>
     format.dateTime(new Date(`${iso}T12:00:00Z`), {
       weekday: 'short',
@@ -90,8 +93,8 @@ export default async function CareContractsPage({
       </Button>
       {result.canWrite ? (
         <Button asChild>
-          <Link href={routes.customers.list()}>
-            <Contact />
+          <Link href={routes.subscriptions.new()}>
+            <Plus />
             {t('care.contracts.newFromCustomer')}
           </Link>
         </Button>
@@ -106,6 +109,10 @@ export default async function CareContractsPage({
         description={t('care.contracts.subtitle')}
         actions={actions}
       />
+      {/* Prima del primo contratto: i passi dell'offerta che mancano, con il link per farli. */}
+      {setup.ready ? null : (
+        <CareSetupChecklist status={setup} settingsHref={routes.settings.care} />
+      )}
       {/* "Cobros" (ADR-082) per chi gestisce i soldi, "Mensajes" (ADR-084) per tutti. */}
       <CareTabs ctx={ctx} current="contracts" />
 

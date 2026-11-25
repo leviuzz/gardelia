@@ -2964,7 +2964,7 @@ un'email per ognuno").
   brillante» (non più «lontano dalle finestre»), pubblico = il cliente, «tú», risposte più brevi,
   piante in terra o in fioriera.
 
-**Il 6b com'è fatto (25/11, sul ramo di lavoro; staging con il via libera del founder):**
+**Il 6b com'è fatto (25/11; su staging con il via libera del founder, merge `5142e81`):**
 
 - **Crediti della fioreria:**
   - comprati da Gardelia: `AiCreditGrant` con `PLANT_ASSISTANT`, accreditati dall'operazione di

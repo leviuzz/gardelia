@@ -161,8 +161,8 @@ export function tenantRoutes(slug: string) {
     subscriptions: {
       /** Elenco (`view`: active, draft, closed; `q`; `page`). */
       list: (query?: QueryValues) => withQuery(subscriptions, query),
-      /** Nuovo contratto (bozza) per un cliente. */
-      new: (customerId: string) => withQuery(`${subscriptions}/new`, { customer: customerId }),
+      /** Nuovo contratto: con il cliente il modulo, senza la scelta del cliente. */
+      new: (customerId?: string) => withQuery(`${subscriptions}/new`, { customer: customerId }),
       detail: (subscriptionId: string, query?: QueryValues) =>
         withQuery(`${subscriptions}/${segment(subscriptionId)}`, query),
       /** Modifica della bozza (stesso modulo della creazione). */

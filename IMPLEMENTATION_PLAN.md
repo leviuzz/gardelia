@@ -1416,8 +1416,23 @@ lavoro, foto cancellate dopo 30 giorni) · build ✅ · E2E completo 115/115 ✅
 crediti dati, alla consulta del cliente, a «Enviar a la florería» e alla card della fioreria) ·
 controllo a 320 px di Ajustes, del caso, del contratto del cliente e della card: nessuno sbordo.
 
-Prossimo: CI verde sul commit e rilascio del 6b su staging con il via libera del founder; poi da lui
-le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
+CI verde su `a169c06` (run 245, E2E compreso) e rilascio su staging con il via libera del founder
+(merge `5142e81`, CI run 246 verde): l'assistente resta spento finché su Vercel non ci sono le sue
+variabili.
+
+**Floral Care, «Nuevo contrato» senza giri a vuoto (25/11 sera):** il founder non riusciva ad aprire
+un contratto su staging: «Nuevo contrato» dell'elenco portava a Clientes, il riquadro Floral Care
+della scheda del cliente è in basso e, senza tarifas o horarios, il modulo rimandava ad Ajustes →
+Floral Care, che sembrava la pagina di partenza. Ora «Nuevo contrato» apre «¿Para qué cliente es?»
+(ricerca ed elenco dei clienti attivi, come per una cotización, più «Registrar cliente»); finché
+l'offerta non è pronta, l'elenco dei contratti, la scelta del cliente e il modulo mostrano «Antes
+del primer contrato» con i due passi (tarifas, almeno un horario), fatti o da fare, e il link ad
+Ajustes (`getCareSetupStatus`, `CareSetupChecklist`). Nessun cambio al database. Test del servizio
+nel test dell'offerta, percorso in `routes.test.ts`, E2E `floral-care-new-contract.spec.ts` (le due
+strade, controllo a 320 px). Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test 1236/1236 ✅ ·
+build ✅ · E2E completo 117/117 ✅.
+
+Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,
 `ASSISTANT_MONTHLY_BUDGET_USD=2`, 10 a dicembre), i crediti alla sua fioreria di prova con
 l'operazione `grant-assistant-credits` e una consulta vera da un conto cliente invitato. Serve
@@ -1438,8 +1453,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
    (ADR-072) dagli ordini.
 4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
 5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078), 3 (ADR-082), 4
-   (ADR-083) e 5 (ADR-084) fatti; 6a e 6b (ADR-085) fatti, il 6b da rilasciare su staging; il 6c
-   non si fa; il 7 (consegne periodiche) in `docs/FLORAL_CARE_PLAN.md`.
+   (ADR-083) e 5 (ADR-084) fatti; 6a e 6b (ADR-085) fatti e su staging; il 6c non si fa; il 7
+   (consegne periodiche) in `docs/FLORAL_CARE_PLAN.md`.
 6. Report: fatti (ADR-080); restano i P1 dello spec (funnel, retention, profitto per ramo).
    Catalogo completo (ADR-081): fatto; manca la revisione dell'elenco dei fiori da un fiorista.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.
