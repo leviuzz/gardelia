@@ -48,20 +48,22 @@ const hhmm = (minutes: number) =>
  */
 async function addSlot(page: Page, day: string): Promise<string> {
   const form = page.locator('form').filter({ hasText: 'Nuevo horario' });
+  const activeSlots = page.getByTestId('care-slots-active');
   // Tutti i quarti d'ora in ordine casuale: un database locale usato a lungo ne ha già tanti.
   const starts = Array.from({ length: 56 }, (_, index) => 300 + index * 15).sort(
     () => Math.random() - 0.5,
   );
   for (const start of starts) {
     const label = `${weekdayName(day)} · ${hhmm(start)}–${hhmm(start + 60)}`;
-    if ((await page.getByText(label).count()) > 0) continue;
+    // Solo gli orari attivi: il server rifiuta un doppione di quelli, non degli archiviati.
+    if ((await activeSlots.getByText(label, { exact: true }).count()) > 0) continue;
     await form.getByLabel('Día').selectOption({ label: weekdayName(day) });
     await form.getByLabel('Desde').fill(hhmm(start));
     await form.getByLabel('Hasta').fill(hhmm(start + 60));
     await form.getByLabel('Visitas a la vez').fill('2');
     await form.getByRole('button', { name: 'Agregar horario' }).click();
     await expect(page.getByText('Horario agregado')).toBeVisible();
-    await expect(page.getByText(label)).toBeVisible();
+    await expect(activeSlots.getByText(label, { exact: true })).toBeVisible();
     return label;
   }
   throw new Error(`Nessun orario libero il ${day}`);

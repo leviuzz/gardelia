@@ -1494,7 +1494,9 @@ ramo, M4 calendario e capienza, M8 clienti, marketing e report, M7 Fiori ogni se
 - **Test:** dominio (`public-link.test.ts` nuovo, `marketplace-order`, `customer`); integrazione
   (`marketplace-orders.test.ts`: telefono, canale, link, consegna a 0, errore per riga); E2E
   `marketplace-orders.spec.ts` (riga del cliente, finestra a 320 px, ramo tolto mentre si ordina,
-  prodotto che non c'è più).
+  prodotto che non c'è più). In locale 1254 test ed E2E 119/119. Gli helper `addSlot` degli E2E di
+  Floral Care guardano solo gli orari attivi (`care-slots-active`): su un database locale usato a
+  lungo gli archiviati non bloccano più la scelta di un orario libero.
 - **Prossimo:** staging di M0 con il via libera del founder; poi il piano di dettaglio di M1
   («Vetrina che vende»), da approvare.
 
