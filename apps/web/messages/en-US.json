@@ -3249,7 +3249,8 @@
       "portal_invite_revoked": "{actor} revoked an invitation to Mi Floral Care",
       "portal_access_granted": "{actor} accepted the invitation to Mi Floral Care",
       "portal_access_revoked": "{actor} removed access to Mi Floral Care",
-      "visit_moved_by_customer": "{actor} changed the date of a visit of {number} from Mi Floral Care"
+      "visit_moved_by_customer": "{actor} changed the date of a visit of {number} from Mi Floral Care",
+      "message_photo_removed": "{actor} removed the photo of a message on {number}"
     },
     "notice": {
       "label": "Yes, I let the customer know"

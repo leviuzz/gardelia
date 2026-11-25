@@ -243,6 +243,8 @@ export const AUDIT_ACTIONS = {
   carePortalAccessGranted: 'care.portal_access_granted',
   carePortalAccessRevoked: 'care.portal_access_revoked',
   careVisitMovedByCustomer: 'care.visit_moved_by_customer',
+  /** Blocco 5b (ADR-084): la fioreria toglie la foto di un messaggio (il file si cancella). */
+  careMessagePhotoRemoved: 'care.message_photo_removed',
   /**
    * Contratti con i clienti (CustomerSubscription): `customer_subscription.*`, da non confondere con
    * `subscription.assigned`, il piano della fioreria su Gardelia.

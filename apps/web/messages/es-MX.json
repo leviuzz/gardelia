@@ -3249,7 +3249,8 @@
       "portal_invite_revoked": "{actor} revocó una invitación a Mi Floral Care",
       "portal_access_granted": "{actor} aceptó la invitación a Mi Floral Care",
       "portal_access_revoked": "{actor} quitó un acceso a Mi Floral Care",
-      "visit_moved_by_customer": "{actor} cambió desde Mi Floral Care la fecha de una visita de {number}"
+      "visit_moved_by_customer": "{actor} cambió desde Mi Floral Care la fecha de una visita de {number}",
+      "message_photo_removed": "{actor} quitó la foto de un mensaje de {number}"
     },
     "notice": {
       "label": "Sí, avisé al cliente"
