@@ -66,13 +66,24 @@ Podemos suspender una cuenta que incumpla estas reglas, avisando cuando sea posi
 3. **La referencia para vender es la receta y la cotización**, no la imagen. La florería revisa
    precios, cantidades e imágenes antes de enviarlos a su cliente.
 4. Las generaciones están sujetas a la cuota de cada plan; un intento fallido no consume créditos.
-5. **Asistente de plantas (Floral Care).** Identifica una planta a partir de una foto entre las de
-   la lista de Gardelia y responde preguntas de cuidado con respuestas breves generadas con
-   inteligencia artificial: son **orientativas** y pueden equivocarse. Los datos de cuidado y el
-   aviso sobre perros y gatos vienen de la lista de Gardelia, con su fuente, no de la inteligencia
-   artificial. El asistente no indica dosis de productos químicos. La florería revisa cada respuesta
-   antes de actuar o de compartirla con su cliente. Las consultas tienen un límite diario por
-   florería. [Borrador del 25/11/2026 — validar con el abogado.]
+5. **Asistente de plantas (Floral Care).** La florería puede dar a sus clientes de Floral Care
+   consultas del Asistente de plantas, que ellos usan en "Mi Floral Care": identifica una planta a
+   partir de una foto entre las de la lista de Gardelia y responde preguntas de cuidado con
+   respuestas breves generadas con inteligencia artificial, **orientativas**, que pueden
+   equivocarse. Los datos de cuidado y el aviso sobre perros y gatos vienen de la lista de Gardelia,
+   con su fuente, no de la inteligencia artificial; el asistente no indica dosis de productos
+   químicos.
+   - Cada respuesta usa un **crédito** que la florería compra a Gardelia, al precio y con las
+     condiciones que Gardelia indique al momento de la compra. Analizar la foto y las respuestas que
+     fallan no usan créditos.
+   - La florería decide a qué servicios da créditos y si los cobra a sus clientes o los incluye en
+     su servicio; lo que ofrezca a sus clientes es responsabilidad suya.
+   - Los créditos no usados de un servicio que termina vuelven a la florería.
+   - Hay un límite diario de consultas por servicio y un límite mensual de la plataforma.
+   - La florería ve cuántas consultas usa cada servicio, no las preguntas de sus clientes, salvo
+     las que ellos le envían.
+     [Borrador del 25/11/2026 — validar con el abogado y con el contador (IVA y comprobantes de los
+     créditos).]
 
 ## 7. Datos de los clientes de la florería
 

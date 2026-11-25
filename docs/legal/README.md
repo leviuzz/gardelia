@@ -82,6 +82,14 @@ che si registra con ogni ordine online.
     elimina il conto (senza il suo nome), le foto si cancellano con quelle del servizio; l'avviso
     per email non contiene il testo. Va bene che i messaggi restino alla fioreria come parte del
     servizio, o la persona deve poterli far cancellare?
+20. **Asistente de plantas per i clienti (ADR-085, blocco 6b, bozze del 25/11/2026):** la fioreria
+    compra crediti da Gardelia e li dà ai suoi clienti, che li usano in "Mi Floral Care" (foto e
+    domande ad Anthropic, Stati Uniti, come fornitore; mai nomi né contatti). La fioreria vede
+    quante consultas, non le domande, salvo quelle che il cliente le manda. Domande: chi è
+    responsabile delle foto e delle domande del cliente (la fioreria, come per i messaggi, o
+    Gardelia)? La vendita dei crediti alla fioreria (prezzo, IVA, CFDI, rimborsi) con il contador;
+    la rivendita al cliente è della fioreria: basta dirlo nei termini? Le domande restano alla
+    fioreria anche se la persona elimina il conto (senza il suo nome), come i messaggi.
 
 ## Prima del lancio (V1, `docs/V1_SCOPE.md` §2.15)
 

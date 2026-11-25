@@ -2964,8 +2964,66 @@ un'email per ognuno").
   brillante» (non più «lontano dalle finestre»), pubblico = il cliente, «tú», risposte più brevi,
   piante in terra o in fioriera.
 
-Quello che segue descrive il 6a com'è stato rilasciato su staging (spento); il 6b porta il modello
-nuovo.
+**Il 6b com'è fatto (25/11, sul ramo di lavoro; staging con il via libera del founder):**
+
+- **Crediti della fioreria:**
+  - comprati da Gardelia: `AiCreditGrant` con `PLANT_ASSISTANT`, accreditati dall'operazione di
+    piattaforma (`platform:grant-ai-credits --feature plant-assistant`, nel workflow «Operazioni di
+    piattaforma» l'operazione `grant-assistant-credits`), registro `ai_credits.assistant_granted`;
+  - «Dar créditos» a un contratto attivo o in pausa, da 1 a 500 per volta, fino al saldo della
+    fioreria, in fila con un lock per fioreria (mai sotto zero); permesso `care:assistant`, ora solo
+    proprietario e gerente (costano soldi alla fioreria); registro `care.assistant_credits_given`
+    con il numero del contratto e quanti;
+  - `AssistantCreditAllocation`, solo inserimenti: `GIVE` positivi, `RETURN_ENDED` negativi; saldi
+    sempre calcolati (fioreria = comprati − dati; contratto = dati − risposte − riserve);
+  - a fine contratto, sia con «Terminar contrato» sia con la chiusura automatica, i crediti non usati
+    tornano alla fioreria (`RETURN_ENDED`), le riserve si tolgono e il registro della fine porta
+    `assistantCreditsReturned`.
+- **Il cliente in Mi Floral Care** (`services/my-plant-assistant.ts`, solo modalità portale):
+  - la sezione «Asistente de plantas» nella pagina del contratto e la pagina
+    `/cuenta/floral-care/[id]/asistente`;
+  - foto (serve almeno 1 credito, ma l'analisi non lo usa) → specie candidate, quella della scheda
+    della pianta per prima → «Cómo cuidarla» (modello leggero) o «Tiene un problema» (modello
+    principale), proposto dalla foto (`looksUnhealthy`) o dalla specie che non si sa → la domanda →
+    la risposta con cura e avviso per cani e gatti dai nostri dati;
+  - prima della chiamata il database riserva 1 credito (`app_portal_assistant_reserve`, sotto lock
+    del contratto, scade dopo 2 minuti); la risposta lo usa nella stessa transazione che la salva;
+    un errore, un rifiuto o il contratto chiuso nel frattempo lo rendono, e la chiamata si registra
+    lo stesso (va nel budget);
+  - ogni persona vede solo i propri casi e le proprie risposte; i crediti sono del contratto,
+    condivisi fra le persone del cliente;
+  - tetto: 10 foto e 10 risposte al giorno per contratto (giorno della fioreria), contate dal
+    database (`app_portal_assistant_credits(since)`), perché il portale vede solo le sue righe;
+  - «Enviar a la florería»: un messaggio della persona nel filo del 5b, con una copia della foto e il
+    riassunto (pianta, specie, domande, risposte) nella lingua della persona; lo stesso caso con le
+    stesse risposte si manda una volta sola;
+  - «Pedir consultas» / «Pedir más consultas»: un messaggio alla fioreria, una volta al giorno per
+    persona;
+  - le consultas in «Descargar mis datos» (`app_buyer_assistant_answers()`).
+- **La fioreria:**
+  - card «Asistente de plantas» nella pagina del contratto: dati, usati, rimasti, «Dar créditos»,
+    l'avviso se nessuno del cliente entra in Mi Floral Care; lo staff vede ma non dà;
+  - card in Ajustes → Floral Care: comprati, dati, disponibili, «Comprar créditos por WhatsApp»
+    (`PLATFORM_WHATSAPP`); nessun prezzo nel codice (D-16/17);
+  - vede quante consultas usa un contratto, non le domande: solo quelle che il cliente le manda.
+- **Database:** policy `portal_read` e `portal_insert` su casi e risposte (solo i propri, contratto
+  attivo o in pausa), `portal_insert` sulle chiamate, tre funzioni DEFINER per i crediti del
+  portale; nessun `withSystemContext` nuovo (CLAUDE.md §4.3 e §4.8).
+- **Modelli:** `ASSISTANT_MODEL` (Opus 5.5: foto e problemi) e `ASSISTANT_CARE_MODEL` (Haiku 5.5:
+  cura); prompt v2 con la riga del tipo di domanda.
+- **Tolto:** la consulta del fiorista del 6a (pagina, link sulle piante e nella visita, E2E).
+
+**PROPOSTO nel 6b** (da confermare guardandolo in staging): la fioreria vede solo quante consultas;
+10 foto e 10 risposte al giorno per contratto; solo proprietario e gerente danno crediti; crediti
+usabili con il contratto attivo o in pausa; il tipo di domanda proposto dalla foto; «Pedir más
+consultas» una volta al giorno.
+
+**DA VALIDARE (6b):** l'IVA sul prezzo dei crediti (contador); i termini per la fioreria (crediti,
+prezzo, rivendita a suo carico); l'aviso de privacidad (foto e domande dei clienti ad Anthropic,
+Stati Uniti, come fornitore).
+
+Quello che segue descrive il 6a com'è stato rilasciato su staging (spento); il 6b lo sostituisce
+dove sono in contrasto.
 
 Blocco 6 del piano approvato (`docs/FLORAL_CARE_PLAN.md` §4, §7.6), chiesto dal founder ("ok vai col
 blocco 6"), in tre rilasci: **6a** dati delle piante, motore, prova pagata e assistente del fiorista;

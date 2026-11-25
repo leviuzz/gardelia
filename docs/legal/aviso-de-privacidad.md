@@ -61,8 +61,7 @@ archiva al cliente y 30 días después del fin del contrato.
 3. **Datos de la florería:** nombre comercial y, si los proporcionas, razón social, RFC, domicilio,
    teléfono y correo de contacto.
 4. **Contenido que cargas:** catálogo, precios, recetas, fotos de flores y ramos (incluidas las de
-   "Mis ramos", que solo se guardan con tu autorización expresa), diseños y cotizaciones; en Floral
-   Care, las fotos de plantas y las preguntas que haces al Asistente de plantas, con sus respuestas.
+   "Mis ramos", que solo se guardan con tu autorización expresa), diseños y cotizaciones.
 5. **Datos técnicos y de uso:** dirección IP, navegador, fecha y hora de acceso y registros de
    seguridad, para proteger las cuentas y prevenir abusos.
 6. **Si compras:** teléfono de contacto, direcciones de entrega guardadas (con la ubicación que da
@@ -73,7 +72,8 @@ archiva al cliente y 30 días después del fin del contrato.
 8. **Si una florería te invita a "Mi Floral Care":** el correo de la invitación, a qué florería y
    a qué cliente tienes acceso, si puedes ver precios, cuándo lo aceptaste o se cerró, los cambios
    de fecha de visita que haces, los mensajes y fotos que envías a la florería y cuándo leíste los
-   suyos.
+   suyos; si usas el Asistente de plantas, las fotos de tus plantas y tus preguntas, con sus
+   respuestas. [Borrador del 25/11/2026 — validar con el abogado.]
 
 **No tratamos datos personales sensibles.** Te pedimos no subir fotos en las que aparezcan personas.
 
@@ -85,9 +85,12 @@ archiva al cliente y 30 días después del fin del contrato.
 2. Prestar el servicio: catálogo, clientes, cotizaciones y el Diseñador de ramos.
 3. Generar vistas previas e imágenes con inteligencia artificial a partir de tus diseños y de tus
    fotos (por ejemplo, quitar el fondo de una foto o crear la imagen de un ramo).
-4. Asistente de plantas de Floral Care: identificar una planta a partir de una foto y responder
-   preguntas sobre su cuidado con inteligencia artificial. [Borrador del 25/11/2026 — validar con
-   el abogado.]
+4. Asistente de plantas de Floral Care: si tu florería te da consultas en "Mi Floral Care",
+   identificar una planta a partir de una foto y responder tus preguntas sobre su cuidado con
+   inteligencia artificial. La florería ve cuántas consultas usas, no tus preguntas: solo las que tú
+   le envías con "Enviar a la florería". Las fotos se borran con las del servicio, 30 días después
+   de que termina; las preguntas y respuestas se conservan como parte del servicio. [Borrador del
+   25/11/2026 — validar con el abogado.]
 5. Enviarte correos del servicio: verificación, invitaciones, restablecimiento de contraseña y, si
    compras, los avisos de tus pedidos (recibido, aceptado, cancelado).
 6. Si compras: mostrarte florerías que entregan en tu zona, enviar tus pedidos a la florería que

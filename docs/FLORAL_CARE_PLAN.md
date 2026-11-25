@@ -426,9 +426,13 @@ rilascio su staging) e lascia qualcosa di usabile.
    - **6a (fatto, su staging spento):** dati di cura e tossicità per le 36 piante in vaso,
      tabelle e motore, prova pagata (`docs/AI_BENCHMARK.md`), una prima pagina per il fiorista che
      il 6b toglie.
-   - **6b:** crediti della fioreria (saldo, «Comprar créditos por WhatsApp», «Dar créditos» nel
-     contratto, ritorno a fine contratto) e l'assistente in Mi Floral Care, con «Enviar a la
-     florería» e «Pedir más consultas» nel filo dei messaggi; prompt v2.
+   - **6b (fatto sul ramo, 25/11; staging con il via libera del founder):** crediti della
+     fioreria (saldo in Ajustes, «Comprar créditos por WhatsApp», «Dar créditos» nel contratto per
+     proprietario e gerente, ritorno a fine contratto) e l'assistente in Mi Floral Care (foto →
+     specie → «Cómo cuidarla» o «Tiene un problema» → risposta; 1 credito per risposta riuscita,
+     riserva sotto lock, 10 foto e 10 risposte al giorno per contratto), con «Enviar a la
+     florería» e «Pedir más consultas» nel filo dei messaggi; prompt v2; consultas in «Descargar
+     mis datos».
    - **6c (Stripe per i clienti):** non si fa.
 7. **Consegne periodiche (piano a parte).**
    - Righe, cadenza, ordini creati 2 giorni prima e mai doppi.
