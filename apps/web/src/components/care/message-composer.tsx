@@ -1,6 +1,6 @@
 'use client';
 
-import { ImagePlus, Send, X } from 'lucide-react';
+import { ImagePlus, LoaderCircle, Send, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useRef, useState, type FormEvent } from 'react';
@@ -122,23 +122,32 @@ export function MessageComposer({
         <div>
           <input
             ref={fileInput}
-            id={`${id}-file`}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+            accept="image/jpeg,image/png,image/webp"
             className="sr-only"
+            tabIndex={-1}
+            aria-hidden="true"
+            data-testid="message-photo-input"
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-            disabled={busy}
           />
-          <Button type="button" variant="outline" size="sm" asChild>
-            <label htmlFor={`${id}-file`} className="cursor-pointer">
-              <ImagePlus className="size-4" aria-hidden="true" />
-              {t('addPhoto')}
-            </label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => fileInput.current?.click()}
+            disabled={busy}
+          >
+            <ImagePlus className="size-4" aria-hidden="true" />
+            {t('addPhoto')}
           </Button>
         </div>
         <p className="hidden text-xs text-muted-foreground sm:block">{t('hint')}</p>
-        <Button type="submit" size="sm" disabled={busy}>
-          <Send className="size-4" aria-hidden="true" />
+        <Button type="submit" size="sm" disabled={busy} aria-busy={busy}>
+          {busy ? (
+            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Send className="size-4" aria-hidden="true" />
+          )}
           {t('send')}
         </Button>
       </div>
