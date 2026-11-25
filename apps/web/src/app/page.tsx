@@ -1,20 +1,39 @@
-import { MapPin, MessageCircle, Search, Store } from 'lucide-react';
+import { Gift, MapPin, MessageCircle, Search, Store } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { getPlacesProvider, listBuyerSearchAddresses, listPublicStoreCities } from '@floral/core';
+import {
+  getPlacesProvider,
+  listBuyerSearchAddresses,
+  listPublicStoreCities,
+  listPublicStoreOccasions,
+} from '@floral/core';
+import { OCCASION_SLUGS } from '@floral/domain';
 import { PlacesConfigProvider } from '@/components/form/address-search';
 import { LegalLinks } from '@/components/legal/legal-links';
 import { BuyerHeader } from '@/components/public/buyer-header';
 import { HomeAddressSearch } from '@/components/public/home-address-search';
 import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/input';
+import { serverEnv } from '@/lib/env';
+import { publicPageIndexing } from '@/lib/indexing';
 import { accountRoutes, buyerRoutes, withQuery } from '@/lib/routes';
 import { getSession } from '@/lib/session';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('home');
-  return { title: t('metaTitle'), description: t('subtitle') };
+  const env = serverEnv();
+  return {
+    title: t('metaTitle'),
+    description: t('subtitle'),
+    // Google (M1-2): solo con PUBLIC_INDEXING acceso.
+    ...publicPageIndexing({
+      enabled: env.PUBLIC_INDEXING === 'on',
+      appUrl: env.APP_URL,
+      canonicalPath: buyerRoutes.home,
+      indexable: true,
+    }),
+  };
 }
 
 /**
@@ -25,10 +44,12 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function BuyerHomePage() {
   const t = await getTranslations('home');
   const session = await getSession();
-  const [cities, saved] = await Promise.all([
+  const [cities, saved, occasions] = await Promise.all([
     listPublicStoreCities(),
     session ? listBuyerSearchAddresses({ userId: session.user.id, country: 'MX' }) : [],
+    listPublicStoreOccasions(),
   ]);
+  const tOccasion = await getTranslations('occasions');
   const addressSearch = session !== null && getPlacesProvider() !== null;
 
   const steps = [
@@ -118,6 +139,29 @@ export default async function BuyerHomePage() {
             </p>
           )}
         </section>
+
+        {/* Scorciatoie per occasione (M1-2): solo quelle con prodotti in qualche fioreria. */}
+        {occasions.length > 0 ? (
+          <section aria-labelledby="occasions" className="mt-10" data-testid="home-occasions">
+            <h2 id="occasions" className="flex items-center gap-2 text-lg font-semibold">
+              <Gift className="size-5 text-primary" aria-hidden="true" />
+              {t('occasionsTitle')}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">{t('occasionsBody')}</p>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {occasions.map((occasion) => (
+                <li key={occasion}>
+                  <Link
+                    href={buyerRoutes.search({ ocasion: OCCASION_SLUGS[occasion] })}
+                    className="inline-flex items-center rounded-full border bg-card px-3 py-1.5 text-sm hover:bg-muted"
+                  >
+                    {tOccasion(occasion)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         <section aria-labelledby="how" className="mt-14">
           <h2 id="how" className="font-display text-2xl font-semibold">

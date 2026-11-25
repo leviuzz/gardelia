@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { BRAND } from '@floral/domain';
+import { BRAND, storefrontFiltered } from '@floral/domain';
 import { StorefrontView } from '@/components/public/storefront-view';
 import { serverEnv } from '@/lib/env';
+import { publicPageIndexing } from '@/lib/indexing';
 import { loadStorefront, storefrontQueryKey } from '@/lib/public-store';
 import { publicStoreLinks, publicStoreRoutes } from '@/lib/routes';
 
@@ -21,14 +22,23 @@ export async function generateMetadata({
     : store.logoId
       ? routes.image('LOGO', store.logoId)
       : null;
+  const env = serverEnv();
   return {
     // Il layout aggiunge «· Gardelia» (prima usciva due volte).
     title: store.name,
     description: store.description ?? undefined,
+    // Google (M1-2): solo la vetrina intera; le viste filtrate rimandano a lei.
+    ...publicPageIndexing({
+      enabled: env.PUBLIC_INDEXING === 'on',
+      appUrl: env.APP_URL,
+      canonicalPath: routes.home,
+      indexable:
+        !storefrontFiltered(view.query) && view.page === 1 && view.query.orden === 'recomendados',
+    }),
     openGraph: {
       title: store.name,
       description: store.description ?? undefined,
-      ...(image ? { images: [`${serverEnv().APP_URL.replace(/\/+$/, '')}${image}`] } : {}),
+      ...(image ? { images: [`${env.APP_URL.replace(/\/+$/, '')}${image}`] } : {}),
     },
   };
 }

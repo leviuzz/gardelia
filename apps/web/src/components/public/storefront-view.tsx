@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Clock,
   CreditCard,
+  Gift,
   Globe,
   MapPin,
   MessageCircle,
@@ -25,6 +26,7 @@ import type {
   PublicStorefrontDto,
 } from '@floral/core';
 import {
+  OCCASION_SLUGS,
   STOREFRONT_LIMITS,
   STOREFRONT_SORTS,
   WEEKDAYS_FROM_MONDAY,
@@ -46,10 +48,32 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { serverEnv } from '@/lib/env';
 import { money } from '@/lib/format';
+import { absoluteUrl } from '@/lib/indexing';
 import { storeShellProps } from '@/lib/public-store';
-import type { StoreLinks } from '@/lib/routes';
+import { accountRoutes, withQuery, type StoreLinks } from '@/lib/routes';
+import { getSession } from '@/lib/session';
 import { firstDayLabel, storeFacts, storePolicies, type StoreFactKind } from '@/lib/storefront-ui';
+import {
+  productStructuredData,
+  serializeStructuredData,
+  storeStructuredData,
+} from '@/lib/structured-data';
 import { cn } from '@/lib/utils';
+
+/**
+ * «Mis pedidos» per chi ha il conto, «Entrar» per gli altri (M1-2): dopo l'accesso si torna alla
+ * pagina. Niente nell'anteprima della fioreria.
+ */
+async function accountLink(
+  preview: boolean,
+  back: string,
+  labels: { orders: string; signIn: string },
+) {
+  if (preview) return null;
+  return (await getSession())
+    ? { href: accountRoutes.home, label: labels.orders }
+    : { href: withQuery('/login', { next: back }), label: labels.signIn };
+}
 
 const FACT_ICONS: Record<StoreFactKind, typeof Globe> = {
   orders: Globe,
@@ -79,6 +103,7 @@ export async function StorefrontView({
   const { store, query } = view;
   const locale = store.locale;
   const t = await getTranslations({ locale, namespace: 'publicStore' });
+  const tOccasion = await getTranslations({ locale, namespace: 'occasions' });
   const format = await getFormatter({ locale });
   const fmt = (minor: number) => money(minor, store.currency, locale);
   // 22/11/2026 è una domenica (0): nomi dei giorni nella lingua del mercato.
@@ -91,6 +116,10 @@ export async function StorefrontView({
     store.delivery.closedWeekdays.includes(day),
   ).map(dayName);
   const shell = await storeShellProps(store, t('whatsappHello'), links);
+  const account = await accountLink(preview, links.home, {
+    orders: t('accountOrders'),
+    signIn: t('accountSignIn'),
+  });
   const canOrder = store.ordersEnabled && store.delivery.firstDate !== null;
   const facts = storeFacts(store, t, format);
   const policies = storePolicies(store, t);
@@ -129,7 +158,7 @@ export async function StorefrontView({
   );
 
   return (
-    <StoreShell {...shell}>
+    <StoreShell {...shell} account={account}>
       <NextIntlClientProvider locale={locale} messages={{ publicStore: messages.publicStore }}>
         {store.coverId ? (
           <div className="mb-6 aspect-[2/1] overflow-hidden rounded-2xl border bg-muted sm:aspect-[3/1]">
@@ -259,6 +288,39 @@ export async function StorefrontView({
                   </ul>
                 </nav>
               ) : null}
+              {/* Occasioni (M1-2): solo quelle con prodotti; toccata di nuovo si toglie. */}
+              {view.occasions.length > 0 ? (
+                <nav
+                  aria-label={t('occasionsLabel')}
+                  className="-mx-1 mt-3 overflow-x-auto"
+                  data-testid="storefront-occasions"
+                >
+                  <ul className="flex gap-2 px-1 pb-1">
+                    {view.occasions.map(({ occasion, count }) => {
+                      const slug = OCCASION_SLUGS[occasion];
+                      const active = query.ocasion === slug;
+                      return (
+                        <li key={occasion} className="shrink-0">
+                          <Link
+                            href={viewHref({ ocasion: active ? undefined : slug })}
+                            aria-current={active ? 'page' : undefined}
+                            className={cn(
+                              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors',
+                              active
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'bg-card hover:bg-muted',
+                            )}
+                          >
+                            <Gift className="size-3.5" aria-hidden="true" />
+                            {tOccasion(occasion)}
+                            <span className="tabular-nums opacity-70">{count}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </nav>
+              ) : null}
               <form
                 action={links.home}
                 method="get"
@@ -267,6 +329,9 @@ export async function StorefrontView({
               >
                 {query.categoria ? (
                   <input type="hidden" name="categoria" value={query.categoria} />
+                ) : null}
+                {query.ocasion ? (
+                  <input type="hidden" name="ocasion" value={query.ocasion} />
                 ) : null}
                 <div className="flex min-w-0 flex-1 gap-2">
                   <Input
@@ -489,6 +554,24 @@ export async function StorefrontView({
             continueLabel={t('cartContinue')}
           />
         ) : null}
+        {/* Dati strutturati per Google (M1-2): solo nella pagina pubblica. */}
+        {preview ? null : (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: serializeStructuredData(
+                storeStructuredData(store, {
+                  url: absoluteUrl(serverEnv().APP_URL, links.home),
+                  imageUrl: store.coverId
+                    ? absoluteUrl(serverEnv().APP_URL, links.image('COVER', store.coverId))
+                    : store.logoId
+                      ? absoluteUrl(serverEnv().APP_URL, links.image('LOGO', store.logoId))
+                      : null,
+                }),
+              ),
+            }}
+          />
+        )}
       </NextIntlClientProvider>
     </StoreShell>
   );
@@ -523,6 +606,10 @@ export async function ProductView({
   const url = `${serverEnv().APP_URL.replace(/\/+$/, '')}${links.item(item.id)}`;
   const orderText = t('whatsappItem', { name: item.name, price, url });
   const shell = await storeShellProps(store, t('whatsappHello'), links);
+  const account = await accountLink(preview, links.item(item.id), {
+    orders: t('accountOrders'),
+    signIn: t('accountSignIn'),
+  });
   const colors = item.colors.filter(isCatalogColor);
   const size = [item.heightCm, item.widthCm].every((value) => value !== null)
     ? t('size', { height: item.heightCm ?? 0, width: item.widthCm ?? 0 })
@@ -531,11 +618,11 @@ export async function ProductView({
       : null;
   const soldOut = item.availability === 'OUT_OF_STOCK';
   const canOrder = store.ordersEnabled && store.delivery.firstDate !== null && !soldOut;
-  const firstDay = canOrder ? firstDayLabel(store, t, format) : null;
+  const firstDay = canOrder ? firstDayLabel(store.delivery, t, format) : null;
   const messages = await getMessages({ locale });
 
   return (
-    <StoreShell {...shell}>
+    <StoreShell {...shell} account={account}>
       <NextIntlClientProvider locale={locale} messages={{ publicStore: messages.publicStore }}>
         <Link
           href={links.home}
@@ -678,6 +765,22 @@ export async function ProductView({
             continueLabel={t('cartContinue')}
           />
         ) : null}
+        {/* Dati strutturati per Google (M1-2): solo nella pagina pubblica. */}
+        {preview ? null : (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: serializeStructuredData(
+                productStructuredData(item, store, {
+                  url,
+                  imageUrls: item.photoIds.map((photoId) =>
+                    absoluteUrl(serverEnv().APP_URL, links.photo(item.id, photoId)),
+                  ),
+                }),
+              ),
+            }}
+          />
+        )}
       </NextIntlClientProvider>
     </StoreShell>
   );

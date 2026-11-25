@@ -76,9 +76,12 @@ export {
 export type { OrderMailDeps } from './order-mail';
 export {
   listPublicStoreCities,
+  listPublicStoreOccasions,
+  listSitemapEntries,
   refreshStoreCoordinates,
   searchPublicStores,
   type DirectoryStoreDto,
+  type SitemapEntryDto,
   type StoreSearchResultDto,
 } from './public-directory';
 export {

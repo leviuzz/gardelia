@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { occasionFromSlug } from '@floral/domain';
 import { FOUND_COOKIE, FOUND_COOKIE_DAYS, isStoreSlug, withFoundSlug } from '@/lib/attribution';
 import { buyerRoutes, publicStoreRoutes } from '@/lib/routes';
 
@@ -12,7 +13,13 @@ export async function GET(request: Request, { params }: RouteContext<'/buscar/ir
   if (!isStoreSlug(slug)) {
     return NextResponse.redirect(new URL(buyerRoutes.home, request.url), 303);
   }
-  const response = NextResponse.redirect(new URL(publicStoreRoutes(slug).home, request.url), 303);
+  // L'occasione scelta nella ricerca (M1-2) apre la vetrina già filtrata; un valore sconosciuto
+  // si ignora.
+  const occasion = new URL(request.url).searchParams.get('ocasion');
+  const target = publicStoreRoutes(slug).storefront({
+    ocasion: occasionFromSlug(occasion) ? (occasion ?? undefined) : undefined,
+  });
+  const response = NextResponse.redirect(new URL(target, request.url), 303);
   const current = request.headers
     .get('cookie')
     ?.split(';')

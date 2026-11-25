@@ -1,4 +1,4 @@
-import { Flower2, MessageCircle, Phone, TriangleExclamationPoint } from 'lucide-react';
+import { Flower2, MessageCircle, Phone, TriangleExclamationPoint, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { LegalLinks } from '@/components/legal/legal-links';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ export function StoreShell({
   contact,
   footer,
   locale,
+  account = null,
   children,
 }: {
   readonly name: string;
@@ -32,6 +33,8 @@ export function StoreShell({
   readonly footer: string;
   /** Lingua del mercato della fioreria (anche per i link ai documenti legali). */
   readonly locale: string;
+  /** «Mis pedidos» per chi ha il conto, «Entrar» per gli altri (M1-2); null nell'anteprima. */
+  readonly account?: { readonly href: string; readonly label: string } | null;
   readonly children: React.ReactNode;
 }) {
   return (
@@ -59,20 +62,32 @@ export function StoreShell({
           )}
           {name}
         </Link>
-        {contact ? (
+        {contact || account ? (
           <div className="flex gap-2">
-            <Button asChild size="sm">
-              <a href={contact.whatsappHref} target="_blank" rel="noopener noreferrer">
-                <MessageCircle />
-                {contact.whatsappLabel}
-              </a>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <a href={contact.callHref}>
-                <Phone />
-                <span className="sr-only sm:not-sr-only">{contact.callLabel}</span>
-              </a>
-            </Button>
+            {account ? (
+              <Button asChild size="sm" variant="ghost">
+                <Link href={account.href} prefetch={false}>
+                  <UserRound />
+                  <span className="sr-only sm:not-sr-only">{account.label}</span>
+                </Link>
+              </Button>
+            ) : null}
+            {contact ? (
+              <>
+                <Button asChild size="sm">
+                  <a href={contact.whatsappHref} target="_blank" rel="noopener noreferrer">
+                    <MessageCircle />
+                    {contact.whatsappLabel}
+                  </a>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <a href={contact.callHref}>
+                    <Phone />
+                    <span className="sr-only sm:not-sr-only">{contact.callLabel}</span>
+                  </a>
+                </Button>
+              </>
+            ) : null}
           </div>
         ) : null}
       </header>

@@ -1,11 +1,18 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { disconnectDb, getDb, withTenantContext } from '@floral/db';
 import {
+  addDeliveryFeeTier,
   createCatalogItem,
   listPublicStoreCities,
+  listPublicStoreOccasions,
+  listSitemapEntries,
   refreshStoreCoordinates,
   searchPublicStores,
+  setCatalogItemOnline,
   setOnlineStorePublished,
+  updateCatalogItem,
+  updateOnlineOrderSettings,
+  updateOnlineStore,
   setPlacesProvider,
   updatePrimaryLocation,
   updateTenantProfile,
@@ -128,7 +135,22 @@ describe('ricerca per indirizzo', () => {
     expect(
       Object.keys(result.nearby.find((item) => item.slug === near.tenant.slug)!).sort(),
     ).toEqual(
-      ['city', 'distanceKm', 'logoId', 'name', 'neighborhood', 'onlineItems', 'slug'].sort(),
+      [
+        'city',
+        'distanceKm',
+        'logoId',
+        'name',
+        'neighborhood',
+        'onlineItems',
+        'slug',
+        // Schede (M1-2): dati che la vetrina mostra già.
+        'currency',
+        'fee',
+        'firstDate',
+        'occasions',
+        'ordersOnline',
+        'today',
+      ].sort(),
     );
   });
 
@@ -195,5 +217,91 @@ describe('coordinate delle tiendas', () => {
     );
     expect(location.latitude).toBe(10.02);
     expect(Date.now() - location.coordinatesAt!.getTime()).toBeLessThan(60_000);
+  });
+});
+
+/** Schede della ricerca, occasioni e sitemap (M1-2, ADR-087). */
+describe('schede della ricerca e occasioni', () => {
+  const ramo = (name: string, occasions: readonly string[], isOnline = true) =>
+    itemInput({
+      type: 'BOUQUET',
+      name,
+      saleUnit: 'PIECE',
+      canonicalFlowerId: null,
+      variety: null,
+      priceMinor: 50000,
+      isOnline,
+      occasions,
+    });
+
+  it('ordini online, primo giorno e costo per l’indirizzo cercato', async () => {
+    await updateOnlineStore(near.owner, {
+      description: null,
+      paymentMethods: ['TRANSFER'],
+      paymentInstructions: null,
+    });
+    await updateOnlineOrderSettings(near.owner, { ordersEnabled: 'on', minLeadDays: '1' });
+    await addDeliveryFeeTier(near.owner, { upToKm: '3', fee: '70' });
+    const result = await searchPublicStores({ ...ORIGIN, city: CITY });
+    const card = result.nearby.find((store) => store.slug === near.tenant.slug)!;
+    expect(card.ordersOnline).toBe(true);
+    expect(card.firstDate! > card.today).toBe(true);
+    // ~1,1 km dall'indirizzo: la fascia fino a 3 km.
+    expect(card.fee).toEqual({ summary: { kind: 'fixed', feeMinor: 7000 }, exact: true });
+    // Senza ordini online e senza costo: solo WhatsApp, costo da confermare.
+    const other = result.sameCity.find((store) => store.slug === unknown.tenant.slug)!;
+    expect(other.ordersOnline).toBe(false);
+    expect(other.fee).toEqual({ summary: { kind: 'to_confirm' }, exact: false });
+  });
+
+  it('un’occasione filtra fiorerie e città; contano solo i prodotti online', async () => {
+    const birthday = await createCatalogItem(near.owner, ramo('Ramo de cumpleaños', ['BIRTHDAY']));
+    // Un prodotto spento non porta la sua occasione nella ricerca.
+    await createCatalogItem(far.owner, ramo('Ramo de condolencias', ['SYMPATHY'], false));
+    const byCity = await searchPublicStores({ city: CITY, occasion: 'cumpleanos' });
+    expect(slugs([...byCity.nearby, ...byCity.sameCity])).toEqual([near.tenant.slug]);
+    expect(
+      slugs((await searchPublicStores({ city: CITY, occasion: 'condolencias' })).sameCity),
+    ).toEqual([]);
+    expect(await listPublicStoreCities('cumpleanos')).toContain(CITY);
+    expect(await listPublicStoreOccasions()).toContain('BIRTHDAY');
+    // Un'occasione sconosciuta si ignora: tutte le fiorerie della città.
+    const all = await searchPublicStores({ city: CITY, occasion: 'boda' });
+    expect(slugs([...all.nearby, ...all.sameCity]).length).toBeGreaterThan(1);
+    // Spento il prodotto, la fioreria esce dall'occasione.
+    await setCatalogItemOnline(near.owner, birthday.id, false);
+    const after = await searchPublicStores({ city: CITY, occasion: 'cumpleanos' });
+    expect(slugs([...after.nearby, ...after.sameCity])).toEqual([]);
+  });
+
+  it('le occasioni si salvano senza doppioni; un valore sconosciuto è rifiutato, anche dal database', async () => {
+    const item = await createCatalogItem(near.owner, ramo('Ramo de amor', ['LOVE', 'LOVE']));
+    expect(item.occasions).toEqual(['LOVE']);
+    // Senza la voce nel modulo, le occasioni restano.
+    const { occasions: _omit, ...withoutOccasions } = ramo('Ramo de amor', []);
+    const updated = await updateCatalogItem(near.owner, item.id, withoutOccasions);
+    expect(updated.occasions).toEqual(['LOVE']);
+    await expect(
+      createCatalogItem(near.owner, ramo('Ramo raro', ['WEDDING'])),
+    ).rejects.toMatchObject({ fieldErrors: { 'occasions.0': 'invalid_option' } });
+    await expect(
+      withTenantContext(db, near.owner, (tx) =>
+        tx.catalogItem.update({ where: { id: item.id }, data: { occasions: ['WEDDING'] } }),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it('sitemap: solo vetrine pubblicate con prodotti online, e i loro prodotti', async () => {
+    const entries = (await listSitemapEntries()).filter((entry) =>
+      [near, far, unknown, hidden, empty].some((shop) => shop.tenant.slug === entry.slug),
+    );
+    expect(entries.some((entry) => entry.slug === hidden.tenant.slug)).toBe(false);
+    expect(entries.some((entry) => entry.slug === empty.tenant.slug)).toBe(false);
+    expect(entries.some((entry) => entry.slug === near.tenant.slug && entry.itemId === null)).toBe(
+      true,
+    );
+    expect(entries.some((entry) => entry.slug === near.tenant.slug && entry.itemId !== null)).toBe(
+      true,
+    );
   });
 });

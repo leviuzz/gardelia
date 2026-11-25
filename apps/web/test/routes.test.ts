@@ -180,8 +180,11 @@ describe('conto del cliente (routes.ts)', () => {
     expect(store.checkout({ producto: 'p1' })).toBe('/f/las-camelias/pedido?producto=p1');
     expect(isAccountPath(store.checkout())).toBe(true);
     expect(isAccountPath(store.checkout({ producto: 'p1' }))).toBe(true);
-    expect(isAccountPath(store.home)).toBe(false);
-    expect(isAccountPath('/f/las-camelias/pedidos')).toBe(false);
+    // Chi accede da una vetrina sta comprando («Entrar», M1-2).
+    expect(isAccountPath(store.home)).toBe(true);
+    expect(isAccountPath(store.item('i1'))).toBe(true);
+    expect(isAccountPath('/fx/las-camelias')).toBe(false);
+    expect(isAccountPath('/app/las-camelias')).toBe(false);
     expect(buyerRoutes.fromSearch('las-camelias')).toBe('/buscar/ir/las-camelias');
   });
 

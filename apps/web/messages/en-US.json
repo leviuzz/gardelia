@@ -193,7 +193,9 @@
     "step3Body": "The flower shop confirms your order and you pay them directly, with no middleman.",
     "floristTitle": "Do you own a flower shop?",
     "floristBody": "Manage orders, customers and deliveries, and open your online shop.",
-    "floristCta": "Gardelia for flower shops"
+    "floristCta": "Gardelia for flower shops",
+    "occasionsTitle": "What’s the occasion?",
+    "occasionsBody": "Find shops with products for your occasion."
   },
   "search": {
     "title": "Flower shops",
@@ -209,7 +211,15 @@
     "distance": "{km} km away · {count, plural, one {# product} other {# products}}",
     "products": "{count, plural, one {# product} other {# products}}",
     "titleCity": "Flower shops in {city}",
-    "sameCityBodyCity": "Ask them on WhatsApp whether they deliver to your neighborhood."
+    "sameCityBodyCity": "Ask them on WhatsApp whether they deliver to your neighborhood.",
+    "ordersOnline": "Online orders",
+    "whatsappOnly": "Orders on WhatsApp",
+    "feeToAddress": "Delivery to your address: {fee}",
+    "occasionsLabel": "Occasion",
+    "occasionTitle": "Occasion: {occasion}",
+    "clearOccasion": "Remove the occasion {occasion}",
+    "chooseCity": "Which city should we deliver to?",
+    "noOccasionStores": "No shops have products for this occasion yet."
   },
   "auth": {
     "loginTitle": "Sign in",
@@ -792,7 +802,10 @@
     "policyChanges": "Changes",
     "policyCancellations": "Cancellations",
     "policySubstitutions": "Flower substitutions",
-    "policiesByShop": "Written by {shop}."
+    "policiesByShop": "Written by {shop}.",
+    "occasionsLabel": "Occasions",
+    "accountOrders": "My orders",
+    "accountSignIn": "Sign in"
   },
   "timezones": {
     "America/Mexico_City": "Central Time (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -1142,7 +1155,9 @@
       "serviceDurationNone": "Not set",
       "serviceDurationHint": "Approximate. Shown on the quote and the order.",
       "serviceRadius": "How far you go (km)",
-      "serviceRadiusHint": "Straight-line distance from your shop. We'll warn you if an order is farther."
+      "serviceRadiusHint": "Straight-line distance from your shop. We'll warn you if an order is farther.",
+      "occasions": "Occasions",
+      "occasionsHint": "They help buyers find it in your online shop and in Gardelia’s search."
     },
     "wizard": {
       "stepWhat": "What it is",
@@ -5064,5 +5079,16 @@
       "first": "Ask for questions"
     },
     "simulatedBadge": "Simulation"
+  },
+  "occasions": {
+    "BIRTHDAY": "Birthday",
+    "ANNIVERSARY": "Anniversary",
+    "LOVE": "Love",
+    "MOTHERS_DAY": "Mother’s Day",
+    "SYMPATHY": "Sympathy",
+    "NEW_BABY": "New baby",
+    "GRADUATION": "Graduation",
+    "THANK_YOU": "Thank you",
+    "GET_WELL": "Get well soon"
   }
 }

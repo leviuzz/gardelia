@@ -23,6 +23,7 @@ import {
   todayInTimeZone,
   type Availability,
   type CartLine,
+  type CatalogOccasion,
   type CatalogItemType,
   type DeliveryFeeSummary,
   type OpeningDay,
@@ -131,6 +132,11 @@ export interface PublicStorefrontDto {
   /** Schede con prodotti, su tutta la vetrina. */
   readonly categories: readonly {
     readonly category: StorefrontCategory;
+    readonly count: number;
+  }[];
+  /** Occasioni con prodotti, su tutta la vetrina (M1-2). */
+  readonly occasions: readonly {
+    readonly occasion: CatalogOccasion;
     readonly count: number;
   }[];
   /** Prodotti che corrispondono ai filtri; tutti quelli online della fioreria. */
@@ -354,6 +360,7 @@ export async function readStorefrontTx(
       priceMinor: true,
       availability: true,
       featuredAt: true,
+      occasions: true,
     },
   });
   const plan = planStorefront(rows, query);
@@ -373,6 +380,7 @@ export async function readStorefrontTx(
     });
   return {
     categories: plan.categories,
+    occasions: plan.occasions,
     total: plan.total,
     onlineCount: rows.length,
     page: plan.page,

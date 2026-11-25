@@ -24,6 +24,7 @@ export * from './inventory';
 export * from './legal';
 export * from './markets';
 export * from './marketplace-order';
+export * from './occasions';
 export * from './online-store';
 export * from './store-search';
 export * from './money';

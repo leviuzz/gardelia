@@ -37,7 +37,7 @@ export async function createItemAction(
   formData: FormData,
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
-    const input = parseForm(catalogItemFormSchema(ctx.currency), formData, ['colors']);
+    const input = parseForm(catalogItemFormSchema(ctx.currency), formData, ['colors', 'occasions']);
     const { id } = await createCatalogItem(ctx, input);
     // Creazione guidata: poi la foto (se il tipo ne ha) e il passo finale.
     return {
@@ -56,7 +56,7 @@ export async function updateItemAction(
   formData: FormData,
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
-    const input = parseForm(catalogItemFormSchema(ctx.currency), formData, ['colors']);
+    const input = parseForm(catalogItemFormSchema(ctx.currency), formData, ['colors', 'occasions']);
     await updateCatalogItem(ctx, itemId, input);
     return { revalidate: section(routes.catalog.list()), success: 'common.changesSaved' };
   });

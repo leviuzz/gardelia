@@ -614,6 +614,9 @@ model CatalogItem {
   /// «In evidenza» nella vetrina (M1, ADR-087): quando la fioreria l'ha scelto, NULL = no. Solo per
   /// prodotti online e attivi (CHECK); indice parziale nel SQL della migrazione.
   featuredAt             DateTime?
+  /// Occasioni scelte dal fiorista (M1-2, ADR-087): identificativi in inglese, solo i 9 previsti
+  /// (CHECK nel SQL della migrazione `storefront_visibility`).
+  occasions              String[]        @default([])
   status                 RecordStatus    @default(ACTIVE)
   archivedAt             DateTime?
   createdAt              DateTime        @default(now())

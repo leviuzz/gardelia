@@ -12,6 +12,7 @@ import { closeStore, ensurePublishedWithOrders } from './support/store';
 
 const SHOP = '/app/las-camelias';
 const PREFIX = 'Vitrina prueba';
+const BOUQUET = 'Ramo Clásico 12 rosas';
 const COUNT = 25;
 
 /**
@@ -157,6 +158,77 @@ test.describe('strumenti della vetrina (M1-2)', () => {
 
       // --- Spenti insieme: tutto com'era ---
       await bulkSet(page, false);
+      await closeStore(page);
+    });
+  });
+
+  test.describe('occasioni, ricerca e Google', () => {
+    test.use({ storageState: 'e2e/.auth/owner.json' });
+
+    /** «Cumpleaños» sul ramo del test, acceso o spento (idempotente). */
+    async function setBirthday(page: Page, on: boolean) {
+      await page.goto(`${SHOP}/catalog?q=${encodeURIComponent(BOUQUET)}`);
+      await page
+        .getByRole('link', { name: new RegExp(BOUQUET) })
+        .first()
+        .click();
+      const box = page.getByTestId('item-occasions').getByRole('checkbox', { name: 'Cumpleaños' });
+      if ((await box.isChecked()) !== on) {
+        await page.getByTestId('item-occasions').getByText('Cumpleaños', { exact: true }).click();
+        await page.getByRole('button', { name: 'Guardar cambios' }).click();
+        await expect(page.getByText('Cambios guardados')).toBeVisible();
+      }
+    }
+
+    test('occasioni nella vetrina e nella ricerca, «Entrar», staging fuori da Google', async ({
+      page,
+      browser,
+    }) => {
+      await ensurePublishedWithOrders(page);
+      await setBirthday(page, true);
+
+      const visitor = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+      const shopper = await visitor.newPage();
+
+      // Staging resta fuori da Google: noindex e robots.txt chiuso.
+      await shopper.goto('/f/las-camelias');
+      await expect(shopper.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+      const robots = await shopper.request.get('/robots.txt');
+      expect(await robots.text()).toContain('Disallow: /');
+
+      // «Entrar» riporta alla vetrina dopo l'accesso.
+      await expect(shopper.getByRole('link', { name: 'Entrar' })).toHaveAttribute(
+        'href',
+        '/login?next=%2Ff%2Flas-camelias',
+      );
+
+      // Il chip dell'occasione filtra la vetrina.
+      await shopper
+        .getByTestId('storefront-occasions')
+        .getByRole('link', { name: /Cumpleaños/ })
+        .click();
+      await expect(shopper).toHaveURL(/ocasion=cumpleanos/);
+      await expect(shopper.getByTestId('storefront').getByText(BOUQUET)).toBeVisible();
+      await expect(shopper.getByTestId('results-count')).toContainText('1 producto');
+
+      // Dalla home: occasione → città → la scheda dice come si ordina → vetrina già filtrata.
+      await shopper.goto('/');
+      await shopper.getByTestId('home-occasions').getByRole('link', { name: 'Cumpleaños' }).click();
+      await expect(shopper).toHaveURL(/\/buscar\?ocasion=cumpleanos$/);
+      await shopper
+        .getByTestId('occasion-cities')
+        .getByRole('link', { name: 'Aguascalientes' })
+        .click();
+      const card = shopper.getByRole('link', { name: /Florería Las Camelias/ });
+      await expect(card).toContainText('Pedidos en línea');
+      await expect(card).toContainText(/Entrega desde/);
+      await expectFitsAt320(shopper, 'search-occasion');
+      await card.click();
+      await expect(shopper).toHaveURL(/\/f\/las-camelias\?ocasion=cumpleanos$/);
+      await visitor.close();
+
+      // Tutto com'era.
+      await setBirthday(page, false);
       await closeStore(page);
     });
   });

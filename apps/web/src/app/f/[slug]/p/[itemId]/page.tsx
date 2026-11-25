@@ -8,6 +8,7 @@ import { ProductView } from '@/components/public/storefront-view';
 import { StoreShell } from '@/components/public/store-shell';
 import { Button } from '@/components/ui/button';
 import { serverEnv } from '@/lib/env';
+import { publicPageIndexing } from '@/lib/indexing';
 import { loadPublicStore, loadStoreItem, storeShellProps } from '@/lib/public-store';
 import { publicStoreLinks, publicStoreRoutes } from '@/lib/routes';
 
@@ -23,9 +24,16 @@ export async function generateMetadata({
   const image = item.photoId
     ? `${serverEnv().APP_URL.replace(/\/+$/, '')}${routes.photo(item.id, item.photoId, { thumb: true })}`
     : null;
+  const env = serverEnv();
   return {
     title: `${item.name} · ${store.name}`,
     description: item.description ?? undefined,
+    ...publicPageIndexing({
+      enabled: env.PUBLIC_INDEXING === 'on',
+      appUrl: env.APP_URL,
+      canonicalPath: routes.item(item.id),
+      indexable: true,
+    }),
     openGraph: {
       title: `${item.name} · ${store.name}`,
       description: item.description ?? undefined,

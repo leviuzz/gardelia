@@ -193,7 +193,9 @@
     "step3Body": "La fioreria conferma il tuo ordine e la paghi direttamente, senza intermediari.",
     "floristTitle": "Hai una fioreria?",
     "floristBody": "Gestisci ordini, clienti e consegne, e apri il tuo negozio online.",
-    "floristCta": "Gardelia per le fiorerie"
+    "floristCta": "Gardelia per le fiorerie",
+    "occasionsTitle": "Per quale occasione?",
+    "occasionsBody": "Trova le fiorerie con prodotti per la tua occasione."
   },
   "search": {
     "title": "Fiorerie",
@@ -209,7 +211,15 @@
     "distance": "A {km} km · {count, plural, one {# prodotto} other {# prodotti}}",
     "products": "{count, plural, one {# prodotto} other {# prodotti}}",
     "titleCity": "Fiorerie a {city}",
-    "sameCityBodyCity": "Chiedi su WhatsApp se consegnano nel tuo quartiere."
+    "sameCityBodyCity": "Chiedi su WhatsApp se consegnano nel tuo quartiere.",
+    "ordersOnline": "Ordini online",
+    "whatsappOnly": "Ordini su WhatsApp",
+    "feeToAddress": "Consegna al tuo indirizzo: {fee}",
+    "occasionsLabel": "Occasione",
+    "occasionTitle": "Occasione: {occasion}",
+    "clearOccasion": "Togli l’occasione {occasion}",
+    "chooseCity": "In quale città lo consegniamo?",
+    "noOccasionStores": "Non ci sono ancora fiorerie con prodotti per questa occasione."
   },
   "auth": {
     "loginTitle": "Accedi",
@@ -792,7 +802,10 @@
     "policyChanges": "Cambi",
     "policyCancellations": "Cancellazioni",
     "policySubstitutions": "Sostituzione dei fiori",
-    "policiesByShop": "Le scrive {shop}."
+    "policiesByShop": "Le scrive {shop}.",
+    "occasionsLabel": "Occasioni",
+    "accountOrders": "I miei ordini",
+    "accountSignIn": "Accedi"
   },
   "timezones": {
     "America/Mexico_City": "Ora del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -1142,7 +1155,9 @@
       "serviceDurationNone": "Non indicata",
       "serviceDurationHint": "Indicativa. Compare nel preventivo e nell'ordine.",
       "serviceRadius": "Fino a quanti km lo fai",
-      "serviceRadiusHint": "In linea d'aria dalla tua fioreria. Se un ordine è più lontano, ti avvisiamo."
+      "serviceRadiusHint": "In linea d'aria dalla tua fioreria. Se un ordine è più lontano, ti avvisiamo.",
+      "occasions": "Occasioni",
+      "occasionsHint": "Aiutano a trovarlo nel negozio online e nella ricerca di Gardelia."
     },
     "wizard": {
       "stepWhat": "Che cos’è",
@@ -5064,5 +5079,16 @@
       "first": "Chiedi le domande"
     },
     "simulatedBadge": "Simulazione"
+  },
+  "occasions": {
+    "BIRTHDAY": "Compleanno",
+    "ANNIVERSARY": "Anniversario",
+    "LOVE": "Amore",
+    "MOTHERS_DAY": "Festa della mamma",
+    "SYMPATHY": "Condoglianze",
+    "NEW_BABY": "Nascita",
+    "GRADUATION": "Diploma e laurea",
+    "THANK_YOU": "Ringraziamento",
+    "GET_WELL": "Pronta guarigione"
   }
 }

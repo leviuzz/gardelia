@@ -24,12 +24,14 @@ import {
   catalogListFiltersSchema,
   diffFields,
   isUuid,
+  normalizeOccasions,
   resolveLocale,
   speciesOption,
   toFieldErrors,
   type Availability,
   type CatalogItemInput,
   type CatalogItemType,
+  type CatalogOccasion,
   type RecordStatus,
   type SaleUnit,
   type SpeciesOption,
@@ -73,6 +75,8 @@ export interface CatalogItemDto {
   readonly isOnline: boolean;
   /** «In evidenza» nella riga «Destacados» della vetrina (M1). */
   readonly featured: boolean;
+  /** Occasioni per la vetrina (M1-2). */
+  readonly occasions: readonly CatalogOccasion[];
   readonly status: RecordStatus;
   readonly archivedAt: Date | null;
   readonly updatedAt: Date;
@@ -132,6 +136,7 @@ function toDto(item: ItemWithRelations, ctx: TenantContext): CatalogItemDto {
     isBuilderEnabled: item.isBuilderEnabled,
     isOnline: item.isOnline,
     featured: item.featuredAt !== null,
+    occasions: normalizeOccasions(item.occasions),
     status: item.status,
     archivedAt: item.archivedAt,
     updatedAt: item.updatedAt,
@@ -283,6 +288,7 @@ function optionalItemData(input: CatalogItemInput) {
       ? { serviceDurationMinutes: input.serviceDurationMinutes }
       : {}),
     ...(input.serviceRadiusKm !== undefined ? { serviceRadiusKm: input.serviceRadiusKm } : {}),
+    ...(input.occasions !== undefined ? { occasions: [...input.occasions] } : {}),
   };
 }
 
@@ -366,6 +372,7 @@ const AUDITED_FIELDS = [
   'tags',
   'isBuilderEnabled',
   'isOnline',
+  'occasions',
 ] as const;
 
 export async function updateCatalogItem(

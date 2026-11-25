@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { isBuilderComponentType } from './builder';
 import { CATALOG_COLORS } from './colors';
 import { isUuid } from './ids';
+import { CATALOG_OCCASIONS, normalizeOccasions } from './occasions';
 import { MAX_AMOUNT_MINOR, type CurrencyCode } from './money';
 import { canShowOnline } from './online-store';
 import {
@@ -208,6 +209,11 @@ export const catalogItemInputSchema = z
     isBuilderEnabled: z.boolean().optional(),
     /** Mostrato nella pagina pubblica della fioreria (blocco C2); se omesso, no. */
     isOnline: z.boolean().optional(),
+    /** Occasioni per la vetrina (M1-2); se omesse, restano come sono. */
+    occasions: z
+      .array(z.enum(CATALOG_OCCASIONS, { error: 'invalid_option' }))
+      .max(CATALOG_OCCASIONS.length, { error: 'too_many_items' })
+      .optional(),
   })
   .superRefine(refineCatalogItem)
   .transform((value) => ({
@@ -216,6 +222,13 @@ export const catalogItemInputSchema = z
     isBuilderEnabled: isBuilderComponentType(value.type) ? (value.isBuilderEnabled ?? true) : false,
     // Solo ramos, piante, fiori e accessori si mostrano in linea (mai materiali o servizi).
     isOnline: canShowOnline(value.type) ? (value.isOnline ?? false) : false,
+    // Occasioni solo per ciò che la vetrina vende; senza doppioni, nell'ordine fisso.
+    occasions:
+      value.occasions === undefined
+        ? undefined
+        : canShowOnline(value.type)
+          ? normalizeOccasions(value.occasions)
+          : [],
     // I servizi non si comprano da un proveedor e hanno una durata, non un tempo di preparazione;
     // durata e zona valgono solo per i servizi.
     prepMinutes: isServiceType(value.type) ? null : value.prepMinutes,
@@ -264,12 +277,28 @@ export function catalogItemFormSchema(currency: CurrencyCode) {
       tags: tagsField(CATALOG_LIMITS.tags, CATALOG_LIMITS.tagLength),
       isBuilderEnabled: checkboxField(),
       isOnline: checkboxField(),
+      // Occasioni (M1-2): valgono solo se il modulo le mostrava (`occasionsShown`), così un modulo
+      // senza la voce non le cancella.
+      occasions: multiValueField(
+        z.enum(CATALOG_OCCASIONS, { error: 'invalid_option' }),
+        CATALOG_OCCASIONS.length,
+      ),
+      occasionsShown: z.string().optional(),
     })
-    .transform(({ price, cost, ...rest }): z.input<typeof catalogItemInputSchema> => ({
-      ...rest,
-      priceMinor: price,
-      costMinor: cost,
-    }))
+    .transform(
+      ({
+        price,
+        cost,
+        occasions,
+        occasionsShown,
+        ...rest
+      }): z.input<typeof catalogItemInputSchema> => ({
+        ...rest,
+        priceMinor: price,
+        costMinor: cost,
+        occasions: occasionsShown ? occasions : undefined,
+      }),
+    )
     .pipe(catalogItemInputSchema);
 }
 

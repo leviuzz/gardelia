@@ -37,6 +37,8 @@ function sized(path: string, size: string): string {
 /** Scheda, ricerca, ordine, pagina e occasione della vetrina (M1). */
 export interface StorefrontLinkQuery {
   readonly categoria?: string;
+  /** Occasione (M1-2), col nome in spagnolo: `cumpleanos`. */
+  readonly ocasion?: string;
   readonly q?: string;
   readonly orden?: string;
   readonly pagina?: number;
@@ -50,6 +52,7 @@ export interface StorefrontLinkQuery {
 function storefrontHref(base: string, query?: StorefrontLinkQuery): string {
   return withQuery(base, {
     categoria: query?.categoria,
+    ocasion: query?.ocasion,
     q: query?.q,
     orden: query?.orden === 'recomendados' ? undefined : query?.orden,
     pagina: query?.pagina && query.pagina > 1 ? query.pagina : undefined,
@@ -367,8 +370,9 @@ export function isAccountPath(path: string): boolean {
   return (
     path === accountRoutes.home ||
     path.startsWith(`${accountRoutes.home}/`) ||
-    // "Hacer pedido" in una tienda en línea (ADR-067): chi accede sta comprando.
-    /^\/f\/[^/]+\/pedido(?:[/?]|$)/.test(path)
+    // Una tienda en línea, il suo prodotto o «Hacer pedido» (ADR-067; «Entrar» della vetrina,
+    // M1-2): chi accede da lì sta comprando.
+    /^\/f\/[^/?]+(?:[/?]|$)/.test(path)
   );
 }
 
@@ -407,7 +411,8 @@ export const buyerRoutes = {
    * Dalla ricerca alla tienda: segna che chi compra è arrivato da Gardelia (origine degli ordini,
    * fee D-24) e porta alla pagina della fioreria.
    */
-  fromSearch: (slug: string) => `/buscar/ir/${segment(slug)}`,
+  fromSearch: (slug: string, query?: { readonly ocasion?: string }) =>
+    withQuery(`/buscar/ir/${segment(slug)}`, { ocasion: query?.ocasion }),
 } as const;
 
 /**
