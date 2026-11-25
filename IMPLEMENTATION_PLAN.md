@@ -1430,7 +1430,11 @@ del primer contrato» con i due passi (tarifas, almeno un horario), fatti o da f
 Ajustes (`getCareSetupStatus`, `CareSetupChecklist`). Nessun cambio al database. Test del servizio
 nel test dell'offerta, percorso in `routes.test.ts`, E2E `floral-care-new-contract.spec.ts` (le due
 strade, controllo a 320 px). Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · test 1236/1236 ✅ ·
-build ✅ · E2E completo 117/117 ✅.
+build ✅ · E2E completo 117/117 ✅. Poi i testi della lista allineati alle Impostazioni (`d8a3eb9`: in
+italiano «fascia di visita»; la frase in cima non dice più che mancano tutti e due i passi): CI verde
+su `d8a3eb9` (run 249, E2E compreso). **Su staging** con il via libera del founder (25/11): merge
+`fd10bce`, CI run 250 ✅, nessuna migrazione. Il founder usa l'app in italiano: nei messaggi al
+founder pagine e pulsanti si chiamano con i testi it-IT (`CLAUDE.md` §2).
 
 Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,
