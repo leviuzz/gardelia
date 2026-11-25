@@ -16,6 +16,31 @@ export function publicLinkExpiry(from: Date): Date {
   return new Date(from.getTime() + PUBLIC_LINK_DAYS * 24 * 60 * 60 * 1000);
 }
 
+/** Giorni in cui il link di un ordine vale ancora dopo la consegna. */
+export const ORDER_LINK_DAYS_AFTER_DELIVERY = 30;
+
+/**
+ * Fin quando il link di un ordine deve valere almeno: 30 giorni dopo la consegna, giorno compreso.
+ * `deliveryDate` è la mezzanotte UTC del giorno di consegna.
+ */
+export function orderLinkDeliveryExpiry(deliveryDate: Date): Date {
+  return new Date(
+    deliveryDate.getTime() + (ORDER_LINK_DAYS_AFTER_DELIVERY + 1) * 24 * 60 * 60 * 1000,
+  );
+}
+
+/**
+ * Scadenza del link di un ordine: i soliti 60 giorni, ma mai prima di 30 giorni dopo la consegna
+ * (un ordine fissato fra 50 giorni deve poter essere seguito fino alla foto della consegna).
+ * `deliveryDate` è la mezzanotte UTC del giorno di consegna, o null se non c'è.
+ */
+export function orderLinkExpiry(from: Date, deliveryDate: Date | null): Date {
+  const base = publicLinkExpiry(from);
+  if (!deliveryDate) return base;
+  const afterDelivery = orderLinkDeliveryExpiry(deliveryDate);
+  return afterDelivery > base ? afterDelivery : base;
+}
+
 /**
  * Un preventivo si condivide quando è stato inviato o accettato (stato effettivo: uno scaduto
  * no). La bozza no: prima si segna come inviata.

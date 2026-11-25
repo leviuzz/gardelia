@@ -35,9 +35,11 @@ import {
   isOrderFinal,
   getMarket,
   minorToDecimalString,
+  onlineOrderNeedsFreeDeliveryConfirmation,
   todayInTimeZone,
   whatsappLink,
 } from '@floral/domain';
+import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import { PrintLetterhead } from '@/components/common/print-letterhead';
 import { PrivateImage } from '@/components/common/private-image';
 import { ShareLinkPanel } from '@/components/common/share-link-card';
@@ -362,6 +364,27 @@ export default async function OrderPage({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Per chiamare o scrivere al cliente senza aprire la sua scheda (M0). */}
+            <p className="text-sm break-words" data-testid="online-contact">
+              <span className="font-medium">{t('orders.online.contact')}</span>{' '}
+              {order.customer.displayName}
+              {order.customer.phone ? (
+                <>
+                  {' · '}
+                  <a className="underline" href={`tel:${order.customer.phone}`}>
+                    {phoneForInput(order.customer.phone)}
+                  </a>
+                </>
+              ) : null}
+              {order.customer.email ? (
+                <>
+                  {' · '}
+                  <a className="break-all underline" href={`mailto:${order.customer.email}`}>
+                    {order.customer.email}
+                  </a>
+                </>
+              ) : null}
+            </p>
             {order.buyerNotes ? (
               <div className="text-sm">
                 <p className="font-medium">{t('orders.online.buyerNotes')}</p>
@@ -372,12 +395,30 @@ export default async function OrderPage({
             ) : null}
             {order.canAccept ? (
               <div className="flex flex-col gap-2 sm:flex-row">
-                <ActionButton
-                  action={acceptOnlineOrderAction.bind(null, slug, order.id)}
-                  icon={<Check />}
-                >
-                  {t('orders.online.accept')}
-                </ActionButton>
+                {/* A domicilio con la consegna a 0: prima di accettare si conferma che è gratis. */}
+                {onlineOrderNeedsFreeDeliveryConfirmation(order) ? (
+                  <ConfirmActionDialog
+                    action={acceptOnlineOrderAction.bind(null, slug, order.id)}
+                    trigger={
+                      <Button className="w-full sm:w-auto">
+                        <Check />
+                        {t('orders.online.accept')}
+                      </Button>
+                    }
+                    title={t('orders.online.freeDeliveryTitle')}
+                    description={t('orders.online.freeDeliveryBody')}
+                    confirmLabel={t('orders.online.freeDeliveryConfirm')}
+                    confirmVariant="default"
+                    fields={{ freeDeliveryConfirmed: 'on' }}
+                  />
+                ) : (
+                  <ActionButton
+                    action={acceptOnlineOrderAction.bind(null, slug, order.id)}
+                    icon={<Check />}
+                  >
+                    {t('orders.online.accept')}
+                  </ActionButton>
+                )}
                 <div className="sm:w-auto">
                   <CancelOrderDialog
                     action={cancelOrderAction.bind(null, slug, order.id)}

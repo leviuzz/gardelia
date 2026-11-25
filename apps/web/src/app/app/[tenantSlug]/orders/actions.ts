@@ -101,15 +101,18 @@ export async function cancelOrderAction(
   });
 }
 
-/** "Aceptar pedido" (ordine della tienda en línea): chi compra riceve totale e come pagare. */
+/**
+ * "Aceptar pedido" (ordine della tienda en línea): chi compra riceve totale e come pagare. Con la
+ * consegna a 0 arriva anche la conferma che è gratis (M0).
+ */
 export async function acceptOnlineOrderAction(
   slug: string,
   orderId: string,
   _prev: ActionState,
-  _formData: FormData,
+  formData: FormData,
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
-    await acceptOnlineOrder(ctx, orderId, orderMailDeps());
+    await acceptOnlineOrder(ctx, orderId, orderMailDeps(), formDataToObject(formData));
     return { revalidate: section(routes.orders.list()), success: 'orders.online.accepted' };
   });
 }

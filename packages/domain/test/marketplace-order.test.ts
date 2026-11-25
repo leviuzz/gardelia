@@ -5,6 +5,8 @@ import {
   marketplaceDateProblem,
   marketplaceLinesFromForm,
   marketplaceOrderSchema,
+  onlineOrderAcceptSchema,
+  onlineOrderNeedsFreeDeliveryConfirmation,
 } from '../src/index';
 
 /** Ordine del cliente online (ADR-067). */
@@ -111,5 +113,32 @@ describe('impostazioni degli ordini online', () => {
     expect(
       onlineOrdersBlockers({ paymentMethods: ['CASH'], contactPhone: '+524495550101' }),
     ).toEqual([]);
+  });
+});
+
+describe('«Aceptar pedido» con la consegna a 0 (M0)', () => {
+  it('chiede la conferma solo a domicilio con il costo a 0', () => {
+    expect(
+      onlineOrderNeedsFreeDeliveryConfirmation({
+        fulfillmentMode: 'DELIVERY',
+        deliveryFeeMinor: 0,
+      }),
+    ).toBe(true);
+    expect(
+      onlineOrderNeedsFreeDeliveryConfirmation({
+        fulfillmentMode: 'DELIVERY',
+        deliveryFeeMinor: 9000,
+      }),
+    ).toBe(false);
+    expect(
+      onlineOrderNeedsFreeDeliveryConfirmation({ fulfillmentMode: 'PICKUP', deliveryFeeMinor: 0 }),
+    ).toBe(false);
+  });
+
+  it('la casella del modulo: accesa solo con «on»', () => {
+    expect(onlineOrderAcceptSchema.parse({ freeDeliveryConfirmed: 'on' })).toEqual({
+      freeDeliveryConfirmed: true,
+    });
+    expect(onlineOrderAcceptSchema.parse({})).toEqual({ freeDeliveryConfirmed: false });
   });
 });

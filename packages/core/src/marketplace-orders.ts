@@ -35,7 +35,7 @@ import {
   nextStoredPlace,
   orderPaymentStatus,
   priceOrder,
-  publicLinkExpiry,
+  orderLinkExpiry,
   quoteDeliveryFee,
   resolveLocale,
   toFieldErrors,
@@ -294,6 +294,18 @@ function placeFields(raw: unknown): Record<string, unknown> {
   return raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
 }
 
+/**
+ * Errore di un ordine con prodotti non più ordinabili: il messaggio generale e, accanto a ogni
+ * prodotto della lista, il suo (`qty.<id>`, la riga del modulo), così chi compra sa quale togliere
+ * (M0). Gli ID sono quelli del modulo, già controllati come UUID.
+ */
+function unavailableLinesError(itemIds: readonly string[]): ValidationError {
+  return new ValidationError({
+    lines: 'checkout_item_unavailable',
+    ...Object.fromEntries(itemIds.map((id) => [`qty.${id}`, 'checkout_item_gone'])),
+  });
+}
+
 /** Righe pronte, con i prezzi del catalogo; un prodotto non più ordinabile ferma tutto. */
 async function draftLines(
   tx: TransactionClient,
@@ -306,9 +318,8 @@ async function draftLines(
     select: { id: true },
   });
   const allowed = new Set(orderable.map((item) => item.id));
-  if (ids.some((id) => !allowed.has(id))) {
-    throw new ValidationError({ lines: 'item_unavailable' });
-  }
+  const gone = ids.filter((id) => !allowed.has(id));
+  if (gone.length > 0) throw unavailableLinesError(gone);
   const result: { draft: LineDraft; quantity: number }[] = [];
   for (const line of lines) {
     try {
@@ -317,8 +328,7 @@ async function draftLines(
         quantity: line.quantity,
       });
     } catch (error) {
-      if (error instanceof ValidationError)
-        throw new ValidationError({ lines: 'item_unavailable' });
+      if (error instanceof ValidationError) throw unavailableLinesError([line.itemId]);
       throw error;
     }
   }
@@ -470,7 +480,7 @@ export async function placeMarketplaceOrder(
       const existing = await tx.customer.findFirst({
         where: { tenantId, status: 'ACTIVE', email: { equals: user.email, mode: 'insensitive' } },
         orderBy: { createdAt: 'asc' },
-        select: { id: true, acquisitionSource: true },
+        select: { id: true, acquisitionSource: true, phone: true },
       });
       // Origine (fee D-24): portato da Gardelia solo se arriva dalla ricerca E non era già un
       // cliente della fioreria (sui clienti propri non c'è fee).
@@ -492,6 +502,15 @@ export async function placeMarketplaceOrder(
           },
           select: { id: true },
         }));
+      // Il telefono dell'ordine arriva alla fioreria: si scrive sul cliente che non ne aveva uno
+      // (M0). Quello che il fiorista ha già salvato non si tocca.
+      const customerPhoneAdded = existing !== null && !existing.phone;
+      if (customerPhoneAdded) {
+        await tx.customer.update({
+          where: { id: existing.id, tenantId },
+          data: { phone: input.contactPhone },
+        });
+      }
 
       const number = await nextTenantCounter(tx, tenantId, 'order');
       const order = await tx.order.create({
@@ -552,7 +571,8 @@ export async function placeMarketplaceOrder(
           kind: 'ORDER',
           orderId: order.id,
           createdAt: now,
-          expiresAt: publicLinkExpiry(now),
+          // Fino a 30 giorni dopo la consegna, anche per un ordine fissato lontano (M0).
+          expiresAt: orderLinkExpiry(now, partsToDate(input.scheduledDate)),
         },
         select: { id: true },
       });
@@ -568,6 +588,7 @@ export async function placeMarketplaceOrder(
             mode: input.fulfillmentMode,
             source: acquisitionSource,
             newCustomer: existing === null,
+            customerPhoneAdded,
             // Versione dei termini e dell'aviso accettati inviando l'ordine (ADR-068).
             termsVersion: LEGAL_VERSION,
           },

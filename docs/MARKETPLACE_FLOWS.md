@@ -290,22 +290,35 @@ indovina l'occupazione); il collegamento conto ↔ cliente oggi passa solo dall'
 Ogni blocco ha il suo piano di dettaglio da approvare, test (unit, integrazione con isolamento
 A↔B, E2E a 320 px), CI verde, staging con il via libera del founder.
 
-## 4. M0, correzioni subito
+## 4. M0, correzioni subito (fatto il 25/11)
 
-- **Telefono perso:** se l'email del cliente online corrisponde a un cliente della fioreria senza
-  telefono, il telefono dell'ordine si salva sul cliente (mai sovrascritto); sulla pagina
-  dell'ordine online si vedono telefono ed email del cliente.
-- **Canale online:** `online_store` fra i canali (`ACQUISITION_CHANNELS`), così modificare il
-  cliente non lo cancella.
-- **Testi:** il passo «Pide por WhatsApp» della home racconta l'ordine online; il testo del negozio
-  pubblicato non dice «te escribe por WhatsApp» quando gli ordini online sono accesi; il pannello
-  «Por aceptar» dice cosa si può cambiare davvero (data, consegna, costo; i prodotti no).
-- **Errore dell'ordine:** al posto di «no se puede cotizar», un messaggio che nomina il prodotto
-  esaurito e invita a toglierlo.
-- **Consegna a 0:** se l'ordine è a domicilio e il costo è 0, «Accetta» chiede di mettere il costo o
-  di confermare che è gratis.
-- **Prodotto tolto:** «Este producto ya no está disponible» con il link alla vetrina.
-- **Link di stato:** vale fino a 30 giorni dopo la consegna, non 60 giorni dall'ordine.
+- **Telefono perso:** se l'email di chi ordina corrisponde a un cliente della fioreria senza
+  telefono, il telefono dell'ordine si salva sul cliente; quello già salvato dal fiorista non si
+  tocca mai. Nel pannello «Da accettare» dell'ordine c'è la riga «Cliente:» con nome, telefono (si
+  tocca per chiamare) ed email (si tocca per scrivere).
+- **Canale online:** `online_store` («Negozio online») fra i canali del cliente, così modificare la
+  scheda non lo cancella più.
+- **Testi:** il terzo passo della home ora è «Ordina online o su WhatsApp»; in Impostazioni →
+  Negozio online, con gli ordini online accesi, il testo dice che i clienti mandano ordini da
+  accettare o rifiutare lì; il pannello «Da accettare» dice cosa si cambia davvero (data, consegna e
+  costo; i prodotti no).
+- **Errore dell'ordine:** al posto di «no se puede cotizar», un messaggio generale («Un prodotto che
+  hai scelto non è più disponibile: toglilo e invia di nuovo l'ordine») e, accanto al prodotto da
+  togliere, «Non è più disponibile: metti 0 per toglierlo». Il nome si vede perché l'errore sta
+  sulla riga del prodotto (i codici di validazione non portano parametri).
+- **Consegna a 0:** un ordine a domicilio con il costo a 0 si accetta solo da una finestra «Consegna
+  gratis?» («Accetta con consegna gratis»), che invita a mettere il costo prima se c'è; il servizio
+  rifiuta l'accettazione senza la conferma e il registro la ricorda (`freeDelivery`).
+- **Prodotto tolto:** il link di un prodotto tolto dalla vetrina (o mai esistito) mostra «Este
+  producto ya no está disponible» con «Ver los productos de …»; «tienda no disponible» resta solo
+  per una vetrina che non c'è.
+- **Link di stato:** vale fino a 30 giorni dopo la consegna (mai meno dei soliti 60 giorni), anche
+  per i link della conferma degli ordini del banco; se il fiorista sposta la consegna più in là, il
+  link attivo si allunga (mai accorciato, mai riaperto se scaduto o disattivato).
+- **Test:** dominio (scadenza del link, conferma della consegna a 0, canale), integrazione
+  (telefono solo se mancava, canale conservato, consegna a 0, link che segue la consegna, errore
+  accanto al prodotto), E2E dell'ordine online (riga del cliente, finestra della consegna gratis a
+  320 px, ramo tolto mentre si ordina, prodotto che non c'è più).
 
 ## PROPOSTO (da confermare)
 

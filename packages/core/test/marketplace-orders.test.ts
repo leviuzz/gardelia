@@ -1,7 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { disconnectDb, getDb, withTenantContext } from '@floral/db';
 import { createTestUser } from '@floral/db/testing';
-import { addDays, dayOfWeek, toIsoDate, todayInTimeZone, type CalendarDate } from '@floral/domain';
+import {
+  addDays,
+  dayOfWeek,
+  orderLinkExpiry,
+  publicLinkExpiry,
+  toIsoDate,
+  todayInTimeZone,
+  type CalendarDate,
+} from '@floral/domain';
 import {
   ConflictError,
   ForbiddenError,
@@ -17,6 +25,7 @@ import {
   createCustomer,
   expireUnacceptedOrders,
   getCheckoutForm,
+  getCustomer,
   getOnlineStoreSettings,
   getOrder,
   getPublicOrder,
@@ -27,6 +36,8 @@ import {
   updateDeliverySettings,
   updateOnlineOrderSettings,
   updateOnlineStore,
+  updateCustomer,
+  updateOrderFulfillment,
   updateTenantProfile,
   type BuyerContext,
   type CatalogItemDto,
@@ -358,6 +369,111 @@ describe("invio dell'ordine", () => {
       deliveryFeeMinor: 0,
       deliveryAddress: null,
     });
+    // Non aveva un telefono: arriva quello dell'ordine (M0), così la fioreria la può chiamare.
+    expect(order.customer.phone).toBe('+524495550101');
+  });
+
+  it('il telefono che la fioreria aveva già salvato non si tocca (M0)', async () => {
+    const diana = await buyer('Diana Compradora');
+    const own = await createCustomer(shop.owner, {
+      type: 'PERSON',
+      displayName: 'Diana (con teléfono)',
+      legalName: null,
+      taxId: null,
+      email: diana.email,
+      phone: '+524495550177',
+      notes: null,
+      preferences: null,
+      restrictions: null,
+      tags: [],
+      acquisitionChannel: 'walk_in',
+      marketingConsent: false,
+    });
+    const placed = await placeMarketplaceOrder(
+      diana,
+      shop.tenant.slug,
+      orderForm({ fulfillmentMode: 'PICKUP', window: '' }),
+      { fromSearch: false },
+      deps,
+    );
+    const order = await getOrder(shop.owner, placed.orderId);
+    expect(order.customer).toMatchObject({ id: own.id, phone: '+524495550177' });
+    expect((await getCustomer(shop.owner, own.id)).acquisitionChannel).toBe('walk_in');
+  });
+
+  it('il canale «Tienda en línea» resta quando la fioreria modifica il cliente (M0)', async () => {
+    const { customer } = await getOrder(shop.owner, orderId);
+    const before = await getCustomer(shop.owner, customer.id);
+    expect(before.acquisitionChannel).toBe('online_store');
+    // Gli stessi dati del modulo della scheda, con una nota in più.
+    await updateCustomer(shop.owner, customer.id, {
+      type: before.type,
+      displayName: before.displayName,
+      legalName: before.legalName,
+      taxId: before.taxId,
+      email: before.email,
+      phone: before.phone,
+      notes: 'Prefiere entregas por la mañana',
+      preferences: before.preferences,
+      restrictions: before.restrictions,
+      tags: [...before.tags],
+      acquisitionChannel: before.acquisitionChannel,
+      marketingConsent: before.marketingConsent,
+    });
+    const after = await getCustomer(shop.owner, customer.id);
+    expect(after).toMatchObject({
+      acquisitionChannel: 'online_store',
+      notes: 'Prefiere entregas por la mañana',
+    });
+  });
+
+  it('il link di un ordine lontano vale fino a 30 giorni dopo la consegna (M0)', async () => {
+    const elena = await buyer('Elena Compradora');
+    const far = openDay(40);
+    const placed = await placeMarketplaceOrder(
+      elena,
+      shop.tenant.slug,
+      orderForm({ scheduledDate: toIsoDate(far), fulfillmentMode: 'PICKUP', window: '' }),
+      { fromSearch: false },
+      deps,
+    );
+    const link = await withTenantContext(db, shop.owner, (tx) =>
+      tx.publicLink.findFirstOrThrow({
+        where: { tenantId: shop.owner.tenantId, orderId: placed.orderId },
+        select: { createdAt: true, expiresAt: true },
+      }),
+    );
+    // Il giorno di consegna è la mezzanotte UTC della data (come lo salva l'ordine).
+    const delivery = new Date(Date.UTC(far.year, far.month - 1, far.day));
+    expect(link.expiresAt).toEqual(orderLinkExpiry(link.createdAt, delivery));
+    expect(link.expiresAt > publicLinkExpiry(link.createdAt)).toBe(true);
+
+    // La fioreria sposta la consegna ancora più in là: il link la segue.
+    const later = addDays(far, 30);
+    await updateOrderFulfillment(shop.owner, placed.orderId, {
+      fulfillmentMode: 'PICKUP',
+      scheduledDate: toIsoDate(later),
+      windowStart: '',
+      windowEnd: '',
+      customerAddressId: '',
+      recipientName: '',
+      recipientPhone: '',
+      deliveryNotes: '',
+      cardMessage: '',
+      cardSignature: '',
+      deliveryFee: '',
+      notes: '',
+    });
+    const moved = await withTenantContext(db, shop.owner, (tx) =>
+      tx.publicLink.findFirstOrThrow({
+        where: { tenantId: shop.owner.tenantId, orderId: placed.orderId },
+        select: { expiresAt: true },
+      }),
+    );
+    const laterDelivery = new Date(Date.UTC(later.year, later.month - 1, later.day));
+    expect(moved.expiresAt.getTime()).toBeGreaterThanOrEqual(
+      laterDelivery.getTime() + 30 * 24 * 60 * 60 * 1000,
+    );
   });
 
   it('giorno, fascia e prodotti seguono le regole della fioreria', async () => {
@@ -380,8 +496,12 @@ describe("invio dell'ordine", () => {
       fieldErrors: { window: 'invalid_option' },
     });
     for (const item of [hidden, soldOut, foreign]) {
+      // Il messaggio generale e quello accanto al prodotto da togliere (M0).
       await expect(fail({ [`qty.${item.id}`]: '1' })).rejects.toMatchObject({
-        fieldErrors: { lines: 'item_unavailable' },
+        fieldErrors: {
+          lines: 'checkout_item_unavailable',
+          [`qty.${item.id}`]: 'checkout_item_gone',
+        },
       });
     }
     await expect(
@@ -509,6 +629,49 @@ describe("invio dell'ordine", () => {
       await expireUnacceptedOrders(deps);
       expect(mailer.lastTo(beto.email)).toBeUndefined();
     });
+  });
+});
+
+describe('«Aceptar pedido» con la consegna a 0 (M0)', () => {
+  it('a domicilio senza costo si accetta solo confermando che è gratis', async () => {
+    const fabi = await buyer('Fabiola Compradora');
+    await updateDeliverySettings(shop.owner, { closedWeekdays: ['0'], defaultFee: '0' });
+    try {
+      const placed = await placeMarketplaceOrder(
+        fabi,
+        shop.tenant.slug,
+        orderForm(),
+        { fromSearch: false },
+        deps,
+      );
+      expect(await getOrder(shop.owner, placed.orderId)).toMatchObject({
+        fulfillmentMode: 'DELIVERY',
+        deliveryFeeMinor: 0,
+      });
+      await expect(acceptOnlineOrder(shop.owner, placed.orderId, deps)).rejects.toMatchObject({
+        reason: 'order_free_delivery_unconfirmed',
+      });
+      await expect(
+        acceptOnlineOrder(shop.owner, placed.orderId, deps, { freeDeliveryConfirmed: '' }),
+      ).rejects.toBeInstanceOf(ConflictError);
+      expect((await getOrder(shop.owner, placed.orderId)).status).toBe('PENDING_ACCEPTANCE');
+
+      await acceptOnlineOrder(shop.owner, placed.orderId, deps, { freeDeliveryConfirmed: 'on' });
+      expect((await getOrder(shop.owner, placed.orderId)).status).toBe('CONFIRMED');
+      const audit = await withTenantContext(db, shop.owner, (tx) =>
+        tx.auditLog.findFirstOrThrow({
+          where: {
+            tenantId: shop.owner.tenantId,
+            entityId: placed.orderId,
+            action: 'order.accepted',
+          },
+          select: { metadata: true },
+        }),
+      );
+      expect(audit.metadata).toMatchObject({ freeDelivery: true });
+    } finally {
+      await updateDeliverySettings(shop.owner, { closedWeekdays: ['0'], defaultFee: '80' });
+    }
   });
 });
 

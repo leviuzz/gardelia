@@ -38,6 +38,8 @@ import {
   nextStoredPlace,
   orderBalanceMinor,
   orderCancelSchema,
+  onlineOrderAcceptSchema,
+  onlineOrderNeedsFreeDeliveryConfirmation,
   orderConfirmationNoticeSchema,
   orderDiscountSchema,
   orderFulfillmentSchema,
@@ -82,7 +84,7 @@ import { consumeReservationTx, releaseReservationTx } from './inventory-reservat
 import { orderStockRequest } from './order-inventory';
 import { activeOrderReservationId, syncOrderReservationTx } from './order-reservation';
 import { loadShopPlace } from './care-internals';
-import { ensureOrderPublicLinkTx } from './public-links';
+import { ensureOrderPublicLinkTx, extendOrderPublicLinkTx } from './public-links';
 import {
   catalogLineDraft,
   configurationLineDraft,
@@ -1007,8 +1009,10 @@ export async function updateOrderFulfillment(
       paymentStatus: orderPaymentStatus(order.paidMinor, totals.totalMinor),
     };
     await tx.order.update({ where: { id: order.id }, data: changes });
-    // Nuovo giorno: l'apartado dei materiali lo segue (ADR-072).
+    // Nuovo giorno: l'apartado dei materiali lo segue (ADR-072), e il link per seguire l'ordine
+    // vale fino a 30 giorni dopo la nuova consegna (M0).
     await syncOrderReservationTx(tx, ctx, order.id);
+    await extendOrderPublicLinkTx(tx, ctx, order.id, changes.scheduledDate ?? null);
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.orderUpdated,
       entityType: 'Order',
@@ -1200,9 +1204,12 @@ export async function acceptOnlineOrder(
   ctx: TenantContext,
   orderId: string,
   mail: OrderMailDeps | null = null,
+  rawInput: unknown = {},
 ): Promise<void> {
   requirePermission(ctx, 'orders:write');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
+  const freeDeliveryConfirmed =
+    onlineOrderAcceptSchema.safeParse(rawInput ?? {}).data?.freeDeliveryConfirmed === true;
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await lockOrder(tx, ctx, orderId);
     if (!order) return null;
@@ -1210,6 +1217,11 @@ export async function acceptOnlineOrder(
     const today = partsToDate(todayInTimeZone(ctx.timezone));
     if (!order.scheduledDate || order.scheduledDate < today) {
       throw new ConflictError('order_date_passed');
+    }
+    // A domicilio con la consegna a 0: si accetta solo confermando che è gratis (M0).
+    const freeDelivery = onlineOrderNeedsFreeDeliveryConfirmation(order);
+    if (freeDelivery && !freeDeliveryConfirmed) {
+      throw new ConflictError('order_free_delivery_unconfirmed');
     }
     await tx.order.update({
       where: { id: order.id },
@@ -1229,7 +1241,7 @@ export async function acceptOnlineOrder(
       action: AUDIT_ACTIONS.orderAccepted,
       entityType: 'Order',
       entityId: order.id,
-      metadata: { number: formatOrderNumber(order.number) },
+      metadata: { number: formatOrderNumber(order.number), freeDelivery },
     });
     return {
       message: mail ? await buyerOrderMail(tx, ctx.tenantId, order.id, 'accepted', mail) : null,

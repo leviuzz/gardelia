@@ -13,8 +13,24 @@ import {
   optionalUuidField,
   orderDateField,
   parseTimeInput,
+  type FulfillmentMode,
 } from './order';
 import { checkboxField, optionalText, toTrimmedString } from './validation';
+
+/**
+ * «Aceptar» un ordine online a domicilio con la consegna a 0 chiede una conferma (M0,
+ * docs/MARKETPLACE_FLOWS.md): spesso il costo era «lo confirma la florería» e va messo prima di
+ * mandare al cliente il totale e come pagare. A volte è davvero gratis.
+ */
+export function onlineOrderNeedsFreeDeliveryConfirmation(order: {
+  readonly fulfillmentMode: FulfillmentMode;
+  readonly deliveryFeeMinor: number;
+}): boolean {
+  return order.fulfillmentMode === 'DELIVERY' && order.deliveryFeeMinor === 0;
+}
+
+/** Il modulo di «Aceptar pedido»: la casella che conferma la consegna senza costo. */
+export const onlineOrderAcceptSchema = z.object({ freeDeliveryConfirmed: checkboxField() });
 
 export const MARKETPLACE_ORDER_LIMITS = {
   /** Prodotti diversi in un ordine. */

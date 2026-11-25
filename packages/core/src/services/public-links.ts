@@ -14,6 +14,8 @@ import {
   formatQuoteNumber,
   formatSubscriptionNumber,
   isUuid,
+  orderLinkDeliveryExpiry,
+  orderLinkExpiry,
   publicLinkExpiry,
   todayInTimeZone,
   type CareVisitStatus,
@@ -81,7 +83,11 @@ async function lockDocument(
   tx: TransactionClient,
   ctx: TenantContext,
   target: PublicLinkTarget,
-): Promise<{ readonly label: string; readonly shareable: boolean } | null> {
+): Promise<{
+  readonly label: string;
+  readonly shareable: boolean;
+  readonly deliveryDate?: Date | null;
+} | null> {
   if (target.kind === 'QUOTE') {
     const [quote] = await tx.$queryRaw<
       { number: number; status: QuoteStatus; validUntil: Date | null }[]
@@ -107,11 +113,17 @@ async function lockDocument(
       shareable: canShareCareVisit(visit.status),
     };
   }
-  const [order] = await tx.$queryRaw<{ number: number; status: OrderStatus }[]>`
-    SELECT "number", "status" FROM "Order"
+  const [order] = await tx.$queryRaw<
+    { number: number; status: OrderStatus; scheduledDate: Date | null }[]
+  >`
+    SELECT "number", "status", "scheduledDate" FROM "Order"
     WHERE "id" = ${target.id}::uuid AND "tenantId" = ${ctx.tenantId}::uuid FOR UPDATE`;
   if (!order) return null;
-  return { label: formatOrderNumber(order.number), shareable: canShareOrder(order.status) };
+  return {
+    label: formatOrderNumber(order.number),
+    shareable: canShareOrder(order.status),
+    deliveryDate: order.scheduledDate,
+  };
 }
 
 function toDto(
@@ -152,7 +164,12 @@ async function activeOrNewLinkTx(
   tx: TransactionClient,
   ctx: TenantContext,
   target: PublicLinkTarget,
-  document: { readonly label: string; readonly shareable: boolean },
+  document: {
+    readonly label: string;
+    readonly shareable: boolean;
+    /** Giorno di consegna di un ordine: il link vale fino a 30 giorni dopo (M0). */
+    readonly deliveryDate?: Date | null;
+  },
   renew: boolean,
 ) {
   const now = new Date();
@@ -172,7 +189,10 @@ async function activeOrNewLinkTx(
       ...documentWhere(ctx, target),
       createdById: ctx.userId,
       createdAt: now,
-      expiresAt: publicLinkExpiry(now),
+      expiresAt:
+        target.kind === 'ORDER'
+          ? orderLinkExpiry(now, document.deliveryDate ?? null)
+          : publicLinkExpiry(now),
     },
   });
   await recordAudit(tx, ctx, {
@@ -195,14 +215,49 @@ export async function ensureOrderPublicLinkTx(
   ctx: TenantContext,
   order: { readonly id: string; readonly number: number },
 ): Promise<string> {
+  // Il giorno appena salvato nella stessa transazione: il link vale fino a 30 giorni dopo (M0).
+  const current = await tx.order.findFirst({
+    where: { id: order.id, tenantId: ctx.tenantId },
+    select: { scheduledDate: true },
+  });
   const link = await activeOrNewLinkTx(
     tx,
     ctx,
     { kind: 'ORDER', id: order.id },
-    { label: formatOrderNumber(order.number), shareable: true },
+    {
+      label: formatOrderNumber(order.number),
+      shareable: true,
+      deliveryDate: current?.scheduledDate ?? null,
+    },
     false,
   );
   return link.id;
+}
+
+/**
+ * Il giorno di consegna è cambiato: il link attivo dell'ordine vale fino a 30 giorni dopo il nuovo
+ * giorno (M0). Solo allunga: mai accorcia, mai riapre un link scaduto o disattivato. Da chiamare
+ * nella transazione che ha cambiato il giorno, con la riga dell'ordine bloccata.
+ */
+export async function extendOrderPublicLinkTx(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  orderId: string,
+  deliveryDate: Date | null,
+): Promise<void> {
+  if (!deliveryDate) return;
+  const now = new Date();
+  const until = orderLinkDeliveryExpiry(deliveryDate);
+  await tx.publicLink.updateMany({
+    where: {
+      tenantId: ctx.tenantId,
+      kind: 'ORDER',
+      orderId,
+      revokedAt: null,
+      expiresAt: { gt: now, lt: until },
+    },
+    data: { expiresAt: until },
+  });
 }
 
 /**

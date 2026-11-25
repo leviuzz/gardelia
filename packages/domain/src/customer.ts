@@ -53,6 +53,9 @@ export const ACQUISITION_CHANNELS = [
   'website',
   'referral',
   'event',
+  // Ordine dalla tienda en línea (ADR-067): lo scrive l'ordine; deve stare qui perché il modulo
+  // del cliente lo conservi quando si modifica (M0, docs/MARKETPLACE_FLOWS.md).
+  'online_store',
   'other',
 ] as const;
 export type AcquisitionChannel = (typeof ACQUISITION_CHANNELS)[number];

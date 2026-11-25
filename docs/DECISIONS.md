@@ -3168,6 +3168,11 @@ niente codice nuovo»):**
   in produzione.
 - **DA VALIDARE:** termini per i consumatori (PROFECO), aviso de privacidad per le foto della prova
   di pagamento e delle piante, fatture della fioreria al cliente.
+- **M0 fatto (25/11):** telefono dell'ordine salvato sul cliente che non ne aveva uno, mai
+  sovrascritto; canale `online_store` fra quelli del cliente; testi della home, del negozio e del
+  pannello «Da accettare»; errore accanto al prodotto non più disponibile; conferma per accettare
+  con la consegna a 0; pagina del prodotto tolto; link di stato fino a 30 giorni dopo la consegna,
+  allungato se la consegna si sposta. Dettagli in `docs/MARKETPLACE_FLOWS.md` §4.
 
 ## 3. Proposte da approvare
 

@@ -32,6 +32,12 @@ describe('form cliente', () => {
     marketingConsent: 'on',
   };
 
+  it("il canale «tienda en línea» scritto dall'ordine resta modificando il cliente (M0)", () => {
+    expect(schema.parse({ ...valid, acquisitionChannel: 'online_store' }).acquisitionChannel).toBe(
+      'online_store',
+    );
+  });
+
   it('normalizza contatti, etichette e consenso', () => {
     expect(schema.parse(valid)).toMatchObject({
       displayName: 'María Fernanda López',
