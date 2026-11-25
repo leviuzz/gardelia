@@ -125,6 +125,7 @@ const STEP_FIELDS: readonly (readonly string[])[] = [
     'serviceDurationMinutes',
     'serviceRadiusKm',
     'isOnline',
+    'occasions',
     'supplierId',
     'sku',
     'description',
