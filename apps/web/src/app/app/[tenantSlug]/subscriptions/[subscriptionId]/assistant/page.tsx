@@ -212,7 +212,8 @@ export default async function PlantAssistantPage({
   const [panel, found, recent] = await Promise.all([
     getAssistantPanel(ctx),
     caseId ? loadCase(ctx, caseId, contract.id) : Promise.resolve(null),
-    listAssistantCases(ctx, contract.id, 10),
+    // L'elenco delle consultas serve solo senza un caso aperto.
+    caseId ? Promise.resolve([]) : listAssistantCases(ctx, contract.id, 10),
   ]);
   // Pianta e visita da cui si parte (link della scheda e della visita): solo se sono del contratto
   // (la visita la ricontrolla il servizio).
