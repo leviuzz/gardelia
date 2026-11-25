@@ -35,7 +35,7 @@ Ultimo aggiornamento: 25 novembre 2026 (Floral Care, Asistente de plantas, ADR-0
 | D-23       | Listino a **tre livelli** (Esencial, Profesional, Premium) più add-on (Studio, crediti AI, utenti e sedi extra, WhatsApp a consumo), al posto di Basic/Plus. Prezzi 699 / 1.199 / 1.899 MXN + IVA; immagini AI incluse 15 nel Profesional e 30 nel Premium; crediti 169 / 299 / 549 MXN; al lancio solo Esencial e Profesional    | Struttura DECISA (founder, 23/11/2026); prezzi, quote e lancio a due livelli PROPOSTI                    | `SaasPlan`/entitlements (`packages/domain/src/plans.ts`) da rifare sui livelli nello sprint billing; dettagli e conti in `docs/BUSINESS_MODEL.md` §1–3                                                          |
 | D-24       | Fee sugli ordini: **nessuna** sui clienti propri del fiorista (spec §3.2); **10–15%** sugli ordini portati da Gardelia, privati compresi, a carico del fiorista; **1–2%** sui pagamenti online tramite Gardelia, dopo la V1                                                                                                       | Regole DECISE (founder, 23/11/2026); percentuali PROPOSTE                                                | `AcquisitionSource` distingue gli ordini portati da Gardelia; all'inizio la fee va sulla fattura mensile del fiorista, senza soldi che passano dalla piattaforma (`docs/BUSINESS_MODEL.md` §4)                  |
 | D-25       | Aziende: per ora solo il marketplace per i clienti e gli ordini; poi **intermediario** (fee del 10% sulle fatture pagate, fiorista titolare più riserve, ricetta standard del cliente, pagamento per consegna confermata); il **servizio gestito** (fattura unica, margine) parte solo dopo che l'intermediario ha portato ricavi | Ordine e condizione DECISI (founder, 23/11/2026); fee e modalità PROPOSTE (il founder aveva indicato 7%) | Nessun codice ora (Network dopo la V1); `NetworkContract` (una sola offerta accettata, spec §12.2) andrà esteso con assegnazioni per consegna e riserve (`docs/BUSINESS_MODEL.md` §5)                           |
-| D-26       | **Marketplace per i clienti nella V1**: pagine pubbliche, ricerca per indirizzo, pagina di ogni fioreria con i suoi ramos, ordine del cliente. Il cliente **si registra prima di ordinare**; **pagamento diretto alla fioreria** (nessun pagamento online e nessun pagamento simulato nella V1)                                   | DECISO (founder, 23/11/2026); ricariche dell'Asistente pagate a Gardelia: ADR-075                        | Un solo `Order` per ordini del fiorista e del marketplace; piano in `docs/ORDERS_MARKETPLACE_PLAN.md`; dati del cliente in ADR-064, catalogo pubblico in ADR-065; ADR da scrivere per l’'ordine creato da fuori |
+| D-26       | **Marketplace per i clienti nella V1**: pagine pubbliche, ricerca per indirizzo, pagina di ogni fioreria con i suoi ramos, ordine del cliente. Il cliente **si registra prima di ordinare**; **pagamento diretto alla fioreria** (nessun pagamento online e nessun pagamento simulato nella V1)                                   | DECISO (founder, 23/11/2026); l'Asistente si paga con crediti della fioreria, non dei clienti: ADR-085   | Un solo `Order` per ordini del fiorista e del marketplace; piano in `docs/ORDERS_MARKETPLACE_PLAN.md`; dati del cliente in ADR-064, catalogo pubblico in ADR-065; ADR da scrivere per l’'ordine creato da fuori |
 | D-27       | **Ruta del día gratuita**: fermate ordinate per fascia oraria e vicinanza con un calcolo nostro, navigazione con i link di Google Maps; niente tracciamento in tempo reale né ottimizzazione a pagamento                                                                                                                          | DECISO (founder, 23/11/2026)                                                                             | Coordinate facoltative negli indirizzi; senza coordinate solo ordine per fascia (`docs/ORDERS_MARKETPLACE_PLAN.md` §4)                                                                                          |
 | D-28       | **Organizzazioni per le catene**: un account crea organizzazioni e sotto ognuna più fiorerie, gestite dall'organizzazione                                                                                                                                                                                                         | DECISO come direzione (founder, 23/11/2026), da progettare dopo la V1                                    | Oggi più fiorerie indipendenti per account; inventario per fioreria (ADR-060). Da progettare: ruoli, catalogo condiviso, trasferimenti, report (spec §8.6)                                                      |
 | D-29       | **Fase di prova senza piani** (founder, 24/11/2026): con poche fiorerie tester ognuna ha **tutte le funzioni** (`PLAN_FEATURES_ENFORCED`); le **anteprime con IA si pagano sempre**, con crediti assegnati dalla piattaforma dopo il pagamento, chiesti su WhatsApp. I livelli di D-23 tornano prima della produzione             | DECISO come direzione (founder, 23/11/2026), da progettare dopo la V1                                    | Oggi più fiorerie indipendenti per account; inventario per fioreria (ADR-060). Da progettare: ruoli, catalogo condiviso, trasferimenti, report (spec §8.6)                                                      |
@@ -2132,7 +2132,8 @@ Avviato dal founder con la visione del 24/11 ("l'offerta floral care deve essere
   - 3: cargos e pagamenti;
   - 4: blocchi, vacanze e cambi di massa con l'elenco dei clienti toccati;
   - 5: pagina del cliente con messaggi e "Cambiar fecha";
-  - 6: Asistente de plantas, con le ricariche pagate a Gardelia. Cambia D-26 solo per le consultas;
+  - 6: Asistente de plantas, con le ricariche pagate a Gardelia. Cambia D-26 solo per le consultas
+    (superato il 25/11 da ADR-085: i crediti li compra la fioreria, D-26 resta intatta);
   - 7: consegne periodiche.
 
 ### ADR-076 — Dati della fioreria: vigencia, orario di apertura, logo nelle stampe — ADOTTATO (24/11/2026)
@@ -2942,7 +2943,29 @@ un'email per ognuno").
   fioreria, fuori dall'app), notifiche push, allegati diversi dalle foto, ricerca nei messaggi. Le
   consultas a pagamento sono del blocco 6.
 
-### ADR-085 — Floral Care, blocco 6: Asistente de plantas (6a: dati, motore, prova pagata, assistente del fiorista) — IN CORSO (25/11/2026)
+### ADR-085 — Floral Care, blocco 6: Asistente de plantas per i clienti, con i crediti della fioreria — IN CORSO (25/11/2026)
+
+**Cambio del 25/11 pomeriggio (founder, dopo la prova pagata), che prevale su quanto segue:**
+
+- l'assistente è per i **clienti della fioreria**, in Mi Floral Care, durante il Floral Care, quando
+  il fiorista non c'è. Il fiorista non lo usa: la consulta del fiorista del 6a si toglie;
+- Gardelia vende **crediti alla fioreria**: 1 credito = 1 risposta (l'analisi della foto è compresa
+  nella prima domanda), 100 crediti = 199 MXN (IVA da validare), comprati come i crediti delle
+  immagini (WhatsApp, poi accredito della piattaforma, D-29);
+- la fioreria dà crediti a un contratto quando vuole e li rivende come vuole (servizio suo, con il
+  suo prezzo); non scadono finché il contratto è attivo; a fine contratto quelli non usati tornano
+  alla fioreria;
+- niente pagamenti dei clienti a Gardelia: il 6c (Stripe per i clienti) non si fa e D-26 resta
+  intatta;
+- **mix dei modelli** (dati della prova in `docs/AI_BENCHMARK.md`): riconoscimento della foto con
+  Opus 5.5, risposte di cura con Haiku 5.5, risposte su un problema con Opus 5.5; niente Sonnet;
+- budget di piattaforma, come rete di sicurezza: 2 USD fino al 1° dicembre, poi 10 USD al mese;
+- prompt v2 dopo la prova: luce bassa «tollera poca luce, ma cresce meglio con luce indiretta
+  brillante» (non più «lontano dalle finestre»), pubblico = il cliente, «tú», risposte più brevi,
+  piante in terra o in fioriera.
+
+Quello che segue descrive il 6a com'è stato rilasciato su staging (spento); il 6b porta il modello
+nuovo.
 
 Blocco 6 del piano approvato (`docs/FLORAL_CARE_PLAN.md` §4, §7.6), chiesto dal founder ("ok vai col
 blocco 6"), in tre rilasci: **6a** dati delle piante, motore, prova pagata e assistente del fiorista;
