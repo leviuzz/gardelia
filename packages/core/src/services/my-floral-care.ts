@@ -53,6 +53,7 @@ import {
   isUuid,
   newId,
   normalizeEmail,
+  parseCareServiceTranslations,
   resolveLocale,
   toFieldErrors,
   todayInTimeZone,
@@ -64,6 +65,7 @@ import {
   type CarePortalInviteStatus,
   type CarePortalScope,
   type CareServicePricing,
+  type CareServiceTranslations,
   type CareServiceUnit,
   type CareVisitStatus,
   type CustomerSubscriptionStatus,
@@ -266,7 +268,10 @@ export interface MyCareContractDto {
     readonly currency: string;
   } | null;
   readonly services: readonly {
+    readonly serviceId: string;
+    /** Nome principale (lingua del mercato); la pagina sceglie la traduzione della persona. */
     readonly name: string;
+    readonly translations: CareServiceTranslations;
     readonly pricing: CareServicePricing;
     readonly unit: CareServiceUnit;
     /** null senza i soldi. */
@@ -412,7 +417,14 @@ export async function getMyCareContract(
         },
         services: {
           orderBy: { createdAt: 'asc' },
-          select: { name: true, pricing: true, unit: true, priceMinor: true },
+          select: {
+            serviceId: true,
+            name: true,
+            translations: true,
+            pricing: true,
+            unit: true,
+            priceMinor: true,
+          },
         },
       },
     });
@@ -508,7 +520,9 @@ export async function getMyCareContract(
         }
       : null,
     services: contract.services.map((service) => ({
+      serviceId: service.serviceId,
       name: service.name,
+      translations: parseCareServiceTranslations(service.translations),
       pricing: service.pricing,
       unit: service.unit,
       priceMinor: money ? service.priceMinor : null,

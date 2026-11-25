@@ -81,7 +81,7 @@ import {
   updateCareContractDetailsAction,
   updateCarePlantAction,
 } from '../actions';
-import { contractFormOptions, weekdayNamer } from '../care-form-data';
+import { contractFormOptions, siteContactFor, weekdayNamer } from '../care-form-data';
 
 async function loadContract(
   ctx: TenantContext,
@@ -178,6 +178,8 @@ export default async function CareContractPage({
     : [];
   const form = canWrite ? await getCareContractForm(ctx, contract.customer.id) : null;
   const options = form ? await contractFormOptions(form) : null;
+  // «Usa i dati del cliente» nel dialogo dei dettagli: la sede del contratto.
+  const siteContact = form ? siteContactFor(form, contract.address?.id ?? null, contract) : null;
   const today = todayInTimeZone(ctx.timezone);
   const canExtra = canWrite && contract.status === 'ACTIVE';
   const canQuote = canWrite && isActive && hasPermission(ctx, 'quotes:write');
@@ -448,10 +450,12 @@ export default async function CareContractPage({
                   !options.services.some((option) => option.serviceId === service.serviceId),
               ),
             ]}
+            contact={siteContact!.contact}
             defaults={{
               serviceIds: contract.services.map((service) => service.serviceId),
               contactName: contract.contactName ?? '',
               contactPhone: phoneForInput(contract.contactPhone),
+              useCustomerContact: siteContact!.useCustomerContact,
               accessNotes: contract.accessNotes ?? '',
               notes: contract.notes ?? '',
             }}

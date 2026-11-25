@@ -47,8 +47,10 @@ import {
   requestTenantDeletion,
   runCareMaintenance,
   saveCareVisitNote,
+  setCareServiceActive,
   setObjectStorage,
   startCareVisit,
+  updateCareService,
   updateCareSettings,
   updateCareSlot,
   updatePrimaryLocation,
@@ -306,6 +308,52 @@ describe('offerta della fioreria', () => {
     ).rejects.toBeInstanceOf(ValidationError);
   });
 
+  it('nomi dei servizi: principale in spagnolo, traduzioni per chi usa l’app in un’altra lingua', async () => {
+    const inItalian: TenantContext = { ...shop.owner, locale: 'it-IT' };
+    const settings = await getCareSettings(inItalian);
+    const watering = settings.services.find((service) => service.presetKey === 'watering')!;
+    expect(watering).toMatchObject({
+      name: 'Riego',
+      displayName: 'Irrigazione',
+      translations: { 'it-IT': 'Irrigazione', 'en-US': 'Watering' },
+    });
+    // La proposta: nome principale nella lingua del mercato, scritta nella lingua di chi guarda.
+    expect(settings.suggestions.find((suggestion) => suggestion.key === 'repotting')).toMatchObject(
+      { name: 'Trasplante', displayName: 'Rinvaso', translations: { 'it-IT': 'Rinvaso' } },
+    );
+    // Il fertilizzante è stato aggiunto senza traduzioni: si vede il nome principale.
+    expect(settings.services.find((service) => service.id === fertilizingId)).toMatchObject({
+      displayName: 'Fertilización',
+      translations: {},
+    });
+
+    // Un servizio scritto dal fiorista, con l'italiano; lo spagnolo è il nome principale.
+    const custom = await createCareService(inItalian, {
+      name: 'Limpieza profunda',
+      translations: { 'it-IT': 'Pulizia profonda', 'es-MX': 'ignorado' },
+      pricing: 'INCLUDED',
+      unit: 'PER_VISIT',
+    });
+    const withCustom = await getCareSettings(inItalian);
+    const saved = withCustom.services.find((service) => service.id === custom.id)!;
+    expect(saved).toMatchObject({ name: 'Limpieza profunda', displayName: 'Pulizia profonda' });
+    // Lo spagnolo è il nome principale: una «traduzione» in spagnolo non si salva.
+    expect(saved.translations).toEqual({ 'it-IT': 'Pulizia profonda' });
+    const inEnglish = await getCareSettings({ ...shop.owner, locale: 'en-US' });
+    expect(inEnglish.services.find((service) => service.id === custom.id)?.displayName).toBe(
+      'Limpieza profunda',
+    );
+    await expect(
+      updateCareService(shop.owner, custom.id, {
+        name: 'Limpieza profunda',
+        translations: { 'it-IT': 'x'.repeat(CARE_LIMITS.serviceName + 1) },
+        pricing: 'INCLUDED',
+        unit: 'PER_VISIT',
+      }),
+    ).rejects.toMatchObject({ fieldErrors: { 'translations.it-IT': 'too_long' } });
+    await setCareServiceActive(shop.owner, custom.id, false);
+  });
+
   it('fasce di uscita e sovrapprezzo per distanza', async () => {
     tueSlot = (await createCareSlot(shop.owner, slotInput(2, '09:00', '12:00', 2))).id;
     todaySlot = (
@@ -366,6 +414,26 @@ describe('contratto: dalla bozza alla conferma', () => {
     expect(draft.services.map((service) => service.serviceId).sort()).toEqual(
       [wateringId, fertilizingId].sort(),
     );
+
+    // Il contratto copia nome e traduzioni: in italiano si legge «Irrigazione». Cambiando la
+    // traduzione del servizio, la copia con lo stesso nome principale la segue.
+    const italian: TenantContext = { ...shop.owner, locale: 'it-IT' };
+    const nameIn = async (ctx: TenantContext) =>
+      (await getCareContract(ctx, contractId)).services.find(
+        (service) => service.serviceId === wateringId,
+      )?.name;
+    expect(await nameIn(italian)).toBe('Irrigazione');
+    expect(await nameIn(shop.owner)).toBe('Riego');
+    const wateringInput = (italianName: string) => ({
+      name: 'Riego',
+      translations: { 'it-IT': italianName, 'en-US': 'Watering' },
+      pricing: 'INCLUDED',
+      unit: 'PER_VISIT',
+    });
+    await updateCareService(shop.owner, wateringId, wateringInput('Annaffiatura'));
+    expect(await nameIn(italian)).toBe('Annaffiatura');
+    await updateCareService(shop.owner, wateringId, wateringInput('Irrigazione'));
+    expect(await nameIn(italian)).toBe('Irrigazione');
   });
 
   it('senza piante non si conferma; con le piante il server calcola il prezzo', async () => {

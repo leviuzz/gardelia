@@ -108,8 +108,9 @@ export async function VisitReportView({
         <section className="space-y-2">
           <h3 className="font-semibold">{t('servicesTitle')}</h3>
           <ul className="grid gap-1.5">
-            {report.services.map((service) => (
-              <li key={service.name} className="flex items-start gap-2">
+            {report.services.map((service, index) => (
+              // Due servizi possono avere lo stesso nome: la chiave è la posizione.
+              <li key={index} className="flex items-start gap-2">
                 {service.outcome === 'DONE' ? (
                   <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
                 ) : (

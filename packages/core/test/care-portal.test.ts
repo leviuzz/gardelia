@@ -538,6 +538,13 @@ describe('cosa vede la persona', () => {
     ).toBeNull();
 
     const contract = await getMyCareContract(onlyOne.buyer, first.subscriptionId);
+    // I servizi arrivano con le traduzioni copiate sul contratto: la pagina sceglie la lingua.
+    expect(contract.services).toEqual([
+      expect.objectContaining({
+        name: 'Riego',
+        translations: { 'it-IT': 'Irrigazione', 'en-US': 'Watering' },
+      }),
+    ]);
     expect(contract).toMatchObject({
       numberLabel: expect.stringMatching(/^SUS-/),
       status: 'ACTIVE',

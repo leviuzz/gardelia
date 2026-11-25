@@ -9,7 +9,15 @@ import {
   careVisitMoveSchema,
   findCareServicePreset,
   careScheduleProblem,
+  careServiceName,
+  careServicePresetNames,
+  careSiteContact,
+  careSiteContactMatches,
   careServiceSchema,
+  CARE_LIMITS,
+  CARE_SERVICE_PRESETS,
+  parseCareServiceTranslations,
+  SUPPORTED_LOCALES,
   careSettingsSchema,
   carePlantSchema,
   careSlotSchema,
@@ -376,5 +384,103 @@ describe('moduli dei cambi che toccano visite', () => {
     });
     expect(findCareServicePreset('fertilizing')).toMatchObject({ pricing: 'EXTRA' });
     expect(findCareServicePreset('nope')).toBeNull();
+  });
+});
+
+describe('nomi dei servizi nelle tre lingue (ADR-042)', () => {
+  it('ogni servizio della nostra lista ha il nome in tutte le lingue, entro il limite', () => {
+    for (const preset of CARE_SERVICE_PRESETS) {
+      for (const locale of SUPPORTED_LOCALES) {
+        const name = preset.names[locale];
+        expect(name.trim().length, `${preset.key} ${locale}`).toBeGreaterThan(0);
+        expect(name.length).toBeLessThanOrEqual(CARE_LIMITS.serviceName);
+      }
+    }
+  });
+
+  it('nome principale nella lingua del mercato, le altre come traduzioni', () => {
+    const watering = findCareServicePreset('watering')!;
+    expect(careServicePresetNames(watering, 'es-MX')).toEqual({
+      name: 'Riego',
+      translations: { 'it-IT': 'Irrigazione', 'en-US': 'Watering' },
+    });
+    expect(careServicePresetNames(watering, 'it-IT')).toEqual({
+      name: 'Irrigazione',
+      translations: { 'es-MX': 'Riego', 'en-US': 'Watering' },
+    });
+  });
+
+  it('si vede la traduzione della lingua di chi guarda, se no il nome principale', () => {
+    const service = { name: 'Riego', translations: { 'it-IT': 'Irrigazione' } };
+    expect(careServiceName(service, 'it-IT')).toBe('Irrigazione');
+    expect(careServiceName(service, 'en-US')).toBe('Riego');
+    expect(careServiceName(service, 'es-MX')).toBe('Riego');
+  });
+
+  it('dal database: solo lingue note e testi non vuoti', () => {
+    expect(
+      parseCareServiceTranslations({ 'it-IT': ' Rinvaso ', 'en-US': '', 'fr-FR': 'Rempotage' }),
+    ).toEqual({ 'it-IT': 'Rinvaso' });
+    expect(parseCareServiceTranslations(null)).toEqual({});
+    expect(parseCareServiceTranslations(['x'])).toEqual({});
+  });
+
+  it('modulo: traduzioni facoltative, vuote tolte, non più lunghe del nome', () => {
+    const schema = careServiceSchema('MXN');
+    expect(
+      schema.parse({
+        name: 'Trasplante',
+        translations: { 'it-IT': ' Rinvaso ', 'en-US': '' },
+        pricing: 'INCLUDED',
+        unit: 'PER_VISIT',
+      }).translations,
+    ).toEqual({ 'it-IT': 'Rinvaso' });
+    // Senza traduzioni (moduli di prima): nessuna.
+    expect(
+      schema.parse({ name: 'Riego', pricing: 'INCLUDED', unit: 'PER_VISIT' }).translations,
+    ).toEqual({});
+    const tooLong = schema.safeParse({
+      name: 'Riego',
+      translations: { 'it-IT': 'x'.repeat(CARE_LIMITS.serviceName + 1) },
+      pricing: 'INCLUDED',
+      unit: 'PER_VISIT',
+    });
+    expect(tooLong.success).toBe(false);
+    if (!tooLong.success) {
+      expect(toFieldErrors(tooLong.error)).toEqual({ 'translations.it-IT': 'too_long' });
+    }
+  });
+});
+
+describe('«Usa i dati del cliente» nella sede', () => {
+  const customer = { name: 'Oficinas Norte', phone: '+524495550101' };
+
+  it('prima il destinatario dell’indirizzo, poi il cliente', () => {
+    expect(careSiteContact(customer, null)).toEqual({
+      name: 'Oficinas Norte',
+      phone: '+524495550101',
+    });
+    expect(
+      careSiteContact(customer, { recipientName: 'Recepción', recipientPhone: '+524495550202' }),
+    ).toEqual({ name: 'Recepción', phone: '+524495550202' });
+    expect(careSiteContact(customer, { recipientName: '  ', recipientPhone: null })).toEqual({
+      name: 'Oficinas Norte',
+      phone: '+524495550101',
+    });
+    expect(careSiteContact({ name: 'Ana', phone: null }, null)).toEqual({
+      name: 'Ana',
+      phone: null,
+    });
+  });
+
+  it('parte acceso con i dati vuoti o uguali, spento se sono diversi', () => {
+    const proposed = { name: 'Recepción', phone: '+524495550202' };
+    expect(careSiteContactMatches({ name: null, phone: null }, proposed)).toBe(true);
+    expect(careSiteContactMatches({ name: 'Recepción', phone: '+524495550202' }, proposed)).toBe(
+      true,
+    );
+    expect(careSiteContactMatches({ name: 'Recepción', phone: null }, proposed)).toBe(true);
+    expect(careSiteContactMatches({ name: 'Don Luis', phone: null }, proposed)).toBe(false);
+    expect(careSiteContactMatches({ name: null, phone: '+524495559999' }, proposed)).toBe(false);
   });
 });

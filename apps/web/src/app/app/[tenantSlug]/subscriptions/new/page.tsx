@@ -268,6 +268,8 @@ export default async function NewCareContractPage({
             .map((service) => service.serviceId),
           contactName: '',
           contactPhone: '',
+          // Persona e telefono dal cliente: si spegne per scriverli a mano.
+          useCustomerContact: true,
           accessNotes: '',
           notes: '',
           outOfRangeConfirmed: false,

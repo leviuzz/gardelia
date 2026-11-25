@@ -24,12 +24,15 @@ import {
   carePlantSchema,
   careScheduleChangeSchema,
   careScheduleProblem,
+  careServiceName,
+  careSiteContact,
   careTravelForDistance,
   compareDates,
   estimateCareMonth,
   formatSubscriptionNumber,
   formatTimeOfDay,
   isUuid,
+  parseCareServiceTranslations,
   speciesOption,
   toFieldErrors,
   todayInTimeZone,
@@ -245,12 +248,16 @@ export interface CareContractListResult {
 
 export interface CareContractFormDto {
   readonly configured: boolean;
-  readonly customer: { readonly id: string; readonly name: string };
+  /** Telefono in E.164, per «Usa i dati del cliente» quando la sede non ha un destinatario. */
+  readonly customer: { readonly id: string; readonly name: string; readonly phone: string | null };
   readonly addresses: readonly {
     readonly id: string;
     readonly label: string | null;
     readonly line: string;
     readonly city: string;
+    /** «Usa i dati del cliente» per questa sede: persona e telefono (E.164) proposti. */
+    readonly contactName: string;
+    readonly contactPhone: string | null;
   }[];
   readonly frequencies: readonly CareFrequency[];
   readonly slots: readonly {
@@ -314,6 +321,17 @@ async function resolveSlots(
   return slots;
 }
 
+/** Nome di un servizio (o della sua copia) nella lingua di chi guarda (ADR-042). */
+function localServiceName(
+  service: { readonly name: string; readonly translations: Prisma.JsonValue },
+  ctx: TenantContext,
+): string {
+  return careServiceName(
+    { name: service.name, translations: parseCareServiceTranslations(service.translations) },
+    ctx.locale,
+  );
+}
+
 /** Servizi attivi (o già nel contratto, anche se poi archiviati). */
 async function resolveServices(
   tx: TransactionClient,
@@ -324,7 +342,15 @@ async function resolveServices(
   const ids = [...new Set(serviceIds)];
   const services = await tx.careService.findMany({
     where: { tenantId, id: { in: ids } },
-    select: { id: true, name: true, pricing: true, unit: true, priceMinor: true, status: true },
+    select: {
+      id: true,
+      name: true,
+      translations: true,
+      pricing: true,
+      unit: true,
+      priceMinor: true,
+      status: true,
+    },
   });
   if (
     services.length !== ids.length ||
@@ -387,7 +413,10 @@ async function replaceSlotLinks(
   });
 }
 
-/** Servizi del contratto: tolti quelli non più scelti, aggiunti i nuovi con nome e prezzo di oggi. */
+/**
+ * Servizi del contratto: tolti quelli non più scelti, aggiunti i nuovi con nome, traduzioni e
+ * prezzo di oggi.
+ */
 async function replaceServiceLinks(
   tx: TransactionClient,
   tenantId: string,
@@ -395,6 +424,7 @@ async function replaceServiceLinks(
   services: readonly {
     readonly id: string;
     readonly name: string;
+    readonly translations: Prisma.JsonValue;
     readonly pricing: CareServicePricing;
     readonly unit: CareServiceUnit;
     readonly priceMinor: number;
@@ -417,6 +447,7 @@ async function replaceServiceLinks(
       subscriptionId,
       serviceId: service.id,
       name: service.name,
+      translations: parseCareServiceTranslations(service.translations),
       pricing: service.pricing,
       unit: service.unit,
       priceMinor: service.priceMinor,
@@ -424,7 +455,7 @@ async function replaceServiceLinks(
   });
 }
 
-/** Alla conferma e all'aggiornamento del prezzo: nome e prezzo dei servizi copiati da oggi. */
+/** Alla conferma e all'aggiornamento del prezzo: nome, traduzioni e prezzo copiati da oggi. */
 async function refreshServiceSnapshots(
   tx: TransactionClient,
   tenantId: string,
@@ -434,7 +465,9 @@ async function refreshServiceSnapshots(
     where: { tenantId, subscriptionId },
     select: {
       id: true,
-      service: { select: { name: true, pricing: true, unit: true, priceMinor: true } },
+      service: {
+        select: { name: true, translations: true, pricing: true, unit: true, priceMinor: true },
+      },
     },
   });
   for (const link of links) {
@@ -442,6 +475,7 @@ async function refreshServiceSnapshots(
       where: { id: link.id, tenantId },
       data: {
         name: link.service.name,
+        translations: parseCareServiceTranslations(link.service.translations),
         pricing: link.service.pricing,
         unit: link.service.unit,
         priceMinor: link.service.priceMinor,
@@ -484,7 +518,7 @@ export async function getCareContractForm(
     await requireEntitlement(ctx, 'floralCare', tx);
     const customer = await tx.customer.findFirst({
       where: { tenantId: ctx.tenantId, id: customerId },
-      select: { id: true, displayName: true },
+      select: { id: true, displayName: true, phone: true },
     });
     if (!customer) return null;
     const [settings, addresses, slots, services] = await Promise.all([
@@ -492,7 +526,15 @@ export async function getCareContractForm(
       tx.customerAddress.findMany({
         where: { tenantId: ctx.tenantId, customerId: customer.id, status: 'ACTIVE' },
         orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
-        select: { id: true, label: true, addressLine1: true, neighborhood: true, city: true },
+        select: {
+          id: true,
+          label: true,
+          addressLine1: true,
+          neighborhood: true,
+          city: true,
+          recipientName: true,
+          recipientPhone: true,
+        },
       }),
       tx.careSlot.findMany({
         where: { tenantId: ctx.tenantId, status: 'ACTIVE' },
@@ -509,13 +551,25 @@ export async function getCareContractForm(
   const bounds = startBounds(today);
   return {
     configured: found.settings !== null,
-    customer: { id: found.customer.id, name: found.customer.displayName },
-    addresses: found.addresses.map((address) => ({
-      id: address.id,
-      label: address.label,
-      line: addressLineOf(address),
-      city: address.city,
-    })),
+    customer: {
+      id: found.customer.id,
+      name: found.customer.displayName,
+      phone: found.customer.phone,
+    },
+    addresses: found.addresses.map((address) => {
+      const contact = careSiteContact(
+        { name: found.customer.displayName, phone: found.customer.phone },
+        address,
+      );
+      return {
+        id: address.id,
+        label: address.label,
+        line: addressLineOf(address),
+        city: address.city,
+        contactName: contact.name,
+        contactPhone: contact.phone,
+      };
+    }),
     frequencies: found.settings?.frequencies ?? [],
     slots: found.slots.map((slot) => ({
       id: slot.id,
@@ -526,7 +580,8 @@ export async function getCareContractForm(
     })),
     services: found.services.map((service) => ({
       serviceId: service.id,
-      name: service.name,
+      // Nella lingua di chi guarda: il contratto copia il nome principale e le traduzioni.
+      name: localServiceName(service, ctx),
       pricing: service.pricing,
       unit: service.unit,
       priceMinor: service.priceMinor,
@@ -1507,7 +1562,7 @@ export async function getCareContract(
       })),
     services: subscription.services.map((service) => ({
       serviceId: service.serviceId,
-      name: service.name,
+      name: localServiceName(service, ctx),
       pricing: service.pricing,
       unit: service.unit,
       priceMinor: service.priceMinor,
