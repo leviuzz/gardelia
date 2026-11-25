@@ -1318,8 +1318,54 @@ della card della fioreria: nessuno sbordo.
 E2E completo in locale 114/114. CI verde su `ad9b1d0` (run 230, E2E compreso) e rilascio su
 staging (merge `4b0c3d6`).
 
-Prossimo: il blocco 6 di `docs/FLORAL_CARE_PLAN.md` (Asistente de plantas), dopo le decisioni del
-founder sulla prova a pagamento.
+**Floral Care, blocco 6a (25/11, ADR-085, in corso: manca la prova pagata):** "ok vai col blocco 6"
+del founder, con le decisioni del 25/11 (solo foto libere per la prova; Opus 5.5, Sonnet 5.5 e Haiku
+5.5 con un tetto di 15 USD; consultas del fiorista pagate da Gardelia, al massimo 20 al giorno per
+fioreria dentro un budget mensile; per i clienti 0–10 incluse al mese per contratto, poi a
+pagamento).
+
+- **Dati:** 19 piante d'interno nuove (91 specie, 36 in vaso); `CanonicalFlower.care` con luce,
+  acqua, umidità e tossicità per cani e gatti dall'ASPCA (`reviewed: false`); colonne di cura nel
+  foglio di revisione. DA VALIDARE da un fiorista.
+- **Database:** migrazioni `plant_assistant` e `plant_assistant_purge`: `AssistantCase`,
+  `AssistantAnswer`, `AssistantCall` (solo inserimenti, RLS, FK composite, CHECK), la DEFINER
+  `app_assistant_spend_since` per il budget e i casi nella cancellazione delle foto.
+- **Motore:** `ClaudePlantAssistant` (`@anthropic-ai/sdk` 1.14.0 fissato: output strutturato,
+  effort basso, sistema in cache, fallback lato server, costo dai token veri) e
+  `SimulatedPlantAssistant` (solo locale); configurazione `ASSISTANT_PROVIDER`,
+  `ANTHROPIC_API_KEY`, `ASSISTANT_MODEL`, `ASSISTANT_MONTHLY_BUDGET_USD` (Opus 5.5 e 20 USD finché
+  il founder non sceglie).
+- **Servizi:** permesso `care:assistant` per tutti i ruoli; tetto del giorno (20 risposte e 40 foto
+  per fioreria) e budget del mese controllati prima della chiamata, fatta fuori dalle transazioni;
+  errori e rifiuti registrati col costo ma non contati; registro `care.assistant_answered` senza
+  testi.
+- **Interfaccia:** pagina `subscriptions/[id]/assistant` (foto ridotta nel browser → specie
+  candidate con la scheda per prima, «Otra», «No sé» → domanda → risposta con i passi, cura e
+  avviso per cani e gatti dai nostri dati, avviso dell'IA; «Otra pregunta» fino a 3 per foto;
+  contatore del giorno); card nel contratto, icona su ogni pianta, «Preguntar al asistente» sulle
+  piante con un problema nella visita; niente link senza assistente configurato.
+- **Legale:** Anthropic fra i fornitori dell'aviso de privacidad e la clausola dell'assistente nei
+  termini (bozze, `legal:sync` fatto).
+- **Prova pagata:** script `packages/core/scripts/assistant-benchmark.ts` pronto (tetto 15 USD con
+  riserva per il giudice, piante fuori dalla lista, domande per foto). Le foto arrivano da Commons
+  con `thumb.php` a 960 px (le miniature di `upload.wikimedia.org` rispondono 400/429 se non sono
+  in cache, `thumb.wikimedia.org` non è raggiungibile), lentamente per i 429 dell'IP condiviso.
+  **Manca la chiave di Anthropic:** il modulo sicuro non accetta gli host di Anthropic; serve la
+  variabile `ANTHROPIC_API_KEY` dell'environment (letta da una sessione nuova o dopo un riavvio).
+
+Verifiche locali: lint ✅ · format ✅ · typecheck ✅ · migrazioni = schema ✅ · test 1229/1229 ✅
+(dominio: schemi, costi con e senza cache e con il fallback, prompt, pulizia delle risposte,
+permesso; DB: dati di cura validi; adattatore con l'SDK finto: forma della richiesta, costo,
+rifiuti ed errori; integrazione: caso e risposta, specie fuori dalle candidate, cura e tossicità
+nostre, tetto del giorno, budget finito, errore non contato, staff ammesso, isolamento A↔B con la
+sonda, foto del contratto del percorso, cancellazione a fine contratto + 30 giorni) · build ✅ ·
+E2E dell'assistente ✅ (dalla pianta del contratto: foto → candidate → «Otra» → risposta con la
+tossicità ASPCA → «Otra pregunta», contatore, card del contratto) · controllo a 320 px del caso e
+del contratto: nessuno sbordo.
+
+Prossimo: la prova pagata appena c'è la chiave, il resoconto in `docs/AI_BENCHMARK.md` e la scelta
+del founder; poi il rilascio del 6a su staging con il suo via libera e le variabili dell'assistente
+su Vercel. Dopo, i piani di dettaglio del 6b e del 6c.
 
 Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
 
@@ -1336,7 +1382,8 @@ Ordine verso la V1 (dettagli e stato per area in `docs/V1_SCOPE.md`):
    (ADR-072) dagli ordini.
 4. Clienti completi (ADR-070): fatto (cronologia, etichette e filtri, import da CSV).
 5. Abbonamenti dei clienti e Floral Care: blocchi 1 (ADR-075), 2 (ADR-078), 3 (ADR-082), 4
-   (ADR-083) e 5 (ADR-084) fatti; blocchi 6–7 in `docs/FLORAL_CARE_PLAN.md`.
+   (ADR-083) e 5 (ADR-084) fatti; 6a (ADR-085) fatto tranne la prova pagata; 6b, 6c e 7 in
+   `docs/FLORAL_CARE_PLAN.md`.
 6. Report: fatti (ADR-080); restano i P1 dello spec (funnel, retention, profitto per ramo).
    Catalogo completo (ADR-081): fatto; manca la revisione dell'elenco dei fiori da un fiorista.
 7. Impostazioni della fioreria complete (logo, orari, consegne) ed email ai clienti e al team.
