@@ -3257,7 +3257,8 @@
       "portal_access_granted": "{actor} ha accettato l’invito a Mi Floral Care",
       "portal_access_revoked": "{actor} ha tolto un accesso a Mi Floral Care",
       "visit_moved_by_customer": "{actor} ha cambiato da Mi Floral Care la data di una visita di {number}",
-      "message_photo_removed": "{actor} ha tolto la foto di un messaggio di {number}"
+      "message_photo_removed": "{actor} ha tolto la foto di un messaggio di {number}",
+      "assistant_answered": "{actor} ha consultato l'Asistente de plantas su una pianta di {number}"
     },
     "notice": {
       "label": "Sì, ho avvisato il cliente"

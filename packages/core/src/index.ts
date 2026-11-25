@@ -339,6 +339,30 @@ export {
   type CareUnreadMessagesDto,
 } from './services/care-messages';
 export {
+  answerAssistantCase,
+  getAssistantCase,
+  getAssistantPanel,
+  getAssistantPhotoImage,
+  listAssistantCases,
+  startAssistantCase,
+  type AssistantAnswerDto,
+  type AssistantCaseDto,
+  type AssistantCaseSummaryDto,
+  type AssistantPanelDto,
+  type AssistantSpeciesDto,
+  type StartAssistantCaseInput,
+} from './services/plant-assistant';
+export {
+  ClaudePlantAssistant,
+  SimulatedPlantAssistant,
+  createPlantAssistantFromEnv,
+  getPlantAssistant,
+  setPlantAssistant,
+  type AssistantCallResult,
+  type AssistantImage,
+  type PlantAssistant,
+} from './ai/plant-assistant';
+export {
   acceptCarePortalInvite,
   changeMyCareVisitDate,
   getCarePortalInvitePreview,

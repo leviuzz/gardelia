@@ -52,6 +52,12 @@ describe('Asistente de plantas: costo dai token veri', () => {
     expect(cost).toBe(30_000 + 2_500 + 2_500);
   });
 
+  it('un modello del fallback si paga con il suo listino; uno sconosciuto come Opus 5', () => {
+    expect(assistantCallCostMicros('claude-sonnet-5', usage)).toBe(2_000_000);
+    expect(assistantCallCostMicros('claude-opus-4-8', usage)).toBe(5_000_000);
+    expect(assistantCallCostMicros('claude-nuevo', usage)).toBe(5_000_000);
+  });
+
   it('arrotonda per eccesso e stima una chiamata in modo prudente', () => {
     expect(
       assistantCallCostMicros('claude-haiku-5-5', {

@@ -332,45 +332,73 @@ export async function purgeCarePhotos(
           take: CARE_PHOTO_PURGE.photosPerContract,
           select: { id: true, storageKey: true, thumbKey: true },
         });
+        // Le foto dei casi dell'Asistente de plantas (ADR-085): solo a fine contratto + 30 giorni.
+        const assistantPhotos = contractDue
+          ? await tx.assistantCase.findMany({
+              where: { tenantId, subscriptionId, photoDeletedAt: null },
+              orderBy: { createdAt: 'asc' },
+              take: CARE_PHOTO_PURGE.photosPerContract,
+              select: { id: true, storageKey: true, thumbKey: true },
+            })
+          : [];
         return {
           number: contract.number,
           photos,
+          assistantPhotos,
           overdue: end !== null && contractDue && isCarePhotoPurgeOverdue(end, today),
         };
       });
-      if (!work || work.photos.length === 0) continue;
+      if (!work || work.photos.length + work.assistantPhotos.length === 0) continue;
       const done: string[] = [];
+      const doneCases: string[] = [];
+      let stopped = false;
       for (const photo of work.photos) {
+        if (Date.now() > deadline) break;
+        if (!(await deleteCarePhotoFiles(photo))) {
+          failed += 1;
+          stopped = true;
+          break;
+        }
+        done.push(photo.id);
+      }
+      for (const photo of stopped ? [] : work.assistantPhotos) {
         if (Date.now() > deadline) break;
         if (!(await deleteCarePhotoFiles(photo))) {
           failed += 1;
           break;
         }
-        done.push(photo.id);
+        doneCases.push(photo.id);
       }
-      if (done.length < work.photos.length && work.overdue) {
+      const total = work.photos.length + work.assistantPhotos.length;
+      if (done.length + doneCases.length < total && work.overdue) {
         logger.error(
-          { subscriptionId, pending: work.photos.length - done.length },
+          { subscriptionId, pending: total - done.length - doneCases.length },
           'foto di Floral Care ancora da cancellare 7 giorni dopo la data',
         );
       }
-      if (done.length === 0) continue;
+      if (done.length + doneCases.length === 0) continue;
       await withTenantContext(getDb(), { tenantId, userId: null }, async (tx) => {
         const job = await loadJobScope(tx, tenantId, 'care.photos.purge');
         if (!job) return;
+        const now = new Date();
         const marked = await tx.carePhoto.updateMany({
           where: { tenantId, id: { in: done }, deletedAt: null },
-          data: { deletedAt: new Date() },
+          data: { deletedAt: now },
         });
-        if (marked.count === 0) return;
+        const markedCases = await tx.assistantCase.updateMany({
+          where: { tenantId, id: { in: doneCases }, photoDeletedAt: null },
+          data: { photoDeletedAt: now },
+        });
+        const count = marked.count + markedCases.count;
+        if (count === 0) return;
         await recordJobAudit(tx, job, {
           action: AUDIT_ACTIONS.carePhotosDeleted,
           entityType: 'CustomerSubscription',
           entityId: subscriptionId,
-          metadata: { number: formatSubscriptionNumber(work.number), deleted: marked.count },
+          metadata: { number: formatSubscriptionNumber(work.number), deleted: count },
         });
       });
-      deleted += done.length;
+      deleted += done.length + doneCases.length;
     } catch (error) {
       failed += 1;
       logger.error({ err: error, subscriptionId }, 'foto di Floral Care non cancellate');

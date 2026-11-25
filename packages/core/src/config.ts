@@ -4,15 +4,17 @@
  *  - AI (anteprime, scontorni, conteggio, stile);
  *  - archivio (foto e immagini);
  *  - email;
- *  - indirizzi (Google Places, ADR-059).
+ *  - indirizzi (Google Places, ADR-059);
+ *  - Asistente de plantas (Claude, ADR-085).
  * Ogni adattatore legge solo la sua parte, già validata. All'avvio l'app le controlla TUTTE
  * insieme (`platformConfigSchema`, vedi `apps/web/src/lib/config-check.ts`) e, se qualcosa non
  * va, non parte ed elenca tutti i problemi.
  *
- * Modulo leggero (solo `zod`): si importa anche da `@floral/core/config` senza caricare il resto
- * del core. Elenco completo delle variabili: `docs/CONFIGURATION.md`.
+ * Modulo leggero (solo `zod` e le costanti pure del dominio): si importa anche da
+ * `@floral/core/config` senza caricare il resto del core. Elenco completo delle variabili: `docs/CONFIGURATION.md`.
  */
 import { z } from 'zod';
+import { ASSISTANT_LIMITS, ASSISTANT_MODELS, type AssistantModel } from '@floral/domain';
 
 /** true se l'app gira solo in locale (sviluppo, test E2E): abilita gli adattatori locali. */
 export function isLocalAppUrl(appUrl: string | undefined): boolean {
@@ -259,17 +261,115 @@ function placesRules(config: { GOOGLE_MAPS_API_KEY?: string | undefined }, ctx: 
 
 export const placesConfigSchema = z.object(placesFields).superRefine(placesRules);
 
+// --- Asistente de plantas (ADR-085) ------------------------------------------------------------
+
+const assistantFields = {
+  APP_URL: optionalText,
+  // `anthropic` = Claude con l'SDK ufficiale; `simulated` = risposte finte, solo in locale e nei
+  // test (etichettate); `none` = assistente spento (i link non compaiono).
+  ASSISTANT_PROVIDER: z.enum(['none', 'simulated', 'anthropic']).default('none'),
+  ANTHROPIC_API_KEY: optionalText,
+  // Il modello scelto dal founder dopo la prova (docs/AI_BENCHMARK.md).
+  ASSISTANT_MODEL: optionalText,
+  // Tetto mensile delle consultas pagate da Gardelia, in USD (fuori dal tetto delle immagini).
+  ASSISTANT_MONTHLY_BUDGET_USD: optionalText,
+};
+
+const DEFAULT_ASSISTANT_MODEL: AssistantModel = 'claude-opus-5-5';
+
+function assistantBudgetUsd(value: string | undefined): number | null {
+  if (value === undefined) return ASSISTANT_LIMITS.defaultMonthlyBudgetUsd;
+  const usd = Number(value);
+  return Number.isFinite(usd) && usd >= 0 ? usd : null;
+}
+
+function assistantRules(
+  config: {
+    APP_URL?: string | undefined;
+    ASSISTANT_PROVIDER: string;
+    ANTHROPIC_API_KEY?: string | undefined;
+    ASSISTANT_MODEL?: string | undefined;
+    ASSISTANT_MONTHLY_BUDGET_USD?: string | undefined;
+  },
+  ctx: RefinementContext,
+): void {
+  if (config.ASSISTANT_PROVIDER === 'simulated' && !isLocalAppUrl(config.APP_URL)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['ASSISTANT_PROVIDER'],
+      message:
+        'simulated è ammesso solo in locale: con un APP_URL pubblico non si mostrano risposte simulate',
+    });
+  }
+  if (config.ASSISTANT_PROVIDER === 'anthropic' && !config.ANTHROPIC_API_KEY) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['ANTHROPIC_API_KEY'],
+      message:
+        'obbligatoria con ASSISTANT_PROVIDER=anthropic (nelle variabili dell’hosting, mai nel repo)',
+    });
+  }
+  if (
+    config.ASSISTANT_MODEL !== undefined &&
+    !(ASSISTANT_MODELS as readonly string[]).includes(config.ASSISTANT_MODEL)
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['ASSISTANT_MODEL'],
+      message: `deve essere uno di: ${ASSISTANT_MODELS.join(', ')}`,
+    });
+  }
+  if (assistantBudgetUsd(config.ASSISTANT_MONTHLY_BUDGET_USD) === null) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['ASSISTANT_MONTHLY_BUDGET_USD'],
+      message: 'deve essere un importo in USD ≥ 0',
+    });
+  }
+}
+
+/** Converte modello e budget dopo le regole (un valore non valido è già un errore). */
+function withAssistantValues<
+  T extends {
+    ASSISTANT_MODEL?: string | undefined;
+    ASSISTANT_MONTHLY_BUDGET_USD?: string | undefined;
+  },
+>(
+  config: T,
+): Omit<T, 'ASSISTANT_MODEL' | 'ASSISTANT_MONTHLY_BUDGET_USD'> & {
+  ASSISTANT_MODEL: AssistantModel;
+  ASSISTANT_MONTHLY_BUDGET_USD: number;
+} {
+  const model = config.ASSISTANT_MODEL;
+  return {
+    ...config,
+    ASSISTANT_MODEL: (ASSISTANT_MODELS as readonly string[]).includes(model ?? '')
+      ? (model as AssistantModel)
+      : DEFAULT_ASSISTANT_MODEL,
+    ASSISTANT_MONTHLY_BUDGET_USD:
+      assistantBudgetUsd(config.ASSISTANT_MONTHLY_BUDGET_USD) ??
+      ASSISTANT_LIMITS.defaultMonthlyBudgetUsd,
+  };
+}
+
+export const assistantConfigSchema = z
+  .object(assistantFields)
+  .superRefine(assistantRules)
+  .transform(withAssistantValues);
+export type AssistantConfig = z.infer<typeof assistantConfigSchema>;
+
 // --- Tutto insieme (controllo all'avvio) -------------------------------------------------------
 
 export const platformConfigSchema = z
-  .object({ ...aiFields, ...storageFields, ...emailFields, ...placesFields })
+  .object({ ...aiFields, ...storageFields, ...emailFields, ...placesFields, ...assistantFields })
   .superRefine((config, ctx) => {
     aiRules(config, ctx);
     storageRules(config, ctx);
     emailRules(config, ctx);
     placesRules(config, ctx);
+    assistantRules(config, ctx);
   })
-  .transform(withAiValues);
+  .transform((config) => withAssistantValues(withAiValues(config)));
 export type PlatformConfig = z.infer<typeof platformConfigSchema>;
 
 export type EnvSource = Readonly<Record<string, string | undefined>>;
@@ -315,6 +415,8 @@ export const storageConfig = configReader(storageConfigSchema);
 export const emailConfig = configReader(emailConfigSchema);
 
 export const placesConfig = configReader(placesConfigSchema);
+/** Parte dell'Asistente de plantas: provider, chiave Anthropic, modello, budget (ADR-085). */
+export const assistantConfig = configReader(assistantConfigSchema);
 
 /** Tutta la configurazione della piattaforma, validata insieme. */
 export function readPlatformConfig(env: EnvSource = process.env): PlatformConfig {

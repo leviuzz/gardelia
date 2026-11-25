@@ -20,6 +20,7 @@
     "reset-two-factor": "tsx scripts/reset-two-factor.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "1.14.0",
     "@floral/db": "workspace:*",
     "@floral/domain": "workspace:*",
     "aws4fetch": "1.0.20",

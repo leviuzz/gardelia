@@ -94,6 +94,33 @@ export const ASSISTANT_MODEL_RATES: Readonly<
   },
 };
 
+/**
+ * Modelli che possono rispondere al posto di quello chiesto con il fallback lato server (stesso
+ * listino ufficiale). Un modello sconosciuto si paga come Opus 5, il più caro fra quelli realistici:
+ * il budget non si sottostima mai.
+ */
+const FALLBACK_MODEL_RATES: Readonly<Record<string, ModelRates>> = {
+  'claude-opus-5': {
+    input: 5_000_000,
+    output: 25_000_000,
+    cacheWrite: 6_250_000,
+    cacheRead: 500_000,
+  },
+  'claude-opus-4-8': {
+    input: 5_000_000,
+    output: 25_000_000,
+    cacheWrite: 6_250_000,
+    cacheRead: 500_000,
+  },
+  'claude-sonnet-5': {
+    input: 2_000_000,
+    output: 10_000_000,
+    cacheWrite: 2_500_000,
+    cacheRead: 200_000,
+  },
+};
+const UNKNOWN_MODEL_RATES = FALLBACK_MODEL_RATES['claude-opus-5']!;
+
 export interface AssistantUsage {
   readonly inputTokens: number;
   readonly outputTokens: number;
@@ -101,11 +128,21 @@ export interface AssistantUsage {
   readonly cacheReadTokens: number;
 }
 
-/** Costo vero di una chiamata, in micro-USD (arrotondato per eccesso). */
-export function assistantCallCostMicros(model: AssistantModel, usage: AssistantUsage): number {
-  const base = ASSISTANT_MODEL_RATES[model];
+function ratesFor(model: string, promptTokens: number): ModelRates {
+  if (isAssistantModel(model)) {
+    const base = ASSISTANT_MODEL_RATES[model];
+    return base.long && promptTokens > base.long.above ? base.long : base;
+  }
+  return FALLBACK_MODEL_RATES[model] ?? UNKNOWN_MODEL_RATES;
+}
+
+/**
+ * Costo vero di una chiamata, in micro-USD (arrotondato per eccesso), per il modello che ha
+ * risposto (anche uno del fallback).
+ */
+export function assistantCallCostMicros(model: string, usage: AssistantUsage): number {
   const promptTokens = usage.inputTokens + usage.cacheCreationTokens + usage.cacheReadTokens;
-  const rates = base.long && promptTokens > base.long.above ? base.long : base;
+  const rates = ratesFor(model, promptTokens);
   const total =
     usage.inputTokens * rates.input +
     usage.outputTokens * rates.output +

@@ -54,6 +54,17 @@ async function toJpeg(
 }
 
 /**
+ * Una copia ridotta di una foto già normalizzata, da mandare a un modello di visione
+ * (l'Asistente de plantas, ADR-085): meno token, abbastanza dettagli per foglie e macchie.
+ */
+export async function downscaleForModel(
+  input: Uint8Array,
+  maxSide: number,
+): Promise<ProcessedImage> {
+  return toJpeg(input, maxSide, 85);
+}
+
+/**
  * Valida e normalizza una foto caricata. Lancia `ValidationError` con codici traducibili
  * (`file_required`, `file_too_large`, `invalid_image`, `image_too_small`) sul campo indicato.
  */
