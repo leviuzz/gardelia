@@ -349,12 +349,12 @@ Piano approvato il 25/11 (ADR-087), in due rilasci.
   - «Mis pedidos / Entrar» nella testata della vetrina.
   - L'E2E della pagina 2 della vetrina accende 25 prodotti insieme e poi li rispegne.
 
-## 6. M3, l'ordine tutto nell'app (M3-1 fatto il 26/11)
+## 6. M3, l'ordine tutto nell'app (M3-1 su staging il 26/11)
 
 Piano di dettaglio approvato il 26/11 (ADR-088), in tre rilasci: M3-1 «Messaggi e avvisi», M3-2
 «Cambi da confermare», M3-3 «Soldi e squadra».
 
-- **M3-1 «Messaggi e avvisi» (fatto sul ramo di lavoro):**
+- **M3-1 «Messaggi e avvisi» (su staging, 26/11):**
   - chi compra: la pagina dell'ordine in «Mis pedidos» (`/cuenta/pedidos/<id>`) con i passi, la
     consegna, la tarjeta, i prodotti, come pagare dopo l'accettazione, «Cancelar pedido» finché è da
     accettare (con la scadenza) e «Pedir de nuevo» quando è chiuso; «N mensajes nuevos» sulle righe;

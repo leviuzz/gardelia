@@ -3177,8 +3177,8 @@ niente codice nuovo»):**
   pannello «Da accettare»; errore accanto al prodotto non più disponibile; conferma per accettare
   con la consegna a 0; pagina del prodotto tolto; link di stato fino a 30 giorni dopo la consegna,
   allungato se la consegna si sposta. Dettagli in `docs/MARKETPLACE_FLOWS.md` §4.
-- **Stato (26/11):** M0 e M1 (M1-1, M1-2) su staging (ADR-087); M3 in corso (ADR-088: M3-1 fatto
-  sul ramo di lavoro, poi M3-2 e M3-3 con lo stesso piano).
+- **Stato (26/11):** M0 e M1 (M1-1, M1-2) su staging (ADR-087); M3 in corso (ADR-088: M3-1 su
+  staging, poi M3-2 e M3-3 con lo stesso piano).
 
 ### ADR-087 — Marketplace M1: la vetrina che vende — FATTO (M1-1 e M1-2 su staging, 25/11/2026)
 
@@ -3249,7 +3249,7 @@ niente codice nuovo»):**
   carrello nell'aviso de privacidad §7 (bozza aggiornata); dati di cura e tossicità (già «da
   rivedere»). M1-2 non aggiunge cookie né dati personali nuovi.
 
-### ADR-088 — Marketplace M3: l'ordine tutto nell'app — IN CORSO (M3-1 fatto sul ramo di lavoro, 26/11/2026)
+### ADR-088 — Marketplace M3: l'ordine tutto nell'app — IN CORSO (M3-1 su staging, 26/11/2026)
 
 - **Perché:** blocco M3 del giro del marketplace (ADR-086), piano di dettaglio approvato dal
   founder il 26/11: «basta WhatsApp e email avanti e indietro». Tre rilasci, ognuno con test, CI
