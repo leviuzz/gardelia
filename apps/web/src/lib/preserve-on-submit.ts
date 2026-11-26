@@ -17,3 +17,22 @@ export function preserveOnSubmit(formAction: (formData: FormData) => void) {
     startTransition(() => formAction(formData));
   };
 }
+
+/**
+ * Come `preserveOnSubmit`, per un modulo con due pulsanti che fanno due cose diverse (es. «Cambiar
+ * flor» e «Preguntar en la app», M3-2): l'azione la sceglie il pulsante premuto, dal suo
+ * `data-intent`; senza, quella principale.
+ */
+export function preserveOnSubmitByIntent(
+  formAction: (formData: FormData) => void,
+  intents: Readonly<Record<string, (formData: FormData) => void>>,
+) {
+  return (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const formData = new FormData(event.currentTarget, submitter);
+    const intent = submitter instanceof HTMLElement ? submitter.dataset.intent : undefined;
+    const action = (intent ? intents[intent] : undefined) ?? formAction;
+    startTransition(() => action(formData));
+  };
+}

@@ -110,6 +110,7 @@ export async function exportTenantData(
       portalAccesses,
       careMessages,
       orderMessages,
+      orderChanges,
     ] = await Promise.all([
       tx.customer.findMany({ where, orderBy: { createdAt: 'asc' } }),
       tx.customerAddress.findMany({ where, orderBy: { createdAt: 'asc' } }),
@@ -189,6 +190,24 @@ export async function exportTenantData(
           readByShopAt: true,
           createdAt: true,
           author: { select: { name: true } },
+          kind: true,
+          answer: true,
+        },
+      }),
+      // M3-2: i cambi chiesti a chi compra sugli ordini online da accettare.
+      tx.orderChangeRequest.findMany({
+        where,
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          orderId: true,
+          status: true,
+          round: true,
+          message: true,
+          askedAt: true,
+          answeredAt: true,
+          declineReason: true,
+          createdAt: true,
         },
       }),
     ]);
@@ -218,6 +237,7 @@ export async function exportTenantData(
       portalAccesses,
       careMessages,
       orderMessages,
+      orderChanges,
     };
   });
 
@@ -261,6 +281,7 @@ export async function exportTenantData(
     | { readonly kind: 'access'; readonly row: (typeof data.portalAccesses)[number] };
   type CareMessageRow = (typeof data.careMessages)[number];
   type OrderMessageRow = (typeof data.orderMessages)[number];
+  type OrderChangeRow = (typeof data.orderChanges)[number];
 
   const sections: Section[] = [
     section<Customer>(
@@ -777,7 +798,20 @@ export async function exportTenantData(
           // Chi ha eliminato il conto resta senza nome (come in Floral Care).
           value: (r) => r.author?.name ?? LABELS.careMessageDeletedAuthor,
         },
+        {
+          header: 'Tipo',
+          value: (r) =>
+            LABELS.orderMessageKind[r.kind as keyof typeof LABELS.orderMessageKind] ?? r.kind,
+        },
         { header: 'Mensaje', value: (r) => r.body },
+        {
+          header: 'Respuesta',
+          value: (r) =>
+            r.answer
+              ? (LABELS.orderQuestionAnswer[r.answer as keyof typeof LABELS.orderQuestionAnswer] ??
+                r.answer)
+              : null,
+        },
         {
           header: 'Foto',
           value: (r) =>
@@ -790,6 +824,25 @@ export async function exportTenantData(
         { header: 'Leído por la florería', value: (r) => dateTime(r.readByShopAt) },
       ],
       data.orderMessages,
+    ),
+    section<OrderChangeRow>(
+      'pedidos_cambios.csv',
+      'cambios de pedidos en línea por aceptar que la florería pidió confirmar al cliente',
+      [
+        { header: 'id', value: (r) => r.id },
+        { header: 'Pedido', value: (r) => orderNumber.get(r.orderId) },
+        {
+          header: 'Estado',
+          value: (r) =>
+            LABELS.orderChangeStatus[r.status as keyof typeof LABELS.orderChangeStatus] ?? r.status,
+        },
+        { header: 'Veces pedido', value: (r) => r.round, numeric: true },
+        { header: 'Pedido el', value: (r) => dateTime(r.askedAt) },
+        { header: 'Respuesta el', value: (r) => dateTime(r.answeredAt) },
+        { header: 'Mensaje de la florería', value: (r) => r.message },
+        { header: 'Motivo del cliente', value: (r) => r.declineReason },
+      ],
+      data.orderChanges,
     ),
   ];
 

@@ -1,5 +1,6 @@
-import { ImageOff, Trash2 } from 'lucide-react';
+import { Check, CircleHelp, ImageOff, Trash2, X } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
+import type { ReactNode } from 'react';
 import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import { PrivateImage } from '@/components/common/private-image';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,13 @@ export interface MessageThreadItem {
   readonly highlight: boolean;
   /** "Quitar foto" (chi gestisce), già legato al messaggio. */
   readonly removePhoto: ((prev: ActionState, formData: FormData) => Promise<ActionState>) | null;
+  /**
+   * Ordini online (M3-2): una domanda «sì / no» della fioreria. `label` va sopra il testo, `footer`
+   * sotto (la risposta, l'attesa o i pulsanti «Sí» / «No» per chi compra).
+   */
+  readonly question?: { readonly label: string; readonly footer: ReactNode } | null;
+  /** Ordini online (M3-2): la risposta di chi compra a una domanda, al posto del testo. */
+  readonly answer?: { readonly label: string; readonly yes: boolean } | null;
 }
 
 /**
@@ -73,16 +81,40 @@ export function MessageThread({
                 })}
               </time>
             </p>
+            {item.question ? (
+              <p className="flex items-center gap-1 text-xs font-medium text-primary">
+                <CircleHelp className="size-3.5" aria-hidden="true" />
+                {item.question.label}
+              </p>
+            ) : null}
             {item.body ? (
               <p
                 className={cn(
                   'rounded-2xl px-3 py-2 text-sm break-words whitespace-pre-wrap',
                   item.side === 'own' ? 'bg-primary/10' : 'bg-muted',
+                  item.question ? 'border border-primary/30' : null,
                 )}
               >
                 {item.body}
               </p>
             ) : null}
+            {item.answer ? (
+              <p
+                data-testid="message-answer"
+                className={cn(
+                  'flex items-center gap-1.5 rounded-2xl px-3 py-2 text-sm font-medium',
+                  item.side === 'own' ? 'bg-primary/10' : 'bg-muted',
+                )}
+              >
+                {item.answer.yes ? (
+                  <Check className="size-4 text-success" aria-hidden="true" />
+                ) : (
+                  <X className="size-4 text-destructive" aria-hidden="true" />
+                )}
+                {item.answer.label}
+              </p>
+            ) : null}
+            {item.question?.footer ?? null}
             {item.photo ? (
               <a href={item.photo.fullUrl} target="_blank" rel="noopener noreferrer">
                 <PrivateImage

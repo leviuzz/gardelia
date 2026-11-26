@@ -13,7 +13,7 @@
  *  - Lo stesso modulo inviato due volte (chiave `submitKey`) non scrive due messaggi.
  *  - I messaggi non si modificano né si cancellano; il testo non va mai nel registro.
  */
-import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
+import { getDb, withTenantContext, type Prisma, type TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
   ORDER_MESSAGE_LIMITS,
@@ -23,10 +23,11 @@ import {
   newId,
   orderMessagePages,
   orderMessageProblem,
-  orderMessageSchema,
+  orderStaffMessageSchema,
   orderMessagesOpen,
   pendingOrderDeadline,
   toFieldErrors,
+  type OrderQuestionContext,
   type OrderStatus,
 } from '@floral/domain';
 import { notFound, recordAudit } from '../audit';
@@ -34,6 +35,7 @@ import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { logger } from '../logger';
+import type { EmailMessage } from '../mailer';
 import {
   deleteUnusedFiles,
   readStoredImage,
@@ -47,6 +49,7 @@ import {
   prepareOrderMessagePhoto,
   toOrderMessageDto,
   type OrderMessageDto,
+  type PreparedOrderMessagePhoto,
 } from '../order-message-internals';
 import { buyerMessageNoticeMail, sendOrderMails, type OrderMailDeps } from '../order-mail';
 import type { PhotoVariant } from './catalog-photos';
@@ -77,9 +80,14 @@ export interface OrderMessagePostResult {
 
 /** «Da gestire» (M3-1): cosa aspetta la fioreria sugli ordini online. */
 export interface OrderInboxDto {
-  /** Ordini online da accettare, e la scadenza più vicina. */
+  /**
+   * Ordini online da accettare, e la scadenza più vicina. Non contano quelli che aspettano la
+   * conferma di chi compra né quelli tornati dopo un «No, gracias» (M3-2: `declinedChanges`).
+   */
   readonly pendingOnline: number;
   readonly firstDeadline: Date | null;
+  /** Ordini online tornati alla fioreria dopo un «No, gracias» ai cambi (M3-2). */
+  readonly declinedChanges: number;
   /** Messaggi di chi compra da leggere, e in quanti ordini. */
   readonly unreadMessages: number;
   readonly unreadOrders: number;
@@ -192,6 +200,104 @@ async function lockThreadOrder(
 }
 
 /**
+ * Scrive un messaggio della fioreria (o una domanda «sì / no», M3-2) nella transazione che ha
+ * bloccato l'ordine, e prepara l'avviso a chi compra al primo da leggere. Lo stesso invio arrivato
+ * due volte scrive una volta sola (`submitKey`).
+ */
+async function insertShopMessageTx(
+  tx: TransactionClient,
+  ctx: TenantContext,
+  orderId: string,
+  order: { readonly buyerUserId: string | null },
+  row: {
+    readonly id: string;
+    readonly body: string;
+    readonly question: boolean;
+    readonly questionContext?: OrderQuestionContext;
+    readonly submitKey: string;
+    readonly photo: PreparedOrderMessagePhoto['row'] | null;
+  },
+  mail: OrderMailDeps | null,
+): Promise<{ id: string; duplicate: boolean; mail: EmailMessage | null }> {
+  const created = await tx.orderMessage.createManyAndReturn({
+    data: [
+      {
+        id: row.id,
+        tenantId: ctx.tenantId,
+        orderId,
+        authorKind: 'SHOP',
+        authorUserId: ctx.userId,
+        body: row.body,
+        ...(row.question ? { kind: 'QUESTION' } : {}),
+        ...(row.questionContext
+          ? { questionContext: row.questionContext as unknown as Prisma.InputJsonValue }
+          : {}),
+        ...(row.photo ?? {}),
+        submitKey: row.submitKey,
+      },
+    ],
+    skipDuplicates: true,
+    select: { id: true },
+  });
+  if (created.length === 0) {
+    // Lo stesso invio arrivato insieme: il primo ha già scritto il messaggio.
+    const existing = await tx.orderMessage.findFirst({
+      where: { tenantId: ctx.tenantId, submitKey: row.submitKey },
+      select: { id: true },
+    });
+    return { id: existing?.id ?? row.id, duplicate: true, mail: null };
+  }
+  const notify = await claimMessageNoticeTx(tx, {
+    tenantId: ctx.tenantId,
+    orderId,
+    buyerUserId: order.buyerUserId,
+    to: 'BUYER',
+    messageId: row.id,
+  });
+  const notice =
+    notify && mail ? await buyerMessageNoticeMail(tx, ctx.tenantId, orderId, mail) : null;
+  return { id: row.id, duplicate: false, mail: notice };
+}
+
+/**
+ * Una domanda «sì / no» della fioreria scritta dal server, con il suo contesto (M3-2: «Chiedi
+ * nell'app» in «Mancano fiori»). Il testo e il contesto li prepara chi chiama, dal database.
+ */
+export async function postShopQuestion(
+  ctx: TenantContext,
+  orderId: string,
+  input: { readonly body: string; readonly questionContext: OrderQuestionContext },
+  mail: OrderMailDeps | null,
+): Promise<OrderMessagePostResult> {
+  requirePermission(ctx, 'orders:messages');
+  if (!isUuid(orderId)) throw new NotFoundError('Order');
+  const id = newId();
+  const saved = await withTenantContext(getDb(), ctx, async (tx) => {
+    const order = await lockThreadOrder(tx, ctx.tenantId, orderId);
+    if (!order) return null;
+    if (!orderMessagesOpen(order)) throw new ConflictError('order_message_closed');
+    return insertShopMessageTx(
+      tx,
+      ctx,
+      orderId,
+      order,
+      {
+        id,
+        body: input.body,
+        question: true,
+        questionContext: input.questionContext,
+        submitKey: id,
+        photo: null,
+      },
+      mail,
+    );
+  });
+  if (!saved) return notFound(ctx, 'Order', orderId);
+  if (mail && saved.mail) await sendOrderMails(mail.mailer, [saved.mail]);
+  return { id: saved.id, duplicate: saved.duplicate, notified: saved.mail !== null };
+}
+
+/**
  * Scrive un messaggio della fioreria (testo e/o una foto). Chi ha fatto l'ordine riceve l'avviso
  * per email al primo messaggio da leggere (o di nuovo dopo 6 ore), dopo il commit.
  */
@@ -204,7 +310,8 @@ export async function postOrderMessage(
 ): Promise<OrderMessagePostResult> {
   requirePermission(ctx, 'orders:messages');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
-  const parsed = orderMessageSchema.safeParse(rawInput);
+  // Con la casella «Domanda sì / no» il messaggio è una domanda (M3-2): sempre col testo.
+  const parsed = orderStaffMessageSchema.safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
   const input = parsed.data;
   const hasPhoto = photo !== null && photo.byteLength > 0;
@@ -221,9 +328,14 @@ export async function postOrderMessage(
       select: { id: true },
     });
     if (existing) return { duplicate: existing.id };
-    const problem = orderMessageProblem({ order, body: input.body, hasPhoto });
+    const problem = orderMessageProblem({
+      order,
+      body: input.body,
+      hasPhoto,
+      question: input.question,
+    });
     if (problem === 'order_message_closed') throw new ConflictError(problem);
-    if (problem === 'order_message_empty') throw new ValidationError({ body: problem });
+    if (problem) throw new ValidationError({ body: problem });
     return { duplicate: null };
   });
   if (!precheck) return notFound(ctx, 'Order', orderId);
@@ -236,40 +348,20 @@ export async function postOrderMessage(
       const order = await lockThreadOrder(tx, ctx.tenantId, orderId);
       if (!order) return null;
       if (!orderMessagesOpen(order)) throw new ConflictError('order_message_closed');
-      const created = await tx.orderMessage.createManyAndReturn({
-        data: [
-          {
-            id,
-            tenantId: ctx.tenantId,
-            orderId,
-            authorKind: 'SHOP',
-            authorUserId: ctx.userId,
-            body: input.body,
-            ...(prepared?.row ?? {}),
-            submitKey: input.submitKey,
-          },
-        ],
-        skipDuplicates: true,
-        select: { id: true },
-      });
-      if (created.length === 0) {
-        // Lo stesso invio arrivato insieme: il primo ha già scritto il messaggio.
-        const existing = await tx.orderMessage.findFirst({
-          where: { tenantId: ctx.tenantId, submitKey: input.submitKey },
-          select: { id: true },
-        });
-        return { id: existing?.id ?? id, duplicate: true, mail: null };
-      }
-      const notify = await claimMessageNoticeTx(tx, {
-        tenantId: ctx.tenantId,
+      return insertShopMessageTx(
+        tx,
+        ctx,
         orderId,
-        buyerUserId: order.buyerUserId,
-        to: 'BUYER',
-        messageId: id,
-      });
-      const notice =
-        notify && mail ? await buyerMessageNoticeMail(tx, ctx.tenantId, orderId, mail) : null;
-      return { id, duplicate: false, mail: notice };
+        order,
+        {
+          id,
+          body: input.body,
+          question: input.question,
+          submitKey: input.submitKey,
+          photo: prepared?.row ?? null,
+        },
+        mail,
+      );
     });
   const saved = prepared ? await storeFilesThenCommit(prepared.files, commit) : await commit();
   if (!saved) return notFound(ctx, 'Order', orderId);
@@ -357,14 +449,38 @@ export async function getOrderMessagePhotoImage(
   return readStoredImage(key, 'image/jpeg', 'OrderMessage');
 }
 
+/**
+ * Ordini online da accettare che aspettano la fioreria (M3-2): né in attesa della conferma di chi
+ * compra né tornati dopo un «No, gracias» (`excludeDeclined`, per contarli a parte).
+ */
+function awaitingShopWhere(
+  tenantId: string,
+  excluded: readonly ('ASKED' | 'DECLINED')[],
+): Prisma.OrderWhereInput {
+  return {
+    tenantId,
+    status: 'PENDING_ACCEPTANCE',
+    placedOnline: true,
+    OR: [
+      { changeRequest: { is: null } },
+      { changeRequest: { is: { status: { notIn: [...excluded] } } } },
+    ],
+  };
+}
+
 /** «Da gestire»: ordini online da accettare (con la scadenza più vicina) e messaggi da leggere. */
 export async function getOrderInbox(ctx: TenantContext): Promise<OrderInboxDto> {
   requirePermission(ctx, 'orders:read');
   const canReadMessages = hasPermission(ctx, 'orders:messages');
   return withTenantContext(getDb(), ctx, async (tx) => {
+    const toAccept = awaitingShopWhere(ctx.tenantId, ['ASKED', 'DECLINED']);
     const pending = await tx.order.findMany({
-      where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE', placedOnline: true },
-      select: { createdAt: true, scheduledDate: true },
+      where: toAccept,
+      select: {
+        createdAt: true,
+        scheduledDate: true,
+        changeRequest: { select: { askedAt: true, answeredAt: true } },
+      },
       orderBy: { createdAt: 'asc' },
       take: 200,
     });
@@ -374,18 +490,29 @@ export async function getOrderInbox(ctx: TenantContext): Promise<OrderInboxDto> 
           {
             createdAt: order.createdAt,
             scheduledDate: order.scheduledDate ? dateToParts(order.scheduledDate) : null,
+            changeAskedAt: order.changeRequest?.askedAt ?? null,
+            changeAnsweredAt: order.changeRequest?.answeredAt ?? null,
           },
           ctx.timezone,
         ),
       )
       .sort((a, b) => a.getTime() - b.getTime());
-    const pendingOnline = await tx.order.count({
-      where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE', placedOnline: true },
-    });
+    const [pendingOnline, declinedChanges] = await Promise.all([
+      tx.order.count({ where: toAccept }),
+      tx.order.count({
+        where: {
+          tenantId: ctx.tenantId,
+          status: 'PENDING_ACCEPTANCE',
+          placedOnline: true,
+          changeRequest: { is: { status: 'DECLINED' } },
+        },
+      }),
+    ]);
     if (!canReadMessages) {
       return {
         pendingOnline,
         firstDeadline: deadlines[0] ?? null,
+        declinedChanges,
         unreadMessages: 0,
         unreadOrders: 0,
       };
@@ -399,6 +526,7 @@ export async function getOrderInbox(ctx: TenantContext): Promise<OrderInboxDto> 
     return {
       pendingOnline,
       firstDeadline: deadlines[0] ?? null,
+      declinedChanges,
       unreadMessages: rows[0]?.unread ?? 0,
       unreadOrders: rows[0]?.orders ?? 0,
     };
@@ -407,15 +535,14 @@ export async function getOrderInbox(ctx: TenantContext): Promise<OrderInboxDto> 
 
 /**
  * Il numero sulla voce «Ordini» del menu (M3): gli ordini online da accettare, solo per chi li può
- * accettare (gli altri vedono 0). Una sola query leggera, perché la chiede ogni pagina.
+ * accettare (gli altri vedono 0). Con M3-2 contano anche quelli tornati dopo un «No, gracias», non
+ * quelli che aspettano la conferma di chi compra. Una sola query leggera: la chiede ogni pagina.
  */
 export async function countPendingOnlineOrders(ctx: TenantContext): Promise<number> {
   requirePermission(ctx, 'orders:read');
   if (!hasPermission(ctx, 'orders:write')) return 0;
   return withTenantContext(getDb(), ctx, (tx) =>
-    tx.order.count({
-      where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE', placedOnline: true },
-    }),
+    tx.order.count({ where: awaitingShopWhere(ctx.tenantId, ['ASKED']) }),
   );
 }
 

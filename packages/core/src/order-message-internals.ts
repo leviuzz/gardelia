@@ -5,10 +5,13 @@
  */
 import type { TransactionClient } from '@floral/db';
 import {
+  ORDER_MESSAGE_KINDS,
   newId,
   shouldSendMessageNotice,
   type OrderMessageAuthor,
+  type OrderMessageKind,
   type OrderNoticeKind,
+  type OrderQuestionAnswer,
 } from '@floral/domain';
 import { getObjectStorage } from './ai/storage';
 import { logger } from './logger';
@@ -28,6 +31,12 @@ export interface OrderMessageDto {
   readonly createdAt: Date;
   /** Da leggere per chi guarda: della fioreria per chi compra, di chi compra per la fioreria. */
   readonly unread: boolean;
+  /** M3-2: un messaggio, una domanda «sì / no» della fioreria o la risposta di chi compra. */
+  readonly kind: OrderMessageKind;
+  /** La risposta («Sí» o «No»), sulle righe `ANSWER`. */
+  readonly answer: OrderQuestionAnswer | null;
+  /** Una domanda: la risposta di chi compra, se c'è già. */
+  readonly reply: OrderQuestionAnswer | null;
 }
 
 export const orderMessageSelect = {
@@ -40,6 +49,9 @@ export const orderMessageSelect = {
   createdAt: true,
   readByShopAt: true,
   author: { select: { name: true } },
+  kind: true,
+  answer: true,
+  reply: { select: { answer: true } },
 } as const;
 
 interface OrderMessageRow {
@@ -52,6 +64,19 @@ interface OrderMessageRow {
   readonly createdAt: Date;
   readonly readByShopAt: Date | null;
   readonly author: { readonly name: string } | null;
+  readonly kind: string;
+  readonly answer: string | null;
+  readonly reply: { readonly answer: string | null } | null;
+}
+
+function asAnswer(value: string | null | undefined): OrderQuestionAnswer | null {
+  return value === 'YES' || value === 'NO' ? value : null;
+}
+
+function asKind(value: string): OrderMessageKind {
+  return (ORDER_MESSAGE_KINDS as readonly string[]).includes(value)
+    ? (value as OrderMessageKind)
+    : 'MESSAGE';
 }
 
 /** Un messaggio come lo vede la fioreria (`SHOP`) o chi ha fatto l'ordine (`BUYER`). */
@@ -74,6 +99,9 @@ export function toOrderMessageDto(
     photoGone: row.photoKey !== null && !hasPhoto,
     createdAt: row.createdAt,
     unread,
+    kind: asKind(row.kind),
+    answer: asAnswer(row.answer),
+    reply: asAnswer(row.reply?.answer),
   };
 }
 
@@ -199,6 +227,32 @@ export async function claimMessageNoticeTx(
  * Segna un'email automatica dell'ordine come mandata (passi, promemoria): true solo la prima volta,
  * così due giri o un passo avanti-indietro-avanti non la rimandano.
  */
+/**
+ * Il promemoria della scadenza (M3-2): uno per scadenza, non per ordine. Si prende se non è mai
+ * partito o se l'ultimo è partito prima di `since` (l'inizio del conto: invio, ultima richiesta o
+ * ultima risposta). Da chiamare sotto il lock dell'ordine.
+ */
+export async function claimReminderNoticeTx(
+  tx: TransactionClient,
+  input: { readonly tenantId: string; readonly orderId: string; readonly since: Date },
+): Promise<boolean> {
+  const renewed = await tx.orderNotice.updateMany({
+    where: {
+      tenantId: input.tenantId,
+      orderId: input.orderId,
+      kind: 'EXPIRY_REMINDER',
+      sentAt: { lt: input.since },
+    },
+    data: { sentAt: new Date() },
+  });
+  if (renewed.count > 0) return true;
+  return claimOnceNoticeTx(tx, {
+    tenantId: input.tenantId,
+    orderId: input.orderId,
+    kind: 'EXPIRY_REMINDER',
+  });
+}
+
 export async function claimOnceNoticeTx(
   tx: TransactionClient,
   input: { readonly tenantId: string; readonly orderId: string; readonly kind: OrderNoticeKind },

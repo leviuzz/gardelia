@@ -7,6 +7,7 @@ import {
   Plus,
   Store,
   Truck,
+  X,
 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -56,6 +57,7 @@ export default async function OrdersPage({
     when: single(raw.when),
     unpaid: single(raw.unpaid),
     messages: single(raw.messages),
+    changes: single(raw.changes),
     page: single(raw.page),
   };
   const filters = orderListFiltersSchema.parse(query);
@@ -64,7 +66,9 @@ export default async function OrdersPage({
   const tc = await getTranslations('common');
   const format = await getFormatter();
   const routes = tenantRoutes(ctx.tenantSlug);
-  const hasFilters = Boolean(filters.q || filters.status || filters.unpaid || filters.messages);
+  const hasFilters = Boolean(
+    filters.q || filters.status || filters.unpaid || filters.messages || filters.changes,
+  );
   const date = (value: string) =>
     format.dateTime(calendarDate(value), {
       weekday: 'short',
@@ -82,6 +86,8 @@ export default async function OrdersPage({
       unpaid: next.unpaid,
       // «Con messaggi da leggere» (M3).
       messages: next.messages ? 'unread' : undefined,
+      // «No ai cambi» (M3-2): gli ordini tornati dopo un «No, gracias» di chi compra.
+      changes: next.changes ? 'declined' : undefined,
       page: next.page > 1 ? next.page : undefined,
     });
   }
@@ -175,6 +181,22 @@ export default async function OrdersPage({
             {t('messages.filter', { count: result.unreadOrdersCount })}
           </Link>
         ) : null}
+        {result.declinedChangesCount > 0 || filters.changes ? (
+          <Link
+            href={href({ changes: !filters.changes, when: 'all', page: 1 })}
+            aria-current={filters.changes ? 'page' : undefined}
+            data-testid="filter-declined-changes"
+            className={cn(
+              'flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors',
+              filters.changes
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'bg-card hover:bg-muted',
+            )}
+          >
+            <X className="size-3.5" aria-hidden="true" />
+            {t('changes.filter', { count: result.declinedChangesCount })}
+          </Link>
+        ) : null}
       </nav>
 
       <FilterBar
@@ -185,6 +207,7 @@ export default async function OrdersPage({
       >
         <input type="hidden" name="when" value={filters.when} />
         {filters.messages ? <input type="hidden" name="messages" value="unread" /> : null}
+        {filters.changes ? <input type="hidden" name="changes" value="declined" /> : null}
         <NativeSelect name="status" defaultValue={filters.status ?? ''} aria-label={tc('filter')}>
           <option value="">{t('allStatuses')}</option>
           {/* I borradores hanno il loro filtro rapido. */}
@@ -278,6 +301,17 @@ export default async function OrdersPage({
                     <Badge variant="secondary">
                       <Globe aria-hidden="true" />
                       {t('online.badge')}
+                    </Badge>
+                  ) : null}
+                  {order.changeStatus === 'ASKED' ? (
+                    <Badge variant="warning" data-testid="row-change-asked">
+                      <Hourglass aria-hidden="true" />
+                      {t('changes.waitingBadge')}
+                    </Badge>
+                  ) : order.changeStatus === 'DECLINED' ? (
+                    <Badge variant="danger" data-testid="row-change-declined">
+                      <X aria-hidden="true" />
+                      {t('changes.declinedBadge')}
                     </Badge>
                   ) : null}
                   {order.unreadMessages > 0 ? (

@@ -124,6 +124,11 @@ export const AUDIT_ACTIONS = {
   orderMessagePhotoRemoved: 'order.message_photo_removed',
   /** «Avvisa il cliente dei cambi»: il riepilogo dell'ordine mandato a chi l'ha fatto. */
   orderCustomerNotified: 'order.customer_notified',
+  /** M3-2: il fiorista chiede a chi compra di confermare i cambi di un ordine da accettare. */
+  orderChangeAsked: 'order.change_asked',
+  /** Chi compra conferma i cambi (l'ordine è accettato) o dice «No, gracias» (M3-2). */
+  orderChangeConfirmed: 'order.change_confirmed',
+  orderChangeDeclined: 'order.change_declined',
   subscriptionAssigned: 'subscription.assigned',
   /** "Mi tienda en línea" (ADR-065). */
   storeUpdated: 'store.updated',

@@ -70,8 +70,8 @@ describe('numero e stati dell’ordine', () => {
     expect(areOrderLinesEditable('CONFIRMED')).toBe(true);
     expect(areOrderLinesEditable('IN_PREPARATION')).toBe(true);
     expect(areOrderLinesEditable('READY')).toBe(false);
-    // Quello del marketplace lo ha composto il cliente: la fioreria lo accetta o lo rifiuta.
-    expect(areOrderLinesEditable('PENDING_ACCEPTANCE')).toBe(false);
+    // Quello del marketplace da accettare sì (M3-2): poi chi compra conferma i cambi.
+    expect(areOrderLinesEditable('PENDING_ACCEPTANCE')).toBe(true);
     expect(areOrderLinesEditable('CANCELLED')).toBe(false);
   });
 
@@ -228,6 +228,7 @@ describe('pagamenti e filtri', () => {
       when: 'today',
       unpaid: true,
       messages: false,
+      changes: false,
       page: 2,
     });
     expect(orderListFiltersSchema.parse({ when: 'yesterday', status: 'LOST' })).toMatchObject({
@@ -242,6 +243,12 @@ describe('pagamenti e filtri', () => {
     expect(orderListFiltersSchema.parse({ messages: 'unread' }).messages).toBe(true);
     expect(orderListFiltersSchema.parse({ messages: '1' }).messages).toBe(false);
     expect(orderListFiltersSchema.parse({}).messages).toBe(false);
+  });
+
+  it('«No ai cambi» (M3-2) solo con `changes=declined`', () => {
+    expect(orderListFiltersSchema.parse({ changes: 'declined' }).changes).toBe(true);
+    expect(orderListFiltersSchema.parse({ changes: 'asked' }).changes).toBe(false);
+    expect(orderListFiltersSchema.parse({}).changes).toBe(false);
   });
 });
 

@@ -5,12 +5,25 @@
  * persona arriva SOLO dalla sessione (`runBuyerAction`); l'ID dell'ordine legato con `.bind()` viene
  * dal browser e il servizio lo cerca solo fra gli ordini della persona (un altro risponde 404).
  */
-import { markBuyerOrderRead, postBuyerOrderMessage } from '@floral/core';
+import {
+  answerBuyerOrderQuestion,
+  confirmBuyerOrderChange,
+  declineBuyerOrderChange,
+  markBuyerOrderRead,
+  postBuyerOrderMessage,
+} from '@floral/core';
 import type { ActionState } from '@/lib/action-state';
 import { runBuyerAction } from '@/lib/buyer';
+import { formDataToObject } from '@/lib/form-data';
 import { orderMailDeps } from '@/lib/order-mail';
+import { getRequestMeta } from '@/lib/request-meta';
 import { accountRoutes } from '@/lib/routes';
 import { optionalUploadedBytes } from '@/lib/uploads';
+
+/** Le pagine che mostrano un ordine di chi compra: la sua pagina e «I miei ordini». */
+function buyerOrderPaths(orderId: string): readonly string[] {
+  return [accountRoutes.orders.detail(orderId), accountRoutes.home];
+}
 
 /** Un messaggio alla fioreria: testo e/o una foto (il modulo la riduce prima dell'invio). */
 export async function postBuyerOrderMessageAction(
@@ -42,4 +55,65 @@ export async function markBuyerOrderReadAction(orderId: string): Promise<ActionS
     await markBuyerOrderRead(ctx, orderId);
     return {};
   });
+}
+
+/**
+ * M3-2 «Confirmar cambios»: la persona accetta l'ordine come l'ha cambiato la fioreria. `round` è la
+ * richiesta che ha visto: se nel frattempo la fioreria l'ha cambiato ancora, il servizio rifiuta.
+ */
+export async function confirmBuyerOrderChangeAction(
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runBuyerAction(
+    async ({ ctx }) => {
+      await confirmBuyerOrderChange(ctx, orderId, formDataToObject(formData), orderMailDeps(), {
+        request: await getRequestMeta(),
+      });
+      return {
+        revalidate: buyerOrderPaths(orderId),
+        success: 'account.orderPage.changes.confirmed',
+      };
+    },
+    { next: accountRoutes.orders.detail(orderId) },
+  );
+}
+
+/** M3-2 «No, gracias», con un motivo facoltativo: l'ordine torna alla fioreria. */
+export async function declineBuyerOrderChangeAction(
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runBuyerAction(
+    async ({ ctx }) => {
+      await declineBuyerOrderChange(ctx, orderId, formDataToObject(formData), orderMailDeps(), {
+        request: await getRequestMeta(),
+      });
+      return {
+        revalidate: buyerOrderPaths(orderId),
+        success: 'account.orderPage.changes.declined',
+      };
+    },
+    { next: accountRoutes.orders.detail(orderId) },
+  );
+}
+
+/** M3-2: «Sí» o «No» a una domanda della fioreria nel filo (una risposta per domanda). */
+export async function answerBuyerOrderQuestionAction(
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runBuyerAction(
+    async ({ ctx }) => {
+      await answerBuyerOrderQuestion(ctx, orderId, formDataToObject(formData), orderMailDeps());
+      return {
+        revalidate: buyerOrderPaths(orderId),
+        success: 'account.orderPage.messages.answered',
+      };
+    },
+    { next: accountRoutes.orders.detail(orderId) },
+  );
 }

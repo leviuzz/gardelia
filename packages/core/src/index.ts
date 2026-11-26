@@ -89,7 +89,15 @@ export {
   type BuyerOrderShop,
   type BuyerOrderThreadDto,
   type BuyerReorderDto,
+  type BuyerOrderChangeDto,
 } from './buyer-orders';
+export {
+  answerBuyerOrderQuestion,
+  confirmBuyerOrderChange,
+  declineBuyerOrderChange,
+  type BuyerQuestionAnswerResult,
+} from './buyer-order-changes';
+export { askOrderChange, proposeOrderDate, type OrderChangeDto } from './services/order-changes';
 export type { OrderMessageDto } from './order-message-internals';
 export * from './services/order-messages';
 export {

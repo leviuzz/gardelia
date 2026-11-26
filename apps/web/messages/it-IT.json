@@ -67,7 +67,9 @@
     "opening_hours_overlap": "Questa fascia si sovrappone a un'altra dello stesso giorno: uniscile in una sola.",
     "substitute_required": "Scegli con quale fiore sostituirlo.",
     "substitution_customer_required": "Conferma che il cliente ha accettato il cambio.",
-    "order_message_empty": "Scrivi un messaggio o aggiungi una foto."
+    "order_message_empty": "Scrivi un messaggio o aggiungi una foto.",
+    "order_question_empty": "Scrivi la domanda: il cliente risponde «Sì» o «No».",
+    "order_question_photo": "Una domanda sì / no non ha foto: manda la foto in un altro messaggio."
   },
   "errors": {
     "validation": "Controlla i campi evidenziati.",
@@ -139,7 +141,14 @@
       "order_message_closed": "Questo ordine si è chiuso più di 7 giorni fa: i messaggi restano da leggere.",
       "order_message_daily_limit": "Hai raggiunto il massimo di messaggi di oggi su questo ordine. Se è urgente, chiama la fioreria.",
       "order_not_reorderable": "Questo ordine non si può più ripetere.",
-      "order_not_notifiable": "Non c'è nessuno da avvisare: solo gli ordini online accettati e aperti."
+      "order_not_notifiable": "Non c'è nessuno da avvisare: solo gli ordini online accettati e aperti.",
+      "order_change_nothing": "Non ci sono cambi da confermare: l’ordine è come l’ha chiesto il cliente.",
+      "order_change_waiting": "Hai già chiesto al cliente di confermare i cambi: aspetta la risposta, o cambia l’ordine per chiederlo di nuovo.",
+      "order_change_needs_confirmation": "Hai cambiato l’ordine: chiedi al cliente di confermare i cambi prima di accettarlo.",
+      "order_change_no_buyer": "Il cliente ha eliminato il conto: non può confermare i cambi.",
+      "order_change_outdated": "La fioreria ha cambiato di nuovo l’ordine: rivedi i cambi.",
+      "order_change_date_passed": "Il giorno di consegna è già passato: scrivi alla fioreria.",
+      "order_question_answered": "Hai già risposto a questa domanda."
     },
     "pageNotFoundTitle": "Pagina non trovata",
     "pageNotFoundBody": "La pagina non esiste o non hai accesso.",
@@ -386,7 +395,8 @@
       "cancelBody": "{shop} non l’ha ancora accettato: si annulla e non devi pagare nulla. Avvisiamo noi la fioreria.",
       "cancelConfirm": "Sì, annulla l’ordine",
       "cancelled": "Ordine annullato.",
-      "newMessages": "{count, plural, one {# messaggio nuovo} other {# messaggi nuovi}}"
+      "newMessages": "{count, plural, one {# messaggio nuovo} other {# messaggi nuovi}}",
+      "changesToConfirm": "Conferma i cambi"
     },
     "privacy": {
       "title": "I tuoi dati e la tua privacy",
@@ -536,7 +546,31 @@
         "newDivider": "Nuovi",
         "you": "Tu",
         "closed": "Sono passati 7 giorni da quando l'ordine si è chiuso: i messaggi restano da leggere.",
-        "sent": "Messaggio inviato"
+        "sent": "Messaggio inviato",
+        "question": "Domanda: rispondi sì o no",
+        "answeredYou": "Hai risposto: {answer}",
+        "answered": "Risposta inviata"
+      },
+      "changes": {
+        "title": "{shop} ha cambiato il tuo ordine",
+        "body": "Controlla i cambi. Se li confermi, il tuo ordine è accettato e ti mandiamo come pagare.",
+        "messageFrom": "Messaggio di {shop}",
+        "deadline": "Rispondi entro {date}: se no, l'ordine si annulla da solo.",
+        "confirm": "Conferma i cambi",
+        "confirmTitle": "Confermi i cambi?",
+        "confirmBody": "Il tuo ordine {number} è accettato come l'ha cambiato {shop}. Ti mandiamo per email come pagare.",
+        "confirmConfirm": "Sì, conferma",
+        "decline": "No, grazie",
+        "declineTitle": "I cambi non ti vanno bene?",
+        "declineBody": "Lo diciamo a {shop}: può cambiare di nuovo l'ordine o rifiutarlo.",
+        "declineReason": "Perché? (facoltativo)",
+        "declineReasonHint": "La fioreria lo legge. Fino a 300 caratteri.",
+        "declineConfirm": "Invia la risposta",
+        "confirmed": "Hai confermato i cambi: il tuo ordine è accettato.",
+        "declined": "Fatto: l'abbiamo detto alla fioreria.",
+        "waiting": "Il tuo ordine aspetta la tua risposta: controlla qui sotto i cambi di {shop}.",
+        "declinedNote": "Hai detto no ai cambi. {shop} può cambiare di nuovo l'ordine o rifiutarlo.",
+        "withdrawnNote": "{shop} sta cambiando di nuovo il tuo ordine: ti scriviamo quando puoi controllarlo."
       }
     }
   },
@@ -911,7 +945,9 @@
       "orderMessages": "{unread, plural, one {# messaggio da leggere} other {# messaggi da leggere}} in {orders, plural, one {# ordine} other {# ordini}}",
       "orderMessagesLink": "Vedi gli ordini",
       "careMessages": "{unread, plural, one {# messaggio} other {# messaggi}} di Floral Care da leggere in {threads, plural, one {# contratto} other {# contratti}}",
-      "careMessagesLink": "Vedi i messaggi"
+      "careMessagesLink": "Vedi i messaggi",
+      "declinedChanges": "{count, plural, one {# cliente ha detto no ai cambi} other {# clienti hanno detto no ai cambi}}",
+      "declinedChangesLink": "Vedi gli ordini"
     }
   },
   "activity": {
@@ -1025,7 +1061,10 @@
       "cancelled_by_buyer": "{actor} ha annullato il suo ordine {number}",
       "ingredient_substituted": "{actor} ha cambiato {name} con {ingredient} in {number}",
       "message_photo_removed": "{actor} ha tolto la foto di un messaggio di {number}",
-      "customer_notified": "{actor} ha avvisato il cliente dei cambi di {number}"
+      "customer_notified": "{actor} ha avvisato il cliente dei cambi di {number}",
+      "change_asked": "{actor} ha chiesto al cliente di confermare i cambi di {number}",
+      "change_confirmed": "{actor} ha confermato i cambi dell’ordine {number}",
+      "change_declined": "{actor} non ha accettato i cambi dell’ordine {number}"
     },
     "delivery_settings": {
       "updated": "{actor} ha cambiato le impostazioni di consegna"
@@ -2224,7 +2263,7 @@
       "accepted": "Ordine accettato: abbiamo avvisato il cliente per email.",
       "badge": "Online",
       "panelTitle": "Ordine online da accettare",
-      "panelBody": "Controlla data, modalità e costo della consegna: se qualcosa cambia, modificalo qui sotto d’accordo con il cliente (i prodotti non si cambiano). Accettandolo gli mandiamo il totale e come pagarti. Se nessuno risponde entro {days} giorni, si annulla da solo.",
+      "panelBody": "Controlla prodotti, data, modalità e costo della consegna. Se cambi qualcosa, chiedi conferma al cliente: lo vede nel suo account e risponde lì. Accettandolo gli mandiamo il totale e come pagarti. Se nessuno risponde entro {days} giorni, si annulla da solo.",
       "accept": "Accetta l’ordine",
       "reject": "Rifiuta",
       "rejectTitle": "Rifiutare l’ordine",
@@ -2293,7 +2332,12 @@
       "applying": "Cambio in corso…",
       "askManager": "Chiedi a chi gestisce la fioreria di fare il cambio.",
       "done": "Fiore cambiato nel mazzo",
-      "whatsapp": "Ciao {name}, ti scriviamo per il tuo ordine {number} ({bouquet}): abbiamo finito {from}. Ti va bene se usiamo {to}? Il prezzo non cambia."
+      "whatsapp": "Ciao {name}, ti scriviamo per il tuo ordine {number} ({bouquet}): abbiamo finito {from}. Ti va bene se usiamo {to}? Il prezzo non cambia.",
+      "askInApp": "Chiedi nell'app",
+      "askedWaiting": "Hai chiesto nell'app per {to}: aspetta la risposta.",
+      "askedYes": "Il cliente ha detto sì nell'app a {to}.",
+      "askedNo": "Il cliente ha detto no nell'app a {to}.",
+      "askedInApp": "Abbiamo chiesto al cliente nell'app"
     },
     "messages": {
       "title": "Messaggi con {name}",
@@ -2308,7 +2352,10 @@
       "sent": "Messaggio inviato",
       "photoRemoved": "Foto tolta",
       "unreadBadge": "{count, plural, one {# messaggio da leggere} other {# messaggi da leggere}}",
-      "filter": "Con messaggi da leggere ({count})"
+      "filter": "Con messaggi da leggere ({count})",
+      "question": "Domanda sì / no",
+      "waitingAnswer": "In attesa della risposta del cliente",
+      "customerAnswered": "Il cliente ha risposto: {answer}"
     },
     "notify": {
       "button": "Avvisa il cliente dei cambi",
@@ -2316,6 +2363,29 @@
       "body": "Mandiamo a {name} un'email con l'ordine com'è adesso: prodotti, consegna e totale. Usalo quando hai finito di fare i cambi.",
       "confirm": "Manda l'avviso",
       "sent": "Abbiamo avvisato il cliente per email."
+    },
+    "changes": {
+      "youChanged": "Hai cambiato",
+      "ask": "Chiedi conferma al cliente",
+      "askTitle": "Chiediamo al cliente di confermare?",
+      "askBody": "Vede i cambi nel suo account e per email, e li conferma o no. Se li conferma, l'ordine è accettato.",
+      "freeDelivery": "La consegna è a $0: chiedendo conferma dici al cliente che è gratis.",
+      "message": "Messaggio per il cliente (facoltativo)",
+      "messageHint": "Lo legge nella pagina del suo ordine, non nell'email.",
+      "askConfirm": "Chiedi conferma",
+      "asked": "Abbiamo chiesto al cliente di confermare i cambi",
+      "propose": "Proponi un'altra data",
+      "proposeTitle": "Proponi un'altra data",
+      "proposeBody": "Cambiamo giorno e fascia e chiediamo al cliente di confermare. Se dice sì, l'ordine è accettato.",
+      "proposeConfirm": "Proponi e chiedi conferma",
+      "proposed": "Abbiamo proposto la nuova data al cliente",
+      "waitingBadge": "In attesa del cliente",
+      "askedOn": "Hai chiesto conferma il {date}.",
+      "declinedBadge": "Il cliente ha detto no",
+      "declinedBody": "Puoi cambiare l'ordine e chiedere di nuovo conferma, o rifiutarlo.",
+      "withdrawn": "Richiesta ritirata: hai cambiato l'ordine dopo aver chiesto conferma. Chiedi di nuovo.",
+      "linesHint": "Se cambi i prodotti, chiedi al cliente di confermare i cambi prima di accettare.",
+      "filter": "No ai cambi ({count})"
     }
   },
   "plans": {
@@ -2879,7 +2949,8 @@
       "payAsk": "Chiedi alla fioreria come pagare.",
       "payDirect": "Paghi direttamente la fioreria: Gardelia non riceve i tuoi soldi.",
       "writeFromAccount": "Hai fatto tu questo ordine? Scrivi a {shop} dal tuo conto.",
-      "openAccount": "Vai a I miei ordini"
+      "openAccount": "Vai a I miei ordini",
+      "changesToConfirm": "{shop} ha proposto dei cambi a questo ordine: confermali nel tuo account."
     }
   },
   "shareLink": {
@@ -5169,7 +5240,31 @@
       "send": "Invia",
       "hint": "Fino a 2000 caratteri e una foto.",
       "empty": "Scrivi un messaggio o aggiungi una foto.",
-      "networkError": "Non è stato possibile inviare. Controlla la connessione e riprova."
+      "networkError": "Non è stato possibile inviare. Controlla la connessione e riprova.",
+      "question": "Domanda sì / no",
+      "questionHint": "Il cliente risponde con un tocco. Senza foto."
+    },
+    "question": {
+      "yes": "Sì",
+      "no": "No"
     }
+  },
+  "orderChanges": {
+    "fulfillment": "Consegna",
+    "schedule": "Giorno e fascia",
+    "address": "Indirizzo",
+    "added": "Aggiunto",
+    "removed": "Tolto",
+    "lineQuantity": "{quantity} × {name} ({total})",
+    "lineRemoved": "{quantity} × {name}",
+    "unitPrice": "{price} l'uno",
+    "deliveryFee": "Costo di consegna",
+    "discount": "Sconto",
+    "total": "Totale",
+    "noDate": "Senza data",
+    "dayWindow": "{day}, dalle {start} alle {end}",
+    "dayAllDay": "{day}, a qualsiasi ora",
+    "noAddress": "Senza indirizzo",
+    "becomes": "diventa"
   }
 }

@@ -19,6 +19,7 @@ import {
   acceptOnlineOrder,
   addBuyerAddress,
   addDeliveryWindow,
+  askOrderChange,
   cancelOrder,
   changeOrderStatus,
   createCatalogItem,
@@ -38,6 +39,7 @@ import {
   updateOnlineStore,
   updateCustomer,
   updateOrderFulfillment,
+  updateOrderLineQuantity,
   updateTenantProfile,
   type BuyerContext,
   type CatalogItemDto,
@@ -638,14 +640,45 @@ describe("invio dell'ordine", () => {
       const [pending] = (await listBuyerOrders(beto, SECRET)).filter(
         (order) => order.status === 'PENDING_ACCEPTANCE',
       );
-      await withTenantContext(db, shop.owner, (tx) =>
-        tx.order.updateMany({
-          where: { tenantId: shop.owner.tenantId, id: pending!.orderId },
-          data: { createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000) },
-        }),
+      // M3-2: un altro ordine aspettava la conferma dei cambi da 4 giorni.
+      const dora = await buyer('Dora Sin Respuesta');
+      const asked = await placeMarketplaceOrder(
+        dora,
+        shop.tenant.slug,
+        orderForm({ scheduledDate: toIsoDate(openDay(10)) }),
+        { fromSearch: false },
+        deps,
       );
+      const askedOrder = await getOrder(shop.owner, asked.orderId);
+      await updateOrderLineQuantity(shop.owner, asked.orderId, askedOrder.lines[0]!.id, '2');
+      await askOrderChange(shop.owner, asked.orderId, {}, deps);
+      const fourDaysAgo = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000);
+      await withTenantContext(db, shop.owner, async (tx) => {
+        await tx.order.updateMany({
+          where: { tenantId: shop.owner.tenantId, id: { in: [pending!.orderId, asked.orderId] } },
+          data: { createdAt: fourDaysAgo },
+        });
+        await tx.orderChangeRequest.updateMany({
+          where: { tenantId: shop.owner.tenantId, orderId: asked.orderId },
+          data: { askedAt: fourDaysAgo },
+        });
+      });
       mailer.sent.length = 0;
-      expect(await expireUnacceptedOrders(deps)).toBeGreaterThanOrEqual(1);
+      expect(await expireUnacceptedOrders(deps)).toBeGreaterThanOrEqual(2);
+      // Mentre aspettava chi compra: il motivo è suo, con le email giuste a tutti e due.
+      const unconfirmed = await getOrder(shop.owner, asked.orderId);
+      expect(unconfirmed).toMatchObject({
+        status: 'CANCELLED',
+        cancelReason:
+          'El cliente no confirmó a tiempo los cambios que propuso la florería: el pedido se canceló automáticamente.',
+      });
+      expect(mailer.lastTo(dora.email)!.text).toContain('No confirmaste a tiempo los cambios');
+      const unconfirmedToShop = mailer.sent.filter(
+        (m) =>
+          m.category === 'online_order_expired_shop' && m.subject.includes(unconfirmed.numberLabel),
+      );
+      expect(unconfirmedToShop.length).toBeGreaterThan(0);
+      expect(unconfirmedToShop[0]!.text).toContain('no confirmó a tiempo los cambios');
       const expired = await getOrder(shop.owner, pending!.orderId);
       expect(expired.status).toBe('CANCELLED');
       expect(mailer.lastTo(beto.email)!.text).toContain('no confirmó a tiempo');

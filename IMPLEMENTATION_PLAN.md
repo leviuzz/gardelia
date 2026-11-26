@@ -1618,7 +1618,66 @@ in tre rilasci (M3-1 «Messaggi e avvisi», M3-2 «Cambi da confermare», M3-3 �
     motivo pronto, 320 px.
 - **DA VALIDARE:** termini per chi compra e aviso de privacidad (bozze aggiornate: messaggi, foto,
   avvisi, annullare da «Mis pedidos»).
-- **Prossimo:** gates completi, CI, poi staging con il via libera del founder; poi M3-2.
+- **CI e staging:** CI run 274 verde su `dd7dcb2`, E2E compreso; la run 273 su `e74706e` era rossa
+  solo perché un E2E non conosceva i due contatori nuovi del lavoro giornaliero, corretto in
+  `dd7dcb2`. In locale 1367 test ed E2E 124/124. Con il via libera del founder (piano del rilascio
+  approvato il 26/11): merge `7bfb158` su `staging`, CI run 275 verde, E2E compreso. La migrazione
+  `order_messages` la applica il deploy di Vercel; nessuna variabile nuova.
+- **Prossimo:** M3-2 «Cambi da confermare» (sotto).
+
+**M3-2 «Cambi da confermare» (26/11, fatto sul ramo di lavoro):** piano di esecuzione approvato dal
+founder il 26/11, in cinque passi come M3-1.
+
+- **Dominio:** `order-changes.ts` (fotografia dell'ordine e differenze, stati, chi può rispondere,
+  schemi della richiesta, di «Proponi un'altra data» e della risposta); scadenza con l'ultima
+  richiesta e l'ultima risposta e un promemoria per scadenza; domande «sì / no» (la domanda senza
+  foto, la risposta, il contesto della sostituzione); `substitutionQuestionText`; le righe di un
+  ordine da accettare si cambiano.
+- **Database:** migrazione `order_changes`: `OrderChangeRequest` (una per ordine, RLS e guardia di
+  chi compra); `OrderMessage` con `kind`, `answer`, `answersMessageId` (FK composita verso la
+  domanda dello stesso ordine, una risposta per domanda) e `questionContext`, CHECK riscritti;
+  `app_pending_orders_to_expire` e `app_pending_orders_to_remind` con la base nuova;
+  `app_buyer_orders` con i cambi da confermare; `app_buyer_order_messages` con tipo e risposta;
+  `app_buyer_order_change_answers` per «Descargar mis datos».
+- **Core:** `askOrderChange`, `proposeOrderDate`; il «prima» salvato dal primo cambio e la richiesta
+  ritirata da un cambio dopo, in tutti i servizi che modificano l'ordine; `acceptOnlineOrder`
+  rifiuta con dei cambi; `confirmBuyerOrderChange` (accetta senza toccare l'inventario) e
+  `declineBuyerOrderChange` da `withBuyerOrder`; `answerBuyerOrderQuestion`; `postOrderMessage` con
+  la domanda; `askSubstitutionInApp`; email dei cambi a chi compra, promemoria a chi compra,
+  risposta alla fioreria, annullamento «No confirmaste los cambios»; «Da gestire» e menu senza gli
+  ordini che aspettano chi compra, con i «no» a parte; elenco con il filtro `changes=declined`; ZIP
+  con `pedidos_cambios.csv` e le risposte.
+- **Web:**
+  - il fiorista: nel riquadro «Da accettare» «Hai cambiato» (com'era → com'è), «Chiedi conferma al
+    cliente», «Proponi un'altra data», i segni «In attesa del cliente», «Il cliente ha detto no»
+    (con il motivo) e «Richiesta ritirata»; l'editor dei prodotti anche sugli ordini da accettare;
+    la casella «Domanda sì / no» nei messaggi; «Chiedi nell'app» in «Mancano fiori» con la casella
+    già spuntata al «Sí»; riga «no ai cambi» in «Da gestire», filtro e segni nell'elenco;
+  - chi compra: la scheda «{Florería} cambió tu pedido» con «Confirmar cambios» e «No, gracias»,
+    il segno «Confirma los cambios» in cima e in «Mis pedidos», «Sí» e «No» sotto le domande; il
+    link di stato rimanda al conto;
+  - un solo componente per i cambi (`components/orders/order-change-list.tsx`) nella lingua di chi
+    guarda; giorno e fascia condivisi fra «Cambia consegna e biglietto» e «Proponi un'altra data».
+- **Test:**
+  - dominio: fotografia e differenze, stati e risposte, scadenza e promemoria, schemi, domande;
+  - integrazione (`order-changes.test.ts` più i casi in `order-messages.test.ts`,
+    `marketplace-orders.test.ts`, `tenant-export.test.ts`, `tenant-deletion.test.ts`): «prima»
+    salvato una volta, «Accetta» rifiutato con dei cambi, consegna a 0, richiesta ritirata e giro
+    vecchio rifiutato, «Confirmar» senza inventario, «No, gracias» e i conteggi, scadenza e
+    promemoria a chi compra, domanda con una sola risposta, «Chiedi nell'app», A↔B; la guardia e i
+    CHECK in `rls.test.ts`;
+  - E2E `marketplace-changes.spec.ts`: quantità cambiata e «Chiedi conferma» → chi compra conferma;
+    «Chiedi nell'app» → «Sí» → casella spuntata → fiore cambiato; «Proponi un'altra data» → «No,
+    gracias» → «Da gestire» → rifiuto; 320 px. Gli aiuti dell'E2E di M3-1 sono in
+    `e2e/support/store.ts`.
+  - In locale: 1408 test ed E2E 125/125.
+- **PROPOSTO (ADR-088):** promemoria a chi compra; email alla fioreria anche alla conferma;
+  biglietto, chi riceve, note e fattorino non contano come cambi; link di stato senza pulsanti;
+  ordini che aspettano chi compra fuori da «Da gestire»; con il conto eliminato «Accetta l'ordine»
+  resta.
+- **DA VALIDARE:** termini per chi compra (bozza aggiornata: cambi confermati nell'app,
+  sostituzioni con una domanda, annullamento senza risposta).
+- **Prossimo:** CI verde, poi staging con il via libera del founder; poi M3-3 «Soldi e squadra».
 
 Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,

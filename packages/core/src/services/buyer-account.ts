@@ -350,6 +350,17 @@ export interface BuyerDataExport {
     readonly sentAt: string;
     readonly text: string;
     readonly withPhoto: boolean;
+    /** M3-2: la risposta «Sí» / «No» a una domanda della fioreria (`YES` | `NO`). */
+    readonly answer?: string | null;
+  }[];
+  /** M3-2: le risposte ai cambi proposti dalle fiorerie (l'ultima per ordine). */
+  readonly orderChangeAnswers: readonly {
+    readonly shop: string;
+    readonly order: string;
+    readonly answeredAt: string;
+    /** `CONFIRMED` («Confirmar») o `DECLINED` («No, gracias»). */
+    readonly answer: string;
+    readonly reason: string | null;
   }[];
   /** Floral Care (ADR-084): i contratti che la persona vede o ha visto nella pagina del cliente. */
   readonly floralCare: {
@@ -396,6 +407,7 @@ export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExpor
       careMessages,
       assistantAnswers,
       orderMessages,
+      orderChangeAnswers,
     ] = await Promise.all([
       tx.user.findUniqueOrThrow({
         where: { id: ctx.userId },
@@ -460,8 +472,20 @@ export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExpor
           created_at: Date;
           body: string;
           has_photo: boolean;
+          kind: string;
+          answer: string | null;
         }[]
       >`SELECT * FROM app_buyer_order_messages()`,
+      // M3-2: le risposte ai cambi proposti dalle fiorerie (l'ultima per ordine).
+      tx.$queryRaw<
+        {
+          shop_name: string;
+          order_number: number;
+          answered_at: Date;
+          status: string;
+          decline_reason: string | null;
+        }[]
+      >`SELECT * FROM app_buyer_order_change_answers()`,
     ]);
     return {
       exportedAt: new Date().toISOString(),
@@ -494,6 +518,15 @@ export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExpor
         sentAt: row.created_at.toISOString(),
         text: row.body,
         withPhoto: row.has_photo,
+        // M3-2: le risposte «Sí» / «No» alle domande della fioreria.
+        ...(row.kind === 'ANSWER' ? { answer: row.answer } : {}),
+      })),
+      orderChangeAnswers: orderChangeAnswers.map((row) => ({
+        shop: row.shop_name,
+        order: formatOrderNumber(row.order_number),
+        answeredAt: row.answered_at.toISOString(),
+        answer: row.status,
+        reason: row.decline_reason,
       })),
       floralCare: {
         accesses: careAccesses.map((row) => ({

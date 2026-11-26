@@ -349,12 +349,12 @@ Piano approvato il 25/11 (ADR-087), in due rilasci.
   - «Mis pedidos / Entrar» nella testata della vetrina.
   - L'E2E della pagina 2 della vetrina accende 25 prodotti insieme e poi li rispegne.
 
-## 6. M3, l'ordine tutto nell'app (M3-1 fatto il 26/11)
+## 6. M3, l'ordine tutto nell'app (M3-1 su staging il 26/11, M3-2 sul ramo di lavoro)
 
 Piano di dettaglio approvato il 26/11 (ADR-088), in tre rilasci: M3-1 «Messaggi e avvisi», M3-2
 «Cambi da confermare», M3-3 «Soldi e squadra».
 
-- **M3-1 «Messaggi e avvisi» (fatto sul ramo di lavoro):**
+- **M3-1 «Messaggi e avvisi» (su staging, 26/11):**
   - chi compra: la pagina dell'ordine in «Mis pedidos» (`/cuenta/pedidos/<id>`) con i passi, la
     consegna, la tarjeta, i prodotti, come pagare dopo l'accettazione, «Cancelar pedido» finché è da
     accettare (con la scadenza) e «Pedir de nuevo» quando è chiuso; «N mensajes nuevos» sulle righe;
@@ -370,7 +370,22 @@ Piano di dettaglio approvato il 26/11 (ADR-088), in tre rilasci: M3-1 «Messaggi
     alla fioreria quando succede;
   - le foto dei messaggi si cancellano 30 giorni dopo la chiusura; i messaggi sono in «Descargar mis
     datos» e nello ZIP della fioreria.
-- **M3-2 e M3-3:** da fare, con lo stesso piano (ADR-088).
+- **M3-2 «Cambi da confermare» (sul ramo di lavoro, 26/11):**
+  - il fiorista cambia un ordine online da accettare come gli serve (prodotti, quantità, sconto,
+    giorno, fascia, consegna e costo) e vede «Hai cambiato» con com'era → com'è; con dei cambi, al
+    posto di «Accetta l'ordine», «Chiedi conferma al cliente» con un messaggio facoltativo;
+    «Proponi un'altra data» accanto a «Rifiuta» cambia giorno e fascia e chiede in un passo;
+  - chi compra vede «{Florería} cambió tu pedido» nel conto (e per email, senza il messaggio) e
+    risponde «Confirmar cambios» (l'ordine è accettato, con come pagare) o «No, gracias» con un
+    motivo facoltativo (l'ordine torna alla fioreria, che lo vede in «Da gestire» e nel filtro «No
+    ai cambi»); il link di stato rimanda al conto, senza pulsanti;
+  - un cambio dopo la richiesta la ritira; una versione vecchia o un giorno passato non si
+    confermano; mentre si aspetta chi compra, i 3 giorni contano dalla richiesta (o dall'ultima
+    risposta) e il promemoria del giorno prima va a chi compra;
+  - domande «sì / no» nel filo: il fiorista le scrive con la casella «Domanda sì / no», chi compra
+    risponde con un tocco; in «Mancano fiori», «Chiedi nell'app» prepara la domanda e, con il
+    «Sí», la casella «Il cliente ha accettato il cambio» è già spuntata.
+- **M3-3:** da fare, con lo stesso piano (ADR-088).
 
 ## PROPOSTO (da confermare)
 

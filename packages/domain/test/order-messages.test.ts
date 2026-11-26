@@ -6,9 +6,13 @@ import {
   orderMessagePages,
   orderMessageProblem,
   orderMessageSchema,
+  orderAnswerProblem,
   orderMessagesOpen,
   orderPhotosPurgeAfter,
+  orderQuestionAnswerSchema,
+  orderStaffMessageSchema,
   orderStepNotice,
+  parseOrderQuestionContext,
   shouldSendMessageNotice,
 } from '../src/index';
 
@@ -157,5 +161,71 @@ describe('i passi che avvisano chi compra', () => {
     expect(orderStepNotice('PICKED_UP', 'PICKUP')).toBeNull();
     expect(orderStepNotice('CONFIRMED', 'DELIVERY')).toBeNull();
     expect(orderStepNotice('CANCELLED', 'DELIVERY')).toBeNull();
+  });
+});
+
+describe('domande «sì / no» (M3-2)', () => {
+  const submitKey = '0194d8a4-1b2c-7d3e-8f40-0000000000f1';
+  const questionId = '0194d8a4-1b2c-7d3e-8f40-0000000000f2';
+
+  it('la casella fa del messaggio una domanda, che chiede sempre il testo', () => {
+    expect(
+      orderStaffMessageSchema.parse({ body: ' ¿Te parece el sábado? ', submitKey, question: 'on' }),
+    ).toEqual({
+      body: '¿Te parece el sábado?',
+      submitKey,
+      question: true,
+    });
+    expect(orderStaffMessageSchema.parse({ body: 'Hola', submitKey }).question).toBe(false);
+    expect(
+      orderMessageProblem({ order: online, body: ' ', hasPhoto: true, question: true, now }),
+    ).toBe('order_question_empty');
+    // Una domanda è solo testo: la foto va in un messaggio a parte (CHECK nel database).
+    expect(
+      orderMessageProblem({ order: online, body: 'Sí o no', hasPhoto: true, question: true, now }),
+    ).toBe('order_question_photo');
+    expect(
+      orderMessageProblem({ order: online, body: 'Sí o no', hasPhoto: false, question: true, now }),
+    ).toBeNull();
+  });
+
+  it('la risposta: «Sí» o «No» a una domanda precisa', () => {
+    expect(orderQuestionAnswerSchema.parse({ messageId: questionId, answer: 'YES' })).toEqual({
+      messageId: questionId,
+      answer: 'YES',
+    });
+    expect(
+      orderQuestionAnswerSchema.safeParse({ messageId: questionId, answer: 'MAYBE' }).success,
+    ).toBe(false);
+    expect(orderQuestionAnswerSchema.safeParse({ messageId: 'x', answer: 'NO' }).success).toBe(
+      false,
+    );
+  });
+
+  it('una risposta per domanda, solo col filo aperto', () => {
+    expect(orderAnswerProblem({ order: online, alreadyAnswered: false, now })).toBeNull();
+    expect(orderAnswerProblem({ order: online, alreadyAnswered: true, now })).toBe(
+      'order_question_answered',
+    );
+    const closed = {
+      ...online,
+      status: 'DELIVERED' as const,
+      statusChangedAt: new Date(now.getTime() - 8 * DAY),
+    };
+    expect(orderAnswerProblem({ order: closed, alreadyAnswered: false, now })).toBe(
+      'order_message_closed',
+    );
+  });
+
+  it('il contesto di «Chiedi nell’app» si rilegge solo se è valido', () => {
+    const context = {
+      kind: 'SUBSTITUTION',
+      lineId: '0194d8a4-1b2c-7d3e-8f40-0000000000a1',
+      fromItemId: '0194d8a4-1b2c-7d3e-8f40-0000000000a2',
+      toItemId: '0194d8a4-1b2c-7d3e-8f40-0000000000a3',
+    };
+    expect(parseOrderQuestionContext(context)).toEqual(context);
+    expect(parseOrderQuestionContext({ ...context, lineId: 'x' })).toBeNull();
+    expect(parseOrderQuestionContext(null)).toBeNull();
   });
 });

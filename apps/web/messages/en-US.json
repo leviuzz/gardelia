@@ -67,7 +67,9 @@
     "opening_hours_overlap": "This range overlaps another one on the same day: merge them into one.",
     "substitute_required": "Choose the flower to use instead.",
     "substitution_customer_required": "Confirm the customer agreed to the change.",
-    "order_message_empty": "Write a message or add a photo."
+    "order_message_empty": "Write a message or add a photo.",
+    "order_question_empty": "Write the question: the customer answers “Yes” or “No”.",
+    "order_question_photo": "A yes / no question has no photo: send the photo in another message."
   },
   "errors": {
     "validation": "Check the highlighted fields.",
@@ -139,7 +141,14 @@
       "order_message_closed": "This order closed more than 7 days ago: the messages stay available to read.",
       "order_message_daily_limit": "You've reached today's message limit on this order. If it's urgent, call the shop.",
       "order_not_reorderable": "This order can't be repeated.",
-      "order_not_notifiable": "There's no one to notify: only accepted, open online orders."
+      "order_not_notifiable": "There's no one to notify: only accepted, open online orders.",
+      "order_change_nothing": "There are no changes to confirm: the order is as the customer placed it.",
+      "order_change_waiting": "You already asked the customer to confirm the changes: wait for the answer, or change the order to ask again.",
+      "order_change_needs_confirmation": "You changed the order: ask the customer to confirm the changes before accepting it.",
+      "order_change_no_buyer": "The customer deleted their account: they can't confirm changes.",
+      "order_change_outdated": "The florist changed the order again: review the changes again.",
+      "order_change_date_passed": "The delivery day has already passed: write to the florist.",
+      "order_question_answered": "You already answered this question."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -386,7 +395,8 @@
       "cancelBody": "{shop} hasn’t accepted it yet: it’s cancelled and you don’t pay anything. We’ll let the shop know.",
       "cancelConfirm": "Yes, cancel the order",
       "cancelled": "Order cancelled.",
-      "newMessages": "{count, plural, one {# new message} other {# new messages}}"
+      "newMessages": "{count, plural, one {# new message} other {# new messages}}",
+      "changesToConfirm": "Confirm the changes"
     },
     "privacy": {
       "title": "Your data and privacy",
@@ -536,7 +546,31 @@
         "newDivider": "New",
         "you": "You",
         "closed": "7 days have passed since the order closed: the messages stay available to read.",
-        "sent": "Message sent"
+        "sent": "Message sent",
+        "question": "Question: answer yes or no",
+        "answeredYou": "You answered: {answer}",
+        "answered": "Answer sent"
+      },
+      "changes": {
+        "title": "{shop} changed your order",
+        "body": "Check the changes. If you confirm them, your order is accepted and we send you how to pay.",
+        "messageFrom": "Message from {shop}",
+        "deadline": "Answer by {date}: otherwise the order cancels itself.",
+        "confirm": "Confirm changes",
+        "confirmTitle": "Confirm the changes?",
+        "confirmBody": "Your order {number} is accepted as {shop} changed it. We email you how to pay.",
+        "confirmConfirm": "Yes, confirm",
+        "decline": "No, thanks",
+        "declineTitle": "Don't want these changes?",
+        "declineBody": "We'll tell {shop}: they can change the order again or decline it.",
+        "declineReason": "Why? (optional)",
+        "declineReasonHint": "The florist reads it. Up to 300 characters.",
+        "declineConfirm": "Send answer",
+        "confirmed": "You confirmed the changes: your order is accepted.",
+        "declined": "Done: we told the florist.",
+        "waiting": "Your order is waiting for your answer: check {shop}'s changes below.",
+        "declinedNote": "You said no to the changes. {shop} can change the order again or decline it.",
+        "withdrawnNote": "{shop} is changing your order again: we'll email you when you can review it."
       }
     }
   },
@@ -911,7 +945,9 @@
       "orderMessages": "{unread, plural, one {# message to read} other {# messages to read}} in {orders, plural, one {# order} other {# orders}}",
       "orderMessagesLink": "See orders",
       "careMessages": "{unread, plural, one {# Floral Care message} other {# Floral Care messages}} to read in {threads, plural, one {# contract} other {# contracts}}",
-      "careMessagesLink": "See messages"
+      "careMessagesLink": "See messages",
+      "declinedChanges": "{count, plural, one {# customer said no to the changes} other {# customers said no to the changes}}",
+      "declinedChangesLink": "See orders"
     }
   },
   "activity": {
@@ -1025,7 +1061,10 @@
       "cancelled_by_buyer": "{actor} cancelled their order {number}",
       "ingredient_substituted": "{actor} replaced {name} with {ingredient} in {number}",
       "message_photo_removed": "{actor} removed the photo of a message on {number}",
-      "customer_notified": "{actor} told the customer about the changes to {number}"
+      "customer_notified": "{actor} told the customer about the changes to {number}",
+      "change_asked": "{actor} asked the customer to confirm the changes to {number}",
+      "change_confirmed": "{actor} confirmed the changes to order {number}",
+      "change_declined": "{actor} declined the changes to order {number}"
     },
     "delivery_settings": {
       "updated": "{actor} changed the delivery settings"
@@ -2224,7 +2263,7 @@
       "accepted": "Order accepted: we emailed the customer.",
       "badge": "Online",
       "panelTitle": "Online order to accept",
-      "panelBody": "Check the date, delivery method and fee: if something changes, adjust it below with the customer’s agreement (products can’t be changed). When you accept it, we send them the total and how to pay you. If nobody answers within {days} days, it cancels itself.",
+      "panelBody": "Check the products, date, delivery method and fee. If you change something, ask the customer to confirm it: they see it in their account and answer there. When you accept it, we send them the total and how to pay you. If nobody answers within {days} days, it cancels itself.",
       "accept": "Accept order",
       "reject": "Decline",
       "rejectTitle": "Decline the order",
@@ -2293,7 +2332,12 @@
       "applying": "Changing…",
       "askManager": "Ask whoever manages the shop to make the change.",
       "done": "Flower changed in the bouquet",
-      "whatsapp": "Hi {name}, about your order {number} ({bouquet}): we ran out of {from}. Would {to} work for you instead? The price stays the same."
+      "whatsapp": "Hi {name}, about your order {number} ({bouquet}): we ran out of {from}. Would {to} work for you instead? The price stays the same.",
+      "askInApp": "Ask in the app",
+      "askedWaiting": "You asked in the app about {to}: waiting for the answer.",
+      "askedYes": "The customer said yes in the app to {to}.",
+      "askedNo": "The customer said no in the app to {to}.",
+      "askedInApp": "We asked the customer in the app"
     },
     "messages": {
       "title": "Messages with {name}",
@@ -2308,7 +2352,10 @@
       "sent": "Message sent",
       "photoRemoved": "Photo removed",
       "unreadBadge": "{count, plural, one {# unread message} other {# unread messages}}",
-      "filter": "With unread messages ({count})"
+      "filter": "With unread messages ({count})",
+      "question": "Yes / no question",
+      "waitingAnswer": "Waiting for the customer's answer",
+      "customerAnswered": "The customer answered: {answer}"
     },
     "notify": {
       "button": "Tell the customer about the changes",
@@ -2316,6 +2363,29 @@
       "body": "We email {name} the order as it is now: products, delivery and total. Use it when you have finished making changes.",
       "confirm": "Send notice",
       "sent": "We emailed the customer."
+    },
+    "changes": {
+      "youChanged": "You changed",
+      "ask": "Ask the customer to confirm",
+      "askTitle": "Ask the customer to confirm?",
+      "askBody": "They see the changes in their account and by email, and confirm them or not. If they confirm, the order is accepted.",
+      "freeDelivery": "Delivery is at $0: by asking, you tell the customer it's free.",
+      "message": "Message to the customer (optional)",
+      "messageHint": "They read it on their order page, not in the email.",
+      "askConfirm": "Ask to confirm",
+      "asked": "We asked the customer to confirm the changes",
+      "propose": "Propose another date",
+      "proposeTitle": "Propose another date",
+      "proposeBody": "We change the day and time and ask the customer to confirm. If they say yes, the order is accepted.",
+      "proposeConfirm": "Propose and ask to confirm",
+      "proposed": "We proposed the new date to the customer",
+      "waitingBadge": "Waiting for the customer",
+      "askedOn": "You asked on {date}.",
+      "declinedBadge": "The customer said no",
+      "declinedBody": "You can change the order and ask again, or decline it.",
+      "withdrawn": "Request withdrawn: you changed the order after asking. Ask again.",
+      "linesHint": "If you change the products, ask the customer to confirm the changes before accepting.",
+      "filter": "Said no to changes ({count})"
     }
   },
   "plans": {
@@ -2879,7 +2949,8 @@
       "payAsk": "Ask the shop how to pay.",
       "payDirect": "You pay the shop directly: Gardelia doesn’t receive your money.",
       "writeFromAccount": "Did you place this order? Write to {shop} from your account.",
-      "openAccount": "Go to My orders"
+      "openAccount": "Go to My orders",
+      "changesToConfirm": "{shop} proposed changes to this order: confirm them in your account."
     }
   },
   "shareLink": {
@@ -5169,7 +5240,31 @@
       "send": "Send",
       "hint": "Up to 2,000 characters and one photo.",
       "empty": "Write a message or add a photo.",
-      "networkError": "It couldn’t be sent. Check your connection and try again."
+      "networkError": "It couldn’t be sent. Check your connection and try again.",
+      "question": "Yes / no question",
+      "questionHint": "The customer answers with one tap. No photo."
+    },
+    "question": {
+      "yes": "Yes",
+      "no": "No"
     }
+  },
+  "orderChanges": {
+    "fulfillment": "Delivery",
+    "schedule": "Day and time",
+    "address": "Address",
+    "added": "Added",
+    "removed": "Removed",
+    "lineQuantity": "{quantity} × {name} ({total})",
+    "lineRemoved": "{quantity} × {name}",
+    "unitPrice": "{price} each",
+    "deliveryFee": "Delivery fee",
+    "discount": "Discount",
+    "total": "Total",
+    "noDate": "No date",
+    "dayWindow": "{day}, {start} to {end}",
+    "dayAllDay": "{day}, any time",
+    "noAddress": "No address",
+    "becomes": "becomes"
   }
 }

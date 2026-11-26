@@ -18,6 +18,9 @@ import {
   pendingOrderDeadlineShown,
   type CurrencyCode,
   type FulfillmentMode,
+  type OrderChangeAddress,
+  type OrderChangeDiff,
+  type OrderChangeSchedule,
   type StorePaymentMethod,
 } from '@floral/domain';
 import {
@@ -30,6 +33,9 @@ import {
   onlineOrderReceivedEmail,
   onlineOrderStepEmail,
   onlineOrderWithdrawnEmail,
+  orderChangeAnsweredShopEmail,
+  orderChangeAskedEmail,
+  orderChangeReminderEmail,
   orderMessageForBuyerEmail,
   orderMessageForShopEmail,
   pendingOrderReminderEmail,
@@ -154,7 +160,9 @@ export type BuyerOrderMailKind =
   | 'step_ready_pickup'
   | 'step_on_the_way'
   | 'step_delivered'
-  | 'changed';
+  | 'changed'
+  /** M3-2: annullato perché chi compra non ha confermato in tempo i cambi. */
+  | 'unconfirmed';
 
 const STEP_KINDS: Readonly<Record<string, OnlineOrderStep>> = {
   step_preparing: 'preparing',
@@ -271,10 +279,14 @@ export async function buyerOrderMail(
     case 'cancelled':
     case 'expired':
     case 'withdrawn':
+    case 'unconfirmed':
       return onlineOrderCancelledEmail({
         ...common,
         kind,
-        reason: kind === 'expired' || kind === 'withdrawn' ? null : order.cancelReason,
+        reason:
+          kind === 'expired' || kind === 'withdrawn' || kind === 'unconfirmed'
+            ? null
+            : order.cancelReason,
         searchUrl: deps.links.search,
       });
     default:
@@ -494,11 +506,211 @@ export async function pendingReminderMailsForShop(
   );
 }
 
-/** A proprietari e gerenti: l'ordine online si è annullato da solo, nessuno l'ha accettato. */
+/**
+ * A proprietari e gerenti: l'ordine online si è annullato da solo, nessuno l'ha accettato (o chi
+ * compra non ha confermato in tempo i cambi, `unconfirmed`, M3-2).
+ */
 export async function expiredOrderMailsForShop(
   tx: TransactionClient,
   tenantId: string,
   orderId: string,
+  deps: OrderMailDeps,
+  options: { readonly unconfirmed?: boolean } = {},
+): Promise<EmailMessage[]> {
+  const [order, tenant, emails] = await Promise.all([
+    tx.order.findFirstOrThrow({ where: { tenantId, id: orderId } }),
+    tx.tenant.findUniqueOrThrow({
+      where: { id: tenantId },
+      select: { displayName: true, slug: true },
+    }),
+    managerEmailsTx(tx, tenantId),
+  ]);
+  const buyerName = await buyerNameTx(tx, order.buyerUserId);
+  const facts = orderFacts(tenant.displayName, order);
+  const url = deps.links.order(tenant.slug, order.id);
+  return emails.map((to) =>
+    onlineOrderExpiredShopEmail({
+      to,
+      buyerName,
+      facts,
+      url,
+      ...(options.unconfirmed ? { unconfirmed: true } : {}),
+    }),
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Marketplace M3-2 (ADR-088): cambi da confermare
+// -----------------------------------------------------------------------------
+
+const money = (minor: number, currency: string) =>
+  formatMoney(minor, currency as CurrencyCode, LOCALE);
+
+function scheduleLabel(schedule: OrderChangeSchedule, mode: FulfillmentMode): string {
+  return whenLabel({
+    number: 0,
+    fulfillmentMode: mode,
+    scheduledDate: schedule.date ? new Date(`${schedule.date}T00:00:00Z`) : null,
+    windowStartMinutes: schedule.windowStartMinutes,
+    windowEndMinutes: schedule.windowEndMinutes,
+    totalMinor: 0,
+    currency: 'MXN',
+  });
+}
+
+function addressLabel(address: OrderChangeAddress | null): string {
+  if (!address) return 'sin dirección';
+  return [address.line1, address.line2, address.neighborhood, address.city]
+    .filter(Boolean)
+    .join(', ');
+}
+
+const MODE_LABELS: Record<FulfillmentMode, string> = {
+  DELIVERY: 'a domicilio',
+  PICKUP: 'recoger en la tienda',
+};
+
+/** I cambi come si leggono in un'email a chi compra (es-MX): «Día y horario: … → …». */
+export function orderChangeLinesEs(
+  diff: OrderChangeDiff,
+  currency: string,
+  mode: FulfillmentMode,
+): string[] {
+  const lines: string[] = [];
+  if (diff.fulfillmentMode) {
+    lines.push(
+      `Entrega: ${MODE_LABELS[diff.fulfillmentMode.before]} → ${MODE_LABELS[diff.fulfillmentMode.after]}`,
+    );
+  }
+  if (diff.schedule) {
+    const before = diff.fulfillmentMode?.before ?? mode;
+    lines.push(
+      `Día y horario: ${scheduleLabel(diff.schedule.before, before)} → ${scheduleLabel(diff.schedule.after, mode)}`,
+    );
+  }
+  // Passando al ritiro l'indirizzo non serve più: lo dice già la riga della consegna.
+  if (diff.address && diff.address.after !== null) {
+    lines.push(
+      `Dirección: ${addressLabel(diff.address.before)} → ${addressLabel(diff.address.after)}`,
+    );
+  }
+  for (const line of diff.lines) {
+    if (line.change === 'added' && line.after) {
+      lines.push(
+        `Agregado: ${line.after.quantity} × ${line.description} (${money(line.after.lineTotalMinor, currency)})`,
+      );
+    } else if (line.change === 'removed' && line.before) {
+      lines.push(`Quitado: ${line.before.quantity} × ${line.description}`);
+    } else if (line.before && line.after) {
+      lines.push(
+        line.before.quantity !== line.after.quantity
+          ? `${line.description}: ${line.before.quantity} → ${line.after.quantity}`
+          : `${line.description}: ${money(line.before.unitPriceMinor, currency)} → ${money(line.after.unitPriceMinor, currency)} c/u`,
+      );
+    }
+  }
+  if (diff.deliveryFee) {
+    lines.push(
+      `Envío: ${money(diff.deliveryFee.before, currency)} → ${money(diff.deliveryFee.after, currency)}`,
+    );
+  }
+  if (diff.discount) {
+    lines.push(
+      `Descuento: ${money(diff.discount.before, currency)} → ${money(diff.discount.after, currency)}`,
+    );
+  }
+  if (diff.total) {
+    lines.push(
+      `Total: ${money(diff.total.before, currency)} → ${money(diff.total.after, currency)}`,
+    );
+  }
+  return lines;
+}
+
+/** La pagina dell'ordine di chi compra, alla scheda dei cambi. */
+function buyerChangesUrl(orderId: string, deps: OrderMailDeps): string {
+  return deps.links.buyerOrder ? `${deps.links.buyerOrder(orderId)}#cambios` : deps.links.account;
+}
+
+/** L'ordine, chi l'ha fatto e la scadenza di adesso (con la richiesta e la risposta). */
+async function changeContextTx(tx: TransactionClient, tenantId: string, orderId: string) {
+  const order = await tx.order.findFirst({ where: { tenantId, id: orderId } });
+  if (!order?.placedOnline || !order.buyerUserId) return null;
+  const [buyer, tenant, change] = await Promise.all([
+    tx.user.findUnique({ where: { id: order.buyerUserId }, select: { name: true, email: true } }),
+    tx.tenant.findUniqueOrThrow({
+      where: { id: tenantId },
+      select: { displayName: true, contactEmail: true, timezone: true },
+    }),
+    tx.orderChangeRequest.findUnique({
+      where: { tenantId_orderId: { tenantId, orderId } },
+      select: { askedAt: true, answeredAt: true },
+    }),
+  ]);
+  if (!buyer) return null;
+  const deadline = pendingOrderDeadline(
+    {
+      createdAt: order.createdAt,
+      scheduledDate: order.scheduledDate ? dateToParts(order.scheduledDate) : null,
+      changeAskedAt: change?.askedAt ?? null,
+      changeAnsweredAt: change?.answeredAt ?? null,
+    },
+    tenant.timezone,
+  );
+  return { order, buyer, tenant, deadline };
+}
+
+/**
+ * A chi compra: la fioreria chiede di confermare i cambi (M3-2), con la lista e la scadenza. Da
+ * chiamare dentro la transazione della richiesta, DOPO averla scritta.
+ */
+export async function changeAskedMailTx(
+  tx: TransactionClient,
+  tenantId: string,
+  orderId: string,
+  diff: OrderChangeDiff,
+  deps: OrderMailDeps,
+): Promise<EmailMessage | null> {
+  const found = await changeContextTx(tx, tenantId, orderId);
+  if (!found) return null;
+  const { order, buyer, tenant, deadline } = found;
+  return orderChangeAskedEmail({
+    to: buyer.email,
+    name: buyer.name,
+    facts: orderFacts(tenant.displayName, order),
+    changes: orderChangeLinesEs(diff, order.currency, order.fulfillmentMode),
+    deadlineLabel: shopDateTimeLabel(pendingOrderDeadlineShown(deadline), tenant.timezone),
+    url: buyerChangesUrl(order.id, deps),
+    replyTo: tenant.contactEmail,
+  });
+}
+
+/** A chi compra: la richiesta aspetta la sua risposta e l'ordine si annulla prima del giro dopo. */
+export async function changeReminderMailTx(
+  tx: TransactionClient,
+  tenantId: string,
+  orderId: string,
+  deps: OrderMailDeps,
+): Promise<EmailMessage | null> {
+  const found = await changeContextTx(tx, tenantId, orderId);
+  if (!found) return null;
+  const { order, buyer, tenant, deadline } = found;
+  return orderChangeReminderEmail({
+    to: buyer.email,
+    name: buyer.name,
+    facts: orderFacts(tenant.displayName, order),
+    deadlineLabel: shopDateTimeLabel(pendingOrderDeadlineShown(deadline), tenant.timezone),
+    url: buyerChangesUrl(order.id, deps),
+    replyTo: tenant.contactEmail,
+  });
+}
+
+/** A proprietari e gerenti: chi compra ha confermato i cambi o ha detto «No, gracias». */
+export async function changeAnsweredMailsForShop(
+  tx: TransactionClient,
+  tenantId: string,
+  orderId: string,
+  answer: 'CONFIRMED' | 'DECLINED',
   deps: OrderMailDeps,
 ): Promise<EmailMessage[]> {
   const [order, tenant, emails] = await Promise.all([
@@ -512,5 +724,5 @@ export async function expiredOrderMailsForShop(
   const buyerName = await buyerNameTx(tx, order.buyerUserId);
   const facts = orderFacts(tenant.displayName, order);
   const url = deps.links.order(tenant.slug, order.id);
-  return emails.map((to) => onlineOrderExpiredShopEmail({ to, buyerName, facts, url }));
+  return emails.map((to) => orderChangeAnsweredShopEmail({ to, buyerName, facts, answer, url }));
 }

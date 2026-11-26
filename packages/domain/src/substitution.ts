@@ -124,6 +124,27 @@ export function rankSubstitutes(
     .slice(0, options.limit ?? SUBSTITUTE_LIMIT);
 }
 
+/** Il nome di un fiore come lo legge il cliente: nome e varietà. */
+export function substituteItemLabel(item: {
+  readonly name: string;
+  readonly variety: string | null;
+}): string {
+  return item.variety ? `${item.name} ${item.variety}` : item.name;
+}
+
+/**
+ * La domanda di «Chiedi nell'app» (M3-2): la stessa proposta del messaggio di WhatsApp, nel filo
+ * dell'ordine e nella lingua del mercato come gli altri testi scritti per chi compra (V1: Messico).
+ * La scrive il servizio con i nomi del database, mai il browser.
+ */
+export function substitutionQuestionText(input: {
+  readonly bouquet: string;
+  readonly from: string;
+  readonly to: string;
+}): string {
+  return `Para tu pedido de ${input.bouquet} se nos acabó ${input.from}. ¿Te parece si usamos ${input.to}? El precio no cambia.`;
+}
+
 /** Il form "Cambiar flor": riga, ingrediente che manca, sostituto e, se serve, l'ok del cliente. */
 export const orderSubstitutionSchema = z.object({
   lineId: z.preprocess(toTrimmedString, z.uuid({ error: 'invalid_option' })),
@@ -138,3 +159,11 @@ export const orderSubstitutionSchema = z.object({
   customerAgreed: checkboxField(),
 });
 export type OrderSubstitutionInput = z.infer<typeof orderSubstitutionSchema>;
+
+/** «Chiedi nell'app»: la riga, il fiore che manca e quello proposto (il testo lo scrive il server). */
+export const orderSubstitutionQuestionSchema = orderSubstitutionSchema.pick({
+  lineId: true,
+  fromItemId: true,
+  toItemId: true,
+});
+export type OrderSubstitutionQuestionInput = z.infer<typeof orderSubstitutionQuestionSchema>;

@@ -141,11 +141,17 @@ export function isOrderEditable(status: OrderStatus): boolean {
 }
 
 /**
- * Cosa contiene l'ordine (righe e sconto) si cambia finché il ramo non è pronto. Un ordine del
- * marketplace no: lo ha composto il cliente, e la fioreria lo accetta o lo rifiuta.
+ * Cosa contiene l'ordine (righe e sconto) si cambia finché il ramo non è pronto. Anche un ordine
+ * online ancora da accettare (M3-2): il fiorista lo cambia e chiede a chi compra di confermarlo,
+ * perché l'ordine l'ha composto il cliente.
  */
 export function areOrderLinesEditable(status: OrderStatus): boolean {
-  return status === 'DRAFT' || status === 'CONFIRMED' || status === 'IN_PREPARATION';
+  return (
+    status === 'DRAFT' ||
+    status === 'PENDING_ACCEPTANCE' ||
+    status === 'CONFIRMED' ||
+    status === 'IN_PREPARATION'
+  );
 }
 
 /** I pagamenti si registrano su un ordine confermato e non annullato. */
@@ -413,6 +419,8 @@ export const orderListFiltersSchema = z.object({
   unpaid: z.preprocess((value) => value === '1' || value === 'true', z.boolean()),
   /** «Con messaggi da leggere» (M3): ordini online con messaggi di chi compra non ancora letti. */
   messages: z.preprocess((value) => value === 'unread', z.boolean()),
+  /** «No ai cambi» (M3-2): ordini online tornati alla fioreria dopo un «No, gracias». */
+  changes: z.preprocess((value) => value === 'declined', z.boolean()),
   page: z.preprocess(
     (value) => (typeof value === 'string' ? Number(value) : value),
     z.int().min(1).max(10_000).catch(1),
@@ -422,4 +430,6 @@ export type OrderListFilters = z.infer<typeof orderListFiltersSchema>;
 
 /** Campi del modulo di consegna riusati dall'ordine del cliente online (ADR-067). */
 export const orderDateField = requiredDate;
+/** Un orario facoltativo `HH:MM` in minuti dalla mezzanotte (fascia della consegna). */
+export const orderTimeField = optionalTime;
 export const optionalUuidField = optionalUuid;

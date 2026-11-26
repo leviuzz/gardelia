@@ -187,21 +187,53 @@ export function marketplaceDateProblem(
 export const MARKETPLACE_EXPIRED_REASON =
   'La florería no respondió a tiempo: el pedido se canceló automáticamente.';
 
+/**
+ * Motivo scritto sugli ordini annullati perché chi compra non ha confermato in tempo i cambi chiesti
+ * dalla fioreria (M3-2). Lo leggono tutte e due le parti, come gli altri motivi.
+ */
+export const MARKETPLACE_UNCONFIRMED_REASON =
+  'El cliente no confirmó a tiempo los cambios que propuso la florería: el pedido se canceló automáticamente.';
+
 /** Motivo scritto sugli ordini online che chi compra annulla prima dell'accettazione. */
 export const MARKETPLACE_WITHDRAWN_REASON =
   'El cliente canceló el pedido antes de que la florería lo aceptara.';
 
 /**
- * Fino a quando un ordine online si può accettare: `acceptDays` giorni dopo l'invio, ma non oltre
- * la fine del suo giorno di consegna nel fuso della fioreria. È la sola regola della scadenza: la
- * usano l'annullamento automatico, il promemoria e la scadenza mostrata, e la funzione SQL
- * `app_pending_orders_to_expire` la ripete (provato da tutti e due i lati).
+ * Un ordine online da accettare, per la scadenza: quando è arrivato e, se il fiorista ha chiesto di
+ * confermare dei cambi (M3-2), l'ultima richiesta e l'ultima risposta di chi compra.
  */
-export function pendingOrderDeadline(
-  order: { readonly createdAt: Date; readonly scheduledDate: CalendarDate | null },
-  timeZone: string,
-): Date {
-  const clock = order.createdAt.getTime() + MARKETPLACE_ORDER_LIMITS.acceptDays * DAY_MS;
+export interface PendingOrderClock {
+  readonly createdAt: Date;
+  readonly scheduledDate: CalendarDate | null;
+  /** L'ultima volta che il fiorista ha chiesto la conferma (resta anche se poi la ritira). */
+  readonly changeAskedAt?: Date | null;
+  /** L'ultima risposta di chi compra («Confirmar» o «No, gracias»). */
+  readonly changeAnsweredAt?: Date | null;
+}
+
+/**
+ * Da quando contano i giorni per accettare: dall'invio, oppure dall'ultima richiesta di conferma o
+ * dall'ultima risposta di chi compra, la più recente (M3-2). Così chi compra ha i suoi giorni per
+ * rispondere, e il fiorista i suoi dopo un «No, gracias».
+ */
+export function pendingOrderClockStart(order: Omit<PendingOrderClock, 'scheduledDate'>): Date {
+  let start = order.createdAt.getTime();
+  for (const at of [order.changeAskedAt, order.changeAnsweredAt]) {
+    if (at && at.getTime() > start) start = at.getTime();
+  }
+  return new Date(start);
+}
+
+/**
+ * Fino a quando un ordine online si può accettare: `acceptDays` giorni dopo l'inizio del conto
+ * (`pendingOrderClockStart`), ma non oltre la fine del suo giorno di consegna nel fuso della
+ * fioreria. È la sola regola della scadenza: la usano l'annullamento automatico, il promemoria e la
+ * scadenza mostrata, e le funzioni SQL `app_pending_orders_to_expire` e
+ * `app_pending_orders_to_remind` la ripetono (provato da tutti e due i lati).
+ */
+export function pendingOrderDeadline(order: PendingOrderClock, timeZone: string): Date {
+  const clock =
+    pendingOrderClockStart(order).getTime() + MARKETPLACE_ORDER_LIMITS.acceptDays * DAY_MS;
   if (!order.scheduledDate) return new Date(clock);
   const dayEnd = zonedDateTime(addDays(order.scheduledDate, 1), 0, timeZone).getTime();
   return new Date(Math.min(clock, dayEnd));
@@ -212,17 +244,28 @@ export function pendingOrderDeadline(
  * servizio sulla scelta della manutenzione).
  */
 export function isPendingOrderExpired(
-  order: { readonly createdAt: Date; readonly scheduledDate: CalendarDate | null },
+  order: PendingOrderClock,
   now: Date,
   timeZone: string,
 ): boolean {
   return now.getTime() >= pendingOrderDeadline(order, timeZone).getTime();
 }
 
-/** Il promemoria alla fioreria: la scadenza arriva prima del prossimo giro giornaliero. */
+/**
+ * Il promemoria della scadenza: arriva prima del prossimo giro giornaliero. Va alla fioreria, o a
+ * chi compra se l'ordine aspetta la sua conferma (M3-2).
+ */
 export function pendingOrderNeedsReminder(deadline: Date, now: Date): boolean {
   const left = deadline.getTime() - now.getTime();
   return left > 0 && left <= MARKETPLACE_ORDER_LIMITS.reminderHours * 60 * 60 * 1000;
+}
+
+/**
+ * Un promemoria per scadenza, non per ordine (M3-2): una richiesta di conferma o una risposta fanno
+ * ripartire il conto, e allora può partire un promemoria nuovo. `lastSentAt` è l'ultimo mandato.
+ */
+export function pendingReminderAlreadySent(lastSentAt: Date | null, clockStart: Date): boolean {
+  return lastSentAt !== null && lastSentAt.getTime() >= clockStart.getTime();
 }
 
 /**

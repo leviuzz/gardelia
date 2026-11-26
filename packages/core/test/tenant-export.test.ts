@@ -220,6 +220,7 @@ describe('esportazione dei dati della fioreria', () => {
         'movimientos_inventario.csv',
         'pagos.csv',
         'pedidos.csv',
+        'pedidos_cambios.csv',
         'pedidos_conceptos.csv',
         'pedidos_mensajes.csv',
         'proveedores.csv',

@@ -139,10 +139,15 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
   `app.user_id`) dà la fioreria solo per un ordine della persona; poi `withBuyerOrderContext` apre il
   contesto della fioreria con `app.buyer_order_id`, e le policy RESTRICTIVE `buyer_order_guard`
   (`app_enable_buyer_order_guard`) lasciano a quella transazione solo le righe di quell'ordine su
-  `Order`, righe, pagamenti, passi, foto, link, messaggi, letture e avvisi; per la fioreria non
-  cambia niente. Proprietario e fioreria attiva si ricontrollano (sotto lock quando si scrive): la
-  pagina dell'ordine nel conto, i messaggi, il segno di lettura, «Cancelar pedido» e «Pedir de
-  nuevo» passano tutti da qui. Le email automatiche dell'ordine (passi, promemoria, primo messaggio
+  `Order`, righe, pagamenti, passi, foto, link, messaggi, letture, avvisi e richieste di cambio;
+  per la fioreria non cambia niente. Proprietario e fioreria attiva si ricontrollano (sotto lock
+  quando si scrive): la pagina dell'ordine nel conto, i messaggi, il segno di lettura, «Cancelar
+  pedido», «Pedir de nuevo», «Confirmar cambios», «No, gracias» e le risposte «Sí / No» passano
+  tutti da qui. I cambi su un ordine da accettare (M3-2) stanno in `OrderChangeRequest`: il «prima»
+  lo salva il primo cambio (`capturePendingOrderTx` nei servizi che modificano l'ordine), il «dopo»
+  la richiesta; un cambio successivo la ritira (`settlePendingOrderEditTx`). Le differenze le
+  calcola il dominio (`diffOrderChanges`) e la pagina le mostra con un solo componente per le due
+  parti (`components/orders/order-change-list.tsx`), nella lingua di chi guarda. Le email automatiche dell'ordine (passi, promemoria, primo messaggio
   da leggere) si segnano in `OrderNotice` (una riga per ordine e tipo), così nessuna parte due
   volte; i lavori giornalieri chiedono a `app_pending_orders_to_remind`,
   `app_pending_orders_to_expire` e `app_order_message_photos_to_purge` solo gli ID, e lavorano nel

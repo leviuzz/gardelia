@@ -64,6 +64,7 @@ import {
   type OrderFulfillmentInput,
   type OrderPaymentKind,
   type OrderPaymentStatus,
+  type OrderChangeStatus,
   type OrderStatus,
   type OrderWhenFilter,
   type PaymentMethod,
@@ -88,6 +89,13 @@ import { requireEntitlement } from './billing';
 import { consumeStockTx } from './inventory';
 import { consumeReservationTx, releaseReservationTx } from './inventory-reservations';
 import { orderStockRequest } from './order-inventory';
+import {
+  assertAcceptableWithoutChangesTx,
+  capturePendingOrderTx,
+  orderChangeDtoTx,
+  settlePendingOrderEditTx,
+  type OrderChangeDto,
+} from './order-changes';
 import { activeOrderReservationId, syncOrderReservationTx } from './order-reservation';
 import { loadShopPlace } from './care-internals';
 import { ensureOrderPublicLinkTx, extendOrderPublicLinkTx } from './public-links';
@@ -140,6 +148,11 @@ export interface OrderSummaryDto {
   readonly unreadMessages: number;
   /** Ordine online da accettare: fino a quando, poi si annulla da solo (M3). */
   readonly onlineDeadline: Date | null;
+  /**
+   * Cambi da confermare di un ordine online da accettare (M3-2): `ASKED` aspetta chi compra,
+   * `DECLINED` è tornato dopo un «No, gracias»; null per gli altri ordini.
+   */
+  readonly changeStatus: OrderChangeStatus | null;
 }
 
 export interface OrderRecipeLineSnapshot {
@@ -275,19 +288,28 @@ export interface OrderDetailDto extends OrderSummaryDto {
     readonly canSetReceiver: boolean;
   };
   readonly canCancel: boolean;
-  /** Ordine online "Por aceptar" che chi guarda può accettare (o rifiutare: `canCancel`). */
+  /**
+   * Ordine online "Por aceptar" che chi guarda può accettare (o rifiutare: `canCancel`). Con dei
+   * cambi da far confermare no (M3-2): `canAskChange`.
+   */
   readonly canAccept: boolean;
+  /** I cambi di un ordine online da accettare (M3-2); null senza cambi. */
+  readonly change: OrderChangeDto | null;
+  /** «Chiedi conferma al cliente»: ci sono cambi e non si aspetta già la risposta. */
+  readonly canAskChange: boolean;
+  /** «Proponi un'altra data»: ordine online da accettare di un conto che c'è ancora. */
+  readonly canProposeDate: boolean;
   /** Borrador che chi guarda può scartare. */
   readonly canDiscard: boolean;
   readonly canRecordPayments: boolean;
 }
 
-type OrderWithCustomer = Prisma.OrderGetPayload<{
-  include: { customer: { select: { id: true; displayName: true; phone: true; email: true } } };
-}>;
+type OrderWithCustomer = Prisma.OrderGetPayload<{ include: typeof orderInclude }>;
 
 const orderInclude = {
   customer: { select: { id: true, displayName: true, phone: true, email: true } },
+  // M3-2: lo stato dei cambi e le date che spostano la scadenza.
+  changeRequest: { select: { status: true, askedAt: true, answeredAt: true } },
 } satisfies Prisma.OrderInclude;
 
 function dateString(date: Date): string {
@@ -299,6 +321,7 @@ function toSummary(
   timeZone: string,
   unreadMessages = 0,
 ): OrderSummaryDto {
+  const pending = order.placedOnline && order.status === 'PENDING_ACCEPTANCE';
   return {
     id: order.id,
     number: order.number,
@@ -319,16 +342,19 @@ function toSummary(
     createdAt: order.createdAt,
     placedOnline: order.placedOnline,
     unreadMessages,
-    onlineDeadline:
-      order.placedOnline && order.status === 'PENDING_ACCEPTANCE'
-        ? pendingOrderDeadline(
-            {
-              createdAt: order.createdAt,
-              scheduledDate: order.scheduledDate ? dateToParts(order.scheduledDate) : null,
-            },
-            timeZone,
-          )
-        : null,
+    onlineDeadline: pending
+      ? pendingOrderDeadline(
+          {
+            createdAt: order.createdAt,
+            scheduledDate: order.scheduledDate ? dateToParts(order.scheduledDate) : null,
+            changeAskedAt: order.changeRequest?.askedAt ?? null,
+            changeAnsweredAt: order.changeRequest?.answeredAt ?? null,
+          },
+          timeZone,
+        )
+      : null,
+    changeStatus:
+      pending && order.changeRequest ? (order.changeRequest.status as OrderChangeStatus) : null,
   };
 }
 
@@ -374,7 +400,17 @@ export interface OrderListResult {
   /** Ordini con messaggi di chi compra da leggere (filtro «Con messaggi da leggere», M3). */
   readonly unreadOrdersCount: number;
   readonly messagesFilter: boolean;
+  /** Ordini online tornati dopo un «No, gracias» ai cambi (filtro «No ai cambi», M3-2). */
+  readonly declinedChangesCount: number;
+  readonly changesFilter: boolean;
 }
+
+/** Ordini online da accettare tornati alla fioreria dopo un «No, gracias» ai cambi (M3-2). */
+const DECLINED_CHANGES_WHERE = {
+  status: 'PENDING_ACCEPTANCE',
+  placedOnline: true,
+  changeRequest: { is: { status: 'DECLINED' } },
+} satisfies Prisma.OrderWhereInput;
 
 function whenWhere(when: OrderWhenFilter, today: DateParts): Prisma.OrderWhereInput {
   const day = (offset: number) => partsToDate(addDays(today, offset));
@@ -416,6 +452,7 @@ export async function listOrders(
         ? { paymentStatus: { in: ['UNPAID', 'PARTIAL'] }, status: { not: 'CANCELLED' } }
         : {},
       filters.messages ? { messages: { some: { authorKind: 'BUYER', readByShopAt: null } } } : {},
+      filters.changes ? DECLINED_CHANGES_WHERE : {},
       filters.q
         ? {
             OR: [
@@ -441,7 +478,7 @@ export async function listOrders(
             { number: 'asc' },
           ];
   return withTenantContext(getDb(), ctx, async (tx) => {
-    const [total, pendingCount, unreadOrdersCount] = await Promise.all([
+    const [total, pendingCount, unreadOrdersCount, declinedChangesCount] = await Promise.all([
       tx.order.count({ where }),
       tx.order.count({ where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE' } }),
       tx.order.count({
@@ -450,6 +487,7 @@ export async function listOrders(
           messages: { some: { authorKind: 'BUYER', readByShopAt: null } },
         },
       }),
+      tx.order.count({ where: { tenantId: ctx.tenantId, ...DECLINED_CHANGES_WHERE } }),
     ]);
     const pageCount = Math.max(1, Math.ceil(total / ORDER_PAGE_SIZE));
     const page = Math.min(filters.page, pageCount);
@@ -475,6 +513,8 @@ export async function listOrders(
       pendingCount,
       unreadOrdersCount,
       messagesFilter: filters.messages,
+      declinedChangesCount,
+      changesFilter: filters.changes,
     };
   });
 }
@@ -584,10 +624,15 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
     const unread = order.placedOnline
       ? ((await unreadByOrderTx(tx, ctx.tenantId, [order.id])).get(order.id) ?? 0)
       : 0;
-    return { order, lines, payments, events, shopOrigin: shop?.origin ?? null, unread };
+    // I cambi da far confermare di un ordine online da accettare (M3-2).
+    const change =
+      order.placedOnline && order.status === 'PENDING_ACCEPTANCE'
+        ? await orderChangeDtoTx(tx, ctx.tenantId, order)
+        : null;
+    return { order, lines, payments, events, shopOrigin: shop?.origin ?? null, unread, change };
   });
   if (!result) return notFound(ctx, 'Order', orderId);
-  const { order, lines, payments, events, shopOrigin, unread } = result;
+  const { order, lines, payments, events, shopOrigin, unread, change } = result;
   const site = shopOrigin
     ? freshCoordinates(
         {
@@ -611,6 +656,11 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
   const serviceZone =
     distanceKm !== null && beyond.length > 0 ? { distanceKm, lines: beyond } : null;
   const canWrite = hasPermission(ctx, 'orders:write');
+  // M3-2: con dei cambi «Accetta l'ordine» lascia il posto a «Chiedi conferma» (e mentre si aspetta
+  // la risposta non c'è niente da accettare), se chi compra può ancora rispondere.
+  const buyerCanAnswer = order.placedOnline && order.buyerUserId !== null;
+  const needsConfirmation =
+    buyerCanAnswer && change !== null && (change.status === 'ASKED' || change.hasChanges);
   const delivery: OrderDeliveryAddressDto | null =
     order.fulfillmentMode === 'DELIVERY' &&
     order.deliveryAddressLine1 &&
@@ -715,7 +765,16 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
       canSetReceiver: hasPermission(ctx, 'orders:fulfill') && isOrderHandedOver(order.status),
     },
     canCancel: canWrite && canCancelOrder(order.status),
-    canAccept: canWrite && order.status === 'PENDING_ACCEPTANCE',
+    canAccept: canWrite && order.status === 'PENDING_ACCEPTANCE' && !needsConfirmation,
+    change,
+    canAskChange:
+      canWrite &&
+      order.status === 'PENDING_ACCEPTANCE' &&
+      buyerCanAnswer &&
+      change !== null &&
+      change.hasChanges &&
+      change.status !== 'ASKED',
+    canProposeDate: canWrite && order.status === 'PENDING_ACCEPTANCE' && buyerCanAnswer,
     canDiscard: canWrite && order.status === 'DRAFT',
     canRecordPayments: hasPermission(ctx, 'orders:payments') && acceptsOrderPayments(order.status),
   };
@@ -1097,6 +1156,8 @@ export async function updateOrderFulfillment(
     const order = await lockOrder(tx, ctx, orderId);
     if (!order) return null;
     if (!isOrderEditable(order.status)) throw new ConflictError('order_not_editable');
+    // Un ordine online da accettare: prima del primo cambio si salva com'era (M3-2).
+    await capturePendingOrderTx(tx, ctx, order);
     const fulfillment = await resolveFulfillment(
       tx,
       ctx,
@@ -1132,6 +1193,8 @@ export async function updateOrderFulfillment(
     // vale fino a 30 giorni dopo la nuova consegna (M0).
     await syncOrderReservationTx(tx, ctx, order.id);
     await extendOrderPublicLinkTx(tx, ctx, order.id, changes.scheduledDate ?? null);
+    // Una richiesta di conferma già fatta si ritira se l'ordine non è più quello chiesto (M3-2).
+    await settlePendingOrderEditTx(tx, ctx, order.id);
     const visibleChange =
       Object.keys(
         diffFields(order, changes, [...BUYER_VISIBLE_FULFILLMENT_FIELDS] as (keyof typeof order &
@@ -1414,6 +1477,9 @@ export async function acceptOnlineOrder(
     if (!order.scheduledDate || order.scheduledDate < today) {
       throw new ConflictError('order_date_passed');
     }
+    // Con dei cambi da far confermare (o mentre si aspetta la risposta) si chiede a chi compra
+    // (M3-2): la regola vale anche fuori dall'interfaccia.
+    await assertAcceptableWithoutChangesTx(tx, ctx.tenantId, order);
     // A domicilio con la consegna a 0: si accetta solo confermando che è gratis (M0).
     const freeDelivery = onlineOrderNeedsFreeDeliveryConfirmation(order);
     if (freeDelivery && !freeDeliveryConfirmed) {
@@ -1632,11 +1698,15 @@ async function recalculateOrderTotals(
   });
 }
 
-/** Blocca un ordine le cui righe si possono ancora cambiare. */
+/**
+ * Blocca un ordine le cui righe si possono ancora cambiare. Per un ordine online da accettare salva
+ * prima com'era (M3-2); chi scrive chiama poi `settlePendingOrderEditTx`.
+ */
 async function lockOrderForLines(tx: TransactionClient, ctx: TenantContext, orderId: string) {
   const order = await lockOrder(tx, ctx, orderId);
   if (!order) return null;
   if (!areOrderLinesEditable(order.status)) throw new ConflictError('order_lines_locked');
+  await capturePendingOrderTx(tx, ctx, order);
   return order;
 }
 
@@ -1767,6 +1837,7 @@ async function insertOrderLine(
   }
   await recalculateOrderTotals(tx, ctx, order);
   await syncOrderReservationTx(tx, ctx, order.id);
+  await settlePendingOrderEditTx(tx, ctx, order.id);
   await recordAudit(tx, ctx, {
     action: AUDIT_ACTIONS.orderLineAdded,
     entityType: 'Order',
@@ -1848,6 +1919,7 @@ export async function updateOrderLineQuantity(
     });
     await recalculateOrderTotals(tx, ctx, order);
     await syncOrderReservationTx(tx, ctx, order.id);
+    await settlePendingOrderEditTx(tx, ctx, order.id);
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.orderLineUpdated,
       entityType: 'Order',
@@ -1881,6 +1953,7 @@ export async function removeOrderLine(
     await tx.orderLine.delete({ where: { id: line.id } });
     await recalculateOrderTotals(tx, ctx, order);
     await syncOrderReservationTx(tx, ctx, order.id);
+    await settlePendingOrderEditTx(tx, ctx, order.id);
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.orderLineRemoved,
       entityType: 'Order',
@@ -1910,6 +1983,7 @@ export async function updateOrderDiscount(
     }
     if (discount === order.discountMinor) return true;
     await recalculateOrderTotals(tx, ctx, order, discount);
+    await settlePendingOrderEditTx(tx, ctx, order.id);
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.orderDiscountChanged,
       entityType: 'Order',

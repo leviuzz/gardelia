@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   canSubstitute,
+  orderSubstitutionQuestionSchema,
   orderSubstitutionSchema,
   rankSubstitutes,
+  substituteItemLabel,
   substitutionMode,
+  substitutionQuestionText,
   type SubstituteItem,
 } from '../src/index';
 
@@ -110,5 +113,31 @@ describe('form "Cambiar flor"', () => {
         .customerAgreed,
     ).toBe(true);
     expect(orderSubstitutionSchema.parse({ ...base, toItemId: ROSA }).customerAgreed).toBe(false);
+  });
+});
+
+describe('«Chiedi nell’app» (M3-2)', () => {
+  it('la domanda nel filo, con i nomi come li legge il cliente', () => {
+    const from = substituteItemLabel({ name: 'Rosa', variety: 'roja' });
+    const to = substituteItemLabel({ name: 'Rosa', variety: 'rosa' });
+    expect(from).toBe('Rosa roja');
+    expect(substituteItemLabel({ name: 'Eucalipto', variety: null })).toBe('Eucalipto');
+    expect(substitutionQuestionText({ bouquet: 'Ramo Clásico', from, to })).toBe(
+      'Para tu pedido de Ramo Clásico se nos acabó Rosa roja. ¿Te parece si usamos Rosa rosa? El precio no cambia.',
+    );
+  });
+
+  it('il modulo porta solo riga e fiori: niente testo dal browser', () => {
+    const input = {
+      lineId: '0194d8a4-1b2c-7d3e-8f40-0000000000a1',
+      fromItemId: '0194d8a4-1b2c-7d3e-8f40-0000000000a2',
+      toItemId: '0194d8a4-1b2c-7d3e-8f40-0000000000a3',
+    };
+    expect(
+      orderSubstitutionQuestionSchema.parse({ ...input, body: 'altro', customerAgreed: 'on' }),
+    ).toEqual(input);
+    expect(orderSubstitutionQuestionSchema.safeParse({ ...input, toItemId: '' }).success).toBe(
+      false,
+    );
   });
 });

@@ -123,6 +123,11 @@ export default async function AccountPage() {
                           <Badge variant={ORDER_STATUS_BADGE[order.status]}>
                             {t(`account.orders.statuses.${order.status}`)}
                           </Badge>
+                          {order.changesToConfirm ? (
+                            <Badge variant="warning" data-testid="order-changes-to-confirm">
+                              {t('account.orders.changesToConfirm')}
+                            </Badge>
+                          ) : null}
                           {order.newMessages > 0 ? (
                             <Badge variant="info" data-testid="order-new-messages">
                               {t('account.orders.newMessages', { count: order.newMessages })}

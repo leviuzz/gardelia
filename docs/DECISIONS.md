@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 26 novembre 2026 (marketplace M3, l'ordine tutto nell'app, ADR-088; Floral Care, Asistente de plantas, ADR-085; Floral Care, cargos e pagamenti, ADR-082; catalogo completo e sostituto, ADR-081; reportes, ADR-080; esportazione dei dati, ADR-079; Floral Care, la visita dal telefono e le visite extra, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 26 novembre 2026 (marketplace M3, l'ordine tutto nell'app, ADR-088, con M3-2 «Cambi da confermare»; Floral Care, Asistente de plantas, ADR-085; Floral Care, cargos e pagamenti, ADR-082; catalogo completo e sostituto, ADR-081; reportes, ADR-080; esportazione dei dati, ADR-079; Floral Care, la visita dal telefono e le visite extra, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -3177,8 +3177,8 @@ niente codice nuovo»):**
   pannello «Da accettare»; errore accanto al prodotto non più disponibile; conferma per accettare
   con la consegna a 0; pagina del prodotto tolto; link di stato fino a 30 giorni dopo la consegna,
   allungato se la consegna si sposta. Dettagli in `docs/MARKETPLACE_FLOWS.md` §4.
-- **Stato (26/11):** M0 e M1 (M1-1, M1-2) su staging (ADR-087); M3 in corso (ADR-088: M3-1 fatto
-  sul ramo di lavoro, poi M3-2 e M3-3 con lo stesso piano).
+- **Stato (26/11):** M0 e M1 (M1-1, M1-2) su staging (ADR-087); M3 in corso (ADR-088: M3-1 su
+  staging, M3-2 sul ramo di lavoro, poi M3-3 con lo stesso piano).
 
 ### ADR-087 — Marketplace M1: la vetrina che vende — FATTO (M1-1 e M1-2 su staging, 25/11/2026)
 
@@ -3249,7 +3249,7 @@ niente codice nuovo»):**
   carrello nell'aviso de privacidad §7 (bozza aggiornata); dati di cura e tossicità (già «da
   rivedere»). M1-2 non aggiunge cookie né dati personali nuovi.
 
-### ADR-088 — Marketplace M3: l'ordine tutto nell'app — IN CORSO (M3-1 fatto sul ramo di lavoro, 26/11/2026)
+### ADR-088 — Marketplace M3: l'ordine tutto nell'app — IN CORSO (M3-1 su staging, M3-2 sul ramo di lavoro, 26/11/2026)
 
 - **Perché:** blocco M3 del giro del marketplace (ADR-086), piano di dettaglio approvato dal
   founder il 26/11: «basta WhatsApp e email avanti e indietro». Tre rilasci, ognuno con test, CI
@@ -3332,8 +3332,47 @@ niente codice nuovo»):**
   eliminada») e il filo si chiude.
 - **Correzione insieme:** nei Report e in `pagos.csv` uno storno contava al contrario (nel database
   è già negativo e il codice lo cambiava di segno un'altra volta).
-- **DA VALIDARE:** termini per chi compra (PROFECO) con i messaggi e gli avvisi; aviso de privacidad
-  con i messaggi, le loro foto (chi le vede, per quanto) e gli avvisi per email (bozze aggiornate).
+- **M3-2 «Cambi da confermare» (sul ramo di lavoro, 26/11):**
+  - **Com'era e com'è** (`OrderChangeRequest`, una per ordine, RLS e guardia di chi compra nella
+    stessa migrazione): il primo cambio che chi compra vedrebbe su un ordine online da accettare
+    salva l'ordine com'era (`before`: prodotti con quantità e prezzi, giorno e fascia, consegna o
+    ritiro, indirizzo, costo di consegna, sconto, totale); «Chiedi conferma al cliente» salva com'è
+    (`after`), alza `round` e manda l'email. Fotografie e differenze solo nel server, dal database
+    (`orderChangeSnapshot`, `diffOrderChanges`); le righe di un ordine da accettare ora si cambiano
+    (ADR-067 diceva che prima di accettare si cambiano anche i prodotti: adesso è vero).
+  - **Stati** `EDITING → ASKED → CONFIRMED | DECLINED`: un cambio dopo la richiesta la ritira
+    (torna `EDITING`, l'ora della richiesta resta per la scadenza) e chi compra non vede più niente
+    da confermare; una risposta vale solo per il `round` che la persona ha visto
+    (`order_change_outdated`) e «Confirmar» mai con il giorno di consegna passato.
+  - **Accettare:** con dei cambi «Accetta l'ordine» lascia il posto a «Chiedi conferma al cliente»,
+    anche nel servizio (`order_change_needs_confirmation`); senza cambi, o con i cambi tornati com'
+    erano, resta com'era. «Proponi un'altra data» cambia giorno e fascia e chiede, in un passo.
+  - **Chi compra**, sempre da `withBuyerOrder`: «Confirmar cambios» accetta l'ordine come «Accetta
+    l'ordine» ma senza scrivere nell'inventario della fioreria (la merce si mette da parte al primo
+    passo del fiorista, `syncOrderReservationTx`, idempotente); «No, gracias», con un motivo
+    facoltativo fino a 300 caratteri, riporta l'ordine alla fioreria. Il registro le scrive con chi
+    compra come autore, mai i testi.
+  - **Scadenza:** mentre si aspetta chi compra, la base è la più recente fra invio, ultima richiesta
+    e ultima risposta, con il tetto della fine del nuovo giorno di consegna (`pendingOrderDeadline`
+    e la stessa formula nelle funzioni SQL, provata contro il dominio). Un promemoria per scadenza.
+    Senza risposta l'ordine si annulla con il motivo «No confirmaste los cambios».
+  - **Domande «sì / no»:** `OrderMessage.kind` `MESSAGE | QUESTION | ANSWER` (CHECK: la domanda è
+    della fioreria e solo testo; la risposta è di chi compra, `YES | NO`, senza testo né foto, una
+    per domanda con FK composita e indice unico). Chi compra risponde con un tocco; la risposta
+    avvisa come un messaggio. «Chiedi nell'app» in «Mancano fiori» prepara il testo nel server,
+    nella lingua del mercato, e ricorda riga, fiore che manca e fiore proposto (`questionContext`):
+    con il «Sí» la casella «Il cliente ha accettato il cambio» è già spuntata.
+  - **«Da gestire», menu ed elenco:** «N clienti hanno detto no ai cambi» con il filtro
+    `changes=declined`; segni «In attesa del cliente» e «Il cliente ha detto no» sulle righe.
+  - **PROPOSTO (da confermare in staging):** 1) il promemoria del giorno prima va a chi compra
+    quando l'ordine aspetta la sua conferma; 2) email alla fioreria anche quando chi compra
+    conferma; 3) biglietto, chi riceve, note interne e fattorino non contano come cambi; 4) il link
+    di stato dice che ci sono cambi da confermare nel conto, senza pulsanti; 5) gli ordini che
+    aspettano chi compra non contano in «Da gestire» né nel numero del menu; 6) se chi compra ha
+    eliminato il conto non può rispondere, quindi «Accetta l'ordine» resta anche con i cambi.
+- **DA VALIDARE:** termini per chi compra (PROFECO) con i messaggi e gli avvisi, i cambi proposti e
+  confermati nell'app e le sostituzioni concordate con una domanda; aviso de privacidad con i
+  messaggi, le loro foto (chi le vede, per quanto) e gli avvisi per email (bozze aggiornate).
 - **Fuori da M3:** recensioni (M8), domande prima di ordinare (M5), prenotazioni di Floral Care
   (M6), tempo per accettare regolabile e capienza (M4), notifiche push o WhatsApp automatico,
   pagamenti online (D-26).

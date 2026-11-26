@@ -1181,6 +1181,7 @@ describe('pagina del cliente di Floral Care (ADR-084)', () => {
 const BUYER_ORDER_GUARD_TABLES = [
   'Order',
   'OrderBuyerRead',
+  'OrderChangeRequest',
   'OrderLine',
   'OrderMessage',
   'OrderNotice',
@@ -1394,5 +1395,163 @@ describe('ordini online: la guardia di chi compra (ADR-088)', () => {
         photoHeight: 10,
       }),
     ).resolves.toBeDefined();
+  });
+
+  // ---------------------------------------------------------------------------
+  // M3-2: cambi da confermare e domande «sì / no»
+  // ---------------------------------------------------------------------------
+
+  const snapshot = { lines: [], totalMinor: 10000 };
+
+  it('la richiesta di cambi: chi compra tocca solo quella del suo ordine', async () => {
+    const order = await onlineOrder(tenantA.tenantId, buyer);
+    const other = await onlineOrder(tenantA.tenantId, stranger);
+    await withTenantContext(db, { tenantId: tenantA.tenantId, userId: null }, async (tx) => {
+      for (const target of [order, other]) {
+        await tx.orderChangeRequest.create({
+          data: {
+            tenantId: tenantA.tenantId,
+            orderId: target.id,
+            status: 'ASKED',
+            before: snapshot,
+            after: snapshot,
+            round: 1,
+            askedAt: new Date(),
+          },
+        });
+      }
+    });
+    const seen = await withBuyerOrderContext(
+      db,
+      { tenantId: tenantA.tenantId, userId: buyer.id, orderId: order.id },
+      async (tx) => {
+        const visible = await tx.orderChangeRequest.findMany({
+          where: { tenantId: tenantA.tenantId },
+          select: { orderId: true },
+        });
+        const touched = await tx.orderChangeRequest.updateMany({
+          where: { tenantId: tenantA.tenantId, orderId: other.id },
+          data: { status: 'CONFIRMED', answeredAt: new Date() },
+        });
+        const own = await tx.orderChangeRequest.updateMany({
+          where: { tenantId: tenantA.tenantId, orderId: order.id },
+          data: { status: 'DECLINED', answeredAt: new Date() },
+        });
+        return {
+          visible: visible.map((row) => row.orderId),
+          touched: touched.count,
+          own: own.count,
+        };
+      },
+    );
+    expect(seen).toEqual({ visible: [order.id], touched: 0, own: 1 });
+    // Dall'altra fioreria non si vede niente.
+    const fromB = await withTenantContext(db, { tenantId: tenantB.tenantId, userId: null }, (tx) =>
+      tx.orderChangeRequest.count({ where: { orderId: { in: [order.id, other.id] } } }),
+    );
+    expect(fromB).toBe(0);
+  });
+
+  it('la richiesta di cambi: stati, fotografie e testi dentro i limiti', async () => {
+    const order = await onlineOrder(tenantA.tenantId, buyer);
+    const create = (data: Record<string, unknown>) =>
+      withTenantContext(db, { tenantId: tenantA.tenantId, userId: null }, (tx) =>
+        tx.orderChangeRequest.create({
+          data: { tenantId: tenantA.tenantId, orderId: order.id, before: snapshot, ...data },
+        }),
+      );
+    // Chiesta senza la fotografia di dopo, risposta senza data, stato sconosciuto, testi lunghi.
+    await expect(create({ status: 'ASKED', round: 1, askedAt: new Date() })).rejects.toThrow();
+    await expect(
+      create({ status: 'DECLINED', after: snapshot, round: 1, askedAt: new Date() }),
+    ).rejects.toThrow();
+    await expect(create({ status: 'MAYBE' })).rejects.toThrow();
+    await expect(create({ before: [] })).rejects.toThrow();
+    await expect(create({ message: 'x'.repeat(501) })).rejects.toThrow();
+    await expect(create({ declineReason: '' })).rejects.toThrow();
+    await expect(create({})).resolves.toMatchObject({ status: 'EDITING', round: 0 });
+  });
+
+  it('domanda e risposta: la domanda della fioreria, una risposta di chi compra, dello stesso ordine', async () => {
+    const order = await onlineOrder(tenantA.tenantId, buyer);
+    const other = await onlineOrder(tenantA.tenantId, buyer);
+    const shopInsert = (data: Record<string, unknown>) =>
+      withTenantContext(db, { tenantId: tenantA.tenantId, userId: null }, (tx) =>
+        tx.orderMessage.create({
+          data: { tenantId: tenantA.tenantId, submitKey: randomUUID(), ...data } as never,
+        }),
+      );
+    const question = await shopInsert({
+      orderId: order.id,
+      authorKind: 'SHOP',
+      kind: 'QUESTION',
+      body: '¿Te parece el sábado?',
+    });
+    // Una domanda la scrive la fioreria e ha il testo.
+    await expect(
+      shopInsert({ orderId: order.id, authorKind: 'BUYER', kind: 'QUESTION', body: '¿Sí?' }),
+    ).rejects.toThrow();
+    await expect(
+      shopInsert({ orderId: order.id, authorKind: 'SHOP', kind: 'QUESTION', body: '' }),
+    ).rejects.toThrow();
+    const answer = (orderId: string, data: Record<string, unknown> = {}) =>
+      withBuyerOrderContext(db, { tenantId: tenantA.tenantId, userId: buyer.id, orderId }, (tx) =>
+        tx.orderMessage.create({
+          data: {
+            tenantId: tenantA.tenantId,
+            orderId,
+            authorKind: 'BUYER',
+            authorUserId: buyer.id,
+            kind: 'ANSWER',
+            answer: 'YES',
+            answersMessageId: question.id,
+            submitKey: randomUUID(),
+            ...data,
+          } as never,
+        }),
+      );
+    // La risposta non ha testo, ha «YES» o «NO» e risponde a una domanda dello stesso ordine.
+    await expect(answer(order.id, { body: 'Sí' })).rejects.toThrow();
+    await expect(answer(order.id, { answer: 'MAYBE' })).rejects.toThrow();
+    await expect(answer(other.id)).rejects.toSatisfy(isForeignKeyViolation);
+    await expect(answer(order.id)).resolves.toBeDefined();
+    // Una risposta per domanda.
+    await expect(answer(order.id, { answer: 'NO' })).rejects.toThrow();
+  });
+
+  it('«I miei ordini» dice quali ordini hanno cambi da confermare', async () => {
+    const order = await onlineOrder(tenantA.tenantId, buyer);
+    await withSystemContext(db, { reason: 'test: ordine da accettare con cambi' }, async (tx) => {
+      await tx.order.update({ where: { id: order.id }, data: { status: 'PENDING_ACCEPTANCE' } });
+      await tx.orderChangeRequest.create({
+        data: {
+          tenantId: order.tenantId,
+          orderId: order.id,
+          status: 'ASKED',
+          before: snapshot,
+          after: snapshot,
+          round: 1,
+          askedAt: new Date(),
+        },
+      });
+    });
+    const toConfirm = async () => {
+      const rows = await withUserContext(
+        db,
+        buyer.id,
+        (tx) =>
+          tx.$queryRaw<{ order_id: string; changes_to_confirm: boolean }[]>`
+          SELECT order_id, changes_to_confirm FROM app_buyer_orders()`,
+      );
+      return rows.find((row) => row.order_id === order.id)?.changes_to_confirm;
+    };
+    expect(await toConfirm()).toBe(true);
+    await withSystemContext(db, { reason: 'test: cambi confermati' }, (tx) =>
+      tx.orderChangeRequest.update({
+        where: { tenantId_orderId: { tenantId: order.tenantId, orderId: order.id } },
+        data: { status: 'CONFIRMED', answeredAt: new Date() },
+      }),
+    );
+    expect(await toConfirm()).toBe(false);
   });
 });

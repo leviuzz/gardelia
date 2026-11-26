@@ -29,6 +29,7 @@ export * from './online-store';
 export * from './store-search';
 export * from './money';
 export * from './order';
+export * from './order-changes';
 export * from './order-messages';
 export * from './permissions';
 export * from './photos';

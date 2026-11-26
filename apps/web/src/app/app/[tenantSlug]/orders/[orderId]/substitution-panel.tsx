@@ -1,16 +1,23 @@
 'use client';
 
-import { MessageCircle, TriangleExclamationPoint } from 'lucide-react';
+import {
+  Check,
+  CircleHelp,
+  MessageCircle,
+  MessageSquare,
+  TriangleExclamationPoint,
+  X,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
-import type { SubstituteReason, SubstitutionMode } from '@floral/domain';
+import type { OrderQuestionAnswer, SubstituteReason, SubstitutionMode } from '@floral/domain';
 import { SubmitButton } from '@/components/form/submit-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/input';
 import { fieldError, type ActionState } from '@/lib/action-state';
-import { preserveOnSubmit } from '@/lib/preserve-on-submit';
+import { preserveOnSubmitByIntent } from '@/lib/preserve-on-submit';
 import { useToastActionState } from '@/lib/use-action-toast';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
@@ -33,6 +40,14 @@ export interface SubstitutionMissingView {
   /** "Agotado en el catálogo" / "Faltan 7 tallos en el inventario". */
   readonly problemLabel: string;
   readonly candidates: readonly SubstitutionCandidateView[];
+  /**
+   * M3-2: l'ultima domanda «Chiedi nell'app» per questo fiore (il fiore proposto e la risposta di
+   * chi compra, null finché non risponde); null se non è stata fatta.
+   */
+  readonly askedInApp: {
+    readonly toItemId: string;
+    readonly answer: OrderQuestionAnswer | null;
+  } | null;
 }
 
 export interface SubstitutionLineView {
@@ -44,16 +59,21 @@ export interface SubstitutionLineView {
 
 /**
  * "Faltan flores" (ADR-081): cosa manca nei ramos del pedido e con cosa cambiarlo, secondo la
- * regola del ramo. Un form per ingrediente; il servizio ricontrolla tutto.
+ * regola del ramo. Un form per ingrediente; il servizio ricontrolla tutto. Sugli ordini online con il
+ * filo aperto (M3-2), per i ramos che chiedono l'ok del cliente, «Chiedi nell'app» manda la domanda
+ * «sì / no» preparata dal server; con il «Sí» la casella «Il cliente ha accettato» è già spuntata.
  */
 export function SubstitutionPanel({
   lines,
   action,
   canApply,
+  askAction = null,
 }: {
   readonly lines: readonly SubstitutionLineView[];
   readonly action: Action;
   readonly canApply: boolean;
+  /** «Chiedi nell'app», già legato all'ordine; null se l'ordine non ha il filo con chi compra. */
+  readonly askAction?: Action | null;
 }) {
   const t = useTranslations('orders.substitution');
   return (
@@ -81,6 +101,7 @@ export function SubstitutionPanel({
                 mode={line.mode}
                 missing={missing}
                 action={action}
+                askAction={askAction}
                 canApply={canApply}
               />
             ))}
@@ -96,20 +117,29 @@ function MissingIngredient({
   mode,
   missing,
   action,
+  askAction,
   canApply,
 }: {
   readonly lineId: string;
   readonly mode: SubstitutionMode;
   readonly missing: SubstitutionMissingView;
   readonly action: Action;
+  readonly askAction: Action | null;
   readonly canApply: boolean;
 }) {
   const t = useTranslations('orders.substitution');
   const [state, formAction] = useToastActionState(action);
-  const [selected, setSelected] = useState('');
+  const [askState, askFormAction] = useToastActionState(askAction ?? action);
+  const asked = missing.askedInApp;
+  // Il fiore chiesto nell'app parte già scelto, così il «Sí» del cliente vale per quello.
+  const [selected, setSelected] = useState(asked?.toItemId ?? '');
+  const askedFor = asked && asked.toItemId === selected ? asked : null;
+  const askedLabel = asked
+    ? (missing.candidates.find((candidate) => candidate.id === asked.toItemId)?.label ?? null)
+    : null;
   const groupId = useId();
   const chosen = missing.candidates.find((candidate) => candidate.id === selected) ?? null;
-  const toError = fieldError(state, 'toItemId');
+  const toError = fieldError(state, 'toItemId') ?? fieldError(askState, 'toItemId');
   const agreedError = fieldError(state, 'customerAgreed');
 
   const header = (
@@ -140,7 +170,7 @@ function MissingIngredient({
   return (
     <form
       action={formAction}
-      onSubmit={preserveOnSubmit(formAction)}
+      onSubmit={preserveOnSubmitByIntent(formAction, { ask: askFormAction })}
       className="grid gap-3 rounded-xl border p-3"
     >
       {header}
@@ -184,16 +214,55 @@ function MissingIngredient({
       {mode === 'ASK_CUSTOMER' && canApply ? (
         <div className="grid gap-2 rounded-lg bg-muted/60 p-3 text-sm">
           <p>{t('askHint')}</p>
-          {chosen?.whatsappHref ? (
-            <Button asChild variant="outline" size="sm" className="w-full sm:w-fit">
-              <a href={chosen.whatsappHref} target="_blank" rel="noopener noreferrer">
-                <MessageCircle aria-hidden="true" />
-                {t('askWhatsapp')}
-              </a>
-            </Button>
+          {asked && askedLabel ? (
+            <p
+              className="flex items-start gap-2 font-medium"
+              data-testid="substitution-asked-in-app"
+            >
+              {asked.answer === 'YES' ? (
+                <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+              ) : asked.answer === 'NO' ? (
+                <X className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden="true" />
+              ) : (
+                <CircleHelp className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+              )}
+              <span>
+                {asked.answer === 'YES'
+                  ? t('askedYes', { to: askedLabel })
+                  : asked.answer === 'NO'
+                    ? t('askedNo', { to: askedLabel })
+                    : t('askedWaiting', { to: askedLabel })}
+              </span>
+            </p>
           ) : null}
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            {askAction && chosen && !(askedFor && askedFor.answer === null) ? (
+              <SubmitButton
+                formAction={askFormAction}
+                data-intent="ask"
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-fit"
+                icon={<MessageSquare aria-hidden="true" />}
+                data-testid="substitution-ask-in-app"
+              >
+                {t('askInApp')}
+              </SubmitButton>
+            ) : null}
+            {chosen?.whatsappHref ? (
+              <Button asChild variant="outline" size="sm" className="w-full sm:w-fit">
+                <a href={chosen.whatsappHref} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle aria-hidden="true" />
+                  {t('askWhatsapp')}
+                </a>
+              </Button>
+            ) : null}
+          </div>
           <label className="flex cursor-pointer items-start gap-2">
             <Checkbox
+              // Il «Sí» nell'app per il fiore scelto spunta la casella (si può sempre togliere).
+              key={selected}
+              defaultChecked={askedFor?.answer === 'YES'}
               name="customerAgreed"
               className="mt-0.5"
               aria-invalid={agreedError ? true : undefined}

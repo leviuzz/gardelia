@@ -338,6 +338,7 @@ model Tenant {
   orderMessages              OrderMessage[]
   orderBuyerReads            OrderBuyerRead[]
   orderNotices               OrderNotice[]
+  orderChangeRequests        OrderChangeRequest[]
   assistantCases             AssistantCase[]
   assistantAnswers           AssistantAnswer[]
   assistantCalls             AssistantCall[]
@@ -1717,6 +1718,7 @@ model Order {
   messages             OrderMessage[]
   buyerReads           OrderBuyerRead[]
   notices              OrderNotice[]
+  changeRequest        OrderChangeRequest?
 
   buyer User? @relation("BuyerOrders", fields: [buyerUserId], references: [id], onDelete: SetNull)
 
@@ -1887,35 +1889,48 @@ model PublicLink {
 /// di consegna e si vedono anche dal link di stato, queste no. La foto si cancella 30 giorni dopo la
 /// chiusura dell'ordine (o subito se la fioreria la toglie); il testo resta.
 model OrderMessage {
-  id             String             @id @default(uuid(7)) @db.Uuid
-  tenantId       String             @db.Uuid
-  orderId        String             @db.Uuid
-  authorKind     OrderMessageAuthor
+  id               String             @id @default(uuid(7)) @db.Uuid
+  tenantId         String             @db.Uuid
+  orderId          String             @db.Uuid
+  authorKind       OrderMessageAuthor
   /// Chi ha scritto; null se ha eliminato il conto ("Cuenta eliminada").
-  authorUserId   String?            @db.Uuid
-  body           String             @default("")
+  authorUserId     String?            @db.Uuid
+  body             String             @default("")
   /// File della foto (JPEG ricodificato) e della miniatura, sotto `tenants/<id>/order-messages/`.
   /// Le chiavi restano anche dopo la cancellazione dei file (`photoDeletedAt`).
-  photoKey       String?
-  photoThumbKey  String?
-  photoWidth     Int?
-  photoHeight    Int?
+  photoKey         String?
+  photoThumbKey    String?
+  photoWidth       Int?
+  photoHeight      Int?
   /// Tolta da chi gestisce gli ordini: i file si cancellano subito.
-  photoRemovedAt DateTime?
+  photoRemovedAt   DateTime?
   /// File cancellati (tolta, o 30 giorni dopo la chiusura dell'ordine).
-  photoDeletedAt DateTime?
+  photoDeletedAt   DateTime?
   /// Chiave dell'invio: lo stesso modulo inviato due volte non scrive due messaggi.
-  submitKey      String             @db.Uuid
+  submitKey        String             @db.Uuid
   /// Letto dalla fioreria (basta una persona della squadra); solo per i messaggi di chi compra.
-  readByShopAt   DateTime?
-  createdAt      DateTime           @default(now())
+  readByShopAt     DateTime?
+  /// M3-2: `MESSAGE`, `QUESTION` (domanda «sì / no» della fioreria) o `ANSWER` (la risposta di chi
+  /// compra). Tipi in `ORDER_MESSAGE_KINDS`, CHECK nella migrazione.
+  kind             String             @default("MESSAGE")
+  /// La risposta (`YES` | `NO`), solo sulle righe `ANSWER`.
+  answer           String?
+  /// La domanda a cui risponde, dello stesso ordine: una risposta per domanda.
+  answersMessageId String?            @db.Uuid
+  /// Di quale sostituzione parla una domanda di «Mancano fiori» (riga, fiore che manca, proposto).
+  questionContext  Json?
+  createdAt        DateTime           @default(now())
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  order  Order  @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Restrict)
-  author User?  @relation("OrderMessageAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order          Order         @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Restrict)
+  author         User?         @relation("OrderMessageAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  answersMessage OrderMessage? @relation("OrderMessageAnswer", fields: [tenantId, orderId, answersMessageId], references: [tenantId, orderId, id], onDelete: Restrict)
+  reply          OrderMessage? @relation("OrderMessageAnswer")
 
   @@unique([tenantId, id])
+  @@unique([tenantId, orderId, id])
   @@unique([tenantId, submitKey])
+  @@unique([tenantId, orderId, answersMessageId])
   @@index([tenantId, orderId, createdAt])
   @@index([authorUserId])
 }
@@ -1941,6 +1956,41 @@ model OrderBuyerRead {
   @@unique([tenantId, id])
   @@unique([tenantId, orderId, userId])
   @@index([userId])
+}
+
+/// Marketplace M3-2 (ADR-088): i cambi del fiorista su un ordine online da accettare, che chi compra
+/// conferma o no. Una per ordine: `before` è l'ordine com'era al primo cambio, `after` com'è quando
+/// il fiorista chiede, `round` sale a ogni richiesta (chi compra conferma solo quella che ha visto).
+/// Sta fuori dall'ordine, così chiedere e rispondere non cambiano `Order.updatedAt`. Chi ha chiesto
+/// e chi ha risposto restano nel registro.
+model OrderChangeRequest {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  tenantId      String    @db.Uuid
+  orderId       String    @db.Uuid
+  /// `ORDER_CHANGE_STATUSES` del dominio (CHECK nella migrazione).
+  status        String    @default("EDITING")
+  /// La fotografia dell'ordine prima del primo cambio (`orderChangeSnapshotSchema`).
+  before        Json
+  /// La fotografia quando il fiorista ha chiesto l'ultima volta.
+  after         Json?
+  /// Quante volte il fiorista ha chiesto: la risposta di chi compra porta il numero che ha visto.
+  round         Int       @default(0)
+  /// Il messaggio facoltativo del fiorista con l'ultima richiesta.
+  message       String?
+  /// L'ultima richiesta: resta anche se il fiorista la ritira cambiando l'ordine (scadenza).
+  askedAt       DateTime?
+  /// L'ultima risposta di chi compra.
+  answeredAt    DateTime?
+  /// Il motivo facoltativo dell'ultimo «No, gracias».
+  declineReason String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order  Order  @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, orderId])
 }
 
 /// Le email automatiche di un ordine già mandate (M3): passi a chi compra, promemoria della scadenza,
