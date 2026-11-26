@@ -33,10 +33,16 @@ Al crear tu cuenta y al enviar un pedido aceptas estos términos y el [Aviso de 
    Ves el precio de cada producto y el costo de envío habitual de la florería, si lo tiene.
 2. **Envías el pedido.** Es una solicitud a la florería: todavía no es una compra.
 3. **La florería lo acepta o lo rechaza.** Si lo acepta, te escribimos con el total y cómo pagar; si
-   lo rechaza, con su motivo. Antes de aceptarlo, la florería puede proponerte cambios (por ejemplo,
-   en el costo de envío o en la fecha); el total que vale es el del correo de aceptación.
+   lo rechaza, con su motivo. Antes de aceptarlo, la florería puede **proponerte cambios** (por
+   ejemplo, en los productos, la cantidad, el costo de envío, el día o el horario). Te los mostramos
+   en "Mi cuenta", como estaba tu pedido y cómo quedaría, y te avisamos por correo: si los
+   confirmas, tu pedido queda aceptado así; si respondes "No, gracias", la florería puede volver a
+   cambiarlo o rechazarlo. Solo vale la última propuesta: si la florería la cambia otra vez, revísala
+   de nuevo. El total que vale es el del correo de aceptación. [Borrador del 26/11/2026 — validar
+   con el abogado.]
 4. **Si la florería no responde en 3 días** (o antes, si llega el día elegido), cancelamos el pedido
-   y te avisamos.
+   y te avisamos. Si la florería te propuso cambios, los 3 días cuentan desde la propuesta y, si no
+   respondes a tiempo, también cancelamos el pedido y te avisamos.
 5. Puedes tener como máximo 3 pedidos esperando respuesta de una misma florería.
 
 Puedes ver el estado de tus pedidos en "Mi cuenta" y en el enlace que te enviamos por correo. En
@@ -58,9 +64,10 @@ entrega, y si lo cambia después de aceptarlo. [Borrador del 26/11/2026 — vali
 
 1. Las flores son productos naturales: el color, el tamaño y la forma pueden variar respecto de las
    fotos, que son ilustrativas.
-2. Si una flor no está disponible, la florería te contactará (por ejemplo, en los mensajes de tu
-   pedido) para proponerte un cambio. [Validar con el abogado si se permite una sustitución por un
-   producto similar y en qué condiciones.]
+2. Si una flor no está disponible, la florería te contactará (por ejemplo, con una pregunta en los
+   mensajes de tu pedido, que respondes con "Sí" o "No") para proponerte un cambio. Cuando el ramo
+   lo pide, la florería no cambia la flor sin tu "Sí". [Validar con el abogado si se permite una
+   sustitución por un producto similar y en qué condiciones.]
 3. La florería entrega en el día y el horario elegidos. Revisa que la dirección y el teléfono de
    quien recibe sean correctos.
 4. Si das datos de otra persona (quien recibe), hazlo solo con su permiso.
@@ -70,8 +77,9 @@ entrega, y si lo cambia después de aceptarlo. [Borrador del 26/11/2026 — vali
 1. Mientras la florería no acepte tu pedido, puedes cancelarlo tú desde "Mis pedidos", en "Mi
    cuenta".
 2. Una vez aceptado, los cambios y las cancelaciones se acuerdan con la florería, por ejemplo en
-   los mensajes de tu pedido. Si la florería cambia tu pedido (el día, el horario, la entrega o los
-   productos), te lo avisamos por correo.
+   los mensajes de tu pedido, donde la florería puede hacerte preguntas que respondes con "Sí" o
+   "No". Si la florería cambia tu pedido (el día, el horario, la entrega o los productos), te lo
+   avisamos por correo.
 3. Si ya pagaste y el pedido se cancela, la florería te devuelve lo que pagaste. [Validar con el
    abogado: plazos, casos de devolución y derechos del consumidor conforme a la Ley Federal de
    Protección al Consumidor.]

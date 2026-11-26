@@ -53,7 +53,11 @@ che si registra con ogni ordine online.
     piattaforma che mette in contatto (la vendita è fra cliente e fioreria, pagamento diretto) e
     quali obblighi della Ley Federal de Protección al Consumidor ricadono su Gardelia e quali sulla
     fioreria: informazioni prima dell'acquisto, prezzi con o senza IVA, cancellazioni, rimborsi,
-    sostituzione dei fiori, reclami e PROFECO.
+    sostituzione dei fiori, reclami e PROFECO. Dal 26/11 (M3-2, ADR-088): prima di accettare la
+    fioreria può proporre cambi (prodotti, quantità, costo, giorno, fascia) che chi compra conferma
+    o rifiuta nel conto; senza risposta l'ordine si annulla dopo 3 giorni dalla proposta; le
+    sostituzioni si concordano con una domanda «Sí / No» nei messaggi. Basta come consenso alla
+    modifica del contratto, e cosa deve dire l'email della proposta?
 13. **Accettazione:** oggi un avviso con i link ("Al crear tu cuenta aceptas…", "Al enviar el
     pedido aceptas…") e la versione dei testi registrata con ogni ordine online. Basta, o servono
     caselle da spuntare o una prova diversa?
