@@ -1575,7 +1575,7 @@ ramo, M4 calendario e capienza, M8 clienti, marketing e report, M7 Fiori ogni se
 **M3 «Ordine tutto nell'app» (26/11, ADR-088):** piano di dettaglio approvato dal founder il 26/11,
 in tre rilasci (M3-1 «Messaggi e avvisi», M3-2 «Cambi da confermare», M3-3 «Soldi e squadra»).
 
-**M3-1 «Messaggi e avvisi» (26/11, fatto sul ramo di lavoro):**
+**M3-1 «Messaggi e avvisi» (26/11, su staging):**
 
 - **Correzione insieme:** nei Report e in `pagos.csv` uno storno contava al contrario (era già
   negativo nel database); test che prima mancavano.
@@ -1625,7 +1625,7 @@ in tre rilasci (M3-1 «Messaggi e avvisi», M3-2 «Cambi da confermare», M3-3 �
   `order_messages` la applica il deploy di Vercel; nessuna variabile nuova.
 - **Prossimo:** M3-2 «Cambi da confermare» (sotto).
 
-**M3-2 «Cambi da confermare» (26/11, fatto sul ramo di lavoro):** piano di esecuzione approvato dal
+**M3-2 «Cambi da confermare» (26/11, su staging):** piano di esecuzione approvato dal
 founder il 26/11, in cinque passi come M3-1.
 
 - **Dominio:** `order-changes.ts` (fotografia dell'ordine e differenze, stati, chi può rispondere,
@@ -1677,7 +1677,11 @@ founder il 26/11, in cinque passi come M3-1.
   resta.
 - **DA VALIDARE:** termini per chi compra (bozza aggiornata: cambi confermati nell'app,
   sostituzioni con una domanda, annullamento senza risposta).
-- **Prossimo:** CI verde, poi staging con il via libera del founder; poi M3-3 «Soldi e squadra».
+- **CI e staging:** CI run 282 verde su `a91c7c0`, E2E compreso (la 281 su `850e08f` annullata dal
+  push dopo). Con il via libera del founder («si porta tutto su», 26/11): merge `90645bd` su
+  `staging`, CI run 283 verde. La migrazione `order_changes` la applica il deploy di Vercel; nessuna
+  variabile nuova.
+- **Prossimo:** M3-3 «Soldi e squadra», con il piano già approvato il 26/11.
 
 Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,

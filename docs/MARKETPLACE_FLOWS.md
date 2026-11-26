@@ -349,7 +349,7 @@ Piano approvato il 25/11 (ADR-087), in due rilasci.
   - «Mis pedidos / Entrar» nella testata della vetrina.
   - L'E2E della pagina 2 della vetrina accende 25 prodotti insieme e poi li rispegne.
 
-## 6. M3, l'ordine tutto nell'app (M3-1 su staging il 26/11, M3-2 sul ramo di lavoro)
+## 6. M3, l'ordine tutto nell'app (M3-1 e M3-2 su staging il 26/11)
 
 Piano di dettaglio approvato il 26/11 (ADR-088), in tre rilasci: M3-1 «Messaggi e avvisi», M3-2
 «Cambi da confermare», M3-3 «Soldi e squadra».
@@ -370,7 +370,7 @@ Piano di dettaglio approvato il 26/11 (ADR-088), in tre rilasci: M3-1 «Messaggi
     alla fioreria quando succede;
   - le foto dei messaggi si cancellano 30 giorni dopo la chiusura; i messaggi sono in «Descargar mis
     datos» e nello ZIP della fioreria.
-- **M3-2 «Cambi da confermare» (sul ramo di lavoro, 26/11):**
+- **M3-2 «Cambi da confermare» (su staging, 26/11):**
   - il fiorista cambia un ordine online da accettare come gli serve (prodotti, quantità, sconto,
     giorno, fascia, consegna e costo) e vede «Hai cambiato» con com'era → com'è; con dei cambi, al
     posto di «Accetta l'ordine», «Chiedi conferma al cliente» con un messaggio facoltativo;
