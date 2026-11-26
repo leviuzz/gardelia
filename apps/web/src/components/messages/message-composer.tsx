@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { PHOTO_LIMITS } from '@floral/domain';
 import { prepareImageForUpload } from '@/components/photos/use-photo-upload';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/input';
+import { Checkbox, Textarea } from '@/components/ui/input';
 import type { ActionState } from '@/lib/action-state';
 
 /**
@@ -22,12 +22,18 @@ export function MessageComposer({
   action,
   maxSide,
   maxLength,
+  questionOption = false,
 }: {
   readonly id: string;
   readonly action: (formData: FormData) => Promise<ActionState>;
   readonly maxSide: number;
   /** Caratteri di un messaggio (le regole del dominio di ciascun filo). */
   readonly maxLength: number;
+  /**
+   * Ordini online, lato fioreria (M3-2): la casella «Domanda sì / no». Una domanda è solo testo,
+   * quindi con la casella spuntata la foto non si aggiunge.
+   */
+  readonly questionOption?: boolean;
 }) {
   const t = useTranslations('thread.composer');
   const tValidation = useTranslations('validation');
@@ -36,6 +42,7 @@ export function MessageComposer({
   const [submitKey, setSubmitKey] = useState(() => crypto.randomUUID());
   const [body, setBody] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [question, setQuestion] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +54,10 @@ export function MessageComposer({
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
+    if (question && body.trim() === '') {
+      setError(tValidation('order_question_empty'));
+      return;
+    }
     if (body.trim() === '' && !file) {
       setError(t('empty'));
       return;
@@ -57,7 +68,8 @@ export function MessageComposer({
       const data = new FormData();
       data.set('body', body);
       data.set('submitKey', submitKey);
-      if (file) {
+      if (question) data.set('question', 'on');
+      if (file && !question) {
         const prepared = await prepareImageForUpload(file, maxSide);
         if (prepared.size > PHOTO_LIMITS.maxUploadBytes) {
           setError(tValidation('file_too_large'));
@@ -68,6 +80,7 @@ export function MessageComposer({
       const result = await action(data);
       if (result.status === 'success') {
         setBody('');
+        setQuestion(false);
         clearFile();
         setSubmitKey(crypto.randomUUID());
         if (result.message) toast.success(result.message);
@@ -116,6 +129,24 @@ export function MessageComposer({
           </Button>
         </p>
       ) : null}
+      {questionOption ? (
+        <label className="flex items-start gap-2 text-sm">
+          <Checkbox
+            name="question"
+            checked={question}
+            onChange={(event) => {
+              setQuestion(event.target.checked);
+              if (event.target.checked) clearFile();
+            }}
+            disabled={busy}
+            data-testid="message-question-toggle"
+          />
+          <span>
+            <span className="block font-medium">{t('question')}</span>
+            <span className="block text-xs text-muted-foreground">{t('questionHint')}</span>
+          </span>
+        </label>
+      ) : null}
       {error ? (
         <p id={errorId} role="alert" className="text-sm text-destructive">
           {error}
@@ -138,7 +169,7 @@ export function MessageComposer({
             variant="outline"
             size="sm"
             onClick={() => fileInput.current?.click()}
-            disabled={busy}
+            disabled={busy || question}
           >
             <ImagePlus className="size-4" aria-hidden="true" />
             {t('addPhoto')}

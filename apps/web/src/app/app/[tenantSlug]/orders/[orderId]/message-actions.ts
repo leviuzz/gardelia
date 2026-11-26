@@ -22,7 +22,12 @@ export async function postOrderMessageAction(
     await postOrderMessage(
       ctx,
       orderId,
-      { body: formData.get('body'), submitKey: formData.get('submitKey') },
+      {
+        body: formData.get('body'),
+        submitKey: formData.get('submitKey'),
+        // M3-2: con la casella «Domanda sì / no» chi compra risponde con un tocco.
+        question: formData.get('question'),
+      },
       photo,
       orderMailDeps(),
     );

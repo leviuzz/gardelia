@@ -87,7 +87,18 @@ export default async function PublicOrderPage({
         </Alert>
       ) : null}
 
-      {order.status === 'PENDING_ACCEPTANCE' ? (
+      {order.status === 'PENDING_ACCEPTANCE' && order.online?.changesToConfirm ? (
+        // M3-2: i cambi si confermano solo dal conto di chi ha fatto l'ordine, non da questo link.
+        <Alert variant="warning" data-testid="changes-to-confirm">
+          <Hourglass aria-hidden="true" />
+          <AlertDescription>
+            {t('order.changesToConfirm', { shop: order.shop.name })}{' '}
+            <Link href={accountRoutes.orders.list} className="font-medium underline">
+              {t('order.openAccount')}
+            </Link>
+          </AlertDescription>
+        </Alert>
+      ) : order.status === 'PENDING_ACCEPTANCE' ? (
         <Alert variant="warning">
           <Hourglass aria-hidden="true" />
           <AlertDescription>

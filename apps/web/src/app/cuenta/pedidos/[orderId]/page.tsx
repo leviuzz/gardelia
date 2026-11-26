@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getFormatter, getLocale, getTranslations } from 'next-intl/server';
 import { getBuyerOrder } from '@floral/core';
 import { orderMessagePages, pendingOrderDeadlineShown, resolveLocale } from '@floral/domain';
+import { BuyerOrderChangeCard } from '@/components/account/buyer-order-change-card';
 import { BuyerOrderMessagesCard } from '@/components/account/buyer-order-messages-card';
 import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import { PrivateImage } from '@/components/common/private-image';
@@ -58,6 +59,20 @@ export default async function BuyerOrderPage({
       ? `${day}, ${t('orders.window', { start: order.windowStart, end: order.windowEnd })}`
       : `${day}, ${t('orders.allDay').toLocaleLowerCase(locale)}`;
   const store = publicStoreRoutes(shop.slug);
+  const deadlineLabel = detail.deadline
+    ? format.dateTime(pendingOrderDeadlineShown(detail.deadline), {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: shop.timezone,
+      })
+    : null;
+  // M3-2: la fioreria aspetta la risposta della persona, l'ha avuta («No, gracias») o ha ritirato la
+  // richiesta cambiando ancora l'ordine.
+  const change = detail.change;
+  const changeAsked = change?.status === 'ASKED';
 
   return (
     <div className="space-y-6">
@@ -93,9 +108,14 @@ export default async function BuyerOrderPage({
                 ? t('publicLink.order.deliveryOn', { when })
                 : t('publicLink.order.pickupOn', { when })}
             </span>
-            <Badge variant={ORDER_STATUS_BADGE[order.status]}>
-              {t(`account.orders.statuses.${order.status}`)}
-            </Badge>
+            {/* M3-2: mentre la fioreria aspetta la sua risposta, la persona vede cosa deve fare. */}
+            {changeAsked ? (
+              <Badge variant="warning">{t('account.orders.changesToConfirm')}</Badge>
+            ) : (
+              <Badge variant={ORDER_STATUS_BADGE[order.status]}>
+                {t(`account.orders.statuses.${order.status}`)}
+              </Badge>
+            )}
           </p>
         </div>
       </div>
@@ -112,20 +132,21 @@ export default async function BuyerOrderPage({
           <Hourglass aria-hidden="true" />
           <AlertDescription className="space-y-3">
             <p>
-              {detail.deadline
-                ? t('account.orderPage.waiting', {
-                    shop: shop.name,
-                    date: format.dateTime(pendingOrderDeadlineShown(detail.deadline), {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      timeZone: shop.timezone,
-                    }),
-                  })
-                : t('account.orderPage.waitingNoDate', { shop: shop.name })}
+              {changeAsked
+                ? t('account.orderPage.changes.waiting', { shop: shop.name })
+                : deadlineLabel
+                  ? t('account.orderPage.waiting', { shop: shop.name, date: deadlineLabel })
+                  : t('account.orderPage.waitingNoDate', { shop: shop.name })}
             </p>
+            {change?.status === 'DECLINED' ? (
+              <p data-testid="buyer-order-change-declined">
+                {t('account.orderPage.changes.declinedNote', { shop: shop.name })}
+              </p>
+            ) : change?.status === 'EDITING' && change.askedAt ? (
+              <p data-testid="buyer-order-change-withdrawn">
+                {t('account.orderPage.changes.withdrawnNote', { shop: shop.name })}
+              </p>
+            ) : null}
             <ConfirmActionDialog
               action={cancelBuyerOrderAction.bind(null, orderId)}
               trigger={
@@ -140,6 +161,8 @@ export default async function BuyerOrderPage({
           </AlertDescription>
         </Alert>
       ) : null}
+
+      <BuyerOrderChangeCard detail={detail} locale={locale} deadlineLabel={deadlineLabel} />
 
       <OrderTracking
         order={order}

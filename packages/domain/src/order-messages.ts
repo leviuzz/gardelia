@@ -49,7 +49,8 @@ export type OrderMessageProblem =
   | 'order_message_empty'
   | 'order_message_closed'
   /** Una domanda «sì / no» senza testo (M3-2). */
-  | 'order_question_empty';
+  | 'order_question_empty'
+  | 'order_question_photo';
 
 /**
  * Il testo di un messaggio e la chiave dell'invio: lo stesso modulo inviato due volte (doppio clic,
@@ -116,6 +117,8 @@ export function orderMessageProblem(input: {
 }): OrderMessageProblem | null {
   if (!orderMessagesOpen(input.order, input.now)) return 'order_message_closed';
   if (input.question && input.body.trim() === '') return 'order_question_empty';
+  // Una domanda è solo testo (anche il database lo impone): la foto va in un messaggio a parte.
+  if (input.question && input.hasPhoto) return 'order_question_photo';
   if (input.body.trim() === '' && !input.hasPhoto) return 'order_message_empty';
   return null;
 }

@@ -34,6 +34,8 @@ export async function OrderMessagesCard({
   const thread = await getOrderThread(ctx, orderId, pages);
   if (!thread) return null;
   const t = await getTranslations('orders.messages');
+  const tThread = await getTranslations('thread.question');
+  const answerLabel = (answer: 'YES' | 'NO') => tThread(answer === 'YES' ? 'yes' : 'no');
   const slug = ctx.tenantSlug;
   const routes = tenantRoutes(slug);
   const items: MessageThreadItem[] = thread.messages.map((message) => ({
@@ -54,6 +56,23 @@ export async function OrderMessagesCard({
     removePhoto:
       thread.canRemovePhotos && message.hasPhoto
         ? removeOrderMessagePhotoAction.bind(null, slug, orderId, message.id)
+        : null,
+    question:
+      message.kind === 'QUESTION'
+        ? {
+            label: t('question'),
+            footer: (
+              <p className="text-xs text-muted-foreground">
+                {message.reply
+                  ? t('customerAnswered', { answer: answerLabel(message.reply) })
+                  : t('waitingAnswer')}
+              </p>
+            ),
+          }
+        : null,
+    answer:
+      message.kind === 'ANSWER' && message.answer
+        ? { label: answerLabel(message.answer), yes: message.answer === 'YES' }
         : null,
   }));
   return (
@@ -86,6 +105,7 @@ export async function OrderMessagesCard({
             action={postOrderMessageAction.bind(null, slug, orderId)}
             maxSide={PHOTO_LIMITS.clientMaxSide}
             maxLength={ORDER_MESSAGE_LIMITS.body}
+            questionOption={Boolean(thread.buyerName)}
           />
         ) : (
           <p className="text-sm text-muted-foreground">

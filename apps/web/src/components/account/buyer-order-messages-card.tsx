@@ -5,9 +5,11 @@ import { getTranslations } from 'next-intl/server';
 import type { BuyerOrderDetailDto } from '@floral/core';
 import { ORDER_MESSAGE_LIMITS, PHOTO_LIMITS } from '@floral/domain';
 import {
+  answerBuyerOrderQuestionAction,
   markBuyerOrderReadAction,
   postBuyerOrderMessageAction,
 } from '@/app/cuenta/pedidos/actions';
+import { QuestionAnswerButtons } from '@/components/account/buyer-order-change-actions';
 import { MarkThreadRead } from '@/components/messages/mark-thread-read';
 import { MessageComposer } from '@/components/messages/message-composer';
 import { MessageThread, type MessageThreadItem } from '@/components/messages/message-thread';
@@ -18,7 +20,8 @@ import { accountRoutes } from '@/lib/routes';
  * «Mensajes con …» nella pagina di un ordine online del conto (M3, ADR-088): il filo con la
  * fioreria (chi della fioreria ha scritto) e il modulo fino a 7 giorni dopo la consegna, il ritiro
  * o l'annullamento; poi si legge e basta. Aprirla toglie il «nuevo» ai messaggi della fioreria
- * (dopo il caricamento). Lingua di chi guarda; i testi scritti restano come sono.
+ * (dopo il caricamento). Lingua di chi guarda; i testi scritti restano come sono. Sotto una domanda
+ * «sì / no» della fioreria (M3-2), finché il filo è aperto, i pulsanti «Sí» e «No».
  */
 export async function BuyerOrderMessagesCard({
   detail,
@@ -31,6 +34,9 @@ export async function BuyerOrderMessagesCard({
 }) {
   const t = await getTranslations();
   const { orderId, thread, shop } = detail;
+  const answerLabel = (answer: 'YES' | 'NO') =>
+    t(answer === 'YES' ? 'thread.question.yes' : 'thread.question.no');
+  const answerAction = answerBuyerOrderQuestionAction.bind(null, orderId);
   const items: MessageThreadItem[] = thread.messages.map((message) => ({
     id: message.id,
     side: message.authorKind === 'BUYER' ? 'own' : 'other',
@@ -49,6 +55,25 @@ export async function BuyerOrderMessagesCard({
     at: message.createdAt,
     highlight: message.unread,
     removePhoto: null,
+    question:
+      message.kind === 'QUESTION'
+        ? {
+            label: t('account.orderPage.messages.question'),
+            footer: message.reply ? (
+              <p className="text-xs text-muted-foreground">
+                {t('account.orderPage.messages.answeredYou', {
+                  answer: answerLabel(message.reply),
+                })}
+              </p>
+            ) : thread.open ? (
+              <QuestionAnswerButtons action={answerAction} messageId={message.id} />
+            ) : null,
+          }
+        : null,
+    answer:
+      message.kind === 'ANSWER' && message.answer
+        ? { label: answerLabel(message.answer), yes: message.answer === 'YES' }
+        : null,
   }));
   return (
     <Card id="mensajes" className="scroll-mt-20" data-testid="buyer-order-messages">

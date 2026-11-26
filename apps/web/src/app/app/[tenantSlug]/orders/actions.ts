@@ -7,6 +7,8 @@
  */
 import {
   acceptOnlineOrder,
+  askOrderChange,
+  askSubstitutionInApp,
   addCatalogItemToOrder,
   addOrderPhoto,
   assignOrder,
@@ -18,6 +20,7 @@ import {
   createOrderFromQuote,
   discardDraftOrder,
   notifyOrderCustomer,
+  proposeOrderDate,
   recordOrderPayment,
   removeOrderLine,
   reverseOrderPayment,
@@ -135,6 +138,38 @@ export async function acceptOnlineOrderAction(
   return runTenantAction(slug, async ({ ctx, routes }) => {
     await acceptOnlineOrder(ctx, orderId, orderMailDeps(), formDataToObject(formData));
     return { revalidate: section(routes.orders.list()), success: 'orders.online.accepted' };
+  });
+}
+
+/**
+ * M3-2 «Chiedi conferma al cliente»: l'ordine da accettare è cambiato e chi compra lo conferma (o
+ * no) dal suo conto. Messaggio facoltativo; a domicilio con la consegna a 0, la conferma che è gratis.
+ */
+export async function askOrderChangeAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await askOrderChange(ctx, orderId, formDataToObject(formData), orderMailDeps());
+    return { revalidate: section(routes.orders.list()), success: 'orders.changes.asked' };
+  });
+}
+
+/**
+ * M3-2 «Proponi un'altra data» invece di rifiutare: giorno, fascia e messaggio in un passo; il
+ * servizio cambia l'ordine e chiede conferma a chi compra.
+ */
+export async function proposeOrderDateAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await proposeOrderDate(ctx, orderId, formDataToObject(formData), orderMailDeps());
+    return { revalidate: section(routes.orders.list()), success: 'orders.changes.proposed' };
   });
 }
 
@@ -368,5 +403,22 @@ export async function substituteIngredientAction(
   return runTenantAction(slug, async ({ ctx, routes }) => {
     await substituteOrderIngredient(ctx, orderId, formDataToObject(formData));
     return { revalidate: section(routes.orders.list()), success: 'orders.substitution.done' };
+  });
+}
+
+/**
+ * M3-2 «Chiedi nell'app» in «Mancano fiori»: la domanda «sì / no» a chi compra, con il testo
+ * preparato dal server (riga, fiore che manca e fiore proposto arrivano dal browser e il servizio li
+ * ricontrolla).
+ */
+export async function askSubstitutionInAppAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await askSubstitutionInApp(ctx, orderId, formDataToObject(formData), orderMailDeps());
+    return { revalidate: routes.orders.detail(orderId), success: 'orders.substitution.askedInApp' };
   });
 }

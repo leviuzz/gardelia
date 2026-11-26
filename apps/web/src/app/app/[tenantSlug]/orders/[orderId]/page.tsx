@@ -13,7 +13,7 @@ import {
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getFormatter, getTranslations } from 'next-intl/server';
+import { getFormatter, getLocale, getTranslations } from 'next-intl/server';
 import { cache } from 'react';
 import {
   getLetterhead,
@@ -65,10 +65,13 @@ import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import {
   acceptOnlineOrderAction,
+  askOrderChangeAction,
+  askSubstitutionInAppAction,
   assignOrderAction,
   cancelOrderAction,
   changeOrderStatusAction,
   notifyOrderCustomerAction,
+  proposeOrderDateAction,
   recordPaymentAction,
   reversePaymentAction,
   revokeOrderLinkAction,
@@ -84,12 +87,15 @@ import {
   FulfillmentForm,
   OrderStepActions,
   PaymentForm,
+  AskOrderChangeDialog,
+  ProposeOrderDateDialog,
   RejectOnlineOrderDialog,
   ReversePaymentButton,
 } from '../order-forms';
 import { DraftOrderView } from './draft-order';
 import { HandoverPanel } from './handover-panel';
 import { SubstitutionPanel, type SubstitutionLineView } from './substitution-panel';
+import { OrderChangeList } from '@/components/orders/order-change-list';
 import { OrderLinesEditor } from './order-lines';
 import { PrintOrderButton } from './print-button';
 
@@ -136,6 +142,7 @@ export default async function OrderPage({
   }
   const t = await getTranslations();
   const format = await getFormatter();
+  const locale = await getLocale();
   const slug = ctx.tenantSlug;
   const routes = tenantRoutes(slug);
   const fmt = (minor: number) => money(minor, order.currency);
@@ -264,6 +271,7 @@ export default async function OrderPage({
             )
           : null,
       })),
+      askedInApp: missing.askedInApp,
     })),
   }));
   const customer = order.editable ? await getCustomer(ctx, order.customer.id) : null;
@@ -434,10 +442,63 @@ export default async function OrderPage({
                 </p>
               </div>
             ) : null}
-            {order.canAccept ? (
-              <div className="flex flex-col gap-2 sm:flex-row">
+            {/* M3-2: com'era → com'è, la richiesta e la risposta di chi compra. */}
+            {order.change?.diff && (order.change.hasChanges || order.change.status === 'ASKED') ? (
+              <div className="space-y-2 rounded-xl bg-card p-3" data-testid="order-changes">
+                <p className="text-sm font-medium">{t('orders.changes.youChanged')}</p>
+                <OrderChangeList
+                  diff={order.change.diff}
+                  currency={order.currency}
+                  locale={locale}
+                  testId="order-change-list"
+                />
+              </div>
+            ) : null}
+            {order.change?.status === 'ASKED' && order.change.askedAt ? (
+              <p
+                className="flex items-start gap-2 text-sm font-medium"
+                data-testid="order-change-asked"
+              >
+                <Badge variant="warning">{t('orders.changes.waitingBadge')}</Badge>
+                <span>
+                  {t('orders.changes.askedOn', {
+                    date: format.dateTime(order.change.askedAt, {
+                      day: 'numeric',
+                      month: 'long',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      timeZone: ctx.timezone,
+                    }),
+                  })}
+                </span>
+              </p>
+            ) : order.change?.status === 'DECLINED' ? (
+              <div className="space-y-1 text-sm" data-testid="order-change-declined">
+                <p className="flex flex-wrap items-center gap-2 font-medium">
+                  <Badge variant="danger">{t('orders.changes.declinedBadge')}</Badge>
+                  {t('orders.changes.declinedBody')}
+                </p>
+                {order.change.declineReason ? (
+                  <p className="rounded-xl bg-card p-3 break-words whitespace-pre-line">
+                    {order.change.declineReason}
+                  </p>
+                ) : null}
+              </div>
+            ) : order.change?.withdrawn && order.change.hasChanges ? (
+              <p className="text-sm font-medium" data-testid="order-change-withdrawn">
+                {t('orders.changes.withdrawn')}
+              </p>
+            ) : null}
+            {order.canAccept || order.canAskChange || order.canProposeDate || order.canCancel ? (
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                {order.canAskChange ? (
+                  <AskOrderChangeDialog
+                    action={askOrderChangeAction.bind(null, slug, order.id)}
+                    freeDelivery={onlineOrderNeedsFreeDeliveryConfirmation(order)}
+                  />
+                ) : null}
                 {/* A domicilio con la consegna a 0: prima di accettare si conferma che è gratis. */}
-                {onlineOrderNeedsFreeDeliveryConfirmation(order) ? (
+                {!order.canAccept ? null : onlineOrderNeedsFreeDeliveryConfirmation(order) ? (
                   <ConfirmActionDialog
                     action={acceptOnlineOrderAction.bind(null, slug, order.id)}
                     trigger={
@@ -460,9 +521,27 @@ export default async function OrderPage({
                     {t('orders.online.accept')}
                   </ActionButton>
                 )}
-                <div className="sm:w-auto">
-                  <RejectOnlineOrderDialog action={cancelOrderAction.bind(null, slug, order.id)} />
-                </div>
+                {order.canProposeDate && deliveryOptions ? (
+                  <ProposeOrderDateDialog
+                    action={proposeOrderDateAction.bind(null, slug, order.id)}
+                    dateMin={today}
+                    defaults={{
+                      scheduledDate,
+                      windowStart: order.windowStart ?? '',
+                      windowEnd: order.windowEnd ?? '',
+                    }}
+                    windows={deliveryOptions.windows}
+                    closedWeekdays={deliveryOptions.closedWeekdays}
+                    freeDelivery={onlineOrderNeedsFreeDeliveryConfirmation(order)}
+                  />
+                ) : null}
+                {order.canCancel ? (
+                  <div className="sm:w-auto">
+                    <RejectOnlineOrderDialog
+                      action={cancelOrderAction.bind(null, slug, order.id)}
+                    />
+                  </div>
+                ) : null}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">{t('orders.online.askManager')}</p>
@@ -499,6 +578,11 @@ export default async function OrderPage({
           lines={substitutionLines}
           action={substituteIngredientAction.bind(null, slug, order.id)}
           canApply={substitutions.canApply}
+          askAction={
+            substitutions.canApply && substitutions.canAskInApp
+              ? askSubstitutionInAppAction.bind(null, slug, order.id)
+              : null
+          }
         />
       ) : null}
 
@@ -569,6 +653,12 @@ export default async function OrderPage({
                   <p className="mt-2 mb-4 text-sm text-muted-foreground">
                     {t('orders.draft.editLinesBody')}
                   </p>
+                  {/* M3-2: su un ordine online da accettare i cambi si fanno confermare a chi compra. */}
+                  {order.status === 'PENDING_ACCEPTANCE' && order.placedOnline ? (
+                    <p className="mb-4 text-sm font-medium" data-testid="pending-lines-hint">
+                      {t('orders.changes.linesHint')}
+                    </p>
+                  ) : null}
                   <OrderLinesEditor ctx={ctx} order={order} />
                 </details>
               ) : null}

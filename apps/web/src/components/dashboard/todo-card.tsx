@@ -1,5 +1,5 @@
 import 'server-only';
-import { ArrowRight, Globe, MessageSquare, Sprout } from 'lucide-react';
+import { ArrowRight, Globe, MessageSquare, Sprout, X } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -10,8 +10,10 @@ import { tenantRoutes } from '@/lib/routes';
 
 /**
  * «Da gestire» in cima alla Home (M3, ADR-088): solo le righe che hanno qualcosa, ognuna con il suo
- * link — gli ordini online da accettare (con la prima scadenza), i messaggi da leggere degli ordini
- * e quelli di Floral Care. Niente se non c'è niente. M3-2 e M3-3 aggiungono le loro righe qui.
+ * link — gli ordini online da accettare (con la prima scadenza), quelli tornati dopo un «No,
+ * gracias» ai cambi (M3-2), i messaggi da leggere degli ordini e quelli di Floral Care. Niente se non
+ * c'è niente. Gli ordini che aspettano la conferma di chi compra non sono da gestire. M3-3 aggiunge le
+ * sue righe qui.
  */
 export async function TodoCard({ ctx }: { readonly ctx: TenantContext }) {
   const [inbox, care] = await Promise.all([getOrderInbox(ctx), countUnreadCareMessages(ctx)]);
@@ -38,6 +40,16 @@ export async function TodoCard({ ctx }: { readonly ctx: TenantContext }) {
         : null,
       href: routes.orders.list({ when: 'pending' }),
       link: t('pendingLink'),
+    });
+  }
+  if (inbox.declinedChanges > 0) {
+    rows.push({
+      testId: 'todo-declined-changes',
+      icon: <X />,
+      text: t('declinedChanges', { count: inbox.declinedChanges }),
+      detail: null,
+      href: routes.orders.list({ when: 'all', changes: 'declined' }),
+      link: t('declinedChangesLink'),
     });
   }
   if (inbox.unreadMessages > 0) {

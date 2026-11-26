@@ -180,8 +180,12 @@ describe('domande «sì / no» (M3-2)', () => {
     expect(
       orderMessageProblem({ order: online, body: ' ', hasPhoto: true, question: true, now }),
     ).toBe('order_question_empty');
+    // Una domanda è solo testo: la foto va in un messaggio a parte (CHECK nel database).
     expect(
       orderMessageProblem({ order: online, body: 'Sí o no', hasPhoto: true, question: true, now }),
+    ).toBe('order_question_photo');
+    expect(
+      orderMessageProblem({ order: online, body: 'Sí o no', hasPhoto: false, question: true, now }),
     ).toBeNull();
   });
 

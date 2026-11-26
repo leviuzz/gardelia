@@ -1,12 +1,22 @@
 'use client';
 
-import { Ban, LoaderCircle, Route, Trash, TriangleExclamationPoint, Undo2 } from 'lucide-react';
+import {
+  Ban,
+  CalendarClock,
+  LoaderCircle,
+  Route,
+  Send,
+  Trash,
+  TriangleExclamationPoint,
+  Undo2,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
   ONLINE_REJECT_REASONS,
   ONLINE_REJECT_REASON_TEXTS,
+  ORDER_CHANGE_LIMITS,
   ORDER_LIMITS,
   ORDER_PAYMENT_INPUT_KINDS,
   PAYMENT_METHODS,
@@ -116,6 +126,132 @@ function windowKey(window: { readonly start: string; readonly end: string }): st
   return `${window.start}-${window.end}`;
 }
 
+/** Giorno e fascia di un ordine: "Cambia consegna e biglietto" e «Proponi un'altra data» (M3-2). */
+function ScheduleFields({
+  idPrefix,
+  dateMin,
+  defaults,
+  windows,
+  closedWeekdays,
+  error,
+}: {
+  readonly idPrefix: string;
+  readonly dateMin: string;
+  readonly defaults: {
+    readonly scheduledDate: string;
+    readonly windowStart: string;
+    readonly windowEnd: string;
+  };
+  readonly windows: readonly WindowOption[];
+  readonly closedWeekdays: readonly number[];
+  readonly error: (field: string) => string | undefined;
+}) {
+  const t = useTranslations('orders');
+  const [date, setDate] = useState(defaults.scheduledDate);
+  const [windowChoice, setWindowChoice] = useState(() => {
+    if (!defaults.windowStart && !defaults.windowEnd) return ALL_DAY;
+    const saved = windows.find(
+      (window) => window.start === defaults.windowStart && window.end === defaults.windowEnd,
+    );
+    return saved ? windowKey(saved) : CUSTOM_WINDOW;
+  });
+  const chosenWindow = windows.find((window) => windowKey(window) === windowChoice);
+  const closedDay = isClosedOn(date, closedWeekdays);
+  return (
+    <div className="grid gap-4">
+      <Field
+        id={`${idPrefix}-date`}
+        label={t('form.date')}
+        error={error('scheduledDate')}
+        required
+        className="sm:max-w-56"
+      >
+        <Input
+          {...controlProps(`${idPrefix}-date`, error('scheduledDate'))}
+          name="scheduledDate"
+          type="date"
+          min={dateMin}
+          defaultValue={defaults.scheduledDate}
+          onChange={(event) => setDate(event.target.value)}
+          required
+        />
+      </Field>
+      {closedDay ? (
+        <Alert variant="warning">
+          <TriangleExclamationPoint aria-hidden="true" />
+          <AlertDescription>{t('form.closedDay')}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {windows.length > 0 ? (
+        <fieldset className="space-y-2">
+          <legend className="mb-2 text-sm font-medium">{t('form.window')}</legend>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {[
+              { key: ALL_DAY, label: t('allDay') },
+              ...windows.map((window) => ({ key: windowKey(window), label: window.label })),
+              { key: CUSTOM_WINDOW, label: t('form.customWindow') },
+            ].map((option) => (
+              <RadioCard
+                key={option.key}
+                name="windowChoice"
+                value={option.key}
+                checked={windowChoice === option.key}
+                onChange={() => setWindowChoice(option.key)}
+              >
+                <span className="tabular-nums">{option.label}</span>
+              </RadioCard>
+            ))}
+          </div>
+          {windowChoice === CUSTOM_WINDOW ? null : (
+            <>
+              <input type="hidden" name="windowStart" value={chosenWindow?.start ?? ''} />
+              <input type="hidden" name="windowEnd" value={chosenWindow?.end ?? ''} />
+            </>
+          )}
+        </fieldset>
+      ) : null}
+
+      {windows.length === 0 || windowChoice === CUSTOM_WINDOW ? (
+        // items-start: il suggerimento sotto "Desde" non deve spostare "Hasta".
+        <div className="grid grid-cols-2 items-start gap-4 sm:max-w-md">
+          <Field
+            id={`${idPrefix}-window-start`}
+            label={t('form.windowStart')}
+            error={error('windowStart')}
+            hint={windows.length === 0 ? t('form.windowHint') : undefined}
+          >
+            <Input
+              {...controlProps(
+                `${idPrefix}-window-start`,
+                error('windowStart'),
+                windows.length === 0,
+              )}
+              name="windowStart"
+              type="time"
+              step={900}
+              defaultValue={defaults.windowStart}
+            />
+          </Field>
+          <Field
+            id={`${idPrefix}-window-end`}
+            label={t('form.windowEnd')}
+            error={error('windowEnd')}
+          >
+            <Input
+              {...controlProps(`${idPrefix}-window-end`, error('windowEnd'))}
+              name="windowEnd"
+              type="time"
+              step={900}
+              defaultValue={defaults.windowEnd}
+            />
+          </Field>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /**
  * Consegna, destinatario e tarjeta: stessi campi per "Convertir en pedido" e per la modifica.
  * L'indirizzo nuovo compare solo quando serve, così i suoi campi obbligatori non bloccano il form.
@@ -169,16 +305,6 @@ export function FulfillmentForm({
   );
   const [anonymous, setAnonymous] = useState(defaults.cardAnonymous);
   const newAddress = addressChoice === NEW_ADDRESS;
-  const [date, setDate] = useState(defaults.scheduledDate);
-  const [windowChoice, setWindowChoice] = useState(() => {
-    if (!defaults.windowStart && !defaults.windowEnd) return ALL_DAY;
-    const saved = windows.find(
-      (window) => window.start === defaults.windowStart && window.end === defaults.windowEnd,
-    );
-    return saved ? windowKey(saved) : CUSTOM_WINDOW;
-  });
-  const chosenWindow = windows.find((window) => windowKey(window) === windowChoice);
-  const closedDay = isClosedOn(date, closedWeekdays);
 
   return (
     <form
@@ -204,89 +330,14 @@ export function FulfillmentForm({
         </div>
       </fieldset>
 
-      <div className="grid gap-4">
-        <Field
-          id="order-date"
-          label={t('form.date')}
-          error={err('scheduledDate')}
-          required
-          className="sm:max-w-56"
-        >
-          <Input
-            {...controlProps('order-date', err('scheduledDate'))}
-            name="scheduledDate"
-            type="date"
-            min={dateMin}
-            defaultValue={defaults.scheduledDate}
-            onChange={(event) => setDate(event.target.value)}
-            required
-          />
-        </Field>
-        {closedDay ? (
-          <Alert variant="warning">
-            <TriangleExclamationPoint aria-hidden="true" />
-            <AlertDescription>{t('form.closedDay')}</AlertDescription>
-          </Alert>
-        ) : null}
-
-        {windows.length > 0 ? (
-          <fieldset className="space-y-2">
-            <legend className="mb-2 text-sm font-medium">{t('form.window')}</legend>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {[
-                { key: ALL_DAY, label: t('allDay') },
-                ...windows.map((window) => ({ key: windowKey(window), label: window.label })),
-                { key: CUSTOM_WINDOW, label: t('form.customWindow') },
-              ].map((option) => (
-                <RadioCard
-                  key={option.key}
-                  name="windowChoice"
-                  value={option.key}
-                  checked={windowChoice === option.key}
-                  onChange={() => setWindowChoice(option.key)}
-                >
-                  <span className="tabular-nums">{option.label}</span>
-                </RadioCard>
-              ))}
-            </div>
-            {windowChoice === CUSTOM_WINDOW ? null : (
-              <>
-                <input type="hidden" name="windowStart" value={chosenWindow?.start ?? ''} />
-                <input type="hidden" name="windowEnd" value={chosenWindow?.end ?? ''} />
-              </>
-            )}
-          </fieldset>
-        ) : null}
-
-        {windows.length === 0 || windowChoice === CUSTOM_WINDOW ? (
-          // items-start: il suggerimento sotto "Desde" non deve spostare "Hasta".
-          <div className="grid grid-cols-2 items-start gap-4 sm:max-w-md">
-            <Field
-              id="order-window-start"
-              label={t('form.windowStart')}
-              error={err('windowStart')}
-              hint={windows.length === 0 ? t('form.windowHint') : undefined}
-            >
-              <Input
-                {...controlProps('order-window-start', err('windowStart'), windows.length === 0)}
-                name="windowStart"
-                type="time"
-                step={900}
-                defaultValue={defaults.windowStart}
-              />
-            </Field>
-            <Field id="order-window-end" label={t('form.windowEnd')} error={err('windowEnd')}>
-              <Input
-                {...controlProps('order-window-end', err('windowEnd'))}
-                name="windowEnd"
-                type="time"
-                step={900}
-                defaultValue={defaults.windowEnd}
-              />
-            </Field>
-          </div>
-        ) : null}
-      </div>
+      <ScheduleFields
+        idPrefix="order"
+        dateMin={dateMin}
+        defaults={defaults}
+        windows={windows}
+        closedWeekdays={closedWeekdays}
+        error={err}
+      />
 
       {mode === 'DELIVERY' ? (
         <div className="grid gap-4">
@@ -785,6 +836,158 @@ export function RejectOnlineOrderDialog({ action }: { readonly action: Action })
             <SubmitButton variant="destructive" className="w-full sm:w-auto">
               {t('rejectConfirm')}
             </SubmitButton>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * M3-2 «Chiedi conferma al cliente»: l'ordine da accettare è cambiato; chi compra vede com'era →
+ * com'è nel suo conto (e per email) e conferma o no. Messaggio facoltativo. A domicilio con la
+ * consegna a 0, la finestra stessa è la conferma che è gratis (come «Accetta con consegna gratis»).
+ */
+export function AskOrderChangeDialog({
+  action,
+  freeDelivery,
+}: {
+  readonly action: Action;
+  /** A domicilio con la consegna a 0. */
+  readonly freeDelivery: boolean;
+}) {
+  const t = useTranslations('orders.changes');
+  const tc = useTranslations('common');
+  const [open, setOpen] = useState(false);
+  const [state, formAction] = useToastActionState(action, () => setOpen(false));
+  const messageErr = fieldError(state, 'message');
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="w-full sm:w-auto" data-testid="ask-order-change">
+          <Send />
+          {t('ask')}
+        </Button>
+      </DialogTrigger>
+      <DialogContent closeLabel={tc('close')}>
+        <DialogHeader>
+          <DialogTitle>{t('askTitle')}</DialogTitle>
+          <DialogDescription>{t('askBody')}</DialogDescription>
+        </DialogHeader>
+        <form action={formAction} onSubmit={preserveOnSubmit(formAction)} className="grid gap-4">
+          {freeDelivery ? (
+            <Alert variant="warning">
+              <TriangleExclamationPoint aria-hidden="true" />
+              <AlertDescription>{t('freeDelivery')}</AlertDescription>
+            </Alert>
+          ) : null}
+          {freeDelivery ? <input type="hidden" name="freeDeliveryConfirmed" value="on" /> : null}
+          <Field
+            id="ask-change-message"
+            label={t('message')}
+            hint={t('messageHint')}
+            error={messageErr}
+          >
+            <Textarea
+              {...controlProps('ask-change-message', messageErr, true)}
+              name="message"
+              maxLength={ORDER_CHANGE_LIMITS.message}
+              rows={3}
+            />
+          </Field>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="ghost">
+                {tc('cancel')}
+              </Button>
+            </DialogClose>
+            <SubmitButton className="w-full sm:w-auto">{t('askConfirm')}</SubmitButton>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * M3-2 «Proponi un'altra data» invece di rifiutare: giorno, fascia e messaggio in un passo; il
+ * servizio cambia l'ordine e chiede conferma a chi compra (come «Chiedi conferma al cliente»).
+ */
+export function ProposeOrderDateDialog({
+  action,
+  dateMin,
+  defaults,
+  windows,
+  closedWeekdays,
+  freeDelivery,
+}: {
+  readonly action: Action;
+  readonly dateMin: string;
+  readonly defaults: {
+    readonly scheduledDate: string;
+    readonly windowStart: string;
+    readonly windowEnd: string;
+  };
+  readonly windows: readonly WindowOption[];
+  readonly closedWeekdays: readonly number[];
+  readonly freeDelivery: boolean;
+}) {
+  const t = useTranslations('orders.changes');
+  const tc = useTranslations('common');
+  const [open, setOpen] = useState(false);
+  const [state, formAction] = useToastActionState(action, () => setOpen(false));
+  const err = (field: string) => fieldError(state, field);
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="w-full sm:w-auto" data-testid="propose-order-date">
+          <CalendarClock />
+          {t('propose')}
+        </Button>
+      </DialogTrigger>
+      <DialogContent closeLabel={tc('close')}>
+        <DialogHeader>
+          <DialogTitle>{t('proposeTitle')}</DialogTitle>
+          <DialogDescription>{t('proposeBody')}</DialogDescription>
+        </DialogHeader>
+        <form action={formAction} onSubmit={preserveOnSubmit(formAction)} className="grid gap-4">
+          <ScheduleFields
+            idPrefix="propose"
+            dateMin={dateMin}
+            defaults={defaults}
+            windows={windows}
+            closedWeekdays={closedWeekdays}
+            error={err}
+          />
+          {freeDelivery ? (
+            <>
+              <Alert variant="warning">
+                <TriangleExclamationPoint aria-hidden="true" />
+                <AlertDescription>{t('freeDelivery')}</AlertDescription>
+              </Alert>
+              <input type="hidden" name="freeDeliveryConfirmed" value="on" />
+            </>
+          ) : null}
+          <Field
+            id="propose-message"
+            label={t('message')}
+            hint={t('messageHint')}
+            error={err('message')}
+          >
+            <Textarea
+              {...controlProps('propose-message', err('message'), true)}
+              name="message"
+              maxLength={ORDER_CHANGE_LIMITS.message}
+              rows={3}
+            />
+          </Field>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="ghost">
+                {tc('cancel')}
+              </Button>
+            </DialogClose>
+            <SubmitButton className="w-full sm:w-auto">{t('proposeConfirm')}</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>
