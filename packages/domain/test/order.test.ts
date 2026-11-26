@@ -70,8 +70,8 @@ describe('numero e stati dell’ordine', () => {
     expect(areOrderLinesEditable('CONFIRMED')).toBe(true);
     expect(areOrderLinesEditable('IN_PREPARATION')).toBe(true);
     expect(areOrderLinesEditable('READY')).toBe(false);
-    // Quello del marketplace lo ha composto il cliente: la fioreria lo accetta o lo rifiuta.
-    expect(areOrderLinesEditable('PENDING_ACCEPTANCE')).toBe(false);
+    // Quello del marketplace da accettare sì (M3-2): poi chi compra conferma i cambi.
+    expect(areOrderLinesEditable('PENDING_ACCEPTANCE')).toBe(true);
     expect(areOrderLinesEditable('CANCELLED')).toBe(false);
   });
 

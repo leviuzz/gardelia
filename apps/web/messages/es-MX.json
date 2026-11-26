@@ -67,7 +67,8 @@
     "opening_hours_overlap": "Este horario se cruza con otro del mismo día: júntalos en uno solo.",
     "substitute_required": "Elige con qué flor sustituirla.",
     "substitution_customer_required": "Confirma que el cliente aceptó el cambio.",
-    "order_message_empty": "Escribe un mensaje o agrega una foto."
+    "order_message_empty": "Escribe un mensaje o agrega una foto.",
+    "order_question_empty": "Escribe la pregunta: el cliente responde «Sí» o «No»."
   },
   "errors": {
     "validation": "Revisa los campos marcados.",
@@ -139,7 +140,14 @@
       "order_message_closed": "Este pedido se cerró hace más de 7 días: los mensajes quedan para consultar.",
       "order_message_daily_limit": "Llegaste al máximo de mensajes de hoy en este pedido. Si es urgente, llama a la florería.",
       "order_not_reorderable": "Este pedido ya no se puede repetir.",
-      "order_not_notifiable": "No hay a quién avisar: solo los pedidos en línea aceptados y abiertos."
+      "order_not_notifiable": "No hay a quién avisar: solo los pedidos en línea aceptados y abiertos.",
+      "order_change_nothing": "No hay cambios que confirmar: el pedido está como lo pidió el cliente.",
+      "order_change_waiting": "Ya le pediste al cliente que confirme los cambios: espera su respuesta o cambia el pedido para pedírselo de nuevo.",
+      "order_change_needs_confirmation": "Cambiaste el pedido: pídele al cliente que confirme los cambios antes de aceptarlo.",
+      "order_change_no_buyer": "El cliente eliminó su cuenta: no puede confirmar cambios.",
+      "order_change_outdated": "La florería volvió a cambiar el pedido: revisa los cambios de nuevo.",
+      "order_change_date_passed": "El día de entrega ya pasó: escríbele a la florería.",
+      "order_question_answered": "Ya respondiste esta pregunta."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -1025,7 +1033,10 @@
       "cancelled_by_buyer": "{actor} canceló su pedido {number}",
       "ingredient_substituted": "{actor} cambió {name} por {ingredient} en {number}",
       "message_photo_removed": "{actor} quitó la foto de un mensaje de {number}",
-      "customer_notified": "{actor} avisó al cliente de los cambios de {number}"
+      "customer_notified": "{actor} avisó al cliente de los cambios de {number}",
+      "change_asked": "{actor} pidió al cliente que confirme los cambios de {number}",
+      "change_confirmed": "{actor} confirmó los cambios del pedido {number}",
+      "change_declined": "{actor} no aceptó los cambios del pedido {number}"
     },
     "delivery_settings": {
       "updated": "{actor} cambió los ajustes de entrega"

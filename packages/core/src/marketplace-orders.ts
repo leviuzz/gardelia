@@ -19,6 +19,7 @@ import {
   MARKETPLACE_DATE_ERRORS,
   MARKETPLACE_EXPIRED_REASON,
   MARKETPLACE_ORDER_LIMITS,
+  MARKETPLACE_UNCONFIRMED_REASON,
   MARKETPLACE_WITHDRAWN_REASON,
   addDays,
   deliveryAddressSchema,
@@ -35,6 +36,8 @@ import {
   marketplaceOrderSchema,
   nextStoredPlace,
   orderPaymentStatus,
+  orderWaitsForBuyer,
+  pendingOrderClockStart,
   pendingOrderDeadline,
   pendingOrderNeedsReminder,
   priceOrder,
@@ -50,6 +53,7 @@ import {
   type Coordinates,
   type DeliveryAddressInput,
   type FulfillmentMode,
+  type OrderChangeStatus,
   type OrderStatus,
   type SaleUnit,
   type StorePaymentMethod,
@@ -61,6 +65,7 @@ import { ConflictError, NotFoundError, ValidationError } from './errors';
 import { logger } from './logger';
 import {
   buyerOrderMail,
+  changeReminderMailTx,
   expiredOrderMailsForShop,
   newOrderMailsForShop,
   pendingReminderMailsForShop,
@@ -69,7 +74,7 @@ import {
   type OrderMailDeps,
 } from './order-mail';
 import { withBuyerOrder } from './buyer-orders';
-import { claimOnceNoticeTx } from './order-message-internals';
+import { claimReminderNoticeTx } from './order-message-internals';
 import { createPublicLinkToken, publicLinkUrl } from './public-links';
 import { onlineItemWhere, publishedTenantId } from './public-store';
 import { addBuyerAddress, type BuyerAddressDto, type BuyerContext } from './services/buyer-account';
@@ -699,6 +704,8 @@ export interface BuyerOrderDto {
   readonly trackingPath: string | null;
   /** Messaggi della fioreria arrivati dopo l'ultima lettura (M3). */
   readonly newMessages: number;
+  /** La fioreria chiede di confermare dei cambi (M3-2): «Confirma los cambios» sulla riga. */
+  readonly changesToConfirm: boolean;
 }
 
 /**
@@ -730,6 +737,7 @@ export async function listBuyerOrders(
           created_at: Date;
           link_id: string | null;
           new_messages: number;
+          changes_to_confirm: boolean;
         }[]
       >`SELECT * FROM app_buyer_orders()`,
   );
@@ -755,6 +763,7 @@ export async function listBuyerOrders(
           )
         : null,
       newMessages: row.new_messages,
+      changesToConfirm: row.changes_to_confirm,
     }));
 }
 
@@ -849,7 +858,7 @@ export async function expireUnacceptedOrders(deps: OrderMailDeps | null): Promis
         async (tx) => {
           await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${candidate.order_id}::uuid
             AND "tenantId" = ${candidate.tenant_id}::uuid FOR UPDATE`;
-          const [order, tenant] = await Promise.all([
+          const [order, tenant, change] = await Promise.all([
             tx.order.findFirst({
               where: { tenantId: candidate.tenant_id, id: candidate.order_id },
             }),
@@ -857,24 +866,40 @@ export async function expireUnacceptedOrders(deps: OrderMailDeps | null): Promis
               where: { id: candidate.tenant_id },
               select: { timezone: true },
             }),
+            tx.orderChangeRequest.findUnique({
+              where: {
+                tenantId_orderId: { tenantId: candidate.tenant_id, orderId: candidate.order_id },
+              },
+              select: { status: true, askedAt: true, answeredAt: true },
+            }),
           ]);
           if (!order || order.status !== 'PENDING_ACCEPTANCE') return { done: false, mails: [] };
           const scheduledDate = order.scheduledDate ? dateToParts(order.scheduledDate) : null;
           if (
             !isPendingOrderExpired(
-              { createdAt: order.createdAt, scheduledDate },
+              {
+                createdAt: order.createdAt,
+                scheduledDate,
+                changeAskedAt: change?.askedAt ?? null,
+                changeAnsweredAt: change?.answeredAt ?? null,
+              },
               new Date(),
               tenant.timezone,
             )
           ) {
             return { done: false, mails: [] };
           }
+          // M3-2: mentre aspettava la conferma di chi compra, il motivo è suo, non della fioreria.
+          const unconfirmed = orderWaitsForBuyer(
+            (change?.status ?? null) as OrderChangeStatus | null,
+          );
+          const reason = unconfirmed ? MARKETPLACE_UNCONFIRMED_REASON : MARKETPLACE_EXPIRED_REASON;
           await tx.order.update({
             where: { id: order.id },
             data: {
               status: 'CANCELLED',
               statusChangedAt: new Date(),
-              cancelReason: MARKETPLACE_EXPIRED_REASON,
+              cancelReason: reason,
             },
           });
           await tx.orderStatusEvent.create({
@@ -892,14 +917,25 @@ export async function expireUnacceptedOrders(deps: OrderMailDeps | null): Promis
               action: AUDIT_ACTIONS.orderExpired,
               entityType: 'Order',
               entityId: order.id,
-              metadata: { number: formatOrderNumber(order.number) },
+              metadata: {
+                number: formatOrderNumber(order.number),
+                ...(unconfirmed ? { unconfirmed: true } : {}),
+              },
             },
           });
           const mails = deps
             ? [
-                await buyerOrderMail(tx, order.tenantId, order.id, 'expired', deps),
+                await buyerOrderMail(
+                  tx,
+                  order.tenantId,
+                  order.id,
+                  unconfirmed ? 'unconfirmed' : 'expired',
+                  deps,
+                ),
                 // M3: lo sa anche la fioreria, non solo chi compra.
-                ...(await expiredOrderMailsForShop(tx, order.tenantId, order.id, deps)),
+                ...(await expiredOrderMailsForShop(tx, order.tenantId, order.id, deps, {
+                  unconfirmed,
+                })),
               ].filter((message) => message !== null)
             : [];
           return { done: true, mails };
@@ -940,7 +976,7 @@ export async function remindPendingOrders(deps: OrderMailDeps | null): Promise<n
         async (tx) => {
           await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${candidate.order_id}::uuid
             AND "tenantId" = ${candidate.tenant_id}::uuid FOR UPDATE`;
-          const [order, tenant] = await Promise.all([
+          const [order, tenant, change] = await Promise.all([
             tx.order.findFirst({
               where: { tenantId: candidate.tenant_id, id: candidate.order_id },
               select: { id: true, status: true, createdAt: true, scheduledDate: true },
@@ -949,30 +985,52 @@ export async function remindPendingOrders(deps: OrderMailDeps | null): Promise<n
               where: { id: candidate.tenant_id },
               select: { timezone: true },
             }),
+            tx.orderChangeRequest.findUnique({
+              where: {
+                tenantId_orderId: { tenantId: candidate.tenant_id, orderId: candidate.order_id },
+              },
+              select: { status: true, askedAt: true, answeredAt: true },
+            }),
           ]);
           if (!order || order.status !== 'PENDING_ACCEPTANCE') return { done: false, mails: [] };
+          const clock = {
+            createdAt: order.createdAt,
+            changeAskedAt: change?.askedAt ?? null,
+            changeAnsweredAt: change?.answeredAt ?? null,
+          };
           const deadline = pendingOrderDeadline(
             {
-              createdAt: order.createdAt,
+              ...clock,
               scheduledDate: order.scheduledDate ? dateToParts(order.scheduledDate) : null,
             },
             tenant.timezone,
           );
           if (!pendingOrderNeedsReminder(deadline, new Date())) return { done: false, mails: [] };
+          // Uno per scadenza (M3-2): una richiesta o una risposta fanno ripartire il conto.
           if (
-            !(await claimOnceNoticeTx(tx, {
+            !(await claimReminderNoticeTx(tx, {
               tenantId: candidate.tenant_id,
               orderId: order.id,
-              kind: 'EXPIRY_REMINDER',
+              since: pendingOrderClockStart(clock),
             }))
           ) {
             return { done: false, mails: [] };
           }
+          if (!deps) return { done: true, mails: [] };
+          // A chi deve fare qualcosa: chi compra se aspetta la sua conferma, se no la fioreria.
+          if (orderWaitsForBuyer((change?.status ?? null) as OrderChangeStatus | null)) {
+            const mail = await changeReminderMailTx(tx, candidate.tenant_id, order.id, deps);
+            return { done: true, mails: mail ? [mail] : [] };
+          }
           return {
             done: true,
-            mails: deps
-              ? await pendingReminderMailsForShop(tx, candidate.tenant_id, order.id, deadline, deps)
-              : [],
+            mails: await pendingReminderMailsForShop(
+              tx,
+              candidate.tenant_id,
+              order.id,
+              deadline,
+              deps,
+            ),
           };
         },
       );

@@ -67,7 +67,8 @@
     "opening_hours_overlap": "Questa fascia si sovrappone a un'altra dello stesso giorno: uniscile in una sola.",
     "substitute_required": "Scegli con quale fiore sostituirlo.",
     "substitution_customer_required": "Conferma che il cliente ha accettato il cambio.",
-    "order_message_empty": "Scrivi un messaggio o aggiungi una foto."
+    "order_message_empty": "Scrivi un messaggio o aggiungi una foto.",
+    "order_question_empty": "Scrivi la domanda: il cliente risponde «Sì» o «No»."
   },
   "errors": {
     "validation": "Controlla i campi evidenziati.",
@@ -139,7 +140,14 @@
       "order_message_closed": "Questo ordine si è chiuso più di 7 giorni fa: i messaggi restano da leggere.",
       "order_message_daily_limit": "Hai raggiunto il massimo di messaggi di oggi su questo ordine. Se è urgente, chiama la fioreria.",
       "order_not_reorderable": "Questo ordine non si può più ripetere.",
-      "order_not_notifiable": "Non c'è nessuno da avvisare: solo gli ordini online accettati e aperti."
+      "order_not_notifiable": "Non c'è nessuno da avvisare: solo gli ordini online accettati e aperti.",
+      "order_change_nothing": "Non ci sono cambi da confermare: l’ordine è come l’ha chiesto il cliente.",
+      "order_change_waiting": "Hai già chiesto al cliente di confermare i cambi: aspetta la risposta, o cambia l’ordine per chiederlo di nuovo.",
+      "order_change_needs_confirmation": "Hai cambiato l’ordine: chiedi al cliente di confermare i cambi prima di accettarlo.",
+      "order_change_no_buyer": "Il cliente ha eliminato il conto: non può confermare i cambi.",
+      "order_change_outdated": "La fioreria ha cambiato di nuovo l’ordine: rivedi i cambi.",
+      "order_change_date_passed": "Il giorno di consegna è già passato: scrivi alla fioreria.",
+      "order_question_answered": "Hai già risposto a questa domanda."
     },
     "pageNotFoundTitle": "Pagina non trovata",
     "pageNotFoundBody": "La pagina non esiste o non hai accesso.",
@@ -1025,7 +1033,10 @@
       "cancelled_by_buyer": "{actor} ha annullato il suo ordine {number}",
       "ingredient_substituted": "{actor} ha cambiato {name} con {ingredient} in {number}",
       "message_photo_removed": "{actor} ha tolto la foto di un messaggio di {number}",
-      "customer_notified": "{actor} ha avvisato il cliente dei cambi di {number}"
+      "customer_notified": "{actor} ha avvisato il cliente dei cambi di {number}",
+      "change_asked": "{actor} ha chiesto al cliente di confermare i cambi di {number}",
+      "change_confirmed": "{actor} ha confermato i cambi dell’ordine {number}",
+      "change_declined": "{actor} non ha accettato i cambi dell’ordine {number}"
     },
     "delivery_settings": {
       "updated": "{actor} ha cambiato le impostazioni di consegna"

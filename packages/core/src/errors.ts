@@ -226,6 +226,19 @@ export type ConflictReason =
   | 'order_not_reorderable'
   /** «Avvisa il cliente dei cambi» su un ordine che non è online, non accettato o già chiuso. */
   | 'order_not_notifiable'
+  /**
+   * Cambi da confermare (M3-2): niente da chiedere; si aspetta già la risposta; ci sono cambi da far
+   * confermare prima di accettare; chi compra ha eliminato il conto e non può rispondere.
+   */
+  | 'order_change_nothing'
+  | 'order_change_waiting'
+  | 'order_change_needs_confirmation'
+  | 'order_change_no_buyer'
+  /** Chi compra risponde a una richiesta non più valida, o col giorno già passato. */
+  | 'order_change_outdated'
+  | 'order_change_date_passed'
+  /** Domande «sì / no» (M3-2): la risposta c'è già. */
+  | 'order_question_answered'
   /** "Eliminar florería" con ordini ancora da consegnare o ritirare (ADR-074). */
   | 'tenant_deletion_open_orders'
   | 'session_is_current';

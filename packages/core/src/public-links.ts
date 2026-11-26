@@ -383,6 +383,11 @@ export interface PublicOrderDto {
     readonly paymentMethods: readonly StorePaymentMethod[];
     readonly paymentInstructions: string | null;
     readonly cancelReason: string | null;
+    /**
+     * La fioreria chiede di confermare dei cambi (M3-2). Il link di stato lo dice soltanto e
+     * rimanda al conto: si conferma solo da lì.
+     */
+    readonly changesToConfirm: boolean;
   } | null;
 }
 
@@ -432,6 +437,13 @@ export async function readCustomerOrderTx(
         select: { paymentMethods: true, paymentInstructions: true },
       })
     : null;
+  const change =
+    order.placedOnline && order.status === 'PENDING_ACCEPTANCE'
+      ? await tx.orderChangeRequest.findUnique({
+          where: { tenantId_orderId: { tenantId, orderId: order.id } },
+          select: { status: true },
+        })
+      : null;
   const delivery =
     order.fulfillmentMode === 'DELIVERY' &&
     order.deliveryAddressLine1 &&
@@ -481,6 +493,7 @@ export async function readCustomerOrderTx(
           paymentMethods: (store?.paymentMethods ?? []) as StorePaymentMethod[],
           paymentInstructions: store?.paymentInstructions ?? null,
           cancelReason: order.status === 'CANCELLED' ? order.cancelReason : null,
+          changesToConfirm: change?.status === 'ASKED',
         }
       : null,
   };

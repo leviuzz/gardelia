@@ -12,8 +12,14 @@
  *    si ritira da sola e quella vecchia non si conferma più.
  */
 import { z } from 'zod';
-import { toIsoDate, type CalendarDate } from './calendar';
-import { FULFILLMENT_MODES, orderDateField, orderTimeField, type FulfillmentMode } from './order';
+import { compareDates, toIsoDate, type CalendarDate } from './calendar';
+import {
+  FULFILLMENT_MODES,
+  orderDateField,
+  orderTimeField,
+  type FulfillmentMode,
+  type OrderStatus,
+} from './order';
 import { checkboxField, optionalText, toTrimmedString } from './validation';
 
 export const ORDER_CHANGE_LIMITS = {
@@ -315,6 +321,34 @@ export function orderWaitsForBuyer(status: OrderChangeStatus | null): boolean {
 /** Chi compra ha detto «No, gracias»: l'ordine è di nuovo in mano alla fioreria. */
 export function orderChangeDeclined(status: OrderChangeStatus | null): boolean {
   return status === 'DECLINED';
+}
+
+/**
+ * Perché chi compra non può rispondere alla richiesta che ha davanti; null = può. Nell'ordine:
+ *  - «Confirmar» col giorno di consegna già passato (anche se intanto l'ordine si è annullato da
+ *    solo): `order_change_date_passed`. Dire di no si può sempre;
+ *  - l'ordine non è più da accettare: `order_not_pending`;
+ *  - la richiesta è stata ritirata o rifatta (un altro `round`): `order_change_outdated`.
+ */
+export function orderChangeAnswerProblem(input: {
+  readonly orderStatus: OrderStatus;
+  readonly scheduledDate: CalendarDate | null;
+  readonly today: CalendarDate;
+  readonly request: { readonly status: OrderChangeStatus; readonly round: number } | null;
+  readonly round: number;
+  readonly confirming: boolean;
+}): 'order_change_date_passed' | 'order_not_pending' | 'order_change_outdated' | null {
+  if (
+    input.confirming &&
+    (input.scheduledDate === null || compareDates(input.scheduledDate, input.today) < 0)
+  ) {
+    return 'order_change_date_passed';
+  }
+  if (input.orderStatus !== 'PENDING_ACCEPTANCE') return 'order_not_pending';
+  if (input.request?.status !== 'ASKED' || input.request.round !== input.round) {
+    return 'order_change_outdated';
+  }
+  return null;
 }
 
 // -----------------------------------------------------------------------------

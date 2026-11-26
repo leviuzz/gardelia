@@ -21,11 +21,13 @@ import {
   ValidationError,
   acceptOnlineOrder,
   addDeliveryWindow,
+  askOrderChange,
   buyerReorderLines,
   cancelOrder,
   changeOrderStatus,
   countPendingOnlineOrders,
   createCatalogItem,
+  declineBuyerOrderChange,
   exportBuyerData,
   exportTenantData,
   getBuyerOrder,
@@ -51,6 +53,7 @@ import {
   updateOnlineOrderSettings,
   updateOnlineStore,
   updateOrderFulfillment,
+  updateOrderLineQuantity,
   updateTenantProfile,
   type BuyerContext,
   type CatalogItemDto,
@@ -750,6 +753,54 @@ describe('«Da gestire», elenco, promemoria e regola della scadenza', () => {
     // Quello appena arrivato non ha ancora bisogno del promemoria.
     await remindPendingOrders(deps);
     expect(forOrder(freshLabel)).toEqual([]);
+  });
+
+  it('M3-2: mentre aspetta chi compra il promemoria va a lui, ed è uno per scadenza', async () => {
+    const who = await buyer('Cliente Recordatorio Cambios');
+    const orderId = await place(who);
+    const placed = await getOrder(shop.owner, orderId);
+    await updateOrderLineQuantity(shop.owner, orderId, placed.lines[0]!.id, '3');
+    await askOrderChange(shop.owner, orderId, {}, deps);
+    // Chiesto 2 giorni e mezzo fa, con la consegna più avanti: scade fra 12 ore.
+    await withTenantContext(db, shop.owner, async (tx) => {
+      await tx.order.updateMany({
+        where: { tenantId: shop.owner.tenantId, id: orderId },
+        data: {
+          createdAt: new Date(Date.now() - 3 * DAY),
+          scheduledDate: new Date(`${toIsoDate(openDay(10))}T00:00:00Z`),
+        },
+      });
+      await tx.orderChangeRequest.updateMany({
+        where: { tenantId: shop.owner.tenantId, orderId },
+        data: { askedAt: new Date(Date.now() - 2.5 * DAY) },
+      });
+    });
+    drain();
+    await remindPendingOrders(deps);
+    const forOrder = (category: string) =>
+      drain().filter((m) => m.category === category && m.subject.includes(placed.numberLabel));
+    const toBuyer = forOrder('online_order_change_reminder');
+    expect(toBuyer.map((m) => m.to)).toEqual([who.email]);
+    expect(toBuyer[0]!.subject).toBe(`Confirma los cambios de tu pedido ${placed.numberLabel}`);
+    await remindPendingOrders(deps);
+    expect(forOrder('online_order_change_reminder')).toEqual([]);
+
+    // «No, gracias» dopo quel promemoria, 2 giorni e mezzo fa: il conto è ripartito e il
+    // promemoria nuovo va alla fioreria.
+    await declineBuyerOrderChange(who, orderId, { round: '1' }, deps);
+    await withTenantContext(db, shop.owner, async (tx) => {
+      await tx.orderNotice.updateMany({
+        where: { tenantId: shop.owner.tenantId, orderId, kind: 'EXPIRY_REMINDER' },
+        data: { sentAt: new Date(Date.now() - 2.7 * DAY) },
+      });
+      await tx.orderChangeRequest.updateMany({
+        where: { tenantId: shop.owner.tenantId, orderId },
+        data: { answeredAt: new Date(Date.now() - 2.5 * DAY) },
+      });
+    });
+    drain();
+    await remindPendingOrders(deps);
+    expect(forOrder('online_order_reminder').length).toBeGreaterThan(0);
   });
 
   it('la funzione SQL della scadenza sceglie come la regola del dominio', async () => {

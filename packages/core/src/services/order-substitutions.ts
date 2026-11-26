@@ -18,12 +18,19 @@ import {
   INGREDIENT_TYPES,
   canSubstitute,
   formatOrderNumber,
+  hasOrderThread,
   isUuid,
+  orderMessagesOpen,
+  orderSubstitutionQuestionSchema,
   orderSubstitutionSchema,
+  parseOrderQuestionContext,
   rankSubstitutes,
+  substituteItemLabel,
   substitutionMode,
+  substitutionQuestionText,
   toFieldErrors,
   type Availability,
+  type OrderQuestionAnswer,
   type SaleUnit,
   type SubstituteItem,
   type SubstituteReason,
@@ -34,7 +41,9 @@ import { notFound, recordAudit } from '../audit';
 import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
+import type { OrderMailDeps } from '../order-mail';
 import { checkStockTx } from './inventory';
+import { postShopQuestion } from './order-messages';
 import { orderStockRequest } from './order-inventory';
 import { syncOrderReservationTx } from './order-reservation';
 
@@ -135,6 +144,14 @@ export interface MissingIngredientDto {
   /** Per `SHORT`: quanto manca, sommato su tutto l'ordine. */
   readonly shortBy: number | null;
   readonly candidates: readonly SubstituteOptionDto[];
+  /**
+   * L'ultima domanda di «Chiedi nell'app» per questo fiore (M3-2): il fiore proposto e la risposta
+   * di chi compra, se c'è già.
+   */
+  readonly askedInApp: {
+    readonly toItemId: string;
+    readonly answer: OrderQuestionAnswer | null;
+  } | null;
 }
 
 export interface LineSubstitutionDto {
@@ -149,6 +166,8 @@ export interface OrderSubstitutionsDto {
   readonly lines: readonly LineSubstitutionDto[];
   /** Chi può cambiare (chi prepara i ramos). */
   readonly canApply: boolean;
+  /** «Chiedi nell'app» (M3-2): ordine online col filo aperto e chi guarda scrive i messaggi. */
+  readonly canAskInApp: boolean;
 }
 
 /**
@@ -166,6 +185,9 @@ export async function getOrderSubstitutions(
       where: { tenantId: ctx.tenantId, id: orderId },
       select: {
         status: true,
+        statusChangedAt: true,
+        placedOnline: true,
+        buyerUserId: true,
         inventoryEntryId: true,
         inventoryReservationId: true,
         inventoryReservation: { select: { status: true } },
@@ -246,6 +268,29 @@ export async function getOrderSubstitutions(
       select: itemSelect,
     });
 
+    // Le domande di «Chiedi nell'app» già fatte, la più recente prima (M3-2).
+    const questions = hasOrderThread(order)
+      ? await tx.orderMessage.findMany({
+          where: { tenantId: ctx.tenantId, orderId, kind: 'QUESTION' },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          select: { questionContext: true, reply: { select: { answer: true } } },
+          take: 200,
+        })
+      : [];
+    const askedInApp = (lineId: string, fromItemId: string): MissingIngredientDto['askedInApp'] => {
+      for (const question of questions) {
+        const context = parseOrderQuestionContext(question.questionContext);
+        if (context?.lineId === lineId && context.fromItemId === fromItemId) {
+          const answer = question.reply?.answer;
+          return {
+            toItemId: context.toItemId,
+            answer: answer === 'YES' || answer === 'NO' ? answer : null,
+          };
+        }
+      }
+      return null;
+    };
+
     const out: LineSubstitutionDto[] = [];
     for (const { line, entries, missing } of problems) {
       const mode = substitutionMode(
@@ -289,6 +334,7 @@ export async function getOrderSubstitutions(
             reason,
             availability: candidate.availability,
           })),
+          askedInApp: askedInApp(line.id, entry.catalogItemId),
         });
       }
       out.push({
@@ -299,7 +345,11 @@ export async function getOrderSubstitutions(
         missing: missingDtos,
       });
     }
-    return { lines: out, canApply: hasPermission(ctx, 'orders:fulfill') };
+    return {
+      lines: out,
+      canApply: hasPermission(ctx, 'orders:fulfill'),
+      canAskInApp: hasPermission(ctx, 'orders:messages') && orderMessagesOpen(order),
+    };
   });
   // Un ordine di un'altra fioreria risponde come uno inesistente (404, con l'evento di sicurezza).
   if (result === MISSING) return notFound(ctx, 'Order', orderId);
@@ -459,6 +509,50 @@ export async function substituteOrderIngredient(
   });
   if (result === MISSING) return notFound(ctx, 'Order', orderId);
   return result;
+}
+
+/**
+ * «Chiedi nell'app» (M3-2): la stessa proposta di «Chiedi su WhatsApp», come domanda «sì / no» nel
+ * filo dell'ordine online. Vale solo per un fiore che manca davvero, con un sostituto proposto, in
+ * un ramo che chiede l'ok del cliente; il testo lo scrive il server con i nomi del database. La
+ * sostituzione poi si fa come sempre, con la casella «il cliente ha accettato».
+ */
+export async function askSubstitutionInApp(
+  ctx: TenantContext,
+  orderId: string,
+  rawInput: unknown,
+  mail: OrderMailDeps | null = null,
+): Promise<void> {
+  requirePermission(ctx, 'orders:fulfill');
+  if (!isUuid(orderId)) throw new NotFoundError('Order');
+  const parsed = orderSubstitutionQuestionSchema.safeParse(rawInput);
+  if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
+  const input = parsed.data;
+  const substitutions = await getOrderSubstitutions(ctx, orderId);
+  if (!substitutions) throw new ConflictError('order_not_substitutable');
+  const line = substitutions.lines.find((candidate) => candidate.lineId === input.lineId);
+  const missing = line?.missing.find((entry) => entry.catalogItemId === input.fromItemId);
+  const candidate = missing?.candidates.find((option) => option.id === input.toItemId);
+  if (!line || !missing || !candidate) throw new ValidationError({ toItemId: 'invalid_option' });
+  if (line.mode !== 'ASK_CUSTOMER') throw new ConflictError('substitution_not_allowed');
+  await postShopQuestion(
+    ctx,
+    orderId,
+    {
+      body: substitutionQuestionText({
+        bouquet: line.description,
+        from: substituteItemLabel(missing),
+        to: substituteItemLabel(candidate),
+      }),
+      questionContext: {
+        kind: 'SUBSTITUTION',
+        lineId: line.lineId,
+        fromItemId: missing.catalogItemId,
+        toItemId: candidate.id,
+      },
+    },
+    mail,
+  );
 }
 
 const MISSING = Symbol('missing');

@@ -217,6 +217,15 @@ export const LABELS = {
   careMessageDeletedAuthor: 'Cuenta eliminada',
   /** Messaggi degli ordini online (M3). */
   orderMessageAuthor: { BUYER: 'Cliente', SHOP: 'Florería' },
+  /** M3-2: domande «sì / no» e risposte nei messaggi, e lo stato dei cambi da confermare. */
+  orderMessageKind: { MESSAGE: 'Mensaje', QUESTION: 'Pregunta (sí / no)', ANSWER: 'Respuesta' },
+  orderQuestionAnswer: { YES: 'Sí', NO: 'No' },
+  orderChangeStatus: {
+    EDITING: 'En cambio',
+    ASKED: 'Esperando al cliente',
+    CONFIRMED: 'Confirmados',
+    DECLINED: 'No aceptados',
+  },
   careMessagePhotoGone: 'quitada',
   carePaymentKind: {
     PAYMENT: 'Pago',

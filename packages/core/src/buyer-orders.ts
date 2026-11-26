@@ -20,8 +20,12 @@ import {
   orderMessageProblem,
   orderMessageSchema,
   orderMessagesOpen,
+  diffOrderChanges,
+  parseOrderChangeSnapshot,
   pendingOrderDeadline,
   toFieldErrors,
+  type OrderChangeDiff,
+  type OrderChangeStatus,
   type OrderStatus,
 } from '@floral/domain';
 import { ConflictError, NotFoundError, ValidationError } from './errors';
@@ -145,6 +149,21 @@ export interface BuyerOrderThreadDto {
   readonly unreadCount: number;
 }
 
+/**
+ * I cambi della fioreria come li vede chi compra (M3-2): `ASKED` da confermare (con prima e dopo),
+ * `EDITING` la fioreria lo sta rivedendo, `DECLINED` hai detto «No, gracias».
+ */
+export interface BuyerOrderChangeDto {
+  readonly status: OrderChangeStatus;
+  /** La richiesta da confermare: la risposta porta questo numero. */
+  readonly round: number;
+  /** Com'era → come lo propone la fioreria (solo `ASKED`). */
+  readonly diff: OrderChangeDiff | null;
+  /** Il messaggio della fioreria con la richiesta (solo `ASKED`). */
+  readonly message: string | null;
+  readonly askedAt: Date | null;
+}
+
 export interface BuyerOrderDetailDto {
   readonly orderId: string;
   readonly shop: BuyerOrderShop & PublicShopDto;
@@ -157,6 +176,8 @@ export interface BuyerOrderDetailDto {
   readonly canReorder: boolean;
   /** Fino a quando la fioreria lo può accettare (solo da accettare). */
   readonly deadline: Date | null;
+  /** I cambi della fioreria su un ordine ancora da accettare (M3-2); null senza. */
+  readonly change: BuyerOrderChangeDto | null;
   /** Il link di stato da condividere, se attivo (`/pedido/<token>`). */
   readonly trackingPath: string | null;
 }
@@ -174,7 +195,7 @@ export async function getBuyerOrder(
       ? await readCustomerOrderTx(tx, shop.tenantId, order.id, publicShop)
       : null;
     if (!publicShop || !detail) throw new NotFoundError('Order');
-    const [read, rows, link, store, catalogLines] = await Promise.all([
+    const [read, rows, link, store, catalogLines, change] = await Promise.all([
       tx.orderBuyerRead.findUnique({
         where: {
           tenantId_orderId_userId: {
@@ -209,7 +230,14 @@ export async function getBuyerOrder(
       tx.orderLine.count({
         where: { tenantId: shop.tenantId, orderId: order.id, catalogItemId: { not: null } },
       }),
+      tx.orderChangeRequest.findUnique({
+        where: { tenantId_orderId: { tenantId: shop.tenantId, orderId: order.id } },
+      }),
     ]);
+    const pending = order.status === 'PENDING_ACCEPTANCE';
+    const asked = pending && change?.status === 'ASKED';
+    const before = asked ? parseOrderChangeSnapshot(change.before) : null;
+    const after = asked && change.after !== null ? parseOrderChangeSnapshot(change.after) : null;
     const readAt = read?.readAt ?? null;
     const messages = rows
       .slice(0, take)
@@ -236,15 +264,26 @@ export async function getBuyerOrder(
       },
       canCancel: order.status === 'PENDING_ACCEPTANCE',
       canReorder: isOrderClosed(order.status) && storeOpen && catalogLines > 0,
-      deadline:
-        order.status === 'PENDING_ACCEPTANCE'
-          ? pendingOrderDeadline(
-              {
-                createdAt: order.createdAt,
-                scheduledDate: order.scheduledDate ? dateToParts(order.scheduledDate) : null,
-              },
-              publicShop.timezone,
-            )
+      deadline: pending
+        ? pendingOrderDeadline(
+            {
+              createdAt: order.createdAt,
+              scheduledDate: order.scheduledDate ? dateToParts(order.scheduledDate) : null,
+              changeAskedAt: change?.askedAt ?? null,
+              changeAnsweredAt: change?.answeredAt ?? null,
+            },
+            publicShop.timezone,
+          )
+        : null,
+      change:
+        pending && change
+          ? {
+              status: change.status as OrderChangeStatus,
+              round: change.round,
+              diff: before && after ? diffOrderChanges(before, after) : null,
+              message: asked ? change.message : null,
+              askedAt: change.askedAt,
+            }
           : null,
       trackingPath: link
         ? publicLinkUrl(

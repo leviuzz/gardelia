@@ -4,6 +4,7 @@ import {
   askOrderChangeSchema,
   diffOrderChanges,
   hasOrderChanges,
+  orderChangeAnswerProblem,
   orderChangeDeclined,
   orderChangeFields,
   orderChangeSnapshot,
@@ -187,6 +188,52 @@ describe('chi deve fare qualcosa', () => {
     expect(orderWaitsForBuyer(null)).toBe(false);
     expect(orderChangeDeclined('DECLINED')).toBe(true);
     expect(orderChangeDeclined('ASKED')).toBe(false);
+  });
+});
+
+describe('la risposta di chi compra', () => {
+  const today = { year: 2026, month: 12, day: 2 };
+  const base = {
+    orderStatus: 'PENDING_ACCEPTANCE' as const,
+    scheduledDate: { year: 2026, month: 12, day: 4 },
+    today,
+    request: { status: 'ASKED' as const, round: 2 },
+    round: 2,
+    confirming: true,
+  };
+
+  it('si risponde alla richiesta che si ha davanti', () => {
+    expect(orderChangeAnswerProblem(base)).toBeNull();
+    expect(orderChangeAnswerProblem({ ...base, scheduledDate: today })).toBeNull();
+  });
+
+  it('una richiesta ritirata o rifatta non si conferma più', () => {
+    expect(orderChangeAnswerProblem({ ...base, round: 1 })).toBe('order_change_outdated');
+    expect(orderChangeAnswerProblem({ ...base, request: { status: 'EDITING', round: 2 } })).toBe(
+      'order_change_outdated',
+    );
+    expect(orderChangeAnswerProblem({ ...base, request: null })).toBe('order_change_outdated');
+  });
+
+  it('col giorno passato non si conferma (prima di tutto), ma si può dire di no', () => {
+    const passed = { ...base, scheduledDate: { year: 2026, month: 12, day: 1 } };
+    expect(orderChangeAnswerProblem(passed)).toBe('order_change_date_passed');
+    expect(orderChangeAnswerProblem({ ...passed, orderStatus: 'CANCELLED' })).toBe(
+      'order_change_date_passed',
+    );
+    expect(orderChangeAnswerProblem({ ...passed, confirming: false })).toBeNull();
+    expect(orderChangeAnswerProblem({ ...base, scheduledDate: null })).toBe(
+      'order_change_date_passed',
+    );
+  });
+
+  it('un ordine non più da accettare', () => {
+    expect(orderChangeAnswerProblem({ ...base, orderStatus: 'CONFIRMED' })).toBe(
+      'order_not_pending',
+    );
+    expect(orderChangeAnswerProblem({ ...base, orderStatus: 'CANCELLED', confirming: false })).toBe(
+      'order_not_pending',
+    );
   });
 });
 

@@ -247,6 +247,33 @@ describe('cancellazione definitiva (manutenzione)', () => {
         },
       }),
     );
+    // M3-2: una domanda con la sua risposta e una richiesta di cambi vanno via con la fioreria.
+    await withTenantContext(db, shop.owner, async (tx) => {
+      const question = await tx.orderMessage.create({
+        data: {
+          tenantId: shop.owner.tenantId,
+          orderId,
+          authorKind: 'SHOP',
+          kind: 'QUESTION',
+          body: '¿Te parece el sábado?',
+          submitKey: crypto.randomUUID(),
+        },
+      });
+      await tx.orderMessage.create({
+        data: {
+          tenantId: shop.owner.tenantId,
+          orderId,
+          authorKind: 'BUYER',
+          kind: 'ANSWER',
+          answer: 'YES',
+          answersMessageId: question.id,
+          submitKey: crypto.randomUUID(),
+        },
+      });
+      await tx.orderChangeRequest.create({
+        data: { tenantId: shop.owner.tenantId, orderId, before: {} },
+      });
+    });
 
     await requestTenantDeletion(shop.owner, { confirmName: 'Florería Que Se Va' }, null);
     // Prima della data non si tocca nulla.

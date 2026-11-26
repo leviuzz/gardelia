@@ -67,7 +67,8 @@
     "opening_hours_overlap": "This range overlaps another one on the same day: merge them into one.",
     "substitute_required": "Choose the flower to use instead.",
     "substitution_customer_required": "Confirm the customer agreed to the change.",
-    "order_message_empty": "Write a message or add a photo."
+    "order_message_empty": "Write a message or add a photo.",
+    "order_question_empty": "Write the question: the customer answers “Yes” or “No”."
   },
   "errors": {
     "validation": "Check the highlighted fields.",
@@ -139,7 +140,14 @@
       "order_message_closed": "This order closed more than 7 days ago: the messages stay available to read.",
       "order_message_daily_limit": "You've reached today's message limit on this order. If it's urgent, call the shop.",
       "order_not_reorderable": "This order can't be repeated.",
-      "order_not_notifiable": "There's no one to notify: only accepted, open online orders."
+      "order_not_notifiable": "There's no one to notify: only accepted, open online orders.",
+      "order_change_nothing": "There are no changes to confirm: the order is as the customer placed it.",
+      "order_change_waiting": "You already asked the customer to confirm the changes: wait for the answer, or change the order to ask again.",
+      "order_change_needs_confirmation": "You changed the order: ask the customer to confirm the changes before accepting it.",
+      "order_change_no_buyer": "The customer deleted their account: they can't confirm changes.",
+      "order_change_outdated": "The florist changed the order again: review the changes again.",
+      "order_change_date_passed": "The delivery day has already passed: write to the florist.",
+      "order_question_answered": "You already answered this question."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -1025,7 +1033,10 @@
       "cancelled_by_buyer": "{actor} cancelled their order {number}",
       "ingredient_substituted": "{actor} replaced {name} with {ingredient} in {number}",
       "message_photo_removed": "{actor} removed the photo of a message on {number}",
-      "customer_notified": "{actor} told the customer about the changes to {number}"
+      "customer_notified": "{actor} told the customer about the changes to {number}",
+      "change_asked": "{actor} asked the customer to confirm the changes to {number}",
+      "change_confirmed": "{actor} confirmed the changes to order {number}",
+      "change_declined": "{actor} declined the changes to order {number}"
     },
     "delivery_settings": {
       "updated": "{actor} changed the delivery settings"

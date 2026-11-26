@@ -363,7 +363,8 @@ export function onlineOrderCancelledEmail(input: {
   to: string;
   name: string;
   facts: OnlineOrderEmailFacts;
-  kind: 'rejected' | 'cancelled' | 'expired' | 'withdrawn';
+  /** `unconfirmed` (M3-2): chi compra non ha confermato in tempo i cambi chiesti dalla fioreria. */
+  kind: 'rejected' | 'cancelled' | 'expired' | 'withdrawn' | 'unconfirmed';
   reason: string | null;
   url: string;
   searchUrl: string;
@@ -383,16 +384,21 @@ export function onlineOrderCancelledEmail(input: {
             `${facts.shopName} no confirmó a tiempo tu pedido ${facts.numberLabel} (${modeLine(facts)}), así que lo cancelamos.`,
             'No tienes que pagar nada. Puedes buscar otra florería que entregue en tu zona.',
           ]
-        : input.kind === 'withdrawn'
+        : input.kind === 'unconfirmed'
           ? [
-              `Cancelaste tu pedido ${facts.numberLabel} en ${facts.shopName} (${modeLine(facts)}).`,
-              'No tienes que pagar nada. Ya le avisamos a la florería.',
+              `No confirmaste a tiempo los cambios que ${facts.shopName} propuso para tu pedido ${facts.numberLabel} (${modeLine(facts)}), así que lo cancelamos.`,
+              'No tienes que pagar nada. Puedes buscar otra florería que entregue en tu zona.',
             ]
-          : [
-              `${facts.shopName} canceló tu pedido ${facts.numberLabel} (${modeLine(facts)}).`,
-              ...reason,
-              'Si ya pagaste, ponte en contacto con la florería para la devolución.',
-            ];
+          : input.kind === 'withdrawn'
+            ? [
+                `Cancelaste tu pedido ${facts.numberLabel} en ${facts.shopName} (${modeLine(facts)}).`,
+                'No tienes que pagar nada. Ya le avisamos a la florería.',
+              ]
+            : [
+                `${facts.shopName} canceló tu pedido ${facts.numberLabel} (${modeLine(facts)}).`,
+                ...reason,
+                'Si ya pagaste, ponte en contacto con la florería para la devolución.',
+              ];
   const action =
     input.kind === 'cancelled' || input.kind === 'withdrawn'
       ? { label: 'Ver mi pedido', url: input.url }
@@ -592,6 +598,109 @@ export function onlineOrderChangedEmail(input: {
   };
 }
 
+/**
+ * A chi compra (M3-2): la fioreria propone dei cambi a un ordine ancora da accettare. La lista dei
+ * cambi e la scadenza; mai il messaggio della fioreria (si legge nella pagina dell'ordine).
+ */
+export function orderChangeAskedEmail(input: {
+  to: string;
+  name: string;
+  facts: OnlineOrderEmailFacts;
+  changes: readonly string[];
+  deadlineLabel: string;
+  url: string;
+  replyTo: string | null;
+}): EmailMessage {
+  const { facts } = input;
+  const body = plainAndHtml(
+    `Hola ${input.name}:`,
+    [
+      `${facts.shopName} propone estos cambios para tu pedido ${facts.numberLabel}:`,
+      input.changes.map((line) => `• ${line}`).join('\n'),
+      `Confírmalos o dile que no desde tu pedido antes del ${input.deadlineLabel}. Si no respondes, el pedido se cancela y no pagas nada.`,
+    ],
+    { label: 'Ver los cambios', url: input.url },
+    `Recibiste este correo porque hiciste un pedido en ${BRAND.productName}.`,
+    'Confirma los cambios de tu pedido',
+  );
+  return {
+    to: input.to,
+    category: 'online_order_change_asked',
+    subject: `${facts.shopName} cambió tu pedido ${facts.numberLabel}: confírmalo`,
+    fromName: facts.shopName,
+    ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+    ...body,
+  };
+}
+
+/** A chi compra (M3-2): la richiesta aspetta ancora la sua risposta e l'ordine scade presto. */
+export function orderChangeReminderEmail(input: {
+  to: string;
+  name: string;
+  facts: OnlineOrderEmailFacts;
+  deadlineLabel: string;
+  url: string;
+  replyTo: string | null;
+}): EmailMessage {
+  const { facts } = input;
+  const body = plainAndHtml(
+    `Hola ${input.name}:`,
+    [
+      `${facts.shopName} cambió tu pedido ${facts.numberLabel} y espera tu respuesta.`,
+      `Si no lo confirmas antes del ${input.deadlineLabel}, el pedido se cancela y no pagas nada.`,
+    ],
+    { label: 'Ver los cambios', url: input.url },
+    `Recibiste este correo porque hiciste un pedido en ${BRAND.productName}.`,
+    'Tu pedido espera tu respuesta',
+  );
+  return {
+    to: input.to,
+    category: 'online_order_change_reminder',
+    subject: `Confirma los cambios de tu pedido ${facts.numberLabel}`,
+    fromName: facts.shopName,
+    ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+    ...body,
+  };
+}
+
+/**
+ * A propietari e gerenti (M3-2): chi compra ha confermato i cambi (l'ordine è accettato) o ha detto
+ * «No, gracias» (l'ordine torna alla fioreria). Mai il motivo scritto da chi compra.
+ */
+export function orderChangeAnsweredShopEmail(input: {
+  to: string;
+  buyerName: string;
+  facts: OnlineOrderEmailFacts;
+  answer: 'CONFIRMED' | 'DECLINED';
+  url: string;
+}): EmailMessage {
+  const { facts } = input;
+  const confirmed = input.answer === 'CONFIRMED';
+  const body = plainAndHtml(
+    'Hola:',
+    confirmed
+      ? [
+          `${input.buyerName} confirmó los cambios del pedido ${facts.numberLabel} (${modeLine(facts)}).`,
+          'El pedido está aceptado y ya le enviamos cómo pagar.',
+        ]
+      : [
+          `${input.buyerName} no aceptó los cambios del pedido ${facts.numberLabel}.`,
+          'Puedes cambiarlo de nuevo y pedirle que lo confirme, o rechazarlo.',
+        ],
+    { label: 'Ver el pedido', url: input.url },
+    `Recibes este correo porque eres propietario/a o gerente de ${facts.shopName}.`,
+    confirmed ? 'El cliente confirmó los cambios' : 'El cliente no aceptó los cambios',
+  );
+  return {
+    to: input.to,
+    category: confirmed ? 'online_order_change_confirmed' : 'online_order_change_declined',
+    subject: confirmed
+      ? `El cliente confirmó el pedido ${facts.numberLabel}`
+      : `El cliente no aceptó los cambios del pedido ${facts.numberLabel}`,
+    ...body,
+  };
+}
+
 /** A chi compra: la fioreria ha scritto sull'ordine. Mai il testo del messaggio. */
 export function orderMessageForBuyerEmail(input: {
   to: string;
@@ -674,22 +783,28 @@ export function pendingOrderReminderEmail(input: {
   };
 }
 
-/** A propietari e gerenti: un ordine online si è annullato da solo perché nessuno l'ha accettato. */
+/**
+ * A propietari e gerenti: un ordine online si è annullato da solo perché nessuno l'ha accettato,
+ * o perché chi compra non ha confermato in tempo i cambi (`unconfirmed`, M3-2).
+ */
 export function onlineOrderExpiredShopEmail(input: {
   to: string;
   buyerName: string;
   facts: OnlineOrderEmailFacts;
   url: string;
+  unconfirmed?: boolean;
 }): EmailMessage {
   const { facts } = input;
   const body = plainAndHtml(
     'Hola:',
     [
-      `Nadie aceptó a tiempo el pedido ${facts.numberLabel} de ${input.buyerName} (${modeLine(facts)}): se canceló solo y le avisamos al cliente.`,
+      input.unconfirmed
+        ? `${input.buyerName} no confirmó a tiempo los cambios del pedido ${facts.numberLabel} (${modeLine(facts)}): se canceló solo y le avisamos al cliente.`
+        : `Nadie aceptó a tiempo el pedido ${facts.numberLabel} de ${input.buyerName} (${modeLine(facts)}): se canceló solo y le avisamos al cliente.`,
     ],
     { label: 'Ver el pedido', url: input.url },
     `Recibes este correo porque eres propietario/a o gerente de ${facts.shopName}.`,
-    'Pedido cancelado sin respuesta',
+    input.unconfirmed ? 'Pedido cancelado sin confirmación' : 'Pedido cancelado sin respuesta',
   );
   return {
     to: input.to,
