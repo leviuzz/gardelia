@@ -985,7 +985,9 @@
       "accepted": "{actor} aceptó el pedido en línea {number}",
       "expired": "El pedido en línea {number} se canceló porque nadie lo aceptó a tiempo",
       "cancelled_by_buyer": "{actor} canceló su pedido {number}",
-      "ingredient_substituted": "{actor} cambió {name} por {ingredient} en {number}"
+      "ingredient_substituted": "{actor} cambió {name} por {ingredient} en {number}",
+      "message_photo_removed": "{actor} quitó la foto de un mensaje de {number}",
+      "customer_notified": "{actor} avisó al cliente de los cambios de {number}"
     },
     "delivery_settings": {
       "updated": "{actor} cambió los ajustes de entrega"

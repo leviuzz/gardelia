@@ -4,6 +4,7 @@ import {
   STORE_LIMITS,
   addDays,
   addToCart,
+  mergeIntoCart,
   dayOfWeek,
   deliveryFeeSummary,
   directoryFee,
@@ -287,6 +288,37 @@ describe('carrello', () => {
     expect(added.lines).toHaveLength(20);
     // Uno già dentro si può sempre cambiare.
     expect(addToCart(full, uuid(1)).full).toBe(false);
+  });
+
+  it('«Pedir de nuevo»: somma alle quantità che ci sono, con i limiti; conta quelli fuori', () => {
+    const merged = mergeIntoCart(
+      [{ itemId: uuid(1), quantity: 2 }],
+      [
+        { itemId: uuid(1), quantity: 49 },
+        { itemId: uuid(2), quantity: 3 },
+        { itemId: 'rotto', quantity: 1 },
+        { itemId: uuid(3), quantity: 0 },
+      ],
+    );
+    expect(merged).toEqual({
+      lines: [
+        { itemId: uuid(1), quantity: MARKETPLACE_ORDER_LIMITS.quantityMax },
+        { itemId: uuid(2), quantity: 3 },
+      ],
+      skipped: 0,
+    });
+    const full = Array.from({ length: 20 }, (_, index) => ({
+      itemId: uuid(index + 1),
+      quantity: 1,
+    }));
+    const overflow = mergeIntoCart(full, [
+      { itemId: uuid(1), quantity: 1 },
+      { itemId: uuid(98), quantity: 1 },
+      { itemId: uuid(99), quantity: 2 },
+    ]);
+    expect(overflow.skipped).toBe(2);
+    expect(overflow.lines).toHaveLength(20);
+    expect(overflow.lines[0]).toEqual({ itemId: uuid(1), quantity: 2 });
   });
 });
 

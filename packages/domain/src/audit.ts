@@ -120,6 +120,10 @@ export const AUDIT_ACTIONS = {
   orderCancelledByBuyer: 'order.cancelled_by_buyer',
   orderPaymentRecorded: 'order.payment_recorded',
   orderPaymentReversed: 'order.payment_reversed',
+  /** Messaggi degli ordini online (M3, ADR-088): la foto tolta da chi gestisce gli ordini. */
+  orderMessagePhotoRemoved: 'order.message_photo_removed',
+  /** «Avvisa il cliente dei cambi»: il riepilogo dell'ordine mandato a chi l'ha fatto. */
+  orderCustomerNotified: 'order.customer_notified',
   subscriptionAssigned: 'subscription.assigned',
   /** "Mi tienda en línea" (ADR-065). */
   storeUpdated: 'store.updated',

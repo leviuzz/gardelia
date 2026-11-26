@@ -985,7 +985,9 @@
       "accepted": "{actor} accepted online order {number}",
       "expired": "Online order {number} was cancelled because nobody accepted it in time",
       "cancelled_by_buyer": "{actor} cancelled their order {number}",
-      "ingredient_substituted": "{actor} replaced {name} with {ingredient} in {number}"
+      "ingredient_substituted": "{actor} replaced {name} with {ingredient} in {number}",
+      "message_photo_removed": "{actor} removed the photo of a message on {number}",
+      "customer_notified": "{actor} told the customer about the changes to {number}"
     },
     "delivery_settings": {
       "updated": "{actor} changed the delivery settings"

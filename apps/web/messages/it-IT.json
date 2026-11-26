@@ -985,7 +985,9 @@
       "accepted": "{actor} ha accettato l’ordine online {number}",
       "expired": "L’ordine online {number} si è annullato perché nessuno l’ha accettato in tempo",
       "cancelled_by_buyer": "{actor} ha annullato il suo ordine {number}",
-      "ingredient_substituted": "{actor} ha cambiato {name} con {ingredient} in {number}"
+      "ingredient_substituted": "{actor} ha cambiato {name} con {ingredient} in {number}",
+      "message_photo_removed": "{actor} ha tolto la foto di un messaggio di {number}",
+      "customer_notified": "{actor} ha avvisato il cliente dei cambi di {number}"
     },
     "delivery_settings": {
       "updated": "{actor} ha cambiato le impostazioni di consegna"

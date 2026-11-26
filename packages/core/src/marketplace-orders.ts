@@ -863,10 +863,13 @@ export async function expireUnacceptedOrders(deps: OrderMailDeps | null): Promis
             }),
           ]);
           if (!order || order.status !== 'PENDING_ACCEPTANCE') return { done: false, mail: null };
-          const today = todayInTimeZone(tenant.timezone);
           const scheduledDate = order.scheduledDate ? dateToParts(order.scheduledDate) : null;
           if (
-            !isPendingOrderExpired({ createdAt: order.createdAt, scheduledDate }, new Date(), today)
+            !isPendingOrderExpired(
+              { createdAt: order.createdAt, scheduledDate },
+              new Date(),
+              tenant.timezone,
+            )
           ) {
             return { done: false, mail: null };
           }
