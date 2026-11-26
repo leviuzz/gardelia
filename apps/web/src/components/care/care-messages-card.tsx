@@ -12,9 +12,9 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { tenantRoutes } from '@/lib/routes';
-import { MarkThreadRead } from './mark-thread-read';
-import { MessageComposer } from './message-composer';
-import { MessageThread, type MessageThreadItem } from './message-thread';
+import { MarkThreadRead } from '@/components/messages/mark-thread-read';
+import { MessageComposer } from '@/components/messages/message-composer';
+import { MessageThread, type MessageThreadItem } from '@/components/messages/message-thread';
 
 /**
  * «Mensajes» nella pagina del contratto (ADR-084): il filo con il cliente per tutta la squadra, il
@@ -91,6 +91,7 @@ export async function CareMessagesCard({
             id="care-message"
             action={postCareMessageAction.bind(null, slug, subscriptionId)}
             maxSide={PHOTO_LIMITS.clientMaxSide}
+            maxLength={CARE_MESSAGE_LIMITS.body}
           />
         ) : (
           <p className="text-sm text-muted-foreground">{t('closed')}</p>

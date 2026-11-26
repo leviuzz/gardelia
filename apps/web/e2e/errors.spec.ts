@@ -101,6 +101,9 @@ test('i lavori giornalieri rispondono solo con il segreto e dicono cosa hanno fa
     storePlacesRefreshed: expect.any(Number),
     customerImportsClosed: expect.any(Number),
     onlineOrdersExpired: expect.any(Number),
+    // M3: promemoria degli ordini da accettare e foto dei messaggi cancellate.
+    onlineOrdersReminded: expect.any(Number),
+    orderMessagePhotosDeleted: expect.any(Number),
     careChargesIssued: expect.any(Number),
     careChargesPending: expect.any(Number),
     careVisitsCreated: expect.any(Number),

@@ -1,6 +1,6 @@
 # Registro delle decisioni — Floral OS
 
-Ultimo aggiornamento: 25 novembre 2026 (Floral Care, Asistente de plantas, ADR-085; Floral Care, cargos e pagamenti, ADR-082; catalogo completo e sostituto, ADR-081; reportes, ADR-080; esportazione dei dati, ADR-079; Floral Care, la visita dal telefono e le visite extra, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
+Ultimo aggiornamento: 26 novembre 2026 (marketplace M3, l'ordine tutto nell'app, ADR-088; Floral Care, Asistente de plantas, ADR-085; Floral Care, cargos e pagamenti, ADR-082; catalogo completo e sostituto, ADR-081; reportes, ADR-080; esportazione dei dati, ADR-079; Floral Care, la visita dal telefono e le visite extra, ADR-078; sicurezza del conto, ADR-077; vigencia, orario e logo nelle stampe, ADR-076; Floral Care, blocco 1, ADR-075; eliminare una fioreria, ADR-074; dominio gardelia.co, ADR-073; scarico dell'inventario dagli ordini, ADR-071; clienti completi, ADR-070; home e ricerca per chi compra, ADR-066; tienda en línea, ADR-065; conto del cliente, ADR-064; Google Places, ADR-059; inventario, ADR-060…063; organizzazioni per le catene, D-28).
 
 **Legenda stati**
 
@@ -1755,6 +1755,10 @@ Blocco C4 di `docs/ORDERS_MARKETPLACE_PLAN.md` (D-26). Avviato dal founder ("ok 
 - **Non fatto:** il cliente che annulla da solo un ordine in attesa (oggi scrive alla fioreria);
   costo di consegna per distanza; consumo dell'inventario dagli ordini; email a ogni cambio di stato
   dopo l'accettazione (lo stato si vede nel link).
+- **Nota (26/11, ADR-088):** le email dei passi dopo l'accettazione, i messaggi e l'annullamento da
+  «Mis pedidos» ci sono ora (M3-1; l'annullamento da ADR-072). Prima di accettare, oggi i prodotti
+  NON si cambiano (M0 ha corretto il testo del pannello): lo diventa con M3-2 («Cambi da
+  confermare»).
 
 ### ADR-068 — Documenti legali nell'app e diritti di chi compra (scaricare i dati, eliminare il conto) — ADOTTATO (23/11/2026)
 
@@ -3173,8 +3177,10 @@ niente codice nuovo»):**
   pannello «Da accettare»; errore accanto al prodotto non più disponibile; conferma per accettare
   con la consegna a 0; pagina del prodotto tolto; link di stato fino a 30 giorni dopo la consegna,
   allungato se la consegna si sposta. Dettagli in `docs/MARKETPLACE_FLOWS.md` §4.
+- **Stato (26/11):** M0 e M1 (M1-1, M1-2) su staging (ADR-087); M3 in corso (ADR-088: M3-1 fatto
+  sul ramo di lavoro, poi M3-2 e M3-3 con lo stesso piano).
 
-### ADR-087 — Marketplace M1: la vetrina che vende — FATTO (M1-1 su staging, M1-2 sul ramo di lavoro, 25/11/2026)
+### ADR-087 — Marketplace M1: la vetrina che vende — FATTO (M1-1 e M1-2 su staging, 25/11/2026)
 
 - **Perché:** blocco M1 del giro del marketplace (ADR-086), piano approvato dal founder il 25/11:
   la pagina della fioreria era scarna (al massimo 120 prodotti per nome, niente categorie,
@@ -3242,6 +3248,95 @@ niente codice nuovo»):**
 - **DA VALIDARE:** politiche verso i consumatori (PROFECO), scritte dalla fioreria; il cookie del
   carrello nell'aviso de privacidad §7 (bozza aggiornata); dati di cura e tossicità (già «da
   rivedere»). M1-2 non aggiunge cookie né dati personali nuovi.
+
+### ADR-088 — Marketplace M3: l'ordine tutto nell'app — IN CORSO (M3-1 fatto sul ramo di lavoro, 26/11/2026)
+
+- **Perché:** blocco M3 del giro del marketplace (ADR-086), piano di dettaglio approvato dal
+  founder il 26/11: «basta WhatsApp e email avanti e indietro». Tre rilasci, ognuno con test, CI
+  verde e staging col via libera: M3-1 «Messaggi e avvisi», M3-2 «Cambi da confermare» (cambi su
+  un ordine da accettare confermati da chi compra, domande «sì / no», «Proponi un'altra data»),
+  M3-3 «Soldi e squadra» (prova di pagamento, dati per pagare dopo l'accettazione, rimborso,
+  contanti del fattorino, stampa del giorno, accettazione per lo staff).
+- **Chi compra entra da un solo punto:** `withBuyerOrder` (`packages/core/src/buyer-orders.ts`).
+  La fioreria la dà `app_buyer_order_shop(ordine)` (DEFINER, solo per gli ordini della persona,
+  utente dal contesto); poi il contesto della fioreria con `app.buyer_order_id`
+  (`withBuyerOrderContext`), e le policy RESTRICTIVE `buyer_order_guard` su `Order`, `OrderLine`,
+  `OrderPayment`, `OrderStatusEvent`, `OrderPhoto`, `PublicLink`, `OrderMessage`,
+  `OrderBuyerRead` e `OrderNotice` lasciano toccare solo le righe di quell'ordine, anche sbagliando
+  il codice. Proprietario e fioreria attiva si ricontrollano (sotto lock quando si scrive). Un
+  ordine di un altro risponde 404, senza sonda fra fiorerie (la persona non è un membro). Lo usa
+  anche «Cancelar pedido», che perde il tetto dei 100 ordini di `app_buyer_orders`.
+- **La pagina dell'ordine nel conto** (`/cuenta/pedidos/<id>`): la stessa lettura del link di stato
+  (`readCustomerOrderTx`) e la stessa vista (`OrderTracking`), nella lingua della persona; immagini
+  da rotte del conto (non dipendono dal link, che può scadere). «Mis pedidos» apre questa pagina,
+  con «N mensajes nuevos». Il link di stato resta com'era, senza messaggi (si inoltra), con il
+  rimando al conto.
+- **Messaggi** (`OrderMessage`): un filo per ordine online; testo fino a 2000 caratteri e al massimo
+  una foto (la catena di Floral Care: ridotta nel browser, ricodificata senza EXIF, chiavi sotto
+  `tenants/<id>/order-messages/` con CHECK, rotte private), `submitKey` unica contro i doppi invii,
+  30 al giorno da chi compra (la squadra senza tetto). Si scrive dall'invio fino a 7 giorni dopo
+  consegna, ritiro o annullamento, poi si legge e basta. Letto: per la fioreria `readByShopAt`
+  quando qualcuno della squadra apre l'ordine (dopo il caricamento); per chi compra
+  `OrderBuyerRead`. Permesso nuovo `orders:messages` per tutti i ruoli, come Floral Care; «Togli la
+  foto» con `orders:write`. Filo e modulo sono componenti comuni con Floral Care
+  (`apps/web/src/components/messages`).
+- **Avvisi dei messaggi (PROPOSTO):** un'email all'altra parte al primo messaggio da leggere, poi al
+  massimo una ogni 6 ore finché non legge (`shouldSendMessageNotice`, `OrderNotice`
+  `MESSAGE_TO_SHOP` / `MESSAGE_TO_BUYER`), mai con il testo, dopo il commit. Il piano del 25/11
+  diceva «riassunto giornaliero come Floral Care»: per un ordine che si consegna domani è troppo
+  lento. Floral Care resta com'è.
+- **Email dei passi (PROPOSTO):** «Estamos preparando tu pedido», «listo para recoger» (solo per il
+  ritiro, con l'indirizzo del negozio), «va en camino», «Entregamos tu pedido»; niente per
+  «Recogido». Una sola volta per ordine e tipo (`OrderNotice` unica per ordine e tipo): un passo
+  indietro e di nuovo avanti non la rimanda. Portano al link di stato; quelle dei messaggi alla
+  pagina del conto (`#mensajes`).
+- **Cambi dopo l'accettazione:** in «Cambia consegna e biglietto» la casella «Avvisa il cliente per
+  email», già spuntata, manda «Cambió tu pedido» solo se cambia qualcosa che chi compra vede; per
+  prodotti e sconto (una riga alla volta) il pulsante «Avvisa il cliente dei cambi». Registro con
+  `customerNotified` / `order.customer_notified`, senza testi.
+- **La fioreria:**
+  - «Da gestire» in cima alla Home: ordini da accettare con la prima scadenza, messaggi da leggere
+    degli ordini e di Floral Care (il riquadro «Mensajes sin leer» entra qui), ognuno col suo link;
+    niente se non c'è niente;
+  - il numero su «Ordini» nel menu (barra laterale e barra in basso) solo per gli ordini da
+    accettare e solo per chi li accetta: il layout non si ricarica a ogni cambio di pagina, quindi
+    i messaggi (che cambiano spesso) stanno in «Da gestire» e sulle righe degli ordini;
+  - filtro «Con mensajes por leer», segno «En línea» in Elenco, Giorno e Percorso, numero dei
+    messaggi da leggere sulla riga e in cima all'ordine;
+  - la scadenza nel pannello «Da accettare», nell'elenco e in «Da gestire», mostrata come l'ultimo
+    minuto utile (`pendingOrderDeadlineShown`: mai «sábado, 12:00 a.m.» per la mezzanotte).
+- **Email del nuovo ordine, promemoria e scadenza:** l'email ai proprietari e gerenti ha prodotti,
+  zona (colonia e città, mai l'indirizzo intero), chi riceve, commenti, totale, scadenza e «Ver y
+  aceptar». Il giro giornaliero manda il promemoria agli ordini che si annullerebbero prima del giro
+  dopo (una volta, `EXPIRY_REMINDER`) e, quando un ordine si annulla da solo, scrive anche alla
+  fioreria. Annullamento, promemoria e scadenza mostrata usano `pendingOrderDeadline`; la funzione
+  SQL `app_pending_orders_to_expire` ha la stessa formula, provata contro il dominio.
+- **Motivi di rifiuto pronti (PROPOSTO):** «Non abbiamo disponibilità per quel giorno», «Non
+  arriviamo a quell'indirizzo», «È finito un prodotto», «Altro motivo» (testo obbligatorio); per i
+  primi tre un dettaglio facoltativo. Chi compra legge la frase nella lingua del mercato più il
+  dettaglio, al massimo 300 caratteri; il registro tiene `reasonCode`, mai il testo (per i report
+  di M8).
+- **«Pedir de nuevo» (PROPOSTO):** per un ordine consegnato, ritirato o annullato di una fioreria
+  che prende ancora ordini online. `POST /f/<slug>/pedido/repetir` (stessa origine, sessione) rimette
+  i prodotti del catalogo nel carrello con `mergeIntoCart` (20 prodotti, 50 pezzi) e apre il
+  modulo; composizioni e voci libere non si ripetono e il modulo lo dice; quelli non più ordinabili
+  li toglie con l'avviso di sempre. È una rotta della vetrina perché il cookie del carrello vale
+  solo sotto `/f/<slug>`.
+- **Foto cancellate (PROPOSTO, eccezione a «niente cancellazioni» come Floral Care):** i file delle
+  foto dei messaggi si cancellano 30 giorni dopo consegna, ritiro o annullamento (per un ordine
+  rimasto aperto, 30 giorni dopo il suo giorno), subito se tolti dalla fioreria e con la fioreria
+  eliminata; testo e chiavi restano (`photoDeletedAt`). CLAUDE.md §5.
+- **Dati della persona e della fioreria:** «Descargar mis datos» con i messaggi scritti dalla
+  persona in tutte le fiorerie (`app_buyer_order_messages`, DEFINER); lo ZIP della fioreria con
+  `pedidos_mensajes.csv`. Chi elimina il conto lascia i messaggi alla fioreria senza nome («Cuenta
+  eliminada») e il filo si chiude.
+- **Correzione insieme:** nei Report e in `pagos.csv` uno storno contava al contrario (nel database
+  è già negativo e il codice lo cambiava di segno un'altra volta).
+- **DA VALIDARE:** termini per chi compra (PROFECO) con i messaggi e gli avvisi; aviso de privacidad
+  con i messaggi, le loro foto (chi le vede, per quanto) e gli avvisi per email (bozze aggiornate).
+- **Fuori da M3:** recensioni (M8), domande prima di ordinare (M5), prenotazioni di Floral Care
+  (M6), tempo per accettare regolabile e capienza (M4), notifiche push o WhatsApp automatico,
+  pagamenti online (D-26).
 
 ## 3. Proposte da approvare
 

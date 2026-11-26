@@ -14,6 +14,7 @@ import {
   getSalesReport,
   recordOrderPayment,
   recordStockOut,
+  reverseOrderPayment,
   startInventoryTracking,
   type CatalogItemDto,
 } from '../src/index';
@@ -234,6 +235,39 @@ describe('reportes', () => {
     expect(theirs.topProducts.map((item) => item.name)).toEqual(['Rosa ajena']);
     const mine = await getSalesReport(shop.owner, { mes: '2026-05' });
     expect(mine.topProducts.map((item) => item.name)).not.toContain('Rosa ajena');
+  });
+
+  it('uno storno toglie dal cobrado, non aggiunge', async () => {
+    // Un pedido solo confermato (non entra nelle vendite) con due pagamenti a marzo, uno stornato.
+    const id = await order(shop, rose, { roses: 1, date: '2026-03-10', status: 'CONFIRMED' });
+    await recordOrderPayment(shop.owner, id, {
+      amount: '30',
+      method: 'CASH',
+      kind: 'DEPOSIT',
+      paidOn: '2026-03-10',
+    });
+    await recordOrderPayment(shop.owner, id, {
+      amount: '20',
+      method: 'TRANSFER',
+      kind: 'BALANCE',
+      paidOn: '2026-03-11',
+    });
+    const wrong = await withTenantContext(db, shop.owner, (tx) =>
+      tx.orderPayment.findFirstOrThrow({
+        where: { tenantId: shop.owner.tenantId, orderId: id, amountMinor: 2000 },
+        select: { id: true },
+      }),
+    );
+    await reverseOrderPayment(shop.owner, id, wrong.id);
+    // Lo storno nasce con la data di oggi: lo si porta a marzo come le altre date del test.
+    await withTenantContext(db, shop.owner, (tx) =>
+      tx.orderPayment.updateMany({
+        where: { tenantId: shop.owner.tenantId, orderId: id, kind: 'REVERSAL' },
+        data: { paidOn: new Date('2026-03-11T00:00:00Z') },
+      }),
+    );
+    const march = await getSalesReport(shop.owner, { mes: '2026-03' });
+    expect(march.collectedMinor).toBe(3000);
   });
 
   it('le mermas del mese con il loro costo', async () => {

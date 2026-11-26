@@ -216,6 +216,16 @@ export type ConflictReason =
   | 'assistant_shop_credits'
   | 'assistant_contract_closed'
   | 'assistant_nothing_to_send'
+  /**
+   * Messaggi degli ordini online (M3, ADR-088): il filo è chiuso (7 giorni dopo la chiusura
+   * dell'ordine, o l'ordine non ne ha); troppi messaggi oggi da chi compra sullo stesso ordine.
+   */
+  | 'order_message_closed'
+  | 'order_message_daily_limit'
+  /** «Pedir de nuevo» su un ordine ancora aperto o di un negozio che non prende ordini online. */
+  | 'order_not_reorderable'
+  /** «Avvisa il cliente dei cambi» su un ordine che non è online, non accettato o già chiuso. */
+  | 'order_not_notifiable'
   /** "Eliminar florería" con ordini ancora da consegnare o ritirare (ADR-074). */
   | 'tenant_deletion_open_orders'
   | 'session_is_current';

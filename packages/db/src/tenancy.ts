@@ -75,6 +75,38 @@ export async function withTenantContext<T>(
   );
 }
 
+/**
+ * Marketplace M3 (ADR-088): chi ha fatto un ordine online agisce su quell'ordine (messaggi, segno di
+ * lettura, «Annulla»). È il contesto della fioreria dell'ordine con chi compra come utente, più
+ * `app.buyer_order_id`: le policy RESTRICTIVE `buyer_order_guard` lasciano toccare solo le righe di
+ * quell'ordine. La fioreria e l'ordine li trova il servizio con `app_buyer_order_shop`, mai dal
+ * browser; il proprietario dell'ordine lo ricontrolla sotto lock.
+ */
+export interface BuyerOrderScope {
+  readonly tenantId: string;
+  /** Solo dalla sessione. */
+  readonly userId: string;
+  readonly orderId: string;
+}
+
+export async function withBuyerOrderContext<T>(
+  db: DbClient,
+  scope: BuyerOrderScope,
+  fn: (tx: TransactionClient) => Promise<T>,
+  options: TransactionOptions = {},
+): Promise<T> {
+  assertUuid(scope.tenantId, 'tenantId');
+  assertUuid(scope.userId, 'userId');
+  assertUuid(scope.orderId, 'orderId');
+  return db.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.tenant_id', ${scope.tenantId}, true), set_config('app.user_id', ${scope.userId}, true), set_config('app.buyer_order_id', ${scope.orderId}, true)`;
+      return fn(tx);
+    },
+    { ...DEFAULT_TX, ...options },
+  );
+}
+
 export async function withUserContext<T>(
   db: DbClient,
   userId: string,

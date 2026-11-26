@@ -18,6 +18,7 @@ import {
   getCareSettings,
   recordCareChargePayment,
   recordOrderPayment,
+  reverseOrderPayment,
   updateCareSettings,
   updatePrimaryLocation,
 } from '../src/index';
@@ -220,6 +221,7 @@ describe('esportazione dei dati della fioreria', () => {
         'pagos.csv',
         'pedidos.csv',
         'pedidos_conceptos.csv',
+        'pedidos_mensajes.csv',
         'proveedores.csv',
         'recetas.csv',
       ].sort(),
@@ -301,6 +303,30 @@ describe('esportazione dei dati della fioreria', () => {
         Referencia: 'SPEI 4821',
       }),
     ]);
+  });
+
+  it('uno storno esce in pagos.csv col segno meno', async () => {
+    const order = await withTenantContext(db, shop.owner, (tx) =>
+      tx.order.findFirstOrThrow({
+        where: { tenantId: shop.owner.tenantId },
+        select: { id: true },
+      }),
+    );
+    await recordOrderPayment(shop.owner, order.id, {
+      amount: '20',
+      method: 'TRANSFER',
+      kind: 'BALANCE',
+    });
+    const wrong = await withTenantContext(db, shop.owner, (tx) =>
+      tx.orderPayment.findFirstOrThrow({
+        where: { tenantId: shop.owner.tenantId, orderId: order.id, amountMinor: 2000 },
+        select: { id: true },
+      }),
+    );
+    await reverseOrderPayment(shop.owner, order.id, wrong.id);
+    const { table } = await exportOf(shop);
+    const amounts = table('pagos.csv').map((row) => row.Importe);
+    expect(amounts.sort()).toEqual(['-20.00', '100.00', '20.00'].sort());
   });
 
   it("nessun dato di un'altra fioreria (A↔B) e nel registro solo i conteggi", async () => {

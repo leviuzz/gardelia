@@ -1,15 +1,30 @@
-import { ClipboardList, FileText, Globe, Plus, Store, Truck } from 'lucide-react';
+import {
+  ClipboardList,
+  FileText,
+  Globe,
+  Hourglass,
+  MessageSquare,
+  Plus,
+  Store,
+  Truck,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { listOrders } from '@floral/core';
-import { ORDER_STATUSES, ORDER_WHEN_FILTERS, orderListFiltersSchema } from '@floral/domain';
+import {
+  ORDER_STATUSES,
+  ORDER_WHEN_FILTERS,
+  orderListFiltersSchema,
+  pendingOrderDeadlineShown,
+} from '@floral/domain';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status-badges';
 import { FilterBar } from '@/components/common/list/filter-bar';
 import { ListPagination } from '@/components/common/list/list-pagination';
 import { ListResults } from '@/components/common/list/list-results';
 import { EmptyState, PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox, NativeSelect } from '@/components/ui/input';
 import { money } from '@/lib/format';
@@ -40,6 +55,7 @@ export default async function OrdersPage({
     status: single(raw.status),
     when: single(raw.when),
     unpaid: single(raw.unpaid),
+    messages: single(raw.messages),
     page: single(raw.page),
   };
   const filters = orderListFiltersSchema.parse(query);
@@ -48,7 +64,7 @@ export default async function OrdersPage({
   const tc = await getTranslations('common');
   const format = await getFormatter();
   const routes = tenantRoutes(ctx.tenantSlug);
-  const hasFilters = Boolean(filters.q || filters.status || filters.unpaid);
+  const hasFilters = Boolean(filters.q || filters.status || filters.unpaid || filters.messages);
   const date = (value: string) =>
     format.dateTime(calendarDate(value), {
       weekday: 'short',
@@ -64,9 +80,20 @@ export default async function OrdersPage({
       status: next.status,
       when: next.when === 'upcoming' ? undefined : next.when,
       unpaid: next.unpaid,
+      // «Con messaggi da leggere» (M3).
+      messages: next.messages ? 'unread' : undefined,
       page: next.page > 1 ? next.page : undefined,
     });
   }
+  const deadline = (value: Date) =>
+    format.dateTime(value, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: ctx.timezone,
+    });
 
   const quotesButton = (
     <Button asChild variant="outline">
@@ -131,6 +158,23 @@ export default async function OrdersPage({
             {when === 'pending' ? ` (${result.pendingCount})` : null}
           </Link>
         ))}
+        {/* «Con messaggi da leggere» (M3): solo quando ce ne sono (o è il filtro scelto). */}
+        {result.unreadOrdersCount > 0 || filters.messages ? (
+          <Link
+            href={href({ messages: !filters.messages, when: 'all', page: 1 })}
+            aria-current={filters.messages ? 'page' : undefined}
+            data-testid="filter-unread-messages"
+            className={cn(
+              'flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors',
+              filters.messages
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'bg-card hover:bg-muted',
+            )}
+          >
+            <MessageSquare className="size-3.5" aria-hidden="true" />
+            {t('messages.filter', { count: result.unreadOrdersCount })}
+          </Link>
+        ) : null}
       </nav>
 
       <FilterBar
@@ -140,6 +184,7 @@ export default async function OrdersPage({
         className="sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto_auto] sm:items-center"
       >
         <input type="hidden" name="when" value={filters.when} />
+        {filters.messages ? <input type="hidden" name="messages" value="unread" /> : null}
         <NativeSelect name="status" defaultValue={filters.status ?? ''} aria-label={tc('filter')}>
           <option value="">{t('allStatuses')}</option>
           {/* I borradores hanno il loro filtro rapido. */}
@@ -214,12 +259,33 @@ export default async function OrdersPage({
                       ? ` · ${t('forRecipient', { name: order.recipientName })}`
                       : ''}
                   </span>
+                  {/* Da accettare: fino a quando, poi si annulla da solo (M3). */}
+                  {order.onlineDeadline ? (
+                    <span className="flex items-center gap-1 text-xs font-medium text-[oklch(0.38_0.09_65)]">
+                      <Hourglass className="size-3.5 shrink-0" aria-hidden="true" />
+                      {t('online.deadlineShort', {
+                        date: deadline(pendingOrderDeadlineShown(order.onlineDeadline)),
+                      })}
+                    </span>
+                  ) : null}
                 </span>
                 <span className="flex flex-wrap gap-1.5">
                   <OrderStatusBadge status={order.status} />
                   {order.status === 'CANCELLED' || order.status === 'DRAFT' ? null : (
                     <PaymentStatusBadge status={order.paymentStatus} />
                   )}
+                  {order.placedOnline ? (
+                    <Badge variant="secondary">
+                      <Globe aria-hidden="true" />
+                      {t('online.badge')}
+                    </Badge>
+                  ) : null}
+                  {order.unreadMessages > 0 ? (
+                    <Badge variant="info" data-testid="row-unread">
+                      <MessageSquare aria-hidden="true" />
+                      {t('messages.unreadBadge', { count: order.unreadMessages })}
+                    </Badge>
+                  ) : null}
                 </span>
                 <span className="ml-auto w-28 text-right font-semibold tabular-nums">
                   {money(order.totalMinor, order.currency)}

@@ -10,9 +10,9 @@ import {
 } from '@/app/cuenta/floral-care/actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { accountRoutes } from '@/lib/routes';
-import { MarkThreadRead } from './mark-thread-read';
-import { MessageComposer } from './message-composer';
-import { MessageThread, type MessageThreadItem } from './message-thread';
+import { MarkThreadRead } from '@/components/messages/mark-thread-read';
+import { MessageComposer } from '@/components/messages/message-composer';
+import { MessageThread, type MessageThreadItem } from '@/components/messages/message-thread';
 
 /**
  * «Mensajes con …» nella pagina del contratto di Mi Floral Care (ADR-084): il filo con la
@@ -87,6 +87,7 @@ export async function MyCareMessagesCard({
             id="my-care-message"
             action={postMyCareMessageAction.bind(null, subscriptionId)}
             maxSide={PHOTO_LIMITS.clientMaxSide}
+            maxLength={CARE_MESSAGE_LIMITS.body}
           />
         ) : (
           <p className="text-sm text-muted-foreground">{t('account.care.messages.closed')}</p>

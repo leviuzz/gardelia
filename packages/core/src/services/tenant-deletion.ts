@@ -211,6 +211,7 @@ export async function purgeDeletedTenants(): Promise<number> {
         orderPhotos,
         carePhotos,
         assistantPhotos,
+        orderMessagePhotos,
       ] = await Promise.all([
         tx.onlineStore.findMany({ where, select: { logoKey: true, coverKey: true } }),
         tx.aiJob.findMany({ where, select: { outputKey: true } }),
@@ -231,6 +232,11 @@ export async function purgeDeletedTenants(): Promise<number> {
           where: { tenantId, photoDeletedAt: null },
           select: { storageKey: true, thumbKey: true },
         }),
+        // Foto dei messaggi degli ordini online (M3) i cui file ci sono ancora.
+        tx.orderMessage.findMany({
+          where: { tenantId, photoKey: { not: null }, photoDeletedAt: null },
+          select: { photoKey: true, photoThumbKey: true },
+        }),
       ]);
       const keys = [
         ...store.flatMap((row) => [row.logoKey, row.coverKey]),
@@ -243,6 +249,7 @@ export async function purgeDeletedTenants(): Promise<number> {
           ...assistantPhotos,
         ].flatMap((row) => [row.storageKey, row.thumbKey]),
         ...catalogPhotos.flatMap((row) => [row.storageKey, row.thumbKey, row.cutoutKey]),
+        ...orderMessagePhotos.flatMap((row) => [row.photoKey, row.photoThumbKey]),
       ].filter((key): key is string => typeof key === 'string' && key !== '');
       return { ...tenant, keys: [...new Set(keys)] };
     });

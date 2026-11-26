@@ -12,6 +12,7 @@ import {
   getDb,
   isForeignKeyViolation,
   isRlsViolation,
+  withBuyerOrderContext,
   withPortalContext,
   withPortalWriteContext,
   withSystemContext,
@@ -1169,5 +1170,229 @@ describe('pagina del cliente di Floral Care (ADR-084)', () => {
       },
     );
     expect(guarded).toEqual({ other: 1 });
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Marketplace M3: chi compra scrive solo sul suo ordine (ADR-088)
+// -----------------------------------------------------------------------------
+
+/** Le tabelle dell'ordine con la guardia di chi compra (policy RESTRICTIVE `buyer_order_guard`). */
+const BUYER_ORDER_GUARD_TABLES = [
+  'Order',
+  'OrderBuyerRead',
+  'OrderLine',
+  'OrderMessage',
+  'OrderNotice',
+  'OrderPayment',
+  'OrderPhoto',
+  'OrderStatusEvent',
+  'PublicLink',
+];
+
+let orderNumber = 9000;
+
+/** Un ordine online confermato di `buyer` (fixture di sistema). */
+async function onlineOrder(tenantId: string, buyer: TestUser | null) {
+  orderNumber += 1;
+  const number = orderNumber;
+  return withSystemContext(db, { reason: 'test fixture: online order' }, async (tx) => {
+    const customer = await tx.customer.create({
+      data: { tenantId, displayName: `Cliente en línea ${number}` },
+    });
+    return tx.order.create({
+      data: {
+        tenantId,
+        number,
+        customerId: customer.id,
+        status: 'CONFIRMED',
+        currency: 'MXN',
+        fulfillmentMode: 'PICKUP',
+        scheduledDate: new Date('2026-12-01T00:00:00Z'),
+        subtotalMinor: 10000,
+        totalMinor: 10000,
+        placedOnline: buyer !== null,
+        buyerUserId: buyer?.id ?? null,
+      },
+      select: { id: true, tenantId: true },
+    });
+  });
+}
+
+describe('ordini online: la guardia di chi compra (ADR-088)', () => {
+  let buyer: TestUser;
+  let stranger: TestUser;
+  let mine: { id: string; tenantId: string };
+  let another: { id: string; tenantId: string };
+  let counter: { id: string; tenantId: string };
+  let otherShop: { id: string; tenantId: string };
+
+  beforeAll(async () => {
+    buyer = await createTestUser(db);
+    stranger = await createTestUser(db);
+    mine = await onlineOrder(tenantA.tenantId, buyer);
+    another = await onlineOrder(tenantA.tenantId, stranger);
+    counter = await onlineOrder(tenantA.tenantId, null);
+    otherShop = await onlineOrder(tenantB.tenantId, buyer);
+  });
+
+  it('ogni guardia è RESTRICTIVE, per tutti i comandi, sulle sole tabelle dell’ordine', async () => {
+    const policies = await withSystemContext(
+      db,
+      { reason: 'test: guardia ordini' },
+      (tx) =>
+        tx.$queryRaw<{ tablename: string; cmd: string; permissive: string }[]>`
+        SELECT tablename, cmd, permissive FROM pg_policies
+        WHERE schemaname = 'public' AND policyname = 'buyer_order_guard'
+        ORDER BY tablename`,
+    );
+    expect(policies.map((policy) => policy.tablename)).toEqual(BUYER_ORDER_GUARD_TABLES);
+    expect(policies.every((p) => p.cmd === 'ALL' && p.permissive === 'RESTRICTIVE')).toBe(true);
+  });
+
+  it('con la guardia si vede e si tocca solo quell’ordine; senza, la fioreria vede tutto', async () => {
+    const guarded = await withBuyerOrderContext(
+      db,
+      { tenantId: tenantA.tenantId, userId: buyer.id, orderId: mine.id },
+      async (tx) => {
+        const visible = await tx.order.findMany({
+          where: { tenantId: tenantA.tenantId },
+          select: { id: true },
+        });
+        const touched = await tx.order.updateMany({
+          where: { tenantId: tenantA.tenantId, id: another.id },
+          data: { notes: 'no' },
+        });
+        return { visible: visible.map((row) => row.id), touched: touched.count };
+      },
+    );
+    expect(guarded).toEqual({ visible: [mine.id], touched: 0 });
+
+    const message = (orderId: string) => ({
+      tenantId: tenantA.tenantId,
+      orderId,
+      authorKind: 'BUYER' as const,
+      authorUserId: buyer.id,
+      body: 'Hola',
+      submitKey: randomUUID(),
+    });
+    await expect(
+      withBuyerOrderContext(
+        db,
+        { tenantId: tenantA.tenantId, userId: buyer.id, orderId: mine.id },
+        (tx) => tx.orderMessage.create({ data: message(another.id) }),
+      ),
+    ).rejects.toSatisfy(isRlsViolation);
+    await withBuyerOrderContext(
+      db,
+      { tenantId: tenantA.tenantId, userId: buyer.id, orderId: mine.id },
+      (tx) => tx.orderMessage.create({ data: message(mine.id) }),
+    );
+
+    // La variabile non passa alla transazione dopo: la fioreria vede di nuovo tutti i suoi ordini.
+    const shop = await withTenantContext(db, { tenantId: tenantA.tenantId, userId: null }, (tx) =>
+      tx.order.count({ where: { tenantId: tenantA.tenantId, id: { in: [mine.id, another.id] } } }),
+    );
+    expect(shop).toBe(2);
+  });
+
+  it('la fioreria di un ordine la dà solo a chi l’ha fatto online', async () => {
+    const shopOf = (user: TestUser, orderId: string) =>
+      withUserContext(
+        db,
+        user.id,
+        (tx) =>
+          tx.$queryRaw<{ tenant_id: string; shop_active: boolean }[]>`
+          SELECT tenant_id, shop_active FROM app_buyer_order_shop(${orderId}::uuid)`,
+      );
+    expect(await shopOf(buyer, mine.id)).toEqual([
+      { tenant_id: tenantA.tenantId, shop_active: true },
+    ]);
+    expect(await shopOf(buyer, otherShop.id)).toEqual([
+      { tenant_id: tenantB.tenantId, shop_active: true },
+    ]);
+    expect(await shopOf(buyer, another.id)).toEqual([]);
+    expect(await shopOf(stranger, mine.id)).toEqual([]);
+    expect(await shopOf(buyer, counter.id)).toEqual([]);
+    // Senza utente nel contesto non risponde niente.
+    const anonymous = await withTenantContext(
+      db,
+      { tenantId: tenantA.tenantId, userId: null },
+      (tx) =>
+        tx.$queryRaw<
+          { tenant_id: string }[]
+        >`SELECT tenant_id FROM app_buyer_order_shop(${mine.id}::uuid)`,
+    );
+    expect(anonymous).toEqual([]);
+  });
+
+  it('«I miei ordini» conta i messaggi nuovi della fioreria dopo l’ultima lettura', async () => {
+    const order = await onlineOrder(tenantA.tenantId, buyer);
+    const newMessages = async () => {
+      const rows = await withUserContext(
+        db,
+        buyer.id,
+        (tx) =>
+          tx.$queryRaw<{ order_id: string; new_messages: number }[]>`
+          SELECT order_id, new_messages FROM app_buyer_orders()`,
+      );
+      return rows.find((row) => row.order_id === order.id)?.new_messages;
+    };
+    await withSystemContext(db, { reason: 'test: messaggi della fioreria' }, async (tx) => {
+      for (const body of ['Uno', 'Dos']) {
+        await tx.orderMessage.create({
+          data: {
+            tenantId: order.tenantId,
+            orderId: order.id,
+            authorKind: 'SHOP',
+            body,
+            submitKey: randomUUID(),
+            createdAt: new Date(Date.now() - 60_000),
+          },
+        });
+      }
+    });
+    expect(await newMessages()).toBe(2);
+    await withBuyerOrderContext(
+      db,
+      { tenantId: order.tenantId, userId: buyer.id, orderId: order.id },
+      (tx) =>
+        tx.orderBuyerRead.create({
+          data: { tenantId: order.tenantId, orderId: order.id, userId: buyer.id },
+        }),
+    );
+    expect(await newMessages()).toBe(0);
+  });
+
+  it('un messaggio ha testo o foto, e la foto sta nella cartella della sua fioreria', async () => {
+    const base = {
+      tenantId: tenantA.tenantId,
+      orderId: mine.id,
+      authorKind: 'SHOP' as const,
+    };
+    const insert = (data: Record<string, unknown>) =>
+      withTenantContext(db, { tenantId: tenantA.tenantId, userId: null }, (tx) =>
+        tx.orderMessage.create({ data: { ...base, submitKey: randomUUID(), ...data } }),
+      );
+    await expect(insert({ body: '' })).rejects.toThrow();
+    await expect(
+      insert({
+        body: '',
+        photoKey: `tenants/${tenantB.tenantId}/order-messages/x.jpg`,
+        photoThumbKey: `tenants/${tenantB.tenantId}/order-messages/x-thumb.jpg`,
+        photoWidth: 10,
+        photoHeight: 10,
+      }),
+    ).rejects.toThrow();
+    await expect(insert({ body: 'Hola', readByShopAt: new Date() })).rejects.toThrow();
+    await expect(
+      insert({
+        body: '',
+        photoKey: `tenants/${tenantA.tenantId}/order-messages/x.jpg`,
+        photoThumbKey: `tenants/${tenantA.tenantId}/order-messages/x-thumb.jpg`,
+        photoWidth: 10,
+        photoHeight: 10,
+      }),
+    ).resolves.toBeDefined();
   });
 });

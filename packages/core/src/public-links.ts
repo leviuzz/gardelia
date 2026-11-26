@@ -104,33 +104,46 @@ async function withActiveLink<T>(
       select: { quoteId: true, orderId: true, careVisitId: true },
     });
     if (!link) return null;
-    // Una fioreria archiviata (anche in eliminazione, ADR-074) non mostra più nulla a nessuno.
-    const tenant = await tx.tenant.findFirst({
-      where: { id: ids.tenantId, status: 'ACTIVE' },
-      select: {
-        displayName: true,
-        contactPhone: true,
-        marketCountry: true,
-        timezone: true,
-        locations: { where: { isPrimary: true }, select: { phone: true }, take: 1 },
-        onlineStore: { select: { logoId: true } },
-      },
-    });
-    if (!tenant) return null;
+    const shop = await readPublicShopTx(tx, ids.tenantId);
+    if (!shop) return null;
     return fn(tx, {
       tenantId: ids.tenantId,
       quoteId: link.quoteId,
       orderId: link.orderId,
       careVisitId: link.careVisitId,
-      shop: {
-        name: tenant.displayName,
-        phone: tenant.contactPhone ?? tenant.locations[0]?.phone ?? null,
-        locale: resolveLocale(getMarket(tenant.marketCountry).defaultLocale),
-        timezone: tenant.timezone,
-        logoId: tenant.onlineStore?.logoId ?? null,
-      },
+      shop,
     });
   });
+}
+
+/**
+ * La fioreria come la vede il cliente (nome, telefono, lingua del mercato, fuso, logo); null se è
+ * archiviata (anche in eliminazione, ADR-074): allora non mostra più nulla a nessuno. Da chiamare
+ * nel contesto della fioreria.
+ */
+export async function readPublicShopTx(
+  tx: TransactionClient,
+  tenantId: string,
+): Promise<PublicShopDto | null> {
+  const tenant = await tx.tenant.findFirst({
+    where: { id: tenantId, status: 'ACTIVE' },
+    select: {
+      displayName: true,
+      contactPhone: true,
+      marketCountry: true,
+      timezone: true,
+      locations: { where: { isPrimary: true }, select: { phone: true }, take: 1 },
+      onlineStore: { select: { logoId: true } },
+    },
+  });
+  if (!tenant) return null;
+  return {
+    name: tenant.displayName,
+    phone: tenant.contactPhone ?? tenant.locations[0]?.phone ?? null,
+    locale: resolveLocale(getMarket(tenant.marketCountry).defaultLocale),
+    timezone: tenant.timezone,
+    logoId: tenant.onlineStore?.logoId ?? null,
+  };
 }
 
 interface SnapshotView {
@@ -379,84 +392,98 @@ export async function getPublicOrder(
 ): Promise<PublicOrderDto | null> {
   return withActiveLink(secret, token, 'ORDER', async (tx, scope) => {
     if (!scope.orderId) return null;
-    const order = await tx.order.findFirst({
-      where: { tenantId: scope.tenantId, id: scope.orderId },
-    });
-    // Un borrador non si condivide (e uno scartato non ha data): il link non vale.
-    if (!order || order.status === 'DRAFT' || !order.scheduledDate) return null;
-    const lines = await tx.orderLine.findMany({
-      where: { tenantId: scope.tenantId, orderId: order.id },
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-      select: lineSelect,
-    });
-    const events = await tx.orderStatusEvent.findMany({
-      where: { tenantId: scope.tenantId, orderId: order.id },
-      orderBy: [{ createdAt: 'asc' }],
-      select: { toStatus: true, createdAt: true },
-    });
-    const photo = await tx.orderPhoto.findFirst({
-      where: { tenantId: scope.tenantId, orderId: order.id, status: 'ACTIVE' },
-      select: { id: true },
-    });
-    const store = order.placedOnline
-      ? await tx.onlineStore.findUnique({
-          where: { tenantId: scope.tenantId },
-          select: { paymentMethods: true, paymentInstructions: true },
-        })
-      : null;
-    const delivery =
-      order.fulfillmentMode === 'DELIVERY' &&
-      order.deliveryAddressLine1 &&
-      order.deliveryCity &&
-      order.deliveryRegion &&
-      order.deliveryPostalCode
-        ? {
-            addressLine1: order.deliveryAddressLine1,
-            addressLine2: order.deliveryAddressLine2,
-            neighborhood: order.deliveryNeighborhood,
-            city: order.deliveryCity,
-            region: order.deliveryRegion,
-            postalCode: order.deliveryPostalCode,
-          }
-        : null;
-    return {
-      shop: scope.shop,
-      numberLabel: formatOrderNumber(order.number),
-      status: order.status,
-      fulfillmentMode: order.fulfillmentMode,
-      scheduledDate: formatDateParts(dateToParts(order.scheduledDate)) ?? '',
-      windowStart:
-        order.windowStartMinutes === null ? null : formatTimeOfDay(order.windowStartMinutes),
-      windowEnd: order.windowEndMinutes === null ? null : formatTimeOfDay(order.windowEndMinutes),
-      deliveryAddress: delivery,
-      recipientName: order.recipientName,
-      cardMessage: order.cardMessage,
-      cardSignature: order.cardAnonymous ? null : order.cardSignature,
-      cardAnonymous: order.cardAnonymous,
-      currency: order.currency,
-      lines: lines.map(toPublicLine),
-      subtotalMinor: order.subtotalMinor,
-      discountMinor: order.discountMinor,
-      deliveryFeeMinor: order.deliveryFeeMinor,
-      totalMinor: order.totalMinor,
-      paidMinor: order.paidMinor,
-      balanceMinor:
-        order.status === 'CANCELLED' ? 0 : orderBalanceMinor(order.paidMinor, order.totalMinor),
-      history: events
-        .filter((event) => event.toStatus !== 'DRAFT')
-        .map((event) => ({ status: event.toStatus, at: event.createdAt })),
-      receivedBy:
-        order.status === 'DELIVERED' || order.status === 'PICKED_UP' ? order.handoverName : null,
-      photoId: order.status === 'CANCELLED' ? null : (photo?.id ?? null),
-      online: order.placedOnline
-        ? {
-            paymentMethods: (store?.paymentMethods ?? []) as StorePaymentMethod[],
-            paymentInstructions: store?.paymentInstructions ?? null,
-            cancelReason: order.status === 'CANCELLED' ? order.cancelReason : null,
-          }
-        : null,
-    };
+    return readCustomerOrderTx(tx, scope.tenantId, scope.orderId, scope.shop);
   });
+}
+
+/**
+ * L'ordine come lo vede il cliente (link di stato e, per chi l'ha fatto online, la pagina
+ * dell'ordine nel suo conto, M3): niente costi, note interne o dati di altri ordini. Null per un
+ * borrador. Da chiamare nel contesto della fioreria dell'ordine.
+ */
+export async function readCustomerOrderTx(
+  tx: TransactionClient,
+  tenantId: string,
+  orderId: string,
+  shop: PublicShopDto,
+): Promise<PublicOrderDto | null> {
+  const order = await tx.order.findFirst({
+    where: { tenantId, id: orderId },
+  });
+  // Un borrador non si condivide (e uno scartato non ha data): il link non vale.
+  if (!order || order.status === 'DRAFT' || !order.scheduledDate) return null;
+  const lines = await tx.orderLine.findMany({
+    where: { tenantId, orderId: order.id },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    select: lineSelect,
+  });
+  const events = await tx.orderStatusEvent.findMany({
+    where: { tenantId, orderId: order.id },
+    orderBy: [{ createdAt: 'asc' }],
+    select: { toStatus: true, createdAt: true },
+  });
+  const photo = await tx.orderPhoto.findFirst({
+    where: { tenantId, orderId: order.id, status: 'ACTIVE' },
+    select: { id: true },
+  });
+  const store = order.placedOnline
+    ? await tx.onlineStore.findUnique({
+        where: { tenantId },
+        select: { paymentMethods: true, paymentInstructions: true },
+      })
+    : null;
+  const delivery =
+    order.fulfillmentMode === 'DELIVERY' &&
+    order.deliveryAddressLine1 &&
+    order.deliveryCity &&
+    order.deliveryRegion &&
+    order.deliveryPostalCode
+      ? {
+          addressLine1: order.deliveryAddressLine1,
+          addressLine2: order.deliveryAddressLine2,
+          neighborhood: order.deliveryNeighborhood,
+          city: order.deliveryCity,
+          region: order.deliveryRegion,
+          postalCode: order.deliveryPostalCode,
+        }
+      : null;
+  return {
+    shop,
+    numberLabel: formatOrderNumber(order.number),
+    status: order.status,
+    fulfillmentMode: order.fulfillmentMode,
+    scheduledDate: formatDateParts(dateToParts(order.scheduledDate)) ?? '',
+    windowStart:
+      order.windowStartMinutes === null ? null : formatTimeOfDay(order.windowStartMinutes),
+    windowEnd: order.windowEndMinutes === null ? null : formatTimeOfDay(order.windowEndMinutes),
+    deliveryAddress: delivery,
+    recipientName: order.recipientName,
+    cardMessage: order.cardMessage,
+    cardSignature: order.cardAnonymous ? null : order.cardSignature,
+    cardAnonymous: order.cardAnonymous,
+    currency: order.currency,
+    lines: lines.map(toPublicLine),
+    subtotalMinor: order.subtotalMinor,
+    discountMinor: order.discountMinor,
+    deliveryFeeMinor: order.deliveryFeeMinor,
+    totalMinor: order.totalMinor,
+    paidMinor: order.paidMinor,
+    balanceMinor:
+      order.status === 'CANCELLED' ? 0 : orderBalanceMinor(order.paidMinor, order.totalMinor),
+    history: events
+      .filter((event) => event.toStatus !== 'DRAFT')
+      .map((event) => ({ status: event.toStatus, at: event.createdAt })),
+    receivedBy:
+      order.status === 'DELIVERED' || order.status === 'PICKED_UP' ? order.handoverName : null,
+    photoId: order.status === 'CANCELLED' ? null : (photo?.id ?? null),
+    online: order.placedOnline
+      ? {
+          paymentMethods: (store?.paymentMethods ?? []) as StorePaymentMethod[],
+          paymentInstructions: store?.paymentInstructions ?? null,
+          cancelReason: order.status === 'CANCELLED' ? order.cancelReason : null,
+        }
+      : null,
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -476,25 +503,18 @@ export async function getPublicLineImage(
       bouquetPhoto: { select: { storageKey: true, contentType: true } },
       previewJob: { select: { status: true, outputKey: true, outputContentType: true } },
     } as const;
-    const line =
-      kind === 'QUOTE' && scope.quoteId
-        ? await tx.quoteLine.findFirst({
-            where: { tenantId: scope.tenantId, quoteId: scope.quoteId, id: lineId },
-            select,
-          })
-        : kind === 'ORDER' && scope.orderId
-          ? await tx.orderLine.findFirst({
-              where: { tenantId: scope.tenantId, orderId: scope.orderId, id: lineId },
-              select,
-            })
-          : null;
-    if (!line) return null;
-    if (line.bouquetPhoto) {
-      return { key: line.bouquetPhoto.storageKey, contentType: line.bouquetPhoto.contentType };
+    if (kind === 'ORDER') {
+      return scope.orderId
+        ? readOrderLineImageSourceTx(tx, scope.tenantId, scope.orderId, lineId)
+        : null;
     }
-    const job = line.previewJob;
-    if (job?.status !== 'SUCCEEDED' || !job.outputKey) return null;
-    return { key: job.outputKey, contentType: job.outputContentType ?? 'image/png' };
+    const line = scope.quoteId
+      ? await tx.quoteLine.findFirst({
+          where: { tenantId: scope.tenantId, quoteId: scope.quoteId, id: lineId },
+          select,
+        })
+      : null;
+    return line ? lineImageSource(line) : null;
   });
   if (!source) return null;
   try {
@@ -505,6 +525,59 @@ export async function getPublicLineImage(
     );
   } catch (error) {
     // File mancante nell'archivio (già registrato): per il cliente l'immagine semplicemente non c'è.
+    if (error instanceof NotFoundError) return null;
+    throw error;
+  }
+}
+
+interface LineImageRow {
+  readonly bouquetPhoto: { readonly storageKey: string; readonly contentType: string } | null;
+  readonly previewJob: {
+    readonly status: string;
+    readonly outputKey: string | null;
+    readonly outputContentType: string | null;
+  } | null;
+}
+
+/** La foto vera del ramo o la sua anteprima riuscita; null se non c'è. */
+function lineImageSource(line: LineImageRow): { key: string; contentType: string } | null {
+  if (line.bouquetPhoto) {
+    return { key: line.bouquetPhoto.storageKey, contentType: line.bouquetPhoto.contentType };
+  }
+  const job = line.previewJob;
+  if (job?.status !== 'SUCCEEDED' || !job.outputKey) return null;
+  return { key: job.outputKey, contentType: job.outputContentType ?? 'image/png' };
+}
+
+/**
+ * L'immagine del ramo di una riga dell'ordine (link di stato e pagina dell'ordine nel conto di chi
+ * compra, M3); null se non c'è. Da chiamare nel contesto della fioreria dell'ordine.
+ */
+export async function readOrderLineImageSourceTx(
+  tx: TransactionClient,
+  tenantId: string,
+  orderId: string,
+  lineId: string,
+): Promise<{ key: string; contentType: string } | null> {
+  const line = await tx.orderLine.findFirst({
+    where: { tenantId, orderId, id: lineId },
+    select: {
+      bouquetPhoto: { select: { storageKey: true, contentType: true } },
+      previewJob: { select: { status: true, outputKey: true, outputContentType: true } },
+    },
+  });
+  return line ? lineImageSource(line) : null;
+}
+
+/** Legge un file dell'archivio; null se manca (già registrato): per il cliente semplicemente non c'è. */
+export async function readStoredImageOrNull(
+  key: string,
+  contentType: string,
+  entity: string,
+): Promise<StoredImage | null> {
+  try {
+    return await readStoredImage(key, contentType, entity);
+  } catch (error) {
     if (error instanceof NotFoundError) return null;
     throw error;
   }

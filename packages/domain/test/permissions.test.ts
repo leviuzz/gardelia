@@ -41,6 +41,14 @@ describe('matrice dei permessi', () => {
     expect(can('STAFF', 'inventory:write')).toBe(false);
   });
 
+  it('messaggi degli ordini online: li legge e risponde tutta la squadra (ADR-088)', () => {
+    for (const role of ['OWNER', 'MANAGER', 'STAFF'] as const) {
+      expect(can(role, 'orders:messages')).toBe(true);
+    }
+    // Togliere la foto di un messaggio resta di chi gestisce gli ordini.
+    expect(can('STAFF', 'orders:write')).toBe(false);
+  });
+
   it('messaggi di Floral Care: li legge e risponde tutta la squadra (ADR-084)', () => {
     for (const role of ['OWNER', 'MANAGER', 'STAFF'] as const) {
       expect(can(role, 'care:messages')).toBe(true);

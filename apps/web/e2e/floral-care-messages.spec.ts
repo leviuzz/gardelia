@@ -72,10 +72,10 @@ test.describe('Floral Care: i messaggi fra cliente e fioreria', () => {
     await expect(mine.getByLabel('Mensaje')).toHaveValue('');
     await expectFitsAt320(person, 'messages');
 
-    // La fioreria: il riquadro del pannello, la scheda «Mensajes (N)» e il filo da leggere.
+    // La fioreria: la riga di «Por atender» (M3), la scheda «Mensajes (N)» e il filo da leggere.
     await page.goto(SHOP);
-    const unreadCard = page.getByTestId('care-unread-messages');
-    await expect(unreadCard).toBeVisible();
+    const unreadCard = page.getByTestId('todo-card').getByTestId('todo-care-messages');
+    await expect(unreadCard).toContainText(/de Floral Care por leer en/);
     await unreadCard.getByRole('link', { name: 'Ver mensajes' }).click();
     await expect(page).toHaveURL(/\/subscriptions\/messages$/);
     await expect(

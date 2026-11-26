@@ -66,7 +66,8 @@
     "tenant_deletion_name_mismatch": "Il nome non corrisponde a quello della fioreria.",
     "opening_hours_overlap": "Questa fascia si sovrappone a un'altra dello stesso giorno: uniscile in una sola.",
     "substitute_required": "Scegli con quale fiore sostituirlo.",
-    "substitution_customer_required": "Conferma che il cliente ha accettato il cambio."
+    "substitution_customer_required": "Conferma che il cliente ha accettato il cambio.",
+    "order_message_empty": "Scrivi un messaggio o aggiungi una foto."
   },
   "errors": {
     "validation": "Controlla i campi evidenziati.",
@@ -134,7 +135,11 @@
       "order_free_delivery_unconfirmed": "La consegna è a $0: conferma che è gratis o cambiala prima di accettare.",
       "store_featured_limit": "Puoi mettere in evidenza fino a 8 prodotti: togli prima la stella a un altro.",
       "store_featured_not_online": "Solo un prodotto visibile nel negozio online può essere in evidenza.",
-      "store_online_limit": "Il tuo negozio online ha già 500 prodotti: togline qualcuno prima di aggiungerne un altro."
+      "store_online_limit": "Il tuo negozio online ha già 500 prodotti: togline qualcuno prima di aggiungerne un altro.",
+      "order_message_closed": "Questo ordine si è chiuso più di 7 giorni fa: i messaggi restano da leggere.",
+      "order_message_daily_limit": "Hai raggiunto il massimo di messaggi di oggi su questo ordine. Se è urgente, chiama la fioreria.",
+      "order_not_reorderable": "Questo ordine non si può più ripetere.",
+      "order_not_notifiable": "Non c'è nessuno da avvisare: solo gli ordini online accettati e aperti."
     },
     "pageNotFoundTitle": "Pagina non trovata",
     "pageNotFoundBody": "La pagina non esiste o non hai accesso.",
@@ -380,7 +385,8 @@
       "cancelTitle": "Annullare l’ordine {number}?",
       "cancelBody": "{shop} non l’ha ancora accettato: si annulla e non devi pagare nulla. Avvisiamo noi la fioreria.",
       "cancelConfirm": "Sì, annulla l’ordine",
-      "cancelled": "Ordine annullato."
+      "cancelled": "Ordine annullato.",
+      "newMessages": "{count, plural, one {# messaggio nuovo} other {# messaggi nuovi}}"
     },
     "privacy": {
       "title": "I tuoi dati e la tua privacy",
@@ -511,6 +517,27 @@
         "closed": "Il servizio è finito: puoi leggere i messaggi, ma non mandarne di nuovi."
       },
       "unread": "{count, plural, one {# messaggio nuovo} other {# messaggi nuovi}}"
+    },
+    "orderPage": {
+      "metaTitle": "Il tuo ordine",
+      "title": "Ordine {number}",
+      "waiting": "{shop} non ha ancora accettato il tuo ordine. Se non risponde entro {date}, si annulla da solo e te lo diciamo per email.",
+      "waitingNoDate": "{shop} non ha ancora accettato il tuo ordine.",
+      "reorder": "Ordina di nuovo",
+      "reorderBody": "Mettiamo gli stessi prodotti in un nuovo ordine a {shop}: prima di inviarlo puoi cambiare tutto.",
+      "reorderUnavailable": "Questo ordine non si può più ripetere: la fioreria non prende ordini online o l'ordine è ancora aperto.",
+      "trackingHint": "Perché qualcun altro veda a che punto è l'ordine (senza i tuoi messaggi), condividi il suo link di stato.",
+      "trackingLink": "Apri il link",
+      "messages": {
+        "title": "Messaggi con {shop}",
+        "subtitle": "Chiedi o avvisa quello che ti serve: la fioreria riceve un avviso per email.",
+        "empty": "Ancora nessun messaggio.",
+        "older": "Vedi i messaggi precedenti",
+        "newDivider": "Nuovi",
+        "you": "Tu",
+        "closed": "Sono passati 7 giorni da quando l'ordine si è chiuso: i messaggi restano da leggere.",
+        "sent": "Messaggio inviato"
+      }
     }
   },
   "store": {
@@ -834,7 +861,8 @@
     "orders": "Ordini",
     "agenda": "Agenda",
     "care": "Floral Care",
-    "reports": "Report"
+    "reports": "Report",
+    "ordersPending": "{count, plural, one {# ordine online da accettare} other {# ordini online da accettare}}"
   },
   "roles": {
     "OWNER": "Titolare",
@@ -874,7 +902,17 @@
     "contactNow": "Contatta",
     "statOpenQuotes": "Preventivi aperti",
     "openQuotesDetail": "{drafts} in bozza · {sent} inviati",
-    "viewCalendar": "Vedi calendario"
+    "viewCalendar": "Vedi calendario",
+    "todo": {
+      "title": "Da gestire",
+      "pending": "{count, plural, one {# ordine online da accettare} other {# ordini online da accettare}}",
+      "pendingDeadline": "Il primo si annulla da solo {date}.",
+      "pendingLink": "Guarda",
+      "orderMessages": "{unread, plural, one {# messaggio da leggere} other {# messaggi da leggere}} in {orders, plural, one {# ordine} other {# ordini}}",
+      "orderMessagesLink": "Vedi gli ordini",
+      "careMessages": "{unread, plural, one {# messaggio} other {# messaggi}} di Floral Care da leggere in {threads, plural, one {# contratto} other {# contratti}}",
+      "careMessagesLink": "Vedi i messaggi"
+    }
   },
   "activity": {
     "someone": "Qualcuno",
@@ -985,7 +1023,9 @@
       "accepted": "{actor} ha accettato l’ordine online {number}",
       "expired": "L’ordine online {number} si è annullato perché nessuno l’ha accettato in tempo",
       "cancelled_by_buyer": "{actor} ha annullato il suo ordine {number}",
-      "ingredient_substituted": "{actor} ha cambiato {name} con {ingredient} in {number}"
+      "ingredient_substituted": "{actor} ha cambiato {name} con {ingredient} in {number}",
+      "message_photo_removed": "{actor} ha tolto la foto di un messaggio di {number}",
+      "customer_notified": "{actor} ha avvisato il cliente dei cambi di {number}"
     },
     "delivery_settings": {
       "updated": "{actor} ha cambiato le impostazioni di consegna"
@@ -2019,7 +2059,9 @@
       "notifyCustomer": "Invia la conferma dell’ordine a {email}",
       "notifyCustomerHint": "Riceve il riepilogo dell’ordine e un link per seguirlo.",
       "notifyCustomerNoEmail": "Il cliente non ha un’email: puoi condividergli il link dell’ordine su WhatsApp.",
-      "notifyCustomerDemo": "Fioreria di prova: la conferma non viene inviata per email."
+      "notifyCustomerDemo": "Fioreria di prova: la conferma non viene inviata per email.",
+      "notifyBuyer": "Avvisa il cliente per email",
+      "notifyBuyerHint": "Solo se cambia qualcosa che il cliente vede: giorno, fascia, indirizzo, chi riceve, biglietto o costo di consegna. Gli mandiamo l'ordine com'è adesso."
     },
     "whatsapp": {
       "greeting": "Ciao {name}, ti confermiamo l’ordine {number} di {shop}.",
@@ -2186,7 +2228,7 @@
       "accept": "Accetta l’ordine",
       "reject": "Rifiuta",
       "rejectTitle": "Rifiutare l’ordine",
-      "rejectBody": "Scriviamo al cliente con questo motivo: spiegalo con gentilezza (per esempio, se non hai fiori per quella data).",
+      "rejectBody": "Scriviamo al cliente con il motivo che scegli. Se vuoi, aggiungi un dettaglio gentile (per esempio un altro giorno in cui puoi).",
       "rejectReason": "Motivo (lo vedrà il cliente)",
       "rejectConfirm": "Rifiuta l’ordine",
       "cancelNotice": "Il cliente ha fatto questo ordine online: gli manderemo un’email con il motivo.",
@@ -2196,7 +2238,20 @@
       "contact": "Cliente:",
       "freeDeliveryTitle": "Consegna gratis?",
       "freeDeliveryBody": "La consegna di questo ordine è a $0. Se ha un costo, annulla e cambialo in «Cambia consegna e biglietto» prima di accettare. Se è gratis, accettalo così: il cliente riceve il totale con la consegna gratis.",
-      "freeDeliveryConfirm": "Accetta con consegna gratis"
+      "freeDeliveryConfirm": "Accetta con consegna gratis",
+      "deadline": "Se non lo accetti o rifiuti entro {date}, si annulla da solo e lo diciamo al cliente.",
+      "deadlineShort": "Si annulla da solo {date}",
+      "rejectReasonLegend": "Perché lo rifiuti?",
+      "rejectReasons": {
+        "NO_AVAILABILITY": "Non abbiamo disponibilità per quel giorno",
+        "OUT_OF_AREA": "Non arriviamo a quell'indirizzo",
+        "OUT_OF_STOCK": "È finito un prodotto",
+        "OTHER": "Altro motivo"
+      },
+      "rejectBuyerReads": "Il cliente legge: «{text}»",
+      "rejectDetail": "Dettaglio (facoltativo)",
+      "rejectOther": "Motivo",
+      "rejectDetailHint": "Il cliente lo legge come lo scrivi."
     },
     "inventory": {
       "title": "Inventario",
@@ -2239,6 +2294,28 @@
       "askManager": "Chiedi a chi gestisce la fioreria di fare il cambio.",
       "done": "Fiore cambiato nel mazzo",
       "whatsapp": "Ciao {name}, ti scriviamo per il tuo ordine {number} ({bouquet}): abbiamo finito {from}. Ti va bene se usiamo {to}? Il prezzo non cambia."
+    },
+    "messages": {
+      "title": "Messaggi con {name}",
+      "titleNoName": "Messaggi dell'ordine",
+      "subtitle": "Quello che scrivono la tua fioreria e chi ha fatto l'ordine online. Lo legge tutta la squadra; il cliente riceve un avviso per email, senza il testo.",
+      "empty": "Ancora nessun messaggio. Se devi chiedere qualcosa al cliente, scrivigli qui.",
+      "older": "Vedi i messaggi precedenti",
+      "unreadDivider": "Da leggere",
+      "deletedAccount": "Conto eliminato",
+      "closed": "Sono passati 7 giorni da quando l'ordine si è chiuso: i messaggi restano da leggere.",
+      "closedNoAccount": "Chi ha fatto l'ordine ha eliminato il conto: i messaggi restano da leggere.",
+      "sent": "Messaggio inviato",
+      "photoRemoved": "Foto tolta",
+      "unreadBadge": "{count, plural, one {# messaggio da leggere} other {# messaggi da leggere}}",
+      "filter": "Con messaggi da leggere ({count})"
+    },
+    "notify": {
+      "button": "Avvisa il cliente dei cambi",
+      "title": "Avvisare il cliente?",
+      "body": "Mandiamo a {name} un'email con l'ordine com'è adesso: prodotti, consegna e totale. Usalo quando hai finito di fare i cambi.",
+      "confirm": "Manda l'avviso",
+      "sent": "Abbiamo avvisato il cliente per email."
     }
   },
   "plans": {
@@ -2800,7 +2877,9 @@
       "howToPay": "Come pagare",
       "payWith": "La fioreria accetta: {methods}.",
       "payAsk": "Chiedi alla fioreria come pagare.",
-      "payDirect": "Paghi direttamente la fioreria: Gardelia non riceve i tuoi soldi."
+      "payDirect": "Paghi direttamente la fioreria: Gardelia non riceve i tuoi soldi.",
+      "writeFromAccount": "Hai fatto tu questo ordine? Scrivi a {shop} dal tuo conto.",
+      "openAccount": "Vai a I miei ordini"
     }
   },
   "shareLink": {
@@ -3396,7 +3475,12 @@
     "filterProducts": "Cerca un prodotto",
     "noProductMatch": "Nessun prodotto con questo nome.",
     "cartDropped": "{count, plural, one {Abbiamo tolto # prodotto dal tuo ordine perché non è più disponibile.} other {Abbiamo tolto # prodotti dal tuo ordine perché non sono più disponibili.}}",
-    "noDates": "Per ora la fioreria non ha giorni disponibili per gli ordini online. Scrivile su WhatsApp."
+    "noDates": "Per ora la fioreria non ha giorni disponibili per gli ordini online. Scrivile su WhatsApp.",
+    "reorder": {
+      "added": "Abbiamo aggiunto i prodotti del tuo ordine precedente: controlla le quantità e scegli la consegna.",
+      "skipped": "{count, plural, one {# prodotto di quell'ordine non si può ordinare online (una composizione o una voce speciale).} other {# prodotti di quell'ordine non si possono ordinare online (composizioni o voci speciali).}}",
+      "full": "{count, plural, one {# prodotto non è entrato nell'ordine: il massimo è 20 prodotti.} other {# prodotti non sono entrati nell'ordine: il massimo è 20 prodotti.}}"
+    }
   },
   "legal": {
     "linksLabel": "Documenti legali",
@@ -4679,24 +4763,8 @@
       "customer": "Cliente",
       "deletedAccount": "Account eliminato",
       "you": "Tu",
-      "photoAlt": "Foto del messaggio",
-      "photoGone": "La foto non è più disponibile.",
-      "removePhoto": "Togli foto",
-      "removePhotoTitle": "Togliere la foto?",
-      "removePhotoBody": "La foto si cancella per tutti, anche per il cliente. Il testo del messaggio resta.",
       "photoRemoved": "Foto tolta",
       "sent": "Messaggio inviato",
-      "composer": {
-        "label": "Messaggio",
-        "placeholder": "Scrivi un messaggio…",
-        "addPhoto": "Aggiungi foto",
-        "photoChosen": "Foto: {name}",
-        "removeChosen": "Togli la foto scelta",
-        "send": "Invia",
-        "hint": "Fino a 2000 caratteri e una foto.",
-        "empty": "Scrivi un messaggio o aggiungi una foto.",
-        "networkError": "Non è stato possibile inviare. Controlla la connessione e riprova."
-      },
       "list": {
         "title": "Messaggi",
         "subtitle": "I messaggi dei tuoi clienti di Floral Care, prima quelli che non hai letto.",
@@ -4711,11 +4779,6 @@
         "emptyTitle": "Nessun messaggio",
         "photoOnly": "Ha inviato una foto"
       }
-    },
-    "messagesCard": {
-      "title": "Messaggi da leggere",
-      "body": "{unread, plural, one {# messaggio} other {# messaggi}} di clienti di Floral Care in {threads, plural, one {# contratto} other {# contratti}}.",
-      "link": "Vedi i messaggi"
     },
     "assistant": {
       "settings": {
@@ -5090,5 +5153,23 @@
     "GRADUATION": "Diploma e laurea",
     "THANK_YOU": "Ringraziamento",
     "GET_WELL": "Pronta guarigione"
+  },
+  "thread": {
+    "photoAlt": "Foto del messaggio",
+    "photoGone": "La foto non è più disponibile.",
+    "removePhoto": "Togli foto",
+    "removePhotoTitle": "Togliere la foto?",
+    "removePhotoBody": "La foto si cancella per tutti, anche per il cliente. Il testo del messaggio resta.",
+    "composer": {
+      "label": "Messaggio",
+      "placeholder": "Scrivi un messaggio…",
+      "addPhoto": "Aggiungi foto",
+      "photoChosen": "Foto: {name}",
+      "removeChosen": "Togli la foto scelta",
+      "send": "Invia",
+      "hint": "Fino a 2000 caratteri e una foto.",
+      "empty": "Scrivi un messaggio o aggiungi una foto.",
+      "networkError": "Non è stato possibile inviare. Controlla la connessione e riprova."
+    }
   }
 }

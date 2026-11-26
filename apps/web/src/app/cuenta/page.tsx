@@ -32,13 +32,7 @@ import { serverEnv } from '@/lib/env';
 import { money, phoneForInput } from '@/lib/format';
 import { ORDER_STATUS_BADGE } from '@/lib/order-ui';
 import { calendarDate } from '@/lib/quote-ui';
-import {
-  accountRoutes,
-  buyerRoutes,
-  legalRoutes,
-  publicStoreRoutes,
-  securityRoutes,
-} from '@/lib/routes';
+import { accountRoutes, buyerRoutes, legalRoutes, securityRoutes } from '@/lib/routes';
 import {
   addBuyerAddressAction,
   archiveBuyerAddressAction,
@@ -105,8 +99,9 @@ export default async function AccountPage() {
             <ul className="divide-y rounded-xl border">
               {orders.map((order) => (
                 <li key={order.orderId}>
+                  {/* La pagina dell'ordine nel conto (M3): messaggi, passi, «Pedir de nuevo». */}
                   <Link
-                    href={order.trackingPath ?? publicStoreRoutes(order.shopSlug).home}
+                    href={accountRoutes.orders.detail(order.orderId)}
                     className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
                   >
                     <span className="min-w-0 flex-1 space-y-1">
@@ -124,9 +119,16 @@ export default async function AccountPage() {
                         {` · ${t(`orders.modes.${order.fulfillmentMode}`)}`}
                       </span>
                       <span className="flex flex-wrap items-center justify-between gap-2">
-                        <Badge variant={ORDER_STATUS_BADGE[order.status]}>
-                          {t(`account.orders.statuses.${order.status}`)}
-                        </Badge>
+                        <span className="flex flex-wrap gap-1.5">
+                          <Badge variant={ORDER_STATUS_BADGE[order.status]}>
+                            {t(`account.orders.statuses.${order.status}`)}
+                          </Badge>
+                          {order.newMessages > 0 ? (
+                            <Badge variant="info" data-testid="order-new-messages">
+                              {t('account.orders.newMessages', { count: order.newMessages })}
+                            </Badge>
+                          ) : null}
+                        </span>
                         <span className="text-sm font-medium tabular-nums">
                           {money(order.totalMinor, order.currency)}
                         </span>

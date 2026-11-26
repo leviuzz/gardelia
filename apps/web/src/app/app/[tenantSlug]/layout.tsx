@@ -1,7 +1,12 @@
 import { ShieldCheck, TriangleExclamationPoint } from 'lucide-react';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
-import { getAddressSearchSettings, hasPermission, listUserTenants } from '@floral/core';
+import {
+  countPendingOnlineOrders,
+  getAddressSearchSettings,
+  hasPermission,
+  listUserTenants,
+} from '@floral/core';
 import { BRAND } from '@floral/domain';
 import { BottomNav, SidebarNav, type NavItem } from '@/components/app-shell/app-nav';
 import { TenantSwitcher } from '@/components/app-shell/tenant-switcher';
@@ -16,11 +21,15 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
   const { tenantSlug } = await params;
   const ctx = await getTenantContext(tenantSlug);
   const user = await requireUser();
-  const [shops, addressSearch, twoFactor] = await Promise.all([
+  const [shops, addressSearch, twoFactor, pendingOnline] = await Promise.all([
     listUserTenants(user.id),
     getAddressSearchSettings(ctx),
     // Solo i titolari hanno l'obbligo (ADR-077): gli altri non pagano la query.
     ctx.role === 'OWNER' ? getTwoFactorStatus(user.id) : null,
+    // Il numero su «Ordini» (M3): gli ordini online da accettare, per chi li può accettare. Il
+    // layout non si ricarica a ogni cambio di pagina, quindi niente numeri che cambiano spesso
+    // (i messaggi da leggere stanno in «Da gestire» e sulle righe degli ordini).
+    countPendingOnlineOrders(ctx),
   ]);
   const t = await getTranslations();
   const format = await getFormatter();
@@ -29,7 +38,12 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
   const items: NavItem[] = [
     { href: routes.home, label: t('nav.dashboard'), icon: 'dashboard', exact: true },
     // Il lavoro di ogni giorno (ADR-054): su mobile nella barra in basso.
-    { href: routes.orders.list(), label: t('nav.orders'), icon: 'orders' },
+    {
+      href: routes.orders.list(),
+      label: t('nav.orders'),
+      icon: 'orders',
+      badge: { count: pendingOnline, label: t('nav.ordersPending', { count: pendingOnline }) },
+    },
     { href: routes.quotes.list(), label: t('nav.quotes'), icon: 'quotes' },
     // L'Agenda dei lavori (visite e consegne, ADR-075): nella barra in basso al posto di Clientes,
     // per chi esce a fare visite e consegne dal telefono (decisione del founder del 24/11/2026,

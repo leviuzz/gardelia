@@ -227,13 +227,21 @@ describe('pagamenti e filtri', () => {
       status: null,
       when: 'today',
       unpaid: true,
+      messages: false,
       page: 2,
     });
     expect(orderListFiltersSchema.parse({ when: 'yesterday', status: 'LOST' })).toMatchObject({
       when: 'upcoming',
       status: null,
       unpaid: false,
+      messages: false,
     });
+  });
+
+  it('«Con messaggi da leggere» (M3) solo con `messages=unread`', () => {
+    expect(orderListFiltersSchema.parse({ messages: 'unread' }).messages).toBe(true);
+    expect(orderListFiltersSchema.parse({ messages: '1' }).messages).toBe(false);
+    expect(orderListFiltersSchema.parse({}).messages).toBe(false);
   });
 });
 

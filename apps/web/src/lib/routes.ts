@@ -155,6 +155,14 @@ export function tenantRoutes(slug: string) {
         withQuery(`${orders}/${segment(orderId)}/lines/${segment(lineId)}/image`, {
           download: options?.download,
         }),
+      /** I messaggi con chi ha fatto l'ordine online (M3, `mensajes`: pagine da mostrare). */
+      thread: (orderId: string, query?: QueryValues) =>
+        `${withQuery(`${orders}/${segment(orderId)}`, query)}#mensajes`,
+      /** La foto di un messaggio dell'ordine (`thumb` = miniatura). */
+      messagePhoto: (orderId: string, messageId: string, options?: { readonly thumb?: boolean }) =>
+        withQuery(`${orders}/${segment(orderId)}/messages/photos/${segment(messageId)}`, {
+          size: options?.thumb ? 'thumb' : undefined,
+        }),
     },
     /** Inventario (ADR-060): existencias, prodotti da controllare, scheda e movimenti. */
     inventory: {
@@ -298,7 +306,38 @@ export const accountRoutes = {
   deleted: '/cuenta-eliminada',
   /** Floral Care, la pagina del cliente (ADR-084): i contratti che la persona vede. */
   care: careAccountRoutes(),
+  /** Gli ordini online della persona (M3, ADR-088): la pagina di ognuno, i messaggi, le foto. */
+  orders: orderAccountRoutes(),
 } as const;
+
+function orderAccountRoutes() {
+  const home = '/cuenta/pedidos';
+  const detail = (orderId: string, query?: QueryValues) =>
+    withQuery(`${home}/${segment(orderId)}`, query);
+  return {
+    /** «Mis pedidos», nella pagina del conto. */
+    list: '/cuenta#pedidos',
+    detail,
+    /** I messaggi con la fioreria (`mensajes`: pagine da mostrare). */
+    thread: (orderId: string, query?: QueryValues) => `${detail(orderId, query)}#mensajes`,
+    /** La foto di un messaggio (`thumb` = miniatura). */
+    messagePhoto: (orderId: string, messageId: string, options?: { readonly thumb?: boolean }) =>
+      withQuery(`${home}/${segment(orderId)}/mensajes/foto/${segment(messageId)}`, {
+        size: options?.thumb ? 'thumb' : undefined,
+      }),
+    /** L'immagine del ramo di una riga. */
+    lineImage: (orderId: string, lineId: string) =>
+      `${home}/${segment(orderId)}/imagen/${segment(lineId)}`,
+    /** La foto del ramo consegnato (`thumb` = miniatura; `v` = la foto attuale, per la cache). */
+    photo: (orderId: string, options?: { readonly thumb?: boolean; readonly v?: string }) =>
+      withQuery(`${home}/${segment(orderId)}/foto`, {
+        size: options?.thumb ? 'thumb' : undefined,
+        v: options?.v,
+      }),
+    /** Il logo della fioreria dell'ordine (`v` = il logo attuale). */
+    logo: (orderId: string, v: string) => withQuery(`${home}/${segment(orderId)}/logo`, { v }),
+  };
+}
 
 function careAccountRoutes() {
   const home = '/cuenta/floral-care';
@@ -393,6 +432,8 @@ export function publicStoreRoutes(slug: string) {
       `${home}/imagen/${kind === 'LOGO' ? 'logo' : 'portada'}/${segment(imageId)}`,
     /** "Hacer pedido" (ADR-067); `producto` = un prodotto già scelto. */
     checkout: (query?: QueryValues) => withQuery(`${home}/pedido`, query),
+    /** «Pedir de nuevo» (M3): POST con `orderId`, rimette i prodotti nel carrello. */
+    reorder: `${home}/pedido/repetir`,
     /** Foto di un prodotto visibile (`thumb` = miniatura). */
     photo: (itemId: string, photoId: string, options?: { readonly thumb?: boolean }) =>
       withQuery(`${item(itemId)}/foto/${segment(photoId)}`, {

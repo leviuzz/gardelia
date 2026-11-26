@@ -127,6 +127,8 @@ export interface RouteStopDto {
   readonly deliveryNotes: string | null;
   readonly assigneeName: string | null;
   readonly assignedToMe: boolean;
+  /** Fatto da chi compra dalla tienda en línea (segno «Online», M3). */
+  readonly placedOnline: boolean;
   /** Da incassare alla consegna (0 se pagato). */
   readonly balanceMinor: number;
   readonly currency: string;
@@ -269,6 +271,7 @@ export async function loadDeliveryStopsTx(
       deliveryNotes: order.deliveryNotes,
       assigneeName: order.assignedTo?.user.name ?? null,
       assignedToMe: order.assignedTo?.id === ctx.membershipId,
+      placedOnline: order.placedOnline,
       balanceMinor: orderBalanceMinor(order.paidMinor, order.totalMinor),
       currency: order.currency,
       nextSteps: allowedOrderSteps(ctx, order.status, order.fulfillmentMode),

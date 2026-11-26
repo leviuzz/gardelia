@@ -4,6 +4,7 @@
  * NON arrivano dal modulo: li decide il servizio dal catalogo e dalle impostazioni della fioreria.
  */
 import { z } from 'zod';
+import { zonedDateTime } from './ai';
 import { addDays, compareDates, dayOfWeek, type CalendarDate } from './calendar';
 import { CUSTOMER_LIMITS, optionalPhoneField } from './customer';
 import type { MarketCountry } from './markets';
@@ -16,6 +17,8 @@ import {
   type FulfillmentMode,
 } from './order';
 import { checkboxField, optionalText, toTrimmedString } from './validation';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * «Aceptar» un ordine online a domicilio con la consegna a 0 chiede una conferma (M0,
@@ -47,6 +50,11 @@ export const MARKETPLACE_ORDER_LIMITS = {
    * da solo e chi compra lo sa per email. PROPOSTO (ADR-067).
    */
   acceptDays: 3,
+  /**
+   * Il promemoria alla fioreria parte dal lavoro giornaliero per gli ordini che si annullerebbero
+   * prima del giro dopo (una volta al giorno su Vercel Hobby): entro queste ore.
+   */
+  reminderHours: 24,
   /** Commenti per la fioreria. */
   buyerNotes: 500,
 } as const;
@@ -184,15 +192,94 @@ export const MARKETPLACE_WITHDRAWN_REASON =
   'El cliente canceló el pedido antes de que la florería lo aceptara.';
 
 /**
- * Un ordine online ancora da accettare si annulla da solo quando è fermo da `acceptDays` giorni o
- * quando il suo giorno è già passato (ricontrollo del servizio sulla scelta della manutenzione).
+ * Fino a quando un ordine online si può accettare: `acceptDays` giorni dopo l'invio, ma non oltre
+ * la fine del suo giorno di consegna nel fuso della fioreria. È la sola regola della scadenza: la
+ * usano l'annullamento automatico, il promemoria e la scadenza mostrata, e la funzione SQL
+ * `app_pending_orders_to_expire` la ripete (provato da tutti e due i lati).
+ */
+export function pendingOrderDeadline(
+  order: { readonly createdAt: Date; readonly scheduledDate: CalendarDate | null },
+  timeZone: string,
+): Date {
+  const clock = order.createdAt.getTime() + MARKETPLACE_ORDER_LIMITS.acceptDays * DAY_MS;
+  if (!order.scheduledDate) return new Date(clock);
+  const dayEnd = zonedDateTime(addDays(order.scheduledDate, 1), 0, timeZone).getTime();
+  return new Date(Math.min(clock, dayEnd));
+}
+
+/**
+ * Un ordine online ancora da accettare si annulla da solo alla sua scadenza (ricontrollo del
+ * servizio sulla scelta della manutenzione).
  */
 export function isPendingOrderExpired(
   order: { readonly createdAt: Date; readonly scheduledDate: CalendarDate | null },
   now: Date,
-  today: CalendarDate,
+  timeZone: string,
 ): boolean {
-  const limit = MARKETPLACE_ORDER_LIMITS.acceptDays * 24 * 60 * 60 * 1000;
-  if (now.getTime() - order.createdAt.getTime() > limit) return true;
-  return order.scheduledDate !== null && compareDates(order.scheduledDate, today) < 0;
+  return now.getTime() >= pendingOrderDeadline(order, timeZone).getTime();
+}
+
+/** Il promemoria alla fioreria: la scadenza arriva prima del prossimo giro giornaliero. */
+export function pendingOrderNeedsReminder(deadline: Date, now: Date): boolean {
+  const left = deadline.getTime() - now.getTime();
+  return left > 0 && left <= MARKETPLACE_ORDER_LIMITS.reminderHours * 60 * 60 * 1000;
+}
+
+/**
+ * La scadenza come si mostra (pagine ed email): l'ultimo minuto utile. Una scadenza a mezzanotte
+ * si legge «viernes, 11:59 p.m.», non «sábado, 12:00 a.m.» (sembrerebbe un giorno in più).
+ */
+export function pendingOrderDeadlineShown(deadline: Date): Date {
+  return new Date(deadline.getTime() - 60 * 1000);
+}
+
+// -----------------------------------------------------------------------------
+// Rifiuto con un motivo pronto (M3-1)
+// -----------------------------------------------------------------------------
+
+/** I motivi pronti di «Rifiuta»; «Altro motivo» chiede il testo. */
+export const ONLINE_REJECT_REASONS = [
+  'NO_AVAILABILITY',
+  'OUT_OF_AREA',
+  'OUT_OF_STOCK',
+  'OTHER',
+] as const;
+export type OnlineRejectReason = (typeof ONLINE_REJECT_REASONS)[number];
+
+/**
+ * Il testo che legge chi compra, nella lingua del mercato come i motivi scritti dalle fiorerie
+ * (V1: Messico). Per «Altro motivo» c'è solo il testo della fioreria.
+ */
+export const ONLINE_REJECT_REASON_TEXTS: Readonly<
+  Record<Exclude<OnlineRejectReason, 'OTHER'>, string>
+> = {
+  NO_AVAILABILITY: 'No tenemos disponibilidad para ese día.',
+  OUT_OF_AREA: 'No llegamos a esa dirección.',
+  OUT_OF_STOCK: 'Se nos terminó un producto de tu pedido.',
+};
+
+/**
+ * Il modulo di «Rifiuta»: il motivo pronto e un dettaglio (obbligatorio con «Altro motivo»). Il
+ * testo che si salva non supera i 300 caratteri di sempre.
+ */
+export const onlineOrderRejectSchema = z
+  .object({
+    reasonCode: z.preprocess(toTrimmedString, z.enum(ONLINE_REJECT_REASONS, { error: 'required' })),
+    detail: optionalText(ORDER_LIMITS.cancelReason),
+  })
+  .superRefine((value, ctx) => {
+    if (value.reasonCode === 'OTHER' && !value.detail) {
+      ctx.addIssue({ code: 'custom', path: ['detail'], message: 'required' });
+      return;
+    }
+    if (onlineRejectReasonText(value.reasonCode, value.detail).length > ORDER_LIMITS.cancelReason) {
+      ctx.addIssue({ code: 'custom', path: ['detail'], message: 'too_long' });
+    }
+  });
+export type OnlineOrderRejectInput = z.infer<typeof onlineOrderRejectSchema>;
+
+/** Il motivo scritto sull'ordine: la frase pronta e, se c'è, il dettaglio della fioreria. */
+export function onlineRejectReasonText(code: OnlineRejectReason, detail: string | null): string {
+  const base = code === 'OTHER' ? '' : ONLINE_REJECT_REASON_TEXTS[code];
+  return [base, detail?.trim() ?? ''].filter((part) => part !== '').join(' ');
 }

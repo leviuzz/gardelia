@@ -52,6 +52,8 @@ export interface DayOrderDto {
   readonly addressLine: string | null;
   readonly lines: readonly { readonly description: string; readonly quantity: number }[];
   readonly hasCard: boolean;
+  /** Fatto da chi compra dalla tienda en línea (segno «Online», M3). */
+  readonly placedOnline: boolean;
   readonly balanceMinor: number;
   readonly paymentStatus: OrderPaymentStatus;
   readonly currency: string;
@@ -172,6 +174,7 @@ export async function getOrdersDay(ctx: TenantContext, rawDate: unknown): Promis
         quantity: line.quantity,
       })),
       hasCard: Boolean(order.cardMessage),
+      placedOnline: order.placedOnline,
       balanceMinor: orderBalanceMinor(order.paidMinor, order.totalMinor),
       paymentStatus: order.paymentStatus,
       currency: order.currency,

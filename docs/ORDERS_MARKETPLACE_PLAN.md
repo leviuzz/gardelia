@@ -192,7 +192,7 @@ sull'indirizzo dell'ordine: si riempiono con Google Places (ADR-059), le coordin
 | **C5** | ✅ Pagine legali (bozze da rivedere) per chi compra e privacy nell'app: scaricare i dati ed eliminare il conto (ADR-068)                      |
 | **M0** | ✅ Correzioni subito: telefono del cliente online, canale «online», testi, errori, link di stato                                              |
 | **M1** | ✅ Vetrina che vende: categorie, ricerca, evidenza, info in alto, galleria, carrello, anteprima, QR, occasioni, Google                        |
-| **M3** | ⬜ Ordine tutto nell'app: messaggi, avvisi a ogni passo, cambi accettati dal cliente, prova di pagamento                                      |
+| **M3** | 🔶 Ordine tutto nell'app: messaggi, avvisi a ogni passo, cambi accettati dal cliente, prova di pagamento (M3-1 ✅ messaggi e avvisi, ADR-088) |
 | **M5** | ⬜ Servizi della fioreria in vetrina e richieste con preventivo accettato nell'app                                                            |
 | **M6** | ⬜ Floral Care prenotabile: prezzo dalle piante dichiarate, fasce libere, assistente                                                          |
 | **M2** | ⬜ Opzioni ed extra (misure, colori, vasi, globos), «Armalo en ramo», upsell nell'ordine                                                      |

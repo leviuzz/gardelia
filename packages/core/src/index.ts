@@ -67,6 +67,7 @@ export {
   getCheckoutForm,
   listBuyerOrders,
   placeMarketplaceOrder,
+  remindPendingOrders,
   type BuyerOrderDto,
   type CheckoutFormDto,
   type CheckoutItemDto,
@@ -74,6 +75,23 @@ export {
   type PlacedOrderDto,
 } from './marketplace-orders';
 export type { OrderMailDeps } from './order-mail';
+export {
+  buyerReorderLines,
+  getBuyerOrder,
+  getBuyerOrderLineImage,
+  getBuyerOrderMessagePhoto,
+  getBuyerOrderPhoto,
+  getBuyerOrderShopLogo,
+  markBuyerOrderRead,
+  postBuyerOrderMessage,
+  type BuyerOrderDetailDto,
+  type BuyerOrderMessagePostResult,
+  type BuyerOrderShop,
+  type BuyerOrderThreadDto,
+  type BuyerReorderDto,
+} from './buyer-orders';
+export type { OrderMessageDto } from './order-message-internals';
+export * from './services/order-messages';
 export {
   listPublicStoreCities,
   listPublicStoreOccasions,

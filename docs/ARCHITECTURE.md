@@ -134,6 +134,19 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
   private e i pulsanti d'ordine spenti. Google (M1-2): `PUBLIC_INDEXING` decide `robots`,
   `robots.txt` e `sitemap.xml` (`app_public_sitemap`, SECURITY DEFINER come la ricerca), regole pure
   in `lib/indexing.ts`; dati strutturati in `lib/structured-data.ts`.
+- **L'ordine online di chi compra** (M3, ADR-088): un solo ingresso, `withBuyerOrder` di
+  `core/src/buyer-orders.ts`. `app_buyer_order_shop(ordine)` (SECURITY DEFINER, persona da
+  `app.user_id`) dà la fioreria solo per un ordine della persona; poi `withBuyerOrderContext` apre il
+  contesto della fioreria con `app.buyer_order_id`, e le policy RESTRICTIVE `buyer_order_guard`
+  (`app_enable_buyer_order_guard`) lasciano a quella transazione solo le righe di quell'ordine su
+  `Order`, righe, pagamenti, passi, foto, link, messaggi, letture e avvisi; per la fioreria non
+  cambia niente. Proprietario e fioreria attiva si ricontrollano (sotto lock quando si scrive): la
+  pagina dell'ordine nel conto, i messaggi, il segno di lettura, «Cancelar pedido» e «Pedir de
+  nuevo» passano tutti da qui. Le email automatiche dell'ordine (passi, promemoria, primo messaggio
+  da leggere) si segnano in `OrderNotice` (una riga per ordine e tipo), così nessuna parte due
+  volte; i lavori giornalieri chiedono a `app_pending_orders_to_remind`,
+  `app_pending_orders_to_expire` e `app_order_message_photos_to_purge` solo gli ID, e lavorano nel
+  contesto di ogni fioreria.
 - **Per persona** (`app_enable_user_rls`, ADR-064): le tabelle del conto cliente del marketplace
   (`BuyerProfile`, `BuyerAddress`) non hanno `tenantId`; righe visibili/modificabili solo se
   `userId = app_current_user_id()`. Le usano solo i servizi `buyer-account` dentro

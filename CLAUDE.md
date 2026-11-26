@@ -46,6 +46,7 @@ La logica di business sta in `domain`/`core`, **mai** nelle pagine o nelle serve
 2. Relazioni fra entità dello stesso tenant: **FK composite** `(tenantId, xId) → (tenantId, id)` con `@@unique([tenantId, id])` sul target.
 3. Accesso ai dati: solo dentro `withTenantContext(db, ctx, fn)`; **in più** filtra sempre esplicitamente `where: { tenantId: ctx.tenantId, ... }` e imposta `tenantId: ctx.tenantId` nelle create (difesa in profondità).
    La pagina del cliente di Floral Care legge solo con `withPortalContext` (un contratto) e scrive solo: «Cambiar fecha» con `withPortalWriteContext`; i propri messaggi e le loro foto con le policy `portal_insert`; il proprio segno di lettura con `app_portal_mark_read()`; le proprie consultas dell'Asistente de plantas (casi, risposte, chiamate) con le policy `portal_insert`, e i crediti solo con le funzioni `app_portal_assistant_*` (ADR-085). Una tabella nuova si apre al portale solo con una policy `portal_read` (o `portal_insert`) nella migrazione (ADR-084).
+   Chi ha fatto un ordine online legge e scrive sul suo ordine (pagina dell'ordine, messaggi, segno di lettura, «Cancelar pedido», «Pedir de nuevo») solo passando da `withBuyerOrder` di `core/src/buyer-orders.ts`: la fioreria da `app_buyer_order_shop`, mai dal browser, poi `withBuyerOrderContext` con la guardia `buyer_order_guard` (solo le righe di quell'ordine). Una tabella nuova dell'ordine che chi compra deve toccare entra nella guardia (`app_enable_buyer_order_guard`) nella stessa migrazione (ADR-088).
 4. I servizi ricevono un `TenantContext` ottenuto **solo** da `resolveTenantContext` (sessione + membership attiva). Mai accettare `tenantId` dal client.
 5. Ogni servizio chiama `requirePermission(ctx, '...')` come prima istruzione. I permessi sono definiti SOLO in `packages/domain/src/permissions.ts`.
 6. Ogni pagina e **ogni server action** sotto `/app/[tenantSlug]` chiama `getTenantContext(slug)` (il layout non protegge le action). Le server action lo fanno passando da `runTenantAction(slug, …)` di `apps/web/src/lib/tenant-action.ts` (il test `apps/web/test/conventions.test.ts` fallisce se un'azione lo salta).
@@ -70,7 +71,9 @@ La logica di business sta in `domain`/`core`, **mai** nelle pagine o nelle serve
   Eccezioni volute dal founder: un disegno del Diseñador mai usato in un preventivo si può
   eliminare con le sue foto (ADR-051); le foto delle visite e dei messaggi di Floral Care si
   cancellano 30 giorni dopo la fine del contratto, e subito se tolte, mentre testi e stati restano
-  (ADR-078, ADR-084).
+  (ADR-078, ADR-084); le foto dei messaggi degli ordini online 30 giorni dopo consegna, ritiro o
+  annullamento (o dopo il giorno dell'ordine, se resta aperto), e subito se tolte; il testo resta
+  (ADR-088).
 - **Migrazioni:** `pnpm db:migrate` (crea + applica); vincoli CHECK, policy e indici parziali vanno nel SQL della migrazione (Prisma li ignora nel diff). Non modificare migrazioni già applicate in ambienti condivisi.
 
 ## 6. Comandi

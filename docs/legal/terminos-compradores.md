@@ -39,7 +39,12 @@ Al crear tu cuenta y al enviar un pedido aceptas estos términos y el [Aviso de 
    y te avisamos.
 5. Puedes tener como máximo 3 pedidos esperando respuesta de una misma florería.
 
-Puedes ver el estado de tus pedidos en "Mi cuenta" y en el enlace que te enviamos por correo.
+Puedes ver el estado de tus pedidos en "Mi cuenta" y en el enlace que te enviamos por correo. En
+"Mi cuenta" también puedes **escribirle a la florería sobre tu pedido** (texto y una foto por
+mensaje), desde que lo envías hasta 7 días después de que se entrega, se recoge o se cancela;
+después los mensajes quedan para consultar y sus fotos se borran a los 30 días. Te avisamos por
+correo cuando la florería te escribe, cuando prepara tu pedido, cuando sale a entregarlo y cuando lo
+entrega, y si lo cambia después de aceptarlo. [Borrador del 26/11/2026 — validar con el abogado.]
 
 ## 4. Precios y pagos
 
@@ -53,17 +58,20 @@ Puedes ver el estado de tus pedidos en "Mi cuenta" y en el enlace que te enviamo
 
 1. Las flores son productos naturales: el color, el tamaño y la forma pueden variar respecto de las
    fotos, que son ilustrativas.
-2. Si una flor no está disponible, la florería te contactará para proponerte un cambio. [Validar
-   con el abogado si se permite una sustitución por un producto similar y en qué condiciones.]
+2. Si una flor no está disponible, la florería te contactará (por ejemplo, en los mensajes de tu
+   pedido) para proponerte un cambio. [Validar con el abogado si se permite una sustitución por un
+   producto similar y en qué condiciones.]
 3. La florería entrega en el día y el horario elegidos. Revisa que la dirección y el teléfono de
    quien recibe sean correctos.
 4. Si das datos de otra persona (quien recibe), hazlo solo con su permiso.
 
 ## 6. Cancelaciones, cambios y devoluciones
 
-1. Mientras la florería no acepte tu pedido, puedes pedirle que lo cancele escribiéndole por
-   WhatsApp o por teléfono.
-2. Una vez aceptado, los cambios y las cancelaciones se acuerdan con la florería.
+1. Mientras la florería no acepte tu pedido, puedes cancelarlo tú desde "Mis pedidos", en "Mi
+   cuenta".
+2. Una vez aceptado, los cambios y las cancelaciones se acuerdan con la florería, por ejemplo en
+   los mensajes de tu pedido. Si la florería cambia tu pedido (el día, el horario, la entrega o los
+   productos), te lo avisamos por correo.
 3. Si ya pagaste y el pedido se cancela, la florería te devuelve lo que pagaste. [Validar con el
    abogado: plazos, casos de devolución y derechos del consumidor conforme a la Ley Federal de
    Protección al Consumidor.]
@@ -91,8 +99,8 @@ de la responsabilidad de Gardelia frente al consumidor.]
 
 ## 9. Quejas
 
-Si tienes un problema con un pedido, primero contacta a la florería: su teléfono y su WhatsApp están
-en su tienda y en tu pedido. Si no se resuelve, escríbenos a soporte@gardelia.co y te ayudaremos a
+Si tienes un problema con un pedido, primero contacta a la florería: escríbele en los mensajes de tu
+pedido, en "Mi cuenta", o usa su teléfono y su WhatsApp, que están en su tienda y en tu pedido. Si no se resuelve, escríbenos a soporte@gardelia.co y te ayudaremos a
 comunicarte con ella. También puedes acudir a la Procuraduría Federal del Consumidor (PROFECO).
 [Validar con el abogado los datos de contacto y el procedimiento que deben informarse.]
 

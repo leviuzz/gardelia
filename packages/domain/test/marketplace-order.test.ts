@@ -1,12 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
   MARKETPLACE_DATE_ERRORS,
+  MARKETPLACE_ORDER_LIMITS,
+  ORDER_LIMITS,
   earliestMarketplaceDate,
+  isPendingOrderExpired,
   marketplaceDateProblem,
   marketplaceLinesFromForm,
   marketplaceOrderSchema,
   onlineOrderAcceptSchema,
   onlineOrderNeedsFreeDeliveryConfirmation,
+  onlineOrderRejectSchema,
+  onlineRejectReasonText,
+  pendingOrderDeadline,
+  pendingOrderDeadlineShown,
+  pendingOrderNeedsReminder,
 } from '../src/index';
 
 /** Ordine del cliente online (ADR-067). */
@@ -140,5 +148,78 @@ describe('«Aceptar pedido» con la consegna a 0 (M0)', () => {
       freeDeliveryConfirmed: true,
     });
     expect(onlineOrderAcceptSchema.parse({})).toEqual({ freeDeliveryConfirmed: false });
+  });
+});
+
+describe('scadenza di un ordine da accettare (M3-1)', () => {
+  const zone = 'America/Mexico_City';
+  const createdAt = new Date('2026-11-23T20:00:00Z');
+
+  it('3 giorni dopo l’invio, se il giorno di consegna è più avanti', () => {
+    const deadline = pendingOrderDeadline(
+      { createdAt, scheduledDate: { year: 2026, month: 12, day: 10 } },
+      zone,
+    );
+    expect(deadline).toEqual(
+      new Date(createdAt.getTime() + MARKETPLACE_ORDER_LIMITS.acceptDays * 24 * 60 * 60 * 1000),
+    );
+  });
+
+  it('al più tardi alla fine del giorno di consegna, nel fuso della fioreria', () => {
+    const deadline = pendingOrderDeadline(
+      { createdAt, scheduledDate: { year: 2026, month: 11, day: 24 } },
+      zone,
+    );
+    // Fine del 24 novembre a Città del Messico (UTC−6) = 25 novembre 06:00 UTC.
+    expect(deadline).toEqual(new Date('2026-11-25T06:00:00Z'));
+    const order = { createdAt, scheduledDate: { year: 2026, month: 11, day: 24 } };
+    expect(isPendingOrderExpired(order, new Date('2026-11-25T05:59:59Z'), zone)).toBe(false);
+    expect(isPendingOrderExpired(order, new Date('2026-11-25T06:00:00Z'), zone)).toBe(true);
+  });
+
+  it('il promemoria: la scadenza arriva entro il prossimo giro (24 ore), non è già passata', () => {
+    const deadline = new Date('2026-11-26T20:00:00Z');
+    expect(pendingOrderNeedsReminder(deadline, new Date('2026-11-26T15:00:00Z'))).toBe(true);
+    expect(pendingOrderNeedsReminder(deadline, new Date('2026-11-25T19:00:00Z'))).toBe(false);
+    expect(pendingOrderNeedsReminder(deadline, new Date('2026-11-26T20:00:00Z'))).toBe(false);
+  });
+
+  it('si mostra l’ultimo minuto utile: mezzanotte diventa 23:59 del giorno prima', () => {
+    // 25 novembre 06:00 UTC = mezzanotte a Città del Messico → «24 novembre, 23:59».
+    expect(pendingOrderDeadlineShown(new Date('2026-11-25T06:00:00Z'))).toEqual(
+      new Date('2026-11-25T05:59:00Z'),
+    );
+  });
+});
+
+describe('«Rifiuta» con un motivo pronto (M3-1)', () => {
+  it('la frase pronta nella lingua del mercato, più il dettaglio facoltativo', () => {
+    expect(onlineOrderRejectSchema.parse({ reasonCode: 'NO_AVAILABILITY', detail: '' })).toEqual({
+      reasonCode: 'NO_AVAILABILITY',
+      detail: null,
+    });
+    expect(onlineRejectReasonText('NO_AVAILABILITY', null)).toBe(
+      'No tenemos disponibilidad para ese día.',
+    );
+    expect(onlineRejectReasonText('OUT_OF_STOCK', ' No hay girasoles. ')).toBe(
+      'Se nos terminó un producto de tu pedido. No hay girasoles.',
+    );
+  });
+
+  it('«Altro motivo» chiede il testo; niente motivi sconosciuti né testi troppo lunghi', () => {
+    expect(
+      onlineOrderRejectSchema.safeParse({ reasonCode: 'OTHER', detail: '' }).error?.issues,
+    ).toEqual([expect.objectContaining({ path: ['detail'], message: 'required' })]);
+    expect(
+      onlineOrderRejectSchema.parse({ reasonCode: 'OTHER', detail: 'Cerramos por obra' }),
+    ).toEqual({ reasonCode: 'OTHER', detail: 'Cerramos por obra' });
+    expect(onlineRejectReasonText('OTHER', 'Cerramos por obra')).toBe('Cerramos por obra');
+    expect(onlineOrderRejectSchema.safeParse({ reasonCode: 'NOPE', detail: '' }).success).toBe(
+      false,
+    );
+    const long = 'a'.repeat(ORDER_LIMITS.cancelReason - 10);
+    expect(
+      onlineOrderRejectSchema.safeParse({ reasonCode: 'OUT_OF_AREA', detail: long }).error?.issues,
+    ).toEqual([expect.objectContaining({ path: ['detail'], message: 'too_long' })]);
   });
 });

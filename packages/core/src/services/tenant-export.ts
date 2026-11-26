@@ -109,6 +109,7 @@ export async function exportTenantData(
       portalInvites,
       portalAccesses,
       careMessages,
+      orderMessages,
     ] = await Promise.all([
       tx.customer.findMany({ where, orderBy: { createdAt: 'asc' } }),
       tx.customerAddress.findMany({ where, orderBy: { createdAt: 'asc' } }),
@@ -173,6 +174,23 @@ export async function exportTenantData(
           photo: { select: { removedAt: true, deletedAt: true } },
         },
       }),
+      // M3: i messaggi con chi ha fatto un ordine online.
+      tx.orderMessage.findMany({
+        where,
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          orderId: true,
+          authorKind: true,
+          body: true,
+          photoKey: true,
+          photoRemovedAt: true,
+          photoDeletedAt: true,
+          readByShopAt: true,
+          createdAt: true,
+          author: { select: { name: true } },
+        },
+      }),
     ]);
     return {
       customers,
@@ -199,6 +217,7 @@ export async function exportTenantData(
       portalInvites,
       portalAccesses,
       careMessages,
+      orderMessages,
     };
   });
 
@@ -241,6 +260,7 @@ export async function exportTenantData(
     | { readonly kind: 'invite'; readonly row: (typeof data.portalInvites)[number] }
     | { readonly kind: 'access'; readonly row: (typeof data.portalAccesses)[number] };
   type CareMessageRow = (typeof data.careMessages)[number];
+  type OrderMessageRow = (typeof data.orderMessages)[number];
 
   const sections: Section[] = [
     section<Customer>(
@@ -445,10 +465,10 @@ export async function exportTenantData(
         { header: 'Pedido', value: (r) => orderNumber.get(r.orderId) },
         { header: 'Tipo', value: (r) => LABELS.paymentKind[r.kind] },
         { header: 'Forma de pago', value: (r) => LABELS.method[r.method] },
-        // Le anulaciones restano il pagamento che annullano: importo negativo.
+        // Le anulaciones restano il pagamento che annullano: nel database sono già negative.
         {
           header: 'Importe',
-          value: (r) => money(r.kind === 'REVERSAL' ? -r.amountMinor : r.amountMinor),
+          value: (r) => money(r.amountMinor),
           numeric: true,
         },
         { header: 'Fecha', value: (r) => day(r.paidOn) },
@@ -743,6 +763,33 @@ export async function exportTenantData(
         { header: 'Leído por la florería', value: (r) => dateTime(r.readByShopAt) },
       ],
       data.careMessages,
+    ),
+    section<OrderMessageRow>(
+      'pedidos_mensajes.csv',
+      'mensajes entre la florería y quien hizo un pedido en línea (texto completo)',
+      [
+        { header: 'id', value: (r) => r.id },
+        { header: 'Fecha', value: (r) => dateTime(r.createdAt) },
+        { header: 'Pedido', value: (r) => orderNumber.get(r.orderId) },
+        { header: 'Escribió', value: (r) => LABELS.orderMessageAuthor[r.authorKind] },
+        {
+          header: 'Persona',
+          // Chi ha eliminato il conto resta senza nome (come in Floral Care).
+          value: (r) => r.author?.name ?? LABELS.careMessageDeletedAuthor,
+        },
+        { header: 'Mensaje', value: (r) => r.body },
+        {
+          header: 'Foto',
+          value: (r) =>
+            !r.photoKey
+              ? NO
+              : !r.photoRemovedAt && !r.photoDeletedAt
+                ? YES
+                : LABELS.careMessagePhotoGone,
+        },
+        { header: 'Leído por la florería', value: (r) => dateTime(r.readByShopAt) },
+      ],
+      data.orderMessages,
     ),
   ];
 

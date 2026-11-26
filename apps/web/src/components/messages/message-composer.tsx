@@ -5,28 +5,31 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useRef, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
-import { CARE_MESSAGE_LIMITS, PHOTO_LIMITS } from '@floral/domain';
+import { PHOTO_LIMITS } from '@floral/domain';
 import { prepareImageForUpload } from '@/components/photos/use-photo-upload';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/input';
 import type { ActionState } from '@/lib/action-state';
 
 /**
- * Il modulo di un messaggio (ADR-084), per la fioreria e per il portale: testo e al massimo una
- * foto, ridotta nel browser prima dell'invio (il server la ricodifica comunque). La chiave
- * dell'invio resta la stessa finché non va a buon fine: un doppio clic o un nuovo tentativo dopo
- * un errore di rete non scrivono due messaggi.
+ * Il modulo di un messaggio (Floral Care, ADR-084; ordini online, ADR-088), per la fioreria e per
+ * l'altra parte: testo e al massimo una foto, ridotta nel browser prima dell'invio (il server la
+ * ricodifica comunque). La chiave dell'invio resta la stessa finché non va a buon fine: un doppio
+ * clic o un nuovo tentativo dopo un errore di rete non scrivono due messaggi.
  */
 export function MessageComposer({
   id,
   action,
   maxSide,
+  maxLength,
 }: {
   readonly id: string;
   readonly action: (formData: FormData) => Promise<ActionState>;
   readonly maxSide: number;
+  /** Caratteri di un messaggio (le regole del dominio di ciascun filo). */
+  readonly maxLength: number;
 }) {
-  const t = useTranslations('care.messages.composer');
+  const t = useTranslations('thread.composer');
   const tValidation = useTranslations('validation');
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -92,7 +95,7 @@ export function MessageComposer({
         value={body}
         onChange={(event) => setBody(event.target.value)}
         placeholder={t('placeholder')}
-        maxLength={CARE_MESSAGE_LIMITS.body}
+        maxLength={maxLength}
         rows={3}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}

@@ -361,6 +361,26 @@ export function addToCart(
   return setCartLine(lines, itemId, current + add);
 }
 
+/**
+ * «Pedir de nuevo» (M3-1): aggiunge al carrello i prodotti di un ordine, sommando le quantità a
+ * quelle che ci sono già, con i limiti di sempre (20 prodotti, 50 pezzi). `skipped` conta i prodotti
+ * che non sono entrati perché il carrello era pieno.
+ */
+export function mergeIntoCart(
+  lines: readonly CartLine[],
+  add: readonly { readonly itemId: string; readonly quantity: number }[],
+): { readonly lines: CartLine[]; readonly skipped: number } {
+  let current: CartLine[] = [...lines];
+  let skipped = 0;
+  for (const item of add) {
+    if (!isUuid(item.itemId) || !Number.isFinite(item.quantity) || item.quantity < 1) continue;
+    const result = addToCart(current, item.itemId, Math.trunc(item.quantity));
+    if (result.full) skipped += 1;
+    current = result.lines;
+  }
+  return { lines: current, skipped };
+}
+
 // -----------------------------------------------------------------------------
 // Foto del prodotto
 // -----------------------------------------------------------------------------

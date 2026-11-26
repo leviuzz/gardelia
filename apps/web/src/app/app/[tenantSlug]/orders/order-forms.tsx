@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
+  ONLINE_REJECT_REASONS,
+  ONLINE_REJECT_REASON_TEXTS,
   ORDER_LIMITS,
   ORDER_PAYMENT_INPUT_KINDS,
   PAYMENT_METHODS,
@@ -16,6 +18,7 @@ import {
   type Coordinates,
   type DeliveryFeeTier,
   type FulfillmentMode,
+  type OnlineRejectReason,
   type OrderStatus,
   type SaleUnit,
 } from '@floral/domain';
@@ -130,6 +133,7 @@ export function FulfillmentForm({
   closedWeekdays,
   distance = null,
   customerNotice = null,
+  notifyBuyer = false,
 }: {
   readonly action: Action;
   readonly defaults: FulfillmentDefaults;
@@ -148,6 +152,11 @@ export function FulfillmentForm({
   readonly distance?: DistancePricing | null;
   /** Casella "Enviar la confirmación" (non nella modifica di un ordine già confermato). */
   readonly customerNotice?: CustomerNotice | null;
+  /**
+   * Ordine online accettato (M3): la casella «Avvisa il cliente per email», già spuntata; il
+   * servizio manda «Tu pedido cambió» solo se cambia qualcosa che chi compra vede.
+   */
+  readonly notifyBuyer?: boolean;
 }) {
   const t = useTranslations('orders');
   const [state, formAction] = useToastActionState(action);
@@ -488,6 +497,16 @@ export function FulfillmentForm({
 
       {customerNotice ? <CustomerNoticeField notice={customerNotice} /> : null}
 
+      {notifyBuyer ? (
+        <label className="flex items-start gap-2 text-sm">
+          <Checkbox name="notifyCustomer" defaultChecked className="mt-0.5" />
+          <span>
+            {t('form.notifyBuyer')}
+            <span className="block text-muted-foreground">{t('form.notifyBuyerHint')}</span>
+          </span>
+        </label>
+      ) : null}
+
       <div>
         <SubmitButton>{submitLabel}</SubmitButton>
       </div>
@@ -631,35 +650,27 @@ export function CancelOrderDialog({
   variant = 'cancel',
 }: {
   readonly action: Action;
-  readonly variant?: 'cancel' | 'online' | 'reject';
+  readonly variant?: 'cancel' | 'online';
 }) {
   const t = useTranslations('orders.detail');
   const to = useTranslations('orders.online');
   const tc = useTranslations('common');
-  const reject = variant === 'reject';
   const [open, setOpen] = useState(false);
   const [state, formAction] = useToastActionState(action, () => setOpen(false));
   const err = fieldError(state, 'reason');
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant={reject ? 'outline' : 'ghost'}
-          className="w-full text-destructive hover:text-destructive"
-        >
+        <Button variant="ghost" className="w-full text-destructive hover:text-destructive">
           <Ban />
-          {reject ? to('reject') : t('cancel')}
+          {t('cancel')}
         </Button>
       </DialogTrigger>
       <DialogContent closeLabel={tc('close')}>
         <DialogHeader>
-          <DialogTitle>{reject ? to('rejectTitle') : t('cancelTitle')}</DialogTitle>
+          <DialogTitle>{t('cancelTitle')}</DialogTitle>
           <DialogDescription>
-            {reject
-              ? to('rejectBody')
-              : variant === 'online'
-                ? `${t('cancelBody')} ${to('cancelNotice')}`
-                : t('cancelBody')}
+            {variant === 'online' ? `${t('cancelBody')} ${to('cancelNotice')}` : t('cancelBody')}
           </DialogDescription>
         </DialogHeader>
         <form action={formAction} onSubmit={preserveOnSubmit(formAction)} className="grid gap-4">
@@ -684,7 +695,95 @@ export function CancelOrderDialog({
               </Button>
             </DialogClose>
             <SubmitButton variant="destructive" className="w-full sm:w-auto">
-              {reject ? to('rejectConfirm') : t('cancelConfirm')}
+              {t('cancelConfirm')}
+            </SubmitButton>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * «Rifiuta» di un ordine online da accettare (M3): un motivo pronto (o «Altro motivo», con il
+ * testo obbligatorio) e un dettaglio facoltativo. Chi compra legge la frase nella lingua del
+ * mercato, più il dettaglio come l'ha scritto la fioreria; il registro tiene solo il tipo.
+ */
+export function RejectOnlineOrderDialog({ action }: { readonly action: Action }) {
+  const t = useTranslations('orders.online');
+  const tc = useTranslations('common');
+  const [open, setOpen] = useState(false);
+  const [state, formAction] = useToastActionState(action, () => setOpen(false));
+  const [reason, setReason] = useState<OnlineRejectReason>('NO_AVAILABILITY');
+  const detailErr = fieldError(state, 'detail');
+  const reasonErr = fieldError(state, 'reasonCode');
+  const other = reason === 'OTHER';
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="w-full text-destructive hover:text-destructive">
+          <Ban />
+          {t('reject')}
+        </Button>
+      </DialogTrigger>
+      <DialogContent closeLabel={tc('close')}>
+        <DialogHeader>
+          <DialogTitle>{t('rejectTitle')}</DialogTitle>
+          <DialogDescription>{t('rejectBody')}</DialogDescription>
+        </DialogHeader>
+        <form action={formAction} onSubmit={preserveOnSubmit(formAction)} className="grid gap-4">
+          <fieldset
+            className="space-y-2"
+            aria-describedby={reasonErr ? 'reject-reason-error' : undefined}
+          >
+            <legend className="mb-2 text-sm font-medium">{t('rejectReasonLegend')}</legend>
+            <div className="grid gap-2">
+              {ONLINE_REJECT_REASONS.map((code) => (
+                <RadioCard
+                  key={code}
+                  name="reasonCode"
+                  value={code}
+                  checked={reason === code}
+                  onChange={() => setReason(code)}
+                >
+                  <span className="block">{t(`rejectReasons.${code}`)}</span>
+                  {code === 'OTHER' ? null : (
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      {t('rejectBuyerReads', { text: ONLINE_REJECT_REASON_TEXTS[code] })}
+                    </span>
+                  )}
+                </RadioCard>
+              ))}
+            </div>
+            {reasonErr ? (
+              <p id="reject-reason-error" className="text-sm text-destructive">
+                {reasonErr}
+              </p>
+            ) : null}
+          </fieldset>
+          <Field
+            id="reject-detail"
+            label={other ? t('rejectOther') : t('rejectDetail')}
+            hint={t('rejectDetailHint')}
+            error={detailErr}
+            required={other}
+          >
+            <Textarea
+              {...controlProps('reject-detail', detailErr, true)}
+              name="detail"
+              maxLength={ORDER_LIMITS.cancelReason}
+              rows={3}
+              required={other}
+            />
+          </Field>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="ghost">
+                {tc('cancel')}
+              </Button>
+            </DialogClose>
+            <SubmitButton variant="destructive" className="w-full sm:w-auto">
+              {t('rejectConfirm')}
             </SubmitButton>
           </DialogFooter>
         </form>

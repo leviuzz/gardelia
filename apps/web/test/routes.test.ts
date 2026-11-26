@@ -91,6 +91,22 @@ describe('percorsi della fioreria (routes.ts)', () => {
     expect(routes.subscriptions.new()).toBe('/app/las-camelias/subscriptions/new');
     expect(routes.subscriptions.new('c1')).toBe('/app/las-camelias/subscriptions/new?customer=c1');
     expect(accountRoutes.care.thread('s1')).toBe('/cuenta/floral-care/s1#mensajes');
+    // Gli ordini online della persona (M3).
+    expect(accountRoutes.orders.list).toBe('/cuenta#pedidos');
+    expect(accountRoutes.orders.detail('o/1')).toBe('/cuenta/pedidos/o%2F1');
+    expect(accountRoutes.orders.thread('o1', { mensajes: 2 })).toBe(
+      '/cuenta/pedidos/o1?mensajes=2#mensajes',
+    );
+    expect(accountRoutes.orders.messagePhoto('o1', 'm1', { thumb: true })).toBe(
+      '/cuenta/pedidos/o1/mensajes/foto/m1?size=thumb',
+    );
+    expect(accountRoutes.orders.lineImage('o1', 'l1')).toBe('/cuenta/pedidos/o1/imagen/l1');
+    expect(accountRoutes.orders.photo('o1', { thumb: true, v: 'p1' })).toBe(
+      '/cuenta/pedidos/o1/foto?size=thumb&v=p1',
+    );
+    expect(accountRoutes.orders.logo('o1', 'g1')).toBe('/cuenta/pedidos/o1/logo?v=g1');
+    expect(isAccountPath(accountRoutes.orders.detail('o1'))).toBe(true);
+    expect(publicStoreRoutes('las-camelias').reorder).toBe('/f/las-camelias/pedido/repetir');
     // Asistente de plantas del cliente (ADR-085, blocco 6b).
     expect(accountRoutes.care.assistant('s1')).toBe('/cuenta/floral-care/s1/asistente');
     expect(accountRoutes.care.assistant('s1', { caso: 'c/1' })).toBe(
@@ -154,6 +170,14 @@ describe('percorsi della fioreria (routes.ts)', () => {
     expect(routes.orders.new()).toBe('/app/las-camelias/orders/new');
     expect(routes.orders.new({ customerId: 'c1', configurationId: null })).toBe(
       '/app/las-camelias/orders/new?customerId=c1',
+    );
+    // I messaggi di un ordine online (M3).
+    expect(routes.orders.thread('o1')).toBe('/app/las-camelias/orders/o1#mensajes');
+    expect(routes.orders.thread('o1', { mensajes: 2 })).toBe(
+      '/app/las-camelias/orders/o1?mensajes=2#mensajes',
+    );
+    expect(routes.orders.messagePhoto('o1', 'm/1', { thumb: true })).toBe(
+      '/app/las-camelias/orders/o1/messages/photos/m%2F1?size=thumb',
     );
   });
 

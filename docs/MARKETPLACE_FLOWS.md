@@ -349,6 +349,29 @@ Piano approvato il 25/11 (ADR-087), in due rilasci.
   - «Mis pedidos / Entrar» nella testata della vetrina.
   - L'E2E della pagina 2 della vetrina accende 25 prodotti insieme e poi li rispegne.
 
+## 6. M3, l'ordine tutto nell'app (M3-1 fatto il 26/11)
+
+Piano di dettaglio approvato il 26/11 (ADR-088), in tre rilasci: M3-1 «Messaggi e avvisi», M3-2
+«Cambi da confermare», M3-3 «Soldi e squadra».
+
+- **M3-1 «Messaggi e avvisi» (fatto sul ramo di lavoro):**
+  - chi compra: la pagina dell'ordine in «Mis pedidos» (`/cuenta/pedidos/<id>`) con i passi, la
+    consegna, la tarjeta, i prodotti, come pagare dopo l'accettazione, «Cancelar pedido» finché è da
+    accettare (con la scadenza) e «Pedir de nuevo» quando è chiuso; «N mensajes nuevos» sulle righe;
+    il link di stato resta da inoltrare, senza messaggi, con il rimando al conto;
+  - messaggi nei due sensi con una foto, «da leggere» e «nuovi», avviso per email al primo da
+    leggere e di nuovo dopo 6 ore, mai con il testo; si scrive fino a 7 giorni dopo la chiusura;
+  - email a «En preparación», «Listo» (solo ritiro), «En camino», «Entregado», una volta sola;
+    «Cambió tu pedido» con la casella in «Cambia consegna e biglietto» o con «Avvisa il cliente dei
+    cambi»;
+  - il fiorista: «Da gestire» in cima alla Home, numero su «Ordini» per gli ordini da accettare,
+    filtro «Con mensajes por leer», segni «En línea», scadenza visibile, «Rifiuta» con i motivi
+    pronti; email del nuovo ordine completa, promemoria prima dell'annullamento automatico ed email
+    alla fioreria quando succede;
+  - le foto dei messaggi si cancellano 30 giorni dopo la chiusura; i messaggi sono in «Descargar mis
+    datos» e nello ZIP della fioreria.
+- **M3-2 e M3-3:** da fare, con lo stesso piano (ADR-088).
+
 ## PROPOSTO (da confermare)
 
 - In Floral Care i «Servizi» (irrigazione, pulizia delle foglie…) si chiamano «Lavori della visita»,

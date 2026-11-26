@@ -3,8 +3,8 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * Segna come letto il filo dei messaggi DOPO che la pagina si è vista (ADR-084), mai durante il
- * render: una sola chiamata. L'azione non ricarica la pagina, così il separatore di ciò che era
+ * Segna come letto il filo dei messaggi DOPO che la pagina si è vista (ADR-084, ADR-088), mai
+ * durante il render: una sola chiamata. L'azione non ricarica la pagina, così il separatore di ciò che era
  * nuovo resta finché si legge.
  */
 export function MarkThreadRead({ action }: { readonly action: () => Promise<unknown> }) {

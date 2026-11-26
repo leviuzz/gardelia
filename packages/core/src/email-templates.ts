@@ -281,20 +281,31 @@ export function onlineOrderReceivedEmail(input: {
 export function newOnlineOrderEmail(input: {
   to: string;
   buyerName: string;
-  itemCount: number;
   facts: OnlineOrderEmailFacts;
-  acceptDays: number;
+  /** Le righe già scritte, es. "2 × Ramo Clásico 12 rosas". */
+  lines: readonly string[];
+  /** Colonia e città della consegna (mai l'indirizzo intero), o null per il ritiro. */
+  zone: string | null;
+  recipientName: string | null;
+  buyerNotes: string | null;
+  /** Fino a quando si può accettare, già scritto (es. "jueves 28 de noviembre, 20:15"). */
+  deadlineLabel: string;
   url: string;
 }): EmailMessage {
   const { facts } = input;
-  const items = input.itemCount === 1 ? '1 producto' : `${input.itemCount} productos`;
+  const details = [
+    `${input.buyerName} hizo el pedido ${facts.numberLabel} desde tu tienda en línea: ${modeLine(facts)}.`,
+    input.lines.map((line) => `• ${line}`).join('\n'),
+    ...(input.zone ? [`Entrega en ${input.zone}.`] : []),
+    ...(input.recipientName ? [`Recibe: ${input.recipientName}.`] : []),
+    ...(input.buyerNotes ? [`Comentarios del cliente: «${input.buyerNotes}»`] : []),
+    `Total: ${facts.totalLabel}.`,
+    `Acéptalo o recházalo antes del ${input.deadlineLabel}: si nadie responde, se cancela solo y le avisamos al cliente.`,
+  ];
   const body = plainAndHtml(
     'Hola:',
-    [
-      `${input.buyerName} hizo el pedido ${facts.numberLabel} desde tu tienda en línea: ${items}, ${modeLine(facts)}. Total: ${facts.totalLabel}.`,
-      `Acéptalo o recházalo en ${BRAND.productName}. Si nadie responde en ${input.acceptDays} días, se cancela solo y le avisamos al cliente.`,
-    ],
-    { label: 'Revisar el pedido', url: input.url },
+    details,
+    { label: 'Ver y aceptar', url: input.url },
     `Recibes este correo porque eres propietario/a o gerente de ${facts.shopName}.`,
     'Nuevo pedido en línea',
   );
@@ -466,6 +477,224 @@ export function onlineOrderWithdrawnEmail(input: {
     to: input.to,
     category: 'online_order_withdrawn',
     subject: `${input.buyerName} canceló el pedido ${facts.numberLabel}`,
+    ...body,
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Marketplace M3 (ADR-088): avvisi dei passi e dei cambi a chi compra, messaggi, promemoria
+// -----------------------------------------------------------------------------
+
+/** I passi dell'ordine che avvisano chi compra (`orderStepNotice` nel dominio). */
+export type OnlineOrderStep = 'preparing' | 'ready_pickup' | 'on_the_way' | 'delivered';
+
+const STEP_TEXTS: Readonly<
+  Record<
+    OnlineOrderStep,
+    { title: string; subject: (n: string) => string; body: (shop: string, n: string) => string }
+  >
+> = {
+  preparing: {
+    title: 'Estamos preparando tu pedido',
+    subject: (n) => `Estamos preparando tu pedido ${n}`,
+    body: (shop, n) => `${shop} ya está preparando tu pedido ${n}.`,
+  },
+  ready_pickup: {
+    title: 'Tu pedido está listo para recoger',
+    subject: (n) => `Tu pedido ${n} está listo para recoger`,
+    body: (shop, n) => `Tu pedido ${n} de ${shop} ya está listo para recoger.`,
+  },
+  on_the_way: {
+    title: 'Tu pedido va en camino',
+    subject: (n) => `Tu pedido ${n} va en camino`,
+    body: (shop, n) => `${shop} salió a entregar tu pedido ${n}.`,
+  },
+  delivered: {
+    title: 'Entregamos tu pedido',
+    subject: (n) => `Entregamos tu pedido ${n}`,
+    body: (shop, n) => `${shop} entregó tu pedido ${n}.`,
+  },
+};
+
+/** A chi compra, a un passo dell'ordine: in preparazione, pronto per il ritiro, in consegna, consegnato. */
+export function onlineOrderStepEmail(input: {
+  to: string;
+  name: string;
+  facts: OnlineOrderEmailFacts;
+  step: OnlineOrderStep;
+  /** Per il ritiro: dove e quando (già scritti). */
+  pickupAddress: string | null;
+  url: string;
+  replyTo: string | null;
+}): EmailMessage {
+  const { facts } = input;
+  const texts = STEP_TEXTS[input.step];
+  const paragraphs = [
+    texts.body(facts.shopName, facts.numberLabel),
+    ...(input.step === 'ready_pickup'
+      ? [
+          `Puedes recogerlo el ${facts.when}.`,
+          ...(input.pickupAddress ? [`Dirección: ${input.pickupAddress}`] : []),
+        ]
+      : []),
+    ...(input.step === 'delivered'
+      ? [
+          'En tu pedido puedes ver la foto de la entrega y quién lo recibió, cuando la florería los registre.',
+        ]
+      : []),
+  ];
+  const body = plainAndHtml(
+    `Hola ${input.name}:`,
+    paragraphs,
+    { label: 'Ver mi pedido', url: input.url },
+    `Recibiste este correo porque hiciste un pedido en ${BRAND.productName}.`,
+    texts.title,
+  );
+  return {
+    to: input.to,
+    category: 'online_order_step',
+    subject: texts.subject(facts.numberLabel),
+    fromName: facts.shopName,
+    ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+    ...body,
+  };
+}
+
+/** A chi compra, quando la fioreria cambia l'ordine e lo avvisa: com'è adesso. */
+export function onlineOrderChangedEmail(input: {
+  to: string;
+  name: string;
+  facts: OnlineOrderEmailFacts;
+  lines: readonly string[];
+  url: string;
+  replyTo: string | null;
+}): EmailMessage {
+  const { facts } = input;
+  const body = plainAndHtml(
+    `Hola ${input.name}:`,
+    [
+      `${facts.shopName} actualizó tu pedido ${facts.numberLabel}. Así queda: ${modeLine(facts)}.`,
+      input.lines.map((line) => `• ${line}`).join('\n'),
+      `Total: ${facts.totalLabel}.`,
+      'Si algo no está bien, escríbele a la florería desde tu pedido.',
+    ],
+    { label: 'Ver mi pedido', url: input.url },
+    `Recibiste este correo porque hiciste un pedido en ${BRAND.productName}.`,
+    'Tu pedido cambió',
+  );
+  return {
+    to: input.to,
+    category: 'online_order_changed',
+    subject: `Cambió tu pedido ${facts.numberLabel}`,
+    fromName: facts.shopName,
+    ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+    ...body,
+  };
+}
+
+/** A chi compra: la fioreria ha scritto sull'ordine. Mai il testo del messaggio. */
+export function orderMessageForBuyerEmail(input: {
+  to: string;
+  name: string;
+  shopName: string;
+  numberLabel: string;
+  url: string;
+  replyTo: string | null;
+}): EmailMessage {
+  const body = plainAndHtml(
+    `Hola ${input.name}:`,
+    [
+      `Tienes un mensaje nuevo de ${input.shopName} sobre tu pedido ${input.numberLabel}.`,
+      'Lo puedes leer y responder en tu cuenta.',
+    ],
+    { label: 'Ver el mensaje', url: input.url },
+    `Recibiste este correo porque hiciste un pedido en ${BRAND.productName}.`,
+    'Tienes un mensaje nuevo',
+  );
+  return {
+    to: input.to,
+    category: 'order_message_buyer',
+    subject: `${input.shopName} te escribió sobre tu pedido ${input.numberLabel}`,
+    fromName: input.shopName,
+    ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+    ...body,
+  };
+}
+
+/** A propietari e gerenti: chi ha fatto l'ordine ha scritto. Mai il testo del messaggio. */
+export function orderMessageForShopEmail(input: {
+  to: string;
+  buyerName: string;
+  shopName: string;
+  numberLabel: string;
+  url: string;
+}): EmailMessage {
+  const body = plainAndHtml(
+    'Hola:',
+    [
+      `${input.buyerName} te escribió sobre el pedido ${input.numberLabel}.`,
+      `Respóndele desde ${BRAND.productName}: el cliente lo lee en su cuenta.`,
+    ],
+    { label: 'Ver el mensaje', url: input.url },
+    `Recibes este correo porque eres propietario/a o gerente de ${input.shopName}.`,
+    'Mensaje de un cliente',
+  );
+  return {
+    to: input.to,
+    category: 'order_message_shop',
+    subject: `Mensaje del cliente sobre el pedido ${input.numberLabel}`,
+    ...body,
+  };
+}
+
+/** A propietari e gerenti: un ordine online da accettare scade prima del prossimo giro. */
+export function pendingOrderReminderEmail(input: {
+  to: string;
+  buyerName: string;
+  facts: OnlineOrderEmailFacts;
+  deadlineLabel: string;
+  url: string;
+}): EmailMessage {
+  const { facts } = input;
+  const body = plainAndHtml(
+    'Hola:',
+    [
+      `${input.buyerName} hizo el pedido ${facts.numberLabel} (${modeLine(facts)}) y todavía nadie lo aceptó.`,
+      `Si no lo aceptas o rechazas antes del ${input.deadlineLabel}, se cancela solo y le avisamos al cliente.`,
+    ],
+    { label: 'Ver y aceptar', url: input.url },
+    `Recibes este correo porque eres propietario/a o gerente de ${facts.shopName}.`,
+    'Un pedido está por cancelarse',
+  );
+  return {
+    to: input.to,
+    category: 'online_order_reminder',
+    subject: `El pedido ${facts.numberLabel} se cancela pronto`,
+    ...body,
+  };
+}
+
+/** A propietari e gerenti: un ordine online si è annullato da solo perché nessuno l'ha accettato. */
+export function onlineOrderExpiredShopEmail(input: {
+  to: string;
+  buyerName: string;
+  facts: OnlineOrderEmailFacts;
+  url: string;
+}): EmailMessage {
+  const { facts } = input;
+  const body = plainAndHtml(
+    'Hola:',
+    [
+      `Nadie aceptó a tiempo el pedido ${facts.numberLabel} de ${input.buyerName} (${modeLine(facts)}): se canceló solo y le avisamos al cliente.`,
+    ],
+    { label: 'Ver el pedido', url: input.url },
+    `Recibes este correo porque eres propietario/a o gerente de ${facts.shopName}.`,
+    'Pedido cancelado sin respuesta',
+  );
+  return {
+    to: input.to,
+    category: 'online_order_expired_shop',
+    subject: `Se canceló el pedido ${facts.numberLabel}`,
     ...body,
   };
 }

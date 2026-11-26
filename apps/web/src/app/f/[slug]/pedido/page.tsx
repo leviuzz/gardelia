@@ -1,4 +1,4 @@
-import { ArrowLeft, Hourglass, Info } from 'lucide-react';
+import { ArrowLeft, Hourglass, Info, RotateCcw } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
@@ -22,6 +22,12 @@ export const metadata: Metadata = {
 };
 
 const REGIONS = MX_REGIONS.map(({ code, name }) => ({ code, name }));
+
+/** Un conteggio dall'indirizzo (`?omitidos=2`): solo interi piccoli, altrimenti 0. */
+function smallCount(value: string | string[] | undefined): number {
+  const text = typeof value === 'string' ? value : '';
+  return /^\d{1,2}$/.test(text) ? Number(text) : 0;
+}
 
 /**
  * "Hacer pedido" nella tienda en línea (marketplace, blocco C4, ADR-067). Serve l'accesso: chi non
@@ -95,6 +101,21 @@ export default async function CheckoutPage({
       ) : (
         // I componenti del modulo parlano la lingua della fioreria, come la pagina.
         <NextIntlClientProvider locale={locale} messages={await getMessages({ locale })}>
+          {/* «Pedir de nuevo» dal conto (M3): i prodotti dell'ordine sono nel carrello. */}
+          {query.repetido === '1' ? (
+            <Alert variant="success" className="mt-6 max-w-3xl" data-testid="cart-reordered">
+              <RotateCcw aria-hidden="true" />
+              <AlertDescription className="space-y-1">
+                <p>{t('reorder.added')}</p>
+                {smallCount(query.omitidos) > 0 ? (
+                  <p>{t('reorder.skipped', { count: smallCount(query.omitidos) })}</p>
+                ) : null}
+                {smallCount(query.llenos) > 0 ? (
+                  <p>{t('reorder.full', { count: smallCount(query.llenos) })}</p>
+                ) : null}
+              </AlertDescription>
+            </Alert>
+          ) : null}
           {form.cart.dropped > 0 ? (
             <Alert variant="info" className="mt-6 max-w-3xl" data-testid="cart-dropped">
               <Info aria-hidden="true" />

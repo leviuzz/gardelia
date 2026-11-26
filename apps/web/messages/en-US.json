@@ -66,7 +66,8 @@
     "tenant_deletion_name_mismatch": "The name doesn’t match the shop’s name.",
     "opening_hours_overlap": "This range overlaps another one on the same day: merge them into one.",
     "substitute_required": "Choose the flower to use instead.",
-    "substitution_customer_required": "Confirm the customer agreed to the change."
+    "substitution_customer_required": "Confirm the customer agreed to the change.",
+    "order_message_empty": "Write a message or add a photo."
   },
   "errors": {
     "validation": "Check the highlighted fields.",
@@ -134,7 +135,11 @@
       "order_free_delivery_unconfirmed": "Delivery is $0: confirm it’s free or change it before accepting.",
       "store_featured_limit": "You can feature up to 8 products: remove the star from another one first.",
       "store_featured_not_online": "Only a product shown in your online shop can be featured.",
-      "store_online_limit": "Your online shop already has 500 products: remove some before adding another."
+      "store_online_limit": "Your online shop already has 500 products: remove some before adding another.",
+      "order_message_closed": "This order closed more than 7 days ago: the messages stay available to read.",
+      "order_message_daily_limit": "You've reached today's message limit on this order. If it's urgent, call the shop.",
+      "order_not_reorderable": "This order can't be repeated.",
+      "order_not_notifiable": "There's no one to notify: only accepted, open online orders."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -380,7 +385,8 @@
       "cancelTitle": "Cancel order {number}?",
       "cancelBody": "{shop} hasn’t accepted it yet: it’s cancelled and you don’t pay anything. We’ll let the shop know.",
       "cancelConfirm": "Yes, cancel the order",
-      "cancelled": "Order cancelled."
+      "cancelled": "Order cancelled.",
+      "newMessages": "{count, plural, one {# new message} other {# new messages}}"
     },
     "privacy": {
       "title": "Your data and privacy",
@@ -511,6 +517,27 @@
         "closed": "The service has ended: you can read the messages, but not send new ones."
       },
       "unread": "{count, plural, one {# new message} other {# new messages}}"
+    },
+    "orderPage": {
+      "metaTitle": "Your order",
+      "title": "Order {number}",
+      "waiting": "{shop} hasn't accepted your order yet. If they don't reply by {date}, it cancels itself and we let you know by email.",
+      "waitingNoDate": "{shop} hasn't accepted your order yet.",
+      "reorder": "Order again",
+      "reorderBody": "We put the same products in a new order to {shop}: you can change everything before sending it.",
+      "reorderUnavailable": "This order can't be repeated: the shop doesn't take online orders now, or the order is still open.",
+      "trackingHint": "So someone else can see how the order is going (without your messages), share its tracking link.",
+      "trackingLink": "Open the link",
+      "messages": {
+        "title": "Messages with {shop}",
+        "subtitle": "Ask or tell them whatever you need: the shop gets an email notice.",
+        "empty": "No messages yet.",
+        "older": "See earlier messages",
+        "newDivider": "New",
+        "you": "You",
+        "closed": "7 days have passed since the order closed: the messages stay available to read.",
+        "sent": "Message sent"
+      }
     }
   },
   "store": {
@@ -834,7 +861,8 @@
     "orders": "Orders",
     "agenda": "Schedule",
     "care": "Floral Care",
-    "reports": "Reports"
+    "reports": "Reports",
+    "ordersPending": "{count, plural, one {# online order to accept} other {# online orders to accept}}"
   },
   "roles": {
     "OWNER": "Owner",
@@ -874,7 +902,17 @@
     "contactNow": "Contact",
     "statOpenQuotes": "Open quotes",
     "openQuotesDetail": "{drafts} in draft · {sent} sent",
-    "viewCalendar": "View calendar"
+    "viewCalendar": "View calendar",
+    "todo": {
+      "title": "To handle",
+      "pending": "{count, plural, one {# online order to accept} other {# online orders to accept}}",
+      "pendingDeadline": "The first one cancels itself on {date}.",
+      "pendingLink": "Review",
+      "orderMessages": "{unread, plural, one {# message to read} other {# messages to read}} in {orders, plural, one {# order} other {# orders}}",
+      "orderMessagesLink": "See orders",
+      "careMessages": "{unread, plural, one {# Floral Care message} other {# Floral Care messages}} to read in {threads, plural, one {# contract} other {# contracts}}",
+      "careMessagesLink": "See messages"
+    }
   },
   "activity": {
     "someone": "Someone",
@@ -985,7 +1023,9 @@
       "accepted": "{actor} accepted online order {number}",
       "expired": "Online order {number} was cancelled because nobody accepted it in time",
       "cancelled_by_buyer": "{actor} cancelled their order {number}",
-      "ingredient_substituted": "{actor} replaced {name} with {ingredient} in {number}"
+      "ingredient_substituted": "{actor} replaced {name} with {ingredient} in {number}",
+      "message_photo_removed": "{actor} removed the photo of a message on {number}",
+      "customer_notified": "{actor} told the customer about the changes to {number}"
     },
     "delivery_settings": {
       "updated": "{actor} changed the delivery settings"
@@ -2019,7 +2059,9 @@
       "notifyCustomer": "Send the order confirmation to {email}",
       "notifyCustomerHint": "They get the order summary and a link to follow it.",
       "notifyCustomerNoEmail": "The customer has no email: you can share the order link on WhatsApp.",
-      "notifyCustomerDemo": "Demo shop: the confirmation isn’t sent by email."
+      "notifyCustomerDemo": "Demo shop: the confirmation isn’t sent by email.",
+      "notifyBuyer": "Email the customer",
+      "notifyBuyerHint": "Only if something the customer sees changes: day, time window, address, recipient, card or delivery fee. We send them the order as it is now."
     },
     "whatsapp": {
       "greeting": "Hi {name}, we confirm your order {number} from {shop}.",
@@ -2186,7 +2228,7 @@
       "accept": "Accept order",
       "reject": "Decline",
       "rejectTitle": "Decline the order",
-      "rejectBody": "We email the customer this reason, so explain it kindly (for example, if you have no flowers for that date).",
+      "rejectBody": "We write to the customer with the reason you choose. If you like, add a kind detail (for example another day that works for you).",
       "rejectReason": "Reason (the customer will see it)",
       "rejectConfirm": "Decline order",
       "cancelNotice": "The customer placed this order online: we will email them the reason.",
@@ -2196,7 +2238,20 @@
       "contact": "Customer:",
       "freeDeliveryTitle": "Free delivery?",
       "freeDeliveryBody": "This order’s delivery fee is $0. If it has a cost, cancel and change it in “Change delivery and card” before accepting. If it’s free, accept it as is: the customer gets the total with free delivery.",
-      "freeDeliveryConfirm": "Accept with free delivery"
+      "freeDeliveryConfirm": "Accept with free delivery",
+      "deadline": "If you don't accept or decline it by {date}, it cancels itself and we tell the customer.",
+      "deadlineShort": "Cancels itself on {date}",
+      "rejectReasonLegend": "Why are you declining it?",
+      "rejectReasons": {
+        "NO_AVAILABILITY": "We're not available that day",
+        "OUT_OF_AREA": "We don't deliver to that address",
+        "OUT_OF_STOCK": "A product ran out",
+        "OTHER": "Other reason"
+      },
+      "rejectBuyerReads": "The customer reads: “{text}”",
+      "rejectDetail": "Details (optional)",
+      "rejectOther": "Reason",
+      "rejectDetailHint": "The customer reads it exactly as you write it."
     },
     "inventory": {
       "title": "Inventory",
@@ -2239,6 +2294,28 @@
       "askManager": "Ask whoever manages the shop to make the change.",
       "done": "Flower changed in the bouquet",
       "whatsapp": "Hi {name}, about your order {number} ({bouquet}): we ran out of {from}. Would {to} work for you instead? The price stays the same."
+    },
+    "messages": {
+      "title": "Messages with {name}",
+      "titleNoName": "Order messages",
+      "subtitle": "What your shop and the person who placed the online order write. The whole team reads it; the customer gets an email notice, without the text.",
+      "empty": "No messages yet. If you need to ask the customer something, write here.",
+      "older": "See earlier messages",
+      "unreadDivider": "Unread",
+      "deletedAccount": "Deleted account",
+      "closed": "7 days have passed since the order closed: the messages stay available to read.",
+      "closedNoAccount": "The person who placed the order deleted their account: the messages stay available to read.",
+      "sent": "Message sent",
+      "photoRemoved": "Photo removed",
+      "unreadBadge": "{count, plural, one {# unread message} other {# unread messages}}",
+      "filter": "With unread messages ({count})"
+    },
+    "notify": {
+      "button": "Tell the customer about the changes",
+      "title": "Tell the customer?",
+      "body": "We email {name} the order as it is now: products, delivery and total. Use it when you have finished making changes.",
+      "confirm": "Send notice",
+      "sent": "We emailed the customer."
     }
   },
   "plans": {
@@ -2800,7 +2877,9 @@
       "howToPay": "How to pay",
       "payWith": "The shop accepts: {methods}.",
       "payAsk": "Ask the shop how to pay.",
-      "payDirect": "You pay the shop directly: Gardelia doesn’t receive your money."
+      "payDirect": "You pay the shop directly: Gardelia doesn’t receive your money.",
+      "writeFromAccount": "Did you place this order? Write to {shop} from your account.",
+      "openAccount": "Go to My orders"
     }
   },
   "shareLink": {
@@ -3396,7 +3475,12 @@
     "filterProducts": "Find a product",
     "noProductMatch": "No product with that name.",
     "cartDropped": "{count, plural, one {We removed # product from your order because it is no longer available.} other {We removed # products from your order because they are no longer available.}}",
-    "noDates": "For now the shop has no days available for online orders. Message them on WhatsApp."
+    "noDates": "For now the shop has no days available for online orders. Message them on WhatsApp.",
+    "reorder": {
+      "added": "We added the products from your previous order: check the quantities and choose the delivery.",
+      "skipped": "{count, plural, one {# product from that order can't be ordered online (a design or a special item).} other {# products from that order can't be ordered online (designs or special items).}}",
+      "full": "{count, plural, one {# product didn't fit in the order: the limit is 20 products.} other {# products didn't fit in the order: the limit is 20 products.}}"
+    }
   },
   "legal": {
     "linksLabel": "Legal documents",
@@ -4679,24 +4763,8 @@
       "customer": "Customer",
       "deletedAccount": "Deleted account",
       "you": "You",
-      "photoAlt": "Message photo",
-      "photoGone": "The photo is no longer available.",
-      "removePhoto": "Remove photo",
-      "removePhotoTitle": "Remove the photo?",
-      "removePhotoBody": "The photo is deleted for everyone, the customer included. The message text stays.",
       "photoRemoved": "Photo removed",
       "sent": "Message sent",
-      "composer": {
-        "label": "Message",
-        "placeholder": "Write a message…",
-        "addPhoto": "Add photo",
-        "photoChosen": "Photo: {name}",
-        "removeChosen": "Remove the chosen photo",
-        "send": "Send",
-        "hint": "Up to 2,000 characters and one photo.",
-        "empty": "Write a message or add a photo.",
-        "networkError": "It couldn’t be sent. Check your connection and try again."
-      },
       "list": {
         "title": "Messages",
         "subtitle": "Messages from your Floral Care customers, unread first.",
@@ -4711,11 +4779,6 @@
         "emptyTitle": "No messages",
         "photoOnly": "Sent a photo"
       }
-    },
-    "messagesCard": {
-      "title": "Unread messages",
-      "body": "{unread, plural, one {# message} other {# messages}} from Floral Care customers on {threads, plural, one {# contract} other {# contracts}}.",
-      "link": "See messages"
     },
     "assistant": {
       "settings": {
@@ -5090,5 +5153,23 @@
     "GRADUATION": "Graduation",
     "THANK_YOU": "Thank you",
     "GET_WELL": "Get well soon"
+  },
+  "thread": {
+    "photoAlt": "Message photo",
+    "photoGone": "The photo is no longer available.",
+    "removePhoto": "Remove photo",
+    "removePhotoTitle": "Remove the photo?",
+    "removePhotoBody": "The photo is deleted for everyone, the customer included. The message text stays.",
+    "composer": {
+      "label": "Message",
+      "placeholder": "Write a message…",
+      "addPhoto": "Add photo",
+      "photoChosen": "Photo: {name}",
+      "removeChosen": "Remove the chosen photo",
+      "send": "Send",
+      "hint": "Up to 2,000 characters and one photo.",
+      "empty": "Write a message or add a photo.",
+      "networkError": "It couldn’t be sent. Check your connection and try again."
+    }
   }
 }

@@ -57,6 +57,11 @@ export const PERMISSIONS = {
   /** Registrare e stornare i pagamenti ricevuti (D-26: registrati a mano). */
   'orders:payments': MANAGEMENT,
   /**
+   * Leggere e scrivere i messaggi con chi ha fatto un ordine online (M3, ADR-088): tutta la squadra,
+   * staff compreso, come i messaggi di Floral Care.
+   */
+  'orders:messages': ALL,
+  /**
    * Vedere giacenze, avvisi e movimenti dell'inventario (ADR-060). I costi solo con
    * `catalog:costs:read`: lo staff vede le quantità, mai i costi.
    */
