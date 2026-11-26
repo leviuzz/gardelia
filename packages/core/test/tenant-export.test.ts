@@ -221,6 +221,7 @@ describe('esportazione dei dati della fioreria', () => {
         'pagos.csv',
         'pedidos.csv',
         'pedidos_conceptos.csv',
+        'pedidos_mensajes.csv',
         'proveedores.csv',
         'recetas.csv',
       ].sort(),

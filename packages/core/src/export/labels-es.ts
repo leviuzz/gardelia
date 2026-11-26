@@ -215,6 +215,8 @@ export const LABELS = {
     SHOP: 'Florería',
   } satisfies Record<CareMessageAuthor, string>,
   careMessageDeletedAuthor: 'Cuenta eliminada',
+  /** Messaggi degli ordini online (M3). */
+  orderMessageAuthor: { BUYER: 'Cliente', SHOP: 'Florería' },
   careMessagePhotoGone: 'quitada',
   carePaymentKind: {
     PAYMENT: 'Pago',

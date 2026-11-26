@@ -411,6 +411,8 @@ export const orderListFiltersSchema = z.object({
   status: z.preprocess(toTrimmedString, z.enum(ORDER_STATUSES).nullable().catch(null)),
   when: z.preprocess(toTrimmedString, z.enum(ORDER_WHEN_FILTERS).catch('upcoming')),
   unpaid: z.preprocess((value) => value === '1' || value === 'true', z.boolean()),
+  /** «Con messaggi da leggere» (M3): ordini online con messaggi di chi compra non ancora letti. */
+  messages: z.preprocess((value) => value === 'unread', z.boolean()),
   page: z.preprocess(
     (value) => (typeof value === 'string' ? Number(value) : value),
     z.int().min(1).max(10_000).catch(1),

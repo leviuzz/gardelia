@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { disconnectDb, getDb, withSystemContext } from '@floral/db';
+import { disconnectDb, getDb, withSystemContext, withTenantContext } from '@floral/db';
 import { createTestUser } from '@floral/db/testing';
 import { todayInTimeZone } from '@floral/domain';
 import {
@@ -223,6 +223,30 @@ describe('cancellazione definitiva (manutenzione)', () => {
     await addCatalogItemPhoto(shop.owner, rose.id, await jpeg(), {});
     const prefix = `tenants/${shop.owner.tenantId}/`;
     expect([...storage.objects.keys()].some((key) => key.startsWith(prefix))).toBe(true);
+    // M3: la foto di un messaggio di un ordine va via con la fioreria.
+    const orderId = await confirmedOrder(shop);
+    await cancelOrder(shop.owner, orderId, { reason: 'Prueba de eliminación' });
+    const messageKeys = [
+      `${prefix}order-messages/${orderId}-foto.jpg`,
+      `${prefix}order-messages/${orderId}-foto-thumb.jpg`,
+    ];
+    for (const key of messageKeys) await storage.put(key, await jpeg());
+    await withTenantContext(db, shop.owner, (tx) =>
+      tx.orderMessage.create({
+        data: {
+          tenantId: shop.owner.tenantId,
+          orderId,
+          authorKind: 'SHOP',
+          authorUserId: shop.owner.userId,
+          body: '',
+          photoKey: messageKeys[0]!,
+          photoThumbKey: messageKeys[1]!,
+          photoWidth: 900,
+          photoHeight: 900,
+          submitKey: crypto.randomUUID(),
+        },
+      }),
+    );
 
     await requestTenantDeletion(shop.owner, { confirmName: 'Florería Que Se Va' }, null);
     // Prima della data non si tocca nulla.
@@ -233,6 +257,7 @@ describe('cancellazione definitiva (manutenzione)', () => {
     expect(await purgeDeletedTenants()).toBeGreaterThanOrEqual(1);
     expect(await tenantExists(shop.owner.tenantId)).toBe(false);
     expect([...storage.objects.keys()].some((key) => key.startsWith(prefix))).toBe(false);
+    expect(messageKeys.some((key) => storage.objects.has(key))).toBe(false);
     const event = await withSystemContext(db, { reason: 'test: evento' }, (tx) =>
       tx.auditLog.findFirst({
         where: { tenantId: null, action: 'platform.tenant_purged', entityId: shop.owner.tenantId },

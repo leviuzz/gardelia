@@ -40,6 +40,11 @@ import {
   orderCancelSchema,
   onlineOrderAcceptSchema,
   onlineOrderNeedsFreeDeliveryConfirmation,
+  onlineOrderRejectSchema,
+  onlineRejectReasonText,
+  orderStepNotice,
+  pendingOrderDeadline,
+  checkboxField,
   orderConfirmationNoticeSchema,
   orderDiscountSchema,
   orderFulfillmentSchema,
@@ -78,6 +83,7 @@ import {
   sendOrderMails,
   type OrderMailDeps,
 } from '../order-mail';
+import { claimOnceNoticeTx } from '../order-message-internals';
 import { requireEntitlement } from './billing';
 import { consumeStockTx } from './inventory';
 import { consumeReservationTx, releaseReservationTx } from './inventory-reservations';
@@ -128,6 +134,10 @@ export interface OrderSummaryDto {
   readonly paymentStatus: OrderPaymentStatus;
   readonly currency: string;
   readonly createdAt: Date;
+  /** Fatto da chi compra dalla tienda en línea (segno «Online», M3). */
+  readonly placedOnline: boolean;
+  /** Messaggi di chi compra ancora da leggere (M3); 0 per gli ordini del banco. */
+  readonly unreadMessages: number;
 }
 
 export interface OrderRecipeLineSnapshot {
@@ -237,6 +247,13 @@ export interface OrderDetailDto extends OrderSummaryDto {
   readonly buyerNotes: string | null;
   readonly cancelReason: string | null;
   readonly statusChangedAt: Date;
+  /** Ordine online da accettare: fino a quando, poi si annulla da solo (M3). */
+  readonly onlineDeadline: Date | null;
+  /**
+   * «Avvisa il cliente dei cambi» (M3): ordine online accettato e non ancora chiuso, con chi l'ha
+   * fatto che ha ancora il conto, e chi guarda lo può cambiare.
+   */
+  readonly canNotifyCustomer: boolean;
   readonly lines: readonly OrderLineDto[];
   readonly payments: readonly OrderPaymentDto[];
   readonly events: readonly OrderEventDto[];
@@ -277,7 +294,7 @@ function dateString(date: Date): string {
   return formatDateParts(dateToParts(date)) ?? '';
 }
 
-function toSummary(order: OrderWithCustomer): OrderSummaryDto {
+function toSummary(order: OrderWithCustomer, unreadMessages = 0): OrderSummaryDto {
   return {
     id: order.id,
     number: order.number,
@@ -296,7 +313,24 @@ function toSummary(order: OrderWithCustomer): OrderSummaryDto {
     paymentStatus: order.paymentStatus,
     currency: order.currency,
     createdAt: order.createdAt,
+    placedOnline: order.placedOnline,
+    unreadMessages,
   };
+}
+
+/** Quanti messaggi di chi compra restano da leggere, per ordine (solo quelli con almeno uno). */
+async function unreadByOrderTx(
+  tx: TransactionClient,
+  tenantId: string,
+  orderIds: readonly string[],
+): Promise<Map<string, number>> {
+  if (orderIds.length === 0) return new Map();
+  const rows = await tx.orderMessage.groupBy({
+    by: ['orderId'],
+    where: { tenantId, orderId: { in: [...orderIds] }, authorKind: 'BUYER', readByShopAt: null },
+    _count: { _all: true },
+  });
+  return new Map(rows.map((row) => [row.orderId, row._count._all]));
 }
 
 interface LineSnapshot {
@@ -323,6 +357,9 @@ export interface OrderListResult {
   readonly canWrite: boolean;
   /** Ordini online in attesa di risposta, con qualsiasi filtro (per l'avviso in cima). */
   readonly pendingCount: number;
+  /** Ordini con messaggi di chi compra da leggere (filtro «Con messaggi da leggere», M3). */
+  readonly unreadOrdersCount: number;
+  readonly messagesFilter: boolean;
 }
 
 function whenWhere(when: OrderWhenFilter, today: DateParts): Prisma.OrderWhereInput {
@@ -364,6 +401,7 @@ export async function listOrders(
       filters.unpaid
         ? { paymentStatus: { in: ['UNPAID', 'PARTIAL'] }, status: { not: 'CANCELLED' } }
         : {},
+      filters.messages ? { messages: { some: { authorKind: 'BUYER', readByShopAt: null } } } : {},
       filters.q
         ? {
             OR: [
@@ -389,9 +427,15 @@ export async function listOrders(
             { number: 'asc' },
           ];
   return withTenantContext(getDb(), ctx, async (tx) => {
-    const [total, pendingCount] = await Promise.all([
+    const [total, pendingCount, unreadOrdersCount] = await Promise.all([
       tx.order.count({ where }),
       tx.order.count({ where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE' } }),
+      tx.order.count({
+        where: {
+          tenantId: ctx.tenantId,
+          messages: { some: { authorKind: 'BUYER', readByShopAt: null } },
+        },
+      }),
     ]);
     const pageCount = Math.max(1, Math.ceil(total / ORDER_PAGE_SIZE));
     const page = Math.min(filters.page, pageCount);
@@ -402,14 +446,21 @@ export async function listOrders(
       skip: (page - 1) * ORDER_PAGE_SIZE,
       take: ORDER_PAGE_SIZE,
     });
+    const unread = await unreadByOrderTx(
+      tx,
+      ctx.tenantId,
+      orders.filter((order) => order.placedOnline).map((order) => order.id),
+    );
     return {
-      items: orders.map(toSummary),
+      items: orders.map((order) => toSummary(order, unread.get(order.id) ?? 0)),
       total,
       page,
       pageCount,
       when: filters.when,
       canWrite: hasPermission(ctx, 'orders:write'),
       pendingCount,
+      unreadOrdersCount,
+      messagesFilter: filters.messages,
     };
   });
 }
@@ -435,7 +486,7 @@ export async function listCustomerOrders(
       orderBy: { number: 'desc' },
       take: 50,
     });
-    return orders.map(toSummary);
+    return orders.map((order) => toSummary(order));
   });
 }
 
@@ -450,6 +501,25 @@ export function allowedOrderSteps(
 ): OrderStatus[] {
   if (!hasPermission(ctx, 'orders:fulfill')) return [];
   return orderStepsFrom(status, mode).filter((to) => !isOrderAcceptance(status, to));
+}
+
+/** Stati di un ordine online accettato e non ancora consegnato: lì un cambio va detto a chi compra. */
+const NOTIFIABLE_STATUSES: readonly OrderStatus[] = [
+  'CONFIRMED',
+  'IN_PREPARATION',
+  'READY',
+  'OUT_FOR_DELIVERY',
+];
+
+/** «Avvisa il cliente dei cambi» vale per un ordine online accettato, non chiuso, di un conto attivo. */
+function customerCanBeNotified(order: {
+  readonly placedOnline: boolean;
+  readonly buyerUserId: string | null;
+  readonly status: OrderStatus;
+}): boolean {
+  return (
+    order.placedOnline && order.buyerUserId !== null && NOTIFIABLE_STATUSES.includes(order.status)
+  );
 }
 
 export async function getOrder(ctx: TenantContext, orderId: string): Promise<OrderDetailDto> {
@@ -566,6 +636,17 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
     buyerNotes: order.buyerNotes,
     cancelReason: order.cancelReason,
     statusChangedAt: order.statusChangedAt,
+    onlineDeadline:
+      order.placedOnline && order.status === 'PENDING_ACCEPTANCE'
+        ? pendingOrderDeadline(
+            {
+              createdAt: order.createdAt,
+              scheduledDate: order.scheduledDate ? dateToParts(order.scheduledDate) : null,
+            },
+            ctx.timezone,
+          )
+        : null,
+    canNotifyCustomer: canWrite && customerCanBeNotified(order),
     lines: lines.map((line) => {
       const snapshot = readSnapshot(line.snapshot);
       return {
@@ -964,19 +1045,49 @@ export async function createOrderFromQuote(
   return { id: result.id, number: result.number, customerNotified: result.message !== null };
 }
 
-/** Cambia consegna, destinatario, tarjeta e costo di consegna finché l'ordine non è uscito. */
+/** Campi della consegna che vede chi compra: se ne cambia uno, «Avvisa il cliente» ha senso. */
+const BUYER_VISIBLE_FULFILLMENT_FIELDS = [
+  'fulfillmentMode',
+  'scheduledDate',
+  'windowStartMinutes',
+  'windowEndMinutes',
+  'deliveryAddressLine1',
+  'deliveryAddressLine2',
+  'deliveryNeighborhood',
+  'deliveryCity',
+  'deliveryRegion',
+  'deliveryPostalCode',
+  'deliveryNotes',
+  'recipientName',
+  'recipientPhone',
+  'cardMessage',
+  'cardSignature',
+  'cardAnonymous',
+  'deliveryFeeMinor',
+  'totalMinor',
+] as const;
+
+/**
+ * Cambia consegna, destinatario, tarjeta e costo di consegna finché l'ordine non è uscito. Su un
+ * ordine online già accettato, con «Avvisa il cliente per email» (`notifyCustomer`) e un cambio che
+ * chi compra vede, parte una sola email «Tu pedido cambió» con il riepilogo nuovo (M3).
+ */
 export async function updateOrderFulfillment(
   ctx: TenantContext,
   orderId: string,
   rawInput: unknown,
+  mail: OrderMailDeps | null = null,
 ): Promise<void> {
   requirePermission(ctx, 'orders:write');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
   const input = parseFulfillment(ctx, rawInput);
+  const notifyCustomer =
+    checkboxField().safeParse((rawInput as Record<string, unknown> | null)?.notifyCustomer).data ===
+    true;
 
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await lockOrder(tx, ctx, orderId);
-    if (!order) return false;
+    if (!order) return null;
     if (!isOrderEditable(order.status)) throw new ConflictError('order_not_editable');
     const fulfillment = await resolveFulfillment(
       tx,
@@ -1013,6 +1124,12 @@ export async function updateOrderFulfillment(
     // vale fino a 30 giorni dopo la nuova consegna (M0).
     await syncOrderReservationTx(tx, ctx, order.id);
     await extendOrderPublicLinkTx(tx, ctx, order.id, changes.scheduledDate ?? null);
+    const visibleChange =
+      Object.keys(
+        diffFields(order, changes, [...BUYER_VISIBLE_FULFILLMENT_FIELDS] as (keyof typeof order &
+          keyof typeof changes)[]),
+      ).length > 0;
+    const notify = notifyCustomer && visibleChange && customerCanBeNotified(order);
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.orderUpdated,
       entityType: 'Order',
@@ -1028,11 +1145,45 @@ export async function updateOrderFulfillment(
           'deliveryFeeMinor',
           'totalMinor',
         ]),
+        ...(notify ? { customerNotified: true } : {}),
       } as unknown as Prisma.InputJsonValue,
     });
-    return true;
+    return {
+      message:
+        notify && mail ? await buyerOrderMail(tx, ctx.tenantId, order.id, 'changed', mail) : null,
+    };
   });
-  if (!found) await notFound(ctx, 'Order', orderId);
+  if (!found) return notFound(ctx, 'Order', orderId);
+  if (mail && found.message) await sendOrderMails(mail.mailer, [found.message]);
+}
+
+/**
+ * «Avvisa il cliente dei cambi» (M3): dopo aver cambiato prodotti o sconto di un ordine online
+ * accettato (una riga alla volta), un'email sola a chi l'ha fatto con il riepilogo di adesso.
+ */
+export async function notifyOrderCustomer(
+  ctx: TenantContext,
+  orderId: string,
+  mail: OrderMailDeps | null,
+): Promise<void> {
+  requirePermission(ctx, 'orders:write');
+  if (!isUuid(orderId)) throw new NotFoundError('Order');
+  const found = await withTenantContext(getDb(), ctx, async (tx) => {
+    const order = await lockOrder(tx, ctx, orderId);
+    if (!order) return null;
+    if (!customerCanBeNotified(order)) throw new ConflictError('order_not_notifiable');
+    await recordAudit(tx, ctx, {
+      action: AUDIT_ACTIONS.orderCustomerNotified,
+      entityType: 'Order',
+      entityId: order.id,
+      metadata: { number: formatOrderNumber(order.number) },
+    });
+    return {
+      message: mail ? await buyerOrderMail(tx, ctx.tenantId, order.id, 'changed', mail) : null,
+    };
+  });
+  if (!found) return notFound(ctx, 'Order', orderId);
+  if (mail && found.message) await sendOrderMails(mail.mailer, [found.message]);
 }
 
 /**
@@ -1044,7 +1195,7 @@ export async function changeOrderStatus(
   ctx: TenantContext,
   orderId: string,
   rawStatus: unknown,
-  options: { readonly confirmShortage?: boolean } = {},
+  options: { readonly confirmShortage?: boolean; readonly mail?: OrderMailDeps | null } = {},
 ): Promise<OrderStatus> {
   requirePermission(ctx, 'orders:read');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
@@ -1098,11 +1249,32 @@ export async function changeOrderStatus(
       entityId: order.id,
       metadata: { number: formatOrderNumber(order.number), from: order.status, to: target },
     });
-    return target;
+    // M3: a chi ha fatto l'ordine online un'email per il passo, solo la prima volta che ci arriva.
+    const step =
+      order.placedOnline && order.buyerUserId
+        ? orderStepNotice(target, order.fulfillmentMode)
+        : null;
+    const mail = options.mail ?? null;
+    const message =
+      step &&
+      mail &&
+      (await claimOnceNoticeTx(tx, { tenantId: ctx.tenantId, orderId: order.id, kind: step }))
+        ? await buyerOrderMail(tx, ctx.tenantId, order.id, STEP_MAIL_KINDS[step], mail)
+        : null;
+    return { status: target, message };
   });
   if (!result) return notFound(ctx, 'Order', orderId);
-  return result;
+  if (options.mail && result.message) await sendOrderMails(options.mail.mailer, [result.message]);
+  return result.status;
 }
+
+/** L'email di ogni passo che avvisa chi compra (`orderStepNotice`). */
+const STEP_MAIL_KINDS = {
+  STEP_IN_PREPARATION: 'step_preparing',
+  STEP_READY_PICKUP: 'step_ready_pickup',
+  STEP_OUT_FOR_DELIVERY: 'step_on_the_way',
+  STEP_DELIVERED: 'step_delivered',
+} as const;
 
 /**
  * Scarica i materiali dell'ordine (prodotti, ricette dei ramos, componenti dei disegni) con un registro
@@ -1159,9 +1331,20 @@ export async function cancelOrder(
 ): Promise<void> {
   requirePermission(ctx, 'orders:write');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
-  const parsed = orderCancelSchema.safeParse(rawInput);
-  if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
-  const { reason } = parsed.data;
+  // «Rifiuta» di un ordine online (M3): un motivo pronto e un dettaglio; altrimenti il motivo scritto.
+  const withCode = rawInput !== null && typeof rawInput === 'object' && 'reasonCode' in rawInput;
+  let reason: string;
+  let reasonCode: string | null = null;
+  if (withCode) {
+    const parsed = onlineOrderRejectSchema.safeParse(rawInput);
+    if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
+    reason = onlineRejectReasonText(parsed.data.reasonCode, parsed.data.detail);
+    reasonCode = parsed.data.reasonCode;
+  } else {
+    const parsed = orderCancelSchema.safeParse(rawInput);
+    if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
+    reason = parsed.data.reason;
+  }
 
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await lockOrder(tx, ctx, orderId);
@@ -1187,7 +1370,12 @@ export async function cancelOrder(
       action: AUDIT_ACTIONS.orderCancelled,
       entityType: 'Order',
       entityId: order.id,
-      metadata: { number: formatOrderNumber(order.number), from: order.status },
+      // Il tipo del motivo pronto (per i report di M8), mai il testo.
+      metadata: {
+        number: formatOrderNumber(order.number),
+        from: order.status,
+        ...(reasonCode ? { reasonCode } : {}),
+      },
     });
     const kind = order.status === 'PENDING_ACCEPTANCE' ? 'rejected' : 'cancelled';
     return { message: mail ? await buyerOrderMail(tx, ctx.tenantId, order.id, kind, mail) : null };

@@ -35,6 +35,8 @@ import {
   marketplaceOrderSchema,
   nextStoredPlace,
   orderPaymentStatus,
+  pendingOrderDeadline,
+  pendingOrderNeedsReminder,
   priceOrder,
   orderLinkExpiry,
   quoteDeliveryFee,
@@ -59,11 +61,15 @@ import { ConflictError, NotFoundError, ValidationError } from './errors';
 import { logger } from './logger';
 import {
   buyerOrderMail,
+  expiredOrderMailsForShop,
   newOrderMailsForShop,
+  pendingReminderMailsForShop,
   sendOrderMails,
   withdrawnOrderMailsForShop,
   type OrderMailDeps,
 } from './order-mail';
+import { withBuyerOrder } from './buyer-orders';
+import { claimOnceNoticeTx } from './order-message-internals';
 import { createPublicLinkToken, publicLinkUrl } from './public-links';
 import { onlineItemWhere, publishedTenantId } from './public-store';
 import { addBuyerAddress, type BuyerAddressDto, type BuyerContext } from './services/buyer-account';
@@ -640,13 +646,7 @@ export async function placeMarketplaceOrder(
 
       const mails = [
         await buyerOrderMail(tx, tenantId, order.id, 'received', deps),
-        ...(await newOrderMailsForShop(
-          tx,
-          tenantId,
-          order.id,
-          { buyerName: user.name, itemCount: lines.reduce((sum, line) => sum + line.quantity, 0) },
-          deps,
-        )),
+        ...(await newOrderMailsForShop(tx, tenantId, order.id, { buyerName: user.name }, deps)),
       ].filter((mail) => mail !== null);
       return {
         result: {
@@ -697,6 +697,8 @@ export interface BuyerOrderDto {
   readonly createdAt: Date;
   /** Pagina di tracciamento (`/pedido/<token>`), se il link è ancora attivo. */
   readonly trackingPath: string | null;
+  /** Messaggi della fioreria arrivati dopo l'ultima lettura (M3). */
+  readonly newMessages: number;
 }
 
 /**
@@ -727,6 +729,7 @@ export async function listBuyerOrders(
           currency: string;
           created_at: Date;
           link_id: string | null;
+          new_messages: number;
         }[]
       >`SELECT * FROM app_buyer_orders()`,
   );
@@ -751,14 +754,15 @@ export async function listBuyerOrders(
             createPublicLinkToken(secret, { tenantId: row.tenant_id, linkId: row.link_id }),
           )
         : null,
+      newMessages: row.new_messages,
     }));
 }
 
 /**
  * "Cancelar pedido" da "Mis pedidos": chi l'ha fatto annulla un ordine online ancora "Por aceptar".
- * L'ordine si cerca solo fra quelli della persona (`app_buyer_orders`, utente dal contesto: nessun
- * ID di fioreria dal browser); poi, nella fioreria, proprietario e stato si ricontrollano sotto
- * lock. Email di conferma a chi compra e avviso a proprietari e gerenti, dopo il commit.
+ * Passa dall'ingresso unico di chi compra (`withBuyerOrder`, M3): la fioreria solo per gli ordini
+ * della persona, la guardia sull'ordine, proprietario e stato ricontrollati sotto lock. Email di
+ * conferma a chi compra e avviso a proprietari e gerenti, dopo il commit.
  */
 export async function cancelMarketplaceOrder(
   buyer: BuyerContext,
@@ -767,63 +771,55 @@ export async function cancelMarketplaceOrder(
   options: { readonly request?: RequestMeta } = {},
 ): Promise<void> {
   assertBuyer(buyer);
-  if (!isUuid(orderId)) throw new NotFoundError('Order');
-  const owned = await withUserContext(
-    getDb(),
-    buyer.userId,
-    (tx) =>
-      tx.$queryRaw<{ tenant_id: string }[]>`
-      SELECT tenant_id FROM app_buyer_orders() WHERE order_id = ${orderId}::uuid AND shop_active`,
+  const { tenantId, mails } = await withBuyerOrder(
+    buyer,
+    orderId,
+    async (tx, { shop, order }) => {
+      // Accettato (o già chiuso): da qui in poi l'ordine lo cambia solo la fioreria.
+      if (order.status !== 'PENDING_ACCEPTANCE') throw new ConflictError('order_not_pending');
+      const tenantId = shop.tenantId;
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'CANCELLED',
+          statusChangedAt: new Date(),
+          cancelReason: MARKETPLACE_WITHDRAWN_REASON,
+        },
+      });
+      await tx.orderStatusEvent.create({
+        data: {
+          tenantId,
+          orderId: order.id,
+          fromStatus: order.status,
+          toStatus: 'CANCELLED',
+          note: MARKETPLACE_WITHDRAWN_REASON,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          tenantId,
+          actorUserId: buyer.userId,
+          action: AUDIT_ACTIONS.orderCancelledByBuyer,
+          entityType: 'Order',
+          entityId: order.id,
+          metadata: { number: formatOrderNumber(order.number) },
+          requestId: options.request?.requestId ?? null,
+          ipAddress: options.request?.ipAddress ?? null,
+        },
+      });
+      if (!deps) return { tenantId, mails: [] };
+      const user = await tx.user.findUnique({
+        where: { id: buyer.userId },
+        select: { name: true },
+      });
+      const mails = [
+        await buyerOrderMail(tx, tenantId, order.id, 'withdrawn', deps),
+        ...(await withdrawnOrderMailsForShop(tx, tenantId, order.id, user?.name ?? '', deps)),
+      ].filter((mail) => mail !== null);
+      return { tenantId, mails };
+    },
+    { lock: true },
   );
-  const tenantId = owned[0]?.tenant_id;
-  if (!tenantId) throw new NotFoundError('Order');
-
-  const mails = await withTenantContext(getDb(), { tenantId, userId: buyer.userId }, async (tx) => {
-    await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${orderId}::uuid
-        AND "tenantId" = ${tenantId}::uuid FOR UPDATE`;
-    const order = await tx.order.findFirst({ where: { tenantId, id: orderId } });
-    if (!order || order.buyerUserId !== buyer.userId) throw new NotFoundError('Order');
-    // Accettato (o già chiuso): da qui in poi l'ordine lo cambia solo la fioreria.
-    if (order.status !== 'PENDING_ACCEPTANCE') throw new ConflictError('order_not_pending');
-    await tx.order.update({
-      where: { id: order.id },
-      data: {
-        status: 'CANCELLED',
-        statusChangedAt: new Date(),
-        cancelReason: MARKETPLACE_WITHDRAWN_REASON,
-      },
-    });
-    await tx.orderStatusEvent.create({
-      data: {
-        tenantId,
-        orderId: order.id,
-        fromStatus: order.status,
-        toStatus: 'CANCELLED',
-        note: MARKETPLACE_WITHDRAWN_REASON,
-      },
-    });
-    await tx.auditLog.create({
-      data: {
-        tenantId,
-        actorUserId: buyer.userId,
-        action: AUDIT_ACTIONS.orderCancelledByBuyer,
-        entityType: 'Order',
-        entityId: order.id,
-        metadata: { number: formatOrderNumber(order.number) },
-        requestId: options.request?.requestId ?? null,
-        ipAddress: options.request?.ipAddress ?? null,
-      },
-    });
-    if (!deps) return [];
-    const user = await tx.user.findUnique({
-      where: { id: buyer.userId },
-      select: { name: true },
-    });
-    return [
-      await buyerOrderMail(tx, tenantId, order.id, 'withdrawn', deps),
-      ...(await withdrawnOrderMailsForShop(tx, tenantId, order.id, user?.name ?? '', deps)),
-    ].filter((mail) => mail !== null);
-  });
   logger.info({ tenantId, orderId }, 'ordine online annullato da chi compra');
   if (deps) await sendOrderMails(deps.mailer, mails);
 }
@@ -862,7 +858,7 @@ export async function expireUnacceptedOrders(deps: OrderMailDeps | null): Promis
               select: { timezone: true },
             }),
           ]);
-          if (!order || order.status !== 'PENDING_ACCEPTANCE') return { done: false, mail: null };
+          if (!order || order.status !== 'PENDING_ACCEPTANCE') return { done: false, mails: [] };
           const scheduledDate = order.scheduledDate ? dateToParts(order.scheduledDate) : null;
           if (
             !isPendingOrderExpired(
@@ -871,7 +867,7 @@ export async function expireUnacceptedOrders(deps: OrderMailDeps | null): Promis
               tenant.timezone,
             )
           ) {
-            return { done: false, mail: null };
+            return { done: false, mails: [] };
           }
           await tx.order.update({
             where: { id: order.id },
@@ -899,17 +895,92 @@ export async function expireUnacceptedOrders(deps: OrderMailDeps | null): Promis
               metadata: { number: formatOrderNumber(order.number) },
             },
           });
-          return {
-            done: true,
-            mail: deps ? await buyerOrderMail(tx, order.tenantId, order.id, 'expired', deps) : null,
-          };
+          const mails = deps
+            ? [
+                await buyerOrderMail(tx, order.tenantId, order.id, 'expired', deps),
+                // M3: lo sa anche la fioreria, non solo chi compra.
+                ...(await expiredOrderMailsForShop(tx, order.tenantId, order.id, deps)),
+              ].filter((message) => message !== null)
+            : [];
+          return { done: true, mails };
         },
       );
       if (mail.done) expired += 1;
-      if (deps && mail.mail) await sendOrderMails(deps.mailer, [mail.mail]);
+      if (deps && mail.mails.length > 0) await sendOrderMails(deps.mailer, mail.mails);
     } catch (error) {
       logger.error({ err: error, orderId: candidate.order_id }, 'ordine online non annullato');
     }
   }
   return expired;
+}
+
+/** Quanti promemoria si mandano in un giro (il resto al giro dopo). */
+const REMIND_BATCH = 200;
+
+/**
+ * Il promemoria alla fioreria (M3): gli ordini online ancora da accettare che si annullerebbero
+ * prima del prossimo giro giornaliero ricevono un'email a proprietari e gerenti, una volta per
+ * ordine (`OrderNotice` EXPIRY_REMINDER). La funzione SQL sceglie gli ID con la stessa regola del
+ * dominio; ogni ordine si ricontrolla nel contesto della sua fioreria. Idempotente.
+ */
+export async function remindPendingOrders(deps: OrderMailDeps | null): Promise<number> {
+  const candidates = await getDb().$queryRaw<{ tenant_id: string; order_id: string }[]>`
+    SELECT tenant_id, order_id
+    FROM app_pending_orders_to_remind(
+      ${MARKETPLACE_ORDER_LIMITS.acceptDays}::int,
+      ${MARKETPLACE_ORDER_LIMITS.reminderHours}::int,
+      ${REMIND_BATCH}::int
+    )`;
+  let reminded = 0;
+  for (const candidate of candidates) {
+    try {
+      const result = await withTenantContext(
+        getDb(),
+        { tenantId: candidate.tenant_id, userId: null },
+        async (tx) => {
+          await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${candidate.order_id}::uuid
+            AND "tenantId" = ${candidate.tenant_id}::uuid FOR UPDATE`;
+          const [order, tenant] = await Promise.all([
+            tx.order.findFirst({
+              where: { tenantId: candidate.tenant_id, id: candidate.order_id },
+              select: { id: true, status: true, createdAt: true, scheduledDate: true },
+            }),
+            tx.tenant.findUniqueOrThrow({
+              where: { id: candidate.tenant_id },
+              select: { timezone: true },
+            }),
+          ]);
+          if (!order || order.status !== 'PENDING_ACCEPTANCE') return { done: false, mails: [] };
+          const deadline = pendingOrderDeadline(
+            {
+              createdAt: order.createdAt,
+              scheduledDate: order.scheduledDate ? dateToParts(order.scheduledDate) : null,
+            },
+            tenant.timezone,
+          );
+          if (!pendingOrderNeedsReminder(deadline, new Date())) return { done: false, mails: [] };
+          if (
+            !(await claimOnceNoticeTx(tx, {
+              tenantId: candidate.tenant_id,
+              orderId: order.id,
+              kind: 'EXPIRY_REMINDER',
+            }))
+          ) {
+            return { done: false, mails: [] };
+          }
+          return {
+            done: true,
+            mails: deps
+              ? await pendingReminderMailsForShop(tx, candidate.tenant_id, order.id, deadline, deps)
+              : [],
+          };
+        },
+      );
+      if (result.done) reminded += 1;
+      if (deps && result.mails.length > 0) await sendOrderMails(deps.mailer, result.mails);
+    } catch (error) {
+      logger.error({ err: error, orderId: candidate.order_id }, 'promemoria non mandato');
+    }
+  }
+  return reminded;
 }

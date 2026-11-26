@@ -17,7 +17,8 @@
  */
 import { getDb } from '@floral/db';
 import { logger } from '../logger';
-import { expireUnacceptedOrders } from '../marketplace-orders';
+import { expireUnacceptedOrders, remindPendingOrders } from '../marketplace-orders';
+import { purgeOrderMessagePhotos } from '../services/order-messages';
 import { purgeDeletedTenants } from '../services/tenant-deletion';
 import type { OrderMailDeps } from '../order-mail';
 import { refreshStoreCoordinates } from '../public-directory';
@@ -50,6 +51,10 @@ export interface MaintenanceResult {
   readonly careMessageDigestsSent: number;
   /** Fiorerie cancellate davvero, 30 giorni dopo "Eliminar florería" (ADR-074). */
   readonly tenantsPurged: number;
+  /** M3: promemoria alle fiorerie per gli ordini online che scadono prima del prossimo giro. */
+  readonly onlineOrdersReminded: number;
+  /** M3: foto dei messaggi degli ordini cancellate (30 giorni dopo la chiusura). */
+  readonly orderMessagePhotosDeleted: number;
 }
 
 /** `mail`: per scrivere a chi compra quando il suo ordine scade (null nei test senza email). */
@@ -73,6 +78,8 @@ export async function runDailyMaintenance(
   const purge = purged[0];
   const customerImportsClosed = await closeStaleCustomerImports();
   const onlineOrdersExpired = await expireUnacceptedOrders(mail);
+  const onlineOrdersReminded = await remindPendingOrders(mail);
+  const orderMessagePhotosDeleted = await purgeOrderMessagePhotos();
   const care = await runCareMaintenance(mail);
   const tenantsPurged = await purgeDeletedTenants();
   const result: MaintenanceResult = {
@@ -95,6 +102,8 @@ export async function runDailyMaintenance(
     careEmailsSent: care.emailsSent,
     careMessageDigestsSent: care.messageDigestsSent,
     tenantsPurged,
+    onlineOrdersReminded,
+    orderMessagePhotosDeleted,
   };
   logger.info(result, 'manutenzione giornaliera completata');
   return result;

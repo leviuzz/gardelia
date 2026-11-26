@@ -646,8 +646,19 @@ describe("invio dell'ordine", () => {
       );
       mailer.sent.length = 0;
       expect(await expireUnacceptedOrders(deps)).toBeGreaterThanOrEqual(1);
-      expect((await getOrder(shop.owner, pending!.orderId)).status).toBe('CANCELLED');
+      const expired = await getOrder(shop.owner, pending!.orderId);
+      expect(expired.status).toBe('CANCELLED');
       expect(mailer.lastTo(beto.email)!.text).toContain('no confirmó a tiempo');
+      // M3: anche proprietari e gerenti lo sanno, con il link all'ordine; lo staff no.
+      const toShop = mailer.sent.filter(
+        (m) =>
+          m.category === 'online_order_expired_shop' && m.subject.includes(expired.numberLabel),
+      );
+      expect(toShop.map((m) => m.to).sort()).toEqual(
+        [shop.tenant.owner.email, shop.managerUser.email].sort(),
+      );
+      expect(toShop[0]!.text).toContain('Beto Comprador');
+      expect(toShop[0]!.text).toContain(`/orders/${pending!.orderId}`);
       // Il resto degli ordini in attesa di Beto è recente: resta com'è.
       const stillPending = (await listBuyerOrders(beto, SECRET)).filter(
         (order) => order.status === 'PENDING_ACCEPTANCE',
