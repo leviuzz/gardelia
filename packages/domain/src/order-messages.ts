@@ -18,7 +18,7 @@ import { addDays, type CalendarDate } from './calendar';
 import { zonedDateTime } from './ai';
 import { CARE_MESSAGE_LIMITS, careMessageDayStart, careMessagePages } from './floral-care-messages';
 import type { FulfillmentMode, OrderStatus } from './order';
-import { toTrimmedString } from './validation';
+import { checkboxField, toTrimmedString } from './validation';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -45,7 +45,11 @@ export const ORDER_MESSAGE_AUTHORS = ['BUYER', 'SHOP'] as const;
 export type OrderMessageAuthor = (typeof ORDER_MESSAGE_AUTHORS)[number];
 
 /** Codici dei problemi di un messaggio (testi in `orders.messages.problems.*`). */
-export type OrderMessageProblem = 'order_message_empty' | 'order_message_closed';
+export type OrderMessageProblem =
+  | 'order_message_empty'
+  | 'order_message_closed'
+  /** Una domanda «sì / no» senza testo (M3-2). */
+  | 'order_question_empty';
 
 /**
  * Il testo di un messaggio e la chiave dell'invio: lo stesso modulo inviato due volte (doppio clic,
@@ -102,14 +106,16 @@ export function orderMessagesOpen(order: ThreadOrder, now: Date = new Date()): b
   );
 }
 
-/** Perché un messaggio non si può mandare; null = si può. */
+/** Perché un messaggio (o una domanda «sì / no», M3-2) non si può mandare; null = si può. */
 export function orderMessageProblem(input: {
   readonly order: ThreadOrder;
   readonly body: string;
   readonly hasPhoto: boolean;
+  readonly question?: boolean;
   readonly now?: Date;
 }): OrderMessageProblem | null {
   if (!orderMessagesOpen(input.order, input.now)) return 'order_message_closed';
+  if (input.question && input.body.trim() === '') return 'order_question_empty';
   if (input.body.trim() === '' && !input.hasPhoto) return 'order_message_empty';
   return null;
 }
@@ -151,6 +157,66 @@ export function shouldSendMessageNotice(input: {
   return (
     now.getTime() - input.lastNoticeAt.getTime() >= ORDER_MESSAGE_LIMITS.renoticeHours * HOUR_MS
   );
+}
+
+// -----------------------------------------------------------------------------
+// Domande «sì / no» (M3-2)
+// -----------------------------------------------------------------------------
+
+/**
+ * Che cosa è un messaggio del filo: un messaggio, una domanda «sì / no» della fioreria o la risposta
+ * di chi compra, che entra nel filo come un suo messaggio e avvisa come un messaggio (M3-2).
+ */
+export const ORDER_MESSAGE_KINDS = ['MESSAGE', 'QUESTION', 'ANSWER'] as const;
+export type OrderMessageKind = (typeof ORDER_MESSAGE_KINDS)[number];
+
+export const ORDER_QUESTION_ANSWERS = ['YES', 'NO'] as const;
+export type OrderQuestionAnswer = (typeof ORDER_QUESTION_ANSWERS)[number];
+
+/**
+ * Il modulo della fioreria: con la casella «Domanda sì / no» il messaggio diventa una domanda. Una
+ * domanda ha sempre il testo; la foto resta facoltativa (es. il fiore proposto).
+ */
+export const orderStaffMessageSchema = orderMessageSchema.extend({ question: checkboxField() });
+export type OrderStaffMessageInput = z.infer<typeof orderStaffMessageSchema>;
+
+/** La risposta di chi compra, con un tocco: a quale domanda e «Sí» o «No». */
+export const orderQuestionAnswerSchema = z.object({
+  messageId: z.preprocess(toTrimmedString, z.uuid({ error: 'invalid_option' })),
+  answer: z.preprocess(
+    toTrimmedString,
+    z.enum(ORDER_QUESTION_ANSWERS, { error: 'invalid_option' }),
+  ),
+});
+export type OrderQuestionAnswerInput = z.infer<typeof orderQuestionAnswerSchema>;
+
+/**
+ * La domanda di «Chiedi nell'app» in «Mancano fiori» ricorda di quale sostituzione parla (riga,
+ * fiore che manca, fiore proposto): così la risposta si mostra lì, sul fiore giusto.
+ */
+export const orderQuestionContextSchema = z.object({
+  kind: z.literal('SUBSTITUTION'),
+  lineId: z.uuid(),
+  fromItemId: z.uuid(),
+  toItemId: z.uuid(),
+});
+export type OrderQuestionContext = z.infer<typeof orderQuestionContextSchema>;
+
+/** Rilegge il contesto di una domanda dal database; null se non c'è o non è valido. */
+export function parseOrderQuestionContext(raw: unknown): OrderQuestionContext | null {
+  const parsed = orderQuestionContextSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
+
+/** Perché una risposta non si può dare; null = si può. Una risposta per domanda, col filo aperto. */
+export function orderAnswerProblem(input: {
+  readonly order: ThreadOrder;
+  readonly alreadyAnswered: boolean;
+  readonly now?: Date;
+}): 'order_message_closed' | 'order_question_answered' | null {
+  if (!orderMessagesOpen(input.order, input.now)) return 'order_message_closed';
+  if (input.alreadyAnswered) return 'order_question_answered';
+  return null;
 }
 
 // -----------------------------------------------------------------------------

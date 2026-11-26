@@ -14,7 +14,9 @@ import {
   onlineRejectReasonText,
   pendingOrderDeadline,
   pendingOrderDeadlineShown,
+  pendingOrderClockStart,
   pendingOrderNeedsReminder,
+  pendingReminderAlreadySent,
 } from '../src/index';
 
 /** Ordine del cliente online (ADR-067). */
@@ -189,6 +191,53 @@ describe('scadenza di un ordine da accettare (M3-1)', () => {
     expect(pendingOrderDeadlineShown(new Date('2026-11-25T06:00:00Z'))).toEqual(
       new Date('2026-11-25T05:59:00Z'),
     );
+  });
+});
+
+describe('scadenza con i cambi da confermare (M3-2)', () => {
+  const zone = 'America/Mexico_City';
+  const createdAt = new Date('2026-11-23T20:00:00Z');
+  const later = { year: 2026, month: 12, day: 10 };
+  const day = 24 * 60 * 60 * 1000;
+
+  it('il conto riparte dalla richiesta più recente o dalla risposta di chi compra', () => {
+    const askedAt = new Date('2026-11-25T18:00:00Z');
+    const answeredAt = new Date('2026-11-26T09:00:00Z');
+    expect(pendingOrderClockStart({ createdAt })).toEqual(createdAt);
+    expect(pendingOrderClockStart({ createdAt, changeAskedAt: askedAt })).toEqual(askedAt);
+    expect(
+      pendingOrderClockStart({ createdAt, changeAskedAt: askedAt, changeAnsweredAt: answeredAt }),
+    ).toEqual(answeredAt);
+    // Una data più vecchia dell'invio non accorcia mai il conto.
+    expect(
+      pendingOrderClockStart({ createdAt, changeAskedAt: new Date('2026-11-01T00:00:00Z') }),
+    ).toEqual(createdAt);
+    expect(
+      pendingOrderDeadline({ createdAt, scheduledDate: later, changeAskedAt: askedAt }, zone),
+    ).toEqual(new Date(askedAt.getTime() + MARKETPLACE_ORDER_LIMITS.acceptDays * day));
+  });
+
+  it('il tetto resta la fine del giorno di consegna, anche quello nuovo', () => {
+    const askedAt = new Date('2026-11-25T18:00:00Z');
+    const deadline = pendingOrderDeadline(
+      { createdAt, scheduledDate: { year: 2026, month: 11, day: 26 }, changeAskedAt: askedAt },
+      zone,
+    );
+    expect(deadline).toEqual(new Date('2026-11-27T06:00:00Z'));
+    expect(
+      isPendingOrderExpired(
+        { createdAt, scheduledDate: later, changeAskedAt: askedAt },
+        new Date(createdAt.getTime() + MARKETPLACE_ORDER_LIMITS.acceptDays * day),
+        zone,
+      ),
+    ).toBe(false);
+  });
+
+  it('un promemoria per scadenza: dopo una richiesta o una risposta ne può partire un altro', () => {
+    const clock = new Date('2026-11-25T18:00:00Z');
+    expect(pendingReminderAlreadySent(null, clock)).toBe(false);
+    expect(pendingReminderAlreadySent(new Date('2026-11-24T15:00:00Z'), clock)).toBe(false);
+    expect(pendingReminderAlreadySent(new Date('2026-11-26T15:00:00Z'), clock)).toBe(true);
   });
 });
 

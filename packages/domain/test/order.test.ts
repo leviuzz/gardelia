@@ -228,6 +228,7 @@ describe('pagamenti e filtri', () => {
       when: 'today',
       unpaid: true,
       messages: false,
+      changes: false,
       page: 2,
     });
     expect(orderListFiltersSchema.parse({ when: 'yesterday', status: 'LOST' })).toMatchObject({
@@ -242,6 +243,12 @@ describe('pagamenti e filtri', () => {
     expect(orderListFiltersSchema.parse({ messages: 'unread' }).messages).toBe(true);
     expect(orderListFiltersSchema.parse({ messages: '1' }).messages).toBe(false);
     expect(orderListFiltersSchema.parse({}).messages).toBe(false);
+  });
+
+  it('«No ai cambi» (M3-2) solo con `changes=declined`', () => {
+    expect(orderListFiltersSchema.parse({ changes: 'declined' }).changes).toBe(true);
+    expect(orderListFiltersSchema.parse({ changes: 'asked' }).changes).toBe(false);
+    expect(orderListFiltersSchema.parse({}).changes).toBe(false);
   });
 });
 
