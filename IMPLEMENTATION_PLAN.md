@@ -1566,8 +1566,11 @@ ramo, M4 calendario e capienza, M8 clienti, marketing e report, M7 Fiori ogni se
   - In locale 1313 test; E2E toccati verdi (18/18).
 - **Da fare per Google in produzione:** `PUBLIC_INDEXING=on` solo nel progetto Vercel di
   produzione, quando ci sarà (staging resta `off`).
-- **Prossimo:** CI, poi staging con il via libera del founder; poi il piano di dettaglio di M3
-  («Ordine tutto nell'app»).
+- **CI e staging:** CI run 268 verde su `9b9b1af`, E2E compreso; la run 267 era rossa per un errore
+  di tipi in un test, corretto in `9b9b1af`. Con il via libera del founder («sì portalo», 25/11):
+  merge `87cd2e4` su `staging`, CI run 269 verde. La migrazione `storefront_visibility` la applica il
+  deploy di Vercel.
+- **Prossimo:** piano di dettaglio di M3 «Ordine tutto nell'app», da approvare.
 
 Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,
