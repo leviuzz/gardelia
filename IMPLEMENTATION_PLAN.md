@@ -1621,13 +1621,10 @@ in tre rilasci (M3-1 «Messaggi e avvisi», M3-2 «Cambi da confermare», M3-3 �
 - **CI e staging:** CI run 274 verde su `dd7dcb2`, E2E compreso; la run 273 su `e74706e` era rossa
   solo perché un E2E non conosceva i due contatori nuovi del lavoro giornaliero, corretto in
   `dd7dcb2`. In locale 1367 test ed E2E 124/124. Con il via libera del founder (piano del rilascio
-  approvato il 26/11): merge `7bfb158` su `staging`. CI run 275 sul merge: lint, formato,
-  typecheck, unit e integrazione verdi; l'E2E era ancora in corso quando il founder ha fermato la
-  sessione (26/11). La migrazione `order_messages` la applica il deploy di Vercel; nessuna
-  variabile nuova.
-- **Prossimo (alla ripresa):** controllare l'E2E della CI run 275 su `staging` e aggiornare questa
-  riga; mandare al founder cosa provare su staging; poi M3-2 «Cambi da confermare» con il piano già
-  approvato, in cinque passi (dominio, migrazione, servizi, pagine, documenti) come M3-1.
+  approvato il 26/11): merge `7bfb158` su `staging`, CI run 275 verde, E2E compreso. La migrazione
+  `order_messages` la applica il deploy di Vercel; nessuna variabile nuova.
+- **Prossimo:** M3-2 «Cambi da confermare», piano di esecuzione approvato dal founder il 26/11, in
+  cinque passi (dominio, migrazione, servizi, pagine, documenti) come M3-1.
 
 Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,
