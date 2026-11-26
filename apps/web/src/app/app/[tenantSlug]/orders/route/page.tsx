@@ -1,6 +1,7 @@
 import {
   ChevronLeft,
   ChevronRight,
+  Globe,
   MapPin,
   MessageCircle,
   Navigation,
@@ -103,6 +104,13 @@ export default async function DeliveryRoutePage({
           </div>
           <span className="flex flex-col items-end gap-1.5">
             <OrderStatusBadge status={stop.status} />
+            {/* Fatto dalla tienda en línea (M3). */}
+            {stop.placedOnline ? (
+              <Badge variant="secondary">
+                <Globe aria-hidden="true" />
+                {t('orders.online.badge')}
+              </Badge>
+            ) : null}
             {stop.balanceMinor > 0 ? (
               <Badge variant="warning">
                 {t('orders.route.collect', { amount: money(stop.balanceMinor, stop.currency) })}

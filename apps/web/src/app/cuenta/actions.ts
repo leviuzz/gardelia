@@ -62,8 +62,9 @@ export async function archiveBuyerAddressAction(
 }
 
 /**
- * "Cancelar pedido" in "Mis pedidos": solo un ordine online ancora da accettare. L'ID arriva dal
- * browser: il servizio lo cerca solo fra gli ordini della persona e ricontrolla lo stato.
+ * "Cancelar pedido" in "Mis pedidos" e nella pagina dell'ordine (M3): solo un ordine online ancora
+ * da accettare. L'ID arriva dal browser: il servizio lo cerca solo fra gli ordini della persona e
+ * ricontrolla lo stato.
  */
 export async function cancelBuyerOrderAction(
   orderId: string,
@@ -74,6 +75,9 @@ export async function cancelBuyerOrderAction(
     await cancelMarketplaceOrder(ctx, orderId, orderMailDeps(), {
       request: await getRequestMeta(),
     });
-    return { revalidate: accountRoutes.home, success: 'account.orders.cancelled' };
+    return {
+      revalidate: [accountRoutes.home, accountRoutes.orders.detail(orderId)],
+      success: 'account.orders.cancelled',
+    };
   });
 }

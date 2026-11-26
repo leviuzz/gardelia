@@ -15,6 +15,7 @@ import {
   formatOrderNumber,
   formatTimeOfDay,
   pendingOrderDeadline,
+  pendingOrderDeadlineShown,
   type CurrencyCode,
   type FulfillmentMode,
   type StorePaymentMethod,
@@ -370,7 +371,7 @@ export async function newOrderMailsForShop(
       zone,
       recipientName: order.fulfillmentMode === 'DELIVERY' ? order.recipientName : null,
       buyerNotes: order.buyerNotes,
-      deadlineLabel: shopDateTimeLabel(deadline, tenant.timezone),
+      deadlineLabel: shopDateTimeLabel(pendingOrderDeadlineShown(deadline), tenant.timezone),
       url,
     }),
   );
@@ -431,7 +432,8 @@ export async function buyerMessageNoticeMail(
     name: buyer.name,
     shopName: tenant.displayName,
     numberLabel: formatOrderNumber(order.number),
-    url: buyerOrderUrl(order.id, deps),
+    // Dritto ai messaggi, dove si risponde (se il web non dà la pagina dell'ordine, «Mi cuenta»).
+    url: deps.links.buyerOrder ? `${deps.links.buyerOrder(order.id)}#mensajes` : deps.links.account,
     replyTo: tenant.contactEmail,
   });
 }
@@ -486,7 +488,7 @@ export async function pendingReminderMailsForShop(
   const buyerName = await buyerNameTx(tx, order.buyerUserId);
   const facts = orderFacts(tenant.displayName, order);
   const url = deps.links.order(tenant.slug, order.id);
-  const deadlineLabel = shopDateTimeLabel(deadline, tenant.timezone);
+  const deadlineLabel = shopDateTimeLabel(pendingOrderDeadlineShown(deadline), tenant.timezone);
   return emails.map((to) =>
     pendingOrderReminderEmail({ to, buyerName, facts, deadlineLabel, url }),
   );

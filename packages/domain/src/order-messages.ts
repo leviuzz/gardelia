@@ -16,7 +16,7 @@
 import { z } from 'zod';
 import { addDays, type CalendarDate } from './calendar';
 import { zonedDateTime } from './ai';
-import { careMessageDayStart, careMessagePages } from './floral-care-messages';
+import { CARE_MESSAGE_LIMITS, careMessageDayStart, careMessagePages } from './floral-care-messages';
 import type { FulfillmentMode, OrderStatus } from './order';
 import { toTrimmedString } from './validation';
 
@@ -30,6 +30,8 @@ export const ORDER_MESSAGE_LIMITS = {
   perBuyerPerDay: 30,
   /** Messaggi mostrati per volta nel filo ("Vedi i precedenti" per gli altri). */
   page: 30,
+  /** Pagine del filo mostrate al massimo, come in Floral Care (oltre non serve un link). */
+  maxPages: CARE_MESSAGE_LIMITS.maxPages,
   /** Giorni dopo la consegna, il ritiro o l'annullamento in cui si può ancora scrivere. */
   writeDaysAfterClose: 7,
   /** Giorni dopo la chiusura dell'ordine (o dopo il suo giorno, se resta aperto) prima di cancellare le foto. */

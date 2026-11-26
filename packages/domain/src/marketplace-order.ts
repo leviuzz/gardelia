@@ -225,6 +225,14 @@ export function pendingOrderNeedsReminder(deadline: Date, now: Date): boolean {
   return left > 0 && left <= MARKETPLACE_ORDER_LIMITS.reminderHours * 60 * 60 * 1000;
 }
 
+/**
+ * La scadenza come si mostra (pagine ed email): l'ultimo minuto utile. Una scadenza a mezzanotte
+ * si legge «viernes, 11:59 p.m.», non «sábado, 12:00 a.m.» (sembrerebbe un giorno in più).
+ */
+export function pendingOrderDeadlineShown(deadline: Date): Date {
+  return new Date(deadline.getTime() - 60 * 1000);
+}
+
 // -----------------------------------------------------------------------------
 // Rifiuto con un motivo pronto (M3-1)
 // -----------------------------------------------------------------------------

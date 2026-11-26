@@ -1,9 +1,12 @@
 import {
   ArrowLeft,
+  BellRing,
   Check,
   Globe,
+  Hourglass,
   Info,
   MessageCircle,
+  MessageSquare,
   Printer,
   TriangleExclamationPoint,
 } from 'lucide-react';
@@ -36,6 +39,8 @@ import {
   getMarket,
   minorToDecimalString,
   onlineOrderNeedsFreeDeliveryConfirmation,
+  orderMessagePages,
+  pendingOrderDeadlineShown,
   todayInTimeZone,
   whatsappLink,
 } from '@floral/domain';
@@ -43,6 +48,7 @@ import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import { PrintLetterhead } from '@/components/common/print-letterhead';
 import { PrivateImage } from '@/components/common/private-image';
 import { ShareLinkPanel } from '@/components/common/share-link-card';
+import { OrderMessagesCard } from '@/components/orders/order-messages-card';
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/common/status-badges';
 import { ActionButton } from '@/components/form/action-button';
 import { PageHeader } from '@/components/page-header';
@@ -62,6 +68,7 @@ import {
   assignOrderAction,
   cancelOrderAction,
   changeOrderStatusAction,
+  notifyOrderCustomerAction,
   recordPaymentAction,
   reversePaymentAction,
   revokeOrderLinkAction,
@@ -77,6 +84,7 @@ import {
   FulfillmentForm,
   OrderStepActions,
   PaymentForm,
+  RejectOnlineOrderDialog,
   ReversePaymentButton,
 } from '../order-forms';
 import { DraftOrderView } from './draft-order';
@@ -113,10 +121,11 @@ export default async function OrderPage({
   const { tenantSlug, orderId } = await params;
   const ctx = await getTenantContext(tenantSlug);
   const order = await loadOrder(ctx, orderId);
+  const query = await searchParams;
   // Borrador (anche scartato): non ha ancora data né consegna; si compone a passi.
   const scheduledDate = order.scheduledDate;
   if (scheduledDate === null) {
-    const { step } = await searchParams;
+    const { step } = query;
     return (
       <DraftOrderView
         ctx={ctx}
@@ -287,6 +296,19 @@ export default async function OrderPage({
                 <PaymentStatusBadge status={order.paymentStatus} />
               </span>
             )}
+            {/* Messaggi di chi compra da leggere (M3): portano al filo, più in basso. */}
+            {order.unreadMessages > 0 ? (
+              <Link
+                href={routes.orders.thread(order.id)}
+                className="font-sans print:hidden"
+                data-testid="order-unread-link"
+              >
+                <Badge variant="info">
+                  <MessageSquare aria-hidden="true" />
+                  {t('orders.messages.unreadBadge', { count: order.unreadMessages })}
+                </Badge>
+              </Link>
+            ) : null}
           </span>
         }
         description={
@@ -364,6 +386,25 @@ export default async function OrderPage({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* La scadenza (M3): la stessa regola dell'annullamento automatico e del promemoria. */}
+            {order.onlineDeadline ? (
+              <p
+                className="flex items-start gap-2 text-sm font-medium"
+                data-testid="online-deadline"
+              >
+                <Hourglass className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+                {t('orders.online.deadline', {
+                  date: format.dateTime(pendingOrderDeadlineShown(order.onlineDeadline), {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    timeZone: ctx.timezone,
+                  }),
+                })}
+              </p>
+            ) : null}
             {/* Per chiamare o scrivere al cliente senza aprire la sua scheda (M0). */}
             <p className="text-sm break-words" data-testid="online-contact">
               <span className="font-medium">{t('orders.online.contact')}</span>{' '}
@@ -420,10 +461,7 @@ export default async function OrderPage({
                   </ActionButton>
                 )}
                 <div className="sm:w-auto">
-                  <CancelOrderDialog
-                    action={cancelOrderAction.bind(null, slug, order.id)}
-                    variant="reject"
-                  />
+                  <RejectOnlineOrderDialog action={cancelOrderAction.bind(null, slug, order.id)} />
                 </div>
               </div>
             ) : (
@@ -533,6 +571,25 @@ export default async function OrderPage({
                   </p>
                   <OrderLinesEditor ctx={ctx} order={order} />
                 </details>
+              ) : null}
+              {/* Ordine online accettato (M3): prodotti e sconto si cambiano una riga alla volta,
+                  quindi l'email «Tu pedido cambió» parte solo quando lo chiedi, alla fine. */}
+              {order.canNotifyCustomer ? (
+                <div className="mt-4 print:hidden" data-testid="notify-customer">
+                  <ConfirmActionDialog
+                    action={notifyOrderCustomerAction.bind(null, slug, order.id)}
+                    trigger={
+                      <Button variant="outline" size="sm">
+                        <BellRing />
+                        {t('orders.notify.button')}
+                      </Button>
+                    }
+                    title={t('orders.notify.title')}
+                    description={t('orders.notify.body', { name: order.customer.displayName })}
+                    confirmLabel={t('orders.notify.confirm')}
+                    confirmVariant="default"
+                  />
+                </div>
               ) : null}
             </CardContent>
           </Card>
@@ -668,6 +725,7 @@ export default async function OrderPage({
                     windows={deliveryOptions.windows}
                     closedWeekdays={deliveryOptions.closedWeekdays}
                     distance={deliveryOptions.distance}
+                    notifyBuyer={order.canNotifyCustomer}
                     addresses={savedAddressOptions(customer.addresses)}
                     defaults={{
                       fulfillmentMode: order.fulfillmentMode,
@@ -703,6 +761,12 @@ export default async function OrderPage({
               ) : null}
             </CardContent>
           </Card>
+          {/* Messaggi con chi ha fatto l'ordine online (M3); niente per gli ordini del banco. */}
+          <OrderMessagesCard
+            ctx={ctx}
+            orderId={order.id}
+            pages={orderMessagePages(query.mensajes)}
+          />
           {order.handover.photo ||
           order.handover.receivedBy ||
           order.handover.canAddPhoto ||

@@ -24,6 +24,7 @@ import {
   buyerReorderLines,
   cancelOrder,
   changeOrderStatus,
+  countPendingOnlineOrders,
   createCatalogItem,
   exportBuyerData,
   exportTenantData,
@@ -322,7 +323,9 @@ describe('messaggi fra chi compra e la fioreria', () => {
       'Uno',
     ]);
     expect(thread!.messages.every((m) => m.authorKind === 'BUYER' && m.unread)).toBe(true);
+    expect((await getOrder(shop.staff, orderId)).unreadMessages).toBe(4);
     expect(await markOrderThreadRead(shop.staff, orderId)).toBe(4);
+    expect((await getOrder(shop.staff, orderId)).unreadMessages).toBe(0);
     expect((await getOrderThread(shop.owner, orderId))!.unreadCount).toBe(0);
     // Letto tutto: il prossimo messaggio di chi compra avvisa di nuovo.
     const after = await postBuyerOrderMessage(
@@ -700,6 +703,11 @@ describe('«Da gestire», elenco, promemoria e regola della scadenza', () => {
     expect(inbox.unreadOrders).toBeGreaterThan(0);
     // Lo staff vede gli stessi numeri.
     expect(await getOrderInbox(shop.staff)).toEqual(inbox);
+    // Il numero nel menu: solo per chi può accettare (proprietario e gerente).
+    expect(await countPendingOnlineOrders(shop.owner)).toBe(inbox.pendingOnline);
+    expect(await countPendingOnlineOrders(shop.manager)).toBe(inbox.pendingOnline);
+    expect(await countPendingOnlineOrders(shop.staff)).toBe(0);
+    expect(await countPendingOnlineOrders(other.owner)).toBeLessThan(inbox.pendingOnline);
 
     const list = await listOrders(shop.owner, { messages: 'unread', when: 'all' });
     expect(list.messagesFilter).toBe(true);
@@ -709,7 +717,16 @@ describe('«Da gestire», elenco, promemoria e regola della scadenza', () => {
     const total = list.items.reduce((sum, item) => sum + item.unreadMessages, 0);
     expect(total).toBe(inbox.unreadMessages);
     const pending = list.items.find((item) => item.status === 'PENDING_ACCEPTANCE');
-    expect((await getOrder(shop.owner, pending!.id)).onlineDeadline).toBeInstanceOf(Date);
+    // La scadenza si vede nell'elenco e nella pagina dell'ordine, uguale.
+    expect(pending!.onlineDeadline).toBeInstanceOf(Date);
+    expect((await getOrder(shop.owner, pending!.id)).onlineDeadline).toEqual(
+      pending!.onlineDeadline,
+    );
+    expect(
+      list.items
+        .filter((item) => item.status !== 'PENDING_ACCEPTANCE')
+        .every((item) => item.onlineDeadline === null),
+    ).toBe(true);
   });
 
   it('il promemoria parte una volta sola, per gli ordini che scadono prima del prossimo giro', async () => {

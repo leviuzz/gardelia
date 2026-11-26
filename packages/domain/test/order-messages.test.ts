@@ -3,6 +3,7 @@ import {
   ORDER_MESSAGE_LIMITS,
   hasOrderThread,
   isOrderClosed,
+  orderMessagePages,
   orderMessageProblem,
   orderMessageSchema,
   orderMessagesOpen,
@@ -26,6 +27,16 @@ const online = {
   placedOnline: true,
   buyerUserId: '0194d8a4-1b2c-7d3e-8f40-123456789abc',
 };
+
+describe('pagine del filo', () => {
+  it('dall’indirizzo, da 1 al massimo di Floral Care', () => {
+    expect(ORDER_MESSAGE_LIMITS.maxPages).toBe(20);
+    expect(orderMessagePages(undefined)).toBe(1);
+    expect(orderMessagePages('3')).toBe(3);
+    expect(orderMessagePages('99')).toBe(ORDER_MESSAGE_LIMITS.maxPages);
+    expect(orderMessagePages('-2')).toBe(1);
+  });
+});
 
 describe('quando si scrive', () => {
   it('solo sugli ordini online di un conto che esiste ancora', () => {

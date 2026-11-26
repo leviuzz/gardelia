@@ -22,9 +22,10 @@ export interface MessageThreadItem {
 }
 
 /**
- * Il filo dei messaggi di un contratto (ADR-084), per la fioreria e per il portale: i messaggi di
- * chi guarda a destra, quelli dell'altra parte a sinistra; prima del primo da leggere, il
- * separatore. Il testo resta com'è stato scritto (a capo compresi).
+ * Il filo dei messaggi di un contratto di Floral Care (ADR-084) o di un ordine online (ADR-088),
+ * per la fioreria e per chi è dall'altra parte: i messaggi di chi guarda a destra, quelli
+ * dell'altra parte a sinistra; prima del primo da leggere, il separatore. Il testo resta com'è
+ * stato scritto (a capo compresi).
  */
 export function MessageThread({
   items,
@@ -35,7 +36,7 @@ export function MessageThread({
   readonly timeZone: string;
   readonly dividerLabel: string;
 }) {
-  const t = useTranslations('care.messages');
+  const t = useTranslations('thread');
   const format = useFormatter();
   const firstHighlight = items.findIndex((item) => item.highlight);
   return (

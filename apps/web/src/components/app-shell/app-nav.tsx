@@ -56,6 +56,37 @@ export interface NavItem {
   readonly secondary?: boolean;
   /** Sotto-percorsi che appartengono a un'altra voce (es. /settings/team). */
   readonly exclude?: readonly string[];
+  /**
+   * Il numero sulla voce (es. gli ordini online da accettare, M3), con il testo per chi usa un
+   * lettore di schermo. Assente o 0 = niente numero.
+   */
+  readonly badge?: { readonly count: number; readonly label: string };
+}
+
+/** Il numero di una voce del menu: «9+» oltre 9, così resta piccolo anche nella barra in basso. */
+function NavBadge({
+  badge,
+  className,
+}: {
+  readonly badge: NavItem['badge'];
+  readonly className?: string;
+}) {
+  if (!badge || badge.count <= 0) return null;
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        data-testid="nav-badge"
+        className={cn(
+          'flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-semibold text-primary-foreground tabular-nums',
+          className,
+        )}
+      >
+        {badge.count > 9 ? '9+' : badge.count}
+      </span>
+      <span className="sr-only">{` · ${badge.label}`}</span>
+    </>
+  );
 }
 
 const ICONS = {
@@ -139,6 +170,7 @@ export function SidebarNav({ items, label }: { items: readonly NavItem[]; label:
               className={cn('size-4', active ? 'text-primary' : 'text-muted-foreground')}
             />
             {item.label}
+            <NavBadge badge={item.badge} className="ml-auto" />
           </Link>
         );
       })}
@@ -184,7 +216,10 @@ export function BottomNav({
                 aria-current={active ? 'page' : undefined}
                 className={cn(bottomItemClass, active ? 'text-primary' : 'text-muted-foreground')}
               >
-                <NavItemIcon icon={Icon} className="size-5" />
+                <span className="relative">
+                  <NavItemIcon icon={Icon} className="size-5" />
+                  <NavBadge badge={item.badge} className="absolute -top-1.5 -right-2.5" />
+                </span>
                 <span className="max-w-full truncate">{item.label}</span>
               </Link>
             </li>

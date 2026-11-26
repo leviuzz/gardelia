@@ -13,6 +13,7 @@ import {
   onlineOrderRejectSchema,
   onlineRejectReasonText,
   pendingOrderDeadline,
+  pendingOrderDeadlineShown,
   pendingOrderNeedsReminder,
 } from '../src/index';
 
@@ -181,6 +182,13 @@ describe('scadenza di un ordine da accettare (M3-1)', () => {
     expect(pendingOrderNeedsReminder(deadline, new Date('2026-11-26T15:00:00Z'))).toBe(true);
     expect(pendingOrderNeedsReminder(deadline, new Date('2026-11-25T19:00:00Z'))).toBe(false);
     expect(pendingOrderNeedsReminder(deadline, new Date('2026-11-26T20:00:00Z'))).toBe(false);
+  });
+
+  it('si mostra l’ultimo minuto utile: mezzanotte diventa 23:59 del giorno prima', () => {
+    // 25 novembre 06:00 UTC = mezzanotte a Città del Messico → «24 novembre, 23:59».
+    expect(pendingOrderDeadlineShown(new Date('2026-11-25T06:00:00Z'))).toEqual(
+      new Date('2026-11-25T05:59:00Z'),
+    );
   });
 });
 

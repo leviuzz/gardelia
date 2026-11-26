@@ -106,7 +106,8 @@ test.describe('pedido en línea (cliente y florería)', () => {
 
     // La fioreria: avviso nell'elenco, poi accetta dalla scheda.
     await page.goto('/app/las-camelias/orders');
-    await expect(page.getByText(/pedidos? en línea por aceptar/)).toBeVisible();
+    // L'avviso dell'elenco (il numero sulla voce «Pedidos» del menu ha un testo simile, M3).
+    await expect(page.getByText(/^Tienes \d+ pedidos? en línea por aceptar/)).toBeVisible();
     await page.goto(orderPath);
     const panel = page.getByTestId('online-pending');
     await expect(panel.getByText('Pedido en línea por aceptar')).toBeVisible();

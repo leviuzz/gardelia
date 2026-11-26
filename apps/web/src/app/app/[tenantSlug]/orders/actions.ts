@@ -17,6 +17,7 @@ import {
   createDraftOrder,
   createOrderFromQuote,
   discardDraftOrder,
+  notifyOrderCustomer,
   recordOrderPayment,
   removeOrderLine,
   reverseOrderPayment,
@@ -55,6 +56,10 @@ export async function createOrderFromQuoteAction(
   });
 }
 
+/**
+ * «Cambia consegna e biglietto». Su un ordine online accettato la casella «Avvisa il cliente per
+ * email» (`notifyCustomer`) manda «Tu pedido cambió»: lo decide il servizio (M3).
+ */
 export async function updateFulfillmentAction(
   slug: string,
   orderId: string,
@@ -62,8 +67,21 @@ export async function updateFulfillmentAction(
   formData: FormData,
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
-    await updateOrderFulfillment(ctx, orderId, formDataToObject(formData));
+    await updateOrderFulfillment(ctx, orderId, formDataToObject(formData), orderMailDeps());
     return { revalidate: section(routes.orders.list()), success: 'orders.detail.saved' };
+  });
+}
+
+/** «Avvisa il cliente dei cambi» (M3): un'email sola con il riepilogo di adesso. */
+export async function notifyOrderCustomerAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await notifyOrderCustomer(ctx, orderId, orderMailDeps());
+    return { revalidate: section(routes.orders.list()), success: 'orders.notify.sent' };
   });
 }
 
@@ -78,8 +96,10 @@ export async function changeOrderStatusAction(
   formData: FormData,
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
+    // Un ordine online: a chi l'ha fatto un'email per il passo, la prima volta (M3).
     const status = await changeOrderStatus(ctx, orderId, formData.get('status'), {
       confirmShortage: formData.get('confirmShortage') === 'on',
+      mail: orderMailDeps(),
     });
     return {
       revalidate: section(routes.orders.list()),
@@ -95,7 +115,8 @@ export async function cancelOrderAction(
   formData: FormData,
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
-    // Un ordine online: chi compra riceve un'email con il motivo.
+    // Un ordine online: chi compra riceve un'email con il motivo («Rifiuta» manda il motivo
+    // pronto `reasonCode` e il dettaglio, M3).
     await cancelOrder(ctx, orderId, formDataToObject(formData), orderMailDeps());
     return { revalidate: section(routes.orders.list()), success: 'orders.detail.cancelled' };
   });

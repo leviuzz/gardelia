@@ -138,6 +138,8 @@ export interface OrderSummaryDto {
   readonly placedOnline: boolean;
   /** Messaggi di chi compra ancora da leggere (M3); 0 per gli ordini del banco. */
   readonly unreadMessages: number;
+  /** Ordine online da accettare: fino a quando, poi si annulla da solo (M3). */
+  readonly onlineDeadline: Date | null;
 }
 
 export interface OrderRecipeLineSnapshot {
@@ -247,8 +249,6 @@ export interface OrderDetailDto extends OrderSummaryDto {
   readonly buyerNotes: string | null;
   readonly cancelReason: string | null;
   readonly statusChangedAt: Date;
-  /** Ordine online da accettare: fino a quando, poi si annulla da solo (M3). */
-  readonly onlineDeadline: Date | null;
   /**
    * «Avvisa il cliente dei cambi» (M3): ordine online accettato e non ancora chiuso, con chi l'ha
    * fatto che ha ancora il conto, e chi guarda lo può cambiare.
@@ -294,7 +294,11 @@ function dateString(date: Date): string {
   return formatDateParts(dateToParts(date)) ?? '';
 }
 
-function toSummary(order: OrderWithCustomer, unreadMessages = 0): OrderSummaryDto {
+function toSummary(
+  order: OrderWithCustomer,
+  timeZone: string,
+  unreadMessages = 0,
+): OrderSummaryDto {
   return {
     id: order.id,
     number: order.number,
@@ -315,6 +319,16 @@ function toSummary(order: OrderWithCustomer, unreadMessages = 0): OrderSummaryDt
     createdAt: order.createdAt,
     placedOnline: order.placedOnline,
     unreadMessages,
+    onlineDeadline:
+      order.placedOnline && order.status === 'PENDING_ACCEPTANCE'
+        ? pendingOrderDeadline(
+            {
+              createdAt: order.createdAt,
+              scheduledDate: order.scheduledDate ? dateToParts(order.scheduledDate) : null,
+            },
+            timeZone,
+          )
+        : null,
   };
 }
 
@@ -452,7 +466,7 @@ export async function listOrders(
       orders.filter((order) => order.placedOnline).map((order) => order.id),
     );
     return {
-      items: orders.map((order) => toSummary(order, unread.get(order.id) ?? 0)),
+      items: orders.map((order) => toSummary(order, ctx.timezone, unread.get(order.id) ?? 0)),
       total,
       page,
       pageCount,
@@ -486,7 +500,7 @@ export async function listCustomerOrders(
       orderBy: { number: 'desc' },
       take: 50,
     });
-    return orders.map((order) => toSummary(order));
+    return orders.map((order) => toSummary(order, ctx.timezone));
   });
 }
 
@@ -566,10 +580,14 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
       withRadius.length > 0 && order.fulfillmentMode === 'DELIVERY'
         ? await loadShopPlace(tx, ctx.tenantId)
         : null;
-    return { order, lines, payments, events, shopOrigin: shop?.origin ?? null };
+    // I messaggi di chi compra da leggere (M3): il segno in cima alla pagina dell'ordine.
+    const unread = order.placedOnline
+      ? ((await unreadByOrderTx(tx, ctx.tenantId, [order.id])).get(order.id) ?? 0)
+      : 0;
+    return { order, lines, payments, events, shopOrigin: shop?.origin ?? null, unread };
   });
   if (!result) return notFound(ctx, 'Order', orderId);
-  const { order, lines, payments, events, shopOrigin } = result;
+  const { order, lines, payments, events, shopOrigin, unread } = result;
   const site = shopOrigin
     ? freshCoordinates(
         {
@@ -612,7 +630,7 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
         }
       : null;
   return {
-    ...toSummary(order),
+    ...toSummary(order, ctx.timezone, unread),
     quote: order.quote
       ? { id: order.quote.id, numberLabel: formatQuoteNumber(order.quote.number) }
       : null,
@@ -636,16 +654,6 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
     buyerNotes: order.buyerNotes,
     cancelReason: order.cancelReason,
     statusChangedAt: order.statusChangedAt,
-    onlineDeadline:
-      order.placedOnline && order.status === 'PENDING_ACCEPTANCE'
-        ? pendingOrderDeadline(
-            {
-              createdAt: order.createdAt,
-              scheduledDate: order.scheduledDate ? dateToParts(order.scheduledDate) : null,
-            },
-            ctx.timezone,
-          )
-        : null,
     canNotifyCustomer: canWrite && customerCanBeNotified(order),
     lines: lines.map((line) => {
       const snapshot = readSnapshot(line.snapshot);

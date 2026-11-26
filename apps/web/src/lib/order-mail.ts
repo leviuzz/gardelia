@@ -19,6 +19,8 @@ export function orderMailDeps(): OrderMailDeps {
       account: `${base}${accountRoutes.home}`,
       search: `${base}${buyerRoutes.home}`,
       careMessages: (tenantSlug) => `${base}${tenantRoutes(tenantSlug).subscriptions.messages()}`,
+      // M3: la pagina dell'ordine nel conto di chi compra, dove si risponde.
+      buyerOrder: (orderId) => `${base}${accountRoutes.orders.detail(orderId)}`,
     },
   };
 }

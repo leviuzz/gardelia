@@ -363,7 +363,7 @@ export async function getOrderInbox(ctx: TenantContext): Promise<OrderInboxDto> 
   const canReadMessages = hasPermission(ctx, 'orders:messages');
   return withTenantContext(getDb(), ctx, async (tx) => {
     const pending = await tx.order.findMany({
-      where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE' },
+      where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE', placedOnline: true },
       select: { createdAt: true, scheduledDate: true },
       orderBy: { createdAt: 'asc' },
       take: 200,
@@ -380,7 +380,7 @@ export async function getOrderInbox(ctx: TenantContext): Promise<OrderInboxDto> 
       )
       .sort((a, b) => a.getTime() - b.getTime());
     const pendingOnline = await tx.order.count({
-      where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE' },
+      where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE', placedOnline: true },
     });
     if (!canReadMessages) {
       return {
@@ -403,6 +403,20 @@ export async function getOrderInbox(ctx: TenantContext): Promise<OrderInboxDto> 
       unreadOrders: rows[0]?.orders ?? 0,
     };
   });
+}
+
+/**
+ * Il numero sulla voce «Ordini» del menu (M3): gli ordini online da accettare, solo per chi li può
+ * accettare (gli altri vedono 0). Una sola query leggera, perché la chiede ogni pagina.
+ */
+export async function countPendingOnlineOrders(ctx: TenantContext): Promise<number> {
+  requirePermission(ctx, 'orders:read');
+  if (!hasPermission(ctx, 'orders:write')) return 0;
+  return withTenantContext(getDb(), ctx, (tx) =>
+    tx.order.count({
+      where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE', placedOnline: true },
+    }),
+  );
 }
 
 /** Foto per giro del lavoro giornaliero (il resto al giro dopo). */

@@ -2,6 +2,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  Globe,
   Mail,
   Printer,
   Store,
@@ -87,6 +88,13 @@ export default async function OrdersDayPage({
         </div>
         <span className="flex flex-wrap gap-1.5">
           <OrderStatusBadge status={order.status} />
+          {/* Fatto dalla tienda en línea (M3). */}
+          {order.placedOnline ? (
+            <Badge variant="secondary">
+              <Globe aria-hidden="true" />
+              {t('orders.online.badge')}
+            </Badge>
+          ) : null}
           {order.balanceMinor > 0 ? (
             <Badge variant="warning">
               {t('orders.day.toCollect', {

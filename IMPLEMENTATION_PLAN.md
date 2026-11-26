@@ -1572,6 +1572,54 @@ ramo, M4 calendario e capienza, M8 clienti, marketing e report, M7 Fiori ogni se
   deploy di Vercel.
 - **Prossimo:** piano di dettaglio di M3 «Ordine tutto nell'app», da approvare.
 
+**M3 «Ordine tutto nell'app» (26/11, ADR-088):** piano di dettaglio approvato dal founder il 26/11,
+in tre rilasci (M3-1 «Messaggi e avvisi», M3-2 «Cambi da confermare», M3-3 «Soldi e squadra»).
+
+**M3-1 «Messaggi e avvisi» (26/11, fatto sul ramo di lavoro):**
+
+- **Correzione insieme:** nei Report e in `pagos.csv` uno storno contava al contrario (era già
+  negativo nel database); test che prima mancavano.
+- **Dominio:** `order-messages.ts` (limiti, filo aperto fino a 7 giorni dopo la chiusura, avviso al
+  primo da leggere e dopo 6 ore, foto da cancellare, email dei passi); scadenza
+  (`pendingOrderDeadline`, promemoria, `pendingOrderDeadlineShown` per l'ultimo minuto utile);
+  motivi di rifiuto pronti; `mergeIntoCart` per «Pedir de nuevo»; permesso `orders:messages`.
+- **Database:** migrazione `order_messages`: `OrderMessage` (foto nella riga, chiave contro i doppi
+  invii, «letto dalla fioreria»), `OrderBuyerRead`, `OrderNotice`, tutte con RLS e FK composite; la
+  guardia `buyer_order_guard` su nove tabelle dell'ordine; funzioni `app_buyer_order_shop`,
+  `app_buyer_order_messages`, `app_order_message_photos_to_purge`,
+  `app_pending_orders_to_remind`, `app_pending_orders_to_expire` con la regola del dominio e
+  `app_buyer_orders` con i messaggi nuovi.
+- **Core:** `withBuyerOrder` (un solo ingresso per chi compra; lo usa anche «Cancelar pedido»),
+  pagina dell'ordine del conto, messaggi nei due sensi con foto, segni di lettura, avvisi per
+  email, email dei passi una volta sola, «Cambió tu pedido» (casella o pulsante), motivi pronti,
+  «Da gestire» e numero del menu, promemoria e email alla fioreria alla scadenza, cancellazione
+  delle foto, «Descargar mis datos», `pedidos_mensajes.csv`, conto eliminato.
+- **Web:**
+  - chi compra: `/cuenta/pedidos/<id>` (passi, consegna, prodotti, come pagare, messaggi,
+    «Cancelar pedido» con la scadenza, «Pedir de nuevo», link di stato da condividere); «Mis
+    pedidos» apre questa pagina con «N mensajes nuevos»; immagini da rotte del conto; il link di
+    stato rimanda al conto; `POST /f/<slug>/pedido/repetir` rimette i prodotti nel carrello;
+  - il fiorista: «Por atender» in cima alla Home (al posto di «Mensajes sin leer»), numero su
+    «Pedidos» nel menu, filtro «Con mensajes por leer», «En línea» in Elenco, Giorno e Percorso,
+    scadenza visibile, scheda «Mensajes» nell'ordine, «Rechazar» con i motivi, casella «Avisar al
+    cliente por correo» e «Avisar al cliente de los cambios»;
+  - filo e modulo dei messaggi diventano componenti comuni con Floral Care
+    (`components/messages`), con i testi in `thread.*`.
+- **Test:**
+  - dominio: regole dei messaggi, scadenza e ultimo minuto, motivi, carrello;
+  - integrazione (`order-messages.test.ts`): avvisi al primo da leggere e dopo 6 ore, doppio invio,
+    limite del giorno, filo chiuso, foto tolte e cancellate, email dei passi una volta sola, «Cambió
+    tu pedido», motivi nel registro, «Da gestire» e numero del menu, promemoria una volta sola, la
+    regola SQL della scadenza uguale al dominio, «Pedir de nuevo», conto eliminato, dati della
+    persona e ZIP della fioreria, A↔B fra persone e fra fiorerie (404 con l'evento); la guardia nel
+    database in `rls.test.ts`;
+  - E2E `marketplace-messages.spec.ts`: messaggi nei due sensi con foto e avvisi, «Por atender» e
+    numero del menu, filtro, accettazione e passi con le email, «Pedir de nuevo», rifiuto con un
+    motivo pronto, 320 px.
+- **DA VALIDARE:** termini per chi compra e aviso de privacidad (bozze aggiornate: messaggi, foto,
+  avvisi, annullare da «Mis pedidos»).
+- **Prossimo:** gates completi, CI, poi staging con il via libera del founder; poi M3-2.
+
 Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,
 `ASSISTANT_MONTHLY_BUDGET_USD=2`, 10 a dicembre), i crediti alla sua fioreria di prova con

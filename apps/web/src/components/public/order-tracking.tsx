@@ -1,0 +1,233 @@
+import 'server-only';
+import { Ban, Check, CreditCard } from 'lucide-react';
+import { getFormatter, getTranslations } from 'next-intl/server';
+import type { PublicOrderDto } from '@floral/core';
+import { MX_REGIONS, type OrderStatus } from '@floral/domain';
+import { PrivateImage } from '@/components/common/private-image';
+import { PublicLines, PublicTotals } from '@/components/public/public-lines';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { money } from '@/lib/format';
+import { serviceSummary } from '@/lib/line-ui';
+import { cn } from '@/lib/utils';
+
+/** Il cammino di un ordine fino al cliente, per modo di consegna. */
+const JOURNEY: Record<'DELIVERY' | 'PICKUP', readonly OrderStatus[]> = {
+  DELIVERY: ['CONFIRMED', 'IN_PREPARATION', 'READY', 'OUT_FOR_DELIVERY', 'DELIVERED'],
+  PICKUP: ['CONFIRMED', 'IN_PREPARATION', 'READY', 'PICKED_UP'],
+};
+
+/** Dove si leggono le immagini dell'ordine: dal link di stato o dal conto di chi l'ha fatto. */
+export interface OrderTrackingUrls {
+  /** La foto del ramo consegnato (`thumb` = miniatura); l'ID della foto va nell'indirizzo. */
+  readonly photo: (options: { readonly thumb: boolean; readonly v: string }) => string;
+  /** L'immagine del ramo di una riga. */
+  readonly line: (lineId: string) => string;
+}
+
+/**
+ * L'ordine come lo vede il cliente (ADR-056), uguale nel link di stato e nella pagina dell'ordine
+ * del conto (M3): annullato con il motivo oppure i passi con l'ora, come pagare dopo
+ * l'accettazione, la foto della consegna e chi l'ha ricevuto, l'indirizzo, la tarjeta, i prodotti
+ * e i totali. Mai note interne né costi. `locale`: la lingua della pagina (del negozio nel link di
+ * stato, della persona nel conto).
+ */
+export async function OrderTracking({
+  order,
+  locale,
+  urls,
+}: {
+  readonly order: PublicOrderDto;
+  readonly locale: string;
+  readonly urls: OrderTrackingUrls;
+}) {
+  const t = await getTranslations({ locale, namespace: 'publicLink' });
+  const tAll = await getTranslations({ locale });
+  const format = await getFormatter({ locale });
+  const fmt = (minor: number) => money(minor, order.currency, locale);
+  const cancelled = order.status === 'CANCELLED';
+  const journey = JOURNEY[order.fulfillmentMode];
+  const reached = new Map(order.history.map((step) => [step.status, step.at]));
+  // Indice del passo attuale nel cammino (un passo indietro di correzione conta lo stato attuale).
+  const currentIndex = journey.indexOf(order.status);
+  const address = order.deliveryAddress;
+  const region = (code: string) => MX_REGIONS.find((item) => item.code === code)?.name ?? code;
+
+  return (
+    <>
+      {cancelled ? (
+        <Alert variant="info">
+          <Ban aria-hidden="true" />
+          <AlertDescription>
+            {t('order.cancelled')}
+            {order.online?.cancelReason ? (
+              <span className="mt-1 block">
+                {t('order.cancelReason', { reason: order.online.cancelReason })}
+              </span>
+            ) : null}
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <ol className="grid gap-3" aria-label={t('order.progress')}>
+          {journey.map((status, index) => {
+            const done = currentIndex >= index;
+            const at = reached.get(status);
+            return (
+              <li key={status} className="flex items-center gap-3">
+                <span
+                  className={cn(
+                    'flex size-7 shrink-0 items-center justify-center rounded-full border text-xs',
+                    done
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'bg-card text-muted-foreground',
+                  )}
+                  aria-hidden="true"
+                >
+                  {done ? <Check className="size-4" /> : index + 1}
+                </span>
+                <span
+                  className={cn('min-w-0 flex-1', done ? 'font-medium' : 'text-muted-foreground')}
+                >
+                  {tAll(`orders.statuses.${status}`)}
+                  {index === currentIndex ? (
+                    <span className="sr-only"> · {t('order.current')}</span>
+                  ) : null}
+                </span>
+                {done && at ? (
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {format.dateTime(at, {
+                      day: 'numeric',
+                      month: 'short',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      timeZone: order.shop.timezone,
+                    })}
+                  </span>
+                ) : null}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+
+      {order.online &&
+      !cancelled &&
+      order.status !== 'PENDING_ACCEPTANCE' &&
+      order.balanceMinor > 0 ? (
+        <section className="space-y-2 rounded-2xl border bg-card p-4 text-sm">
+          <h2 className="flex items-center gap-2 font-medium">
+            <CreditCard className="size-4 text-primary" aria-hidden="true" />
+            {t('order.howToPay')}
+          </h2>
+          <p>
+            {order.online.paymentMethods.length > 0
+              ? t('order.payWith', {
+                  methods: order.online.paymentMethods
+                    .map((method) => tAll(`publicStore.payment.${method}`))
+                    .join(', '),
+                })
+              : t('order.payAsk')}
+          </p>
+          {order.online.paymentInstructions ? (
+            <p className="whitespace-pre-line text-muted-foreground">
+              {order.online.paymentInstructions}
+            </p>
+          ) : null}
+          <p className="text-xs text-muted-foreground">{t('order.payDirect')}</p>
+        </section>
+      ) : null}
+
+      {order.photoId || order.receivedBy ? (
+        <section className="space-y-3">
+          {order.photoId ? (
+            <figure className="space-y-2">
+              <a
+                href={urls.photo({ thumb: false, v: order.photoId })}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <PrivateImage
+                  src={urls.photo({ thumb: true, v: order.photoId })}
+                  alt={t('order.photoAlt')}
+                  className="aspect-square w-full max-w-xs rounded-2xl border bg-muted object-cover"
+                />
+              </a>
+              <figcaption className="text-sm font-medium">{t('order.photoCaption')}</figcaption>
+            </figure>
+          ) : null}
+          {order.receivedBy ? (
+            <p className="text-sm">{t('order.receivedBy', { name: order.receivedBy })}</p>
+          ) : null}
+        </section>
+      ) : null}
+
+      {address ? (
+        <section className="space-y-1 text-sm">
+          <h2 className="font-medium">{t('order.deliverTo')}</h2>
+          <p>
+            {address.addressLine1}
+            {address.addressLine2 ? `, ${address.addressLine2}` : ''}
+          </p>
+          <p className="text-muted-foreground">
+            {[address.neighborhood, address.postalCode, address.city, region(address.region)]
+              .filter(Boolean)
+              .join(', ')}
+          </p>
+          {order.recipientName ? (
+            <p>{t('order.recipient', { name: order.recipientName })}</p>
+          ) : null}
+        </section>
+      ) : null}
+
+      {order.cardMessage ? (
+        <section className="space-y-2 text-sm">
+          <h2 className="font-medium">{t('order.card')}</h2>
+          <p className="rounded-xl bg-muted/50 p-4 whitespace-pre-line italic">
+            {order.cardMessage}
+          </p>
+          <p className="text-muted-foreground">
+            {order.cardAnonymous
+              ? t('order.anonymous')
+              : order.cardSignature
+                ? t('order.signedBy', { name: order.cardSignature })
+                : null}
+          </p>
+        </section>
+      ) : null}
+
+      <section className="space-y-4">
+        <h2 className="font-medium">{t('order.contents')}</h2>
+        <PublicLines
+          lines={order.lines.map((line) => ({
+            id: line.id,
+            description: line.description,
+            quantityLabel: `${line.quantity} × ${fmt(line.unitPriceMinor)}`,
+            totalLabel: fmt(line.lineTotalMinor),
+            recipe: null,
+            service: serviceSummary(tAll, line.service),
+            imageUrl: line.hasImage ? urls.line(line.id) : null,
+            imageAlt: t('imageAlt', { name: line.description }),
+          }))}
+        />
+        <PublicTotals
+          rows={[
+            { label: t('subtotal'), value: fmt(order.subtotalMinor) },
+            ...(order.discountMinor > 0
+              ? [{ label: t('discount'), value: `−${fmt(order.discountMinor)}` }]
+              : []),
+            ...(order.deliveryFeeMinor > 0
+              ? [{ label: t('order.deliveryFee'), value: fmt(order.deliveryFeeMinor) }]
+              : []),
+            { label: t('total'), value: fmt(order.totalMinor), strong: true },
+            ...(order.paidMinor > 0
+              ? [{ label: t('order.paid'), value: fmt(order.paidMinor) }]
+              : []),
+            // In attesa di accettazione non si paga ancora: niente "Por pagar".
+            ...(cancelled || order.status === 'PENDING_ACCEPTANCE'
+              ? []
+              : [{ label: t('order.balance'), value: fmt(order.balanceMinor) }]),
+          ]}
+        />
+      </section>
+    </>
+  );
+}
