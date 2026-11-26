@@ -283,8 +283,9 @@ export async function getSalesReport(
     ]),
   );
 
+  // Gli importi sono già col segno: gli storni sono salvati negativi (CHECK `OrderPayment_amount_check`).
   const collectedMinor = data.payments.reduce(
-    (sum, row) => sum + (row.kind === 'REVERSAL' ? -1 : 1) * Number(row._sum.amountMinor ?? 0),
+    (sum, row) => sum + Number(row._sum.amountMinor ?? 0),
     0,
   );
 

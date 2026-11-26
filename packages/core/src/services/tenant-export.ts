@@ -445,10 +445,10 @@ export async function exportTenantData(
         { header: 'Pedido', value: (r) => orderNumber.get(r.orderId) },
         { header: 'Tipo', value: (r) => LABELS.paymentKind[r.kind] },
         { header: 'Forma de pago', value: (r) => LABELS.method[r.method] },
-        // Le anulaciones restano il pagamento che annullano: importo negativo.
+        // Le anulaciones restano il pagamento che annullano: nel database sono già negative.
         {
           header: 'Importe',
-          value: (r) => money(r.kind === 'REVERSAL' ? -r.amountMinor : r.amountMinor),
+          value: (r) => money(r.amountMinor),
           numeric: true,
         },
         { header: 'Fecha', value: (r) => day(r.paidOn) },
