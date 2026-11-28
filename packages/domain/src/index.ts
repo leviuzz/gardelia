@@ -51,6 +51,7 @@ export * from './substitution';
 export * from './slug';
 export * from './species';
 export * from './storefront';
+export * from './storefront-services';
 export * from './team';
 export * from './tenant';
 export * from './tenant-deletion';

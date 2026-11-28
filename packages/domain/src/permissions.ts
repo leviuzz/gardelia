@@ -68,6 +68,12 @@ export const PERMISSIONS = {
    */
   'orders:messages': ALL,
   /**
+   * Le richieste dei servizi della vetrina (M5, ADR-089): le vede tutta la squadra (anche lo staff
+   * sa cosa arriva); rifiutarle e prepararne il preventivo spetta a proprietario e gerente.
+   */
+  'requests:read': ALL,
+  'requests:write': MANAGEMENT,
+  /**
    * Vedere giacenze, avvisi e movimenti dell'inventario (ADR-060). I costi solo con
    * `catalog:costs:read`: lo staff vede le quantità, mai i costi.
    */
