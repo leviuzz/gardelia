@@ -1,10 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import { linkFrom, uniqueEmail, waitForEmail } from './mailbox';
-
-/** IP di prova (TEST-NET-3, mai su internet): uno per ogni nuovo fiorista. */
-function newClientIp(): string {
-  return `203.0.113.${1 + Math.floor(Math.random() * 254)}`;
-}
+import { ownClientHeaders } from './network';
 
 /**
  * Una fioreria REALE (non demo) appena creata: registrazione, verifica dell'email e onboarding,
@@ -20,7 +16,7 @@ export async function signUpWithNewShop(
 ): Promise<{ readonly email: string; readonly slug: string }> {
   const email = uniqueEmail('fiorista');
   const password = 'una-clave-segura-123';
-  await page.setExtraHTTPHeaders({ 'x-forwarded-for': newClientIp() });
+  await page.setExtraHTTPHeaders(ownClientHeaders());
   await page.goto('/signup');
   await page.getByLabel('Nombre completo').fill(input.name);
   await page.getByLabel('Correo electrónico').fill(email);

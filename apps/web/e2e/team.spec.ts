@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { linkFrom, uniqueEmail, waitForEmail } from './support/mailbox';
+import { ownClientHeaders } from './support/network';
 
 test.use({ storageState: 'e2e/.auth/owner.json' });
 
@@ -22,7 +23,10 @@ test('invito via email: la persona invitata si registra, accetta ed entra come s
   const inviteUrl = linkFrom(invitation, '/invite/');
 
   // La persona invitata, in un browser "pulito" (senza la sessione della proprietaria).
-  const guest = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  const guest = await browser.newContext({
+    storageState: { cookies: [], origins: [] },
+    extraHTTPHeaders: ownClientHeaders(),
+  });
   const guestPage = await guest.newPage();
   await guestPage.goto(inviteUrl);
   await expect(guestPage.getByText('te invitó a unirte como Equipo')).toBeVisible();

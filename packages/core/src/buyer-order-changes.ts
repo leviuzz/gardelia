@@ -16,11 +16,14 @@ import type { TransactionClient } from '@floral/db';
 import {
   AUDIT_ACTIONS,
   answerOrderChangeSchema,
+  diffOrderChanges,
   formatOrderNumber,
+  hasOrderChanges,
   newId,
   orderAnswerProblem,
   orderChangeAnswerProblem,
   orderQuestionAnswerSchema,
+  parseOrderChangeSnapshot,
   todayInTimeZone,
   toFieldErrors,
   type OrderChangeStatus,
@@ -40,6 +43,7 @@ import {
   type OrderMailDeps,
 } from './order-mail';
 import type { BuyerContext } from './services/buyer-account';
+import { orderSnapshotSelect, orderSnapshotTx } from './services/order-changes';
 import { dateToParts } from './services/quote-internals';
 
 /**
@@ -57,7 +61,7 @@ async function answerableRequestTx(
   const [request, tenant] = await Promise.all([
     tx.orderChangeRequest.findUnique({
       where: { tenantId_orderId: { tenantId, orderId: order.id } },
-      select: { id: true, status: true, round: true },
+      select: { id: true, status: true, round: true, after: true },
     }),
     tx.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { timezone: true } }),
   ]);
@@ -93,6 +97,21 @@ export async function confirmBuyerOrderChange(
     async (tx, { shop, order }) => {
       const tenantId = shop.tenantId;
       const request = await answerableRequestTx(tx, tenantId, order, round, true);
+      // L'ordine dev'essere ancora quello che la fioreria ha chiesto di confermare: ogni cambio della
+      // fioreria ritira la richiesta, e qui lo si ricontrolla comunque sui dati (mai una versione
+      // che la persona non ha visto).
+      const asked = request.after === null ? null : parseOrderChangeSnapshot(request.after);
+      const current = await orderSnapshotTx(
+        tx,
+        tenantId,
+        await tx.order.findFirstOrThrow({
+          where: { tenantId, id: order.id },
+          select: orderSnapshotSelect,
+        }),
+      );
+      if (!asked || hasOrderChanges(diffOrderChanges(asked, current))) {
+        throw new ConflictError('order_change_outdated');
+      }
       const now = new Date();
       await tx.order.update({
         where: { id: order.id },

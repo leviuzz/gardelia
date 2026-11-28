@@ -199,6 +199,7 @@ describe('pagamenti e filtri', () => {
       kind: 'DEPOSIT',
       paidOn: null,
       reference: null,
+      submitKey: null,
     });
   });
 
@@ -228,7 +229,8 @@ describe('pagamenti e filtri', () => {
       when: 'today',
       unpaid: true,
       messages: false,
-      changes: false,
+      changes: null,
+      money: null,
       page: 2,
     });
     expect(orderListFiltersSchema.parse({ when: 'yesterday', status: 'LOST' })).toMatchObject({
@@ -237,6 +239,10 @@ describe('pagamenti e filtri', () => {
       unpaid: false,
       messages: false,
     });
+    // M3-3: «Prove da controllare» e «Contanti da confermare»; il resto non filtra.
+    expect(orderListFiltersSchema.parse({ money: 'proofs' }).money).toBe('proofs');
+    expect(orderListFiltersSchema.parse({ money: 'cash' }).money).toBe('cash');
+    expect(orderListFiltersSchema.parse({ money: 'todo' }).money).toBeNull();
   });
 
   it('«Con messaggi da leggere» (M3) solo con `messages=unread`', () => {
@@ -245,10 +251,12 @@ describe('pagamenti e filtri', () => {
     expect(orderListFiltersSchema.parse({}).messages).toBe(false);
   });
 
-  it('«No ai cambi» (M3-2) solo con `changes=declined`', () => {
-    expect(orderListFiltersSchema.parse({ changes: 'declined' }).changes).toBe(true);
-    expect(orderListFiltersSchema.parse({ changes: 'asked' }).changes).toBe(false);
-    expect(orderListFiltersSchema.parse({}).changes).toBe(false);
+  it('«No ai cambi» e «In attesa del cliente» (M3-2) con `changes`', () => {
+    expect(orderListFiltersSchema.parse({ changes: 'declined' }).changes).toBe('declined');
+    expect(orderListFiltersSchema.parse({ changes: 'asked' }).changes).toBe('asked');
+    expect(orderListFiltersSchema.parse({ changes: ' asked ' }).changes).toBe('asked');
+    expect(orderListFiltersSchema.parse({ changes: 'altro' }).changes).toBeNull();
+    expect(orderListFiltersSchema.parse({}).changes).toBeNull();
   });
 });
 

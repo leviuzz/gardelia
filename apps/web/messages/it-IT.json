@@ -69,7 +69,9 @@
     "substitution_customer_required": "Conferma che il cliente ha accettato il cambio.",
     "order_message_empty": "Scrivi un messaggio o aggiungi una foto.",
     "order_question_empty": "Scrivi la domanda: il cliente risponde «Sì» o «No».",
-    "order_question_photo": "Una domanda sì / no non ha foto: manda la foto in un altro messaggio."
+    "order_question_photo": "Una domanda sì / no non ha foto: manda la foto in un altro messaggio.",
+    "refund_exceeds_paid": "Il rimborso supera quanto è stato pagato.",
+    "cash_exceeds_collected": "È più di quanto segnato come incassato."
   },
   "errors": {
     "validation": "Controlla i campi evidenziati.",
@@ -148,7 +150,16 @@
       "order_change_no_buyer": "Il cliente ha eliminato il conto: non può confermare i cambi.",
       "order_change_outdated": "La fioreria ha cambiato di nuovo l’ordine: rivedi i cambi.",
       "order_change_date_passed": "Il giorno di consegna è già passato: scrivi alla fioreria.",
-      "order_question_answered": "Hai già risposto a questa domanda."
+      "order_question_answered": "Hai già risposto a questa domanda.",
+      "payment_not_reversible": "Un rimborso non si storna.",
+      "reversal_below_zero": "Questo pagamento è già stato rimborsato: stornarlo porterebbe il pagato sotto zero.",
+      "refund_not_cancelled": "Si rimborsa solo un ordine annullato.",
+      "refund_nothing_paid": "Questo ordine non ha pagamenti da rimborsare.",
+      "order_not_payable": "Questo ordine non si paga ancora: prima lo accetta la fioreria, e uno annullato non si paga più.",
+      "order_nothing_to_pay": "Questo ordine è già pagato.",
+      "payment_proofs_pending_limit": "Ci sono già 3 prove in verifica: aspetta la risposta della fioreria.",
+      "money_already_reviewed": "Qualcuno l’ha già controllato: ricarica la pagina.",
+      "cash_collection_pending": "Ci sono già dei contanti di questo ordine da confermare."
     },
     "pageNotFoundTitle": "Pagina non trovata",
     "pageNotFoundBody": "La pagina non esiste o non hai accesso.",
@@ -571,6 +582,33 @@
         "waiting": "Il tuo ordine aspetta la tua risposta: controlla qui sotto i cambi di {shop}.",
         "declinedNote": "Hai detto no ai cambi. {shop} può cambiare di nuovo l'ordine o rifiutarlo.",
         "withdrawnNote": "{shop} sta cambiando di nuovo il tuo ordine: ti scriviamo quando puoi controllarlo."
+      },
+      "payments": {
+        "title": "Pagamenti",
+        "body": "Hai già pagato {shop}? Carica la prova e ti avvisiamo quando la controlla.",
+        "refunded": "{shop} ti ha rimborsato {amount}.",
+        "proofTitle": "Ho già pagato: carica la prova",
+        "limit": "Hai 3 prove in verifica: aspetta la risposta di {shop}.",
+        "openPhoto": "Apri la foto della prova di {amount}",
+        "status": {
+          "PENDING": "In verifica",
+          "CONFIRMED": "Confermato",
+          "REJECTED": "Non l’abbiamo trovato"
+        },
+        "sentOn": "Inviata il {date}",
+        "shopSays": "{shop} dice: {reason}",
+        "amount": "Importo pagato ({currency})",
+        "amountHint": "Ti proponiamo quanto manca da pagare; cambialo se hai pagato un’altra cifra.",
+        "note": "Nota (facoltativa)",
+        "notePlaceholder": "Per esempio: bonifico da BBVA",
+        "photo": "Foto o screenshot della prova",
+        "choosePhoto": "Scegli la foto",
+        "changePhoto": "Cambia foto",
+        "photoChosen": "Foto: {name}",
+        "removePhoto": "Togli la foto",
+        "submit": "Invia la prova",
+        "sent": "Abbiamo mandato la prova alla fioreria",
+        "networkError": "Non è stato possibile inviarla. Controlla la connessione e riprova."
       }
     }
   },
@@ -608,7 +646,7 @@
       "PAYMENT_LINK": "Link di pagamento"
     },
     "paymentInstructions": "Dati per pagare",
-    "paymentInstructionsHint": "Si mostrano a tutti sulla tua pagina. Per esempio la CLABE e la banca.",
+    "paymentInstructionsHint": "Li vede solo chi ha fatto un ordine online, quando lo accetti: nel suo ordine e nell’email. Per esempio la tua CLABE e la banca.",
     "productsTitle": "Prodotti nel tuo negozio",
     "productsBody": "Spunta «Mostra nel mio negozio online» su ogni mazzo, pianta, fiore o accessorio del catalogo.",
     "productsCount": "{count, plural, =0 {Ancora nessun prodotto visibile.} one {# prodotto visibile.} other {# prodotti visibili.}}",
@@ -672,7 +710,9 @@
       },
       "goToPayment": "Forme di pagamento",
       "notPublished": "Il tuo negozio non è ancora pubblicato: gli ordini arriveranno quando lo pubblichi.",
-      "save": "Salva ordini online"
+      "save": "Salva ordini online",
+      "staffCanAccept": "Anche lo staff può accettare e rifiutare gli ordini online",
+      "staffCanAcceptHint": "Accettare, rifiutare, proporre un’altra data, chiedere conferma e cambiare un ordine da accettare. Non annulla gli ordini già accettati e non registra pagamenti."
     },
     "offMap": "Chi cerca il proprio indirizzo non trova ancora il tuo negozio online, perché il negozio principale non è sulla mappa. Ti trova solo chi cerca la tua città.",
     "offMapAction": "Scegli l’indirizzo sulla mappa",
@@ -866,7 +906,9 @@
     "policiesByShop": "Le scrive {shop}.",
     "occasionsLabel": "Occasioni",
     "accountOrders": "I miei ordini",
-    "accountSignIn": "Accedi"
+    "accountSignIn": "Accedi",
+    "paymentAfterAccept": "Ti diamo i dati per pagare quando la fioreria accetta il tuo ordine.",
+    "paymentAsk": "Chiedi i dati per pagare alla fioreria."
   },
   "timezones": {
     "America/Mexico_City": "Ora del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -947,7 +989,11 @@
       "careMessages": "{unread, plural, one {# messaggio} other {# messaggi}} di Floral Care da leggere in {threads, plural, one {# contratto} other {# contratti}}",
       "careMessagesLink": "Vedi i messaggi",
       "declinedChanges": "{count, plural, one {# cliente ha detto no ai cambi} other {# clienti hanno detto no ai cambi}}",
-      "declinedChangesLink": "Vedi gli ordini"
+      "declinedChangesLink": "Vedi gli ordini",
+      "paymentProofs": "{count, plural, one {# prova di pagamento da controllare} other {# prove di pagamento da controllare}}",
+      "paymentProofsLink": "Vedi gli ordini",
+      "cash": "{count, plural, one {# incasso in contanti da confermare} other {# incassi in contanti da confermare}}",
+      "cashLink": "Vedi gli ordini"
     }
   },
   "activity": {
@@ -1064,7 +1110,14 @@
       "customer_notified": "{actor} ha avvisato il cliente dei cambi di {number}",
       "change_asked": "{actor} ha chiesto al cliente di confermare i cambi di {number}",
       "change_confirmed": "{actor} ha confermato i cambi dell’ordine {number}",
-      "change_declined": "{actor} non ha accettato i cambi dell’ordine {number}"
+      "change_declined": "{actor} non ha accettato i cambi dell’ordine {number}",
+      "payment_refunded": "{actor} ha registrato un rimborso su {number}",
+      "payment_proof_submitted": "{actor} ha caricato una prova di pagamento su {number}",
+      "payment_proof_confirmed": "{actor} ha confermato una prova di pagamento su {number}",
+      "payment_proof_rejected": "{actor} non ha trovato un pagamento di {number}",
+      "cash_collected": "{actor} ha incassato in contanti l’ordine {number}",
+      "cash_confirmed": "{actor} ha confermato i contanti di {number}",
+      "cash_rejected": "{actor} ha rifiutato i contanti di {number}"
     },
     "delivery_settings": {
       "updated": "{actor} ha cambiato le impostazioni di consegna"
@@ -1659,7 +1712,8 @@
       "careVisitNotDone": "Visita Floral Care non fatta ({number})",
       "careCharge": "Addebito {number} di Floral Care ({month})",
       "carePayment": "{kind} di {amount} ({method}) · Floral Care",
-      "carePaymentReversed": "Storno di {amount} · Floral Care"
+      "carePaymentReversed": "Storno di {amount} · Floral Care",
+      "paymentRefunded": "Rimborso di {amount} ({method}) · Ordine {number}"
     },
     "filters": {
       "tag": "Filtra per etichetta",
@@ -1973,7 +2027,8 @@
     "paymentKinds": {
       "DEPOSIT": "Acconto",
       "BALANCE": "Pagamento",
-      "REVERSAL": "Storno"
+      "REVERSAL": "Storno",
+      "REFUND": "Rimborso"
     },
     "results": "{count, plural, =0 {Nessun risultato} one {# ordine} other {# ordini}}",
     "emptyTitle": "Non hai ancora ordini",
@@ -2385,7 +2440,103 @@
       "declinedBody": "Puoi cambiare l'ordine e chiedere di nuovo conferma, o rifiutarlo.",
       "withdrawn": "Richiesta ritirata: hai cambiato l'ordine dopo aver chiesto conferma. Chiedi di nuovo.",
       "linesHint": "Se cambi i prodotti, chiedi al cliente di confermare i cambi prima di accettare.",
-      "filter": "No ai cambi ({count})"
+      "filter": "No ai cambi ({count})",
+      "askedFilter": "In attesa del cliente ({count})"
+    },
+    "money": {
+      "filter": {
+        "proofs": "Prove da controllare ({count})",
+        "cash": "Contanti da confermare ({count})"
+      },
+      "proofsTitle": "Prove di pagamento",
+      "proofsHint": "Le ha caricate il cliente dal suo ordine. Prima di confermare, controlla in banca che i soldi siano arrivati.",
+      "proofFrom": "{name} · {date}",
+      "deletedBuyer": "Conto eliminato",
+      "openPhoto": "Apri la foto della prova di {amount}",
+      "photoGone": "La foto è già stata cancellata (30 giorni dopo la chiusura dell’ordine).",
+      "proofClosedOrder": "L’ordine è annullato: non si registrano più pagamenti.",
+      "proofStatus": {
+        "PENDING": "Da controllare",
+        "CONFIRMED": "Confermata",
+        "REJECTED": "Non trovata"
+      },
+      "rejectedBecause": "Motivo: {reason}",
+      "confirmProof": "Confermo",
+      "confirmProofLabel": "Conferma la prova di {amount}",
+      "confirmProofTitle": "Registra il pagamento della prova",
+      "confirmProofBody": "Diventa un pagamento dell’ordine e il cliente riceve l’avviso per email.",
+      "confirmProofAmountHint": "Quello che è arrivato sul tuo conto, fino a quanto manca da pagare.",
+      "confirmProofSubmit": "Registra pagamento",
+      "proofReference": "Prova del cliente",
+      "rejectProof": "Non lo trovo",
+      "rejectProofLabel": "Non trovo il pagamento di {amount}",
+      "rejectProofTitle": "Non trovi il pagamento",
+      "rejectProofBody": "Il cliente legge il motivo nel suo ordine e per email. Può caricare un’altra prova.",
+      "rejectProofSubmit": "Invia",
+      "reason": "Motivo",
+      "cashTitle": "Contanti",
+      "cashHint": "Chi consegna segna quanto ha incassato; il proprietario o il gerente lo confermano e diventa un pagamento.",
+      "cashBy": "Incassati da {name} · {date}",
+      "cashStatus": {
+        "PENDING": "Da confermare",
+        "CONFIRMED": "Confermati",
+        "REJECTED": "Rifiutati"
+      },
+      "cashConfirmedAmount": "Registrati: {amount}",
+      "cashPendingRoute": "Contanti da confermare: {amount}",
+      "collect": "Ho incassato",
+      "collectTitle": "Contanti incassati",
+      "collectBody": "Resta da confermare finché il proprietario o il gerente non lo controlla.",
+      "collectSubmit": "Salva",
+      "note": "Nota",
+      "noteHint": "Facoltativa. Per esempio: «ha pagato con una banconota da 500».",
+      "confirmCash": "Conferma",
+      "confirmCashLabel": "Conferma i contanti di {amount}",
+      "confirmCashTitle": "Conferma i contanti",
+      "confirmCashBody": "Diventa un pagamento in contanti dell’ordine.",
+      "confirmCashAmountHint": "Quello che è arrivato in cassa, fino a quanto segnato.",
+      "confirmCashSubmit": "Registra pagamento",
+      "rejectCash": "Rifiuta",
+      "rejectCashLabel": "Rifiuta i contanti di {amount}",
+      "rejectCashTitle": "Rifiuta i contanti",
+      "rejectCashBody": "Chi li ha segnati legge il motivo nell’ordine.",
+      "rejectCashSubmit": "Rifiuta",
+      "refundTitle": "Registra rimborso",
+      "refundBody": "L’ordine è annullato: registra quanto hai restituito al cliente, fino al pagato. Se l’ha fatto online, gli arriva l’avviso per email.",
+      "refundSubmit": "Registra rimborso",
+      "refunded": "Rimborsato: {amount}",
+      "proofConfirmed": "Pagamento registrato",
+      "proofRejected": "Abbiamo avvisato il cliente",
+      "refundedToast": "Rimborso registrato",
+      "cashSubmitted": "Contanti segnati: restano da confermare",
+      "cashConfirmed": "Pagamento in contanti registrato",
+      "cashRejected": "Contanti rifiutati"
+    },
+    "dayPrint": {
+      "printTickets": "Stampa le comande",
+      "printCards": "Stampa i biglietti",
+      "ticketsMeta": "Comande del giorno",
+      "cardsMeta": "Biglietti del giorno",
+      "ticketsTitle": "Comande di {date}",
+      "ticketsSubtitle": "{count, plural, one {# ordine da preparare} other {# ordini da preparare}}: confermati, in preparazione e pronti. Una comanda per pagina.",
+      "cardsTitle": "Biglietti di {date}",
+      "cardsSubtitle": "{count, plural, one {# biglietto} other {# biglietti}} degli ordini da preparare, da ritagliare lungo la linea.",
+      "print": "Stampa",
+      "emptyTitle": "Niente da preparare",
+      "emptyBody": "Quel giorno non ci sono ordini confermati, in preparazione o pronti.",
+      "noCardsTitle": "Nessun biglietto",
+      "noCardsBody": "Nessun ordine da preparare quel giorno ha il biglietto.",
+      "customer": "Cliente",
+      "recipient": "Riceve",
+      "address": "Indirizzo",
+      "assignee": "Lo porta",
+      "payment": "Pagamento",
+      "toCollect": "Da incassare: {amount}",
+      "paid": "Pagato",
+      "lines": "Da preparare",
+      "card": "Biglietto",
+      "buyerNotes": "Commenti del cliente",
+      "notes": "Note interne"
     }
   },
   "plans": {
@@ -3516,7 +3667,7 @@
     "contactPhoneHint": "Così la fioreria può chiamarti se serve.",
     "howItWorks": "Cosa succede dopo?",
     "acceptFirst": "{shop} controlla il tuo ordine e ti scriviamo appena lo accetta, con il totale e come pagare. Se non risponde entro {days} giorni, lo annulliamo e ti avvisiamo.",
-    "payDirect": "Paghi direttamente la fioreria ({methods}). Per ora non pagare nulla.",
+    "payDirect": "Paghi direttamente la fioreria ({methods}). Per ora non pagare nulla: ti diamo i dati per pagare quando accetta il tuo ordine.",
     "payDirectNoMethods": "Paghi direttamente la fioreria: ti dirà come quando accetta. Per ora non pagare nulla.",
     "dataShared": "Condividiamo il tuo nome, la tua email ({email}) e il tuo telefono con {shop} per gestire questo ordine.",
     "send": "Invia l’ordine",

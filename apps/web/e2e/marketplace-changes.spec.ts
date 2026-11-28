@@ -89,6 +89,14 @@ test.describe('cambios por confirmar de un pedido en línea (M3-2)', () => {
     await expect(page.getByText('Le pedimos al cliente que confirme los cambios')).toBeVisible();
     await expect(page.getByTestId('order-change-asked')).toContainText('Esperando al cliente');
 
+    // Nell'elenco aspetta chi compra: non è «Por aceptar» (come nel menu), ha il suo filtro.
+    await page.goto(`/app/las-camelias/orders?when=pending&q=${first}`);
+    await expect(page.getByRole('link', { name: first })).toHaveCount(0);
+    await page.getByTestId('filter-asked-changes').click();
+    await expect(page).toHaveURL(/changes=asked/);
+    await expect(page.getByTestId('filter-asked-changes')).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByRole('link', { name: first }).first()).toBeVisible();
+
     // Chi compra: l'email con i cambi (mai il messaggio), «Mis pedidos» e il link di stato.
     const asked = await waitForEmail(email, {
       subject: `${SHOP} cambió tu pedido ${first}: confírmalo`,

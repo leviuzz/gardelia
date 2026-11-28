@@ -32,6 +32,7 @@ import {
   exportTenantData,
   getBuyerOrder,
   getOrder,
+  getOnlineStoreSettings,
   getOrderInbox,
   getOrderSubstitutions,
   getOrderThread,
@@ -379,6 +380,27 @@ describe('cambi su un ordine online da accettare', () => {
     );
   });
 
+  it('«Confirmar» ricontrolla l’ordine: diverso da quello chiesto non si accetta', async () => {
+    const who = await buyer('Cliente Controlla');
+    const orderId = await place(who);
+    await setQuantity(orderId, 3);
+    await askOrderChange(shop.owner, orderId, {}, deps);
+    // Un cambio arrivato da una strada che non ritira la richiesta (qui direttamente nel database):
+    // la richiesta resta «chiesta», ma l'ordine non è più quello che vede chi compra.
+    await withSystemContext(db, { reason: 'test: cambio senza ritirare la richiesta' }, (tx) =>
+      tx.order.update({
+        where: { id: orderId },
+        data: { deliveryFeeMinor: { increment: 9900 }, totalMinor: { increment: 9900 } },
+      }),
+    );
+    expect((await changeRow(orderId))!.status).toBe('ASKED');
+    await expect(confirmBuyerOrderChange(who, orderId, { round: '1' }, deps)).rejects.toMatchObject(
+      { reason: 'order_change_outdated' },
+    );
+    expect((await getOrder(shop.owner, orderId)).status).toBe('PENDING_ACCEPTANCE');
+    expect((await changeRow(orderId))!.status).toBe('ASKED');
+  });
+
   it('«Proponi un’altra data» e «No, gracias»: torna alla fioreria, in «Da gestire» e nel menu', async () => {
     const before = await getOrderInbox(shop.owner);
     const menuBefore = await countPendingOnlineOrders(shop.owner);
@@ -405,9 +427,20 @@ describe('cambi su un ordine online da accettare', () => {
       windowEndMinutes: 1200,
     });
     expect(asked.changeStatus).toBe('ASKED');
-    // Aspetta chi compra: non è «da gestire» per la fioreria.
+    // Aspetta chi compra: non è «da gestire» per la fioreria, né «Por aceptar» nell'elenco o nelle
+    // Impostazioni (lo stesso numero del menu); lo trova il filtro «In attesa del cliente».
     expect((await getOrderInbox(shop.owner)).pendingOnline).toBe(before.pendingOnline);
     expect(await countPendingOnlineOrders(shop.owner)).toBe(menuBefore);
+    const pendingTab = await listOrders(shop.owner, { when: 'pending' });
+    expect(pendingTab.items.map((item) => item.id)).not.toContain(orderId);
+    expect(pendingTab.pendingCount).toBe(menuBefore);
+    expect(pendingTab.total).toBe(menuBefore);
+    expect((await getOnlineStoreSettings(shop.owner)).pendingOrders).toBe(menuBefore);
+    const waiting = await listOrders(shop.owner, { when: 'all', changes: 'asked' });
+    expect(waiting.changesFilter).toBe('asked');
+    expect(waiting.items.map((item) => item.id)).toContain(orderId);
+    expect(waiting.items.every((item) => item.changeStatus === 'ASKED')).toBe(true);
+    expect(waiting.askedChangesCount).toBe(waiting.total);
 
     drain();
     await declineBuyerOrderChange(
@@ -434,10 +467,14 @@ describe('cambi su un ordine online da accettare', () => {
     expect(inbox.pendingOnline).toBe(before.pendingOnline);
     expect(await countPendingOnlineOrders(shop.owner)).toBe(menuBefore + 1);
     const list = await listOrders(shop.owner, { when: 'all', changes: 'declined' });
-    expect(list.changesFilter).toBe(true);
+    expect(list.changesFilter).toBe('declined');
     expect(list.items.map((item) => item.id)).toContain(orderId);
     expect(list.items.every((item) => item.changeStatus === 'DECLINED')).toBe(true);
     expect(list.declinedChangesCount).toBeGreaterThan(0);
+    // Tornato alla fioreria: di nuovo «Por aceptar», come nel menu.
+    const backToShop = await listOrders(shop.owner, { when: 'pending' });
+    expect(backToShop.items.map((item) => item.id)).toContain(orderId);
+    expect(backToShop.pendingCount).toBe(menuBefore + 1);
 
     // Si chiede di nuovo: il motivo di prima non vale più.
     await askOrderChange(shop.owner, orderId, {}, deps);

@@ -23,9 +23,10 @@ import {
   type RouteStopWindow,
 } from '@floral/domain';
 import { notFound, recordAudit } from '../audit';
-import { requirePermission } from '../authorization';
+import { hasPermission, requirePermission } from '../authorization';
 import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
+import { orderAssignedMailTx, sendOrderMails, type OrderMailDeps } from '../order-mail';
 import { allowedOrderSteps } from './orders';
 import { formatDateParts, partsToDate } from './quote-internals';
 
@@ -52,12 +53,14 @@ export async function listOrderAssignees(
 
 /**
  * Assegna (o toglie, con vuoto) il repartidor di un ordine a domicilio ancora aperto. Il membro
- * deve essere attivo nella stessa fioreria.
+ * deve essere attivo nella stessa fioreria. M3-3: assegnandolo a un'altra persona, a lei arriva
+ * «Te asignaron la entrega del pedido …» dopo il commit; assegnandolo a sé stessi no.
  */
 export async function assignOrder(
   ctx: TenantContext,
   orderId: string,
   rawMembershipId: unknown,
+  mail: OrderMailDeps | null = null,
 ): Promise<void> {
   requirePermission(ctx, 'orders:write');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
@@ -91,7 +94,7 @@ export async function assignOrder(
       });
       if (!member) throw new ValidationError({ assignee: 'invalid_option' });
     }
-    if (order.assignedMembershipId === membershipId) return true;
+    if (order.assignedMembershipId === membershipId) return { message: null };
     await tx.order.update({
       where: { id: order.id },
       data: { assignedMembershipId: membershipId },
@@ -107,9 +110,14 @@ export async function assignOrder(
         to: membershipId,
       },
     });
-    return true;
+    const message =
+      mail && membershipId !== null && membershipId !== ctx.membershipId
+        ? await orderAssignedMailTx(tx, ctx.tenantId, order.id, membershipId, mail)
+        : null;
+    return { message };
   });
-  if (!found) await notFound(ctx, 'Order', orderId);
+  if (!found) return notFound(ctx, 'Order', orderId);
+  if (mail && found.message) await sendOrderMails(mail.mailer, [found.message]);
 }
 
 export interface RouteStopDto {
@@ -132,6 +140,13 @@ export interface RouteStopDto {
   /** Da incassare alla consegna (0 se pagato). */
   readonly balanceMinor: number;
   readonly currency: string;
+  /** M3-3: i contanti già segnati e in attesa di conferma, o null. */
+  readonly pendingCashMinor: number | null;
+  /**
+   * M3-3: «Ho incassato» per chi consegna e non registra i pagamenti (lo staff): qualcosa da
+   * incassare e nessun contante già in attesa.
+   */
+  readonly canCollectCash: boolean;
   readonly nextSteps: readonly OrderStatus[];
 }
 
@@ -234,10 +249,13 @@ export async function loadDeliveryStopsTx(
     include: {
       customer: { select: { displayName: true, phone: true } },
       assignedTo: { select: { id: true, user: { select: { name: true } } } },
+      cashCollections: { where: { status: 'PENDING' }, select: { amountMinor: true }, take: 1 },
     },
     orderBy: [{ windowStartMinutes: { sort: 'asc', nulls: 'last' } }, { number: 'asc' }],
   });
   const now = new Date();
+  // Proprietario e gerente registrano il pagamento direttamente dall'ordine.
+  const canCollect = hasPermission(ctx, 'orders:fulfill') && !hasPermission(ctx, 'orders:payments');
   return orders.map((order) => ({
     window: { start: order.windowStartMinutes, end: order.windowEndMinutes },
     // Coordinate solo se ancora valide (cache di 30 giorni, regole di Google).
@@ -274,6 +292,12 @@ export async function loadDeliveryStopsTx(
       placedOnline: order.placedOnline,
       balanceMinor: orderBalanceMinor(order.paidMinor, order.totalMinor),
       currency: order.currency,
+      pendingCashMinor: order.cashCollections[0]?.amountMinor ?? null,
+      // Le fermate sono tutte ordini accettati e non annullati: basta che manchi qualcosa.
+      canCollectCash:
+        canCollect &&
+        order.cashCollections.length === 0 &&
+        orderBalanceMinor(order.paidMinor, order.totalMinor) > 0,
       nextSteps: allowedOrderSteps(ctx, order.status, order.fulfillmentMode),
     },
   }));

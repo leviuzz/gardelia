@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { linkFrom, uniqueEmail, waitForEmail } from './support/mailbox';
+import { ownClientHeaders } from './support/network';
 
 /**
  * Documenti legali e diritti di chi compra (marketplace, blocco C5, ADR-068): le pagine legali
@@ -10,6 +11,7 @@ import { linkFrom, uniqueEmail, waitForEmail } from './support/mailbox';
 test('pagine legali, dati scaricati e conto eliminato con la conferma per email', async ({
   page,
 }) => {
+  await page.setExtraHTTPHeaders(ownClientHeaders());
   // Dalla home: aviso e termini per chi compra, bozze dichiarate come tali.
   await page.goto('/');
   await page.getByRole('link', { name: 'Aviso de privacidad' }).click();

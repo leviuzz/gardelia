@@ -108,6 +108,7 @@ export const LABELS = {
     DEPOSIT: 'Anticipo',
     BALANCE: 'Pago',
     REVERSAL: 'Anulación',
+    REFUND: 'Reembolso',
   } satisfies Record<OrderPaymentKind, string>,
   method: {
     CASH: 'Efectivo',
@@ -227,6 +228,9 @@ export const LABELS = {
     DECLINED: 'No aceptados',
   },
   careMessagePhotoGone: 'quitada',
+  /** M3-3: prove di pagamento e contanti di chi consegna. */
+  moneyReviewStatus: { PENDING: 'En revisión', CONFIRMED: 'Confirmado', REJECTED: 'Rechazado' },
+  proofPhotoDeleted: 'borrada',
   carePaymentKind: {
     PAYMENT: 'Pago',
     REVERSAL: 'Anulación',

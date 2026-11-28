@@ -599,6 +599,139 @@ export function onlineOrderChangedEmail(input: {
 }
 
 /**
+ * A chi compra (M3-3): la fioreria ha registrato un pagamento (a mano, da una prova o dai contanti)
+ * o un rimborso. Con totale, pagato e quanto manca. Non è un comprobante fiscal: lo dice.
+ */
+export function orderPaymentRecordedEmail(input: {
+  to: string;
+  name: string;
+  facts: OnlineOrderEmailFacts;
+  refund: boolean;
+  amountLabel: string;
+  paidLabel: string;
+  balanceLabel: string;
+  url: string;
+  replyTo: string | null;
+}): EmailMessage {
+  const { facts } = input;
+  const body = plainAndHtml(
+    `Hola ${input.name}:`,
+    [
+      ...(input.refund
+        ? [
+            `${facts.shopName} registró un reembolso de ${input.amountLabel} de tu pedido ${facts.numberLabel}.`,
+            `Lo pagado queda en ${input.paidLabel}. Si no ves el dinero en unos días, escríbele a la florería desde tu pedido.`,
+          ]
+        : [
+            `${facts.shopName} registró tu pago de ${input.amountLabel} del pedido ${facts.numberLabel}.`,
+            `Total: ${facts.totalLabel}. Pagado: ${input.paidLabel}. Por pagar: ${input.balanceLabel}.`,
+          ]),
+      'Este correo no es un comprobante fiscal: si necesitas factura, pídela a la florería.',
+    ],
+    { label: 'Ver mi pedido', url: input.url },
+    `Recibiste este correo porque hiciste un pedido en ${BRAND.productName}.`,
+    input.refund ? 'Reembolso registrado' : 'Pago registrado',
+  );
+  return {
+    to: input.to,
+    category: input.refund ? 'online_order_refund' : 'online_order_payment',
+    subject: input.refund
+      ? `Te reembolsamos ${input.amountLabel} del pedido ${facts.numberLabel}`
+      : `Registramos tu pago de ${input.amountLabel} del pedido ${facts.numberLabel}`,
+    fromName: facts.shopName,
+    ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+    ...body,
+  };
+}
+
+/** A chi compra (M3-3): la fioreria non ha trovato il pagamento della sua prova, con il motivo. */
+export function paymentProofRejectedEmail(input: {
+  to: string;
+  name: string;
+  facts: OnlineOrderEmailFacts;
+  amountLabel: string;
+  reason: string;
+  url: string;
+  replyTo: string | null;
+}): EmailMessage {
+  const { facts } = input;
+  const body = plainAndHtml(
+    `Hola ${input.name}:`,
+    [
+      `${facts.shopName} revisó tu comprobante de ${input.amountLabel} del pedido ${facts.numberLabel} y no encontró el pago.`,
+      `Motivo: ${input.reason}`,
+      'Revisa el pago o escríbele a la florería desde tu pedido.',
+    ],
+    { label: 'Ver mi pedido', url: input.url },
+    `Recibiste este correo porque hiciste un pedido en ${BRAND.productName}.`,
+    'No encontramos tu pago',
+  );
+  return {
+    to: input.to,
+    category: 'online_order_proof_rejected',
+    subject: `No encontramos tu pago del pedido ${facts.numberLabel}`,
+    fromName: facts.shopName,
+    ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+    ...body,
+  };
+}
+
+/** A proprietari e gerenti (M3-3): chi compra ha caricato una prova di pagamento da controllare. */
+export function paymentProofReceivedShopEmail(input: {
+  to: string;
+  shopName: string;
+  numberLabel: string;
+  amountLabel: string;
+  url: string;
+}): EmailMessage {
+  const body = plainAndHtml(
+    'Hola:',
+    [
+      `El cliente del pedido ${input.numberLabel} subió un comprobante de pago de ${input.amountLabel}.`,
+      'Revísalo: si encuentras el pago, confírmalo y queda registrado; si no, dile por qué.',
+    ],
+    { label: 'Revisar el comprobante', url: input.url },
+    `Recibes este correo porque eres propietario/a o gerente de ${input.shopName}.`,
+    'Comprobante de pago',
+  );
+  return {
+    to: input.to,
+    category: 'online_order_proof_received',
+    subject: `Comprobante de pago del pedido ${input.numberLabel}`,
+    ...body,
+  };
+}
+
+/** A chi consegna (M3-3): gli hanno assegnato la consegna di un ordine (zona, mai l'indirizzo). */
+export function orderAssignedEmail(input: {
+  to: string;
+  name: string;
+  shopName: string;
+  numberLabel: string;
+  when: string;
+  zone: string | null;
+  url: string;
+}): EmailMessage {
+  const body = plainAndHtml(
+    `Hola ${input.name}:`,
+    [
+      `En ${input.shopName} te asignaron la entrega del pedido ${input.numberLabel}: ${input.when}.`,
+      ...(input.zone ? [`Zona: ${input.zone}.`] : []),
+      'Los datos de la entrega y de quien recibe están en el pedido y en tu ruta del día.',
+    ],
+    { label: 'Ver el pedido', url: input.url },
+    `Recibes este correo porque formas parte del equipo de ${input.shopName}.`,
+    'Te asignaron una entrega',
+  );
+  return {
+    to: input.to,
+    category: 'order_assigned',
+    subject: `Te asignaron la entrega del pedido ${input.numberLabel} para el ${input.when}`,
+    ...body,
+  };
+}
+
+/**
  * A chi compra (M3-2): la fioreria propone dei cambi a un ordine ancora da accettare. La lista dei
  * cambi e la scadenza; mai il messaggio della fioreria (si legge nella pagina dell'ordine).
  */

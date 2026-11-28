@@ -14,6 +14,7 @@ import {
   formatMoney,
   formatOrderNumber,
   formatTimeOfDay,
+  orderBalanceMinor,
   pendingOrderDeadline,
   pendingOrderDeadlineShown,
   type CurrencyCode,
@@ -36,8 +37,12 @@ import {
   orderChangeAnsweredShopEmail,
   orderChangeAskedEmail,
   orderChangeReminderEmail,
+  orderAssignedEmail,
   orderMessageForBuyerEmail,
   orderMessageForShopEmail,
+  orderPaymentRecordedEmail,
+  paymentProofReceivedShopEmail,
+  paymentProofRejectedEmail,
   pendingOrderReminderEmail,
   type OnlineOrderEmailFacts,
   type OnlineOrderStep,
@@ -725,4 +730,144 @@ export async function changeAnsweredMailsForShop(
   const facts = orderFacts(tenant.displayName, order);
   const url = deps.links.order(tenant.slug, order.id);
   return emails.map((to) => orderChangeAnsweredShopEmail({ to, buyerName, facts, answer, url }));
+}
+
+// -----------------------------------------------------------------------------
+// M3-3 «Soldi e squadra»: pagamenti, prove e assegnazioni
+// -----------------------------------------------------------------------------
+
+/** La pagina dell'ordine di chi compra, alla scheda dei pagamenti. */
+function buyerPaymentsUrl(orderId: string, deps: OrderMailDeps): string {
+  return deps.links.buyerOrder ? `${deps.links.buyerOrder(orderId)}#pagos` : deps.links.account;
+}
+
+/** Chi ha fatto l'ordine online e la fioreria, o null (ordine del banco, conto eliminato). */
+async function buyerOfOrderTx(tx: TransactionClient, tenantId: string, orderId: string) {
+  const order = await tx.order.findFirst({ where: { tenantId, id: orderId } });
+  if (!order?.placedOnline || !order.buyerUserId) return null;
+  const [buyer, tenant] = await Promise.all([
+    tx.user.findUnique({ where: { id: order.buyerUserId }, select: { name: true, email: true } }),
+    tx.tenant.findUniqueOrThrow({
+      where: { id: tenantId },
+      select: { displayName: true, contactEmail: true },
+    }),
+  ]);
+  return buyer ? { order, buyer, tenant } : null;
+}
+
+/**
+ * A chi compra: il pagamento (o il rimborso) appena registrato, con totale, pagato e quanto manca.
+ * Da chiamare DOPO la scrittura, nella stessa transazione: legge il pagato aggiornato.
+ */
+export async function paymentRecordedMailTx(
+  tx: TransactionClient,
+  tenantId: string,
+  orderId: string,
+  input: { readonly amountMinor: number; readonly refund: boolean },
+  deps: OrderMailDeps,
+): Promise<EmailMessage | null> {
+  const found = await buyerOfOrderTx(tx, tenantId, orderId);
+  if (!found) return null;
+  const { order, buyer, tenant } = found;
+  const currency = order.currency as CurrencyCode;
+  const label = (minor: number) => formatMoney(minor, currency, LOCALE);
+  return orderPaymentRecordedEmail({
+    to: buyer.email,
+    name: buyer.name,
+    facts: orderFacts(tenant.displayName, order),
+    refund: input.refund,
+    amountLabel: label(input.amountMinor),
+    paidLabel: label(order.paidMinor),
+    balanceLabel: label(orderBalanceMinor(order.paidMinor, order.totalMinor)),
+    url: buyerPaymentsUrl(order.id, deps),
+    replyTo: tenant.contactEmail,
+  });
+}
+
+/** A chi compra: la fioreria non ha trovato il pagamento della sua prova (con il motivo). */
+export async function paymentProofRejectedMailTx(
+  tx: TransactionClient,
+  tenantId: string,
+  orderId: string,
+  input: { readonly amountMinor: number; readonly reason: string },
+  deps: OrderMailDeps,
+): Promise<EmailMessage | null> {
+  const found = await buyerOfOrderTx(tx, tenantId, orderId);
+  if (!found) return null;
+  const { order, buyer, tenant } = found;
+  return paymentProofRejectedEmail({
+    to: buyer.email,
+    name: buyer.name,
+    facts: orderFacts(tenant.displayName, order),
+    amountLabel: formatMoney(input.amountMinor, order.currency as CurrencyCode, LOCALE),
+    reason: input.reason,
+    url: buyerPaymentsUrl(order.id, deps),
+    replyTo: tenant.contactEmail,
+  });
+}
+
+/** A proprietari e gerenti: chi compra ha caricato una prova di pagamento da controllare. */
+export async function paymentProofReceivedMailsForShop(
+  tx: TransactionClient,
+  tenantId: string,
+  orderId: string,
+  amountMinor: number,
+  deps: OrderMailDeps,
+): Promise<EmailMessage[]> {
+  const [order, tenant, emails] = await Promise.all([
+    tx.order.findFirstOrThrow({
+      where: { tenantId, id: orderId },
+      select: { id: true, number: true, currency: true },
+    }),
+    tx.tenant.findUniqueOrThrow({
+      where: { id: tenantId },
+      select: { displayName: true, slug: true },
+    }),
+    managerEmailsTx(tx, tenantId),
+  ]);
+  const url = `${deps.links.order(tenant.slug, order.id)}#pagos`;
+  return emails.map((to) =>
+    paymentProofReceivedShopEmail({
+      to,
+      shopName: tenant.displayName,
+      numberLabel: formatOrderNumber(order.number),
+      amountLabel: formatMoney(amountMinor, order.currency as CurrencyCode, LOCALE),
+      url,
+    }),
+  );
+}
+
+/**
+ * A chi consegna: gli hanno assegnato un ordine (giorno, fascia e zona; mai l'indirizzo intero,
+ * che legge nell'ordine). Null se la persona non è più attiva.
+ */
+export async function orderAssignedMailTx(
+  tx: TransactionClient,
+  tenantId: string,
+  orderId: string,
+  membershipId: string,
+  deps: OrderMailDeps,
+): Promise<EmailMessage | null> {
+  const [order, tenant, member] = await Promise.all([
+    tx.order.findFirstOrThrow({ where: { tenantId, id: orderId } }),
+    tx.tenant.findUniqueOrThrow({
+      where: { id: tenantId },
+      select: { displayName: true, slug: true },
+    }),
+    tx.membership.findFirst({
+      where: { tenantId, id: membershipId, status: 'ACTIVE' },
+      select: { user: { select: { name: true, email: true } } },
+    }),
+  ]);
+  if (!member) return null;
+  const zone = [order.deliveryNeighborhood, order.deliveryCity].filter(Boolean).join(', ') || null;
+  return orderAssignedEmail({
+    to: member.user.email,
+    name: member.user.name,
+    shopName: tenant.displayName,
+    numberLabel: formatOrderNumber(order.number),
+    when: whenLabel(order),
+    zone,
+    url: deps.links.order(tenant.slug, order.id),
+  });
 }

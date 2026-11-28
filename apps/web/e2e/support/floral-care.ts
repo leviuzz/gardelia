@@ -1,5 +1,6 @@
 import { expect, type Browser, type Page } from '@playwright/test';
 import { linkFrom, waitForEmail } from './mailbox';
+import { ownClientHeaders } from './network';
 
 /**
  * Passi comuni dei test di Floral Care con la pagina del cliente (blocco 5, ADR-084): orari,
@@ -157,7 +158,10 @@ export async function acceptInviteAsNewPerson(
   browser: Browser,
   options: { readonly invitePath: string; readonly email: string; readonly name: string },
 ) {
-  const visitor = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  const visitor = await browser.newContext({
+    storageState: { cookies: [], origins: [] },
+    extraHTTPHeaders: ownClientHeaders(),
+  });
   const person = await visitor.newPage();
   await person.goto(options.invitePath);
   await expect(person.getByText(`La invitación es para ${options.email}.`)).toBeVisible();

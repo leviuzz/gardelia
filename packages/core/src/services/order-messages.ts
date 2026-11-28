@@ -53,6 +53,11 @@ import {
 } from '../order-message-internals';
 import { buyerMessageNoticeMail, sendOrderMails, type OrderMailDeps } from '../order-mail';
 import type { PhotoVariant } from './catalog-photos';
+import {
+  DECLINED_CHANGES_WHERE,
+  awaitingShopWhere,
+  staffCanAcceptTx,
+} from './order-payment-internals';
 import { dateToParts } from './quote-internals';
 
 export interface OrderThreadDto {
@@ -91,6 +96,12 @@ export interface OrderInboxDto {
   /** Messaggi di chi compra da leggere, e in quanti ordini. */
   readonly unreadMessages: number;
   readonly unreadOrders: number;
+  /**
+   * M3-3, solo per chi gestisce i soldi (`orders:payments`; 0 per gli altri): prove di pagamento da
+   * controllare e contanti segnati da confermare.
+   */
+  readonly pendingProofs: number;
+  readonly pendingCash: number;
 }
 
 const orderThreadSelect = {
@@ -450,30 +461,15 @@ export async function getOrderMessagePhotoImage(
 }
 
 /**
- * Ordini online da accettare che aspettano la fioreria (M3-2): né in attesa della conferma di chi
- * compra né tornati dopo un «No, gracias» (`excludeDeclined`, per contarli a parte).
+ * «Da gestire»: ordini online da accettare (con la scadenza più vicina), messaggi da leggere e, per
+ * chi gestisce i soldi, prove di pagamento e contanti da confermare (M3-3).
  */
-function awaitingShopWhere(
-  tenantId: string,
-  excluded: readonly ('ASKED' | 'DECLINED')[],
-): Prisma.OrderWhereInput {
-  return {
-    tenantId,
-    status: 'PENDING_ACCEPTANCE',
-    placedOnline: true,
-    OR: [
-      { changeRequest: { is: null } },
-      { changeRequest: { is: { status: { notIn: [...excluded] } } } },
-    ],
-  };
-}
-
-/** «Da gestire»: ordini online da accettare (con la scadenza più vicina) e messaggi da leggere. */
 export async function getOrderInbox(ctx: TenantContext): Promise<OrderInboxDto> {
   requirePermission(ctx, 'orders:read');
   const canReadMessages = hasPermission(ctx, 'orders:messages');
+  const canReviewMoney = hasPermission(ctx, 'orders:payments');
   return withTenantContext(getDb(), ctx, async (tx) => {
-    const toAccept = awaitingShopWhere(ctx.tenantId, ['ASKED', 'DECLINED']);
+    const toAccept = { tenantId: ctx.tenantId, ...awaitingShopWhere(['ASKED', 'DECLINED']) };
     const pending = await tx.order.findMany({
       where: toAccept,
       select: {
@@ -499,15 +495,14 @@ export async function getOrderInbox(ctx: TenantContext): Promise<OrderInboxDto> 
       .sort((a, b) => a.getTime() - b.getTime());
     const [pendingOnline, declinedChanges] = await Promise.all([
       tx.order.count({ where: toAccept }),
-      tx.order.count({
-        where: {
-          tenantId: ctx.tenantId,
-          status: 'PENDING_ACCEPTANCE',
-          placedOnline: true,
-          changeRequest: { is: { status: 'DECLINED' } },
-        },
-      }),
+      tx.order.count({ where: { tenantId: ctx.tenantId, ...DECLINED_CHANGES_WHERE } }),
     ]);
+    const [pendingProofs, pendingCash] = canReviewMoney
+      ? await Promise.all([
+          tx.orderPaymentProof.count({ where: { tenantId: ctx.tenantId, status: 'PENDING' } }),
+          tx.orderCashCollection.count({ where: { tenantId: ctx.tenantId, status: 'PENDING' } }),
+        ])
+      : [0, 0];
     if (!canReadMessages) {
       return {
         pendingOnline,
@@ -515,6 +510,8 @@ export async function getOrderInbox(ctx: TenantContext): Promise<OrderInboxDto> 
         declinedChanges,
         unreadMessages: 0,
         unreadOrders: 0,
+        pendingProofs,
+        pendingCash,
       };
     }
     const rows = await tx.$queryRaw<{ unread: number; orders: number }[]>`
@@ -529,21 +526,26 @@ export async function getOrderInbox(ctx: TenantContext): Promise<OrderInboxDto> 
       declinedChanges,
       unreadMessages: rows[0]?.unread ?? 0,
       unreadOrders: rows[0]?.orders ?? 0,
+      pendingProofs,
+      pendingCash,
     };
   });
 }
 
 /**
  * Il numero sulla voce «Ordini» del menu (M3): gli ordini online da accettare, solo per chi li può
- * accettare (gli altri vedono 0). Con M3-2 contano anche quelli tornati dopo un «No, gracias», non
- * quelli che aspettano la conferma di chi compra. Una sola query leggera: la chiede ogni pagina.
+ * accettare (gli altri vedono 0): proprietario e gerente, lo staff con l'impostazione della fioreria
+ * (M3-3). Con M3-2 contano anche quelli tornati dopo un «No, gracias», non quelli che aspettano la
+ * conferma di chi compra. Query leggere: le chiede ogni pagina.
  */
 export async function countPendingOnlineOrders(ctx: TenantContext): Promise<number> {
   requirePermission(ctx, 'orders:read');
-  if (!hasPermission(ctx, 'orders:write')) return 0;
-  return withTenantContext(getDb(), ctx, (tx) =>
-    tx.order.count({ where: awaitingShopWhere(ctx.tenantId, ['ASKED']) }),
-  );
+  const canWrite = hasPermission(ctx, 'orders:write');
+  if (!canWrite && !hasPermission(ctx, 'orders:accept')) return 0;
+  return withTenantContext(getDb(), ctx, async (tx) => {
+    if (!canWrite && !(await staffCanAcceptTx(tx, ctx.tenantId))) return 0;
+    return tx.order.count({ where: { tenantId: ctx.tenantId, ...awaitingShopWhere() } });
+  });
 }
 
 /** Foto per giro del lavoro giornaliero (il resto al giro dopo). */

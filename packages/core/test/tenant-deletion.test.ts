@@ -274,6 +274,62 @@ describe('cancellazione definitiva (manutenzione)', () => {
         data: { tenantId: shop.owner.tenantId, orderId, before: {} },
       });
     });
+    // M3-3: una prova di pagamento confermata (con la foto) e dei contanti confermati vanno via con
+    // la fioreria, anche se puntano a un pagamento e a un membro.
+    const proofKeys = [
+      `${prefix}order-payment-proofs/${orderId}-prova.jpg`,
+      `${prefix}order-payment-proofs/${orderId}-prova-thumb.jpg`,
+    ];
+    for (const key of proofKeys) await storage.put(key, await jpeg());
+    await withTenantContext(db, shop.owner, async (tx) => {
+      const payment = await tx.orderPayment.create({
+        data: {
+          tenantId: shop.owner.tenantId,
+          orderId,
+          kind: 'DEPOSIT',
+          method: 'TRANSFER',
+          amountMinor: 1000,
+          paidOn: new Date(),
+        },
+      });
+      await tx.orderPaymentProof.create({
+        data: {
+          tenantId: shop.owner.tenantId,
+          orderId,
+          amountMinor: 1000,
+          photoKey: proofKeys[0]!,
+          photoThumbKey: proofKeys[1]!,
+          photoWidth: 900,
+          photoHeight: 900,
+          status: 'CONFIRMED',
+          paymentId: payment.id,
+          reviewedAt: new Date(),
+          submitKey: crypto.randomUUID(),
+        },
+      });
+      const cash = await tx.orderPayment.create({
+        data: {
+          tenantId: shop.owner.tenantId,
+          orderId,
+          kind: 'BALANCE',
+          method: 'CASH',
+          amountMinor: 500,
+          paidOn: new Date(),
+        },
+      });
+      await tx.orderCashCollection.create({
+        data: {
+          tenantId: shop.owner.tenantId,
+          orderId,
+          collectedByMembershipId: shop.staff.membershipId,
+          amountMinor: 500,
+          status: 'CONFIRMED',
+          paymentId: cash.id,
+          reviewedAt: new Date(),
+          submitKey: crypto.randomUUID(),
+        },
+      });
+    });
 
     await requestTenantDeletion(shop.owner, { confirmName: 'Florería Que Se Va' }, null);
     // Prima della data non si tocca nulla.
@@ -285,6 +341,7 @@ describe('cancellazione definitiva (manutenzione)', () => {
     expect(await tenantExists(shop.owner.tenantId)).toBe(false);
     expect([...storage.objects.keys()].some((key) => key.startsWith(prefix))).toBe(false);
     expect(messageKeys.some((key) => storage.objects.has(key))).toBe(false);
+    expect(proofKeys.some((key) => storage.objects.has(key))).toBe(false);
     const event = await withSystemContext(db, { reason: 'test: evento' }, (tx) =>
       tx.auditLog.findFirst({
         where: { tenantId: null, action: 'platform.tenant_purged', entityId: shop.owner.tenantId },

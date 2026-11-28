@@ -11,6 +11,7 @@ import {
   declineBuyerOrderChange,
   markBuyerOrderRead,
   postBuyerOrderMessage,
+  submitBuyerPaymentProof,
 } from '@floral/core';
 import type { ActionState } from '@/lib/action-state';
 import { runBuyerAction } from '@/lib/buyer';
@@ -113,6 +114,35 @@ export async function answerBuyerOrderQuestionAction(
         revalidate: buyerOrderPaths(orderId),
         success: 'account.orderPage.messages.answered',
       };
+    },
+    { next: accountRoutes.orders.detail(orderId) },
+  );
+}
+
+/**
+ * M3-3 «Ya pagué»: la prova del pagamento (importo, nota e la foto, ridotta dal modulo prima
+ * dell'invio). La chiave dell'invio viene dal modulo: lo stesso invio due volte non scrive due prove.
+ */
+export async function submitPaymentProofAction(
+  orderId: string,
+  formData: FormData,
+): Promise<ActionState> {
+  return runBuyerAction(
+    async ({ ctx }) => {
+      const photo = await optionalUploadedBytes(formData);
+      await submitBuyerPaymentProof(
+        ctx,
+        orderId,
+        {
+          amount: formData.get('amount'),
+          note: formData.get('note'),
+          submitKey: formData.get('submitKey'),
+        },
+        photo,
+        orderMailDeps(),
+        { request: await getRequestMeta() },
+      );
+      return { revalidate: buyerOrderPaths(orderId), success: 'account.orderPage.payments.sent' };
     },
     { next: accountRoutes.orders.detail(orderId) },
   );

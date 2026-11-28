@@ -6,6 +6,7 @@ import { getBuyerOrder } from '@floral/core';
 import { orderMessagePages, pendingOrderDeadlineShown, resolveLocale } from '@floral/domain';
 import { BuyerOrderChangeCard } from '@/components/account/buyer-order-change-card';
 import { BuyerOrderMessagesCard } from '@/components/account/buyer-order-messages-card';
+import { BuyerOrderPaymentsCard } from '@/components/account/buyer-order-payments-card';
 import { ConfirmActionDialog } from '@/components/common/confirm-action-dialog';
 import { PrivateImage } from '@/components/common/private-image';
 import { OrderTracking } from '@/components/public/order-tracking';
@@ -28,8 +29,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * Un ordine online nel conto di chi l'ha fatto (M3, ADR-088): i passi con l'ora, come pagare dopo
- * l'accettazione, la consegna, la tarjeta e i prodotti (come nel link di stato), i messaggi con la
- * fioreria, «Annulla l'ordine» finché è da accettare e «Pedir de nuevo» quando è chiuso. Nella
+ * l'accettazione, la consegna, la tarjeta e i prodotti (come nel link di stato), le prove di
+ * pagamento e il rimborso (M3-3), i messaggi con la fioreria, «Annulla l'ordine» finché è da
+ * accettare e «Pedir de nuevo» quando è chiuso. Nella
  * lingua della persona; i testi della fioreria restano come sono scritti. L'ordine di un altro
  * risponde 404.
  */
@@ -172,6 +174,9 @@ export default async function BuyerOrderPage({
           line: (lineId) => accountRoutes.orders.lineImage(orderId, lineId),
         }}
       />
+
+      {/* M3-3: «Ya pagué», le prove con lo stato e il rimborso (le email portano a `#pagos`). */}
+      <BuyerOrderPaymentsCard detail={detail} locale={locale} />
 
       <BuyerOrderMessagesCard detail={detail} pages={pages} timeZone={shop.timezone} />
 

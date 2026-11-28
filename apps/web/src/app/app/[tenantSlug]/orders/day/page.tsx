@@ -5,6 +5,7 @@ import {
   Globe,
   Mail,
   Printer,
+  Scissors,
   Store,
   Truck,
 } from 'lucide-react';
@@ -184,6 +185,24 @@ export default async function OrdersDayPage({
           </Button>
         </form>
       </div>
+
+      {/* M3-3: le comande e i biglietti degli ordini da preparare, tutti insieme. */}
+      {view.productionOrders > 0 ? (
+        <div className="flex flex-wrap gap-2" data-testid="day-print">
+          <Button asChild variant="outline">
+            <Link href={routes.orders.dayTickets({ date: view.date })}>
+              <Printer />
+              {t('orders.dayPrint.printTickets')}
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={routes.orders.dayCards({ date: view.date })}>
+              <Scissors />
+              {t('orders.dayPrint.printCards')}
+            </Link>
+          </Button>
+        </div>
+      ) : null}
 
       {view.counts.total === 0 ? (
         <EmptyState

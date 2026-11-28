@@ -495,7 +495,7 @@ export async function StorefrontView({
               )}
             </ul>
           </div>
-          {store.paymentMethods.length > 0 || store.paymentInstructions ? (
+          {store.paymentMethods.length > 0 ? (
             <div className="rounded-2xl border bg-card p-5">
               <h2 className="flex items-center gap-2 font-semibold">
                 <CreditCard className="size-4 text-primary" aria-hidden="true" />
@@ -510,11 +510,10 @@ export async function StorefrontView({
                   ))}
                 </ul>
               ) : null}
-              {store.paymentInstructions ? (
-                <p className="mt-3 text-sm whitespace-pre-line text-muted-foreground">
-                  {store.paymentInstructions}
-                </p>
-              ) : null}
+              {/* I dati per pagare (CLABE, conto) arrivano solo a ordine accettato (M3-3). */}
+              <p className="mt-3 text-sm text-muted-foreground" data-testid="store-payment-later">
+                {t(store.ordersEnabled ? 'paymentAfterAccept' : 'paymentAsk')}
+              </p>
               <p className="mt-3 text-xs text-muted-foreground">{t('paymentDirect')}</p>
             </div>
           ) : null}

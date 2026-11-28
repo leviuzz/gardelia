@@ -114,7 +114,12 @@ describe('impostazioni degli ordini online', () => {
     expect(onlineOrderSettingsSchema.parse({ ordersEnabled: 'on', minLeadDays: '0' })).toEqual({
       ordersEnabled: true,
       minLeadDays: 0,
+      // M3-3: lo staff accetta solo se la fioreria lo accende (spento di default).
+      staffCanAccept: false,
     });
+    expect(
+      onlineOrderSettingsSchema.parse({ minLeadDays: '1', staffCanAccept: 'on' }).staffCanAccept,
+    ).toBe(true);
     expect(onlineOrderSettingsSchema.safeParse({ minLeadDays: '15' }).success).toBe(false);
     expect(onlineOrdersBlockers({ paymentMethods: [], contactPhone: null })).toEqual([
       'store_needs_payment',

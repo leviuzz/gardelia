@@ -5,7 +5,8 @@
  * (`app_purge_place_coordinates`, regole di Google Places, ADR-059); chiude le bozze di import di
  * clienti dimenticate da più di un giorno e ne cancella il file (`app_close_stale_customer_imports`,
  * ADR-070); annulla gli ordini online che nessuna fioreria ha accettato in tempo e lo scrive a chi
- * compra (ADR-067); emette i cargos del mese di Floral Care (ADR-082), allunga le visite, chiude
+ * compra (ADR-067); cancella le foto dei messaggi e delle prove di pagamento degli ordini 30 giorni
+ * dopo la chiusura (M3); emette i cargos del mese di Floral Care (ADR-082), allunga le visite, chiude
  * i contratti finiti (ADR-075), ne cancella le foto 30 giorni dopo e riprova i resoconti rimasti
  * indietro (ADR-078). Le pagine
  * mostrano già lo stato effettivo calcolato in lettura: questo lavoro rende il dato salvato coerente
@@ -19,6 +20,7 @@ import { getDb } from '@floral/db';
 import { logger } from '../logger';
 import { expireUnacceptedOrders, remindPendingOrders } from '../marketplace-orders';
 import { purgeOrderMessagePhotos } from '../services/order-messages';
+import { purgeOrderPaymentProofPhotos } from '../services/order-money';
 import { purgeDeletedTenants } from '../services/tenant-deletion';
 import type { OrderMailDeps } from '../order-mail';
 import { refreshStoreCoordinates } from '../public-directory';
@@ -55,6 +57,8 @@ export interface MaintenanceResult {
   readonly onlineOrdersReminded: number;
   /** M3: foto dei messaggi degli ordini cancellate (30 giorni dopo la chiusura). */
   readonly orderMessagePhotosDeleted: number;
+  /** M3-3: foto delle prove di pagamento cancellate (stessa regola). */
+  readonly paymentProofPhotosDeleted: number;
 }
 
 /** `mail`: per scrivere a chi compra quando il suo ordine scade (null nei test senza email). */
@@ -80,6 +84,7 @@ export async function runDailyMaintenance(
   const onlineOrdersExpired = await expireUnacceptedOrders(mail);
   const onlineOrdersReminded = await remindPendingOrders(mail);
   const orderMessagePhotosDeleted = await purgeOrderMessagePhotos();
+  const paymentProofPhotosDeleted = await purgeOrderPaymentProofPhotos();
   const care = await runCareMaintenance(mail);
   const tenantsPurged = await purgeDeletedTenants();
   const result: MaintenanceResult = {
@@ -104,6 +109,7 @@ export async function runDailyMaintenance(
     tenantsPurged,
     onlineOrdersReminded,
     orderMessagePhotosDeleted,
+    paymentProofPhotosDeleted,
   };
   logger.info(result, 'manutenzione giornaliera completata');
   return result;

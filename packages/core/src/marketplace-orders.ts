@@ -113,8 +113,8 @@ export interface CheckoutFormDto {
     readonly phone: string | null;
     /** Dove si ritira (sede principale), o null. */
     readonly pickupAddress: string | null;
+    /** Solo le forme: i dati per pagare arrivano quando la fioreria accetta (M3-3). */
     readonly paymentMethods: readonly StorePaymentMethod[];
-    readonly paymentInstructions: string | null;
     /** Politiche della fioreria (M1), nel riepilogo prima di inviare; null se non le ha scritte. */
     readonly policies: {
       readonly changes: string | null;
@@ -281,7 +281,6 @@ export async function getCheckoutForm(
           ? [location.addressLine1, location.neighborhood, location.city].filter(Boolean).join(', ')
           : null,
         paymentMethods: store.paymentMethods as StorePaymentMethod[],
-        paymentInstructions: store.paymentInstructions,
         policies: {
           changes: store.policyChanges,
           cancellations: store.policyCancellations,

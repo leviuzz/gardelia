@@ -132,7 +132,6 @@ export default async function CheckoutPage({
                 currency: store.currency,
                 pickupAddress: store.pickupAddress,
                 paymentMethods: store.paymentMethods,
-                paymentInstructions: store.paymentInstructions,
                 policies: storePolicies(store, tStore),
               }}
               items={form.items.map((item) => ({

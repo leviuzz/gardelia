@@ -226,10 +226,12 @@ describe('pagina pubblica', () => {
       locale: 'es-MX',
       phone: '+524495550101',
       paymentMethods: ['TRANSFER', 'CASH'],
-      paymentInstructions: 'CLABE 012345678901234567 (BBVA)',
       isDemo: true,
       address: { line: 'Calle de prueba 1', city: 'Aguascalientes', region: 'Aguascalientes' },
     });
+    // M3-3: i dati per pagare arrivano solo a ordine accettato, mai nella pagina pubblica.
+    expect(store).not.toHaveProperty('paymentInstructions');
+    expect(JSON.stringify(store)).not.toContain('CLABE');
     const storefront = await getPublicStorefront(shop.tenant.slug, {});
     expect(storefront!.items.map((item) => item.name)).toEqual(['Ramo Primavera', 'Rosa roja']);
     const json = JSON.stringify(storefront);

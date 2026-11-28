@@ -362,6 +362,18 @@ export interface BuyerDataExport {
     readonly answer: string;
     readonly reason: string | null;
   }[];
+  /** M3-3: le prove di pagamento caricate dalla persona, con la risposta della fioreria. */
+  readonly orderPaymentProofs: readonly {
+    readonly shop: string;
+    readonly order: string;
+    readonly sentAt: string;
+    readonly amountMinor: number;
+    readonly currency: string;
+    readonly note: string | null;
+    /** `PENDING`, `CONFIRMED` o `REJECTED`. */
+    readonly status: string;
+    readonly rejectReason: string | null;
+  }[];
   /** Floral Care (ADR-084): i contratti che la persona vede o ha visto nella pagina del cliente. */
   readonly floralCare: {
     readonly accesses: readonly {
@@ -408,6 +420,7 @@ export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExpor
       assistantAnswers,
       orderMessages,
       orderChangeAnswers,
+      orderPaymentProofs,
     ] = await Promise.all([
       tx.user.findUniqueOrThrow({
         where: { id: ctx.userId },
@@ -486,6 +499,19 @@ export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExpor
           decline_reason: string | null;
         }[]
       >`SELECT * FROM app_buyer_order_change_answers()`,
+      // M3-3: le prove di pagamento (senza la foto).
+      tx.$queryRaw<
+        {
+          shop_name: string;
+          order_number: number;
+          created_at: Date;
+          amount_minor: number;
+          currency: string;
+          note: string | null;
+          status: string;
+          reject_reason: string | null;
+        }[]
+      >`SELECT * FROM app_buyer_order_payment_proofs()`,
     ]);
     return {
       exportedAt: new Date().toISOString(),
@@ -527,6 +553,16 @@ export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExpor
         answeredAt: row.answered_at.toISOString(),
         answer: row.status,
         reason: row.decline_reason,
+      })),
+      orderPaymentProofs: orderPaymentProofs.map((row) => ({
+        shop: row.shop_name,
+        order: formatOrderNumber(row.order_number),
+        sentAt: row.created_at.toISOString(),
+        amountMinor: row.amount_minor,
+        currency: row.currency.trim(),
+        note: row.note,
+        status: row.status,
+        rejectReason: row.reject_reason,
       })),
       floralCare: {
         accesses: careAccesses.map((row) => ({

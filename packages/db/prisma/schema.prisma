@@ -70,6 +70,7 @@ model User {
   /// Marketplace M3 (ADR-088): i messaggi scritti sugli ordini (restano senza autore se il conto si
   /// elimina) e fin dove chi compra li ha letti.
   orderMessages              OrderMessage[]              @relation("OrderMessageAuthor")
+  orderPaymentProofs         OrderPaymentProof[]         @relation("OrderPaymentProofBuyer")
   orderBuyerReads            OrderBuyerRead[]            @relation("OrderBuyerReadUser")
   assistantCases             AssistantCase[]             @relation("AssistantCaseAskedBy")
   assistantAnswers           AssistantAnswer[]           @relation("AssistantAnswerAskedBy")
@@ -339,6 +340,8 @@ model Tenant {
   orderBuyerReads            OrderBuyerRead[]
   orderNotices               OrderNotice[]
   orderChangeRequests        OrderChangeRequest[]
+  orderPaymentProofs         OrderPaymentProof[]
+  orderCashCollections       OrderCashCollection[]
   assistantCases             AssistantCase[]
   assistantAnswers           AssistantAnswer[]
   assistantCalls             AssistantCall[]
@@ -428,13 +431,14 @@ model Membership {
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
-  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user           User        @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade)
-  invitedBy      User?       @relation("MembershipInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+  tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user                 User                  @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy            User?                 @relation("MembershipInviter", fields: [invitedById], references: [id], onDelete: SetNull)
   /// Ordini da consegnare assegnati a questo membro (repartidor, ADR-058).
-  assignedOrders Order[]
+  assignedOrders       Order[]
+  orderCashCollections OrderCashCollection[] @relation("OrderCashCollector")
   /// Visite di Floral Care assegnate a questo membro (ADR-075).
-  careVisits     CareVisit[]
+  careVisits           CareVisit[]
 
   @@unique([tenantId, userId])
   @@unique([tenantId, id])
@@ -564,7 +568,7 @@ model OnlineStore {
   description         String?
   /// Chiavi di STORE_PAYMENT_METHODS (@floral/domain): solo informazione per il cliente.
   paymentMethods      String[]  @default([])
-  /// Testo pubblico (es. CLABE e banca per il trasferimento).
+  /// Dati per pagare (es. CLABE e banca): M3-3, solo a chi ha un ordine accettato e non annullato.
   paymentInstructions String?
   /// Logo (JPEG piccolo) e foto di copertina (JPEG grande): l'ID cambia a ogni sostituzione ed è
   /// nell'indirizzo pubblico, così il browser non mostra mai la versione vecchia.
@@ -576,6 +580,9 @@ model OnlineStore {
   ordersEnabled       Boolean   @default(false)
   /// Giorni di anticipo minimo per un ordine online (0 = anche per oggi).
   minLeadDays         Int       @default(1)
+  /// M3-3: anche lo staff accetta, rifiuta, cambia e chiede conferma sugli ordini online da
+  /// accettare (spento di default; proprietario e gerente sempre).
+  staffCanAccept      Boolean   @default(false)
   /// Politiche della fioreria verso chi compra (M1, ADR-087): testi suoi, facoltativi, ≤1000.
   policyChanges       String?
   policyCancellations String?
@@ -1628,6 +1635,8 @@ enum OrderPaymentKind {
   BALANCE
   /// Storno di un pagamento registrato per errore: importo negativo, nessuna cancellazione.
   REVERSAL
+  /// M3-3: rimborso su un ordine annullato. Negativo, senza pagamento collegato; non si storna.
+  REFUND
 }
 
 model Order {
@@ -1719,6 +1728,8 @@ model Order {
   buyerReads           OrderBuyerRead[]
   notices              OrderNotice[]
   changeRequest        OrderChangeRequest?
+  paymentProofs        OrderPaymentProof[]
+  cashCollections      OrderCashCollection[]
 
   buyer User? @relation("BuyerOrders", fields: [buyerUserId], references: [id], onDelete: SetNull)
 
@@ -1782,16 +1793,94 @@ model OrderPayment {
   /// Solo per gli storni: il pagamento stornato (uno storno per pagamento).
   reversedPaymentId String?          @db.Uuid
   createdById       String?          @db.Uuid
+  /// M3: la chiave del modulo «Registra pagamento» / «Registra rimborso» (un invio, un movimento).
+  submitKey         String?          @db.Uuid
   createdAt         DateTime         @default(now())
 
-  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  order           Order         @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Cascade)
-  reversedPayment OrderPayment? @relation("PaymentReversal", fields: [tenantId, reversedPaymentId], references: [tenantId, id], onDelete: Restrict)
-  reversal        OrderPayment? @relation("PaymentReversal")
+  tenant          Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order           Order                @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Cascade)
+  reversedPayment OrderPayment?        @relation("PaymentReversal", fields: [tenantId, reversedPaymentId], references: [tenantId, id], onDelete: Restrict)
+  reversal        OrderPayment?        @relation("PaymentReversal")
+  /// M3-3: la prova di chi compra o i contanti confermati che hanno creato questo pagamento.
+  proof           OrderPaymentProof?   @relation("OrderPaymentProofPayment")
+  cashCollection  OrderCashCollection? @relation("OrderCashPayment")
 
   @@unique([tenantId, id])
   @@unique([tenantId, reversedPaymentId])
+  @@unique([tenantId, submitKey])
   @@index([tenantId, orderId])
+}
+
+/// Prova di pagamento di chi compra (M3-3, ADR-088): la foto del bonifico, l'importo e una nota.
+/// La fioreria la conferma (diventa un pagamento, `paymentId`) o la rifiuta con un motivo che chi
+/// compra legge. La foto sta nella riga, come per i messaggi; si cancella 30 giorni dopo la chiusura.
+model OrderPaymentProof {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  tenantId       String    @db.Uuid
+  orderId        String    @db.Uuid
+  /// Chi l'ha caricata; null se ha eliminato il conto.
+  buyerUserId    String?   @db.Uuid
+  /// Quanto dice di aver pagato chi compra.
+  amountMinor    Int
+  note           String?
+  /// File della foto e della miniatura, sotto `tenants/<id>/order-payment-proofs/` (CHECK). Le
+  /// chiavi restano anche dopo la cancellazione dei file (`photoDeletedAt`).
+  photoKey       String
+  photoThumbKey  String
+  photoWidth     Int
+  photoHeight    Int
+  photoDeletedAt DateTime?
+  /// `PENDING`, `CONFIRMED` (con il pagamento) o `REJECTED` (con il motivo): CHECK nella migrazione.
+  status         String    @default("PENDING")
+  paymentId      String?   @db.Uuid
+  rejectReason   String?
+  reviewedById   String?   @db.Uuid
+  reviewedAt     DateTime?
+  /// Chiave dell'invio: lo stesso modulo inviato due volte non scrive due prove.
+  submitKey      String    @db.Uuid
+  createdAt      DateTime  @default(now())
+
+  tenant  Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order   Order         @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Cascade)
+  buyer   User?         @relation("OrderPaymentProofBuyer", fields: [buyerUserId], references: [id], onDelete: SetNull)
+  payment OrderPayment? @relation("OrderPaymentProofPayment", fields: [tenantId, paymentId], references: [tenantId, id], onDelete: NoAction)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, submitKey])
+  @@unique([tenantId, paymentId])
+  @@index([tenantId, orderId])
+  @@index([tenantId, status])
+}
+
+/// Contanti incassati da chi consegna (M3-3, ADR-088): li segna chi porta l'ordine, li conferma
+/// proprietario o gerente (diventano un pagamento in contanti, `paymentId`) o li rifiuta con un
+/// motivo. Uno in attesa per ordine (indice parziale nella migrazione). Chi compra non li vede.
+model OrderCashCollection {
+  id                      String    @id @default(uuid(7)) @db.Uuid
+  tenantId                String    @db.Uuid
+  orderId                 String    @db.Uuid
+  collectedByMembershipId String    @db.Uuid
+  amountMinor             Int
+  note                    String?
+  /// `PENDING`, `CONFIRMED` (con il pagamento) o `REJECTED` (con il motivo): CHECK nella migrazione.
+  status                  String    @default("PENDING")
+  paymentId               String?   @db.Uuid
+  rejectReason            String?
+  reviewedById            String?   @db.Uuid
+  reviewedAt              DateTime?
+  submitKey               String    @db.Uuid
+  createdAt               DateTime  @default(now())
+
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order       Order         @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Cascade)
+  collectedBy Membership    @relation("OrderCashCollector", fields: [tenantId, collectedByMembershipId], references: [tenantId, id], onDelete: NoAction)
+  payment     OrderPayment? @relation("OrderCashPayment", fields: [tenantId, paymentId], references: [tenantId, id], onDelete: NoAction)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, submitKey])
+  @@unique([tenantId, paymentId])
+  @@index([tenantId, orderId])
+  @@index([tenantId, status])
 }
 
 /// Cronologia degli stati dell'ordine (chi, quando, da dove a dove).

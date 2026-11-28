@@ -3178,7 +3178,7 @@ niente codice nuovo»):**
   con la consegna a 0; pagina del prodotto tolto; link di stato fino a 30 giorni dopo la consegna,
   allungato se la consegna si sposta. Dettagli in `docs/MARKETPLACE_FLOWS.md` §4.
 - **Stato (26/11):** M0 e M1 (M1-1, M1-2) su staging (ADR-087); M3 in corso (ADR-088: M3-1 su
-  staging, M3-2 sul ramo di lavoro, poi M3-3 con lo stesso piano).
+  staging, M3-2 su staging, poi M3-3 con lo stesso piano).
 
 ### ADR-087 — Marketplace M1: la vetrina che vende — FATTO (M1-1 e M1-2 su staging, 25/11/2026)
 
@@ -3249,7 +3249,7 @@ niente codice nuovo»):**
   carrello nell'aviso de privacidad §7 (bozza aggiornata); dati di cura e tossicità (già «da
   rivedere»). M1-2 non aggiunge cookie né dati personali nuovi.
 
-### ADR-088 — Marketplace M3: l'ordine tutto nell'app — IN CORSO (M3-1 su staging, M3-2 sul ramo di lavoro, 26/11/2026)
+### ADR-088 — Marketplace M3: l'ordine tutto nell'app — IN CORSO (M3-1 e M3-2 su staging, 26/11/2026)
 
 - **Perché:** blocco M3 del giro del marketplace (ADR-086), piano di dettaglio approvato dal
   founder il 26/11: «basta WhatsApp e email avanti e indietro». Tre rilasci, ognuno con test, CI
@@ -3332,7 +3332,7 @@ niente codice nuovo»):**
   eliminada») e il filo si chiude.
 - **Correzione insieme:** nei Report e in `pagos.csv` uno storno contava al contrario (nel database
   è già negativo e il codice lo cambiava di segno un'altra volta).
-- **M3-2 «Cambi da confermare» (sul ramo di lavoro, 26/11):**
+- **M3-2 «Cambi da confermare» (su staging, 26/11, merge `90645bd`):**
   - **Com'era e com'è** (`OrderChangeRequest`, una per ordine, RLS e guardia di chi compra nella
     stessa migrazione): il primo cambio che chi compra vedrebbe su un ordine online da accettare
     salva l'ordine com'era (`before`: prodotti con quantità e prezzi, giorno e fascia, consegna o
@@ -3370,9 +3370,87 @@ niente codice nuovo»):**
     di stato dice che ci sono cambi da confermare nel conto, senza pulsanti; 5) gli ordini che
     aspettano chi compra non contano in «Da gestire» né nel numero del menu; 6) se chi compra ha
     eliminato il conto non può rispondere, quindi «Accetta l'ordine» resta anche con i cambi.
+- **M3-3 «Soldi e squadra» (sul ramo di lavoro, 28/11):**
+  - **Dati per pagare solo a ordine accettato:** `OnlineStore.paymentInstructions` (CLABE, conto)
+    non arriva più alla vetrina, alla scheda del prodotto, all'anteprima né al modulo d'ordine (le
+    letture pubbliche non lo restituiscono); `readCustomerOrderTx` lo dà solo con
+    `paymentInstructionsVisible` (ordine online accettato e non annullato): pagina dell'ordine, link
+    di stato, email di accettazione. Vetrina e modulo dicono «Te damos los datos para pagar cuando
+    la florería acepte tu pedido» (senza ordini online, «Pide los datos para pagar a la florería»).
+  - **Prove di pagamento** (`OrderPaymentProof`, RLS, FK composite e guardia di chi compra nella
+    stessa migrazione): «Ya pagué: sube tu comprobante» dal conto, solo da `withBuyerOrder` con il
+    lock, dopo l'accettazione e con qualcosa da pagare; foto obbligatoria (la catena dei messaggi,
+    chiavi sotto `tenants/<id>/order-payment-proofs/` con CHECK, rotte private), importo fino a
+    quanto manca, nota facoltativa, `submitKey` contro i doppi invii, al massimo 3 in attesa. Le
+    vedono solo proprietario e gerente (`orders:payments`: la foto ha dati bancari). «Confermo» apre
+    «Registra pagamento» già compilato e scrive il pagamento e la prova confermata nella stessa
+    transazione, con l'ordine bloccato; «Non lo trovo» la rifiuta con un motivo che chi compra legge.
+    Stati con CHECK (confermata ⇔ il pagamento; rifiutata ⇔ il motivo; decisa ⇔ `reviewedAt`).
+  - **«Registramos tu pago de $X»** a chi compra dopo il commit per ogni pagamento registrato su un
+    ordine online (a mano, da una prova, dai contanti), con totale, pagato e quanto manca, e la
+    frase «no es un comprobante fiscal». Lo storno no (PROPOSTO).
+  - **Rimborso** (`OrderPaymentKind.REFUND`, in una migrazione a parte come vuole Postgres): solo su
+    un ordine annullato, fino al pagato, anche in più volte; negativo e senza pagamento collegato
+    (`OrderPayment_amount_check` riscritto), non si storna. Uno storno non porta più il pagato sotto
+    zero (`reversal_below_zero`, il caso di un pagamento già rimborsato). L'ordine mostra
+    «Rimborsato $X», chi compra riceve «Te reembolsamos $X»; Report, `pagos.csv` («Reembolso») e la
+    cronologia del cliente lo contano col segno giusto.
+  - **Contanti di chi consegna** (`OrderCashCollection`, RLS e FK composite; chi compra non li
+    tocca): «Ho incassato $X in contanti» dall'ordine o da Percorso → «Le mie consegne»
+    (`orders:fulfill`), uno in attesa per ordine (indice unico parziale); proprietario o gerente li
+    confermano (un saldo in Contanti del giorno in cui sono stati segnati, fino a quanto segnato e a
+    quanto manca) o li rifiutano con un motivo. È il giro di «Cobré en la visita» di Floral Care.
+  - **Staff:** permesso nuovo `orders:accept` per tutti i ruoli; i servizi di accettare, rifiutare,
+    chiedere conferma, proporre una data e cambiare un ordine da accettare aprono con quello e poi,
+    sull'ordine bloccato, `assertCanHandlePendingOnlineTx` / `assertOrderEditableTx`: proprietario e
+    gerente sempre, lo staff solo con `OnlineStore.staffCanAccept` (Impostazioni → Negozio online,
+    spento di default) e solo su un ordine online da accettare. `getOrder`, il numero del menu e i
+    pulsanti seguono la stessa regola. L'impostazione va nel registro di `store.orders_updated` con
+    il suo cambio (al posto di un'azione a parte).
+  - **Squadra e giorno:** assegnando un ordine a un'altra persona le arriva «Te asignaron la entrega
+    del pedido PED-… para el …» (zona, mai l'indirizzo intero); Ordini → Giorno ha «Stampa le
+    comande» (una per pagina, con l'intestazione) e «Stampa i biglietti» (10 × 7 cm, con la linea di
+    taglio e il numero fuori dal taglio) per gli ordini da preparare quel giorno.
+  - **«Da gestire» ed elenco:** «N prove di pagamento da controllare» e «N incassi in contanti da
+    confermare», solo per chi gestisce i soldi, con i filtri `money=proofs` e `money=cash`.
+  - **Esportazioni e cancellazioni:** `pedidos_comprobantes.csv` e `pedidos_efectivo.csv` nello ZIP
+    (senza le foto), le prove in «Descargar mis datos» (`app_buyer_order_payment_proofs`), le foto
+    delle prove cancellate 30 giorni dopo la chiusura come quelle dei messaggi
+    (`app_order_payment_proof_photos_to_purge`, lavoro giornaliero) e con la fioreria eliminata.
+  - **PROPOSTO (da confermare in staging):** 1) email ai proprietari e gerenti quando arriva una
+    prova; 2) email a chi compra quando la prova è rifiutata, con il motivo; 3) niente email per uno
+    storno; 4) foto obbligatoria, importo proposto = quanto manca, al massimo 3 prove in attesa; 5)
+    più rimborsi parziali fino al pagato, un rimborso non si annulla; 6) i contanti li segna chi
+    prepara e consegna e non registra i pagamenti (lo staff: proprietario e gerente usano «Registra
+    pagamento»), uno in attesa per ordine, si conferma fino a quanto segnato; 7) la stampa del giorno
+    con gli ordini confermati, in preparazione e pronti, i biglietti solo di quelli con il biglietto; 8) con l'impostazione lo staff accetta, rifiuta, propone una data, chiede conferma e cambia gli
+    ordini online da accettare, non annulla quelli accettati né registra pagamenti; 9) i dati per
+    pagare spariscono dalla vetrina anche per le fiorerie solo WhatsApp; 10) l'email di assegnazione
+    solo assegnando un'altra persona; 11) una prova in attesa su un ordine poi annullato non si
+    conferma più (si rifiuta, e un rimborso si registra solo su quanto è stato registrato).
+- **Revisione di tutto M3 (28/11, a blocco finito):** `/code-review` a livello alto su M3-1, M3-2 e
+  M3-3 più l'elenco fisso; cinque correzioni, ognuna con il suo test:
+  - **«Por aceptar» come il menu:** l'elenco (filtro, numero, avviso in cima) e Impostazioni →
+    Negozio online contavano anche gli ordini che aspettano la conferma di chi compra; ora una regola
+    sola (`awaitingShopWhere`) per menu, «Da gestire», elenco e Impostazioni, e quegli ordini hanno
+    il filtro «In attesa del cliente» (`changes=asked`);
+  - **prove da controllare:** il filtro dell'elenco contava gli ordini, «Da gestire» le prove (fino a
+    3 per ordine); ora tutti e due le prove (e i contanti);
+  - **«Confirmar cambios»** ricontrolla sui dati che l'ordine sia ancora quello chiesto
+    (`order_change_outdated`), oltre al ritiro automatico della richiesta a ogni cambio;
+  - **doppi invii di pagamenti e rimborsi:** «Registra pagamento» e «Registra rimborso» mandano una
+    chiave del modulo (`OrderPayment.submitKey`, unica per fioreria, migrazione
+    `order_payment_submit_key`), come i pagamenti di Floral Care: lo stesso invio due volte scrive un
+    movimento e un'email;
+  - un commento doppio in `assignOrder`.
+  - Prima della revisione, negli E2E: ogni persona che si registra arriva da un suo IP di prova
+    (il limite di 5 registrazioni al minuto per IP si sommava fra test di fila) e i link «Ver
+    pedidos» di «Da gestire» hanno la descrizione della loro riga per i lettori di schermo.
 - **DA VALIDARE:** termini per chi compra (PROFECO) con i messaggi e gli avvisi, i cambi proposti e
-  confermati nell'app e le sostituzioni concordate con una domanda; aviso de privacidad con i
-  messaggi, le loro foto (chi le vede, per quanto) e gli avvisi per email (bozze aggiornate).
+  confermati nell'app, le sostituzioni concordate con una domanda, le prove di pagamento e i
+  rimborsi; aviso de privacidad con i messaggi, le foto dei messaggi e delle prove (dati bancari: chi
+  le vede, per quanto) e gli avvisi per email (bozze aggiornate); l'email del pagamento registrato
+  non è un CFDI (contador).
 - **Fuori da M3:** recensioni (M8), domande prima di ordinare (M5), prenotazioni di Floral Care
   (M6), tempo per accettare regolabile e capienza (M4), notifiche push o WhatsApp automatico,
   pagamenti online (D-26).

@@ -22,8 +22,10 @@ import {
   orderMessagesOpen,
   diffOrderChanges,
   parseOrderChangeSnapshot,
+  paymentProofProblem,
   pendingOrderDeadline,
   toFieldErrors,
+  type MoneyReviewStatus,
   type OrderChangeDiff,
   type OrderChangeStatus,
   type OrderStatus,
@@ -164,6 +166,32 @@ export interface BuyerOrderChangeDto {
   readonly askedAt: Date | null;
 }
 
+/** Una prova di pagamento caricata da chi compra (M3-3), con la risposta della fioreria. */
+export interface BuyerPaymentProofDto {
+  readonly id: string;
+  /** «En revisión», «Confirmado» o «No lo encontramos» (con il motivo). */
+  readonly status: MoneyReviewStatus;
+  readonly amountMinor: number;
+  readonly note: string | null;
+  readonly rejectReason: string | null;
+  readonly createdAt: Date;
+  readonly reviewedAt: Date | null;
+  /** La foto c'è ancora (si cancella 30 giorni dopo la chiusura dell'ordine). */
+  readonly hasPhoto: boolean;
+}
+
+/** I pagamenti dell'ordine visti da chi l'ha fatto (M3-3, scheda «Pagos»). */
+export interface BuyerOrderMoneyDto {
+  /** Le prove, dalla più recente (al massimo 20). */
+  readonly proofs: readonly BuyerPaymentProofDto[];
+  /** Prove in attesa della fioreria (al massimo 3). */
+  readonly pendingProofs: number;
+  /** «Ya pagué»: ordine accettato e non annullato, con qualcosa da pagare, meno di 3 in attesa. */
+  readonly canSubmitProof: boolean;
+  /** Quanto la fioreria ha rimborsato (ordine annullato), positivo; 0 senza rimborsi. */
+  readonly refundedMinor: number;
+}
+
 export interface BuyerOrderDetailDto {
   readonly orderId: string;
   readonly shop: BuyerOrderShop & PublicShopDto;
@@ -180,7 +208,12 @@ export interface BuyerOrderDetailDto {
   readonly change: BuyerOrderChangeDto | null;
   /** Il link di stato da condividere, se attivo (`/pedido/<token>`). */
   readonly trackingPath: string | null;
+  /** Prove di pagamento e rimborsi (M3-3). */
+  readonly money: BuyerOrderMoneyDto;
 }
+
+/** Quante prove mostra la pagina dell'ordine (le più recenti). */
+const BUYER_PROOF_LIMIT = 20;
 
 /** La pagina dell'ordine nel conto di chi l'ha fatto (lettura: non segna niente come letto). */
 export async function getBuyerOrder(
@@ -232,6 +265,31 @@ export async function getBuyerOrder(
       }),
       tx.orderChangeRequest.findUnique({
         where: { tenantId_orderId: { tenantId: shop.tenantId, orderId: order.id } },
+      }),
+    ]);
+    // M3-3: le prove di pagamento e i rimborsi (filtrati sull'ordine, come le righe).
+    const [proofs, pendingProofs, refunds] = await Promise.all([
+      tx.orderPaymentProof.findMany({
+        where: { tenantId: shop.tenantId, orderId: order.id },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: BUYER_PROOF_LIMIT,
+        select: {
+          id: true,
+          status: true,
+          amountMinor: true,
+          note: true,
+          rejectReason: true,
+          createdAt: true,
+          reviewedAt: true,
+          photoDeletedAt: true,
+        },
+      }),
+      tx.orderPaymentProof.count({
+        where: { tenantId: shop.tenantId, orderId: order.id, status: 'PENDING' },
+      }),
+      tx.orderPayment.aggregate({
+        where: { tenantId: shop.tenantId, orderId: order.id, kind: 'REFUND' },
+        _sum: { amountMinor: true },
       }),
     ]);
     const pending = order.status === 'PENDING_ACCEPTANCE';
@@ -292,6 +350,28 @@ export async function getBuyerOrder(
             createPublicLinkToken(options.secret, { tenantId: shop.tenantId, linkId: link.id }),
           )
         : null,
+      money: {
+        proofs: proofs.map((proof) => ({
+          id: proof.id,
+          status: proof.status as MoneyReviewStatus,
+          amountMinor: proof.amountMinor,
+          note: proof.note,
+          rejectReason: proof.rejectReason,
+          createdAt: proof.createdAt,
+          reviewedAt: proof.reviewedAt,
+          hasPhoto: proof.photoDeletedAt === null,
+        })),
+        pendingProofs,
+        canSubmitProof:
+          paymentProofProblem({
+            status: order.status,
+            balanceMinor: detail.balanceMinor,
+            pendingProofs,
+            amountMinor: 1,
+          }) === null,
+        // I rimborsi sono negativi; senza rimborsi 0 (mai «-0»).
+        refundedMinor: Math.max(0, -(refunds._sum.amountMinor ?? 0)),
+      },
     };
   });
 }

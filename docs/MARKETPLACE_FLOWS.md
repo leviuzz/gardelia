@@ -349,7 +349,7 @@ Piano approvato il 25/11 (ADR-087), in due rilasci.
   - «Mis pedidos / Entrar» nella testata della vetrina.
   - L'E2E della pagina 2 della vetrina accende 25 prodotti insieme e poi li rispegne.
 
-## 6. M3, l'ordine tutto nell'app (M3-1 su staging il 26/11, M3-2 sul ramo di lavoro)
+## 6. M3, l'ordine tutto nell'app (M3-1 e M3-2 su staging il 26/11, M3-3 sul ramo di lavoro il 28/11)
 
 Piano di dettaglio approvato il 26/11 (ADR-088), in tre rilasci: M3-1 «Messaggi e avvisi», M3-2
 «Cambi da confermare», M3-3 «Soldi e squadra».
@@ -370,7 +370,7 @@ Piano di dettaglio approvato il 26/11 (ADR-088), in tre rilasci: M3-1 «Messaggi
     alla fioreria quando succede;
   - le foto dei messaggi si cancellano 30 giorni dopo la chiusura; i messaggi sono in «Descargar mis
     datos» e nello ZIP della fioreria.
-- **M3-2 «Cambi da confermare» (sul ramo di lavoro, 26/11):**
+- **M3-2 «Cambi da confermare» (su staging, 26/11):**
   - il fiorista cambia un ordine online da accettare come gli serve (prodotti, quantità, sconto,
     giorno, fascia, consegna e costo) e vede «Hai cambiato» con com'era → com'è; con dei cambi, al
     posto di «Accetta l'ordine», «Chiedi conferma al cliente» con un messaggio facoltativo;
@@ -385,7 +385,31 @@ Piano di dettaglio approvato il 26/11 (ADR-088), in tre rilasci: M3-1 «Messaggi
   - domande «sì / no» nel filo: il fiorista le scrive con la casella «Domanda sì / no», chi compra
     risponde con un tocco; in «Mancano fiori», «Chiedi nell'app» prepara la domanda e, con il
     «Sí», la casella «Il cliente ha accettato il cambio» è già spuntata.
-- **M3-3:** da fare, con lo stesso piano (ADR-088).
+- **M3-3 «Soldi e squadra» (sul ramo di lavoro, 28/11):**
+  - chi compra: i dati per pagare (CLABE, conto) solo a ordine accettato, nella pagina dell'ordine,
+    nel link di stato e nell'email di accettazione; vetrina e modulo d'ordine dicono «Te damos los
+    datos para pagar cuando la florería acepte tu pedido»;
+  - «Ya pagué: sube tu comprobante» nella scheda «Pagos» dell'ordine (foto obbligatoria, importo
+    proposto = quanto manca, nota), con lo stato «En revisión», «Confirmado» o «No lo encontramos» e
+    il motivo della fioreria; al massimo 3 in attesa;
+  - «Registramos tu pago de $X» per email a ogni pagamento registrato (a mano, da una prova, dai
+    contanti), con totale, pagato e quanto manca: non è un comprobante fiscal;
+  - su un ordine annullato, «Te reembolsamos $X» per email e nella pagina;
+  - il fiorista (proprietario e gerente): la scheda «Prove di pagamento» dell'ordine con la foto,
+    «Confermo» (il modulo «Registra pagamento» già compilato) e «Non lo trovo» con un motivo;
+    «Registra rimborso» su un ordine annullato fino al pagato, con «Rimborsato $X»;
+  - chi consegna (lo staff): «Ho incassato $X in contanti» dall'ordine o da Percorso → «Le mie
+    consegne»; proprietario o gerente li confermano (un pagamento in Contanti) o li rifiutano con
+    un motivo;
+  - «Da gestire»: «N prove di pagamento da controllare» e «N incassi in contanti da confermare», con
+    i filtri dell'elenco;
+  - assegnando un ordine a un'altra persona le arriva «Te asignaron la entrega del pedido …»;
+  - Ordini → Giorno: «Stampa le comande» (una per pagina) e «Stampa i biglietti» (più per foglio,
+    con la linea di taglio);
+  - Impostazioni → Negozio online → Ordini online: «Anche lo staff può accettare e rifiutare gli
+    ordini online», spento di default.
+  - Le foto delle prove si cancellano 30 giorni dopo la chiusura; prove e contanti sono nello ZIP
+    della fioreria, le prove in «Descargar mis datos».
 
 ## PROPOSTO (da confermare)
 

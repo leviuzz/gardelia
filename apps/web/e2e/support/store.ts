@@ -1,5 +1,6 @@
 import { expect, type Browser, type Page } from '@playwright/test';
 import { linkFrom, uniqueEmail, waitForEmail } from './mailbox';
+import { ownClientHeaders } from './network';
 
 /** Un prodotto della fioreria di prova in vetrina o no (idempotente). */
 export async function setItemOnline(page: Page, name: string, online: boolean): Promise<void> {
@@ -74,7 +75,10 @@ export async function pickOpenDay(shopper: Page, label: string): Promise<void> {
  * (M3, ordini online). `prefix`: l'inizio dell'email di prova.
  */
 export async function newBuyer(browser: Browser, name: string, prefix = 'mensajes') {
-  const visitor = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  const visitor = await browser.newContext({
+    storageState: { cookies: [], origins: [] },
+    extraHTTPHeaders: ownClientHeaders(),
+  });
   const shopper = await visitor.newPage();
   await shopper.goto('/f/las-camelias');
   await shopper

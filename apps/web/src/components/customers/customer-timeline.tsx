@@ -109,18 +109,25 @@ export async function CustomerTimeline({
         };
       case 'payment':
         return {
+          // Storni e rimborsi sono negativi nel database: il testo dice cosa sono, con l'importo.
           text:
             event.paymentKind === 'REVERSAL'
               ? t('customers.timeline.paymentReversed', {
-                  amount: money(event.amountMinor, event.currency),
+                  amount: money(Math.abs(event.amountMinor), event.currency),
                   number: event.number,
                 })
-              : t('customers.timeline.payment', {
-                  kind: t(`orders.paymentKinds.${event.paymentKind}`),
-                  amount: money(event.amountMinor, event.currency),
-                  method: t(`orders.methods.${event.method}`),
-                  number: event.number,
-                }),
+              : event.paymentKind === 'REFUND'
+                ? t('customers.timeline.paymentRefunded', {
+                    amount: money(Math.abs(event.amountMinor), event.currency),
+                    method: t(`orders.methods.${event.method}`),
+                    number: event.number,
+                  })
+                : t('customers.timeline.payment', {
+                    kind: t(`orders.paymentKinds.${event.paymentKind}`),
+                    amount: money(event.amountMinor, event.currency),
+                    method: t(`orders.methods.${event.method}`),
+                    number: event.number,
+                  }),
           detail: null,
           href: routes.orders.detail(event.orderId),
         };

@@ -237,7 +237,11 @@ export default async function StoreSettingsPage({
           <OnlineOrdersForm
             action={updateOnlineOrderSettingsAction.bind(null, slug)}
             canEnable={settings.ordersBlockers.length === 0}
-            defaults={{ ordersEnabled: settings.ordersEnabled, minLeadDays: settings.minLeadDays }}
+            defaults={{
+              ordersEnabled: settings.ordersEnabled,
+              minLeadDays: settings.minLeadDays,
+              staffCanAccept: settings.staffCanAccept,
+            }}
           />
           {settings.ordersEnabled && !settings.isPublished ? (
             <p className="text-sm text-muted-foreground">{t('store.orders.notPublished')}</p>

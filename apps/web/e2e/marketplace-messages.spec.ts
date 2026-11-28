@@ -78,7 +78,10 @@ test.describe('mensajes y avisos de un pedido en línea (M3-1)', () => {
         .getByTestId('nav-badge'),
     ).toBeVisible();
     await expectFitsAt320(page, 'todo-card');
-    await todo.getByRole('link', { name: 'Ver pedidos' }).click();
+    await todo
+      .getByTestId('todo-order-messages')
+      .getByRole('link', { name: 'Ver pedidos' })
+      .click();
     await expect(page).toHaveURL(/messages=unread/);
     await expect(page.getByTestId('filter-unread-messages')).toHaveAttribute(
       'aria-current',

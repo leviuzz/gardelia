@@ -57,8 +57,14 @@ entrega, y si lo cambia después de aceptarlo. [Borrador del 26/11/2026 — vali
 1. Los precios los fija cada florería, en pesos mexicanos. [Validar: cómo informar si incluyen IVA.]
 2. **Pagas directamente a la florería**, con las formas que ella indica (por ejemplo, transferencia o
    efectivo). Gardelia no recibe tu dinero ni guarda datos de tarjetas.
-3. No pagues nada antes de que la florería acepte tu pedido.
-4. Los comprobantes fiscales los emite la florería. [Validar con el contador.]
+3. No pagues nada antes de que la florería acepte tu pedido: los datos para pagar (por ejemplo, su
+   CLABE) te los damos cuando lo acepta, en tu pedido y por correo.
+4. Cuando pagues, puedes subir el comprobante desde tu pedido ("Ya pagué"). La florería lo revisa:
+   si confirma el pago, lo registra en tu pedido y te avisamos por correo; si no lo encuentra, te
+   dice por qué y puedes subir otro. El comprobante lo ven solo el dueño y el gerente de la
+   florería. [Borrador del 28/11/2026 — validar con el abogado.]
+5. El aviso de un pago registrado no es un comprobante fiscal: los comprobantes fiscales los emite la
+   florería. [Validar con el contador.]
 
 ## 5. Las flores y la entrega
 
@@ -80,9 +86,9 @@ entrega, y si lo cambia después de aceptarlo. [Borrador del 26/11/2026 — vali
    los mensajes de tu pedido, donde la florería puede hacerte preguntas que respondes con "Sí" o
    "No". Si la florería cambia tu pedido (el día, el horario, la entrega o los productos), te lo
    avisamos por correo.
-3. Si ya pagaste y el pedido se cancela, la florería te devuelve lo que pagaste. [Validar con el
-   abogado: plazos, casos de devolución y derechos del consumidor conforme a la Ley Federal de
-   Protección al Consumidor.]
+3. Si ya pagaste y el pedido se cancela, la florería te devuelve lo que pagaste. Cuando registra la
+   devolución, te avisamos por correo y la ves en tu pedido. [Validar con el abogado: plazos, casos
+   de devolución y derechos del consumidor conforme a la Ley Federal de Protección al Consumidor.]
 
 ## 7. Uso permitido
 

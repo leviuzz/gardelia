@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { linkFrom, uniqueEmail, waitForEmail } from './support/mailbox';
+import { ownClientHeaders } from './support/network';
 import { createProduct } from './support/catalog';
 
 /**
@@ -11,6 +12,7 @@ test('un nuovo fiorista si registra, verifica l’email, crea la fioreria e il p
   const email = uniqueEmail('nuevo');
   const shopName = `Florería E2E ${Date.now()}`;
 
+  await page.setExtraHTTPHeaders(ownClientHeaders());
   await page.goto('/signup');
   await page.getByLabel('Nombre completo').fill('Paola Ruiz');
   await page.getByLabel('Correo electrónico').fill(email);

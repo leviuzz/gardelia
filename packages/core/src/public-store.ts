@@ -102,8 +102,11 @@ export interface PublicStoreDto {
     /** Oggi nell'ora della fioreria (`YYYY-MM-DD`): «desde hoy», «desde mañana». */
     readonly today: string;
   };
+  /**
+   * Solo le forme di pagamento: i dati per pagare (CLABE, conto) arrivano a chi compra quando la
+   * fioreria accetta l'ordine, mai nella vetrina (M3-3).
+   */
   readonly paymentMethods: readonly StorePaymentMethod[];
-  readonly paymentInstructions: string | null;
   /** Chi compra può fare l'ordine dalla pagina (ADR-067). */
   readonly ordersEnabled: boolean;
   /** Politiche della fioreria (M1): testi suoi, null se non le ha scritte. */
@@ -327,7 +330,6 @@ export async function readStoreHeaderTx(
       today: toIsoDate(today),
     },
     paymentMethods: (store?.paymentMethods ?? []) as StorePaymentMethod[],
-    paymentInstructions: store?.paymentInstructions ?? null,
     ordersEnabled: store?.ordersEnabled ?? false,
     policies: {
       changes: store?.policyChanges ?? null,

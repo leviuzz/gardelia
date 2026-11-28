@@ -50,7 +50,11 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 /** Tipi di pagamento che il fiorista registra (lo storno nasce solo dall'azione "Anular"). */
 export const ORDER_PAYMENT_INPUT_KINDS = ['DEPOSIT', 'BALANCE'] as const;
-export const ORDER_PAYMENT_KINDS = [...ORDER_PAYMENT_INPUT_KINDS, 'REVERSAL'] as const;
+/**
+ * `REVERSAL`: lo storno di un pagamento sbagliato («Anular»). `REFUND` (M3-3): il rimborso su un
+ * ordine annullato, negativo e senza pagamento collegato; non si storna.
+ */
+export const ORDER_PAYMENT_KINDS = [...ORDER_PAYMENT_INPUT_KINDS, 'REVERSAL', 'REFUND'] as const;
 export type OrderPaymentKind = (typeof ORDER_PAYMENT_KINDS)[number];
 
 export const ORDER_PAYMENT_STATUSES = ['UNPAID', 'PARTIAL', 'PAID'] as const;
@@ -342,24 +346,39 @@ export function deliveryAddressSchema(country: MarketCountry) {
 }
 export type DeliveryAddressInput = z.infer<ReturnType<typeof deliveryAddressSchema>>;
 
+/** Il giorno di un pagamento o di un rimborso ("AAAA-MM-GG"); vuoto = oggi (lo decide il servizio). */
+export function paymentDateField() {
+  return z.preprocess(
+    toTrimmedString,
+    z.string().transform((value, ctx) => {
+      if (value === '') return null;
+      const parsed = parseDateInput(value);
+      if (!parsed) {
+        ctx.addIssue({ code: 'custom', message: 'invalid_date' });
+        return z.NEVER;
+      }
+      return parsed;
+    }),
+  );
+}
+
+/** Il metodo di un pagamento o di un rimborso. */
+export function paymentMethodField() {
+  return z.preprocess(toTrimmedString, z.enum(PAYMENT_METHODS, { error: 'required' }));
+}
+
 export function orderPaymentSchema(currency: CurrencyCode) {
   return z.object({
     amount: moneyField(currency),
-    method: z.preprocess(toTrimmedString, z.enum(PAYMENT_METHODS, { error: 'required' })),
+    method: paymentMethodField(),
     kind: z.preprocess(toTrimmedString, z.enum(ORDER_PAYMENT_INPUT_KINDS, { error: 'required' })),
-    paidOn: z.preprocess(
-      toTrimmedString,
-      z.string().transform((value, ctx) => {
-        if (value === '') return null;
-        const parsed = parseDateInput(value);
-        if (!parsed) {
-          ctx.addIssue({ code: 'custom', message: 'invalid_date' });
-          return z.NEVER;
-        }
-        return parsed;
-      }),
-    ),
+    paidOn: paymentDateField(),
     reference: optionalText(ORDER_LIMITS.paymentReference),
+    /**
+     * La chiave del modulo aperto (M3, come i pagamenti di Floral Care): lo stesso invio arrivato due
+     * volte (rete lenta, due schede) non raddoppia il pagamento. Facoltativa.
+     */
+    submitKey: optionalUuid,
   });
 }
 export type OrderPaymentInput = z.infer<ReturnType<typeof orderPaymentSchema>>;
@@ -412,6 +431,17 @@ export const ORDER_WHEN_FILTERS = [
 ] as const;
 export type OrderWhenFilter = (typeof ORDER_WHEN_FILTERS)[number];
 
+/**
+ * I filtri dei cambi dell'elenco (M3-2): «No ai cambi» (`declined`, tornati dopo un «No, gracias») e
+ * «In attesa del cliente» (`asked`, aspettano che chi compra confermi: non sono «Por aceptar»).
+ */
+export const ORDER_CHANGES_FILTERS = ['declined', 'asked'] as const;
+export type OrderChangesFilter = (typeof ORDER_CHANGES_FILTERS)[number];
+
+/** I filtri dei soldi dell'elenco degli ordini (M3-3). */
+export const ORDER_MONEY_FILTERS = ['proofs', 'cash'] as const;
+export type OrderMoneyFilter = (typeof ORDER_MONEY_FILTERS)[number];
+
 export const orderListFiltersSchema = z.object({
   q: z.preprocess(toTrimmedString, z.string().max(80).catch('')),
   status: z.preprocess(toTrimmedString, z.enum(ORDER_STATUSES).nullable().catch(null)),
@@ -419,8 +449,16 @@ export const orderListFiltersSchema = z.object({
   unpaid: z.preprocess((value) => value === '1' || value === 'true', z.boolean()),
   /** «Con messaggi da leggere» (M3): ordini online con messaggi di chi compra non ancora letti. */
   messages: z.preprocess((value) => value === 'unread', z.boolean()),
-  /** «No ai cambi» (M3-2): ordini online tornati alla fioreria dopo un «No, gracias». */
-  changes: z.preprocess((value) => value === 'declined', z.boolean()),
+  /**
+   * M3-2: «No ai cambi» (`declined`) o «In attesa del cliente» (`asked`); qualsiasi altro valore =
+   * nessun filtro.
+   */
+  changes: z.preprocess(toTrimmedString, z.enum(ORDER_CHANGES_FILTERS).nullable().catch(null)),
+  /**
+   * M3-3: «Prove da controllare» (`proofs`, prove di pagamento in attesa) o «Contanti da confermare»
+   * (`cash`); qualsiasi altro valore = nessun filtro.
+   */
+  money: z.preprocess(toTrimmedString, z.enum(ORDER_MONEY_FILTERS).nullable().catch(null)),
   page: z.preprocess(
     (value) => (typeof value === 'string' ? Number(value) : value),
     z.int().min(1).max(10_000).catch(1),

@@ -105,6 +105,11 @@ describe('percorsi della fioreria (routes.ts)', () => {
       '/cuenta/pedidos/o1/foto?size=thumb&v=p1',
     );
     expect(accountRoutes.orders.logo('o1', 'g1')).toBe('/cuenta/pedidos/o1/logo?v=g1');
+    // M3-3: la scheda «Pagos» e la foto di una propria prova di pagamento.
+    expect(accountRoutes.orders.payments('o1')).toBe('/cuenta/pedidos/o1#pagos');
+    expect(accountRoutes.orders.proofPhoto('o1', 'p/1', { thumb: true })).toBe(
+      '/cuenta/pedidos/o1/comprobantes/p%2F1?size=thumb',
+    );
     expect(isAccountPath(accountRoutes.orders.detail('o1'))).toBe(true);
     expect(publicStoreRoutes('las-camelias').reorder).toBe('/f/las-camelias/pedido/repetir');
     // Asistente de plantas del cliente (ADR-085, blocco 6b).
@@ -179,6 +184,13 @@ describe('percorsi della fioreria (routes.ts)', () => {
     expect(routes.orders.messagePhoto('o1', 'm/1', { thumb: true })).toBe(
       '/app/las-camelias/orders/o1/messages/photos/m%2F1?size=thumb',
     );
+    // M3-3: pagamenti, foto delle prove e stampe del giorno.
+    expect(routes.orders.payments('o1')).toBe('/app/las-camelias/orders/o1#pagos');
+    expect(routes.orders.proofPhoto('o1', 'p1')).toBe('/app/las-camelias/orders/o1/proofs/p1');
+    expect(routes.orders.dayTickets({ date: '2026-12-01' })).toBe(
+      '/app/las-camelias/orders/day/tickets?date=2026-12-01',
+    );
+    expect(routes.orders.dayCards()).toBe('/app/las-camelias/orders/day/cards');
   });
 
   it('withQuery senza valori lascia il percorso com’è', () => {

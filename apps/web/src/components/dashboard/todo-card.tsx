@@ -1,5 +1,5 @@
 import 'server-only';
-import { ArrowRight, Globe, MessageSquare, Sprout, X } from 'lucide-react';
+import { ArrowRight, Banknote, Globe, MessageSquare, Receipt, Sprout, X } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -11,9 +11,9 @@ import { tenantRoutes } from '@/lib/routes';
 /**
  * «Da gestire» in cima alla Home (M3, ADR-088): solo le righe che hanno qualcosa, ognuna con il suo
  * link — gli ordini online da accettare (con la prima scadenza), quelli tornati dopo un «No,
- * gracias» ai cambi (M3-2), i messaggi da leggere degli ordini e quelli di Floral Care. Niente se non
- * c'è niente. Gli ordini che aspettano la conferma di chi compra non sono da gestire. M3-3 aggiunge le
- * sue righe qui.
+ * gracias» ai cambi (M3-2), i messaggi da leggere degli ordini e quelli di Floral Care e, per chi
+ * gestisce i soldi, le prove di pagamento da controllare e i contanti da confermare (M3-3). Niente
+ * se non c'è niente. Gli ordini che aspettano la conferma di chi compra non sono da gestire.
  */
 export async function TodoCard({ ctx }: { readonly ctx: TenantContext }) {
   const [inbox, care] = await Promise.all([getOrderInbox(ctx), countUnreadCareMessages(ctx)]);
@@ -62,6 +62,27 @@ export async function TodoCard({ ctx }: { readonly ctx: TenantContext }) {
       link: t('orderMessagesLink'),
     });
   }
+  // M3-3: i numeri arrivano solo a chi gestisce i soldi (0 per gli altri).
+  if (inbox.pendingProofs > 0) {
+    rows.push({
+      testId: 'todo-payment-proofs',
+      icon: <Receipt />,
+      text: t('paymentProofs', { count: inbox.pendingProofs }),
+      detail: null,
+      href: routes.orders.list({ when: 'all', money: 'proofs' }),
+      link: t('paymentProofsLink'),
+    });
+  }
+  if (inbox.pendingCash > 0) {
+    rows.push({
+      testId: 'todo-cash',
+      icon: <Banknote />,
+      text: t('cash', { count: inbox.pendingCash }),
+      detail: null,
+      href: routes.orders.list({ when: 'all', money: 'cash' }),
+      link: t('cashLink'),
+    });
+  }
   if (care && care.unread > 0) {
     rows.push({
       testId: 'todo-care-messages',
@@ -108,11 +129,15 @@ function TodoRow({ testId, icon, text, detail, href, link }: TodoRowProps) {
         {icon}
       </span>
       <span className="min-w-0 flex-1 basis-40 text-sm">
-        <span className="block font-medium">{text}</span>
+        <span id={`${testId}-text`} className="block font-medium">
+          {text}
+        </span>
         {detail ? <span className="block text-muted-foreground">{detail}</span> : null}
       </span>
+      {/* Più righe hanno lo stesso link («Ver pedidos»): la riga lo descrive a chi usa un lettore. */}
       <Link
         href={href}
+        aria-describedby={`${testId}-text`}
         className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
       >
         {link}

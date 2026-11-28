@@ -30,6 +30,7 @@ import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { normalizeUploadedPhoto } from '../media/images';
 import { readStoredImage, storeFilesThenCommit, type StoredImage } from '../media/stored-files';
+import { awaitingShopWhere } from './order-payment-internals';
 
 export interface OnlineStoreSettingsDto {
   readonly isPublished: boolean;
@@ -47,8 +48,13 @@ export interface OnlineStoreSettingsDto {
   /** Ordini online (ADR-067): accesi, anticipo minimo, cosa manca per accenderli. */
   readonly ordersEnabled: boolean;
   readonly minLeadDays: number;
+  /**
+   * «Anche lo staff può accettare e rifiutare gli ordini online» (M3-3): spento di default. Vale per
+   * accettare, rifiutare, chiedere conferma, proporre una data e cambiare un ordine da accettare.
+   */
+  readonly staffCanAccept: boolean;
   readonly ordersBlockers: readonly OnlineOrdersBlocker[];
-  /** Ordini online in attesa di risposta. */
+  /** Ordini online da accettare che aspettano la fioreria (senza quelli in attesa del cliente). */
   readonly pendingOrders: number;
   /** Politiche della fioreria (M1): cambi, cancellazioni, sostituzioni; null se non scritte. */
   readonly policies: {
@@ -82,7 +88,8 @@ async function readState(tx: TransactionClient, ctx: TenantContext) {
       where: { id: ctx.tenantId },
       select: { contactPhone: true },
     }),
-    tx.order.count({ where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE' } }),
+    // Gli ordini da accettare che aspettano la fioreria: come il numero del menu (M3-2).
+    tx.order.count({ where: { tenantId: ctx.tenantId, ...awaitingShopWhere() } }),
     tx.location.findFirst({
       where: { tenantId: ctx.tenantId, isPrimary: true },
       select: { latitude: true, longitude: true, coordinatesAt: true },
@@ -145,6 +152,7 @@ export async function getOnlineStoreSettings(ctx: TenantContext): Promise<Online
     coverId: store?.coverId ?? null,
     ordersEnabled: store?.ordersEnabled ?? false,
     minLeadDays: store?.minLeadDays ?? 1,
+    staffCanAccept: store?.staffCanAccept ?? false,
     ordersBlockers: onlineOrdersBlockers({ paymentMethods, contactPhone }),
     pendingOrders,
     onMap,
@@ -212,7 +220,7 @@ export async function updateOnlineStore(ctx: TenantContext, rawInput: unknown): 
 /**
  * "Pedidos en línea" (ADR-067): se chi compra può ordinare dalla pagina e con quanti giorni di
  * anticipo. Accenderli richiede un modo di pagare e il telefono; spegnerli non tocca gli ordini già
- * arrivati (si accettano o rifiutano come sempre).
+ * arrivati (si accettano o rifiutano come sempre). M3-3: anche se lo staff li può accettare.
  */
 export async function updateOnlineOrderSettings(
   ctx: TenantContext,
@@ -227,7 +235,11 @@ export async function updateOnlineOrderSettings(
     await tx.$queryRaw`SELECT "tenantId" FROM "OnlineStore" WHERE "tenantId" = ${ctx.tenantId}::uuid FOR UPDATE`;
     const { store, contactPhone } = await readState(tx, ctx);
     if (!store) return;
-    if (store.ordersEnabled === input.ordersEnabled && store.minLeadDays === input.minLeadDays) {
+    if (
+      store.ordersEnabled === input.ordersEnabled &&
+      store.minLeadDays === input.minLeadDays &&
+      store.staffCanAccept === input.staffCanAccept
+    ) {
       return;
     }
     if (input.ordersEnabled && !store.ordersEnabled) {
@@ -239,7 +251,11 @@ export async function updateOnlineOrderSettings(
     }
     await tx.onlineStore.update({
       where: { tenantId: ctx.tenantId },
-      data: { ordersEnabled: input.ordersEnabled, minLeadDays: input.minLeadDays },
+      data: {
+        ordersEnabled: input.ordersEnabled,
+        minLeadDays: input.minLeadDays,
+        staffCanAccept: input.staffCanAccept,
+      },
     });
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.storeOrdersUpdated,
@@ -252,6 +268,9 @@ export async function updateOnlineOrderSettings(
             : {}),
           ...(store.minLeadDays !== input.minLeadDays
             ? { minLeadDays: { from: store.minLeadDays, to: input.minLeadDays } }
+            : {}),
+          ...(store.staffCanAccept !== input.staffCanAccept
+            ? { staffCanAccept: { from: store.staffCanAccept, to: input.staffCanAccept } }
             : {}),
         },
       },
