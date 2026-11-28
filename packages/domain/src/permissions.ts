@@ -57,6 +57,12 @@ export const PERMISSIONS = {
   /** Registrare e stornare i pagamenti ricevuti (D-26: registrati a mano). */
   'orders:payments': MANAGEMENT,
   /**
+   * Accettare, rifiutare, cambiare e chiedere conferma sugli ordini online da accettare (M3-3,
+   * ADR-088): tutti i ruoli, ma il servizio lo concede allo staff solo se la fioreria lo permette
+   * (`OnlineStore.staffCanAccept`, `canHandlePendingOnlineOrders`). Proprietario e gerente sempre.
+   */
+  'orders:accept': ALL,
+  /**
    * Leggere e scrivere i messaggi con chi ha fatto un ordine online (M3, ADR-088): tutta la squadra,
    * staff compreso, come i messaggi di Floral Care.
    */

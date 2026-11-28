@@ -31,6 +31,7 @@ export * from './money';
 export * from './order';
 export * from './order-changes';
 export * from './order-messages';
+export * from './order-money';
 export * from './permissions';
 export * from './photos';
 export * from './places';

@@ -120,6 +120,16 @@ export const AUDIT_ACTIONS = {
   orderCancelledByBuyer: 'order.cancelled_by_buyer',
   orderPaymentRecorded: 'order.payment_recorded',
   orderPaymentReversed: 'order.payment_reversed',
+  /** M3-3: il rimborso su un ordine annullato. */
+  orderPaymentRefunded: 'order.payment_refunded',
+  /** M3-3: la prova di pagamento di chi compra (autore: chi compra), confermata o rifiutata. */
+  orderPaymentProofSubmitted: 'order.payment_proof_submitted',
+  orderPaymentProofConfirmed: 'order.payment_proof_confirmed',
+  orderPaymentProofRejected: 'order.payment_proof_rejected',
+  /** M3-3: i contanti segnati da chi consegna, confermati o rifiutati. */
+  orderCashCollected: 'order.cash_collected',
+  orderCashConfirmed: 'order.cash_confirmed',
+  orderCashRejected: 'order.cash_rejected',
   /** Messaggi degli ordini online (M3, ADR-088): la foto tolta da chi gestisce gli ordini. */
   orderMessagePhotoRemoved: 'order.message_photo_removed',
   /** «Avvisa il cliente dei cambi»: il riepilogo dell'ordine mandato a chi l'ha fatto. */

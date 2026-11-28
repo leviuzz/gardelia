@@ -1064,7 +1064,14 @@
       "customer_notified": "{actor} told the customer about the changes to {number}",
       "change_asked": "{actor} asked the customer to confirm the changes to {number}",
       "change_confirmed": "{actor} confirmed the changes to order {number}",
-      "change_declined": "{actor} declined the changes to order {number}"
+      "change_declined": "{actor} declined the changes to order {number}",
+      "payment_refunded": "{actor} recorded a refund on {number}",
+      "payment_proof_submitted": "{actor} uploaded a payment proof on {number}",
+      "payment_proof_confirmed": "{actor} confirmed a payment proof on {number}",
+      "payment_proof_rejected": "{actor} could not find a payment for {number}",
+      "cash_collected": "{actor} collected cash for order {number}",
+      "cash_confirmed": "{actor} confirmed the cash for {number}",
+      "cash_rejected": "{actor} rejected the cash for {number}"
     },
     "delivery_settings": {
       "updated": "{actor} changed the delivery settings"

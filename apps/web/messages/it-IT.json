@@ -1064,7 +1064,14 @@
       "customer_notified": "{actor} ha avvisato il cliente dei cambi di {number}",
       "change_asked": "{actor} ha chiesto al cliente di confermare i cambi di {number}",
       "change_confirmed": "{actor} ha confermato i cambi dell’ordine {number}",
-      "change_declined": "{actor} non ha accettato i cambi dell’ordine {number}"
+      "change_declined": "{actor} non ha accettato i cambi dell’ordine {number}",
+      "payment_refunded": "{actor} ha registrato un rimborso su {number}",
+      "payment_proof_submitted": "{actor} ha caricato una prova di pagamento su {number}",
+      "payment_proof_confirmed": "{actor} ha confermato una prova di pagamento su {number}",
+      "payment_proof_rejected": "{actor} non ha trovato un pagamento di {number}",
+      "cash_collected": "{actor} ha incassato in contanti l’ordine {number}",
+      "cash_confirmed": "{actor} ha confermato i contanti di {number}",
+      "cash_rejected": "{actor} ha rifiutato i contanti di {number}"
     },
     "delivery_settings": {
       "updated": "{actor} ha cambiato le impostazioni di consegna"

@@ -50,7 +50,11 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 /** Tipi di pagamento che il fiorista registra (lo storno nasce solo dall'azione "Anular"). */
 export const ORDER_PAYMENT_INPUT_KINDS = ['DEPOSIT', 'BALANCE'] as const;
-export const ORDER_PAYMENT_KINDS = [...ORDER_PAYMENT_INPUT_KINDS, 'REVERSAL'] as const;
+/**
+ * `REVERSAL`: lo storno di un pagamento sbagliato («Anular»). `REFUND` (M3-3): il rimborso su un
+ * ordine annullato, negativo e senza pagamento collegato; non si storna.
+ */
+export const ORDER_PAYMENT_KINDS = [...ORDER_PAYMENT_INPUT_KINDS, 'REVERSAL', 'REFUND'] as const;
 export type OrderPaymentKind = (typeof ORDER_PAYMENT_KINDS)[number];
 
 export const ORDER_PAYMENT_STATUSES = ['UNPAID', 'PARTIAL', 'PAID'] as const;
@@ -342,23 +346,33 @@ export function deliveryAddressSchema(country: MarketCountry) {
 }
 export type DeliveryAddressInput = z.infer<ReturnType<typeof deliveryAddressSchema>>;
 
+/** Il giorno di un pagamento o di un rimborso ("AAAA-MM-GG"); vuoto = oggi (lo decide il servizio). */
+export function paymentDateField() {
+  return z.preprocess(
+    toTrimmedString,
+    z.string().transform((value, ctx) => {
+      if (value === '') return null;
+      const parsed = parseDateInput(value);
+      if (!parsed) {
+        ctx.addIssue({ code: 'custom', message: 'invalid_date' });
+        return z.NEVER;
+      }
+      return parsed;
+    }),
+  );
+}
+
+/** Il metodo di un pagamento o di un rimborso. */
+export function paymentMethodField() {
+  return z.preprocess(toTrimmedString, z.enum(PAYMENT_METHODS, { error: 'required' }));
+}
+
 export function orderPaymentSchema(currency: CurrencyCode) {
   return z.object({
     amount: moneyField(currency),
-    method: z.preprocess(toTrimmedString, z.enum(PAYMENT_METHODS, { error: 'required' })),
+    method: paymentMethodField(),
     kind: z.preprocess(toTrimmedString, z.enum(ORDER_PAYMENT_INPUT_KINDS, { error: 'required' })),
-    paidOn: z.preprocess(
-      toTrimmedString,
-      z.string().transform((value, ctx) => {
-        if (value === '') return null;
-        const parsed = parseDateInput(value);
-        if (!parsed) {
-          ctx.addIssue({ code: 'custom', message: 'invalid_date' });
-          return z.NEVER;
-        }
-        return parsed;
-      }),
-    ),
+    paidOn: paymentDateField(),
     reference: optionalText(ORDER_LIMITS.paymentReference),
   });
 }

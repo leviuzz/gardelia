@@ -75,6 +75,8 @@ export type StorePoliciesInput = z.infer<typeof storePoliciesSchema>;
 export const onlineOrderSettingsSchema = z.object({
   ordersEnabled: checkboxField(),
   minLeadDays: requiredInteger({ min: 0, max: 14 }),
+  /** M3-3: anche lo staff accetta e rifiuta gli ordini online (spento di default). */
+  staffCanAccept: checkboxField(),
 });
 export type OnlineOrderSettingsInput = z.infer<typeof onlineOrderSettingsSchema>;
 
