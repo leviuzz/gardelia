@@ -608,7 +608,7 @@
       "PAYMENT_LINK": "Payment link"
     },
     "paymentInstructions": "How to pay",
-    "paymentInstructionsHint": "Everyone sees this on your page. For example, your CLABE and bank.",
+    "paymentInstructionsHint": "Only people who placed an online order see them, once you accept it: on their order and in the email. For example, your CLABE and bank.",
     "productsTitle": "Products in your shop",
     "productsBody": "Tick \"Show in my online shop\" on each bouquet, plant, flower or accessory in the catalog.",
     "productsCount": "{count, plural, =0 {No products shown yet.} one {# product shown.} other {# products shown.}}",
@@ -866,7 +866,9 @@
     "policiesByShop": "Written by {shop}.",
     "occasionsLabel": "Occasions",
     "accountOrders": "My orders",
-    "accountSignIn": "Sign in"
+    "accountSignIn": "Sign in",
+    "paymentAfterAccept": "We give you the payment details once the shop accepts your order.",
+    "paymentAsk": "Ask the shop for the payment details."
   },
   "timezones": {
     "America/Mexico_City": "Central Time (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -3523,7 +3525,7 @@
     "contactPhoneHint": "So the shop can call you if needed.",
     "howItWorks": "What happens next?",
     "acceptFirst": "{shop} reviews your order and we email you as soon as they accept it, with the total and how to pay. If they don’t answer within {days} days, we cancel it and let you know.",
-    "payDirect": "You pay the shop directly ({methods}). Don’t pay anything yet.",
+    "payDirect": "You pay the shop directly ({methods}). Don’t pay anything yet: we’ll give you the payment details once they accept your order.",
     "payDirectNoMethods": "You pay the shop directly: they’ll tell you how when they accept. Don’t pay anything yet.",
     "dataShared": "We share your name, your email ({email}) and your phone with {shop} to handle this order.",
     "send": "Send order",

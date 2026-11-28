@@ -228,6 +228,9 @@ export const LABELS = {
     DECLINED: 'No aceptados',
   },
   careMessagePhotoGone: 'quitada',
+  /** M3-3: prove di pagamento e contanti di chi consegna. */
+  moneyReviewStatus: { PENDING: 'En revisión', CONFIRMED: 'Confirmado', REJECTED: 'Rechazado' },
+  proofPhotoDeleted: 'borrada',
   carePaymentKind: {
     PAYMENT: 'Pago',
     REVERSAL: 'Anulación',

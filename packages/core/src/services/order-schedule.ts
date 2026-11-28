@@ -275,3 +275,150 @@ export async function getOrdersMonth(
     days: [...days.values()].sort((a, b) => a.date.localeCompare(b.date)),
   };
 }
+
+// -----------------------------------------------------------------------------
+// Stampa del giorno (M3-3): comande e biglietti insieme
+// -----------------------------------------------------------------------------
+
+/** Una riga della comanda: cosa preparare, con la distinta del ramo se c'è. */
+export interface DayPrintLineDto {
+  readonly description: string;
+  readonly quantity: number;
+  /** Fiori e materiali di UN ramo (dalla distinta salvata nell'ordine); vuoto senza distinta. */
+  readonly recipe: readonly {
+    readonly name: string;
+    readonly variety: string | null;
+    readonly quantity: number;
+    readonly color: string | null;
+  }[];
+}
+
+/** Una comanda da stampare: tutto quello che serve per preparare e consegnare l'ordine. */
+export interface DayPrintOrderDto {
+  readonly id: string;
+  readonly numberLabel: string;
+  readonly status: OrderStatus;
+  readonly fulfillmentMode: FulfillmentMode;
+  readonly windowStart: string | null;
+  readonly windowEnd: string | null;
+  readonly customerName: string;
+  readonly customerPhone: string | null;
+  readonly recipientName: string | null;
+  readonly recipientPhone: string | null;
+  /** Indirizzo in una riga, solo a domicilio. */
+  readonly address: string | null;
+  readonly deliveryNotes: string | null;
+  /** Note interne della fioreria e commenti di chi compra (ordini online). */
+  readonly notes: string | null;
+  readonly buyerNotes: string | null;
+  readonly lines: readonly DayPrintLineDto[];
+  readonly card: {
+    readonly message: string;
+    /** null se anonima o senza firma. */
+    readonly signature: string | null;
+  } | null;
+  readonly assigneeName: string | null;
+  readonly placedOnline: boolean;
+  /** Da incassare alla consegna o al ritiro (0 se pagato). */
+  readonly balanceMinor: number;
+  readonly currency: string;
+}
+
+export interface DayPrintoutDto {
+  /** "AAAA-MM-GG" nel calendario della fioreria. */
+  readonly date: string;
+  /** Gli ordini da preparare quel giorno (Confermato, In preparazione, Pronto), per fascia. */
+  readonly orders: readonly DayPrintOrderDto[];
+}
+
+/**
+ * «Stampa le comande» e «Stampa i biglietti» di Ordini → Giorno (M3-3): gli ordini da preparare
+ * quel giorno, come la Producción del día, con tutto quello che serve a chi li prepara e a chi li
+ * porta. I biglietti sono gli stessi ordini con un messaggio. Lo vede tutta la squadra.
+ */
+export async function getDayPrintout(
+  ctx: TenantContext,
+  rawDate: unknown,
+): Promise<DayPrintoutDto> {
+  requirePermission(ctx, 'orders:read');
+  const day = parseDay(ctx, rawDate);
+  const rows = await withTenantContext(getDb(), ctx, async (tx) => {
+    const orders = await tx.order.findMany({
+      where: {
+        tenantId: ctx.tenantId,
+        scheduledDate: partsToDate(day),
+        status: { in: [...TO_PRODUCE] },
+      },
+      include: {
+        customer: { select: { displayName: true, phone: true } },
+        assignedTo: { select: { user: { select: { name: true } } } },
+      },
+      orderBy: [{ windowStartMinutes: { sort: 'asc', nulls: 'first' } }, { number: 'asc' }],
+    });
+    const lines = await tx.orderLine.findMany({
+      where: { tenantId: ctx.tenantId, orderId: { in: orders.map((order) => order.id) } },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      select: { orderId: true, description: true, quantity: true, snapshot: true },
+    });
+    return { orders, lines };
+  });
+  const linesByOrder = new Map<string, DayPrintLineDto[]>();
+  for (const line of rows.lines) {
+    const recipe = readSnapshot(line.snapshot)?.recipe ?? [];
+    linesByOrder.set(line.orderId, [
+      ...(linesByOrder.get(line.orderId) ?? []),
+      {
+        description: line.description,
+        quantity: line.quantity,
+        recipe: recipe.map((item) => ({
+          name: item.name,
+          variety: item.variety,
+          quantity: item.quantity,
+          color: item.color ?? null,
+        })),
+      },
+    ]);
+  }
+  return {
+    date: formatDateParts(day) ?? '',
+    orders: rows.orders.map((order) => ({
+      id: order.id,
+      numberLabel: formatOrderNumber(order.number),
+      status: order.status,
+      fulfillmentMode: order.fulfillmentMode,
+      windowStart:
+        order.windowStartMinutes === null ? null : formatTimeOfDay(order.windowStartMinutes),
+      windowEnd: order.windowEndMinutes === null ? null : formatTimeOfDay(order.windowEndMinutes),
+      customerName: order.customer.displayName,
+      customerPhone: order.customer.phone,
+      recipientName: order.recipientName,
+      recipientPhone: order.recipientPhone,
+      address:
+        order.fulfillmentMode === 'DELIVERY' && order.deliveryAddressLine1
+          ? [
+              order.deliveryAddressLine1,
+              order.deliveryAddressLine2,
+              order.deliveryNeighborhood,
+              order.deliveryPostalCode,
+              order.deliveryCity,
+            ]
+              .filter((part) => part && part.trim() !== '')
+              .join(', ')
+          : null,
+      deliveryNotes: order.deliveryNotes,
+      notes: order.notes,
+      buyerNotes: order.buyerNotes,
+      lines: linesByOrder.get(order.id) ?? [],
+      card: order.cardMessage
+        ? {
+            message: order.cardMessage,
+            signature: order.cardAnonymous ? null : order.cardSignature,
+          }
+        : null,
+      assigneeName: order.assignedTo?.user.name ?? null,
+      placedOnline: order.placedOnline,
+      balanceMinor: orderBalanceMinor(order.paidMinor, order.totalMinor),
+      currency: order.currency,
+    })),
+  };
+}

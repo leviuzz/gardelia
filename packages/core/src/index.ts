@@ -90,7 +90,14 @@ export {
   type BuyerOrderThreadDto,
   type BuyerReorderDto,
   type BuyerOrderChangeDto,
+  type BuyerOrderMoneyDto,
+  type BuyerPaymentProofDto,
 } from './buyer-orders';
+export {
+  getBuyerPaymentProofPhoto,
+  submitBuyerPaymentProof,
+  type BuyerPaymentProofResult,
+} from './buyer-order-money';
 export {
   answerBuyerOrderQuestion,
   confirmBuyerOrderChange,
@@ -100,6 +107,7 @@ export {
 export { askOrderChange, proposeOrderDate, type OrderChangeDto } from './services/order-changes';
 export type { OrderMessageDto } from './order-message-internals';
 export * from './services/order-messages';
+export * from './services/order-money';
 export {
   listPublicStoreCities,
   listPublicStoreOccasions,

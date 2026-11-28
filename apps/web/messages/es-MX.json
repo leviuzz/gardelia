@@ -608,7 +608,7 @@
       "PAYMENT_LINK": "Link de pago"
     },
     "paymentInstructions": "Datos para pagar",
-    "paymentInstructionsHint": "Se muestran a todos en tu página. Por ejemplo, tu CLABE y el banco.",
+    "paymentInstructionsHint": "Los ve solo quien hizo un pedido en línea, cuando lo aceptas: en su pedido y en el correo. Por ejemplo, tu CLABE y el banco.",
     "productsTitle": "Productos en tu tienda",
     "productsBody": "Marca «Mostrar en mi tienda en línea» en cada ramo, planta, flor o accesorio del catálogo.",
     "productsCount": "{count, plural, =0 {Aún no hay productos visibles.} one {# producto visible.} other {# productos visibles.}}",
@@ -866,7 +866,9 @@
     "policiesByShop": "Las escribe {shop}.",
     "occasionsLabel": "Ocasiones",
     "accountOrders": "Mis pedidos",
-    "accountSignIn": "Entrar"
+    "accountSignIn": "Entrar",
+    "paymentAfterAccept": "Te damos los datos para pagar cuando la florería acepte tu pedido.",
+    "paymentAsk": "Pide los datos para pagar a la florería."
   },
   "timezones": {
     "America/Mexico_City": "Tiempo del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -3523,7 +3525,7 @@
     "contactPhoneHint": "Para que la florería pueda llamarte si hace falta.",
     "howItWorks": "¿Qué pasa después?",
     "acceptFirst": "{shop} revisa tu pedido y te escribimos en cuanto lo acepte, con el total y cómo pagar. Si no responde en {days} días, lo cancelamos y te avisamos.",
-    "payDirect": "Le pagas directo a la florería ({methods}). Todavía no pagues nada.",
+    "payDirect": "Le pagas directo a la florería ({methods}). Todavía no pagues nada: te damos los datos para pagar cuando acepte tu pedido.",
     "payDirectNoMethods": "Le pagas directo a la florería: te dirá cómo al aceptar. Todavía no pagues nada.",
     "dataShared": "Compartimos tu nombre, tu correo ({email}) y tu teléfono con {shop} para atender este pedido.",
     "send": "Enviar pedido",

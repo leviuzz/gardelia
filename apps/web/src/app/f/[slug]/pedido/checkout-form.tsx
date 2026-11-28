@@ -92,7 +92,6 @@ export function CheckoutForm({
     readonly currency: string;
     readonly pickupAddress: string | null;
     readonly paymentMethods: readonly StorePaymentMethod[];
-    readonly paymentInstructions: string | null;
     /** Politiche scritte dalla fioreria, nel riepilogo (M1). */
     readonly policies: readonly { readonly title: string; readonly text: string }[];
   };

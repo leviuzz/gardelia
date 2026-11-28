@@ -229,6 +229,7 @@ describe('pagamenti e filtri', () => {
       unpaid: true,
       messages: false,
       changes: false,
+      money: null,
       page: 2,
     });
     expect(orderListFiltersSchema.parse({ when: 'yesterday', status: 'LOST' })).toMatchObject({
@@ -237,6 +238,10 @@ describe('pagamenti e filtri', () => {
       unpaid: false,
       messages: false,
     });
+    // M3-3: «Prove da controllare» e «Contanti da confermare»; il resto non filtra.
+    expect(orderListFiltersSchema.parse({ money: 'proofs' }).money).toBe('proofs');
+    expect(orderListFiltersSchema.parse({ money: 'cash' }).money).toBe('cash');
+    expect(orderListFiltersSchema.parse({ money: 'todo' }).money).toBeNull();
   });
 
   it('«Con messaggi da leggere» (M3) solo con `messages=unread`', () => {

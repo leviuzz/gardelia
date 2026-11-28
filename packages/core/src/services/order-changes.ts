@@ -42,6 +42,7 @@ import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import type { EmailMessage } from '../mailer';
 import { changeAskedMailTx, sendOrderMails, type OrderMailDeps } from '../order-mail';
+import { assertCanHandlePendingOnlineTx } from './order-payment-internals';
 import { extendOrderPublicLinkTx } from './public-links';
 import { addDays, dateToParts, partsToDate } from './quote-internals';
 
@@ -329,7 +330,8 @@ async function askTx(
 
 /**
  * «Chiedi conferma al cliente»: chi compra riceve la lista dei cambi (nella pagina dell'ordine e per
- * email) e conferma o dice «No, gracias». Proprietario e gerente (`orders:write`).
+ * email) e conferma o dice «No, gracias». Proprietario e gerente; lo staff se la fioreria lo
+ * permette (M3-3, `assertCanHandlePendingOnlineTx`).
  */
 export async function askOrderChange(
   ctx: TenantContext,
@@ -337,13 +339,14 @@ export async function askOrderChange(
   rawInput: unknown,
   mail: OrderMailDeps | null = null,
 ): Promise<void> {
-  requirePermission(ctx, 'orders:write');
+  requirePermission(ctx, 'orders:accept');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
   const parsed = askOrderChangeSchema.safeParse(rawInput ?? {});
   if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await lockPendingOrderTx(tx, ctx, orderId);
     if (!order) return null;
+    await assertCanHandlePendingOnlineTx(tx, ctx);
     return { message: await askTx(tx, ctx, order, parsed.data, mail) };
   });
   if (!found) return notFound(ctx, 'Order', orderId);
@@ -360,7 +363,7 @@ export async function proposeOrderDate(
   rawInput: unknown,
   mail: OrderMailDeps | null = null,
 ): Promise<void> {
-  requirePermission(ctx, 'orders:write');
+  requirePermission(ctx, 'orders:accept');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
   const parsed = proposeOrderDateSchema.safeParse(rawInput ?? {});
   if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
@@ -376,6 +379,7 @@ export async function proposeOrderDate(
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await lockPendingOrderTx(tx, ctx, orderId);
     if (!order) return null;
+    await assertCanHandlePendingOnlineTx(tx, ctx);
     if (order.status !== 'PENDING_ACCEPTANCE' || !order.placedOnline) {
       throw new ConflictError('order_not_pending');
     }

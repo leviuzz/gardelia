@@ -51,6 +51,9 @@ import {
   orderListFiltersSchema,
   orderPaymentSchema,
   orderPaymentStatus,
+  orderRefundSchema,
+  refundProblem,
+  reversalProblem,
   orderStepsFrom,
   priceOrder,
   quoteLineQuantitySchema,
@@ -66,6 +69,7 @@ import {
   type OrderPaymentStatus,
   type OrderChangeStatus,
   type OrderStatus,
+  type OrderMoneyFilter,
   type OrderWhenFilter,
   type PaymentMethod,
   type SaleUnit,
@@ -81,6 +85,7 @@ import { readStoredImage } from '../media/stored-files';
 import {
   buyerOrderMail,
   counterOrderConfirmationMail,
+  paymentRecordedMailTx,
   sendOrderMails,
   type OrderMailDeps,
 } from '../order-mail';
@@ -96,6 +101,13 @@ import {
   settlePendingOrderEditTx,
   type OrderChangeDto,
 } from './order-changes';
+import {
+  assertCanHandlePendingOnlineTx,
+  assertOrderEditableTx,
+  insertOrderPaymentTx,
+  paymentDayOf,
+  staffCanAcceptTx,
+} from './order-payment-internals';
 import { activeOrderReservationId, syncOrderReservationTx } from './order-reservation';
 import { loadShopPlace } from './care-internals';
 import { ensureOrderPublicLinkTx, extendOrderPublicLinkTx } from './public-links';
@@ -302,6 +314,10 @@ export interface OrderDetailDto extends OrderSummaryDto {
   /** Borrador che chi guarda può scartare. */
   readonly canDiscard: boolean;
   readonly canRecordPayments: boolean;
+  /** M3-3: quanto è stato rimborsato (somma dei rimborsi, positiva). */
+  readonly refundedMinor: number;
+  /** M3-3: «Registra rimborso» su un ordine annullato con qualcosa di pagato. */
+  readonly canRefund: boolean;
 }
 
 type OrderWithCustomer = Prisma.OrderGetPayload<{ include: typeof orderInclude }>;
@@ -403,6 +419,25 @@ export interface OrderListResult {
   /** Ordini online tornati dopo un «No, gracias» ai cambi (filtro «No ai cambi», M3-2). */
   readonly declinedChangesCount: number;
   readonly changesFilter: boolean;
+  /**
+   * M3-3, solo per chi gestisce i soldi (0 per gli altri): ordini con prove di pagamento da
+   * controllare e con contanti da confermare, e il filtro attivo.
+   */
+  readonly pendingProofOrdersCount: number;
+  readonly pendingCashOrdersCount: number;
+  readonly moneyFilter: OrderMoneyFilter | null;
+}
+
+/** M3-3: ordini con una prova di pagamento o dei contanti da decidere. */
+function moneyWhere(filter: OrderMoneyFilter | null): Prisma.OrderWhereInput {
+  switch (filter) {
+    case 'proofs':
+      return { paymentProofs: { some: { status: 'PENDING' } } };
+    case 'cash':
+      return { cashCollections: { some: { status: 'PENDING' } } };
+    case null:
+      return {};
+  }
 }
 
 /** Ordini online da accettare tornati alla fioreria dopo un «No, gracias» ai cambi (M3-2). */
@@ -453,6 +488,7 @@ export async function listOrders(
         : {},
       filters.messages ? { messages: { some: { authorKind: 'BUYER', readByShopAt: null } } } : {},
       filters.changes ? DECLINED_CHANGES_WHERE : {},
+      moneyWhere(filters.money),
       filters.q
         ? {
             OR: [
@@ -489,6 +525,12 @@ export async function listOrders(
       }),
       tx.order.count({ where: { tenantId: ctx.tenantId, ...DECLINED_CHANGES_WHERE } }),
     ]);
+    const [pendingProofOrdersCount, pendingCashOrdersCount] = hasPermission(ctx, 'orders:payments')
+      ? await Promise.all([
+          tx.order.count({ where: { tenantId: ctx.tenantId, ...moneyWhere('proofs') } }),
+          tx.order.count({ where: { tenantId: ctx.tenantId, ...moneyWhere('cash') } }),
+        ])
+      : [0, 0];
     const pageCount = Math.max(1, Math.ceil(total / ORDER_PAGE_SIZE));
     const page = Math.min(filters.page, pageCount);
     const orders = await tx.order.findMany({
@@ -515,6 +557,9 @@ export async function listOrders(
       messagesFilter: filters.messages,
       declinedChangesCount,
       changesFilter: filters.changes,
+      pendingProofOrdersCount,
+      pendingCashOrdersCount,
+      moneyFilter: filters.money,
     };
   });
 }
@@ -625,14 +670,27 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
       ? ((await unreadByOrderTx(tx, ctx.tenantId, [order.id])).get(order.id) ?? 0)
       : 0;
     // I cambi da far confermare di un ordine online da accettare (M3-2).
-    const change =
-      order.placedOnline && order.status === 'PENDING_ACCEPTANCE'
-        ? await orderChangeDtoTx(tx, ctx.tenantId, order)
-        : null;
-    return { order, lines, payments, events, shopOrigin: shop?.origin ?? null, unread, change };
+    const pendingOnline = order.placedOnline && order.status === 'PENDING_ACCEPTANCE';
+    const change = pendingOnline ? await orderChangeDtoTx(tx, ctx.tenantId, order) : null;
+    // M3-3: lo staff gestisce un ordine online da accettare se la fioreria lo permette.
+    const staffHandles =
+      pendingOnline &&
+      !hasPermission(ctx, 'orders:write') &&
+      hasPermission(ctx, 'orders:accept') &&
+      (await staffCanAcceptTx(tx, ctx.tenantId));
+    return {
+      order,
+      lines,
+      payments,
+      events,
+      shopOrigin: shop?.origin ?? null,
+      unread,
+      change,
+      staffHandles,
+    };
   });
   if (!result) return notFound(ctx, 'Order', orderId);
-  const { order, lines, payments, events, shopOrigin, unread, change } = result;
+  const { order, lines, payments, events, shopOrigin, unread, change, staffHandles } = result;
   const site = shopOrigin
     ? freshCoordinates(
         {
@@ -656,6 +714,9 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
   const serviceZone =
     distanceKm !== null && beyond.length > 0 ? { distanceKm, lines: beyond } : null;
   const canWrite = hasPermission(ctx, 'orders:write');
+  // M3-3: chi può accettare, rifiutare, chiedere conferma e cambiare l'ordine (proprietario e
+  // gerente sempre; lo staff solo su un ordine online da accettare, con l'impostazione).
+  const canEdit = canWrite || staffHandles;
   // M3-2: con dei cambi «Accetta l'ordine» lascia il posto a «Chiedi conferma» (e mentre si aspetta
   // la risposta non c'è niente da accettare), se chi compra può ancora rispondere.
   const buyerCanAnswer = order.placedOnline && order.buyerUserId !== null;
@@ -743,7 +804,9 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
       paidOn: dateString(payment.paidOn),
       reference: payment.reference,
       createdAt: payment.createdAt,
-      reversed: payment.kind === 'REVERSAL' || payment.reversal !== null,
+      // Uno storno, un rimborso o un pagamento già stornato non si stornano (M3-3).
+      reversed:
+        payment.kind === 'REVERSAL' || payment.kind === 'REFUND' || payment.reversal !== null,
     })),
     events: events.map((event) => ({
       id: event.id,
@@ -753,8 +816,8 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
       createdAt: event.createdAt,
     })),
     nextSteps: allowedOrderSteps(ctx, order.status, order.fulfillmentMode),
-    editable: canWrite && isOrderEditable(order.status),
-    linesEditable: canWrite && areOrderLinesEditable(order.status),
+    editable: canEdit && isOrderEditable(order.status),
+    linesEditable: canEdit && areOrderLinesEditable(order.status),
     assignee: order.assignedTo
       ? { membershipId: order.assignedTo.id, name: order.assignedTo.user.name }
       : null,
@@ -764,19 +827,24 @@ export async function getOrder(ctx: TenantContext, orderId: string): Promise<Ord
       canAddPhoto: hasPermission(ctx, 'orders:fulfill') && acceptsOrderPhoto(order.status),
       canSetReceiver: hasPermission(ctx, 'orders:fulfill') && isOrderHandedOver(order.status),
     },
-    canCancel: canWrite && canCancelOrder(order.status),
-    canAccept: canWrite && order.status === 'PENDING_ACCEPTANCE' && !needsConfirmation,
+    canCancel: canEdit && canCancelOrder(order.status),
+    canAccept: canEdit && order.status === 'PENDING_ACCEPTANCE' && !needsConfirmation,
     change,
     canAskChange:
-      canWrite &&
+      canEdit &&
       order.status === 'PENDING_ACCEPTANCE' &&
       buyerCanAnswer &&
       change !== null &&
       change.hasChanges &&
       change.status !== 'ASKED',
-    canProposeDate: canWrite && order.status === 'PENDING_ACCEPTANCE' && buyerCanAnswer,
+    canProposeDate: canEdit && order.status === 'PENDING_ACCEPTANCE' && buyerCanAnswer,
     canDiscard: canWrite && order.status === 'DRAFT',
     canRecordPayments: hasPermission(ctx, 'orders:payments') && acceptsOrderPayments(order.status),
+    refundedMinor: payments
+      .filter((payment) => payment.kind === 'REFUND')
+      .reduce((total, payment) => total - payment.amountMinor, 0),
+    canRefund:
+      hasPermission(ctx, 'orders:payments') && order.status === 'CANCELLED' && order.paidMinor > 0,
   };
 }
 
@@ -1145,7 +1213,9 @@ export async function updateOrderFulfillment(
   rawInput: unknown,
   mail: OrderMailDeps | null = null,
 ): Promise<void> {
-  requirePermission(ctx, 'orders:write');
+  // Chi cambia l'ordine lo decide l'ordine stesso (M3-3): `orders:write`, o lo staff su un ordine
+  // online da accettare se la fioreria lo permette (`assertOrderEditableTx`).
+  requirePermission(ctx, 'orders:accept');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
   const input = parseFulfillment(ctx, rawInput);
   const notifyCustomer =
@@ -1155,6 +1225,7 @@ export async function updateOrderFulfillment(
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await lockOrder(tx, ctx, orderId);
     if (!order) return null;
+    await assertOrderEditableTx(tx, ctx, order);
     if (!isOrderEditable(order.status)) throw new ConflictError('order_not_editable');
     // Un ordine online da accettare: prima del primo cambio si salva com'era (M3-2).
     await capturePendingOrderTx(tx, ctx, order);
@@ -1400,7 +1471,9 @@ export async function cancelOrder(
   rawInput: unknown,
   mail: OrderMailDeps | null = null,
 ): Promise<void> {
-  requirePermission(ctx, 'orders:write');
+  // Annullare è di `orders:write`; lo staff rifiuta solo un ordine online da accettare, se la
+  // fioreria lo permette (M3-3, `assertOrderEditableTx` sull'ordine bloccato).
+  requirePermission(ctx, 'orders:accept');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
   // «Rifiuta» di un ordine online (M3): un motivo pronto e un dettaglio; altrimenti il motivo scritto.
   const withCode = rawInput !== null && typeof rawInput === 'object' && 'reasonCode' in rawInput;
@@ -1420,6 +1493,7 @@ export async function cancelOrder(
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await lockOrder(tx, ctx, orderId);
     if (!order) return null;
+    await assertOrderEditableTx(tx, ctx, order);
     if (!canCancelOrder(order.status)) throw new ConflictError('invalid_status_transition');
     await tx.order.update({
       where: { id: order.id },
@@ -1465,13 +1539,15 @@ export async function acceptOnlineOrder(
   mail: OrderMailDeps | null = null,
   rawInput: unknown = {},
 ): Promise<void> {
-  requirePermission(ctx, 'orders:write');
+  // Proprietario e gerente; lo staff se la fioreria lo permette (M3-3).
+  requirePermission(ctx, 'orders:accept');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
   const freeDeliveryConfirmed =
     onlineOrderAcceptSchema.safeParse(rawInput ?? {}).data?.freeDeliveryConfirmed === true;
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await lockOrder(tx, ctx, orderId);
     if (!order) return null;
+    await assertCanHandlePendingOnlineTx(tx, ctx);
     if (order.status !== 'PENDING_ACCEPTANCE') throw new ConflictError('order_not_pending');
     const today = partsToDate(todayInTimeZone(ctx.timezone));
     if (!order.scheduledDate || order.scheduledDate < today) {
@@ -1521,54 +1597,35 @@ function assertTotalCoversPaid(paidMinor: number, totalMinor: number): void {
   if (totalMinor < paidMinor) throw new ConflictError('order_total_below_paid');
 }
 
-async function applyPaidAmount(
-  tx: TransactionClient,
-  order: { id: string; totalMinor: number },
-  paidMinor: number,
-) {
-  await tx.order.update({
-    where: { id: order.id },
-    data: { paidMinor, paymentStatus: orderPaymentStatus(paidMinor, order.totalMinor) },
-  });
-}
-
 /** Acconto o saldo ricevuto dalla fioreria (contanti, trasferimento, terminale, link…). */
 export async function recordOrderPayment(
   ctx: TenantContext,
   orderId: string,
   rawInput: unknown,
+  mail: OrderMailDeps | null = null,
 ): Promise<void> {
   requirePermission(ctx, 'orders:payments');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
   const parsed = orderPaymentSchema(ctx.currency).safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
   const input = parsed.data;
-  const today = todayInTimeZone(ctx.timezone);
-  const paidOn = input.paidOn ?? today;
-  if (partsToDate(paidOn) > partsToDate(today))
-    throw new ValidationError({ paidOn: 'out_of_range' });
+  const paidOn = paymentDayOf(ctx, input.paidOn);
 
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await lockOrder(tx, ctx, orderId);
-    if (!order) return false;
+    if (!order) return null;
     if (order.status === 'DRAFT') throw new ConflictError('order_not_confirmed');
     if (!acceptsOrderPayments(order.status)) throw new ConflictError('order_closed');
     if (input.amount > orderBalanceMinor(order.paidMinor, order.totalMinor)) {
       throw new ValidationError({ amount: 'payment_exceeds_balance' });
     }
-    await tx.orderPayment.create({
-      data: {
-        tenantId: ctx.tenantId,
-        orderId: order.id,
-        kind: input.kind,
-        method: input.method,
-        amountMinor: input.amount,
-        paidOn: partsToDate(paidOn),
-        reference: input.reference,
-        createdById: ctx.userId,
-      },
+    await insertOrderPaymentTx(tx, ctx, order, {
+      kind: input.kind,
+      method: input.method,
+      amountMinor: input.amount,
+      paidOn,
+      reference: input.reference,
     });
-    await applyPaidAmount(tx, order, order.paidMinor + input.amount);
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.orderPaymentRecorded,
       entityType: 'Order',
@@ -1580,12 +1637,28 @@ export async function recordOrderPayment(
         amountMinor: input.amount,
       },
     });
-    return true;
+    // M3-3: chi ha fatto l'ordine online riceve «Registramos tu pago» (dopo il commit).
+    return {
+      mail: mail
+        ? await paymentRecordedMailTx(
+            tx,
+            ctx.tenantId,
+            order.id,
+            { amountMinor: input.amount, refund: false },
+            mail,
+          )
+        : null,
+    };
   });
-  if (!found) await notFound(ctx, 'Order', orderId);
+  if (!found) return notFound(ctx, 'Order', orderId);
+  if (mail && found.mail) await sendOrderMails(mail.mailer, [found.mail]);
 }
 
-/** Storna un pagamento registrato per errore: resta nello storico, con il suo storno. */
+/**
+ * Storna un pagamento registrato per errore: resta nello storico, con il suo storno. Vale per un
+ * acconto o un saldo, una volta, e mai se porterebbe il pagato sotto zero (un pagamento già
+ * rimborsato); un rimborso non si storna (M3-3, `reversalProblem`).
+ */
 export async function reverseOrderPayment(
   ctx: TenantContext,
   orderId: string,
@@ -1602,22 +1675,21 @@ export async function reverseOrderPayment(
       include: { reversal: { select: { id: true } } },
     });
     if (!payment) return false;
-    if (payment.kind === 'REVERSAL' || payment.reversal) {
-      throw new ConflictError('payment_already_reversed');
-    }
-    await tx.orderPayment.create({
-      data: {
-        tenantId: ctx.tenantId,
-        orderId: order.id,
-        kind: 'REVERSAL',
-        method: payment.method,
-        amountMinor: -payment.amountMinor,
-        paidOn: partsToDate(todayInTimeZone(ctx.timezone)),
-        reversedPaymentId: payment.id,
-        createdById: ctx.userId,
-      },
+    const problem = reversalProblem({
+      kind: payment.kind,
+      alreadyReversed: payment.reversal !== null,
+      paidMinor: order.paidMinor,
+      amountMinor: payment.amountMinor,
     });
-    await applyPaidAmount(tx, order, order.paidMinor - payment.amountMinor);
+    if (problem) throw new ConflictError(problem);
+    await insertOrderPaymentTx(tx, ctx, order, {
+      kind: 'REVERSAL',
+      method: payment.method,
+      amountMinor: -payment.amountMinor,
+      paidOn: partsToDate(todayInTimeZone(ctx.timezone)),
+      reference: null,
+      reversedPaymentId: payment.id,
+    });
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.orderPaymentReversed,
       entityType: 'Order',
@@ -1627,6 +1699,66 @@ export async function reverseOrderPayment(
     return true;
   });
   if (!found) await notFound(ctx, 'OrderPayment', paymentId);
+}
+
+/**
+ * «Registra rimborso» su un ordine annullato (M3-3): fino a quanto è stato pagato, anche in più
+ * volte. Negativo nello storico, non si storna; chi ha fatto l'ordine online riceve l'email.
+ */
+export async function refundOrderPayment(
+  ctx: TenantContext,
+  orderId: string,
+  rawInput: unknown,
+  mail: OrderMailDeps | null = null,
+): Promise<void> {
+  requirePermission(ctx, 'orders:payments');
+  if (!isUuid(orderId)) throw new NotFoundError('Order');
+  const parsed = orderRefundSchema(ctx.currency).safeParse(rawInput);
+  if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
+  const input = parsed.data;
+  const paidOn = paymentDayOf(ctx, input.paidOn);
+
+  const found = await withTenantContext(getDb(), ctx, async (tx) => {
+    const order = await lockOrder(tx, ctx, orderId);
+    if (!order) return null;
+    const problem = refundProblem({
+      status: order.status,
+      paidMinor: order.paidMinor,
+      amountMinor: input.amount,
+    });
+    if (problem === 'refund_exceeds_paid') throw new ValidationError({ amount: problem });
+    if (problem) throw new ConflictError(problem);
+    await insertOrderPaymentTx(tx, ctx, order, {
+      kind: 'REFUND',
+      method: input.method,
+      amountMinor: -input.amount,
+      paidOn,
+      reference: input.reference,
+    });
+    await recordAudit(tx, ctx, {
+      action: AUDIT_ACTIONS.orderPaymentRefunded,
+      entityType: 'Order',
+      entityId: order.id,
+      metadata: {
+        number: formatOrderNumber(order.number),
+        method: input.method,
+        amountMinor: input.amount,
+      },
+    });
+    return {
+      mail: mail
+        ? await paymentRecordedMailTx(
+            tx,
+            ctx.tenantId,
+            order.id,
+            { amountMinor: input.amount, refund: true },
+            mail,
+          )
+        : null,
+    };
+  });
+  if (!found) return notFound(ctx, 'Order', orderId);
+  if (mail && found.mail) await sendOrderMails(mail.mailer, [found.mail]);
 }
 
 /**
@@ -1705,6 +1837,7 @@ async function recalculateOrderTotals(
 async function lockOrderForLines(tx: TransactionClient, ctx: TenantContext, orderId: string) {
   const order = await lockOrder(tx, ctx, orderId);
   if (!order) return null;
+  await assertOrderEditableTx(tx, ctx, order);
   if (!areOrderLinesEditable(order.status)) throw new ConflictError('order_lines_locked');
   await capturePendingOrderTx(tx, ctx, order);
   return order;
@@ -1852,7 +1985,8 @@ export async function addCatalogItemToOrder(
   orderId: string,
   rawInput: unknown,
 ): Promise<void> {
-  requirePermission(ctx, 'orders:write');
+  // `orders:write`, o lo staff su un ordine online da accettare (M3-3, `lockOrderForLines`).
+  requirePermission(ctx, 'orders:accept');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
   const parsed = catalogQuoteLineSchema.safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
@@ -1878,7 +2012,8 @@ export async function addCustomLineToOrder(
   orderId: string,
   rawInput: unknown,
 ): Promise<void> {
-  requirePermission(ctx, 'orders:write');
+  // `orders:write`, o lo staff su un ordine online da accettare (M3-3, `lockOrderForLines`).
+  requirePermission(ctx, 'orders:accept');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
   const parsed = customQuoteLineSchema(ctx.currency).safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));
@@ -1898,7 +2033,8 @@ export async function updateOrderLineQuantity(
   lineId: string,
   rawQuantity: unknown,
 ): Promise<void> {
-  requirePermission(ctx, 'orders:write');
+  // `orders:write`, o lo staff su un ordine online da accettare (M3-3, `lockOrderForLines`).
+  requirePermission(ctx, 'orders:accept');
   if (!isUuid(orderId) || !isUuid(lineId)) throw new NotFoundError('Order');
   const parsed = quoteLineQuantitySchema.safeParse(rawQuantity);
   if (!parsed.success) {
@@ -1937,7 +2073,8 @@ export async function removeOrderLine(
   orderId: string,
   lineId: string,
 ): Promise<void> {
-  requirePermission(ctx, 'orders:write');
+  // `orders:write`, o lo staff su un ordine online da accettare (M3-3, `lockOrderForLines`).
+  requirePermission(ctx, 'orders:accept');
   if (!isUuid(orderId) || !isUuid(lineId)) throw new NotFoundError('Order');
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await lockOrderForLines(tx, ctx, orderId);
@@ -1970,7 +2107,8 @@ export async function updateOrderDiscount(
   orderId: string,
   rawInput: unknown,
 ): Promise<void> {
-  requirePermission(ctx, 'orders:write');
+  // `orders:write`, o lo staff su un ordine online da accettare (M3-3, `lockOrderForLines`).
+  requirePermission(ctx, 'orders:accept');
   if (!isUuid(orderId)) throw new NotFoundError('Order');
   const parsed = orderDiscountSchema(ctx.currency).safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(toFieldErrors(parsed.error));

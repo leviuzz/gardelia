@@ -17,6 +17,7 @@ import {
   getMarket,
   isUuid,
   orderBalanceMinor,
+  paymentInstructionsVisible,
   resolveLocale,
   todayInTimeZone,
   type FulfillmentMode,
@@ -377,7 +378,8 @@ export interface PublicOrderDto {
   /**
    * Ordine fatto dalla tienda en línea (ADR-067): come si paga (pagamento diretto) e, se la
    * fioreria l'ha rifiutato o annullato, il motivo che ha scritto per chi compra. Null per gli
-   * ordini del banco (il motivo lì è interno).
+   * ordini del banco (il motivo lì è interno). I dati per pagare (`paymentInstructions`) solo a
+   * ordine accettato e non annullato (M3-3, `paymentInstructionsVisible`).
    */
   readonly online: {
     readonly paymentMethods: readonly StorePaymentMethod[];
@@ -491,7 +493,10 @@ export async function readCustomerOrderTx(
     online: order.placedOnline
       ? {
           paymentMethods: (store?.paymentMethods ?? []) as StorePaymentMethod[],
-          paymentInstructions: store?.paymentInstructions ?? null,
+          // M3-3: i dati per pagare (CLABE, conto) solo a ordine accettato e non annullato.
+          paymentInstructions: paymentInstructionsVisible(order)
+            ? (store?.paymentInstructions ?? null)
+            : null,
           cancelReason: order.status === 'CANCELLED' ? order.cancelReason : null,
           changesToConfirm: change?.status === 'ASKED',
         }

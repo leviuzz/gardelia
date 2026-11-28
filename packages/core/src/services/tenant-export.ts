@@ -111,6 +111,8 @@ export async function exportTenantData(
       careMessages,
       orderMessages,
       orderChanges,
+      paymentProofs,
+      cashCollections,
     ] = await Promise.all([
       tx.customer.findMany({ where, orderBy: { createdAt: 'asc' } }),
       tx.customerAddress.findMany({ where, orderBy: { createdAt: 'asc' } }),
@@ -210,6 +212,40 @@ export async function exportTenantData(
           createdAt: true,
         },
       }),
+      // M3-3: le prove di pagamento (senza le foto) e i contanti di chi consegna.
+      tx.orderPaymentProof.findMany({
+        where,
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          orderId: true,
+          amountMinor: true,
+          note: true,
+          status: true,
+          rejectReason: true,
+          reviewedAt: true,
+          photoDeletedAt: true,
+          createdAt: true,
+          buyer: { select: { name: true } },
+          payment: { select: { amountMinor: true } },
+        },
+      }),
+      tx.orderCashCollection.findMany({
+        where,
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          orderId: true,
+          amountMinor: true,
+          note: true,
+          status: true,
+          rejectReason: true,
+          reviewedAt: true,
+          createdAt: true,
+          collectedBy: { select: { user: { select: { name: true } } } },
+          payment: { select: { amountMinor: true } },
+        },
+      }),
     ]);
     return {
       customers,
@@ -238,6 +274,8 @@ export async function exportTenantData(
       careMessages,
       orderMessages,
       orderChanges,
+      paymentProofs,
+      cashCollections,
     };
   });
 
@@ -282,6 +320,10 @@ export async function exportTenantData(
   type CareMessageRow = (typeof data.careMessages)[number];
   type OrderMessageRow = (typeof data.orderMessages)[number];
   type OrderChangeRow = (typeof data.orderChanges)[number];
+  type PaymentProofRow = (typeof data.paymentProofs)[number];
+  type CashCollectionRow = (typeof data.cashCollections)[number];
+  const reviewStatus = (status: string) =>
+    LABELS.moneyReviewStatus[status as keyof typeof LABELS.moneyReviewStatus] ?? status;
 
   const sections: Section[] = [
     section<Customer>(
@@ -843,6 +885,49 @@ export async function exportTenantData(
         { header: 'Motivo del cliente', value: (r) => r.declineReason },
       ],
       data.orderChanges,
+    ),
+    section<PaymentProofRow>(
+      'pedidos_comprobantes.csv',
+      'comprobantes de pago que subieron los clientes de pedidos en línea (sin las fotos)',
+      [
+        { header: 'id', value: (r) => r.id },
+        { header: 'Fecha', value: (r) => dateTime(r.createdAt) },
+        { header: 'Pedido', value: (r) => orderNumber.get(r.orderId) },
+        { header: 'Cliente', value: (r) => r.buyer?.name ?? LABELS.careMessageDeletedAuthor },
+        { header: 'Importe', value: (r) => money(r.amountMinor), numeric: true },
+        { header: 'Nota del cliente', value: (r) => r.note },
+        { header: 'Estado', value: (r) => reviewStatus(r.status) },
+        {
+          header: 'Pago registrado',
+          value: (r) => (r.payment ? money(r.payment.amountMinor) : null),
+          numeric: true,
+        },
+        { header: 'Motivo', value: (r) => r.rejectReason },
+        { header: 'Revisado', value: (r) => dateTime(r.reviewedAt) },
+        { header: 'Foto', value: (r) => (r.photoDeletedAt ? LABELS.proofPhotoDeleted : YES) },
+      ],
+      data.paymentProofs,
+    ),
+    section<CashCollectionRow>(
+      'pedidos_efectivo.csv',
+      'efectivo que cobró quien entregó un pedido, con la confirmación de la florería',
+      [
+        { header: 'id', value: (r) => r.id },
+        { header: 'Fecha', value: (r) => dateTime(r.createdAt) },
+        { header: 'Pedido', value: (r) => orderNumber.get(r.orderId) },
+        { header: 'Cobró', value: (r) => r.collectedBy.user.name },
+        { header: 'Importe', value: (r) => money(r.amountMinor), numeric: true },
+        { header: 'Nota', value: (r) => r.note },
+        { header: 'Estado', value: (r) => reviewStatus(r.status) },
+        {
+          header: 'Pago registrado',
+          value: (r) => (r.payment ? money(r.payment.amountMinor) : null),
+          numeric: true,
+        },
+        { header: 'Motivo', value: (r) => r.rejectReason },
+        { header: 'Revisado', value: (r) => dateTime(r.reviewedAt) },
+      ],
+      data.cashCollections,
     ),
   ];
 
