@@ -1683,6 +1683,42 @@ founder il 26/11, in cinque passi come M3-1.
   variabile nuova.
 - **Prossimo:** M3-3 «Soldi e squadra», con il piano già approvato il 26/11.
 
+**M3-3 «Soldi e squadra» (28/11, sul ramo di lavoro):** piano di esecuzione nel file del piano e in
+`docs/MARKETPLACE_FLOWS.md` §6, con il modo di lavorare «tutto di fila» chiesto dal founder il 28/11
+(piano di dettaglio, costruzione a passi, revisione minuziosa a blocco finito, recap).
+
+- **Dominio:** `order-money.ts` (schemi e problemi delle prove di pagamento, del rimborso, dello
+  storno sotto zero, dei contanti e della loro conferma; chi vede i dati per pagare; chi gestisce
+  gli ordini online da accettare); permesso `orders:accept` per tutti i ruoli; `staffCanAccept`
+  nelle impostazioni degli ordini online; filtro `money` dell'elenco; frasi del registro.
+- **Database:** `order_money_enum` (`REFUND`) e `order_money`: `OrderPaymentProof` (guardia di chi
+  compra, CHECK su stati, chiavi delle foto e motivi), `OrderCashCollection` (uno in attesa per
+  ordine), `OnlineStore.staffCanAccept`, `OrderPayment_amount_check` riscritto,
+  `app_order_payment_proof_photos_to_purge`, `app_buyer_order_payment_proofs`.
+- **Core:** `services/order-money.ts` (prove e contanti della fioreria, foto privata, lavoro
+  giornaliero), `buyer-order-money.ts` («Ya pagué» da `withBuyerOrder`), `refundOrderPayment`,
+  `insertOrderPaymentTx` per ogni pagamento, «Registramos tu pago» dopo ogni pagamento su un ordine
+  online, staff con l'impostazione in accettare, rifiutare, chiedere, proporre e cambiare, dati per
+  pagare tolti dalle letture pubbliche, email a chi riceve un'assegnazione, `getDayPrintout`,
+  «Da gestire» e filtri, esportazioni e cancellazione della fioreria.
+- **Web:** scheda «Pagos» di chi compra (prova con la foto ridotta nel browser, stati, rimborso);
+  schede «Prove di pagamento» e «Contanti» nell'ordine con «Confermo», «Non lo trovo», «Ho
+  incassato» (solo per chi non registra i pagamenti, cioè lo staff), conferma e rifiuto dei contanti;
+  «Registra rimborso» e «Rimborsato»; «Ho incassato» in Percorso; «Stampa le comande» e «Stampa i
+  biglietti» in Ordini → Giorno; la casella dello staff in Impostazioni → Negozio online; righe di
+  «Da gestire» e filtri dell'elenco; vetrina e modulo d'ordine senza i dati per pagare; rimborsi
+  nella cronologia del cliente; testi nelle tre lingue.
+- **Test:** dominio (`order-money.test.ts`), RLS (guardia e CHECK delle tabelle nuove), integrazione
+  (`order-money.test.ts`: dati per pagare, prove, rimborso e storno, contanti, staff, avviso di
+  assegnazione, stampa del giorno, esportazioni, A↔B e persona sbagliata; la cancellazione della
+  fioreria con prove e contanti), E2E `marketplace-money.spec.ts` a 320 px. E2E completo in locale
+  127/127: ogni persona che si registra nei test arriva da un suo IP di prova
+  (`e2e/support/network.ts`), così il limite di 5 registrazioni al minuto per IP non si somma fra
+  test di fila.
+- **PROPOSTO e DA VALIDARE:** in ADR-088 (M3-3).
+- **Prossimo:** revisione minuziosa di tutto M3 (M3-1, M3-2, M3-3), controlli completi, CI, staging,
+  recap al founder; poi il piano di dettaglio di M5.
+
 Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,
 `ASSISTANT_MONTHLY_BUDGET_USD=2`, 10 a dicembre), i crediti alla sua fioreria di prova con

@@ -57,7 +57,13 @@ che si registra con ogni ordine online.
     fioreria può proporre cambi (prodotti, quantità, costo, giorno, fascia) che chi compra conferma
     o rifiuta nel conto; senza risposta l'ordine si annulla dopo 3 giorni dalla proposta; le
     sostituzioni si concordano con una domanda «Sí / No» nei messaggi. Basta come consenso alla
-    modifica del contratto, e cosa deve dire l'email della proposta?
+    modifica del contratto, e cosa deve dire l'email della proposta? Dal 28/11 (M3-3): chi compra
+    carica una foto del comprobante del pagamento (può mostrare dati bancari), che vedono solo
+    proprietario e gerente e si cancella 30 giorni dopo la chiusura dell'ordine; la fioreria lo
+    conferma (diventa un pagamento registrato, con un'email che dice di non essere un comprobante
+    fiscal) o lo rifiuta con un motivo; un ordine annullato si rimborsa fino al pagato, con
+    un'email. I dati per pagare della fioreria si mostrano solo dopo l'accettazione. Va bene come
+    finalità e conservazione della foto, e cosa deve dire l'email del rimborso (tempi, PROFECO)?
 13. **Accettazione:** oggi un avviso con i link ("Al crear tu cuenta aceptas…", "Al enviar el
     pedido aceptas…") e la versione dei testi registrata con ogni ordine online. Basta, o servono
     caselle da spuntare o una prova diversa?

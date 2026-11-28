@@ -67,8 +67,10 @@ archiva al cliente y 30 días después del fin del contrato.
 6. **Si compras:** teléfono de contacto, direcciones de entrega guardadas (con la ubicación que da
    Google, que se borra a los 30 días) y tus pedidos: qué pediste, a qué florería, para cuándo, la
    dirección de entrega, quién recibe, el mensaje de la tarjeta y tus comentarios; los mensajes y
-   fotos que intercambias con la florería sobre cada pedido y cuándo leíste los suyos. [Borrador del
-   26/11/2026 — validar con el abogado.]
+   fotos que intercambias con la florería sobre cada pedido y cuándo leíste los suyos; los
+   comprobantes de pago que subes (la foto, que puede mostrar datos de tu cuenta bancaria, el
+   importe y tu nota) y la respuesta de la florería. [Borrador del 26/11/2026 y del 28/11/2026 —
+   validar con el abogado.]
 7. **Datos de la persona que recibe las flores** (nombre, teléfono y dirección): nos los das tú para
    la entrega. Compártelos solo si esa persona está de acuerdo.
 8. **Si una florería te invita a "Mi Floral Care":** el correo de la invitación, a qué florería y
@@ -95,13 +97,19 @@ archiva al cliente y 30 días después del fin del contrato.
    25/11/2026 — validar con el abogado.]
 5. Enviarte correos del servicio: verificación, invitaciones, restablecimiento de contraseña y, si
    compras, los avisos de tus pedidos (recibido, aceptado, en preparación, en camino, entregado,
-   cambiado por la florería, cancelado) y de los mensajes nuevos de la florería, sin el texto del
-   mensaje: uno cuando hay algo por leer y otro como máximo cada 6 horas si sigue sin leer.
+   cambiado por la florería, cancelado, pago registrado, comprobante no encontrado con el motivo de
+   la florería, reembolso) y de los mensajes nuevos de la florería, sin el texto del mensaje: uno
+   cuando hay algo por leer y otro como máximo cada 6 horas si sigue sin leer. El aviso de un pago
+   registrado no es un comprobante fiscal.
 6. Si compras: mostrarte florerías que entregan en tu zona, enviar tus pedidos a la florería que
    elijas, mostrarte su estado y que puedas escribirle sobre cada pedido. Los mensajes los lee todo
    el equipo de la florería; las fotos de los mensajes se borran 30 días después de que el pedido se
    entrega, se recoge o se cancela (o antes, si la florería las quita), y el texto se conserva con el
-   pedido. [Borrador del 26/11/2026 — validar con el abogado.]
+   pedido. Los comprobantes de pago que subes los ven solo el dueño y el gerente de la florería, para
+   confirmar que recibieron tu pago; sus fotos se borran 30 días después de que el pedido se entrega,
+   se recoge o se cancela, y el importe, el estado y el pago registrado se conservan con el pedido.
+   Los datos para pagar de la florería (por ejemplo, su CLABE) te los mostramos solo cuando acepta tu
+   pedido. [Borrador del 26/11/2026 y del 28/11/2026 — validar con el abogado.]
 7. Mantener la seguridad de la plataforma, prevenir fraudes y accesos indebidos y conservar
    registros de auditoría.
 8. Darte soporte cuando lo pidas.
@@ -163,8 +171,8 @@ costos de reproducción o envío previstos por la ley.
 
 Muchas acciones las puedes hacer tú mismo desde la app: editar tu perfil, eliminar fotos y
 desactivar usuarios de tu equipo. **Si compras o tienes "Mi Floral Care",** desde "Mi cuenta"
-puedes **descargar tus datos** (también tus mensajes sobre tus pedidos, tus accesos y tus mensajes
-de Mi Floral Care) y **eliminar
+puedes **descargar tus datos** (también tus mensajes sobre tus pedidos, tus comprobantes de pago,
+tus accesos y tus mensajes de Mi Floral Care) y **eliminar
 tu cuenta** (te pedimos confirmarlo por correo). Los pedidos que ya hiciste siguen en las florerías
 que los atendieron: para esos datos, contacta a la florería. [Pendiente: exportar y cancelar desde
 la app las cuentas de las florerías.]
