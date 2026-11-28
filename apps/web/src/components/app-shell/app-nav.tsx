@@ -11,6 +11,7 @@ import {
   Ellipsis,
   FileText,
   Flower2,
+  Inbox,
   LayoutDashboard,
   LoaderCircle,
   Settings,
@@ -33,6 +34,7 @@ import { cn } from '@/lib/utils';
 export type NavIcon =
   | 'dashboard'
   | 'orders'
+  | 'requests'
   | 'agenda'
   | 'care'
   | 'quotes'
@@ -92,6 +94,7 @@ function NavBadge({
 const ICONS = {
   dashboard: LayoutDashboard,
   orders: ClipboardList,
+  requests: Inbox,
   agenda: CalendarClock,
   care: Sprout,
   quotes: FileText,

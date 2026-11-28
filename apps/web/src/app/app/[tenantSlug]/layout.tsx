@@ -6,6 +6,7 @@ import {
   getAddressSearchSettings,
   hasPermission,
   listUserTenants,
+  serviceRequestsMenuCount,
 } from '@floral/core';
 import { BRAND } from '@floral/domain';
 import { BottomNav, SidebarNav, type NavItem } from '@/components/app-shell/app-nav';
@@ -21,7 +22,7 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
   const { tenantSlug } = await params;
   const ctx = await getTenantContext(tenantSlug);
   const user = await requireUser();
-  const [shops, addressSearch, twoFactor, pendingOnline] = await Promise.all([
+  const [shops, addressSearch, twoFactor, pendingOnline, newRequests] = await Promise.all([
     listUserTenants(user.id),
     getAddressSearchSettings(ctx),
     // Solo i titolari hanno l'obbligo (ADR-077): gli altri non pagano la query.
@@ -30,6 +31,8 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
     // layout non si ricarica a ogni cambio di pagina, quindi niente numeri che cambiano spesso
     // (i messaggi da leggere stanno in «Da gestire» e sulle righe degli ordini).
     countPendingOnlineOrders(ctx),
+    // M5: le richieste nuove dei servizi, per chi può rispondere (proprietario e gerente).
+    hasPermission(ctx, 'requests:read') ? serviceRequestsMenuCount(ctx) : 0,
   ]);
   const t = await getTranslations();
   const format = await getFormatter();
@@ -44,6 +47,21 @@ export default async function TenantLayout({ children, params }: LayoutProps<'/a
       icon: 'orders',
       badge: { count: pendingOnline, label: t('nav.ordersPending', { count: pendingOnline }) },
     },
+    // M5: le richieste dei servizi della vetrina, sotto Ordini (su mobile in «Más»).
+    ...(hasPermission(ctx, 'requests:read')
+      ? [
+          {
+            href: routes.requests.list(),
+            label: t('nav.requests'),
+            icon: 'requests' as const,
+            secondary: true,
+            badge: {
+              count: newRequests,
+              label: t('nav.requestsNew', { count: newRequests }),
+            },
+          },
+        ]
+      : []),
     { href: routes.quotes.list(), label: t('nav.quotes'), icon: 'quotes' },
     // L'Agenda dei lavori (visite e consegne, ADR-075): nella barra in basso al posto di Clientes,
     // per chi esce a fare visite e consegne dal telefono (decisione del founder del 24/11/2026,

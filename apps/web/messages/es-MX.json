@@ -980,7 +980,9 @@
     "agenda": "Agenda",
     "care": "Floral Care",
     "reports": "Reportes",
-    "ordersPending": "{count, plural, one {# pedido en línea por aceptar} other {# pedidos en línea por aceptar}}"
+    "ordersPending": "{count, plural, one {# pedido en línea por aceptar} other {# pedidos en línea por aceptar}}",
+    "requests": "Solicitudes",
+    "requestsNew": "{count, plural, one {# solicitud nueva} other {# solicitudes nuevas}}"
   },
   "roles": {
     "OWNER": "Propietario",
@@ -1035,7 +1037,9 @@
       "paymentProofs": "{count, plural, one {# comprobante de pago por revisar} other {# comprobantes de pago por revisar}}",
       "paymentProofsLink": "Ver pedidos",
       "cash": "{count, plural, one {# cobro en efectivo por confirmar} other {# cobros en efectivo por confirmar}}",
-      "cashLink": "Ver pedidos"
+      "cashLink": "Ver pedidos",
+      "serviceRequests": "{count, plural, one {# solicitud de servicio nueva} other {# solicitudes de servicio nuevas}}",
+      "serviceRequestsLink": "Ver solicitudes"
     }
   },
   "activity": {
@@ -5641,5 +5645,63 @@
     "address": "Dirección",
     "photoDeleted": "Foto borrada",
     "photoAlt": "Foto de ideas {index}"
+  },
+  "requests": {
+    "title": "Solicitudes",
+    "subtitle": "Lo que te piden tus clientes desde los servicios de tu tienda en línea.",
+    "filtersLabel": "Filtrar solicitudes",
+    "filters": {
+      "open": "Abiertas",
+      "new": "Nuevas",
+      "quoted": "Con cotización",
+      "closed": "Cerradas",
+      "all": "Todas"
+    },
+    "filterCount": "{label} ({count})",
+    "empty": {
+      "open": "No hay solicitudes abiertas",
+      "new": "No hay solicitudes nuevas",
+      "quoted": "No hay solicitudes con cotización",
+      "closed": "No hay solicitudes cerradas",
+      "all": "Todavía no hay solicitudes"
+    },
+    "emptyBody": "Llegan cuando un cliente pide un servicio desde tu tienda en línea. Los servicios se ponen en Ajustes → Tienda en línea.",
+    "results": "{count, plural, one {# solicitud} other {# solicitudes}}",
+    "deletedBuyer": "Cuenta eliminada",
+    "photos": "{count, plural, one {# foto} other {# fotos}}",
+    "received": "Llegó el {date}",
+    "receivedLong": "Llegó el {date} desde tu tienda en línea.",
+    "statuses": {
+      "NEW": "Nueva",
+      "QUOTED": "Con cotización",
+      "ACCEPTED": "Aceptada",
+      "DECLINED": "Rechazada",
+      "CANCELLED": "Cancelada por el cliente",
+      "CLOSED": "Cerrada"
+    },
+    "declinedTitle": "Lo que leyó el cliente",
+    "customerTitle": "Cliente",
+    "buyerDeleted": "El cliente eliminó su cuenta: ya no recibe correos de esta solicitud.",
+    "detailsTitle": "Lo que pidió",
+    "staffHint": "La propietaria o el gerente responden a las solicitudes.",
+    "quoteTitle": "Cotización",
+    "quoteBody": "Prepara una cotización para este cliente en Cotizaciones y mándale el enlace.",
+    "quoteAction": "Nueva cotización",
+    "declined": "Solicitud rechazada: le avisamos al cliente",
+    "decline": {
+      "title": "Rechazar",
+      "subtitle": "El cliente lee el motivo en su cuenta y por correo, en español.",
+      "reason": "Motivo",
+      "reasons": {
+        "NO_AVAILABILITY": "No tenemos disponibilidad para esa fecha",
+        "OUT_OF_AREA": "No llegamos a ese lugar",
+        "NOT_OFFERED": "No hacemos este tipo de trabajo",
+        "OTHER": "Otro motivo"
+      },
+      "detail": "Detalle (opcional)",
+      "detailRequired": "Escribe el motivo",
+      "detailHint": "Se agrega al motivo que lee el cliente.",
+      "submit": "Rechazar la solicitud"
+    }
   }
 }

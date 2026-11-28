@@ -1,9 +1,24 @@
 import 'server-only';
-import { ArrowRight, Banknote, Globe, MessageSquare, Receipt, Sprout, X } from 'lucide-react';
+import {
+  ArrowRight,
+  Banknote,
+  Globe,
+  Inbox,
+  MessageSquare,
+  Receipt,
+  Sprout,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { getFormatter, getTranslations } from 'next-intl/server';
-import { countUnreadCareMessages, getOrderInbox, type TenantContext } from '@floral/core';
+import {
+  countNewServiceRequests,
+  countUnreadCareMessages,
+  getOrderInbox,
+  hasPermission,
+  type TenantContext,
+} from '@floral/core';
 import { pendingOrderDeadlineShown } from '@floral/domain';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { tenantRoutes } from '@/lib/routes';
@@ -16,7 +31,12 @@ import { tenantRoutes } from '@/lib/routes';
  * se non c'è niente. Gli ordini che aspettano la conferma di chi compra non sono da gestire.
  */
 export async function TodoCard({ ctx }: { readonly ctx: TenantContext }) {
-  const [inbox, care] = await Promise.all([getOrderInbox(ctx), countUnreadCareMessages(ctx)]);
+  const [inbox, care, newRequests] = await Promise.all([
+    getOrderInbox(ctx),
+    countUnreadCareMessages(ctx),
+    // M5: le richieste nuove dei servizi (lo stesso numero del menu e del filtro «Nuove»).
+    hasPermission(ctx, 'requests:read') ? countNewServiceRequests(ctx) : 0,
+  ]);
   const t = await getTranslations('dashboard.todo');
   const format = await getFormatter();
   const routes = tenantRoutes(ctx.tenantSlug);
@@ -40,6 +60,16 @@ export async function TodoCard({ ctx }: { readonly ctx: TenantContext }) {
         : null,
       href: routes.orders.list({ when: 'pending' }),
       link: t('pendingLink'),
+    });
+  }
+  if (newRequests > 0) {
+    rows.push({
+      testId: 'todo-service-requests',
+      icon: <Inbox />,
+      text: t('serviceRequests', { count: newRequests }),
+      detail: null,
+      href: routes.requests.list({ filter: 'new' }),
+      link: t('serviceRequestsLink'),
     });
   }
   if (inbox.declinedChanges > 0) {

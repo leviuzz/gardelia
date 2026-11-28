@@ -980,7 +980,9 @@
     "agenda": "Schedule",
     "care": "Floral Care",
     "reports": "Reports",
-    "ordersPending": "{count, plural, one {# online order to accept} other {# online orders to accept}}"
+    "ordersPending": "{count, plural, one {# online order to accept} other {# online orders to accept}}",
+    "requests": "Requests",
+    "requestsNew": "{count, plural, one {# new request} other {# new requests}}"
   },
   "roles": {
     "OWNER": "Owner",
@@ -1035,7 +1037,9 @@
       "paymentProofs": "{count, plural, one {# payment receipt to check} other {# payment receipts to check}}",
       "paymentProofsLink": "See orders",
       "cash": "{count, plural, one {# cash collection to confirm} other {# cash collections to confirm}}",
-      "cashLink": "See orders"
+      "cashLink": "See orders",
+      "serviceRequests": "{count, plural, one {# new service request} other {# new service requests}}",
+      "serviceRequestsLink": "See requests"
     }
   },
   "activity": {
@@ -5641,5 +5645,63 @@
     "address": "Address",
     "photoDeleted": "Photo deleted",
     "photoAlt": "Inspiration photo {index}"
+  },
+  "requests": {
+    "title": "Requests",
+    "subtitle": "What your customers ask for from the services in your online store.",
+    "filtersLabel": "Filter requests",
+    "filters": {
+      "open": "Open",
+      "new": "New",
+      "quoted": "Quoted",
+      "closed": "Closed",
+      "all": "All"
+    },
+    "filterCount": "{label} ({count})",
+    "empty": {
+      "open": "No open requests",
+      "new": "No new requests",
+      "quoted": "No quoted requests",
+      "closed": "No closed requests",
+      "all": "No requests yet"
+    },
+    "emptyBody": "They arrive when a customer asks for a service from your online store. Services are set up in Settings → Online store.",
+    "results": "{count, plural, one {# request} other {# requests}}",
+    "deletedBuyer": "Account deleted",
+    "photos": "{count, plural, one {# photo} other {# photos}}",
+    "received": "Received {date}",
+    "receivedLong": "Received {date} from your online store.",
+    "statuses": {
+      "NEW": "New",
+      "QUOTED": "Quoted",
+      "ACCEPTED": "Accepted",
+      "DECLINED": "Declined",
+      "CANCELLED": "Cancelled by the customer",
+      "CLOSED": "Closed"
+    },
+    "declinedTitle": "What the customer read",
+    "customerTitle": "Customer",
+    "buyerDeleted": "The customer deleted their account: they no longer get emails about this request.",
+    "detailsTitle": "What they asked for",
+    "staffHint": "The owner or a manager answers requests.",
+    "quoteTitle": "Quote",
+    "quoteBody": "Prepare a quote for this customer in Quotes and send them the link.",
+    "quoteAction": "New quote",
+    "declined": "Request declined: we let the customer know",
+    "decline": {
+      "title": "Decline",
+      "subtitle": "The customer reads the reason in their account and by email, in Spanish.",
+      "reason": "Reason",
+      "reasons": {
+        "NO_AVAILABILITY": "We're not available on that date",
+        "OUT_OF_AREA": "We don't reach that place",
+        "NOT_OFFERED": "We don't do this kind of work",
+        "OTHER": "Other reason"
+      },
+      "detail": "Details (optional)",
+      "detailRequired": "Write the reason",
+      "detailHint": "It's added to the reason the customer reads.",
+      "submit": "Decline the request"
+    }
   }
 }

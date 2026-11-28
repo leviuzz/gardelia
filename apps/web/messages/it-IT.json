@@ -980,7 +980,9 @@
     "agenda": "Agenda",
     "care": "Floral Care",
     "reports": "Report",
-    "ordersPending": "{count, plural, one {# ordine online da accettare} other {# ordini online da accettare}}"
+    "ordersPending": "{count, plural, one {# ordine online da accettare} other {# ordini online da accettare}}",
+    "requests": "Richieste",
+    "requestsNew": "{count, plural, one {# richiesta nuova} other {# richieste nuove}}"
   },
   "roles": {
     "OWNER": "Titolare",
@@ -1035,7 +1037,9 @@
       "paymentProofs": "{count, plural, one {# prova di pagamento da controllare} other {# prove di pagamento da controllare}}",
       "paymentProofsLink": "Vedi gli ordini",
       "cash": "{count, plural, one {# incasso in contanti da confermare} other {# incassi in contanti da confermare}}",
-      "cashLink": "Vedi gli ordini"
+      "cashLink": "Vedi gli ordini",
+      "serviceRequests": "{count, plural, one {# richiesta di servizio nuova} other {# richieste di servizio nuove}}",
+      "serviceRequestsLink": "Vedi le richieste"
     }
   },
   "activity": {
@@ -5641,5 +5645,63 @@
     "address": "Indirizzo",
     "photoDeleted": "Foto cancellata",
     "photoAlt": "Foto di ispirazione {index}"
+  },
+  "requests": {
+    "title": "Richieste",
+    "subtitle": "Quello che ti chiedono i clienti dai servizi del negozio online.",
+    "filtersLabel": "Filtra le richieste",
+    "filters": {
+      "open": "Aperte",
+      "new": "Nuove",
+      "quoted": "Con preventivo",
+      "closed": "Chiuse",
+      "all": "Tutte"
+    },
+    "filterCount": "{label} ({count})",
+    "empty": {
+      "open": "Nessuna richiesta aperta",
+      "new": "Nessuna richiesta nuova",
+      "quoted": "Nessuna richiesta con preventivo",
+      "closed": "Nessuna richiesta chiusa",
+      "all": "Ancora nessuna richiesta"
+    },
+    "emptyBody": "Arrivano quando un cliente chiede un servizio dal negozio online. I servizi si mettono in Impostazioni → Negozio online.",
+    "results": "{count, plural, one {# richiesta} other {# richieste}}",
+    "deletedBuyer": "Conto eliminato",
+    "photos": "{count, plural, one {# foto} other {# foto}}",
+    "received": "Arrivata il {date}",
+    "receivedLong": "Arrivata il {date} dal negozio online.",
+    "statuses": {
+      "NEW": "Nuova",
+      "QUOTED": "Con preventivo",
+      "ACCEPTED": "Accettata",
+      "DECLINED": "Rifiutata",
+      "CANCELLED": "Annullata dal cliente",
+      "CLOSED": "Chiusa"
+    },
+    "declinedTitle": "Cosa ha letto il cliente",
+    "customerTitle": "Cliente",
+    "buyerDeleted": "Il cliente ha eliminato il conto: non riceve più email di questa richiesta.",
+    "detailsTitle": "Cosa ha chiesto",
+    "staffHint": "Rispondono alle richieste il proprietario o il gerente.",
+    "quoteTitle": "Preventivo",
+    "quoteBody": "Prepara un preventivo per questo cliente in Preventivi e mandagli il link.",
+    "quoteAction": "Nuovo preventivo",
+    "declined": "Richiesta rifiutata: abbiamo avvisato il cliente",
+    "decline": {
+      "title": "Rifiuta",
+      "subtitle": "Il cliente legge il motivo nel suo conto e per email, in spagnolo.",
+      "reason": "Motivo",
+      "reasons": {
+        "NO_AVAILABILITY": "Non abbiamo disponibilità per quella data",
+        "OUT_OF_AREA": "Non arriviamo a quel luogo",
+        "NOT_OFFERED": "Non facciamo questo tipo di lavoro",
+        "OTHER": "Altro motivo"
+      },
+      "detail": "Dettaglio (facoltativo)",
+      "detailRequired": "Scrivi il motivo",
+      "detailHint": "Si aggiunge al motivo che legge il cliente.",
+      "submit": "Rifiuta la richiesta"
+    }
   }
 }
