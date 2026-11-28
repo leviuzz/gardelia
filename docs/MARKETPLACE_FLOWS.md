@@ -349,7 +349,7 @@ Piano approvato il 25/11 (ADR-087), in due rilasci.
   - «Mis pedidos / Entrar» nella testata della vetrina.
   - L'E2E della pagina 2 della vetrina accende 25 prodotti insieme e poi li rispegne.
 
-## 6. M3, l'ordine tutto nell'app (M3-1 e M3-2 su staging il 26/11, M3-3 sul ramo di lavoro il 28/11)
+## 6. M3, l'ordine tutto nell'app (M3-1 e M3-2 su staging il 26/11, M3-3 e la revisione il 28/11)
 
 Piano di dettaglio approvato il 26/11 (ADR-088), in tre rilasci: M3-1 «Messaggi e avvisi», M3-2
 «Cambi da confermare», M3-3 «Soldi e squadra».
@@ -385,7 +385,7 @@ Piano di dettaglio approvato il 26/11 (ADR-088), in tre rilasci: M3-1 «Messaggi
   - domande «sì / no» nel filo: il fiorista le scrive con la casella «Domanda sì / no», chi compra
     risponde con un tocco; in «Mancano fiori», «Chiedi nell'app» prepara la domanda e, con il
     «Sí», la casella «Il cliente ha accettato il cambio» è già spuntata.
-- **M3-3 «Soldi e squadra» (sul ramo di lavoro, 28/11):**
+- **M3-3 «Soldi e squadra» (su staging, 28/11):**
   - chi compra: i dati per pagare (CLABE, conto) solo a ordine accettato, nella pagina dell'ordine,
     nel link di stato e nell'email di accettazione; vetrina e modulo d'ordine dicono «Te damos los
     datos para pagar cuando la florería acepte tu pedido»;
@@ -410,6 +410,39 @@ Piano di dettaglio approvato il 26/11 (ADR-088), in tre rilasci: M3-1 «Messaggi
     ordini online», spento di default.
   - Le foto delle prove si cancellano 30 giorni dopo la chiusura; prove e contanti sono nello ZIP
     della fioreria, le prove in «Descargar mis datos».
+
+## 7. M5, servizi in vetrina e richieste con preventivo (piano di dettaglio del 28/11)
+
+Il piano del giro (C7, F9) in due rilasci, con la revisione di tutto il blocco alla fine (il modo
+di lavorare «tutto di fila» del 28/11). Il dettaglio tecnico è in ADR-089 quando parte.
+
+- **M5-1 «Servizi in vetrina e richieste»:**
+  - Impostazioni → Negozio online → «Servizi in vetrina»: i predefiniti «Eventos y bodas»,
+    «Decoración de espacios», «Flores cada semana», «Floral Care» (solo con l'offerta pronta) con
+    un interruttore, testi, «da $X» e foto, più i servizi scritti dalla fioreria; ordine in
+    vetrina, archivio;
+  - vetrina: sezione «Servicios» e la pagina di ogni servizio con il modulo adatto al tipo
+    (evento: data, luogo, tipo, invitati, budget; locale: indirizzo, tipo, una volta o periodica;
+    ogni settimana: indirizzo, giorno e fascia, budget a consegna, durata; Floral Care: indirizzo,
+    piante, frequenza; servizio della fioreria: data e indirizzo facoltativi), fino a 3 foto, conto
+    obbligatorio come per ordinare;
+  - chi compra: «Mis solicitudes» nel conto con lo stato, «Cancelar solicitud», le email;
+  - il fiorista: voce «Richieste» col numero delle nuove, elenco e dettaglio con le foto e il
+    cliente del CRM collegato, «Rifiuta» con un motivo pronto, «Da gestire» e l'email a
+    proprietari e gerenti;
+  - database: `StorefrontService` e le sue foto, `ServiceRequest` e le sue foto, con RLS e una
+    guardia di chi compra per le richieste (come quella degli ordini).
+- **M5-2 «Dal preventivo all'ordine»:** «Prepara preventivo» dalla richiesta (legato, già
+  intitolato), il preventivo nella pagina della richiesta con «Aceptar» e «No, gracias» dal conto,
+  «Crea l'ordine» (o il contratto di Floral Care) dalla richiesta accettata, i messaggi sulla
+  richiesta con le foto, esportazioni, «Descargar mis datos» e cancellazioni.
+- **PROPOSTO:** conto obbligatorio; nomi dei predefiniti tradotti da noi, testi della fioreria
+  nella lingua del mercato; al massimo 5 richieste aperte per persona e fioreria e 3 foto;
+  Floral Care fino a M6 come richiesta semplice; nessuna scadenza automatica delle richieste;
+  «Fiori ogni settimana» accettato fa ordini a mano fino a M7; lo staff vede le richieste ma non
+  le rifiuta né prepara preventivi.
+- **DA VALIDARE:** aviso de privacidad (richieste con foto e indirizzi) e termini per chi compra
+  (richiesta non vincolante, preventivo accettato come accordo con la fioreria).
 
 ## PROPOSTO (da confermare)
 

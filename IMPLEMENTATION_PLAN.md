@@ -1683,7 +1683,7 @@ founder il 26/11, in cinque passi come M3-1.
   variabile nuova.
 - **Prossimo:** M3-3 «Soldi e squadra», con il piano già approvato il 26/11.
 
-**M3-3 «Soldi e squadra» (28/11, sul ramo di lavoro):** piano di esecuzione nel file del piano e in
+**M3-3 «Soldi e squadra» (28/11, su staging):** piano di esecuzione nel file del piano e in
 `docs/MARKETPLACE_FLOWS.md` §6, con il modo di lavorare «tutto di fila» chiesto dal founder il 28/11
 (piano di dettaglio, costruzione a passi, revisione minuziosa a blocco finito, recap).
 
@@ -1722,7 +1722,13 @@ founder il 26/11, in cinque passi come M3-1.
   cliente»; il filtro delle prove conta le prove come «Da gestire»; «Confirmar cambios» ricontrolla
   l'ordine chiesto; chiave del modulo per «Registra pagamento» e «Registra rimborso» (migrazione
   `order_payment_submit_key`); un commento doppio.
-- **Prossimo:** controlli completi, CI, staging, recap al founder; poi il piano di dettaglio di M5.
+- **CI e staging:** CI run 289 verde su `b881c9a`, E2E compreso (in locale 1438 test ed E2E
+  127/127); la run 287 su `9a57e68` era rossa solo perché le pagine arrivavano nel commit dopo. Con
+  il «tutto di fila» del founder: merge `81dc573` su `staging`, CI run 290 verde. Le migrazioni
+  `order_money_enum`, `order_money` e `order_payment_submit_key` le applica il deploy di Vercel;
+  nessuna variabile nuova.
+- **Prossimo:** M5 «Servizi in vetrina e richieste», col piano di dettaglio del 28/11
+  (`docs/MARKETPLACE_FLOWS.md` §7): prima M5-1.
 
 Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,
