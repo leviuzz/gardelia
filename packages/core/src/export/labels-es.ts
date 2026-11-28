@@ -108,6 +108,7 @@ export const LABELS = {
     DEPOSIT: 'Anticipo',
     BALANCE: 'Pago',
     REVERSAL: 'Anulación',
+    REFUND: 'Reembolso',
   } satisfies Record<OrderPaymentKind, string>,
   method: {
     CASH: 'Efectivo',

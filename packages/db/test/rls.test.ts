@@ -1186,6 +1186,7 @@ const BUYER_ORDER_GUARD_TABLES = [
   'OrderMessage',
   'OrderNotice',
   'OrderPayment',
+  'OrderPaymentProof',
   'OrderPhoto',
   'OrderStatusEvent',
   'PublicLink',
@@ -1517,6 +1518,170 @@ describe('ordini online: la guardia di chi compra (ADR-088)', () => {
     await expect(answer(order.id)).resolves.toBeDefined();
     // Una risposta per domanda.
     await expect(answer(order.id, { answer: 'NO' })).rejects.toThrow();
+  });
+
+  it('prove di pagamento (M3-3): chi compra vede e tocca solo quelle del suo ordine', async () => {
+    const order = await onlineOrder(tenantA.tenantId, buyer);
+    const other = await onlineOrder(tenantA.tenantId, stranger);
+    const proofKey = (orderId: string) =>
+      `tenants/${tenantA.tenantId}/order-payment-proofs/${orderId}-${randomUUID()}.jpg`;
+    await withTenantContext(db, { tenantId: tenantA.tenantId, userId: null }, async (tx) => {
+      for (const [target, owner] of [
+        [order, buyer],
+        [other, stranger],
+      ] as const) {
+        await tx.orderPaymentProof.create({
+          data: {
+            tenantId: tenantA.tenantId,
+            orderId: target.id,
+            buyerUserId: owner.id,
+            amountMinor: 5000,
+            photoKey: proofKey(target.id),
+            photoThumbKey: proofKey(target.id),
+            photoWidth: 800,
+            photoHeight: 600,
+            submitKey: randomUUID(),
+          },
+        });
+      }
+    });
+    const seen = await withBuyerOrderContext(
+      db,
+      { tenantId: tenantA.tenantId, userId: buyer.id, orderId: order.id },
+      async (tx) => {
+        const visible = await tx.orderPaymentProof.findMany({
+          where: { tenantId: tenantA.tenantId },
+          select: { orderId: true },
+        });
+        const touched = await tx.orderPaymentProof.updateMany({
+          where: { tenantId: tenantA.tenantId, orderId: other.id },
+          data: { note: 'cambiada' },
+        });
+        return { visible: visible.map((row) => row.orderId), touched: touched.count };
+      },
+    );
+    expect(seen).toEqual({ visible: [order.id], touched: 0 });
+    const fromB = await withTenantContext(db, { tenantId: tenantB.tenantId, userId: null }, (tx) =>
+      tx.orderPaymentProof.count({ where: { orderId: { in: [order.id, other.id] } } }),
+    );
+    expect(fromB).toBe(0);
+  });
+
+  it('prove di pagamento (M3-3): foto nella cartella della fioreria, stato coerente', async () => {
+    const order = await onlineOrder(tenantA.tenantId, buyer);
+    const key = `tenants/${tenantA.tenantId}/order-payment-proofs/${order.id}.jpg`;
+    const base = {
+      tenantId: tenantA.tenantId,
+      orderId: order.id,
+      buyerUserId: buyer.id,
+      amountMinor: 5000,
+      photoKey: key,
+      photoThumbKey: key,
+      photoWidth: 800,
+      photoHeight: 600,
+    };
+    const create = (data: Record<string, unknown>) =>
+      withTenantContext(db, { tenantId: tenantA.tenantId, userId: null }, (tx) =>
+        tx.orderPaymentProof.create({ data: { ...base, submitKey: randomUUID(), ...data } }),
+      );
+    // Foto di un'altra fioreria, importo a zero, stati senza i loro dati, testi lunghi.
+    await expect(
+      create({ photoKey: `tenants/${tenantB.tenantId}/order-payment-proofs/x.jpg` }),
+    ).rejects.toThrow();
+    await expect(create({ amountMinor: 0 })).rejects.toThrow();
+    await expect(create({ status: 'REJECTED', reviewedAt: new Date() })).rejects.toThrow();
+    await expect(create({ status: 'CONFIRMED', reviewedAt: new Date() })).rejects.toThrow();
+    await expect(create({ status: 'MAYBE' })).rejects.toThrow();
+    await expect(create({ note: 'x'.repeat(301) })).rejects.toThrow();
+    await expect(
+      create({ status: 'REJECTED', rejectReason: 'No llegó', reviewedAt: new Date() }),
+    ).resolves.toMatchObject({ status: 'REJECTED' });
+    await expect(create({})).resolves.toMatchObject({ status: 'PENDING' });
+  });
+
+  it('contanti (M3-3): uno in attesa per ordine, stato coerente; rimborso negativo e mai stornato', async () => {
+    const order = await onlineOrder(tenantA.tenantId, buyer);
+    const membership = await withSystemContext(db, { reason: 'test: membro' }, (tx) =>
+      tx.membership.findFirstOrThrow({
+        where: { tenantId: tenantA.tenantId },
+        select: { id: true },
+      }),
+    );
+    const collect = (data: Record<string, unknown> = {}) =>
+      withTenantContext(db, { tenantId: tenantA.tenantId, userId: null }, (tx) =>
+        tx.orderCashCollection.create({
+          data: {
+            tenantId: tenantA.tenantId,
+            orderId: order.id,
+            collectedByMembershipId: membership.id,
+            amountMinor: 5000,
+            submitKey: randomUUID(),
+            ...data,
+          },
+        }),
+      );
+    await expect(collect()).resolves.toMatchObject({ status: 'PENDING' });
+    // Il secondo in attesa sullo stesso ordine no; uno rifiutato sì.
+    await expect(collect()).rejects.toThrow();
+    await expect(
+      collect({ status: 'REJECTED', rejectReason: 'No cuadra', reviewedAt: new Date() }),
+    ).resolves.toMatchObject({ status: 'REJECTED' });
+    await expect(collect({ status: 'REJECTED', reviewedAt: new Date() })).rejects.toThrow();
+    // Il rimborso è negativo e senza pagamento collegato; positivo o legato a un pagamento no.
+    const pay = (data: Record<string, unknown>) =>
+      withTenantContext(db, { tenantId: tenantA.tenantId, userId: null }, (tx) =>
+        tx.orderPayment.create({
+          data: {
+            tenantId: tenantA.tenantId,
+            orderId: order.id,
+            method: 'TRANSFER',
+            paidOn: new Date('2026-12-01T00:00:00Z'),
+            ...data,
+          },
+          select: { id: true },
+        } as never),
+      );
+    const deposit = await pay({ kind: 'DEPOSIT', amountMinor: 5000 });
+    await expect(pay({ kind: 'REFUND', amountMinor: 3000 })).rejects.toThrow();
+    await expect(
+      pay({ kind: 'REFUND', amountMinor: -3000, reversedPaymentId: deposit.id }),
+    ).rejects.toThrow();
+    await expect(pay({ kind: 'REFUND', amountMinor: -3000 })).resolves.toBeTruthy();
+  });
+
+  it('«Scarica i miei dati»: le prove della persona, senza foto né ID', async () => {
+    const order = await onlineOrder(tenantA.tenantId, buyer);
+    const key = `tenants/${tenantA.tenantId}/order-payment-proofs/${order.id}-data.jpg`;
+    await withTenantContext(db, { tenantId: tenantA.tenantId, userId: null }, (tx) =>
+      tx.orderPaymentProof.create({
+        data: {
+          tenantId: tenantA.tenantId,
+          orderId: order.id,
+          buyerUserId: buyer.id,
+          amountMinor: 4200,
+          note: 'SPEI de las 10',
+          photoKey: key,
+          photoThumbKey: key,
+          photoWidth: 800,
+          photoHeight: 600,
+          submitKey: randomUUID(),
+        },
+      }),
+    );
+    const rows = await withUserContext(
+      db,
+      buyer.id,
+      (tx) =>
+        tx.$queryRaw<{ amount_minor: number; note: string; currency: string }[]>`
+        SELECT amount_minor, note, currency FROM app_buyer_order_payment_proofs()`,
+    );
+    expect(rows).toContainEqual({ amount_minor: 4200, note: 'SPEI de las 10', currency: 'MXN' });
+    const strangers = await withUserContext(
+      db,
+      stranger.id,
+      (tx) => tx.$queryRaw<{ note: string }[]>`SELECT note FROM app_buyer_order_payment_proofs()`,
+    );
+    expect(strangers.map((row) => row.note)).not.toContain('SPEI de las 10');
   });
 
   it('«I miei ordini» dice quali ordini hanno cambi da confermare', async () => {
