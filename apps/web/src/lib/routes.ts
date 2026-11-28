@@ -295,6 +295,26 @@ export function tenantRoutes(slug: string) {
       storePreview: (query?: StorefrontLinkQuery) =>
         storefrontHref(`${settings}/store/preview`, query),
       storePreviewItem: (itemId: string) => `${settings}/store/preview/p/${segment(itemId)}`,
+      /** «Servizi in vetrina» (M5): i quattro predefiniti e quelli della fioreria. */
+      storeServices: `${settings}/store/services`,
+      /**
+       * Un servizio: `key` è l'ID di un servizio, o il tipo di un predefinito anche mai salvato
+       * (`event`, `venue`, `weekly`, `care`).
+       */
+      storeService: (key: string) => `${settings}/store/services/${segment(key)}`,
+      /** Una foto di un servizio (`thumb` = miniatura). */
+      storeServicePhoto: (photoId: string, size: ReferencePhotoSize = 'full') =>
+        sized(`${settings}/store/services/photos/${segment(photoId)}`, size),
+    },
+    /** «Richieste» (M5): le richieste dei servizi arrivate dalla vetrina (`filter`, `page`). */
+    requests: {
+      list: (query?: QueryValues) => withQuery(`${home}/requests`, query),
+      detail: (requestId: string) => `${home}/requests/${segment(requestId)}`,
+      /** Una foto di ispirazione della richiesta (`thumb` = miniatura). */
+      photo: (requestId: string, photoId: string, options?: { readonly thumb?: boolean }) =>
+        withQuery(`${home}/requests/${segment(requestId)}/photos/${segment(photoId)}`, {
+          size: options?.thumb ? 'thumb' : undefined,
+        }),
     },
   } as const;
 }
@@ -319,7 +339,25 @@ export const accountRoutes = {
   care: careAccountRoutes(),
   /** Gli ordini online della persona (M3, ADR-088): la pagina di ognuno, i messaggi, le foto. */
   orders: orderAccountRoutes(),
+  /** Le richieste dei servizi (M5, ADR-089): «Mis solicitudes», la pagina, le foto. */
+  requests: requestAccountRoutes(),
 } as const;
+
+function requestAccountRoutes() {
+  const home = '/cuenta/solicitudes';
+  return {
+    /** «Mis solicitudes», nella pagina del conto. */
+    list: '/cuenta#solicitudes',
+    /** La pagina della richiesta (`enviada=1`: appena mandata). */
+    detail: (requestId: string, query?: QueryValues) =>
+      withQuery(`${home}/${segment(requestId)}`, query),
+    /** Una foto di ispirazione della propria richiesta (`thumb` = miniatura). */
+    photo: (requestId: string, photoId: string, options?: { readonly thumb?: boolean }) =>
+      withQuery(`${home}/${segment(requestId)}/foto/${segment(photoId)}`, {
+        size: options?.thumb ? 'thumb' : undefined,
+      }),
+  };
+}
 
 function orderAccountRoutes() {
   const home = '/cuenta/pedidos';
@@ -440,6 +478,7 @@ export function isAccountPath(path: string): boolean {
 export function publicStoreRoutes(slug: string) {
   const home = `/f/${segment(slug)}`;
   const item = (itemId: string) => `${home}/p/${segment(itemId)}`;
+  const service = (serviceId: string) => `${home}/servicios/${segment(serviceId)}`;
   return {
     home,
     /** La vetrina con scheda, ricerca, ordine e pagina (M1). */
@@ -455,6 +494,13 @@ export function publicStoreRoutes(slug: string) {
     /** Foto di un prodotto visibile (`thumb` = miniatura). */
     photo: (itemId: string, photoId: string, options?: { readonly thumb?: boolean }) =>
       withQuery(`${item(itemId)}/foto/${segment(photoId)}`, {
+        size: options?.thumb ? 'thumb' : undefined,
+      }),
+    /** Un servizio in vetrina (M5) con il modulo della richiesta. */
+    service,
+    /** Foto di un servizio in vetrina (`thumb` = miniatura). */
+    servicePhoto: (serviceId: string, photoId: string, options?: { readonly thumb?: boolean }) =>
+      withQuery(`${service(serviceId)}/foto/${segment(photoId)}`, {
         size: options?.thumb ? 'thumb' : undefined,
       }),
   };
@@ -489,6 +535,13 @@ export interface StoreLinks {
   ) => string;
   readonly image: (kind: 'LOGO' | 'COVER', imageId: string) => string;
   readonly checkout: (query?: QueryValues) => string;
+  /** M5: la pagina di un servizio in vetrina e le sue foto. */
+  readonly service: (serviceId: string) => string;
+  readonly servicePhoto: (
+    serviceId: string,
+    photoId: string,
+    options?: { readonly thumb?: boolean },
+  ) => string;
 }
 
 export function publicStoreLinks(slug: string): StoreLinks {
@@ -500,6 +553,8 @@ export function publicStoreLinks(slug: string): StoreLinks {
     photo: routes.photo,
     image: routes.image,
     checkout: routes.checkout,
+    service: routes.service,
+    servicePhoto: routes.servicePhoto,
   };
 }
 
@@ -514,5 +569,9 @@ export function previewStoreLinks(tenantSlug: string): StoreLinks {
     image: settings.storeImage,
     // In anteprima gli ordini sono spenti: il modulo non si apre.
     checkout: () => settings.storePreview(),
+    // Un servizio dall'anteprima apre la sua scheda nelle Impostazioni, con le foto private.
+    service: settings.storeService,
+    servicePhoto: (_serviceId, photoId, options) =>
+      settings.storeServicePhoto(photoId, options?.thumb ? 'thumb' : 'full'),
   };
 }

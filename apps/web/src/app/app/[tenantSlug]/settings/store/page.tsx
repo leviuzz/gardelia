@@ -5,6 +5,7 @@ import { getTranslations } from 'next-intl/server';
 import {
   getOnlineStoreSettings,
   getPlacesProvider,
+  getStorefrontServicesSettings,
   hasPermission,
   listFeaturedItems,
 } from '@floral/core';
@@ -52,10 +53,16 @@ export default async function StoreSettingsPage({
   const { tenantSlug } = await params;
   const ctx = await getTenantContext(tenantSlug);
   if (!hasPermission(ctx, 'tenant:settings:update')) return <Forbidden />;
-  const [settings, featured] = await Promise.all([
+  const [settings, featured, serviceSettings] = await Promise.all([
     getOnlineStoreSettings(ctx),
     listFeaturedItems(ctx),
+    getStorefrontServicesSettings(ctx),
   ]);
+  const services = {
+    published: [...serviceSettings.presets, ...serviceSettings.custom].filter(
+      (service) => service.isPublished,
+    ).length,
+  };
   const t = await getTranslations();
   const slug = ctx.tenantSlug;
   const routes = tenantRoutes(slug);
@@ -246,6 +253,22 @@ export default async function StoreSettingsPage({
           {settings.ordersEnabled && !settings.isPublished ? (
             <p className="text-sm text-muted-foreground">{t('store.orders.notPublished')}</p>
           ) : null}
+        </CardContent>
+      </Card>
+
+      {/* M5: i servizi in vetrina hanno la loro pagina. */}
+      <Card id="store-services" className="scroll-mt-20">
+        <CardHeader>
+          <CardTitle>{t('storeServices.title')}</CardTitle>
+          <CardDescription>{t('storeServices.cardBody')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm" data-testid="store-services-count">
+            {t('storeServices.cardCount', { count: services.published })}
+          </p>
+          <Button asChild variant="outline">
+            <Link href={routes.settings.storeServices}>{t('storeServices.manage')}</Link>
+          </Button>
         </CardContent>
       </Card>
 

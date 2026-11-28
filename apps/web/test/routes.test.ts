@@ -120,6 +120,36 @@ describe('percorsi della fioreria (routes.ts)', () => {
     expect(accountRoutes.care.assistantPhoto('s1', 'c/1', { thumb: true })).toBe(
       '/cuenta/floral-care/s1/asistente/foto/c%2F1?size=thumb',
     );
+    // M5: le richieste dei servizi della vetrina.
+    expect(accountRoutes.requests.list).toBe('/cuenta#solicitudes');
+    expect(accountRoutes.requests.detail('r/1', { enviada: true })).toBe(
+      '/cuenta/solicitudes/r%2F1?enviada=1',
+    );
+    expect(accountRoutes.requests.photo('r1', 'p1', { thumb: true })).toBe(
+      '/cuenta/solicitudes/r1/foto/p1?size=thumb',
+    );
+    expect(isAccountPath(accountRoutes.requests.detail('r1'))).toBe(true);
+    const store = publicStoreRoutes('las-camelias');
+    expect(store.service('s/1')).toBe('/f/las-camelias/servicios/s%2F1');
+    expect(store.servicePhoto('s1', 'p1', { thumb: true })).toBe(
+      '/f/las-camelias/servicios/s1/foto/p1?size=thumb',
+    );
+  });
+
+  it('servizi in vetrina e richieste nell’app della fioreria (M5)', () => {
+    const routes = tenantRoutes('las-camelias');
+    expect(routes.settings.storeServices).toBe('/app/las-camelias/settings/store/services');
+    expect(routes.settings.storeService('event')).toBe(
+      '/app/las-camelias/settings/store/services/event',
+    );
+    expect(routes.settings.storeServicePhoto('p/1', 'thumb')).toBe(
+      '/app/las-camelias/settings/store/services/photos/p%2F1?size=thumb',
+    );
+    expect(routes.requests.list({ filter: 'new' })).toBe('/app/las-camelias/requests?filter=new');
+    expect(routes.requests.detail('r/1')).toBe('/app/las-camelias/requests/r%2F1');
+    expect(routes.requests.photo('r1', 'p1', { thumb: true })).toBe(
+      '/app/las-camelias/requests/r1/photos/p1?size=thumb',
+    );
   });
 
   it('la query contiene solo i valori presenti, nell’ordine dato', () => {
