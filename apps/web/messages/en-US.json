@@ -69,7 +69,9 @@
     "substitution_customer_required": "Confirm the customer agreed to the change.",
     "order_message_empty": "Write a message or add a photo.",
     "order_question_empty": "Write the question: the customer answers “Yes” or “No”.",
-    "order_question_photo": "A yes / no question has no photo: send the photo in another message."
+    "order_question_photo": "A yes / no question has no photo: send the photo in another message.",
+    "refund_exceeds_paid": "The refund is more than what was paid.",
+    "cash_exceeds_collected": "It’s more than what was marked as collected."
   },
   "errors": {
     "validation": "Check the highlighted fields.",
@@ -148,7 +150,16 @@
       "order_change_no_buyer": "The customer deleted their account: they can't confirm changes.",
       "order_change_outdated": "The florist changed the order again: review the changes again.",
       "order_change_date_passed": "The delivery day has already passed: write to the florist.",
-      "order_question_answered": "You already answered this question."
+      "order_question_answered": "You already answered this question.",
+      "payment_not_reversible": "A refund can’t be voided.",
+      "reversal_below_zero": "This payment was already refunded: voiding it would take the paid amount below zero.",
+      "refund_not_cancelled": "Only a cancelled order can be refunded.",
+      "refund_nothing_paid": "This order has no payments to refund.",
+      "order_not_payable": "This order can’t be paid yet: the shop accepts it first, and a cancelled one can’t be paid.",
+      "order_nothing_to_pay": "This order is already paid.",
+      "payment_proofs_pending_limit": "There are already 3 receipts under review: wait for the shop’s answer.",
+      "money_already_reviewed": "Someone already reviewed it: reload the page.",
+      "cash_collection_pending": "There’s already cash from this order waiting to be confirmed."
     },
     "pageNotFoundTitle": "Page not found",
     "pageNotFoundBody": "The page doesn’t exist or you don’t have access to it.",
@@ -571,6 +582,33 @@
         "waiting": "Your order is waiting for your answer: check {shop}'s changes below.",
         "declinedNote": "You said no to the changes. {shop} can change the order again or decline it.",
         "withdrawnNote": "{shop} is changing your order again: we'll email you when you can review it."
+      },
+      "payments": {
+        "title": "Payments",
+        "body": "Already paid {shop}? Upload your receipt and we’ll let you know when they check it.",
+        "refunded": "{shop} refunded you {amount}.",
+        "proofTitle": "Already paid: upload your receipt",
+        "limit": "You have 3 receipts under review: wait for {shop}’s answer.",
+        "openPhoto": "Open the photo of the {amount} receipt",
+        "status": {
+          "PENDING": "Under review",
+          "CONFIRMED": "Confirmed",
+          "REJECTED": "We couldn’t find it"
+        },
+        "sentOn": "Sent on {date}",
+        "shopSays": "{shop} says: {reason}",
+        "amount": "Amount you paid ({currency})",
+        "amountHint": "We suggest what’s still due; change it if you paid a different amount.",
+        "note": "Note (optional)",
+        "notePlaceholder": "For example: transfer from BBVA",
+        "photo": "Photo or screenshot of the receipt",
+        "choosePhoto": "Choose photo",
+        "changePhoto": "Change photo",
+        "photoChosen": "Photo: {name}",
+        "removePhoto": "Remove the photo",
+        "submit": "Send receipt",
+        "sent": "We sent your receipt to the shop",
+        "networkError": "It couldn’t be sent. Check your connection and try again."
       }
     }
   },
@@ -672,7 +710,9 @@
       },
       "goToPayment": "Payment methods",
       "notPublished": "Your shop is not published yet: orders will arrive once you publish it.",
-      "save": "Save online orders"
+      "save": "Save online orders",
+      "staffCanAccept": "Staff can also accept and reject online orders",
+      "staffCanAcceptHint": "Accept, reject, propose another date, ask for confirmation and change an order waiting for acceptance. Staff can’t cancel accepted orders or record payments."
     },
     "offMap": "Buyers searching their address can’t find your store yet, because your main store isn’t on the map. Only people searching your city find you.",
     "offMapAction": "Pick the address on the map",
@@ -949,7 +989,11 @@
       "careMessages": "{unread, plural, one {# Floral Care message} other {# Floral Care messages}} to read in {threads, plural, one {# contract} other {# contracts}}",
       "careMessagesLink": "See messages",
       "declinedChanges": "{count, plural, one {# customer said no to the changes} other {# customers said no to the changes}}",
-      "declinedChangesLink": "See orders"
+      "declinedChangesLink": "See orders",
+      "paymentProofs": "{count, plural, one {# payment receipt to check} other {# payment receipts to check}}",
+      "paymentProofsLink": "See orders",
+      "cash": "{count, plural, one {# cash collection to confirm} other {# cash collections to confirm}}",
+      "cashLink": "See orders"
     }
   },
   "activity": {
@@ -1668,7 +1712,8 @@
       "careVisitNotDone": "Floral Care visit not done ({number})",
       "careCharge": "Floral Care charge {number} ({month})",
       "carePayment": "{kind} of {amount} ({method}) · Floral Care",
-      "carePaymentReversed": "Reversal of {amount} · Floral Care"
+      "carePaymentReversed": "Reversal of {amount} · Floral Care",
+      "paymentRefunded": "Refund of {amount} ({method}) · Order {number}"
     },
     "filters": {
       "tag": "Filter by tag",
@@ -1982,7 +2027,8 @@
     "paymentKinds": {
       "DEPOSIT": "Deposit",
       "BALANCE": "Payment",
-      "REVERSAL": "Void"
+      "REVERSAL": "Void",
+      "REFUND": "Refund"
     },
     "results": "{count, plural, =0 {No results} one {# order} other {# orders}}",
     "emptyTitle": "No orders yet",
@@ -2395,6 +2441,101 @@
       "withdrawn": "Request withdrawn: you changed the order after asking. Ask again.",
       "linesHint": "If you change the products, ask the customer to confirm the changes before accepting.",
       "filter": "Said no to changes ({count})"
+    },
+    "money": {
+      "filter": {
+        "proofs": "Receipts to check ({count})",
+        "cash": "Cash to confirm ({count})"
+      },
+      "proofsTitle": "Payment receipts",
+      "proofsHint": "The customer uploaded them from their order. Before confirming, check with your bank that the money arrived.",
+      "proofFrom": "{name} · {date}",
+      "deletedBuyer": "Deleted account",
+      "openPhoto": "Open the photo of the {amount} receipt",
+      "photoGone": "The photo was deleted (30 days after the order closed).",
+      "proofClosedOrder": "The order is cancelled: no more payments can be recorded.",
+      "proofStatus": {
+        "PENDING": "To check",
+        "CONFIRMED": "Confirmed",
+        "REJECTED": "Not found"
+      },
+      "rejectedBecause": "Reason: {reason}",
+      "confirmProof": "Confirm",
+      "confirmProofLabel": "Confirm the {amount} receipt",
+      "confirmProofTitle": "Record the receipt’s payment",
+      "confirmProofBody": "It becomes a payment on the order and the customer gets an email.",
+      "confirmProofAmountHint": "What reached your account, up to what is still due.",
+      "confirmProofSubmit": "Record payment",
+      "proofReference": "Customer receipt",
+      "rejectProof": "Can’t find it",
+      "rejectProofLabel": "I can’t find the {amount} payment",
+      "rejectProofTitle": "You can’t find the payment",
+      "rejectProofBody": "The customer reads the reason on their order and by email. They can upload another receipt.",
+      "rejectProofSubmit": "Send",
+      "reason": "Reason",
+      "cashTitle": "Cash",
+      "cashHint": "Whoever delivers marks what they collected; the owner or manager confirms it and it becomes a payment.",
+      "cashBy": "Collected by {name} · {date}",
+      "cashStatus": {
+        "PENDING": "To confirm",
+        "CONFIRMED": "Confirmed",
+        "REJECTED": "Rejected"
+      },
+      "cashConfirmedAmount": "Recorded: {amount}",
+      "cashPendingRoute": "Cash to confirm: {amount}",
+      "collect": "I collected cash",
+      "collectTitle": "Cash collected",
+      "collectBody": "It stays to confirm until the owner or manager checks it.",
+      "collectSubmit": "Save",
+      "note": "Note",
+      "noteHint": "Optional. For example: “paid with a 500 bill”.",
+      "confirmCash": "Confirm",
+      "confirmCashLabel": "Confirm the {amount} cash",
+      "confirmCashTitle": "Confirm the cash",
+      "confirmCashBody": "It becomes a cash payment on the order.",
+      "confirmCashAmountHint": "What reached the till, up to what was marked.",
+      "confirmCashSubmit": "Record payment",
+      "rejectCash": "Reject",
+      "rejectCashLabel": "Reject the {amount} cash",
+      "rejectCashTitle": "Reject the cash",
+      "rejectCashBody": "Whoever marked it reads the reason on the order.",
+      "rejectCashSubmit": "Reject",
+      "refundTitle": "Record a refund",
+      "refundBody": "The order is cancelled: record what you returned to the customer, up to what was paid. If they ordered online, they get an email.",
+      "refundSubmit": "Record refund",
+      "refunded": "Refunded: {amount}",
+      "proofConfirmed": "Payment recorded",
+      "proofRejected": "We let the customer know",
+      "refundedToast": "Refund recorded",
+      "cashSubmitted": "Cash saved: it still needs confirming",
+      "cashConfirmed": "Cash payment recorded",
+      "cashRejected": "Cash rejected"
+    },
+    "dayPrint": {
+      "printTickets": "Print tickets",
+      "printCards": "Print cards",
+      "ticketsMeta": "Day tickets",
+      "cardsMeta": "Day cards",
+      "ticketsTitle": "Tickets for {date}",
+      "ticketsSubtitle": "{count, plural, one {# order to prepare} other {# orders to prepare}}: confirmed, in preparation and ready. One ticket per page.",
+      "cardsTitle": "Cards for {date}",
+      "cardsSubtitle": "{count, plural, one {# card} other {# cards}} from the orders to prepare, to cut along the line.",
+      "print": "Print",
+      "emptyTitle": "Nothing to prepare",
+      "emptyBody": "That day there are no confirmed, in-preparation or ready orders.",
+      "noCardsTitle": "No cards",
+      "noCardsBody": "No order to prepare that day has a card.",
+      "customer": "Customer",
+      "recipient": "Recipient",
+      "address": "Address",
+      "assignee": "Delivered by",
+      "payment": "Payment",
+      "toCollect": "To collect: {amount}",
+      "paid": "Paid",
+      "lines": "To prepare",
+      "card": "Card",
+      "buyerNotes": "Customer comments",
+      "notes": "Internal notes"
     }
   },
   "plans": {

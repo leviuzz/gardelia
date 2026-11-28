@@ -1,4 +1,5 @@
 import {
+  Banknote,
   ChevronLeft,
   ChevronRight,
   Globe,
@@ -13,6 +14,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { getDeliveryRoute, type RouteStopDto } from '@floral/core';
+import { minorToDecimalString, type CurrencyCode } from '@floral/domain';
 import {
   addDays,
   mapsPlaceUrl,
@@ -32,7 +34,8 @@ import { calendarDate } from '@/lib/quote-ui';
 import { tenantRoutes } from '@/lib/routes';
 import { getTenantContext } from '@/lib/tenant';
 import { cn } from '@/lib/utils';
-import { changeOrderStatusAction } from '../actions';
+import { changeOrderStatusAction, submitCashCollectionAction } from '../actions';
+import { CashCollectionDialog } from '../[orderId]/money-forms';
 import { OrderStepActions } from '../order-forms';
 import { OrdersTabs } from '../orders-tabs';
 
@@ -139,6 +142,18 @@ export default async function DeliveryRoutePage({
             {stop.deliveryNotes}
           </p>
         ) : null}
+        {/* M3-3: i contanti già segnati, in attesa che il proprietario o il gerente li confermino
+            (una riga sua: va a capo a 320 px). */}
+        {stop.pendingCashMinor !== null ? (
+          <p className="flex items-start gap-2 text-sm" data-testid="route-cash-pending">
+            <Banknote className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+            <span>
+              {t('orders.money.cashPendingRoute', {
+                amount: money(stop.pendingCashMinor, stop.currency),
+              })}
+            </span>
+          </p>
+        ) : null}
         <p className="text-xs text-muted-foreground">
           <Truck className="mr-1 inline size-3.5" aria-hidden="true" />
           {stop.assigneeName ?? t('orders.route.unassignedOne')}
@@ -166,6 +181,16 @@ export default async function DeliveryRoutePage({
                 </a>
               </Button>
             </>
+          ) : null}
+          {/* M3-3: «Ho incassato», da confermare in negozio. */}
+          {stop.canCollectCash ? (
+            <CashCollectionDialog
+              orderId={stop.id}
+              action={submitCashCollectionAction.bind(null, slug, stop.id)}
+              currency={stop.currency}
+              defaultAmount={minorToDecimalString(stop.balanceMinor, stop.currency as CurrencyCode)}
+              compact
+            />
           ) : null}
         </div>
         {nextStep.length > 0 ? (

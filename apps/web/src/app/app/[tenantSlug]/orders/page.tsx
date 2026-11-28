@@ -1,10 +1,12 @@
 import {
+  Banknote,
   ClipboardList,
   FileText,
   Globe,
   Hourglass,
   MessageSquare,
   Plus,
+  Receipt,
   Store,
   Truck,
   X,
@@ -58,6 +60,7 @@ export default async function OrdersPage({
     unpaid: single(raw.unpaid),
     messages: single(raw.messages),
     changes: single(raw.changes),
+    money: single(raw.money),
     page: single(raw.page),
   };
   const filters = orderListFiltersSchema.parse(query);
@@ -67,7 +70,12 @@ export default async function OrdersPage({
   const format = await getFormatter();
   const routes = tenantRoutes(ctx.tenantSlug);
   const hasFilters = Boolean(
-    filters.q || filters.status || filters.unpaid || filters.messages || filters.changes,
+    filters.q ||
+    filters.status ||
+    filters.unpaid ||
+    filters.messages ||
+    filters.changes ||
+    filters.money,
   );
   const date = (value: string) =>
     format.dateTime(calendarDate(value), {
@@ -88,9 +96,25 @@ export default async function OrdersPage({
       messages: next.messages ? 'unread' : undefined,
       // «No ai cambi» (M3-2): gli ordini tornati dopo un «No, gracias» di chi compra.
       changes: next.changes ? 'declined' : undefined,
+      // M3-3: «Prove da controllare» e «Contanti da confermare».
+      money: next.money ?? undefined,
       page: next.page > 1 ? next.page : undefined,
     });
   }
+  // I filtri dei soldi (M3-3): solo quando c'è qualcosa (o è il filtro scelto); i numeri arrivano
+  // solo a chi gestisce i soldi.
+  const moneyFilters = [
+    {
+      value: 'proofs' as const,
+      count: result.pendingProofOrdersCount,
+      icon: <Receipt className="size-3.5" aria-hidden="true" />,
+    },
+    {
+      value: 'cash' as const,
+      count: result.pendingCashOrdersCount,
+      icon: <Banknote className="size-3.5" aria-hidden="true" />,
+    },
+  ].filter((item) => item.count > 0 || filters.money === item.value);
   const deadline = (value: Date) =>
     format.dateTime(value, {
       weekday: 'short',
@@ -197,6 +221,27 @@ export default async function OrdersPage({
             {t('changes.filter', { count: result.declinedChangesCount })}
           </Link>
         ) : null}
+        {moneyFilters.map((item) => (
+          <Link
+            key={item.value}
+            href={href({
+              money: filters.money === item.value ? null : item.value,
+              when: 'all',
+              page: 1,
+            })}
+            aria-current={filters.money === item.value ? 'page' : undefined}
+            data-testid={`filter-money-${item.value}`}
+            className={cn(
+              'flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors',
+              filters.money === item.value
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'bg-card hover:bg-muted',
+            )}
+          >
+            {item.icon}
+            {t(`money.filter.${item.value}`, { count: item.count })}
+          </Link>
+        ))}
       </nav>
 
       <FilterBar
@@ -208,6 +253,7 @@ export default async function OrdersPage({
         <input type="hidden" name="when" value={filters.when} />
         {filters.messages ? <input type="hidden" name="messages" value="unread" /> : null}
         {filters.changes ? <input type="hidden" name="changes" value="declined" /> : null}
+        {filters.money ? <input type="hidden" name="money" value={filters.money} /> : null}
         <NativeSelect name="status" defaultValue={filters.status ?? ''} aria-label={tc('filter')}>
           <option value="">{t('allStatuses')}</option>
           {/* I borradores hanno il loro filtro rapido. */}

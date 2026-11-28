@@ -153,7 +153,8 @@ export function StorePoliciesForm({
 
 /**
  * "Pedidos en línea" (ADR-067): se chi compra può ordinare dalla pagina e con quanto anticipo.
- * Accenderli richiede un modo di pagare e il telefono (il servizio lo ricontrolla).
+ * Accenderli richiede un modo di pagare e il telefono (il servizio lo ricontrolla). M3-3: anche se lo
+ * staff può accettare e rifiutare gli ordini online (spento di default).
  */
 export function OnlineOrdersForm({
   action,
@@ -161,7 +162,11 @@ export function OnlineOrdersForm({
   canEnable,
 }: {
   readonly action: Action;
-  readonly defaults: { readonly ordersEnabled: boolean; readonly minLeadDays: number };
+  readonly defaults: {
+    readonly ordersEnabled: boolean;
+    readonly minLeadDays: number;
+    readonly staffCanAccept: boolean;
+  };
   /** Falso se manca qualcosa per accenderli (l'elenco lo mostra la pagina). */
   readonly canEnable: boolean;
 }) {
@@ -202,6 +207,18 @@ export function OnlineOrdersForm({
           ))}
         </NativeSelect>
       </Field>
+      <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-4">
+        <Checkbox
+          name="staffCanAccept"
+          defaultChecked={defaults.staffCanAccept}
+          className="mt-0.5"
+          data-testid="store-staff-can-accept"
+        />
+        <span className="grid gap-1">
+          <span className="text-sm font-medium">{t('staffCanAccept')}</span>
+          <span className="text-sm text-muted-foreground">{t('staffCanAcceptHint')}</span>
+        </span>
+      </label>
       {/* Nome proprio: nella pagina c'è anche il "Guardar" della presentazione. */}
       <SubmitButton className="w-fit">{t('save')}</SubmitButton>
     </form>

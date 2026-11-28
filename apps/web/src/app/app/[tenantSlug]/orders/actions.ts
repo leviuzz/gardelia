@@ -16,16 +16,22 @@ import {
   cancelOrder,
   changeOrderStatus,
   confirmDraftOrder,
+  confirmOrderCashCollection,
+  confirmPaymentProof,
   createDraftOrder,
   createOrderFromQuote,
   discardDraftOrder,
   notifyOrderCustomer,
   proposeOrderDate,
   recordOrderPayment,
+  refundOrderPayment,
+  rejectOrderCashCollection,
+  rejectPaymentProof,
   removeOrderLine,
   reverseOrderPayment,
   setOrderReceiver,
   revokePublicLink,
+  submitOrderCashCollection,
   substituteOrderIngredient,
   sharePublicLink,
   updateOrderDiscount,
@@ -180,8 +186,102 @@ export async function recordPaymentAction(
   formData: FormData,
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
-    await recordOrderPayment(ctx, orderId, formDataToObject(formData));
+    // M3-3: su un ordine online chi compra riceve «Registramos tu pago».
+    await recordOrderPayment(ctx, orderId, formDataToObject(formData), orderMailDeps());
     return { revalidate: section(routes.orders.list()), success: 'orders.detail.paymentRecorded' };
+  });
+}
+
+// -----------------------------------------------------------------------------
+// M3-3 «Soldi e squadra»: rimborso, prove di pagamento e contanti
+// -----------------------------------------------------------------------------
+
+/** «Registra rimborso» su un ordine annullato: fino al pagato; chi compra online riceve l'email. */
+export async function refundPaymentAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await refundOrderPayment(ctx, orderId, formDataToObject(formData), orderMailDeps());
+    return { revalidate: section(routes.orders.list()), success: 'orders.money.refundedToast' };
+  });
+}
+
+/** «Confermo» una prova di pagamento: diventa un pagamento con i dati del modulo. */
+export async function confirmPaymentProofAction(
+  slug: string,
+  orderId: string,
+  proofId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await confirmPaymentProof(ctx, orderId, proofId, formDataToObject(formData), orderMailDeps());
+    return { revalidate: section(routes.orders.list()), success: 'orders.money.proofConfirmed' };
+  });
+}
+
+/** «Non lo trovo»: la prova resta con il motivo, che chi compra legge. */
+export async function rejectPaymentProofAction(
+  slug: string,
+  orderId: string,
+  proofId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await rejectPaymentProof(ctx, orderId, proofId, formDataToObject(formData), orderMailDeps());
+    return { revalidate: section(routes.orders.list()), success: 'orders.money.proofRejected' };
+  });
+}
+
+/** «Ho incassato $X in contanti» (chi prepara o consegna): restano da confermare. */
+export async function submitCashCollectionAction(
+  slug: string,
+  orderId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await submitOrderCashCollection(ctx, orderId, formDataToObject(formData));
+    // La sezione degli ordini comprende anche Percorso → «Le mie consegne».
+    return { revalidate: section(routes.orders.list()), success: 'orders.money.cashSubmitted' };
+  });
+}
+
+/** Proprietario o gerente confermano i contanti: un saldo in Contanti. */
+export async function confirmCashCollectionAction(
+  slug: string,
+  orderId: string,
+  collectionId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await confirmOrderCashCollection(
+      ctx,
+      orderId,
+      collectionId,
+      formDataToObject(formData),
+      orderMailDeps(),
+    );
+    return { revalidate: section(routes.orders.list()), success: 'orders.money.cashConfirmed' };
+  });
+}
+
+/** I contanti non entrano: il motivo lo legge chi li aveva segnati. */
+export async function rejectCashCollectionAction(
+  slug: string,
+  orderId: string,
+  collectionId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runTenantAction(slug, async ({ ctx, routes }) => {
+    await rejectOrderCashCollection(ctx, orderId, collectionId, formDataToObject(formData));
+    return { revalidate: section(routes.orders.list()), success: 'orders.money.cashRejected' };
   });
 }
 
@@ -360,7 +460,8 @@ export async function assignOrderAction(
   formData: FormData,
 ): Promise<ActionState> {
   return runTenantAction(slug, async ({ ctx, routes }) => {
-    await assignOrder(ctx, orderId, formData.get('assignee'));
+    // M3-3: la persona assegnata (se non è chi assegna) riceve l'avviso per email.
+    await assignOrder(ctx, orderId, formData.get('assignee'), orderMailDeps());
     return { revalidate: section(routes.orders.list()), success: 'orders.assign.saved' };
   });
 }

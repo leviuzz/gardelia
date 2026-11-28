@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { linkFrom, uniqueEmail, waitForEmail } from './support/mailbox';
+import { ownClientHeaders } from './support/network';
 
 /**
  * Conto del cliente del marketplace (blocco C1): chi compra si registra da "Mi cuenta", verifica
@@ -9,6 +10,7 @@ import { linkFrom, uniqueEmail, waitForEmail } from './support/mailbox';
 test('chi compra si registra, salva i suoi dati e torna sempre a "Mi cuenta"', async ({ page }) => {
   const email = uniqueEmail('cliente');
   const password = 'una-clave-segura-456';
+  await page.setExtraHTTPHeaders(ownClientHeaders());
 
   // Senza sessione "Mi cuenta" porta al login, con i testi per chi compra.
   await page.goto('/cuenta');

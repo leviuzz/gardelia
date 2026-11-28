@@ -69,7 +69,9 @@
     "substitution_customer_required": "Confirma que el cliente aceptó el cambio.",
     "order_message_empty": "Escribe un mensaje o agrega una foto.",
     "order_question_empty": "Escribe la pregunta: el cliente responde «Sí» o «No».",
-    "order_question_photo": "Una pregunta sí / no va sin foto: manda la foto en otro mensaje."
+    "order_question_photo": "Una pregunta sí / no va sin foto: manda la foto en otro mensaje.",
+    "refund_exceeds_paid": "El reembolso es mayor que lo que te pagaron.",
+    "cash_exceeds_collected": "Es más de lo que se marcó como cobrado."
   },
   "errors": {
     "validation": "Revisa los campos marcados.",
@@ -148,7 +150,16 @@
       "order_change_no_buyer": "El cliente eliminó su cuenta: no puede confirmar cambios.",
       "order_change_outdated": "La florería volvió a cambiar el pedido: revisa los cambios de nuevo.",
       "order_change_date_passed": "El día de entrega ya pasó: escríbele a la florería.",
-      "order_question_answered": "Ya respondiste esta pregunta."
+      "order_question_answered": "Ya respondiste esta pregunta.",
+      "payment_not_reversible": "Un reembolso no se anula.",
+      "reversal_below_zero": "Ya devolviste este pago: anularlo dejaría lo pagado por debajo de cero.",
+      "refund_not_cancelled": "Solo se reembolsa un pedido cancelado.",
+      "refund_nothing_paid": "Este pedido no tiene pagos por reembolsar.",
+      "order_not_payable": "Este pedido todavía no se paga: primero lo acepta la florería, y uno cancelado ya no se paga.",
+      "order_nothing_to_pay": "Este pedido ya está pagado.",
+      "payment_proofs_pending_limit": "Ya hay 3 comprobantes en revisión: espera la respuesta de la florería.",
+      "money_already_reviewed": "Alguien ya lo revisó: vuelve a cargar la página.",
+      "cash_collection_pending": "Ya hay efectivo de este pedido por confirmar."
     },
     "pageNotFoundTitle": "Página no encontrada",
     "pageNotFoundBody": "La página no existe o no tienes acceso a ella.",
@@ -571,6 +582,33 @@
         "waiting": "Tu pedido espera tu respuesta: revisa abajo los cambios de {shop}.",
         "declinedNote": "Le dijiste que no a los cambios. {shop} puede cambiar el pedido otra vez o rechazarlo.",
         "withdrawnNote": "{shop} está cambiando tu pedido otra vez: te escribimos cuando puedas revisarlo."
+      },
+      "payments": {
+        "title": "Pagos",
+        "body": "¿Ya le pagaste a {shop}? Sube tu comprobante y te avisamos cuando lo revise.",
+        "refunded": "{shop} te reembolsó {amount}.",
+        "proofTitle": "Ya pagué: sube tu comprobante",
+        "limit": "Tienes 3 comprobantes en revisión: espera la respuesta de {shop}.",
+        "openPhoto": "Ver la foto del comprobante de {amount}",
+        "status": {
+          "PENDING": "En revisión",
+          "CONFIRMED": "Confirmado",
+          "REJECTED": "No lo encontramos"
+        },
+        "sentOn": "Enviado el {date}",
+        "shopSays": "{shop} dice: {reason}",
+        "amount": "Importe que pagaste ({currency})",
+        "amountHint": "Te proponemos lo que falta por pagar; cámbialo si pagaste otra cantidad.",
+        "note": "Nota (opcional)",
+        "notePlaceholder": "Por ejemplo: transferencia desde BBVA",
+        "photo": "Foto o captura del comprobante",
+        "choosePhoto": "Elegir foto",
+        "changePhoto": "Cambiar foto",
+        "photoChosen": "Foto: {name}",
+        "removePhoto": "Quitar la foto",
+        "submit": "Enviar comprobante",
+        "sent": "Enviamos tu comprobante a la florería",
+        "networkError": "No se pudo enviar. Revisa tu conexión e inténtalo de nuevo."
       }
     }
   },
@@ -672,7 +710,9 @@
       },
       "goToPayment": "Formas de pago",
       "notPublished": "Tu tienda todavía no está publicada: los pedidos llegarán cuando la publiques.",
-      "save": "Guardar pedidos en línea"
+      "save": "Guardar pedidos en línea",
+      "staffCanAccept": "El personal también puede aceptar y rechazar pedidos en línea",
+      "staffCanAcceptHint": "Aceptar, rechazar, proponer otra fecha, pedir confirmación y cambiar un pedido por aceptar. No cancela pedidos ya aceptados ni registra pagos."
     },
     "offMap": "Quien busca su dirección todavía no encuentra tu tienda, porque tu tienda principal no está en el mapa. Solo te encuentra quien busca tu ciudad.",
     "offMapAction": "Elegir la dirección en el mapa",
@@ -949,7 +989,11 @@
       "careMessages": "{unread, plural, one {# mensaje} other {# mensajes}} de Floral Care por leer en {threads, plural, one {# contrato} other {# contratos}}",
       "careMessagesLink": "Ver mensajes",
       "declinedChanges": "{count, plural, one {# cliente dijo que no a los cambios} other {# clientes dijeron que no a los cambios}}",
-      "declinedChangesLink": "Ver pedidos"
+      "declinedChangesLink": "Ver pedidos",
+      "paymentProofs": "{count, plural, one {# comprobante de pago por revisar} other {# comprobantes de pago por revisar}}",
+      "paymentProofsLink": "Ver pedidos",
+      "cash": "{count, plural, one {# cobro en efectivo por confirmar} other {# cobros en efectivo por confirmar}}",
+      "cashLink": "Ver pedidos"
     }
   },
   "activity": {
@@ -1668,7 +1712,8 @@
       "careVisitNotDone": "Visita de Floral Care no realizada ({number})",
       "careCharge": "Cargo {number} de Floral Care ({month})",
       "carePayment": "{kind} de {amount} ({method}) · Floral Care",
-      "carePaymentReversed": "Anulación de {amount} · Floral Care"
+      "carePaymentReversed": "Anulación de {amount} · Floral Care",
+      "paymentRefunded": "Reembolso de {amount} ({method}) · Pedido {number}"
     },
     "filters": {
       "tag": "Filtrar por etiqueta",
@@ -1982,7 +2027,8 @@
     "paymentKinds": {
       "DEPOSIT": "Anticipo",
       "BALANCE": "Pago",
-      "REVERSAL": "Anulación"
+      "REVERSAL": "Anulación",
+      "REFUND": "Reembolso"
     },
     "results": "{count, plural, =0 {Sin resultados} one {# pedido} other {# pedidos}}",
     "emptyTitle": "Aún no tienes pedidos",
@@ -2395,6 +2441,101 @@
       "withdrawn": "Solicitud retirada: cambiaste el pedido después de pedir la confirmación. Pídela de nuevo.",
       "linesHint": "Si cambias los productos, pídele al cliente que confirme los cambios antes de aceptar.",
       "filter": "No a los cambios ({count})"
+    },
+    "money": {
+      "filter": {
+        "proofs": "Comprobantes por revisar ({count})",
+        "cash": "Efectivo por confirmar ({count})"
+      },
+      "proofsTitle": "Comprobantes de pago",
+      "proofsHint": "Los subió el cliente desde su pedido. Antes de confirmar, revisa en tu banco que el dinero llegó.",
+      "proofFrom": "{name} · {date}",
+      "deletedBuyer": "Cuenta eliminada",
+      "openPhoto": "Ver la foto del comprobante de {amount}",
+      "photoGone": "La foto ya se borró (30 días después de cerrar el pedido).",
+      "proofClosedOrder": "El pedido está cancelado: ya no se registran pagos.",
+      "proofStatus": {
+        "PENDING": "Por revisar",
+        "CONFIRMED": "Confirmado",
+        "REJECTED": "No lo encontramos"
+      },
+      "rejectedBecause": "Motivo: {reason}",
+      "confirmProof": "Lo confirmo",
+      "confirmProofLabel": "Confirmar el comprobante de {amount}",
+      "confirmProofTitle": "Registrar el pago del comprobante",
+      "confirmProofBody": "Se registra como un pago del pedido y el cliente recibe el aviso por correo.",
+      "confirmProofAmountHint": "Lo que llegó a tu cuenta, hasta lo que falta por pagar.",
+      "confirmProofSubmit": "Registrar pago",
+      "proofReference": "Comprobante del cliente",
+      "rejectProof": "No lo encuentro",
+      "rejectProofLabel": "No encuentro el pago de {amount}",
+      "rejectProofTitle": "No encuentras el pago",
+      "rejectProofBody": "El cliente lee el motivo en su pedido y por correo. Puede subir otro comprobante.",
+      "rejectProofSubmit": "Enviar",
+      "reason": "Motivo",
+      "cashTitle": "Efectivo",
+      "cashHint": "Quien entrega marca lo que cobró; el dueño o el gerente lo confirman y se registra como pago.",
+      "cashBy": "Lo cobró {name} · {date}",
+      "cashStatus": {
+        "PENDING": "Por confirmar",
+        "CONFIRMED": "Confirmado",
+        "REJECTED": "Rechazado"
+      },
+      "cashConfirmedAmount": "Se registró: {amount}",
+      "cashPendingRoute": "Efectivo por confirmar: {amount}",
+      "collect": "Cobré en efectivo",
+      "collectTitle": "Efectivo cobrado",
+      "collectBody": "Queda por confirmar hasta que el dueño o el gerente lo revise.",
+      "collectSubmit": "Guardar",
+      "note": "Nota",
+      "noteHint": "Opcional. Por ejemplo: «pagó con un billete de 500».",
+      "confirmCash": "Confirmar",
+      "confirmCashLabel": "Confirmar el efectivo de {amount}",
+      "confirmCashTitle": "Confirmar el efectivo",
+      "confirmCashBody": "Se registra como un pago en efectivo del pedido.",
+      "confirmCashAmountHint": "Lo que llegó a la caja, hasta lo que se marcó.",
+      "confirmCashSubmit": "Registrar pago",
+      "rejectCash": "Rechazar",
+      "rejectCashLabel": "Rechazar el efectivo de {amount}",
+      "rejectCashTitle": "Rechazar el efectivo",
+      "rejectCashBody": "Quien lo marcó lee el motivo en el pedido.",
+      "rejectCashSubmit": "Rechazar",
+      "refundTitle": "Registrar reembolso",
+      "refundBody": "El pedido está cancelado: registra lo que le devolviste al cliente, hasta lo pagado. Si lo hizo en línea, le llega el aviso por correo.",
+      "refundSubmit": "Registrar reembolso",
+      "refunded": "Reembolsado: {amount}",
+      "proofConfirmed": "Pago registrado",
+      "proofRejected": "Le avisamos al cliente",
+      "refundedToast": "Reembolso registrado",
+      "cashSubmitted": "Efectivo guardado: falta que lo confirmen",
+      "cashConfirmed": "Pago en efectivo registrado",
+      "cashRejected": "Efectivo rechazado"
+    },
+    "dayPrint": {
+      "printTickets": "Imprimir comandas",
+      "printCards": "Imprimir tarjetas",
+      "ticketsMeta": "Comandas del día",
+      "cardsMeta": "Tarjetas del día",
+      "ticketsTitle": "Comandas del {date}",
+      "ticketsSubtitle": "{count, plural, one {# pedido por preparar} other {# pedidos por preparar}}: confirmados, en preparación y listos. Una comanda por hoja.",
+      "cardsTitle": "Tarjetas del {date}",
+      "cardsSubtitle": "{count, plural, one {# tarjeta} other {# tarjetas}} de los pedidos por preparar, para recortar por la línea.",
+      "print": "Imprimir",
+      "emptyTitle": "Nada por preparar",
+      "emptyBody": "Ese día no hay pedidos confirmados, en preparación ni listos.",
+      "noCardsTitle": "Sin tarjetas",
+      "noCardsBody": "Ningún pedido por preparar de ese día lleva tarjeta.",
+      "customer": "Cliente",
+      "recipient": "Recibe",
+      "address": "Dirección",
+      "assignee": "Lo lleva",
+      "payment": "Pago",
+      "toCollect": "Por cobrar: {amount}",
+      "paid": "Pagado",
+      "lines": "Por preparar",
+      "card": "Tarjeta",
+      "buyerNotes": "Comentarios del cliente",
+      "notes": "Notas internas"
     }
   },
   "plans": {

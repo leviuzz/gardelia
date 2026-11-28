@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { expectFitsAt320 } from './support/floral-care';
 import { linkFrom, uniqueEmail, waitForEmail } from './support/mailbox';
+import { ownClientHeaders } from './support/network';
 import { closeStore, ensurePublishedWithOrders, setItemOnline } from './support/store';
 
 /**
@@ -86,7 +87,10 @@ test.describe('vitrina que vende (cliente y florería)', () => {
     await expect(page.getByTestId('store-featured')).toContainText(BOUQUET);
 
     // --- Chi compra, senza conto ---
-    const visitor = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const visitor = await browser.newContext({
+      storageState: { cookies: [], origins: [] },
+      extraHTTPHeaders: ownClientHeaders(),
+    });
     const shopper = await visitor.newPage();
     await shopper.goto('/f/las-camelias');
     const facts = shopper.getByTestId('store-facts');

@@ -21,6 +21,7 @@ import {
   getCustomer,
   getOrder,
   getOrderInventory,
+  getOrderMoney,
   getOrderSubstitutions,
   getPublicLink,
   hasPermission,
@@ -73,6 +74,7 @@ import {
   notifyOrderCustomerAction,
   proposeOrderDateAction,
   recordPaymentAction,
+  refundPaymentAction,
   reversePaymentAction,
   revokeOrderLinkAction,
   setOrderReceiverAction,
@@ -93,6 +95,8 @@ import {
   ReversePaymentButton,
 } from '../order-forms';
 import { DraftOrderView } from './draft-order';
+import { OrderMoneyCards } from './money-cards';
+import { RefundForm } from './money-forms';
 import { HandoverPanel } from './handover-panel';
 import { SubstitutionPanel, type SubstitutionLineView } from './substitution-panel';
 import { OrderChangeList } from '@/components/orders/order-change-list';
@@ -228,6 +232,8 @@ export default async function OrderPage({
 
   // Materiali dell'inventario (ADR-071): null senza il piano o se l'ordine non tocca prodotti controllati.
   const inventory = await getOrderInventory(ctx, order.id);
+  // M3-3: prove di pagamento (solo chi gestisce i soldi) e contanti di chi consegna.
+  const moneyView = await getOrderMoney(ctx, order.id);
   // "Faltan flores" (ADR-081): null se non manca niente o il ramo è già fatto.
   const substitutions = await getOrderSubstitutions(ctx, order.id);
   const ingredientLabel = (item: { name: string; variety: string | null }) =>
@@ -1071,70 +1077,95 @@ export default async function OrderPage({
             </Card>
           ) : null}
 
-          <Card className="print:hidden">
-            <CardHeader>
-              <CardTitle>{t('orders.detail.payments')}</CardTitle>
-              {order.canRecordPayments ? (
-                <CardDescription>{t('orders.detail.paymentsHint')}</CardDescription>
-              ) : null}
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {order.payments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('orders.detail.noPayments')}</p>
-              ) : (
-                <ul className="divide-y text-sm">
-                  {order.payments.map((payment) => (
-                    <li
-                      key={payment.id}
-                      className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2"
-                    >
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-medium">
-                          {t(`orders.paymentKinds.${payment.kind}`)} ·{' '}
-                          {t(`orders.methods.${payment.method}`)}
-                        </span>
-                        <span className="block text-muted-foreground">
-                          {format.dateTime(calendarDate(payment.paidOn), {
-                            dateStyle: 'medium',
-                            timeZone: 'UTC',
-                          })}
-                          {payment.reference ? ` · ${payment.reference}` : ''}
-                        </span>
-                      </span>
-                      <span
-                        className={
-                          payment.amountMinor < 0
-                            ? 'font-medium text-destructive tabular-nums'
-                            : 'font-medium tabular-nums'
-                        }
+          {/* M3-3: le email (prove, pagamenti) portano qui con `#pagos`. */}
+          <div id="pagos" className="scroll-mt-20 space-y-6">
+            <OrderMoneyCards
+              slug={slug}
+              orderId={order.id}
+              money={moneyView}
+              paidMinor={order.paidMinor}
+              today={today}
+              timeZone={ctx.timezone}
+            />
+            <Card className="print:hidden" data-testid="order-payments">
+              <CardHeader>
+                <CardTitle>{t('orders.detail.payments')}</CardTitle>
+                {order.canRecordPayments ? (
+                  <CardDescription>{t('orders.detail.paymentsHint')}</CardDescription>
+                ) : null}
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {order.payments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t('orders.detail.noPayments')}</p>
+                ) : (
+                  <ul className="divide-y text-sm">
+                    {order.payments.map((payment) => (
+                      <li
+                        key={payment.id}
+                        className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2"
                       >
-                        {payment.amountMinor < 0
-                          ? `−${fmt(-payment.amountMinor)}`
-                          : fmt(payment.amountMinor)}
-                      </span>
-                      {order.canRecordPayments && !payment.reversed ? (
-                        <ReversePaymentButton
-                          action={reversePaymentAction.bind(null, slug, order.id, payment.id)}
-                          label={t('orders.detail.reverseLabel', {
-                            amount: fmt(payment.amountMinor),
-                          })}
-                        />
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {order.canRecordPayments && order.balanceMinor > 0 ? (
-                <PaymentForm
-                  action={recordPaymentAction.bind(null, slug, order.id)}
-                  currency={order.currency}
-                  today={today}
-                  defaultAmount={minorToDecimalString(order.balanceMinor, ctx.currency)}
-                  defaultKind={order.paidMinor > 0 ? 'BALANCE' : 'DEPOSIT'}
-                />
-              ) : null}
-            </CardContent>
-          </Card>
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-medium">
+                            {t(`orders.paymentKinds.${payment.kind}`)} ·{' '}
+                            {t(`orders.methods.${payment.method}`)}
+                          </span>
+                          <span className="block text-muted-foreground">
+                            {format.dateTime(calendarDate(payment.paidOn), {
+                              dateStyle: 'medium',
+                              timeZone: 'UTC',
+                            })}
+                            {payment.reference ? ` · ${payment.reference}` : ''}
+                          </span>
+                        </span>
+                        <span
+                          className={
+                            payment.amountMinor < 0
+                              ? 'font-medium text-destructive tabular-nums'
+                              : 'font-medium tabular-nums'
+                          }
+                        >
+                          {payment.amountMinor < 0
+                            ? `−${fmt(-payment.amountMinor)}`
+                            : fmt(payment.amountMinor)}
+                        </span>
+                        {order.canRecordPayments && !payment.reversed ? (
+                          <ReversePaymentButton
+                            action={reversePaymentAction.bind(null, slug, order.id, payment.id)}
+                            label={t('orders.detail.reverseLabel', {
+                              amount: fmt(payment.amountMinor),
+                            })}
+                          />
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {/* M3-3: quanto è stato rimborsato su un ordine annullato. */}
+                {order.refundedMinor > 0 ? (
+                  <p className="text-sm font-medium" data-testid="order-refunded">
+                    {t('orders.money.refunded', { amount: fmt(order.refundedMinor) })}
+                  </p>
+                ) : null}
+                {order.canRecordPayments && order.balanceMinor > 0 ? (
+                  <PaymentForm
+                    action={recordPaymentAction.bind(null, slug, order.id)}
+                    currency={order.currency}
+                    today={today}
+                    defaultAmount={minorToDecimalString(order.balanceMinor, ctx.currency)}
+                    defaultKind={order.paidMinor > 0 ? 'BALANCE' : 'DEPOSIT'}
+                  />
+                ) : null}
+                {order.canRefund ? (
+                  <RefundForm
+                    action={refundPaymentAction.bind(null, slug, order.id)}
+                    currency={order.currency}
+                    today={today}
+                    defaultAmount={minorToDecimalString(order.paidMinor, ctx.currency)}
+                  />
+                ) : null}
+              </CardContent>
+            </Card>
+          </div>
 
           {canShare && (publicLink || canShareOrder(order.status)) ? (
             <Card className="print:hidden">

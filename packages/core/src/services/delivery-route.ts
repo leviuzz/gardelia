@@ -145,7 +145,10 @@ export interface RouteStopDto {
   readonly currency: string;
   /** M3-3: i contanti già segnati e in attesa di conferma, o null. */
   readonly pendingCashMinor: number | null;
-  /** M3-3: «Ho incassato»: qualcosa da incassare e nessun contante già in attesa. */
+  /**
+   * M3-3: «Ho incassato» per chi consegna e non registra i pagamenti (lo staff): qualcosa da
+   * incassare e nessun contante già in attesa.
+   */
   readonly canCollectCash: boolean;
   readonly nextSteps: readonly OrderStatus[];
 }
@@ -254,7 +257,8 @@ export async function loadDeliveryStopsTx(
     orderBy: [{ windowStartMinutes: { sort: 'asc', nulls: 'last' } }, { number: 'asc' }],
   });
   const now = new Date();
-  const canFulfill = hasPermission(ctx, 'orders:fulfill');
+  // Proprietario e gerente registrano il pagamento direttamente dall'ordine.
+  const canCollect = hasPermission(ctx, 'orders:fulfill') && !hasPermission(ctx, 'orders:payments');
   return orders.map((order) => ({
     window: { start: order.windowStartMinutes, end: order.windowEndMinutes },
     // Coordinate solo se ancora valide (cache di 30 giorni, regole di Google).
@@ -294,7 +298,7 @@ export async function loadDeliveryStopsTx(
       pendingCashMinor: order.cashCollections[0]?.amountMinor ?? null,
       // Le fermate sono tutte ordini accettati e non annullati: basta che manchi qualcosa.
       canCollectCash:
-        canFulfill &&
+        canCollect &&
         order.cashCollections.length === 0 &&
         orderBalanceMinor(order.paidMinor, order.totalMinor) > 0,
       nextSteps: allowedOrderSteps(ctx, order.status, order.fulfillmentMode),

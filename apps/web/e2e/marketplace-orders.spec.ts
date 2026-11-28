@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { expectFitsAt320 } from './support/floral-care';
 import { linkFrom, uniqueEmail, waitForEmail } from './support/mailbox';
+import { ownClientHeaders } from './support/network';
 import { closeStore, ensurePublishedWithOrders, setItemOnline } from './support/store';
 
 /**
@@ -23,7 +24,10 @@ test.describe('pedido en línea (cliente y florería)', () => {
     await ensurePublishedWithOrders(page);
 
     // Chi compra, senza account: dal prodotto al modulo, che chiede l'accesso.
-    const visitor = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const visitor = await browser.newContext({
+      storageState: { cookies: [], origins: [] },
+      extraHTTPHeaders: ownClientHeaders(),
+    });
     const shopper = await visitor.newPage();
     await shopper.goto('/f/las-camelias');
     await shopper

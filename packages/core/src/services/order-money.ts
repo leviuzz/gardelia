@@ -98,8 +98,9 @@ export interface OrderMoneyDto {
   /** Si può confermare adesso: l'ordine accetta pagamenti (non annullato). */
   readonly canConfirm: boolean;
   /**
-   * «Ho incassato»: ordine accettato e non annullato, con qualcosa da pagare e nessun contante già
-   * in attesa (`orders:fulfill`).
+   * «Ho incassato»: per chi prepara o consegna e non registra i pagamenti (lo staff; proprietario e
+   * gerente usano «Registra pagamento»), su un ordine accettato e non annullato, con qualcosa da
+   * pagare e nessun contante già in attesa.
    */
   readonly canCollectCash: boolean;
 }
@@ -194,6 +195,7 @@ export async function getOrderMoney(ctx: TenantContext, orderId: string): Promis
     canConfirm: reviews && acceptsOrderPayments(order.status),
     canCollectCash:
       hasPermission(ctx, 'orders:fulfill') &&
+      !reviews &&
       !pendingCash &&
       cashCollectionProblem({
         status: order.status,

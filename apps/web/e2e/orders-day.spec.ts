@@ -49,7 +49,7 @@ test.describe('agenda de pedidos (propietaria)', () => {
     await expect(page.getByText('Pedido marcado como «En preparación»')).toBeVisible();
     await expect(card.getByText('En preparación')).toBeVisible();
 
-    await page.getByRole('link', { name: 'Imprimir' }).click();
+    await page.getByRole('link', { name: 'Imprimir', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Producción del día' })).toBeVisible();
     await expect(page.getByRole('row', { name: /Rosa roja Freedom/ })).toBeVisible();
 

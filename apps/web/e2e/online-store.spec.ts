@@ -76,7 +76,9 @@ test.describe('tienda en línea (propietaria y cliente)', () => {
     ).toBeVisible();
     await expect(shopper.getByText('Flores frescas en el centro de Aguascalientes.')).toBeVisible();
     await expect(shopper.getByText('Florería de demostración')).toBeVisible();
-    await expect(shopper.getByText('CLABE 012345678901234567 (BBVA)')).toBeVisible();
+    // M3-3: i dati per pagare non sono mai nella vetrina (arrivano a ordine accettato).
+    await expect(shopper.getByText('CLABE 012345678901234567 (BBVA)')).toHaveCount(0);
+    await expect(shopper.getByTestId('store-payment-later')).toBeVisible();
     // Logo e copertina si vedono davvero (immagini caricate, non solo il tag).
     for (const name of ['Logo de Florería Las Camelias', 'Foto de Florería Las Camelias']) {
       const image = shopper.getByRole('img', { name });

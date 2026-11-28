@@ -132,6 +132,10 @@ export function tenantRoutes(slug: string) {
         withQuery(`${orders}/new`, query),
       /** Il giorno: ordini per fascia e Producción del día (`date` = AAAA-MM-GG, senza = oggi). */
       day: (query?: { readonly date?: string }) => withQuery(`${orders}/day`, query),
+      /** M3-3: «Stampa le comande» del giorno (una per pagina). */
+      dayTickets: (query?: { readonly date?: string }) => withQuery(`${orders}/day/tickets`, query),
+      /** M3-3: «Stampa i biglietti» del giorno (più biglietti per foglio). */
+      dayCards: (query?: { readonly date?: string }) => withQuery(`${orders}/day/cards`, query),
       /** Ruta del día: consegne in ordine di fascia (`mine`: solo le proprie). */
       route: (query?: { readonly date?: string; readonly mine?: boolean }) =>
         withQuery(`${orders}/route`, query),
@@ -161,6 +165,13 @@ export function tenantRoutes(slug: string) {
       /** La foto di un messaggio dell'ordine (`thumb` = miniatura). */
       messagePhoto: (orderId: string, messageId: string, options?: { readonly thumb?: boolean }) =>
         withQuery(`${orders}/${segment(orderId)}/messages/photos/${segment(messageId)}`, {
+          size: options?.thumb ? 'thumb' : undefined,
+        }),
+      /** M3-3: le schede dei pagamenti, delle prove e dei contanti dell'ordine. */
+      payments: (orderId: string) => `${orders}/${segment(orderId)}#pagos`,
+      /** M3-3: la foto di una prova di pagamento (`thumb` = miniatura). */
+      proofPhoto: (orderId: string, proofId: string, options?: { readonly thumb?: boolean }) =>
+        withQuery(`${orders}/${segment(orderId)}/proofs/${segment(proofId)}`, {
           size: options?.thumb ? 'thumb' : undefined,
         }),
     },
@@ -323,6 +334,13 @@ function orderAccountRoutes() {
     /** La foto di un messaggio (`thumb` = miniatura). */
     messagePhoto: (orderId: string, messageId: string, options?: { readonly thumb?: boolean }) =>
       withQuery(`${home}/${segment(orderId)}/mensajes/foto/${segment(messageId)}`, {
+        size: options?.thumb ? 'thumb' : undefined,
+      }),
+    /** M3-3: la scheda «Pagos» (prove di pagamento e rimborsi). */
+    payments: (orderId: string) => `${detail(orderId)}#pagos`,
+    /** M3-3: la foto di una propria prova di pagamento (`thumb` = miniatura). */
+    proofPhoto: (orderId: string, proofId: string, options?: { readonly thumb?: boolean }) =>
+      withQuery(`${home}/${segment(orderId)}/comprobantes/${segment(proofId)}`, {
         size: options?.thumb ? 'thumb' : undefined,
       }),
     /** L'immagine del ramo di una riga. */

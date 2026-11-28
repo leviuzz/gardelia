@@ -788,6 +788,8 @@ describe('contanti di chi consegna', () => {
       rejectReason: 'No llegó a la caja',
     });
     expect(money.canCollectCash).toBe(true);
+    // Proprietario e gerente registrano il pagamento direttamente: niente «Ho incassato».
+    expect((await getOrderMoney(shop.owner, orderId)).canCollectCash).toBe(false);
     const [rejected] = await auditOf(orderId, 'order.cash_rejected');
     expect(JSON.stringify(rejected!.metadata)).not.toContain('caja');
 
