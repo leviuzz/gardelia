@@ -1011,7 +1011,10 @@ export function PaymentForm({
   readonly defaultKind: 'DEPOSIT' | 'BALANCE';
 }) {
   const t = useTranslations('orders');
-  const [state, formAction] = useToastActionState(action);
+  // La chiave dell'invio (come i pagamenti di Floral Care): lo stesso modulo arrivato due volte non
+  // scrive due movimenti; dopo un invio riuscito ne serve una nuova.
+  const [submitKey, setSubmitKey] = useState(() => crypto.randomUUID());
+  const [state, formAction] = useToastActionState(action, () => setSubmitKey(crypto.randomUUID()));
   const err = (field: string) => fieldError(state, field);
   return (
     <form
@@ -1020,6 +1023,7 @@ export function PaymentForm({
       onSubmit={preserveOnSubmit(formAction)}
       className="grid gap-4"
     >
+      <input type="hidden" name="submitKey" value={submitKey} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
         <Field
           id="payment-amount"

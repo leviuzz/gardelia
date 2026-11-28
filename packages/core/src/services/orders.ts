@@ -69,6 +69,7 @@ import {
   type OrderPaymentStatus,
   type OrderChangeStatus,
   type OrderStatus,
+  type OrderChangesFilter,
   type OrderMoneyFilter,
   type OrderWhenFilter,
   type PaymentMethod,
@@ -102,8 +103,12 @@ import {
   type OrderChangeDto,
 } from './order-changes';
 import {
+  DECLINED_CHANGES_WHERE,
+  WAITING_FOR_BUYER_WHERE,
+  alreadySubmittedPaymentTx,
   assertCanHandlePendingOnlineTx,
   assertOrderEditableTx,
+  awaitingShopWhere,
   insertOrderPaymentTx,
   paymentDayOf,
   staffCanAcceptTx,
@@ -411,20 +416,25 @@ export interface OrderListResult {
   readonly pageCount: number;
   readonly when: OrderWhenFilter;
   readonly canWrite: boolean;
-  /** Ordini online in attesa di risposta, con qualsiasi filtro (per l'avviso in cima). */
+  /**
+   * Ordini online da accettare che aspettano la fioreria («Por aceptar», con qualsiasi filtro, per
+   * l'avviso in cima): la stessa regola del numero del menu, senza quelli in attesa del cliente.
+   */
   readonly pendingCount: number;
   /** Ordini con messaggi di chi compra da leggere (filtro «Con messaggi da leggere», M3). */
   readonly unreadOrdersCount: number;
   readonly messagesFilter: boolean;
   /** Ordini online tornati dopo un «No, gracias» ai cambi (filtro «No ai cambi», M3-2). */
   readonly declinedChangesCount: number;
-  readonly changesFilter: boolean;
+  /** Ordini online che aspettano la conferma di chi compra (filtro «In attesa del cliente», M3-2). */
+  readonly askedChangesCount: number;
+  readonly changesFilter: OrderChangesFilter | null;
   /**
-   * M3-3, solo per chi gestisce i soldi (0 per gli altri): ordini con prove di pagamento da
-   * controllare e con contanti da confermare, e il filtro attivo.
+   * M3-3, solo per chi gestisce i soldi (0 per gli altri): prove di pagamento da controllare e
+   * contanti da confermare (gli stessi numeri di «Da gestire»), e il filtro attivo.
    */
-  readonly pendingProofOrdersCount: number;
-  readonly pendingCashOrdersCount: number;
+  readonly pendingProofsCount: number;
+  readonly pendingCashCount: number;
   readonly moneyFilter: OrderMoneyFilter | null;
 }
 
@@ -440,12 +450,17 @@ function moneyWhere(filter: OrderMoneyFilter | null): Prisma.OrderWhereInput {
   }
 }
 
-/** Ordini online da accettare tornati alla fioreria dopo un «No, gracias» ai cambi (M3-2). */
-const DECLINED_CHANGES_WHERE = {
-  status: 'PENDING_ACCEPTANCE',
-  placedOnline: true,
-  changeRequest: { is: { status: 'DECLINED' } },
-} satisfies Prisma.OrderWhereInput;
+/** I filtri dei cambi (M3-2): tornati dopo un «No, gracias» o in attesa del cliente. */
+function changesWhere(filter: OrderChangesFilter | null): Prisma.OrderWhereInput {
+  switch (filter) {
+    case 'declined':
+      return DECLINED_CHANGES_WHERE;
+    case 'asked':
+      return WAITING_FOR_BUYER_WHERE;
+    case null:
+      return {};
+  }
+}
 
 function whenWhere(when: OrderWhenFilter, today: DateParts): Prisma.OrderWhereInput {
   const day = (offset: number) => partsToDate(addDays(today, offset));
@@ -466,7 +481,8 @@ function whenWhere(when: OrderWhenFilter, today: DateParts): Prisma.OrderWhereIn
     case 'drafts':
       return { status: 'DRAFT' };
     case 'pending':
-      return { status: 'PENDING_ACCEPTANCE' };
+      // Quelli che aspettano la fioreria: come il numero del menu e «Da gestire» (M3-2).
+      return awaitingShopWhere();
   }
 }
 
@@ -487,7 +503,7 @@ export async function listOrders(
         ? { paymentStatus: { in: ['UNPAID', 'PARTIAL'] }, status: { not: 'CANCELLED' } }
         : {},
       filters.messages ? { messages: { some: { authorKind: 'BUYER', readByShopAt: null } } } : {},
-      filters.changes ? DECLINED_CHANGES_WHERE : {},
+      changesWhere(filters.changes),
       moneyWhere(filters.money),
       filters.q
         ? {
@@ -514,21 +530,24 @@ export async function listOrders(
             { number: 'asc' },
           ];
   return withTenantContext(getDb(), ctx, async (tx) => {
-    const [total, pendingCount, unreadOrdersCount, declinedChangesCount] = await Promise.all([
-      tx.order.count({ where }),
-      tx.order.count({ where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE' } }),
-      tx.order.count({
-        where: {
-          tenantId: ctx.tenantId,
-          messages: { some: { authorKind: 'BUYER', readByShopAt: null } },
-        },
-      }),
-      tx.order.count({ where: { tenantId: ctx.tenantId, ...DECLINED_CHANGES_WHERE } }),
-    ]);
-    const [pendingProofOrdersCount, pendingCashOrdersCount] = hasPermission(ctx, 'orders:payments')
+    const [total, pendingCount, unreadOrdersCount, declinedChangesCount, askedChangesCount] =
+      await Promise.all([
+        tx.order.count({ where }),
+        tx.order.count({ where: { tenantId: ctx.tenantId, ...awaitingShopWhere() } }),
+        tx.order.count({
+          where: {
+            tenantId: ctx.tenantId,
+            messages: { some: { authorKind: 'BUYER', readByShopAt: null } },
+          },
+        }),
+        tx.order.count({ where: { tenantId: ctx.tenantId, ...DECLINED_CHANGES_WHERE } }),
+        tx.order.count({ where: { tenantId: ctx.tenantId, ...WAITING_FOR_BUYER_WHERE } }),
+      ]);
+    // Le prove e i contanti in attesa, contati come «Da gestire» (non gli ordini che li hanno).
+    const [pendingProofsCount, pendingCashCount] = hasPermission(ctx, 'orders:payments')
       ? await Promise.all([
-          tx.order.count({ where: { tenantId: ctx.tenantId, ...moneyWhere('proofs') } }),
-          tx.order.count({ where: { tenantId: ctx.tenantId, ...moneyWhere('cash') } }),
+          tx.orderPaymentProof.count({ where: { tenantId: ctx.tenantId, status: 'PENDING' } }),
+          tx.orderCashCollection.count({ where: { tenantId: ctx.tenantId, status: 'PENDING' } }),
         ])
       : [0, 0];
     const pageCount = Math.max(1, Math.ceil(total / ORDER_PAGE_SIZE));
@@ -556,9 +575,10 @@ export async function listOrders(
       unreadOrdersCount,
       messagesFilter: filters.messages,
       declinedChangesCount,
+      askedChangesCount,
       changesFilter: filters.changes,
-      pendingProofOrdersCount,
-      pendingCashOrdersCount,
+      pendingProofsCount,
+      pendingCashCount,
       moneyFilter: filters.money,
     };
   });
@@ -1614,6 +1634,8 @@ export async function recordOrderPayment(
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await lockOrder(tx, ctx, orderId);
     if (!order) return null;
+    // Lo stesso invio arrivato due volte: il primo ha già registrato il pagamento.
+    if (await alreadySubmittedPaymentTx(tx, ctx.tenantId, input.submitKey)) return { mail: null };
     if (order.status === 'DRAFT') throw new ConflictError('order_not_confirmed');
     if (!acceptsOrderPayments(order.status)) throw new ConflictError('order_closed');
     if (input.amount > orderBalanceMinor(order.paidMinor, order.totalMinor)) {
@@ -1625,6 +1647,7 @@ export async function recordOrderPayment(
       amountMinor: input.amount,
       paidOn,
       reference: input.reference,
+      submitKey: input.submitKey,
     });
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.orderPaymentRecorded,
@@ -1721,6 +1744,8 @@ export async function refundOrderPayment(
   const found = await withTenantContext(getDb(), ctx, async (tx) => {
     const order = await lockOrder(tx, ctx, orderId);
     if (!order) return null;
+    // Lo stesso invio arrivato due volte: il primo ha già registrato il rimborso.
+    if (await alreadySubmittedPaymentTx(tx, ctx.tenantId, input.submitKey)) return { mail: null };
     const problem = refundProblem({
       status: order.status,
       paidMinor: order.paidMinor,
@@ -1734,6 +1759,7 @@ export async function refundOrderPayment(
       amountMinor: -input.amount,
       paidOn,
       reference: input.reference,
+      submitKey: input.submitKey,
     });
     await recordAudit(tx, ctx, {
       action: AUDIT_ACTIONS.orderPaymentRefunded,

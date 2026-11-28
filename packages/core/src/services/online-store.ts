@@ -30,6 +30,7 @@ import type { TenantContext } from '../context';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { normalizeUploadedPhoto } from '../media/images';
 import { readStoredImage, storeFilesThenCommit, type StoredImage } from '../media/stored-files';
+import { awaitingShopWhere } from './order-payment-internals';
 
 export interface OnlineStoreSettingsDto {
   readonly isPublished: boolean;
@@ -53,7 +54,7 @@ export interface OnlineStoreSettingsDto {
    */
   readonly staffCanAccept: boolean;
   readonly ordersBlockers: readonly OnlineOrdersBlocker[];
-  /** Ordini online in attesa di risposta. */
+  /** Ordini online da accettare che aspettano la fioreria (senza quelli in attesa del cliente). */
   readonly pendingOrders: number;
   /** Politiche della fioreria (M1): cambi, cancellazioni, sostituzioni; null se non scritte. */
   readonly policies: {
@@ -87,7 +88,8 @@ async function readState(tx: TransactionClient, ctx: TenantContext) {
       where: { id: ctx.tenantId },
       select: { contactPhone: true },
     }),
-    tx.order.count({ where: { tenantId: ctx.tenantId, status: 'PENDING_ACCEPTANCE' } }),
+    // Gli ordini da accettare che aspettano la fioreria: come il numero del menu (M3-2).
+    tx.order.count({ where: { tenantId: ctx.tenantId, ...awaitingShopWhere() } }),
     tx.location.findFirst({
       where: { tenantId: ctx.tenantId, isPrimary: true },
       select: { latitude: true, longitude: true, coordinatesAt: true },

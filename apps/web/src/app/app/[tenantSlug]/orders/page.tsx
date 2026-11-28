@@ -94,8 +94,8 @@ export default async function OrdersPage({
       unpaid: next.unpaid,
       // «Con messaggi da leggere» (M3).
       messages: next.messages ? 'unread' : undefined,
-      // «No ai cambi» (M3-2): gli ordini tornati dopo un «No, gracias» di chi compra.
-      changes: next.changes ? 'declined' : undefined,
+      // M3-2: «No ai cambi» (tornati dopo un «No, gracias») e «In attesa del cliente».
+      changes: next.changes ?? undefined,
       // M3-3: «Prove da controllare» e «Contanti da confermare».
       money: next.money ?? undefined,
       page: next.page > 1 ? next.page : undefined,
@@ -106,12 +106,12 @@ export default async function OrdersPage({
   const moneyFilters = [
     {
       value: 'proofs' as const,
-      count: result.pendingProofOrdersCount,
+      count: result.pendingProofsCount,
       icon: <Receipt className="size-3.5" aria-hidden="true" />,
     },
     {
       value: 'cash' as const,
-      count: result.pendingCashOrdersCount,
+      count: result.pendingCashCount,
       icon: <Banknote className="size-3.5" aria-hidden="true" />,
     },
   ].filter((item) => item.count > 0 || filters.money === item.value);
@@ -205,20 +205,45 @@ export default async function OrdersPage({
             {t('messages.filter', { count: result.unreadOrdersCount })}
           </Link>
         ) : null}
-        {result.declinedChangesCount > 0 || filters.changes ? (
+        {result.declinedChangesCount > 0 || filters.changes === 'declined' ? (
           <Link
-            href={href({ changes: !filters.changes, when: 'all', page: 1 })}
-            aria-current={filters.changes ? 'page' : undefined}
+            href={href({
+              changes: filters.changes === 'declined' ? null : 'declined',
+              when: 'all',
+              page: 1,
+            })}
+            aria-current={filters.changes === 'declined' ? 'page' : undefined}
             data-testid="filter-declined-changes"
             className={cn(
               'flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors',
-              filters.changes
+              filters.changes === 'declined'
                 ? 'border-primary bg-primary text-primary-foreground'
                 : 'bg-card hover:bg-muted',
             )}
           >
             <X className="size-3.5" aria-hidden="true" />
             {t('changes.filter', { count: result.declinedChangesCount })}
+          </Link>
+        ) : null}
+        {/* M3-2: chi aspetta la conferma di chi compra non è «Por aceptar»: ha il suo filtro. */}
+        {result.askedChangesCount > 0 || filters.changes === 'asked' ? (
+          <Link
+            href={href({
+              changes: filters.changes === 'asked' ? null : 'asked',
+              when: 'all',
+              page: 1,
+            })}
+            aria-current={filters.changes === 'asked' ? 'page' : undefined}
+            data-testid="filter-asked-changes"
+            className={cn(
+              'flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors',
+              filters.changes === 'asked'
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'bg-card hover:bg-muted',
+            )}
+          >
+            <Hourglass className="size-3.5" aria-hidden="true" />
+            {t('changes.askedFilter', { count: result.askedChangesCount })}
           </Link>
         ) : null}
         {moneyFilters.map((item) => (
@@ -252,7 +277,7 @@ export default async function OrdersPage({
       >
         <input type="hidden" name="when" value={filters.when} />
         {filters.messages ? <input type="hidden" name="messages" value="unread" /> : null}
-        {filters.changes ? <input type="hidden" name="changes" value="declined" /> : null}
+        {filters.changes ? <input type="hidden" name="changes" value={filters.changes} /> : null}
         {filters.money ? <input type="hidden" name="money" value={filters.money} /> : null}
         <NativeSelect name="status" defaultValue={filters.status ?? ''} aria-label={tc('filter')}>
           <option value="">{t('allStatuses')}</option>

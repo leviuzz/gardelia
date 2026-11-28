@@ -3,7 +3,7 @@
  * (M3-3, ADR-088). Li usano i servizi degli ordini, delle prove di pagamento, dei contanti e dei
  * cambi da confermare; mai le pagine.
  */
-import type { TransactionClient } from '@floral/db';
+import type { Prisma, TransactionClient } from '@floral/db';
 import {
   canHandlePendingOnlineOrders,
   orderPaymentStatus,
@@ -50,6 +50,8 @@ export async function insertOrderPaymentTx(
     readonly paidOn: Date;
     readonly reference: string | null;
     readonly reversedPaymentId?: string;
+    /** La chiave del modulo (`alreadySubmittedPaymentTx` prima, sotto lo stesso lock). */
+    readonly submitKey?: string | null;
   },
 ): Promise<{ readonly paymentId: string; readonly paidMinor: number }> {
   const payment = await tx.orderPayment.create({
@@ -62,6 +64,7 @@ export async function insertOrderPaymentTx(
       paidOn: input.paidOn,
       reference: input.reference,
       reversedPaymentId: input.reversedPaymentId ?? null,
+      submitKey: input.submitKey ?? null,
       createdById: ctx.userId,
     },
     select: { id: true },
@@ -72,6 +75,19 @@ export async function insertOrderPaymentTx(
     data: { paidMinor, paymentStatus: orderPaymentStatus(paidMinor, order.totalMinor) },
   });
   return { paymentId: payment.id, paidMinor };
+}
+
+/**
+ * Lo stesso modulo «Registra pagamento» / «Registra rimborso» è già arrivato (rete lenta, due
+ * schede): con l'ordine bloccato, il pagamento che ha scritto, o null. Senza chiave sempre null.
+ */
+export async function alreadySubmittedPaymentTx(
+  tx: TransactionClient,
+  tenantId: string,
+  submitKey: string | null,
+): Promise<{ readonly id: string } | null> {
+  if (!submitKey) return null;
+  return tx.orderPayment.findFirst({ where: { tenantId, submitKey }, select: { id: true } });
 }
 
 /** L'impostazione della fioreria «Anche lo staff può accettare e rifiutare gli ordini online». */
@@ -116,3 +132,36 @@ export async function assertOrderEditableTx(
   }
   await assertCanHandlePendingOnlineTx(tx, ctx);
 }
+
+/**
+ * Gli ordini online da accettare che aspettano la fioreria: mai quelli in attesa della conferma di
+ * chi compra (M3-2, `ASKED`); con `DECLINED` in `excluded` nemmeno quelli tornati dopo un «No,
+ * gracias» (che «Da gestire» conta a parte). Una regola sola per il numero del menu, «Da gestire»,
+ * «Por aceptar» dell'elenco e Impostazioni → Negozio online. Senza `tenantId`: lo mette chi chiama.
+ */
+export function awaitingShopWhere(
+  excluded: readonly ('ASKED' | 'DECLINED')[] = ['ASKED'],
+): Prisma.OrderWhereInput {
+  return {
+    status: 'PENDING_ACCEPTANCE',
+    placedOnline: true,
+    OR: [
+      { changeRequest: { is: null } },
+      { changeRequest: { is: { status: { notIn: [...excluded] } } } },
+    ],
+  };
+}
+
+/** Ordini online da accettare che aspettano la conferma di chi compra (M3-2, filtro dell'elenco). */
+export const WAITING_FOR_BUYER_WHERE = {
+  status: 'PENDING_ACCEPTANCE',
+  placedOnline: true,
+  changeRequest: { is: { status: 'ASKED' } },
+} satisfies Prisma.OrderWhereInput;
+
+/** Ordini online da accettare tornati alla fioreria dopo un «No, gracias» ai cambi (M3-2). */
+export const DECLINED_CHANGES_WHERE = {
+  status: 'PENDING_ACCEPTANCE',
+  placedOnline: true,
+  changeRequest: { is: { status: 'DECLINED' } },
+} satisfies Prisma.OrderWhereInput;

@@ -3428,6 +3428,24 @@ niente codice nuovo»):**
     pagare spariscono dalla vetrina anche per le fiorerie solo WhatsApp; 10) l'email di assegnazione
     solo assegnando un'altra persona; 11) una prova in attesa su un ordine poi annullato non si
     conferma più (si rifiuta, e un rimborso si registra solo su quanto è stato registrato).
+- **Revisione di tutto M3 (28/11, a blocco finito):** `/code-review` a livello alto su M3-1, M3-2 e
+  M3-3 più l'elenco fisso; cinque correzioni, ognuna con il suo test:
+  - **«Por aceptar» come il menu:** l'elenco (filtro, numero, avviso in cima) e Impostazioni →
+    Negozio online contavano anche gli ordini che aspettano la conferma di chi compra; ora una regola
+    sola (`awaitingShopWhere`) per menu, «Da gestire», elenco e Impostazioni, e quegli ordini hanno
+    il filtro «In attesa del cliente» (`changes=asked`);
+  - **prove da controllare:** il filtro dell'elenco contava gli ordini, «Da gestire» le prove (fino a
+    3 per ordine); ora tutti e due le prove (e i contanti);
+  - **«Confirmar cambios»** ricontrolla sui dati che l'ordine sia ancora quello chiesto
+    (`order_change_outdated`), oltre al ritiro automatico della richiesta a ogni cambio;
+  - **doppi invii di pagamenti e rimborsi:** «Registra pagamento» e «Registra rimborso» mandano una
+    chiave del modulo (`OrderPayment.submitKey`, unica per fioreria, migrazione
+    `order_payment_submit_key`), come i pagamenti di Floral Care: lo stesso invio due volte scrive un
+    movimento e un'email;
+  - un commento doppio in `assignOrder`.
+  - Prima della revisione, negli E2E: ogni persona che si registra arriva da un suo IP di prova
+    (il limite di 5 registrazioni al minuto per IP si sommava fra test di fila) e i link «Ver
+    pedidos» di «Da gestire» hanno la descrizione della loro riga per i lettori di schermo.
 - **DA VALIDARE:** termini per chi compra (PROFECO) con i messaggi e gli avvisi, i cambi proposti e
   confermati nell'app, le sostituzioni concordate con una domanda, le prove di pagamento e i
   rimborsi; aviso de privacidad con i messaggi, le foto dei messaggi e delle prove (dati bancari: chi

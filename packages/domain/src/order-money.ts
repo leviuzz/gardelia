@@ -13,6 +13,7 @@ import type { CurrencyCode } from './money';
 import {
   acceptsOrderPayments,
   ORDER_LIMITS,
+  optionalUuidField,
   paymentDateField,
   paymentMethodField,
   type OrderPaymentKind,
@@ -108,6 +109,8 @@ export function orderRefundSchema(currency: CurrencyCode) {
     method: paymentMethodField(),
     paidOn: paymentDateField(),
     reference: optionalText(ORDER_LIMITS.paymentReference),
+    /** La chiave del modulo aperto: lo stesso invio due volte non scrive due rimborsi. */
+    submitKey: optionalUuidField,
   });
 }
 export type OrderRefundInput = z.infer<ReturnType<typeof orderRefundSchema>>;

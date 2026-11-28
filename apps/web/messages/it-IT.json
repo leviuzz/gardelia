@@ -2440,7 +2440,8 @@
       "declinedBody": "Puoi cambiare l'ordine e chiedere di nuovo conferma, o rifiutarlo.",
       "withdrawn": "Richiesta ritirata: hai cambiato l'ordine dopo aver chiesto conferma. Chiedi di nuovo.",
       "linesHint": "Se cambi i prodotti, chiedi al cliente di confermare i cambi prima di accettare.",
-      "filter": "No ai cambi ({count})"
+      "filter": "No ai cambi ({count})",
+      "askedFilter": "In attesa del cliente ({count})"
     },
     "money": {
       "filter": {

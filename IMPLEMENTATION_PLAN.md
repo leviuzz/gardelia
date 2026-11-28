@@ -1716,8 +1716,13 @@ founder il 26/11, in cinque passi come M3-1.
   (`e2e/support/network.ts`), così il limite di 5 registrazioni al minuto per IP non si somma fra
   test di fila.
 - **PROPOSTO e DA VALIDARE:** in ADR-088 (M3-3).
-- **Prossimo:** revisione minuziosa di tutto M3 (M3-1, M3-2, M3-3), controlli completi, CI, staging,
-  recap al founder; poi il piano di dettaglio di M5.
+- **Revisione di tutto M3 (28/11):** `/code-review` su `46762a5..af8f950` (M3-1, M3-2, M3-3) più
+  l'elenco fisso; cinque correzioni con i loro test (dettaglio in ADR-088): «Por aceptar»
+  dell'elenco e delle Impostazioni come il numero del menu, con il filtro nuovo «In attesa del
+  cliente»; il filtro delle prove conta le prove come «Da gestire»; «Confirmar cambios» ricontrolla
+  l'ordine chiesto; chiave del modulo per «Registra pagamento» e «Registra rimborso» (migrazione
+  `order_payment_submit_key`); un commento doppio.
+- **Prossimo:** controlli completi, CI, staging, recap al founder; poi il piano di dettaglio di M5.
 
 Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,

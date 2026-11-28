@@ -427,7 +427,10 @@ export function RefundForm({
   readonly defaultAmount: string;
 }) {
   const t = useTranslations('orders.money');
-  const [state, formAction] = useToastActionState(action);
+  // La chiave dell'invio (come i pagamenti di Floral Care): lo stesso modulo arrivato due volte non
+  // scrive due movimenti; dopo un invio riuscito ne serve una nuova.
+  const [submitKey, setSubmitKey] = useState(() => crypto.randomUUID());
+  const [state, formAction] = useToastActionState(action, () => setSubmitKey(crypto.randomUUID()));
   const err = (field: string) => fieldError(state, field);
   return (
     <form
@@ -437,6 +440,7 @@ export function RefundForm({
       className="grid gap-4 rounded-xl border p-4"
       data-testid="refund-form"
     >
+      <input type="hidden" name="submitKey" value={submitKey} />
       <div className="space-y-1">
         <p className="flex items-center gap-2 text-sm font-medium">
           <Undo2 className="size-4 text-primary" aria-hidden="true" />

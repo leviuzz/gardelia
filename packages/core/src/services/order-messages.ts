@@ -53,7 +53,11 @@ import {
 } from '../order-message-internals';
 import { buyerMessageNoticeMail, sendOrderMails, type OrderMailDeps } from '../order-mail';
 import type { PhotoVariant } from './catalog-photos';
-import { staffCanAcceptTx } from './order-payment-internals';
+import {
+  DECLINED_CHANGES_WHERE,
+  awaitingShopWhere,
+  staffCanAcceptTx,
+} from './order-payment-internals';
 import { dateToParts } from './quote-internals';
 
 export interface OrderThreadDto {
@@ -457,25 +461,6 @@ export async function getOrderMessagePhotoImage(
 }
 
 /**
- * Ordini online da accettare che aspettano la fioreria (M3-2): né in attesa della conferma di chi
- * compra né tornati dopo un «No, gracias» (`excludeDeclined`, per contarli a parte).
- */
-function awaitingShopWhere(
-  tenantId: string,
-  excluded: readonly ('ASKED' | 'DECLINED')[],
-): Prisma.OrderWhereInput {
-  return {
-    tenantId,
-    status: 'PENDING_ACCEPTANCE',
-    placedOnline: true,
-    OR: [
-      { changeRequest: { is: null } },
-      { changeRequest: { is: { status: { notIn: [...excluded] } } } },
-    ],
-  };
-}
-
-/**
  * «Da gestire»: ordini online da accettare (con la scadenza più vicina), messaggi da leggere e, per
  * chi gestisce i soldi, prove di pagamento e contanti da confermare (M3-3).
  */
@@ -484,7 +469,7 @@ export async function getOrderInbox(ctx: TenantContext): Promise<OrderInboxDto> 
   const canReadMessages = hasPermission(ctx, 'orders:messages');
   const canReviewMoney = hasPermission(ctx, 'orders:payments');
   return withTenantContext(getDb(), ctx, async (tx) => {
-    const toAccept = awaitingShopWhere(ctx.tenantId, ['ASKED', 'DECLINED']);
+    const toAccept = { tenantId: ctx.tenantId, ...awaitingShopWhere(['ASKED', 'DECLINED']) };
     const pending = await tx.order.findMany({
       where: toAccept,
       select: {
@@ -510,14 +495,7 @@ export async function getOrderInbox(ctx: TenantContext): Promise<OrderInboxDto> 
       .sort((a, b) => a.getTime() - b.getTime());
     const [pendingOnline, declinedChanges] = await Promise.all([
       tx.order.count({ where: toAccept }),
-      tx.order.count({
-        where: {
-          tenantId: ctx.tenantId,
-          status: 'PENDING_ACCEPTANCE',
-          placedOnline: true,
-          changeRequest: { is: { status: 'DECLINED' } },
-        },
-      }),
+      tx.order.count({ where: { tenantId: ctx.tenantId, ...DECLINED_CHANGES_WHERE } }),
     ]);
     const [pendingProofs, pendingCash] = canReviewMoney
       ? await Promise.all([
@@ -566,7 +544,7 @@ export async function countPendingOnlineOrders(ctx: TenantContext): Promise<numb
   if (!canWrite && !hasPermission(ctx, 'orders:accept')) return 0;
   return withTenantContext(getDb(), ctx, async (tx) => {
     if (!canWrite && !(await staffCanAcceptTx(tx, ctx.tenantId))) return 0;
-    return tx.order.count({ where: awaitingShopWhere(ctx.tenantId, ['ASKED']) });
+    return tx.order.count({ where: { tenantId: ctx.tenantId, ...awaitingShopWhere() } });
   });
 }
 

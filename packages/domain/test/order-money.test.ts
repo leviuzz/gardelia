@@ -93,7 +93,27 @@ describe('rimborso e storno (M3-3)', () => {
         paidOn: '',
         reference: 'SPEI 123',
       }),
-    ).toEqual({ amount: 20000, method: 'TRANSFER', paidOn: null, reference: 'SPEI 123' });
+    ).toEqual({
+      amount: 20000,
+      method: 'TRANSFER',
+      paidOn: null,
+      reference: 'SPEI 123',
+      submitKey: null,
+    });
+    // La chiave del modulo (doppi invii): un UUID o niente.
+    const submitKey = '0192f3a4-5b6c-7d8e-9f01-23456789abcd';
+    expect(
+      orderRefundSchema('MXN').parse({ amount: '1', method: 'CASH', paidOn: '', submitKey })
+        .submitKey,
+    ).toBe(submitKey);
+    expect(
+      orderRefundSchema('MXN').safeParse({
+        amount: '1',
+        method: 'CASH',
+        paidOn: '',
+        submitKey: 'no-es-uuid',
+      }).success,
+    ).toBe(false);
     expect(
       orderRefundSchema('MXN').safeParse({ amount: '200', method: 'GIFT', paidOn: '' }).success,
     ).toBe(false);

@@ -374,6 +374,11 @@ export function orderPaymentSchema(currency: CurrencyCode) {
     kind: z.preprocess(toTrimmedString, z.enum(ORDER_PAYMENT_INPUT_KINDS, { error: 'required' })),
     paidOn: paymentDateField(),
     reference: optionalText(ORDER_LIMITS.paymentReference),
+    /**
+     * La chiave del modulo aperto (M3, come i pagamenti di Floral Care): lo stesso invio arrivato due
+     * volte (rete lenta, due schede) non raddoppia il pagamento. Facoltativa.
+     */
+    submitKey: optionalUuid,
   });
 }
 export type OrderPaymentInput = z.infer<ReturnType<typeof orderPaymentSchema>>;
@@ -426,6 +431,13 @@ export const ORDER_WHEN_FILTERS = [
 ] as const;
 export type OrderWhenFilter = (typeof ORDER_WHEN_FILTERS)[number];
 
+/**
+ * I filtri dei cambi dell'elenco (M3-2): «No ai cambi» (`declined`, tornati dopo un «No, gracias») e
+ * «In attesa del cliente» (`asked`, aspettano che chi compra confermi: non sono «Por aceptar»).
+ */
+export const ORDER_CHANGES_FILTERS = ['declined', 'asked'] as const;
+export type OrderChangesFilter = (typeof ORDER_CHANGES_FILTERS)[number];
+
 /** I filtri dei soldi dell'elenco degli ordini (M3-3). */
 export const ORDER_MONEY_FILTERS = ['proofs', 'cash'] as const;
 export type OrderMoneyFilter = (typeof ORDER_MONEY_FILTERS)[number];
@@ -437,8 +449,11 @@ export const orderListFiltersSchema = z.object({
   unpaid: z.preprocess((value) => value === '1' || value === 'true', z.boolean()),
   /** «Con messaggi da leggere» (M3): ordini online con messaggi di chi compra non ancora letti. */
   messages: z.preprocess((value) => value === 'unread', z.boolean()),
-  /** «No ai cambi» (M3-2): ordini online tornati alla fioreria dopo un «No, gracias». */
-  changes: z.preprocess((value) => value === 'declined', z.boolean()),
+  /**
+   * M3-2: «No ai cambi» (`declined`) o «In attesa del cliente» (`asked`); qualsiasi altro valore =
+   * nessun filtro.
+   */
+  changes: z.preprocess(toTrimmedString, z.enum(ORDER_CHANGES_FILTERS).nullable().catch(null)),
   /**
    * M3-3: «Prove da controllare» (`proofs`, prove di pagamento in attesa) o «Contanti da confermare»
    * (`cash`); qualsiasi altro valore = nessun filtro.

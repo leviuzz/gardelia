@@ -323,7 +323,22 @@ describe('«Registramos tu pago»', () => {
     expect(mail!.text).toContain('no es un comprobante fiscal');
     expect(mail!.text).toContain(`${APP}/cuenta/pedidos/${orderId}#pagos`);
 
-    const payment = (await getOrder(shop.owner, orderId)).payments[0]!;
+    // Lo stesso modulo arrivato due volte (rete lenta, due schede): un pagamento solo, un'email.
+    const twice = {
+      amount: '100',
+      method: 'CASH',
+      kind: 'BALANCE',
+      paidOn: '',
+      submitKey: key(),
+    };
+    await recordOrderPayment(shop.owner, orderId, twice, deps);
+    await recordOrderPayment(shop.owner, orderId, twice, deps);
+    expect(drain()).toHaveLength(1);
+    const afterTwice = await getOrder(shop.owner, orderId);
+    expect(afterTwice.payments).toHaveLength(2);
+    expect(afterTwice.paidMinor).toBe(40000);
+
+    const payment = afterTwice.payments[0]!;
     await reverseOrderPayment(shop.owner, orderId, payment.id);
     expect(drain()).toEqual([]);
   });
@@ -437,8 +452,8 @@ describe('prove di pagamento di chi compra', () => {
     const filtered = await listOrders(shop.owner, { when: 'all', money: 'proofs' });
     expect(filtered.moneyFilter).toBe('proofs');
     expect(filtered.items.map((item) => item.id)).toContain(orderId);
-    expect(filtered.pendingProofOrdersCount).toBeGreaterThanOrEqual(1);
-    expect((await listOrders(shop.staff, { when: 'all' })).pendingProofOrdersCount).toBe(0);
+    expect(filtered.pendingProofsCount).toBeGreaterThanOrEqual(1);
+    expect((await listOrders(shop.staff, { when: 'all' })).pendingProofsCount).toBe(0);
 
     // Lo staff non conferma; il proprietario sì, fino a quanto manca.
     await expect(
@@ -502,6 +517,12 @@ describe('prove di pagamento di chi compra', () => {
       pendingProofs: 3,
       canSubmitProof: false,
     });
+    // «Da gestire» e il filtro dell'elenco contano le prove, non gli ordini (qui 3 su un ordine).
+    const inbox = await getOrderInbox(shop.owner);
+    const listed = await listOrders(shop.owner, { when: 'all', money: 'proofs' });
+    expect(listed.pendingProofsCount).toBe(inbox.pendingProofs);
+    expect(listed.pendingProofsCount).toBeGreaterThanOrEqual(3);
+    expect(listed.pendingCashCount).toBe(inbox.pendingCash);
     drain();
 
     await expect(
@@ -662,8 +683,11 @@ describe('rimborso e storno', () => {
       reason: 'payment_not_reversible',
     });
 
-    await refundOrderPayment(shop.owner, orderId, { ...refund, amount: '300' }, deps);
-    drain();
+    // Lo stesso modulo arrivato due volte: un rimborso solo.
+    const last = { ...refund, amount: '300', submitKey: key() };
+    await refundOrderPayment(shop.owner, orderId, last, deps);
+    await refundOrderPayment(shop.owner, orderId, last, deps);
+    expect(drain()).toHaveLength(1);
     order = await getOrder(shop.owner, orderId);
     expect(order).toMatchObject({ paidMinor: 0, refundedMinor: 50000, canRefund: false });
     await expect(refundOrderPayment(shop.owner, orderId, refund, deps)).rejects.toMatchObject({

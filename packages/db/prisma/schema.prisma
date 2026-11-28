@@ -1793,6 +1793,8 @@ model OrderPayment {
   /// Solo per gli storni: il pagamento stornato (uno storno per pagamento).
   reversedPaymentId String?          @db.Uuid
   createdById       String?          @db.Uuid
+  /// M3: la chiave del modulo «Registra pagamento» / «Registra rimborso» (un invio, un movimento).
+  submitKey         String?          @db.Uuid
   createdAt         DateTime         @default(now())
 
   tenant          Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -1805,6 +1807,7 @@ model OrderPayment {
 
   @@unique([tenantId, id])
   @@unique([tenantId, reversedPaymentId])
+  @@unique([tenantId, submitKey])
   @@index([tenantId, orderId])
 }
 

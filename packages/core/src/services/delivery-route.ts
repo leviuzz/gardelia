@@ -53,10 +53,7 @@ export async function listOrderAssignees(
 
 /**
  * Assegna (o toglie, con vuoto) il repartidor di un ordine a domicilio ancora aperto. Il membro
- * deve essere attivo nella stessa fioreria.
- */
-/**
- * Chi porta un ordine a domicilio (o nessuno). M3-3: assegnandolo a un'altra persona, a lei arriva
+ * deve essere attivo nella stessa fioreria. M3-3: assegnandolo a un'altra persona, a lei arriva
  * «Te asignaron la entrega del pedido …» dopo il commit; assegnandolo a sé stessi no.
  */
 export async function assignOrder(

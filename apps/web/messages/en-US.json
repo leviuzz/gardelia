@@ -2440,7 +2440,8 @@
       "declinedBody": "You can change the order and ask again, or decline it.",
       "withdrawn": "Request withdrawn: you changed the order after asking. Ask again.",
       "linesHint": "If you change the products, ask the customer to confirm the changes before accepting.",
-      "filter": "Said no to changes ({count})"
+      "filter": "Said no to changes ({count})",
+      "askedFilter": "Waiting for the customer ({count})"
     },
     "money": {
       "filter": {

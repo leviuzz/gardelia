@@ -2440,7 +2440,8 @@
       "declinedBody": "Puedes cambiar el pedido y pedir la confirmación de nuevo, o rechazarlo.",
       "withdrawn": "Solicitud retirada: cambiaste el pedido después de pedir la confirmación. Pídela de nuevo.",
       "linesHint": "Si cambias los productos, pídele al cliente que confirme los cambios antes de aceptar.",
-      "filter": "No a los cambios ({count})"
+      "filter": "No a los cambios ({count})",
+      "askedFilter": "Esperando al cliente ({count})"
     },
     "money": {
       "filter": {
