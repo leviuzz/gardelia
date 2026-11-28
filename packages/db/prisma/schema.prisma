@@ -71,6 +71,8 @@ model User {
   /// elimina) e fin dove chi compra li ha letti.
   orderMessages              OrderMessage[]              @relation("OrderMessageAuthor")
   orderPaymentProofs         OrderPaymentProof[]         @relation("OrderPaymentProofBuyer")
+  /// Marketplace M5 (ADR-089): le richieste dei servizi della vetrina fatte da questa persona.
+  serviceRequests            ServiceRequest[]            @relation("ServiceRequestBuyer")
   orderBuyerReads            OrderBuyerRead[]            @relation("OrderBuyerReadUser")
   assistantCases             AssistantCase[]             @relation("AssistantCaseAskedBy")
   assistantAnswers           AssistantAnswer[]           @relation("AssistantAnswerAskedBy")
@@ -342,6 +344,10 @@ model Tenant {
   orderChangeRequests        OrderChangeRequest[]
   orderPaymentProofs         OrderPaymentProof[]
   orderCashCollections       OrderCashCollection[]
+  storefrontServices         StorefrontService[]
+  storefrontServicePhotos    StorefrontServicePhoto[]
+  serviceRequests            ServiceRequest[]
+  serviceRequestPhotos       ServiceRequestPhoto[]
   assistantCases             AssistantCase[]
   assistantAnswers           AssistantAnswer[]
   assistantCalls             AssistantCall[]
@@ -947,17 +953,19 @@ model Customer {
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
-  tenant        Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  quotes        Quote[]
-  orders        Order[]
-  addresses     CustomerAddress[]
-  occasions     CustomerOccasion[]
-  promoEmails   OccasionPromoEmail[]
-  subscriptions CustomerSubscription[]
-  careCharges   CareCharge[]
-  carePayments  CarePayment[]
-  portalInvites CarePortalInvite[]
-  portalAccess  CarePortalAccess[]
+  tenant          Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quotes          Quote[]
+  orders          Order[]
+  /// Marketplace M5: le richieste dei servizi della vetrina collegate a questo cliente.
+  serviceRequests ServiceRequest[]
+  addresses       CustomerAddress[]
+  occasions       CustomerOccasion[]
+  promoEmails     OccasionPromoEmail[]
+  subscriptions   CustomerSubscription[]
+  careCharges     CareCharge[]
+  carePayments    CarePayment[]
+  portalInvites   CarePortalInvite[]
+  portalAccess    CarePortalAccess[]
 
   @@unique([tenantId, id])
   @@index([tenantId, status])
@@ -1881,6 +1889,135 @@ model OrderCashCollection {
   @@unique([tenantId, paymentId])
   @@index([tenantId, orderId])
   @@index([tenantId, status])
+}
+
+/// Marketplace M5 (ADR-089): un servizio nella vetrina della fioreria. I predefiniti (`EVENT`,
+/// `VENUE`, `WEEKLY`, `CARE`, uno per fioreria, il nome lo dà la lingua) e quelli della fioreria
+/// (`CUSTOM`, con il nome scritto). Tipo e regole con CHECK nel SQL.
+model StorefrontService {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  tenantId       String       @db.Uuid
+  kind           String
+  /// Solo `CUSTOM`.
+  name           String?
+  description    String?
+  /// «Cosa include», scritto dalla fioreria.
+  includes       String?
+  /// «Desde $X», facoltativo.
+  priceFromMinor Int?
+  /// Solo `CUSTOM`: il modulo chiede una data / un indirizzo.
+  askDate        Boolean      @default(false)
+  askAddress     Boolean      @default(false)
+  isPublished    Boolean      @default(false)
+  sortOrder      Int          @default(0)
+  status         RecordStatus @default(ACTIVE)
+  archivedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  tenant   Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  photos   StorefrontServicePhoto[]
+  requests ServiceRequest[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, isPublished])
+}
+
+/// Una foto di un servizio della vetrina (fino a 6, la prima è la copertina).
+model StorefrontServicePhoto {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  tenantId    String       @db.Uuid
+  serviceId   String       @db.Uuid
+  storageKey  String
+  thumbKey    String
+  contentType String
+  width       Int
+  height      Int
+  sizeBytes   Int
+  sortOrder   Int          @default(0)
+  status      RecordStatus @default(ACTIVE)
+  archivedAt  DateTime?
+  createdById String       @db.Uuid
+  createdAt   DateTime     @default(now())
+
+  tenant  Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  service StorefrontService @relation(fields: [tenantId, serviceId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, serviceId])
+}
+
+/// Marketplace M5 (ADR-089): la richiesta di un servizio fatta da chi compra dal suo conto. Chi
+/// compra la tocca solo dall'ingresso unico `withBuyerRequest` (guardia `buyer_request_guard`).
+model ServiceRequest {
+  id                String    @id @default(uuid(7)) @db.Uuid
+  tenantId          String    @db.Uuid
+  /// Progressivo per fioreria («SOL-0001»).
+  number            Int
+  serviceId         String    @db.Uuid
+  /// Il tipo del servizio quando è stata fatta.
+  kind              String
+  /// NEW | QUOTED | ACCEPTED | DECLINED | CANCELLED | CLOSED (CHECK nel SQL).
+  status            String    @default("NEW")
+  statusChangedAt   DateTime  @default(now())
+  /// Chi l'ha fatta; null se ha eliminato il conto.
+  buyerUserId       String?   @db.Uuid
+  /// Il cliente del CRM collegato (creato se mancava, come gli ordini online).
+  customerId        String?   @db.Uuid
+  /// La data dell'evento, del primo giorno o quella chiesta (nel calendario della fioreria).
+  preferredDate     DateTime? @db.Date
+  addressLine1      String?
+  addressLine2      String?
+  neighborhood      String?
+  city              String?
+  region            String?
+  postalCode        String?
+  addressNotes      String?
+  currency          String    @db.Char(3)
+  budgetMinor       Int?
+  contactPhone      String
+  message           String?
+  /// Le risposte del modulo che non hanno una colonna (validate dal dominio).
+  answers           Json      @default("{}")
+  /// «Rifiuta»: il motivo pronto e il testo che legge chi compra.
+  declineReasonCode String?
+  declineReason     String?
+  submitKey         String    @db.Uuid
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  tenant   Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  service  StorefrontService     @relation(fields: [tenantId, serviceId], references: [tenantId, id], onDelete: Restrict)
+  buyer    User?                 @relation("ServiceRequestBuyer", fields: [buyerUserId], references: [id], onDelete: SetNull)
+  customer Customer?             @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Restrict)
+  photos   ServiceRequestPhoto[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, number])
+  @@unique([tenantId, submitKey])
+  @@index([tenantId, status])
+  @@index([buyerUserId])
+}
+
+/// Una foto di ispirazione di una richiesta (fino a 3). Si cancella 30 giorni dopo la chiusura;
+/// la riga resta con `photoDeletedAt`.
+model ServiceRequestPhoto {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  tenantId       String    @db.Uuid
+  requestId      String    @db.Uuid
+  photoKey       String
+  photoThumbKey  String
+  photoWidth     Int
+  photoHeight    Int
+  sortOrder      Int       @default(0)
+  photoDeletedAt DateTime?
+  createdAt      DateTime  @default(now())
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  request ServiceRequest @relation(fields: [tenantId, requestId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, requestId])
 }
 
 /// Cronologia degli stati dell'ordine (chi, quando, da dove a dove).

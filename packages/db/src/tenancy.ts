@@ -107,6 +107,37 @@ export async function withBuyerOrderContext<T>(
   );
 }
 
+/**
+ * Marketplace M5 (ADR-089): chi ha fatto una richiesta di servizio agisce su quella richiesta (la
+ * legge, la annulla, le sue foto). È il contesto della fioreria della richiesta con chi compra come
+ * utente, più `app.buyer_request_id`: le policy RESTRICTIVE `buyer_request_guard` lasciano toccare
+ * solo le righe di quella richiesta. La fioreria la trova il servizio con `app_buyer_request_shop`.
+ */
+export interface BuyerRequestScope {
+  readonly tenantId: string;
+  /** Solo dalla sessione. */
+  readonly userId: string;
+  readonly requestId: string;
+}
+
+export async function withBuyerRequestContext<T>(
+  db: DbClient,
+  scope: BuyerRequestScope,
+  fn: (tx: TransactionClient) => Promise<T>,
+  options: TransactionOptions = {},
+): Promise<T> {
+  assertUuid(scope.tenantId, 'tenantId');
+  assertUuid(scope.userId, 'userId');
+  assertUuid(scope.requestId, 'requestId');
+  return db.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.tenant_id', ${scope.tenantId}, true), set_config('app.user_id', ${scope.userId}, true), set_config('app.buyer_request_id', ${scope.requestId}, true)`;
+      return fn(tx);
+    },
+    { ...DEFAULT_TX, ...options },
+  );
+}
+
 export async function withUserContext<T>(
   db: DbClient,
   userId: string,

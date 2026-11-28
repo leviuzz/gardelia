@@ -13,6 +13,7 @@ import {
   isForeignKeyViolation,
   isRlsViolation,
   withBuyerOrderContext,
+  withBuyerRequestContext,
   withPortalContext,
   withPortalWriteContext,
   withSystemContext,
@@ -1718,5 +1719,174 @@ describe('ordini online: la guardia di chi compra (ADR-088)', () => {
       }),
     );
     expect(await toConfirm()).toBe(false);
+  });
+});
+
+describe('richieste dei servizi: la guardia di chi compra (ADR-089)', () => {
+  let buyer: TestUser;
+  let stranger: TestUser;
+  let serviceA: string;
+  let mine: string;
+  let another: string;
+  let otherShop: string;
+  let requestNumber = 0;
+
+  /** Un servizio della fioreria (fixture di sistema). */
+  async function service(tenantId: string, kind = 'EVENT', name: string | null = null) {
+    return withSystemContext(db, { reason: 'test fixture: storefront service' }, (tx) =>
+      tx.storefrontService.create({
+        data: { tenantId, kind, name, isPublished: true },
+        select: { id: true },
+      }),
+    );
+  }
+
+  /** Una richiesta di `user` sul servizio (fixture di sistema). */
+  async function request(tenantId: string, serviceId: string, user: TestUser | null) {
+    requestNumber += 1;
+    const number = requestNumber;
+    const row = await withSystemContext(db, { reason: 'test fixture: service request' }, (tx) =>
+      tx.serviceRequest.create({
+        data: {
+          tenantId,
+          number,
+          serviceId,
+          kind: 'EVENT',
+          buyerUserId: user?.id ?? null,
+          currency: 'MXN',
+          contactPhone: '+524495550123',
+          submitKey: randomUUID(),
+        },
+        select: { id: true },
+      }),
+    );
+    return row.id;
+  }
+
+  beforeAll(async () => {
+    buyer = await createTestUser(db);
+    stranger = await createTestUser(db);
+    serviceA = (await service(tenantA.tenantId)).id;
+    const serviceB = (await service(tenantB.tenantId)).id;
+    mine = await request(tenantA.tenantId, serviceA, buyer);
+    another = await request(tenantA.tenantId, serviceA, stranger);
+    otherShop = await request(tenantB.tenantId, serviceB, buyer);
+  });
+
+  it('la guardia è RESTRICTIVE, per tutti i comandi, sulle sole tabelle della richiesta', async () => {
+    const policies = await withSystemContext(
+      db,
+      { reason: 'test: guardia richieste' },
+      (tx) =>
+        tx.$queryRaw<{ tablename: string; cmd: string; permissive: string }[]>`
+        SELECT tablename, cmd, permissive FROM pg_policies
+        WHERE schemaname = 'public' AND policyname = 'buyer_request_guard'
+        ORDER BY tablename`,
+    );
+    expect(policies.map((policy) => policy.tablename)).toEqual([
+      'ServiceRequest',
+      'ServiceRequestPhoto',
+    ]);
+    expect(policies.every((p) => p.cmd === 'ALL' && p.permissive === 'RESTRICTIVE')).toBe(true);
+  });
+
+  it('con la guardia si vede e si tocca solo quella richiesta; senza, la fioreria vede tutto', async () => {
+    const scope = { tenantId: tenantA.tenantId, userId: buyer.id, requestId: mine };
+    const guarded = await withBuyerRequestContext(db, scope, async (tx) => {
+      const visible = await tx.serviceRequest.findMany({
+        where: { tenantId: tenantA.tenantId },
+        select: { id: true },
+      });
+      const touched = await tx.serviceRequest.updateMany({
+        where: { tenantId: tenantA.tenantId, id: another },
+        data: { status: 'CANCELLED' },
+      });
+      return { visible: visible.map((row) => row.id), touched: touched.count };
+    });
+    expect(guarded).toEqual({ visible: [mine], touched: 0 });
+
+    const photo = (requestId: string) => ({
+      tenantId: tenantA.tenantId,
+      requestId,
+      photoKey: `tenants/${tenantA.tenantId}/service-requests/${requestId}-a.jpg`,
+      photoThumbKey: `tenants/${tenantA.tenantId}/service-requests/${requestId}-a-thumb.jpg`,
+      photoWidth: 800,
+      photoHeight: 600,
+    });
+    await expect(
+      withBuyerRequestContext(db, scope, (tx) =>
+        tx.serviceRequestPhoto.create({ data: photo(another) }),
+      ),
+    ).rejects.toSatisfy(isRlsViolation);
+    await withBuyerRequestContext(db, scope, (tx) =>
+      tx.serviceRequestPhoto.create({ data: photo(mine) }),
+    );
+
+    const shop = await withTenantContext(db, { tenantId: tenantA.tenantId, userId: null }, (tx) =>
+      tx.serviceRequest.count({
+        where: { tenantId: tenantA.tenantId, id: { in: [mine, another] } },
+      }),
+    );
+    expect(shop).toBe(2);
+  });
+
+  it('la fioreria di una richiesta la dà solo a chi l’ha fatta', async () => {
+    const shopOf = (user: TestUser, requestId: string) =>
+      withUserContext(
+        db,
+        user.id,
+        (tx) =>
+          tx.$queryRaw<{ tenant_id: string; shop_active: boolean }[]>`
+          SELECT tenant_id, shop_active FROM app_buyer_request_shop(${requestId}::uuid)`,
+      );
+    expect(await shopOf(buyer, mine)).toEqual([{ tenant_id: tenantA.tenantId, shop_active: true }]);
+    expect(await shopOf(buyer, otherShop)).toEqual([
+      { tenant_id: tenantB.tenantId, shop_active: true },
+    ]);
+    expect(await shopOf(buyer, another)).toEqual([]);
+    expect(await shopOf(stranger, mine)).toEqual([]);
+
+    const listed = await withUserContext(
+      db,
+      buyer.id,
+      (tx) =>
+        tx.$queryRaw<{ request_id: string }[]>`SELECT request_id FROM app_buyer_service_requests()`,
+    );
+    expect(listed.map((row) => row.request_id).sort()).toEqual([mine, otherShop].sort());
+    const anonymous = await withTenantContext(
+      db,
+      { tenantId: tenantA.tenantId, userId: null },
+      (tx) =>
+        tx.$queryRaw<{ request_id: string }[]>`SELECT request_id FROM app_buyer_service_requests()`,
+    );
+    expect(anonymous).toEqual([]);
+  });
+
+  it('CHECK: un predefinito per tipo, il nome solo ai servizi della fioreria, foto nella cartella', async () => {
+    await expect(service(tenantA.tenantId, 'EVENT')).rejects.toThrow();
+    await expect(service(tenantA.tenantId, 'CUSTOM', null)).rejects.toThrow();
+    await expect(service(tenantA.tenantId, 'VENUE', 'Con nombre')).rejects.toThrow();
+    await service(tenantA.tenantId, 'CUSTOM', 'Coronas');
+    await service(tenantA.tenantId, 'CUSTOM', 'Arreglos para iglesia');
+    await expect(
+      withSystemContext(db, { reason: 'test: foto fuori cartella' }, (tx) =>
+        tx.serviceRequestPhoto.create({
+          data: {
+            tenantId: tenantA.tenantId,
+            requestId: mine,
+            photoKey: `tenants/${tenantB.tenantId}/service-requests/x.jpg`,
+            photoThumbKey: `tenants/${tenantB.tenantId}/service-requests/x-thumb.jpg`,
+            photoWidth: 10,
+            photoHeight: 10,
+          },
+        }),
+      ),
+    ).rejects.toThrow();
+    // Rifiutata ⇔ con il motivo.
+    await expect(
+      withSystemContext(db, { reason: 'test: rifiuto senza motivo' }, (tx) =>
+        tx.serviceRequest.update({ where: { id: mine }, data: { status: 'DECLINED' } }),
+      ),
+    ).rejects.toThrow();
   });
 });
