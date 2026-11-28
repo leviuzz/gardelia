@@ -1142,6 +1142,19 @@
       "ended": "Registrata la fine del contratto {number}",
       "repriced": "{actor} ha aggiornato il prezzo di {number}",
       "discarded": "{actor} ha scartato la bozza {number}"
+    },
+    "storefront_service": {
+      "saved": "{actor} ha aggiornato un servizio in vetrina",
+      "published": "{actor} ha messo un servizio in vetrina",
+      "unpublished": "{actor} ha tolto un servizio dalla vetrina",
+      "archived": "{actor} ha archiviato un servizio della vetrina",
+      "photo_added": "{actor} ha aggiunto una foto a un servizio in vetrina",
+      "photo_removed": "{actor} ha tolto una foto da un servizio in vetrina"
+    },
+    "service_request": {
+      "submitted": "{actor} ha mandato la richiesta {number}",
+      "declined": "{actor} ha rifiutato la richiesta {number}",
+      "cancelled_by_buyer": "{actor} ha annullato la sua richiesta {number}"
     }
   },
   "catalog": {

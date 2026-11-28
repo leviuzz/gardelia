@@ -213,6 +213,8 @@ export async function purgeDeletedTenants(): Promise<number> {
         assistantPhotos,
         orderMessagePhotos,
         paymentProofPhotos,
+        servicePhotos,
+        requestPhotos,
       ] = await Promise.all([
         tx.onlineStore.findMany({ where, select: { logoKey: true, coverKey: true } }),
         tx.aiJob.findMany({ where, select: { outputKey: true } }),
@@ -243,6 +245,13 @@ export async function purgeDeletedTenants(): Promise<number> {
           where: { tenantId, photoDeletedAt: null },
           select: { photoKey: true, photoThumbKey: true },
         }),
+        // Foto dei servizi in vetrina (M5), anche quelle tolte: i file restano finché c'è la fioreria.
+        tx.storefrontServicePhoto.findMany({ where, select: { storageKey: true, thumbKey: true } }),
+        // Foto di ispirazione delle richieste (M5) i cui file ci sono ancora.
+        tx.serviceRequestPhoto.findMany({
+          where: { tenantId, photoDeletedAt: null },
+          select: { photoKey: true, photoThumbKey: true },
+        }),
       ]);
       const keys = [
         ...store.flatMap((row) => [row.logoKey, row.coverKey]),
@@ -253,9 +262,10 @@ export async function purgeDeletedTenants(): Promise<number> {
           ...orderPhotos,
           ...carePhotos,
           ...assistantPhotos,
+          ...servicePhotos,
         ].flatMap((row) => [row.storageKey, row.thumbKey]),
         ...catalogPhotos.flatMap((row) => [row.storageKey, row.thumbKey, row.cutoutKey]),
-        ...[...orderMessagePhotos, ...paymentProofPhotos].flatMap((row) => [
+        ...[...orderMessagePhotos, ...paymentProofPhotos, ...requestPhotos].flatMap((row) => [
           row.photoKey,
           row.photoThumbKey,
         ]),

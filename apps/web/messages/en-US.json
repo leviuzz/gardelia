@@ -1142,6 +1142,19 @@
       "ended": "End of contract {number} recorded",
       "repriced": "{actor} updated the price of {number}",
       "discarded": "{actor} discarded the draft {number}"
+    },
+    "storefront_service": {
+      "saved": "{actor} updated a service in the online store",
+      "published": "{actor} added a service to the online store",
+      "unpublished": "{actor} took a service out of the online store",
+      "archived": "{actor} archived a service of the online store",
+      "photo_added": "{actor} added a photo to a service in the online store",
+      "photo_removed": "{actor} removed a photo from a service in the online store"
+    },
+    "service_request": {
+      "submitted": "{actor} sent request {number}",
+      "declined": "{actor} declined request {number}",
+      "cancelled_by_buyer": "{actor} cancelled their request {number}"
     }
   },
   "catalog": {

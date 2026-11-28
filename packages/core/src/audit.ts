@@ -110,7 +110,11 @@ type ProbeableEntity =
   | 'AssistantCase'
   | 'OrderMessage'
   | 'OrderPaymentProof'
-  | 'OrderCashCollection';
+  | 'OrderCashCollection'
+  | 'StorefrontService'
+  | 'StorefrontServicePhoto'
+  | 'ServiceRequest'
+  | 'ServiceRequestPhoto';
 
 async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<string | null> {
   return withSystemContext(
@@ -230,6 +234,21 @@ async function findOwningTenant(entity: ProbeableEntity, id: string): Promise<st
         case 'OrderCashCollection':
           return (
             (await tx.orderCashCollection.findUnique({ where: { id }, select }))?.tenantId ?? null
+          );
+        case 'StorefrontService':
+          return (
+            (await tx.storefrontService.findUnique({ where: { id }, select }))?.tenantId ?? null
+          );
+        case 'StorefrontServicePhoto':
+          return (
+            (await tx.storefrontServicePhoto.findUnique({ where: { id }, select }))?.tenantId ??
+            null
+          );
+        case 'ServiceRequest':
+          return (await tx.serviceRequest.findUnique({ where: { id }, select }))?.tenantId ?? null;
+        case 'ServiceRequestPhoto':
+          return (
+            (await tx.serviceRequestPhoto.findUnique({ where: { id }, select }))?.tenantId ?? null
           );
       }
     },

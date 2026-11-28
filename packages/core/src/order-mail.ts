@@ -71,6 +71,9 @@ export interface OrderMailDeps {
      * La pagina dell'ordine nel conto di chi compra (M3: messaggi e cambi); senza, "Mi cuenta".
      */
     readonly buyerOrder?: (orderId: string) => string;
+    /** M5: la richiesta di un servizio nel gestionale e nel conto di chi compra. */
+    readonly serviceRequest?: (tenantSlug: string, requestId: string) => string;
+    readonly buyerServiceRequest?: (requestId: string) => string;
   };
 }
 
@@ -331,7 +334,7 @@ export async function counterOrderConfirmationMail(
 }
 
 /** Gli indirizzi di proprietari e gerenti attivi della fioreria (avvisi degli ordini online). */
-async function managerEmailsTx(tx: TransactionClient, tenantId: string): Promise<string[]> {
+export async function managerEmailsTx(tx: TransactionClient, tenantId: string): Promise<string[]> {
   const members = await tx.membership.findMany({
     where: { tenantId, status: 'ACTIVE', role: { in: ['OWNER', 'MANAGER'] } },
     select: { user: { select: { email: true } } },
@@ -340,7 +343,10 @@ async function managerEmailsTx(tx: TransactionClient, tenantId: string): Promise
 }
 
 /** Il nome di chi ha fatto l'ordine, per gli avvisi alla fioreria ("Un cliente" senza conto). */
-async function buyerNameTx(tx: TransactionClient, buyerUserId: string | null): Promise<string> {
+export async function buyerNameTx(
+  tx: TransactionClient,
+  buyerUserId: string | null,
+): Promise<string> {
   if (!buyerUserId) return 'Un cliente';
   const user = await tx.user.findUnique({ where: { id: buyerUserId }, select: { name: true } });
   return user?.name ?? 'Un cliente';

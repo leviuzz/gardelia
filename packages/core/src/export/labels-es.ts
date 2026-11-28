@@ -36,7 +36,17 @@ import type {
   RecordStatus,
   SaleUnit,
 } from '@floral/db';
-import type { CareChargeStatus } from '@floral/domain';
+import {
+  STOREFRONT_SERVICE_PRESET_NAMES_ES,
+  type CareChargeStatus,
+  type EventType,
+  type ServiceDeclineReason,
+  type ServiceRequestStatus,
+  type StorefrontServiceKind,
+  type VenueRecurrence,
+  type VenueType,
+  type WeeklyDuration,
+} from '@floral/domain';
 
 export const YES = 'sí';
 export const NO = 'no';
@@ -231,6 +241,50 @@ export const LABELS = {
   /** M3-3: prove di pagamento e contanti di chi consegna. */
   moneyReviewStatus: { PENDING: 'En revisión', CONFIRMED: 'Confirmado', REJECTED: 'Rechazado' },
   proofPhotoDeleted: 'borrada',
+  /** M5: servizi in vetrina e richieste. */
+  storefrontServiceKind: {
+    ...STOREFRONT_SERVICE_PRESET_NAMES_ES,
+    CUSTOM: 'Servicio de la florería',
+  } satisfies Record<StorefrontServiceKind, string>,
+  serviceRequestStatus: {
+    NEW: 'Nueva',
+    QUOTED: 'Con cotización',
+    ACCEPTED: 'Aceptada',
+    DECLINED: 'Rechazada',
+    CANCELLED: 'Cancelada por el cliente',
+    CLOSED: 'Cerrada',
+  } satisfies Record<ServiceRequestStatus, string>,
+  serviceDeclineReason: {
+    NO_AVAILABILITY: 'Sin disponibilidad',
+    OUT_OF_AREA: 'Fuera de zona',
+    NOT_OFFERED: 'No lo hacemos',
+    OTHER: 'Otro motivo',
+  } satisfies Record<ServiceDeclineReason, string>,
+  eventType: {
+    WEDDING: 'Boda',
+    XV: 'XV años',
+    BAPTISM: 'Bautizo',
+    CORPORATE: 'Corporativo',
+    OTHER: 'Otro',
+  } satisfies Record<EventType, string>,
+  venueType: {
+    RESTAURANT: 'Restaurante',
+    HOTEL: 'Hotel',
+    OFFICE: 'Oficina',
+    SHOP: 'Tienda',
+    OTHER: 'Otro',
+  } satisfies Record<VenueType, string>,
+  venueRecurrence: { ONCE: 'Una vez', RECURRING: 'Periódica' } satisfies Record<
+    VenueRecurrence,
+    string
+  >,
+  weeklyDuration: {
+    ONE_MONTH: '1 mes',
+    THREE_MONTHS: '3 meses',
+    SIX_MONTHS: '6 meses',
+    OPEN: 'Sin fecha de fin',
+  } satisfies Record<WeeklyDuration, string>,
+  weekday: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'],
   carePaymentKind: {
     PAYMENT: 'Pago',
     REVERSAL: 'Anulación',

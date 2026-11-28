@@ -15,6 +15,7 @@ import {
   buyerAddressSchema,
   buyerProfileSchema,
   formatOrderNumber,
+  formatServiceRequestNumber,
   formatSubscriptionNumber,
   freshCoordinates,
   isUuid,
@@ -374,6 +375,24 @@ export interface BuyerDataExport {
     readonly status: string;
     readonly rejectReason: string | null;
   }[];
+  /** M5: le richieste di servizi della vetrina (senza ID interni né foto). */
+  readonly serviceRequests: readonly {
+    readonly shop: string;
+    readonly number: string;
+    /** `EVENT`, `VENUE`, `WEEKLY`, `CARE` o `CUSTOM`. */
+    readonly kind: string;
+    /** Il nome del servizio della fioreria; null per i predefiniti. */
+    readonly service: string | null;
+    readonly status: string;
+    readonly sentAt: string;
+    readonly preferredDate: string | null;
+    readonly city: string | null;
+    readonly budgetMinor: number | null;
+    readonly currency: string;
+    readonly contactPhone: string;
+    readonly message: string | null;
+    readonly declineReason: string | null;
+  }[];
   /** Floral Care (ADR-084): i contratti che la persona vede o ha visto nella pagina del cliente. */
   readonly floralCare: {
     readonly accesses: readonly {
@@ -421,6 +440,7 @@ export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExpor
       orderMessages,
       orderChangeAnswers,
       orderPaymentProofs,
+      serviceRequests,
     ] = await Promise.all([
       tx.user.findUniqueOrThrow({
         where: { id: ctx.userId },
@@ -512,6 +532,24 @@ export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExpor
           reject_reason: string | null;
         }[]
       >`SELECT * FROM app_buyer_order_payment_proofs()`,
+      // M5: le richieste dei servizi (senza le foto).
+      tx.$queryRaw<
+        {
+          shop_name: string;
+          number: number;
+          kind: string;
+          service_name: string | null;
+          status: string;
+          created_at: Date;
+          preferred_date: Date | null;
+          city: string | null;
+          budget_minor: number | null;
+          currency: string;
+          contact_phone: string;
+          message: string | null;
+          decline_reason: string | null;
+        }[]
+      >`SELECT * FROM app_buyer_service_requests_export()`,
     ]);
     return {
       exportedAt: new Date().toISOString(),
@@ -563,6 +601,21 @@ export async function exportBuyerData(ctx: BuyerContext): Promise<BuyerDataExpor
         note: row.note,
         status: row.status,
         rejectReason: row.reject_reason,
+      })),
+      serviceRequests: serviceRequests.map((row) => ({
+        shop: row.shop_name,
+        number: formatServiceRequestNumber(row.number),
+        kind: row.kind,
+        service: row.service_name,
+        status: row.status,
+        sentAt: row.created_at.toISOString(),
+        preferredDate: row.preferred_date ? row.preferred_date.toISOString().slice(0, 10) : null,
+        city: row.city,
+        budgetMinor: row.budget_minor,
+        currency: row.currency.trim(),
+        contactPhone: row.contact_phone,
+        message: row.message,
+        declineReason: row.decline_reason,
       })),
       floralCare: {
         accesses: careAccesses.map((row) => ({

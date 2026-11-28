@@ -249,6 +249,19 @@ export type ConflictReason =
   | 'order_change_date_passed'
   /** Domande «sì / no» (M3-2): la risposta c'è già. */
   | 'order_question_answered'
+  /**
+   * Servizi in vetrina e richieste (M5, ADR-089): troppi servizi della fioreria; un predefinito non
+   * si archivia (si spegne); Floral Care senza l'offerta pronta; servizio non più in vetrina;
+   * troppe richieste aperte di chi compra; data fuori dai limiti; richiesta non più aperta.
+   */
+  | 'storefront_services_limit'
+  | 'storefront_service_preset'
+  | 'service_care_not_ready'
+  | 'service_unavailable'
+  | 'service_requests_open_limit'
+  | 'service_date_too_soon'
+  | 'service_date_too_far'
+  | 'service_request_closed'
   /** "Eliminar florería" con ordini ancora da consegnare o ritirare (ADR-074). */
   | 'tenant_deletion_open_orders'
   | 'session_is_current';

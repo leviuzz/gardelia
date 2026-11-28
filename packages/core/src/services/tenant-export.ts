@@ -14,12 +14,18 @@ import {
   formatCareChargeNumber,
   formatOrderNumber,
   formatQuoteNumber,
+  formatServiceRequestNumber,
   formatSubscriptionNumber,
+  parseServiceRequestAnswers,
+  storefrontServiceDisplayName,
   formatTimeOfDay,
   minorToDecimalString,
   toCsv,
   todayInTimeZone,
   type CsvColumn,
+  type ServiceDeclineReason,
+  type ServiceRequestStatus,
+  type StorefrontServiceKind,
 } from '@floral/domain';
 import { recordAudit } from '../audit';
 import { requirePermission } from '../authorization';
@@ -112,6 +118,8 @@ export async function exportTenantData(
       orderMessages,
       orderChanges,
       paymentProofs,
+      storefrontServices,
+      serviceRequests,
       cashCollections,
     ] = await Promise.all([
       tx.customer.findMany({ where, orderBy: { createdAt: 'asc' } }),
@@ -230,6 +238,46 @@ export async function exportTenantData(
           payment: { select: { amountMinor: true } },
         },
       }),
+      // M5: i servizi in vetrina e le richieste (senza le foto).
+      tx.storefrontService.findMany({
+        where,
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        select: {
+          id: true,
+          kind: true,
+          name: true,
+          description: true,
+          includes: true,
+          priceFromMinor: true,
+          isPublished: true,
+          status: true,
+          _count: { select: { photos: { where: { status: 'ACTIVE' } } } },
+        },
+      }),
+      tx.serviceRequest.findMany({
+        where,
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          number: true,
+          kind: true,
+          status: true,
+          createdAt: true,
+          customerId: true,
+          preferredDate: true,
+          addressLine1: true,
+          neighborhood: true,
+          city: true,
+          budgetMinor: true,
+          contactPhone: true,
+          message: true,
+          answers: true,
+          declineReasonCode: true,
+          declineReason: true,
+          service: { select: { kind: true, name: true } },
+          _count: { select: { photos: true } },
+        },
+      }),
       tx.orderCashCollection.findMany({
         where,
         orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
@@ -276,6 +324,8 @@ export async function exportTenantData(
       orderChanges,
       paymentProofs,
       cashCollections,
+      storefrontServices,
+      serviceRequests,
     };
   });
 
@@ -322,6 +372,33 @@ export async function exportTenantData(
   type OrderChangeRow = (typeof data.orderChanges)[number];
   type PaymentProofRow = (typeof data.paymentProofs)[number];
   type CashCollectionRow = (typeof data.cashCollections)[number];
+  type StorefrontServiceRow = (typeof data.storefrontServices)[number];
+  type ServiceRequestRow = (typeof data.serviceRequests)[number];
+  const serviceName = (service: { readonly kind: string; readonly name: string | null }) =>
+    storefrontServiceDisplayName({
+      kind: service.kind as StorefrontServiceKind,
+      name: service.name,
+    });
+  // Le risposte del modulo in una riga («Tipo: Boda; Invitados: 120; …»).
+  const requestDetails = (value: unknown): string | null => {
+    const answers = parseServiceRequestAnswers(value);
+    if (!answers) return null;
+    const parts = [
+      answers.eventType ? `Tipo: ${LABELS.eventType[answers.eventType]}` : null,
+      answers.guests ? `Invitados: ${answers.guests}` : null,
+      answers.place ? `Lugar: ${answers.place}` : null,
+      answers.venueType ? `Lugar: ${LABELS.venueType[answers.venueType]}` : null,
+      answers.recurrence ? `Frecuencia: ${LABELS.venueRecurrence[answers.recurrence]}` : null,
+      answers.weekday !== undefined ? `Día: ${LABELS.weekday[answers.weekday]}` : null,
+      answers.windowStartMinutes !== undefined && answers.windowEndMinutes !== undefined
+        ? `Horario: ${time(answers.windowStartMinutes)}-${time(answers.windowEndMinutes)}`
+        : null,
+      answers.duration ? `Duración: ${LABELS.weeklyDuration[answers.duration]}` : null,
+      answers.plants ? `Plantas: ${answers.plants}` : null,
+      answers.frequency ? `Visitas: ${LABELS.frequency[answers.frequency]}` : null,
+    ].filter((part): part is string => part !== null);
+    return parts.length > 0 ? parts.join('; ') : null;
+  };
   const reviewStatus = (status: string) =>
     LABELS.moneyReviewStatus[status as keyof typeof LABELS.moneyReviewStatus] ?? status;
 
@@ -928,6 +1005,60 @@ export async function exportTenantData(
         { header: 'Revisado', value: (r) => dateTime(r.reviewedAt) },
       ],
       data.cashCollections,
+    ),
+    section<StorefrontServiceRow>(
+      'servicios_tienda.csv',
+      'servicios de la tienda en línea (sin las fotos)',
+      [
+        { header: 'id', value: (r) => r.id },
+        { header: 'Servicio', value: (r) => serviceName(r) },
+        {
+          header: 'Tipo',
+          value: (r) => LABELS.storefrontServiceKind[r.kind as StorefrontServiceKind] ?? r.kind,
+        },
+        { header: 'Descripción', value: (r) => r.description },
+        { header: 'Incluye', value: (r) => r.includes },
+        { header: 'Desde', value: (r) => money(r.priceFromMinor), numeric: true },
+        { header: 'En la tienda', value: (r) => (r.isPublished ? YES : NO) },
+        { header: 'Estado', value: (r) => LABELS.record[r.status] },
+        { header: 'Fotos', value: (r) => r._count.photos, numeric: true },
+      ],
+      data.storefrontServices,
+    ),
+    section<ServiceRequestRow>(
+      'solicitudes.csv',
+      'solicitudes de servicios que enviaron los clientes desde la tienda (sin las fotos)',
+      [
+        { header: 'id', value: (r) => r.id },
+        { header: 'Número', value: (r) => formatServiceRequestNumber(r.number) },
+        { header: 'Fecha', value: (r) => dateTime(r.createdAt) },
+        { header: 'Servicio', value: (r) => serviceName(r.service) },
+        {
+          header: 'Estado',
+          value: (r) => LABELS.serviceRequestStatus[r.status as ServiceRequestStatus] ?? r.status,
+        },
+        { header: 'cliente_id', value: (r) => r.customerId },
+        { header: 'Cliente', value: (r) => (r.customerId ? customerName.get(r.customerId) : null) },
+        { header: 'Fecha pedida', value: (r) => day(r.preferredDate) },
+        {
+          header: 'Dirección',
+          value: (r) => [r.addressLine1, r.neighborhood, r.city].filter(Boolean).join(', ') || null,
+        },
+        { header: 'Presupuesto', value: (r) => money(r.budgetMinor), numeric: true },
+        { header: 'Teléfono', value: (r) => r.contactPhone },
+        { header: 'Mensaje', value: (r) => r.message },
+        { header: 'Detalles', value: (r) => requestDetails(r.answers) },
+        {
+          header: 'Motivo del rechazo',
+          value: (r) =>
+            r.declineReasonCode
+              ? LABELS.serviceDeclineReason[r.declineReasonCode as ServiceDeclineReason]
+              : null,
+        },
+        { header: 'Respuesta al cliente', value: (r) => r.declineReason },
+        { header: 'Fotos', value: (r) => r._count.photos, numeric: true },
+      ],
+      data.serviceRequests,
     ),
   ];
 

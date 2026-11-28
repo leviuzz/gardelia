@@ -106,6 +106,8 @@ test('i lavori giornalieri rispondono solo con il segreto e dicono cosa hanno fa
     orderMessagePhotosDeleted: expect.any(Number),
     // M3-3: foto delle prove di pagamento cancellate.
     paymentProofPhotosDeleted: expect.any(Number),
+    // M5: foto delle richieste di servizi cancellate.
+    serviceRequestPhotosDeleted: expect.any(Number),
     careChargesIssued: expect.any(Number),
     careChargesPending: expect.any(Number),
     careVisitsCreated: expect.any(Number),

@@ -50,7 +50,7 @@ export interface TenantPlanDto {
 
 async function resolvePlan(
   tx: TransactionClient,
-  ctx: TenantContext,
+  ctx: Pick<TenantContext, 'tenantId'>,
   now: Date,
 ): Promise<TenantPlanDto> {
   const subscription = await tx.tenantSubscription.findFirst({
@@ -110,6 +110,17 @@ export async function getEntitlements(
   return withTenantContext(getDb(), ctx, async (inner) => {
     return (await resolvePlan(inner, ctx, now)).entitlements;
   });
+}
+
+/**
+ * Le funzioni incluse di una fioreria senza una persona (la vetrina pubblica, M5: Floral Care in
+ * vetrina solo se il piano lo include). Dentro una transazione già nel contesto della fioreria.
+ */
+export async function tenantEntitlementsTx(
+  tx: TransactionClient,
+  tenantId: string,
+): Promise<PlanEntitlements> {
+  return (await resolvePlan(tx, { tenantId }, new Date())).entitlements;
 }
 
 /** Lancia PlanRequiredError se la funzione non è inclusa nel piano effettivo. */

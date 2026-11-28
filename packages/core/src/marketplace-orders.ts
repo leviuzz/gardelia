@@ -73,6 +73,7 @@ import {
   withdrawnOrderMailsForShop,
   type OrderMailDeps,
 } from './order-mail';
+import { linkBuyerCustomerTx } from './buyer-customer';
 import { withBuyerOrder } from './buyer-orders';
 import { claimReminderNoticeTx } from './order-message-internals';
 import { createPublicLinkToken, publicLinkUrl } from './public-links';
@@ -523,41 +524,17 @@ export async function placeMarketplaceOrder(
       const totals = priceOrder({ subtotalMinor, discountMinor: 0, deliveryFeeMinor });
       if (!totals.ok) throw new ValidationError({ lines: totals.error });
 
-      // Cliente del CRM della fioreria: quello con la stessa email, o uno nuovo.
-      const existing = await tx.customer.findFirst({
-        where: { tenantId, status: 'ACTIVE', email: { equals: user.email, mode: 'insensitive' } },
-        orderBy: { createdAt: 'asc' },
-        select: { id: true, acquisitionSource: true, phone: true },
+      // Cliente del CRM della fioreria: quello con la stessa email, o uno nuovo (il telefono
+      // dell'ordine si scrive su chi non ne aveva uno, M0).
+      const crm = await linkBuyerCustomerTx(tx, {
+        tenantId,
+        user,
+        contactPhone: input.contactPhone,
+        fromSearch: options.fromSearch,
       });
-      // Origine (fee D-24): portato da Gardelia solo se arriva dalla ricerca E non era già un
-      // cliente della fioreria (sui clienti propri non c'è fee).
-      const acquisitionSource =
-        options.fromSearch && (!existing || existing.acquisitionSource === 'MARKETPLACE_B2C')
-          ? 'MARKETPLACE_B2C'
-          : 'MERCHANT_DIRECT';
-      const customer =
-        existing ??
-        (await tx.customer.create({
-          data: {
-            tenantId,
-            type: 'PERSON',
-            displayName: user.name,
-            email: user.email.toLowerCase(),
-            phone: input.contactPhone,
-            acquisitionSource,
-            acquisitionChannel: 'online_store',
-          },
-          select: { id: true },
-        }));
-      // Il telefono dell'ordine arriva alla fioreria: si scrive sul cliente che non ne aveva uno
-      // (M0). Quello che il fiorista ha già salvato non si tocca.
-      const customerPhoneAdded = existing !== null && !existing.phone;
-      if (customerPhoneAdded) {
-        await tx.customer.update({
-          where: { id: existing.id, tenantId },
-          data: { phone: input.contactPhone },
-        });
-      }
+      const { acquisitionSource } = crm;
+      const customer = { id: crm.customerId };
+      const customerPhoneAdded = crm.phoneAdded;
 
       const number = await nextTenantCounter(tx, tenantId, 'order');
       const order = await tx.order.create({
@@ -634,7 +611,7 @@ export async function placeMarketplaceOrder(
             number: formatOrderNumber(number),
             mode: input.fulfillmentMode,
             source: acquisitionSource,
-            newCustomer: existing === null,
+            newCustomer: crm.created,
             customerPhoneAdded,
             // Versione dei termini e dell'aviso accettati inviando l'ordine (ADR-068).
             termsVersion: LEGAL_VERSION,

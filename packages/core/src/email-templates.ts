@@ -946,3 +946,137 @@ export function onlineOrderExpiredShopEmail(input: {
     ...body,
   };
 }
+
+// -----------------------------------------------------------------------------
+// Richieste di servizi della vetrina (M5, ADR-089)
+// -----------------------------------------------------------------------------
+
+/** Quello che dicono tutte le email di una richiesta. */
+export interface ServiceRequestEmailFacts {
+  readonly shopName: string;
+  /** «SOL-0003». */
+  readonly numberLabel: string;
+  /** Il nome del servizio nella lingua del mercato (es. «Eventos y bodas»). */
+  readonly serviceName: string;
+}
+
+/** A chi compra, appena manda la richiesta: la fioreria risponde nell'app e per email. */
+export function serviceRequestReceivedEmail(input: {
+  to: string;
+  name: string;
+  facts: ServiceRequestEmailFacts;
+  url: string;
+  replyTo: string | null;
+}): EmailMessage {
+  const { facts } = input;
+  const body = plainAndHtml(
+    `Hola ${input.name}:`,
+    [
+      `${facts.shopName} recibió tu solicitud ${facts.numberLabel} de «${facts.serviceName}».`,
+      'La florería la revisa y te responde desde tu cuenta; te avisamos por correo. Todavía no pagues nada.',
+    ],
+    { label: 'Ver mi solicitud', url: input.url },
+    `Recibiste este correo porque enviaste una solicitud en ${BRAND.productName}.`,
+    'Recibimos tu solicitud',
+  );
+  return {
+    to: input.to,
+    category: 'service_request_received',
+    subject: `Recibimos tu solicitud ${facts.numberLabel} para ${facts.shopName}`,
+    fromName: facts.shopName,
+    ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+    ...body,
+  };
+}
+
+/**
+ * A propietari e gerenti: una richiesta nuova. Servizio, data e zona (mai l'indirizzo intero né il
+ * messaggio di chi compra: si leggono nell'app).
+ */
+export function newServiceRequestShopEmail(input: {
+  to: string;
+  buyerName: string;
+  facts: ServiceRequestEmailFacts;
+  /** La data chiesta, già scritta (es. «sábado 20 de diciembre»), o null. */
+  dateLabel: string | null;
+  /** Colonia e città, o null. */
+  zone: string | null;
+  url: string;
+}): EmailMessage {
+  const { facts } = input;
+  const body = plainAndHtml(
+    'Hola:',
+    [
+      `${input.buyerName} te envió la solicitud ${facts.numberLabel} de «${facts.serviceName}» desde tu tienda en línea.`,
+      ...(input.dateLabel ? [`Fecha: ${input.dateLabel}.`] : []),
+      ...(input.zone ? [`Zona: ${input.zone}.`] : []),
+      'Revisa los detalles y las fotos en la app y responde al cliente.',
+    ],
+    { label: 'Ver la solicitud', url: input.url },
+    `Recibes este correo porque eres propietario/a o gerente de ${facts.shopName}.`,
+    'Nueva solicitud',
+  );
+  return {
+    to: input.to,
+    category: 'service_request_new',
+    subject: `Nueva solicitud ${facts.numberLabel}: ${facts.serviceName}`,
+    ...body,
+  };
+}
+
+/** A chi compra: la fioreria non può, con il suo motivo. */
+export function serviceRequestDeclinedEmail(input: {
+  to: string;
+  name: string;
+  facts: ServiceRequestEmailFacts;
+  reason: string;
+  url: string;
+  replyTo: string | null;
+}): EmailMessage {
+  const { facts } = input;
+  const body = plainAndHtml(
+    `Hola ${input.name}:`,
+    [
+      `${facts.shopName} no puede atender tu solicitud ${facts.numberLabel} de «${facts.serviceName}».`,
+      `Motivo: ${input.reason}`,
+      'No tienes que pagar nada.',
+    ],
+    { label: 'Ver mi solicitud', url: input.url },
+    `Recibiste este correo porque enviaste una solicitud en ${BRAND.productName}.`,
+    'Tu solicitud no se realizará',
+  );
+  return {
+    to: input.to,
+    category: 'service_request_declined',
+    subject: `${facts.shopName} no puede atender tu solicitud ${facts.numberLabel}`,
+    fromName: facts.shopName,
+    ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+    ...body,
+  };
+}
+
+/** A propietari e gerenti: chi compra ha annullato la sua richiesta. */
+export function serviceRequestCancelledShopEmail(input: {
+  to: string;
+  buyerName: string;
+  facts: ServiceRequestEmailFacts;
+  url: string;
+}): EmailMessage {
+  const { facts } = input;
+  const body = plainAndHtml(
+    'Hola:',
+    [
+      `${input.buyerName} canceló la solicitud ${facts.numberLabel} de «${facts.serviceName}».`,
+      'Ya no tienes que responderla.',
+    ],
+    { label: 'Ver la solicitud', url: input.url },
+    `Recibes este correo porque eres propietario/a o gerente de ${facts.shopName}.`,
+    'Solicitud cancelada',
+  );
+  return {
+    to: input.to,
+    category: 'service_request_cancelled',
+    subject: `Se canceló la solicitud ${facts.numberLabel}`,
+    ...body,
+  };
+}

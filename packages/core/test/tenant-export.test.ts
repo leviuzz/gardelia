@@ -227,6 +227,9 @@ describe('esportazione dei dati della fioreria', () => {
         'pedidos_mensajes.csv',
         'proveedores.csv',
         'recetas.csv',
+        // M5: servizi in vetrina e richieste.
+        'servicios_tienda.csv',
+        'solicitudes.csv',
       ].sort(),
     );
     expect(strFromU8(entries['LEEME.txt']!)).toContain('Datos de Florería Exporta');

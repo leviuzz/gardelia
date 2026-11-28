@@ -1142,6 +1142,19 @@
       "ended": "Se registró el fin del contrato {number}",
       "repriced": "{actor} actualizó el precio de {number}",
       "discarded": "{actor} descartó el borrador {number}"
+    },
+    "storefront_service": {
+      "saved": "{actor} actualizó un servicio de la tienda en línea",
+      "published": "{actor} puso un servicio en la tienda en línea",
+      "unpublished": "{actor} quitó un servicio de la tienda en línea",
+      "archived": "{actor} archivó un servicio de la tienda en línea",
+      "photo_added": "{actor} agregó una foto a un servicio de la tienda en línea",
+      "photo_removed": "{actor} quitó una foto de un servicio de la tienda en línea"
+    },
+    "service_request": {
+      "submitted": "{actor} envió la solicitud {number}",
+      "declined": "{actor} rechazó la solicitud {number}",
+      "cancelled_by_buyer": "{actor} canceló su solicitud {number}"
     }
   },
   "catalog": {

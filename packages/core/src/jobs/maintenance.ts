@@ -21,6 +21,7 @@ import { logger } from '../logger';
 import { expireUnacceptedOrders, remindPendingOrders } from '../marketplace-orders';
 import { purgeOrderMessagePhotos } from '../services/order-messages';
 import { purgeOrderPaymentProofPhotos } from '../services/order-money';
+import { purgeServiceRequestPhotos } from '../services/service-requests';
 import { purgeDeletedTenants } from '../services/tenant-deletion';
 import type { OrderMailDeps } from '../order-mail';
 import { refreshStoreCoordinates } from '../public-directory';
@@ -59,6 +60,8 @@ export interface MaintenanceResult {
   readonly orderMessagePhotosDeleted: number;
   /** M3-3: foto delle prove di pagamento cancellate (stessa regola). */
   readonly paymentProofPhotosDeleted: number;
+  /** M5: foto delle richieste di servizi cancellate (30 giorni dopo la chiusura). */
+  readonly serviceRequestPhotosDeleted: number;
 }
 
 /** `mail`: per scrivere a chi compra quando il suo ordine scade (null nei test senza email). */
@@ -85,6 +88,7 @@ export async function runDailyMaintenance(
   const onlineOrdersReminded = await remindPendingOrders(mail);
   const orderMessagePhotosDeleted = await purgeOrderMessagePhotos();
   const paymentProofPhotosDeleted = await purgeOrderPaymentProofPhotos();
+  const serviceRequestPhotosDeleted = await purgeServiceRequestPhotos();
   const care = await runCareMaintenance(mail);
   const tenantsPurged = await purgeDeletedTenants();
   const result: MaintenanceResult = {
@@ -110,6 +114,7 @@ export async function runDailyMaintenance(
     onlineOrdersReminded,
     orderMessagePhotosDeleted,
     paymentProofPhotosDeleted,
+    serviceRequestPhotosDeleted,
   };
   logger.info(result, 'manutenzione giornaliera completata');
   return result;

@@ -7,7 +7,7 @@
  */
 import { z } from 'zod';
 import { addDays, addMonths, compareDates, type CalendarDate } from './calendar';
-import { optionalPhoneField } from './customer';
+import { customerAddressSchema, optionalPhoneField } from './customer';
 import type { MarketCountry } from './markets';
 import type { CurrencyCode } from './money';
 import { CARE_FREQUENCIES } from './floral-care';
@@ -151,6 +151,8 @@ export const SERVICE_REQUEST_LIMITS = {
   /** Da domani fino a 12 mesi. */
   monthsAhead: 12,
   declineDetail: 300,
+  /** Le foto di ispirazione si cancellano 30 giorni dopo la chiusura (rifiutata, annullata, chiusa). */
+  photoRetentionDays: 30,
 } as const;
 
 /** Aperta: la fioreria deve ancora rispondere o chi compra deve ancora decidere. */
@@ -248,6 +250,23 @@ export function serviceRequestNeedsAddress(service: RequestedService): boolean {
       return service.askAddress;
   }
 }
+
+/**
+ * Un indirizzo nuovo scritto nel modulo della richiesta (le regole della rubrica, più le note per
+ * arrivare); uno salvato nel conto arriva come `buyerAddressId`.
+ */
+export function serviceRequestAddressSchema(country: MarketCountry) {
+  return customerAddressSchema(country).pick({
+    addressLine1: true,
+    addressLine2: true,
+    neighborhood: true,
+    city: true,
+    region: true,
+    postalCode: true,
+    deliveryNotes: true,
+  });
+}
+export type ServiceRequestAddressInput = z.infer<ReturnType<typeof serviceRequestAddressSchema>>;
 
 /**
  * Il modulo della richiesta, per tipo. Le date si controllano a parte (`serviceRequestDateProblem`:
@@ -399,6 +418,35 @@ export function serviceRequestProblem(input: {
   }
   return null;
 }
+
+// -----------------------------------------------------------------------------
+// L'elenco «Richieste» della fioreria
+// -----------------------------------------------------------------------------
+
+/** Aperte (nuove e con preventivo), solo le nuove, solo con preventivo, chiuse, tutte. */
+export const SERVICE_REQUEST_FILTERS = ['open', 'new', 'quoted', 'closed', 'all'] as const;
+export type ServiceRequestFilter = (typeof SERVICE_REQUEST_FILTERS)[number];
+export const SERVICE_REQUEST_PAGE_SIZE = 20;
+
+/** Gli stati di ogni filtro (le «nuove» sono le stesse del numero nel menu e di «Da gestire»). */
+export const SERVICE_REQUEST_FILTER_STATUSES: Readonly<
+  Record<ServiceRequestFilter, readonly ServiceRequestStatus[]>
+> = {
+  open: ['NEW', 'QUOTED'],
+  new: ['NEW'],
+  quoted: ['QUOTED'],
+  closed: ['ACCEPTED', 'DECLINED', 'CANCELLED', 'CLOSED'],
+  all: SERVICE_REQUEST_STATUSES,
+};
+
+export const serviceRequestListFiltersSchema = z.object({
+  filter: z.preprocess(toTrimmedString, z.enum(SERVICE_REQUEST_FILTERS).catch('open')),
+  page: z.preprocess(
+    (value) => (typeof value === 'string' ? Number(value) : value),
+    z.int().min(1).max(10_000).catch(1),
+  ),
+});
+export type ServiceRequestListFilters = z.infer<typeof serviceRequestListFiltersSchema>;
 
 // -----------------------------------------------------------------------------
 // «Rifiuta» della fioreria

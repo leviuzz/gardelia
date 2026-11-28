@@ -148,6 +148,19 @@ export const AUDIT_ACTIONS = {
   storeImageRemoved: 'store.image_removed',
   storeOrdersUpdated: 'store.orders_updated',
   storePoliciesUpdated: 'store.policies_updated',
+  /**
+   * Marketplace M5 (ADR-089): i servizi della vetrina e le richieste. Nel registro tipi, numeri e
+   * motivi pronti, mai i testi della fioreria né quelli di chi compra.
+   */
+  storefrontServiceSaved: 'storefront_service.saved',
+  storefrontServicePublished: 'storefront_service.published',
+  storefrontServiceUnpublished: 'storefront_service.unpublished',
+  storefrontServiceArchived: 'storefront_service.archived',
+  storefrontServicePhotoAdded: 'storefront_service.photo_added',
+  storefrontServicePhotoRemoved: 'storefront_service.photo_removed',
+  serviceRequestSubmitted: 'service_request.submitted',
+  serviceRequestDeclined: 'service_request.declined',
+  serviceRequestCancelledByBuyer: 'service_request.cancelled_by_buyer',
   /** Inventario (ADR-060): prodotti controllati e registri di magazzino. */
   inventoryTrackingStarted: 'inventory.tracking_started',
   inventoryTrackingStopped: 'inventory.tracking_stopped',

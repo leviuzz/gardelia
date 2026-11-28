@@ -124,12 +124,57 @@ export {
   getPublicStoreImage,
   getPublicStoreItem,
   getPublicStoreItemPhoto,
+  getPublicStoreService,
+  getPublicStoreServicePhoto,
   type PublicStoreDto,
   type PublicStorefrontDto,
   type PublicCartSummaryDto,
   type PublicStoreItemDetailDto,
   type PublicStoreItemDto,
+  type PublicStoreServiceDetailDto,
+  type PublicStoreServiceDto,
 } from './public-store';
+// M5 (ADR-089): servizi in vetrina e richieste.
+export {
+  addStorefrontServicePhoto,
+  archiveStorefrontService,
+  createStorefrontService,
+  getStorefrontServicePhotoImage,
+  getStorefrontServicesSettings,
+  moveStorefrontService,
+  removeStorefrontServicePhoto,
+  saveStorefrontService,
+  setStorefrontServicePublished,
+  type StorefrontServiceDto,
+  type StorefrontServicePhotoDto,
+  type StorefrontServicesSettingsDto,
+  type StorefrontServiceTarget,
+} from './services/storefront-services';
+export {
+  countNewServiceRequests,
+  declineServiceRequest,
+  getServiceRequest,
+  getServiceRequestPhotoImage,
+  listServiceRequests,
+  purgeServiceRequestPhotos,
+  serviceRequestsMenuCount,
+  type ServiceRequestListItemDto,
+  type ServiceRequestListResult,
+  type ShopServiceRequestDto,
+} from './services/service-requests';
+export {
+  cancelBuyerServiceRequest,
+  getBuyerServiceRequest,
+  getBuyerServiceRequestPhoto,
+  getServiceRequestForm,
+  listBuyerServiceRequests,
+  submitServiceRequest,
+  type BuyerServiceRequestDetailDto,
+  type BuyerServiceRequestDto,
+  type ServiceRequestFormDto,
+  type SubmittedServiceRequestDto,
+} from './buyer-service-requests';
+export type { ServiceRequestDetailDto, ServiceRequestPhotoDto } from './service-request-internals';
 export {
   getStorePreview,
   getStorePreviewItem,

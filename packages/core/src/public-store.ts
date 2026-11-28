@@ -6,7 +6,7 @@
  * vedere: prodotti attivi con "Visible en línea", prezzi di vendita, contatto, consegne. Niente
  * costi, codici interni, note o dati di clienti.
  */
-import { getDb, withTenantContext, type TransactionClient } from '@floral/db';
+import { getDb, withTenantContext, type Prisma, type TransactionClient } from '@floral/db';
 import {
   MX_REGIONS,
   ONLINE_ITEM_TYPES,
@@ -31,6 +31,7 @@ import {
   type StorefrontCategory,
   type StorefrontQuery,
   type StorePaymentMethod,
+  type StorefrontServiceKind,
   type SupportedLocale,
 } from '@floral/domain';
 import { NotFoundError } from './errors';
@@ -42,6 +43,7 @@ import {
   type AssistantSpeciesDto,
 } from './services/plant-assistant-internals';
 import { readStoredImage, type StoredImage } from './media/stored-files';
+import { careOfferReadyTx } from './services/storefront-services';
 
 const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
 
@@ -152,6 +154,32 @@ export interface PublicStorefrontDto {
   readonly featured: readonly PublicStoreItemDto[];
   /** Il carrello di chi guarda, o null se è vuoto. */
   readonly cart: PublicCartSummaryDto | null;
+  /** Sezione «Servicios» (M5): i servizi pubblicati, nell'ordine della fioreria. */
+  readonly services: readonly PublicStoreServiceDto[];
+}
+
+/** Un servizio in vetrina (M5, ADR-089): la scheda della sezione «Servicios». */
+export interface PublicStoreServiceDto {
+  readonly id: string;
+  readonly kind: StorefrontServiceKind;
+  /** Solo i servizi della fioreria; i predefiniti hanno il nome dalla lingua della pagina. */
+  readonly name: string | null;
+  readonly description: string | null;
+  readonly priceFromMinor: number | null;
+  /** La prima foto, o null. */
+  readonly photoId: string | null;
+}
+
+/** La pagina di un servizio: le foto, cosa include e cosa chiede il modulo. */
+export interface PublicStoreServiceDetailDto {
+  readonly store: PublicStoreDto;
+  readonly cart: PublicCartSummaryDto | null;
+  readonly service: PublicStoreServiceDto & {
+    readonly includes: string | null;
+    readonly photoIds: readonly string[];
+    readonly askDate: boolean;
+    readonly askAddress: boolean;
+  };
 }
 
 export interface PublicStoreItemDetailDto {
@@ -389,7 +417,75 @@ export async function readStorefrontTx(
     pageCount: plan.pageCount,
     items: pick(plan.itemIds),
     featured: pick(plan.featuredIds),
+    services: await readStoreServicesTx(tx, tenantId),
   };
+}
+
+/** Servizi che chi compra vede: pubblicati e attivi (Floral Care solo con l'offerta pronta). */
+const publishedServiceWhere = (tenantId: string) => ({
+  tenantId,
+  isPublished: true,
+  status: 'ACTIVE' as const,
+});
+
+const SERVICE_PHOTOS = {
+  where: { status: 'ACTIVE' },
+  orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+  select: { id: true },
+} satisfies Prisma.StorefrontService$photosArgs;
+
+const SERVICE_SELECT = {
+  id: true,
+  kind: true,
+  name: true,
+  description: true,
+  priceFromMinor: true,
+} as const;
+
+/**
+ * Il servizio pubblicato (o null), con le foto: Floral Care sparisce se l'offerta non è più pronta
+ * (tariffe o fasce tolte dopo averlo acceso). La usa anche la richiesta di chi compra.
+ */
+export async function readPublishedServiceTx(
+  tx: TransactionClient,
+  tenantId: string,
+  serviceId: string,
+) {
+  const service = await tx.storefrontService.findFirst({
+    where: { ...publishedServiceWhere(tenantId), id: serviceId },
+    select: {
+      ...SERVICE_SELECT,
+      includes: true,
+      askDate: true,
+      askAddress: true,
+      photos: SERVICE_PHOTOS,
+    },
+  });
+  if (!service) return null;
+  if (service.kind === 'CARE' && !(await careOfferReadyTx(tx, tenantId))) return null;
+  return { ...service, kind: service.kind as StorefrontServiceKind };
+}
+
+/** La sezione «Servicios» della vetrina (anche nell'anteprima della fioreria). */
+export async function readStoreServicesTx(
+  tx: TransactionClient,
+  tenantId: string,
+): Promise<PublicStoreServiceDto[]> {
+  const rows = await tx.storefrontService.findMany({
+    where: publishedServiceWhere(tenantId),
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    select: { ...SERVICE_SELECT, photos: { ...SERVICE_PHOTOS, take: 1 } },
+  });
+  const careReady = rows.some((row) => row.kind === 'CARE')
+    ? await careOfferReadyTx(tx, tenantId)
+    : false;
+  return rows
+    .filter((row) => row.kind !== 'CARE' || careReady)
+    .map(({ photos, ...row }) => ({
+      ...row,
+      kind: row.kind as StorefrontServiceKind,
+      photoId: photos[0]?.id ?? null,
+    }));
 }
 
 /** Il carrello ai prezzi di oggi, solo con i prodotti ancora ordinabili (non esauriti). */
@@ -531,6 +627,67 @@ export async function getPublicStoreItemPhoto(
     // File mancante nell'archivio (già registrato): per il cliente la foto semplicemente non c'è.
     if (error instanceof NotFoundError) return null;
     logger.error({ err: error }, 'tienda pública: errore nella lettura di una foto');
+    return null;
+  }
+}
+
+/** La pagina di un servizio in vetrina (M5); null se non è pubblicato. */
+export async function getPublicStoreService(
+  slug: unknown,
+  serviceId: unknown,
+  options: { readonly cart?: readonly CartLine[] } = {},
+): Promise<PublicStoreServiceDetailDto | null> {
+  if (!isUuid(serviceId)) return null;
+  return withPublishedStore(slug, async (tx, tenantId) => {
+    const service = await readPublishedServiceTx(tx, tenantId, serviceId);
+    if (!service) return null;
+    const [store, cart] = await Promise.all([
+      readStoreHeaderTx(tx, tenantId),
+      readCartSummaryTx(tx, tenantId, options.cart ?? []),
+    ]);
+    const { photos, ...rest } = service;
+    return {
+      store,
+      cart,
+      service: {
+        ...rest,
+        photoId: photos[0]?.id ?? null,
+        photoIds: photos.map((photo) => photo.id),
+      },
+    };
+  });
+}
+
+/** Una foto di un servizio pubblicato (`thumb` = miniatura). */
+export async function getPublicStoreServicePhoto(
+  slug: unknown,
+  serviceId: unknown,
+  photoId: unknown,
+  size: 'full' | 'thumb',
+): Promise<StoredImage | null> {
+  if (!isUuid(serviceId) || !isUuid(photoId)) return null;
+  const photo = await withPublishedStore(slug, (tx, tenantId) =>
+    tx.storefrontServicePhoto.findFirst({
+      where: {
+        id: photoId,
+        tenantId,
+        serviceId,
+        status: 'ACTIVE',
+        service: publishedServiceWhere(tenantId),
+      },
+      select: { storageKey: true, thumbKey: true, contentType: true },
+    }),
+  );
+  if (!photo) return null;
+  try {
+    return await readStoredImage(
+      size === 'thumb' ? photo.thumbKey : photo.storageKey,
+      photo.contentType,
+      'StorefrontServicePhoto',
+    );
+  } catch (error) {
+    if (error instanceof NotFoundError) return null;
+    logger.error({ err: error }, 'tienda pública: errore nella lettura della foto di un servizio');
     return null;
   }
 }

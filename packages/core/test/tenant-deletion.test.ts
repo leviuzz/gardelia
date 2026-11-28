@@ -11,6 +11,7 @@ import {
   NotFoundError,
   ValidationError,
   addCatalogItemPhoto,
+  addStorefrontServicePhoto,
   addCatalogItemToOrder,
   cancelMarketplaceOrder,
   cancelOrder,
@@ -331,6 +332,43 @@ describe('cancellazione definitiva (manutenzione)', () => {
       });
     });
 
+    // M5: un servizio in vetrina con la foto e una richiesta con la foto di ispirazione, legata al
+    // servizio e al cliente (vincoli RESTRICT), vanno via con la fioreria.
+    const service = await addStorefrontServicePhoto(shop.owner, { kind: 'EVENT' }, await jpeg());
+    const requestKeys = [
+      `${prefix}service-requests/${orderId}-idea.jpg`,
+      `${prefix}service-requests/${orderId}-idea-thumb.jpg`,
+    ];
+    for (const key of requestKeys) await storage.put(key, await jpeg());
+    await withTenantContext(db, shop.owner, async (tx) => {
+      const order = await tx.order.findFirstOrThrow({
+        where: { tenantId: shop.owner.tenantId, id: orderId },
+        select: { customerId: true },
+      });
+      const request = await tx.serviceRequest.create({
+        data: {
+          tenantId: shop.owner.tenantId,
+          number: 1,
+          serviceId: service.serviceId,
+          kind: 'EVENT',
+          customerId: order.customerId,
+          currency: 'MXN',
+          contactPhone: '+524495550101',
+          submitKey: crypto.randomUUID(),
+        },
+      });
+      await tx.serviceRequestPhoto.create({
+        data: {
+          tenantId: shop.owner.tenantId,
+          requestId: request.id,
+          photoKey: requestKeys[0]!,
+          photoThumbKey: requestKeys[1]!,
+          photoWidth: 900,
+          photoHeight: 900,
+        },
+      });
+    });
+
     await requestTenantDeletion(shop.owner, { confirmName: 'Florería Que Se Va' }, null);
     // Prima della data non si tocca nulla.
     await purgeDeletedTenants();
@@ -342,6 +380,7 @@ describe('cancellazione definitiva (manutenzione)', () => {
     expect([...storage.objects.keys()].some((key) => key.startsWith(prefix))).toBe(false);
     expect(messageKeys.some((key) => storage.objects.has(key))).toBe(false);
     expect(proofKeys.some((key) => storage.objects.has(key))).toBe(false);
+    expect(requestKeys.some((key) => storage.objects.has(key))).toBe(false);
     const event = await withSystemContext(db, { reason: 'test: evento' }, (tx) =>
       tx.auditLog.findFirst({
         where: { tenantId: null, action: 'platform.tenant_purged', entityId: shop.owner.tenantId },
