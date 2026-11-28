@@ -620,6 +620,35 @@
         "sent": "Abbiamo mandato la prova alla fioreria",
         "networkError": "Non è stato possibile inviarla. Controlla la connessione e riprova."
       }
+    },
+    "requests": {
+      "title": "Le mie richieste",
+      "subtitle": "I servizi che hai chiesto alle fiorerie.",
+      "back": "Le mie richieste",
+      "sent": "Fatto! {shop} ha ricevuto la richiesta: ti risponde qui e per email.",
+      "statuses": {
+        "NEW": "Inviata",
+        "QUOTED": "Con preventivo",
+        "ACCEPTED": "Accettata",
+        "DECLINED": "La fioreria non può",
+        "CANCELLED": "Annullata da te",
+        "CLOSED": "Chiusa"
+      },
+      "statusHints": {
+        "NEW": "{shop} la sta guardando. Ti avvisiamo per email quando risponde.",
+        "QUOTED": "{shop} ti ha mandato un preventivo.",
+        "ACCEPTED": "Hai accettato il preventivo di {shop}.",
+        "DECLINED": "{shop} non può seguire questa richiesta. Non devi pagare niente.",
+        "CANCELLED": "Hai annullato questa richiesta. Abbiamo avvisato {shop}.",
+        "CLOSED": "{shop} ha chiuso questa richiesta."
+      },
+      "declinedTitle": "Cosa dice {shop}",
+      "whatYouSent": "Quello che hai mandato",
+      "cancel": "Annulla la richiesta",
+      "cancelTitle": "Annullare la richiesta {number}?",
+      "cancelBody": "Avvisiamo {shop} che non ti serve più.",
+      "cancelConfirm": "Sì, annulla",
+      "cancelled": "Richiesta annullata"
     }
   },
   "store": {
@@ -918,7 +947,10 @@
     "accountOrders": "I miei ordini",
     "accountSignIn": "Accedi",
     "paymentAfterAccept": "Ti diamo i dati per pagare quando la fioreria accetta il tuo ordine.",
-    "paymentAsk": "Chiedi i dati per pagare alla fioreria."
+    "paymentAsk": "Chiedi i dati per pagare alla fioreria.",
+    "servicesTitle": "Servizi",
+    "servicePriceFrom": "Da {price}",
+    "serviceRequest": "Richiedi"
   },
   "timezones": {
     "America/Mexico_City": "Ora del Centro (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -5517,5 +5549,97 @@
       "upload": "Carica le foto",
       "full": "Hai già {max} foto. Togline una per caricarne un'altra."
     }
+  },
+  "serviceRequest": {
+    "priceFrom": "Da {price}",
+    "includes": "Cosa include",
+    "howItWorks": "Racconta a {shop} cosa ti serve. Ti risponde dal tuo conto e per email, con un preventivo se può farlo. Non paghi ancora niente.",
+    "formTitle": "Richiedi questo servizio",
+    "signInBody": "Per mandare la richiesta a {shop}, entra o crea il tuo conto. Poi torni qui.",
+    "signIn": "Entra o crea il conto",
+    "unavailable": "Questo servizio non è disponibile per ora.",
+    "openLimit": "Hai già {count} richieste aperte con questa fioreria. Aspetta la risposta o annullane una.",
+    "myRequests": "Vedi le mie richieste",
+    "choose": "Scegli",
+    "eventType": "Tipo di evento",
+    "eventTypes": {
+      "WEDDING": "Matrimonio",
+      "XV": "XV años (15 anni)",
+      "BAPTISM": "Battesimo",
+      "CORPORATE": "Aziendale",
+      "OTHER": "Altro"
+    },
+    "guests": "Invitati",
+    "place": "Luogo",
+    "placeHint": "Il salone o il giardino, il quartiere e la città.",
+    "venueType": "Tipo di locale",
+    "venueTypes": {
+      "RESTAURANT": "Ristorante",
+      "HOTEL": "Hotel",
+      "OFFICE": "Ufficio",
+      "SHOP": "Negozio",
+      "OTHER": "Altro"
+    },
+    "recurrence": "Una volta o periodica?",
+    "recurrences": {
+      "ONCE": "Una volta",
+      "RECURRING": "Periodica"
+    },
+    "weekday": "Giorno della settimana",
+    "weekdays": {
+      "0": "Domenica",
+      "1": "Lunedì",
+      "2": "Martedì",
+      "3": "Mercoledì",
+      "4": "Giovedì",
+      "5": "Venerdì",
+      "6": "Sabato"
+    },
+    "window": "Fascia",
+    "anyTime": "Qualsiasi ora",
+    "windowOption": "Dalle {start} alle {end}",
+    "duration": "Per quanto tempo?",
+    "durations": {
+      "ONE_MONTH": "1 mese",
+      "THREE_MONTHS": "3 mesi",
+      "SIX_MONTHS": "6 mesi",
+      "OPEN": "Senza fine"
+    },
+    "plants": "Quante piante, più o meno?",
+    "plantsHint": "La fioreria conferma il prezzo alla prima visita.",
+    "frequency": "Ogni quanto?",
+    "frequencies": {
+      "MONTHLY_1": "Una volta al mese",
+      "MONTHLY_2": "Due volte al mese",
+      "WEEKLY": "Ogni settimana"
+    },
+    "date": "Data",
+    "startDate": "Da quando",
+    "dateOptional": "Facoltativa.",
+    "budget": "Budget ({currency})",
+    "budgetWeekly": "Budget per consegna ({currency})",
+    "budgetHint": "Facoltativo: aiuta la fioreria a proporti qualcosa su misura.",
+    "address": "Indirizzo",
+    "newAddress": "Un altro indirizzo",
+    "addressNotes": "Indicazioni (facoltative)",
+    "message": "Racconta di più (facoltativo)",
+    "messageRequired": "Cosa ti serve?",
+    "messageHint": "Colori, stile, fiori che ti piacciono, orari… Lo legge solo la fioreria.",
+    "photos": "Foto di ispirazione (fino a {max})",
+    "photosHint": "Facoltative: foto di quello che ti piace o del luogo.",
+    "addPhotos": "Aggiungi foto",
+    "removePhoto": "Togli {name}",
+    "contactPhone": "Il tuo telefono",
+    "contactPhoneHint": "Nel caso la fioreria debba chiamarti.",
+    "notBinding": "Una richiesta non è un impegno: decidi quando la fioreria ti manda il preventivo.",
+    "submit": "Invia la richiesta",
+    "networkError": "Non siamo riusciti a inviare la richiesta. Controlla la connessione e riprova."
+  },
+  "requestDetails": {
+    "date": "Data",
+    "budget": "Budget",
+    "address": "Indirizzo",
+    "photoDeleted": "Foto cancellata",
+    "photoAlt": "Foto di ispirazione {index}"
   }
 }

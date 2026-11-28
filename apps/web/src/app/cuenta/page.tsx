@@ -14,6 +14,7 @@ import {
   getBuyerAccountDeletionBlockers,
   getPlacesProvider,
   listBuyerOrders,
+  listBuyerServiceRequests,
   listMyCareContracts,
   listUserTenants,
   openBuyerAccount,
@@ -32,6 +33,7 @@ import { serverEnv } from '@/lib/env';
 import { money, phoneForInput } from '@/lib/format';
 import { ORDER_STATUS_BADGE } from '@/lib/order-ui';
 import { calendarDate } from '@/lib/quote-ui';
+import { SERVICE_REQUEST_STATUS_BADGE } from '@/lib/service-request-ui';
 import { accountRoutes, buyerRoutes, legalRoutes, securityRoutes } from '@/lib/routes';
 import {
   addBuyerAddressAction,
@@ -57,12 +59,13 @@ const REGION_NAMES = new Map<string, string>(REGIONS.map((region) => [region.cod
  */
 export default async function AccountPage() {
   const ctx = await getBuyerContext();
-  const [account, shops, orders, deletionBlockers, careContracts] = await Promise.all([
+  const [account, shops, orders, deletionBlockers, careContracts, requests] = await Promise.all([
     openBuyerAccount(ctx),
     listUserTenants(ctx.userId),
     listBuyerOrders(ctx, serverEnv().BETTER_AUTH_SECRET),
     getBuyerAccountDeletionBlockers(ctx),
     listMyCareContracts(ctx),
+    listBuyerServiceRequests(ctx),
   ]);
   const t = await getTranslations();
   const format = await getFormatter();
@@ -166,6 +169,50 @@ export default async function AccountPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* M5: le richieste dei servizi della vetrina. */}
+      {requests.length > 0 ? (
+        <Card id="solicitudes" className="scroll-mt-20" data-testid="account-requests">
+          <CardHeader>
+            <CardTitle>{t('account.requests.title')}</CardTitle>
+            <CardDescription>{t('account.requests.subtitle')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y rounded-xl border">
+              {requests.map((request) => (
+                <li key={request.id}>
+                  <Link
+                    href={accountRoutes.requests.detail(request.id)}
+                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
+                  >
+                    <span className="min-w-0 flex-1 space-y-1">
+                      <span className="block truncate font-medium">{request.shop.name}</span>
+                      <span className="block text-sm text-muted-foreground">
+                        <span className="tabular-nums">{request.numberLabel}</span>
+                        {` · ${request.serviceName ?? t(`serviceNames.${request.kind}`)}`}
+                        {request.preferredDate
+                          ? ` · ${format.dateTime(calendarDate(request.preferredDate), {
+                              day: 'numeric',
+                              month: 'short',
+                              timeZone: 'UTC',
+                            })}`
+                          : ''}
+                      </span>
+                      <Badge variant={SERVICE_REQUEST_STATUS_BADGE[request.status]}>
+                        {t(`account.requests.statuses.${request.status}`)}
+                      </Badge>
+                    </span>
+                    <ChevronRight
+                      className="size-4 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {careContracts.length > 0 ? (
         <Card data-testid="account-floral-care">

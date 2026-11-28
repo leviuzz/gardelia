@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Clock,
   CreditCard,
+  Flower2,
   Gift,
   Globe,
   MapPin,
@@ -13,6 +14,7 @@ import {
   ScrollText,
   Search,
   ShoppingBag,
+  Sparkles,
   Star,
   Store,
   Truck,
@@ -104,6 +106,7 @@ export async function StorefrontView({
   const locale = store.locale;
   const t = await getTranslations({ locale, namespace: 'publicStore' });
   const tOccasion = await getTranslations({ locale, namespace: 'occasions' });
+  const tRoot = await getTranslations({ locale });
   const format = await getFormatter({ locale });
   const fmt = (minor: number) => money(minor, store.currency, locale);
   // 22/11/2026 è una domenica (0): nomi dei giorni nella lingua del mercato.
@@ -243,6 +246,63 @@ export async function StorefrontView({
               {view.featured.map((item) => (
                 <li key={item.id}>{card(item, false)}</li>
               ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {/* M5: i servizi della fioreria (eventi, decorazioni, Floral Care…), solo quelli pubblicati. */}
+        {view.services.length > 0 && !filtered ? (
+          <section aria-labelledby="services" className="mt-10" data-testid="storefront-services">
+            <h2
+              id="services"
+              className="flex items-center gap-2 font-display text-xl font-semibold"
+            >
+              <Sparkles className="size-5 text-primary" aria-hidden="true" />
+              {t('servicesTitle')}
+            </h2>
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+              {view.services.map((service) => {
+                const name = service.name ?? tRoot(`serviceNames.${service.kind}`);
+                return (
+                  <li key={service.id}>
+                    <Link
+                      href={links.service(service.id)}
+                      className="group flex h-full gap-3 rounded-2xl border bg-card p-3 transition-colors hover:border-primary/50"
+                      data-testid={`storefront-service-${service.kind}`}
+                    >
+                      <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted">
+                        {service.photoId ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- foto servita dalla rotta della vetrina
+                          <img
+                            src={links.servicePhoto(service.id, service.photoId, { thumb: true })}
+                            alt=""
+                            loading="lazy"
+                            className="size-full object-cover"
+                          />
+                        ) : (
+                          <Flower2 className="size-7 text-muted-foreground" aria-hidden="true" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <p className="font-medium break-words group-hover:text-primary">{name}</p>
+                        {service.description ? (
+                          <p className="line-clamp-2 text-sm text-muted-foreground">
+                            {service.description}
+                          </p>
+                        ) : null}
+                        <p className="text-sm">
+                          {service.priceFromMinor !== null ? (
+                            <span className="font-semibold tabular-nums">
+                              {t('servicePriceFrom', { price: fmt(service.priceFromMinor) })}
+                            </span>
+                          ) : null}
+                          <span className="ml-2 text-primary">{t('serviceRequest')}</span>
+                        </p>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         ) : null}

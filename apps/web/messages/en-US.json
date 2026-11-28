@@ -620,6 +620,35 @@
         "sent": "We sent your receipt to the shop",
         "networkError": "It couldn’t be sent. Check your connection and try again."
       }
+    },
+    "requests": {
+      "title": "My requests",
+      "subtitle": "The services you asked florists for.",
+      "back": "My requests",
+      "sent": "Done! {shop} received your request: they'll answer here and by email.",
+      "statuses": {
+        "NEW": "Sent",
+        "QUOTED": "Quoted",
+        "ACCEPTED": "Accepted",
+        "DECLINED": "The florist can't",
+        "CANCELLED": "Cancelled by you",
+        "CLOSED": "Closed"
+      },
+      "statusHints": {
+        "NEW": "{shop} is reviewing it. We'll email you when they answer.",
+        "QUOTED": "{shop} sent you a quote.",
+        "ACCEPTED": "You accepted {shop}'s quote.",
+        "DECLINED": "{shop} can't take this request. You don't owe anything.",
+        "CANCELLED": "You cancelled this request. We let {shop} know.",
+        "CLOSED": "{shop} closed this request."
+      },
+      "declinedTitle": "What {shop} says",
+      "whatYouSent": "What you sent",
+      "cancel": "Cancel request",
+      "cancelTitle": "Cancel request {number}?",
+      "cancelBody": "We'll let {shop} know you no longer need it.",
+      "cancelConfirm": "Yes, cancel",
+      "cancelled": "Request cancelled"
     }
   },
   "store": {
@@ -918,7 +947,10 @@
     "accountOrders": "My orders",
     "accountSignIn": "Sign in",
     "paymentAfterAccept": "We give you the payment details once the shop accepts your order.",
-    "paymentAsk": "Ask the shop for the payment details."
+    "paymentAsk": "Ask the shop for the payment details.",
+    "servicesTitle": "Services",
+    "servicePriceFrom": "From {price}",
+    "serviceRequest": "Request"
   },
   "timezones": {
     "America/Mexico_City": "Central Time (CDMX, Aguascalientes, Guadalajara, Monterrey)",
@@ -5517,5 +5549,97 @@
       "upload": "Upload photos",
       "full": "You already have {max} photos. Remove one to upload another."
     }
+  },
+  "serviceRequest": {
+    "priceFrom": "From {price}",
+    "includes": "What's included",
+    "howItWorks": "Tell {shop} what you need. They answer in your account and by email, with a quote if they can do it. You don't pay anything yet.",
+    "formTitle": "Request this service",
+    "signInBody": "To send your request to {shop}, sign in or create your account. Then you come back here.",
+    "signIn": "Sign in or create account",
+    "unavailable": "This service isn't available right now.",
+    "openLimit": "You already have {count} open requests with this florist. Wait for an answer or cancel one.",
+    "myRequests": "See my requests",
+    "choose": "Choose",
+    "eventType": "Type of event",
+    "eventTypes": {
+      "WEDDING": "Wedding",
+      "XV": "Quinceañera",
+      "BAPTISM": "Baptism",
+      "CORPORATE": "Corporate",
+      "OTHER": "Other"
+    },
+    "guests": "Guests",
+    "place": "Place",
+    "placeHint": "The venue, neighborhood and city.",
+    "venueType": "Type of venue",
+    "venueTypes": {
+      "RESTAURANT": "Restaurant",
+      "HOTEL": "Hotel",
+      "OFFICE": "Office",
+      "SHOP": "Shop",
+      "OTHER": "Other"
+    },
+    "recurrence": "One-off or recurring?",
+    "recurrences": {
+      "ONCE": "One-off",
+      "RECURRING": "Recurring"
+    },
+    "weekday": "Day of the week",
+    "weekdays": {
+      "0": "Sunday",
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday"
+    },
+    "window": "Time window",
+    "anyTime": "Any time",
+    "windowOption": "From {start} to {end}",
+    "duration": "For how long?",
+    "durations": {
+      "ONE_MONTH": "1 month",
+      "THREE_MONTHS": "3 months",
+      "SIX_MONTHS": "6 months",
+      "OPEN": "No end date"
+    },
+    "plants": "About how many plants?",
+    "plantsHint": "The florist confirms the price at the first visit.",
+    "frequency": "How often?",
+    "frequencies": {
+      "MONTHLY_1": "Once a month",
+      "MONTHLY_2": "Twice a month",
+      "WEEKLY": "Every week"
+    },
+    "date": "Date",
+    "startDate": "Starting on",
+    "dateOptional": "Optional.",
+    "budget": "Budget ({currency})",
+    "budgetWeekly": "Budget per delivery ({currency})",
+    "budgetHint": "Optional: it helps the florist suggest something that fits.",
+    "address": "Address",
+    "newAddress": "Another address",
+    "addressNotes": "Directions (optional)",
+    "message": "Tell them more (optional)",
+    "messageRequired": "What do you need?",
+    "messageHint": "Colors, style, flowers you like, times… Only the florist reads it.",
+    "photos": "Inspiration photos (up to {max})",
+    "photosHint": "Optional: photos of what you like or of the place.",
+    "addPhotos": "Add photos",
+    "removePhoto": "Remove {name}",
+    "contactPhone": "Your phone",
+    "contactPhoneHint": "In case the florist needs to call you.",
+    "notBinding": "A request isn't a commitment: you decide when the florist sends you a quote.",
+    "submit": "Send request",
+    "networkError": "We couldn't send your request. Check your connection and try again."
+  },
+  "requestDetails": {
+    "date": "Date",
+    "budget": "Budget",
+    "address": "Address",
+    "photoDeleted": "Photo deleted",
+    "photoAlt": "Inspiration photo {index}"
   }
 }

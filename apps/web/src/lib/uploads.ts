@@ -24,3 +24,23 @@ export async function optionalUploadedBytes(formData: FormData): Promise<Uint8Ar
   if (!(file instanceof File) || file.size === 0) return null;
   return uploadedBytes(formData);
 }
+
+/**
+ * Le foto di un campo con più file (le foto di ispirazione di una richiesta, M5): al massimo `max`,
+ * ognuna e tutte insieme sotto il limite di una richiesta. Tipo e misure li rivalida il servizio.
+ */
+export async function uploadedPhotoList(
+  formData: FormData,
+  field: string,
+  max: number,
+): Promise<Uint8Array[]> {
+  const files = formData
+    .getAll(field)
+    .filter((value): value is File => value instanceof File && value.size > 0);
+  if (files.length > max) throw new ValidationError({ [field]: 'too_many_photos' });
+  const total = files.reduce((sum, file) => sum + file.size, 0);
+  if (total > PHOTO_LIMITS.maxUploadBytes) {
+    throw new ValidationError({ [field]: 'file_too_large' });
+  }
+  return Promise.all(files.map(async (file) => new Uint8Array(await file.arrayBuffer())));
+}
