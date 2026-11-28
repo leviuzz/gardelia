@@ -1730,6 +1730,48 @@ founder il 26/11, in cinque passi come M3-1.
 - **Prossimo:** M5 «Servizi in vetrina e richieste», col piano di dettaglio del 28/11
   (`docs/MARKETPLACE_FLOWS.md` §7): prima M5-1.
 
+### Marketplace M5-1 «Servizi in vetrina e richieste» (28/11, ADR-089) — sul ramo di lavoro
+
+- **Dominio** (`packages/domain/src/storefront-services.ts`): i quattro predefiniti e i servizi
+  della fioreria, lo schema del servizio (nome solo per quelli della fioreria, «Desde $X» in unità
+  minime), Floral Care solo con l'offerta pronta; il modulo della richiesta per tipo (evento,
+  locale, ogni settimana, Floral Care, servizio della fioreria), l'indirizzo nuovo con le regole
+  della rubrica, le date da domani a 12 mesi, le risposte nel JSON validate, il limite delle 5
+  aperte, i motivi del rifiuto con il testo nella lingua del mercato, i filtri dell'elenco; permessi
+  `requests:read` (tutti) e `requests:write` (proprietario e gerente).
+- **Database** (migrazione `storefront_services`): `StorefrontService` (un predefinito per tipo con
+  l'indice unico parziale) e le sue foto, `ServiceRequest` (numero «SOL-», stati con CHECK, motivo
+  ⇔ rifiutata, JSON oggetto, indirizzo intero o niente, `submitKey` unica) e le sue foto (chiavi
+  con CHECK); RLS su tutte, la guardia `buyer_request_guard`, le funzioni per chi compra
+  (`app_buyer_request_shop`, `app_buyer_service_requests`, `..._export`) e
+  `app_service_request_photos_to_purge`.
+- **Servizi:** Impostazioni dei servizi (salva, crea fino a 20, pubblica, sposta, archivia, foto
+  fino a 6), la vetrina pubblica con la sezione «Servicios» e la pagina del servizio, l'invio della
+  richiesta (foto prima del commit, doppio invio, lock e limite, cliente del CRM collegato con
+  `linkBuyerCustomerTx` estratto dagli ordini online, email dopo il commit senza il messaggio),
+  «Mis solicitudes», pagina, annullamento e foto da `withBuyerRequest`; per la fioreria elenco,
+  pagina, «Rifiuta», foto private, i numeri per il menu e «Da gestire»; ZIP della fioreria
+  (`servicios_tienda.csv`, `solicitudes.csv`), «Descargar mis datos», foto nella cancellazione della
+  fioreria, cancellazione delle foto 30 giorni dopo la chiusura nel lavoro giornaliero.
+- **Web:** Impostazioni → Negozio online → «Servizi in vetrina» e la scheda di ogni servizio; la
+  sezione «Servicios» della vetrina (anche nell'anteprima), la pagina pubblica del servizio con il
+  modulo e «Entrar o crear cuenta»; «Mis solicitudes» e la pagina della richiesta nel conto; la voce
+  «Richieste» nel menu col numero, «Da gestire», l'elenco con i filtri e la pagina con «Rifiuta» e il
+  link a «Nuovo preventivo»; testi nelle tre lingue e le frasi del registro.
+- **Test:** dominio (`storefront-services.test.ts`), RLS (guardia nuova e CHECK), integrazione
+  (`storefront-services.test.ts`, `service-requests.test.ts`: predefiniti, limiti, Floral Care
+  pronto o no, foto, vetrina, invio con foto e doppio invio, date, frequenze, fasce, indirizzi, 5
+  aperte, annullamento, rifiuto con email, conteggi uguali fra menu, «Da gestire» ed elenco, staff,
+  isolamento A↔B e fra persone, cancellazione delle foto, esportazioni; la cancellazione della
+  fioreria con servizi e richieste), E2E `marketplace-services.spec.ts` a 320 px. In locale 1479
+  test ed E2E 127/128: l'unico rosso, la verifica in due passaggi (`account-security.spec.ts`),
+  passa da solo (5/5); nel giro lungo lo ferma il limite degli accessi per IP, non M5.
+- **PROPOSTO e DA VALIDARE:** in ADR-089; bozze legali aggiornate (aviso de privacidad, termini per
+  chi compra §6 bis) e `legal:sync`.
+- **Prossimo:** M5-2 «Dal preventivo all'ordine» (preventivo legato alla richiesta, «Aceptar» e
+  «No, gracias» dal conto, ordine o contratto dalla richiesta, messaggi), poi la revisione di tutto
+  M5, staging e il recap.
+
 Prossimo: da parte del founder le variabili su Vercel (`ASSISTANT_PROVIDER=anthropic`, una chiave solo per staging,
 `ASSISTANT_MODEL=claude-opus-5-5`, `ASSISTANT_CARE_MODEL=claude-haiku-5-5`,
 `ASSISTANT_MONTHLY_BUDGET_USD=2`, 10 a dicembre), i crediti alla sua fioreria di prova con

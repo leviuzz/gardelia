@@ -3178,8 +3178,8 @@ niente codice nuovo»):**
   con la consegna a 0; pagina del prodotto tolto; link di stato fino a 30 giorni dopo la consegna,
   allungato se la consegna si sposta. Dettagli in `docs/MARKETPLACE_FLOWS.md` §4.
 - **Stato (28/11):** M0, M1 (ADR-087) e M3 (ADR-088: M3-1, M3-2, M3-3 e la revisione di tutto il
-  blocco) su staging; prossimo M5 «Servizi in vetrina e richieste» (`docs/MARKETPLACE_FLOWS.md`
-  §7), poi M6, M2, M9, M4, M8, M7.
+  blocco) su staging; M5 «Servizi in vetrina e richieste» in corso (ADR-089: M5-1 sul ramo di
+  lavoro, poi M5-2 e la revisione di tutto il blocco), poi M6, M2, M9, M4, M8, M7.
 
 ### ADR-087 — Marketplace M1: la vetrina che vende — FATTO (M1-1 e M1-2 su staging, 25/11/2026)
 
@@ -3455,6 +3455,82 @@ niente codice nuovo»):**
 - **Fuori da M3:** recensioni (M8), domande prima di ordinare (M5), prenotazioni di Floral Care
   (M6), tempo per accettare regolabile e capienza (M4), notifiche push o WhatsApp automatico,
   pagamenti online (D-26).
+
+### ADR-089 — Marketplace M5: servizi in vetrina e richieste — IN CORSO (M5-1 sul ramo di lavoro, 28/11/2026)
+
+- **Perché:** blocco M5 del giro del marketplace (ADR-086, C7 e F9 di `docs/MARKETPLACE_FLOWS.md`),
+  nell'ordine approvato il 25/11 e con il «tutto di fila» del 28/11: chi compra chiede dalla
+  vetrina tutti i servizi della fioreria, non solo i prodotti. Due rilasci: **M5-1** «Servizi in
+  vetrina e richieste» (questo), **M5-2** «Dal preventivo all'ordine» (preventivo legato alla
+  richiesta, «Aceptar» dal conto, ordine o contratto dalla richiesta, messaggi).
+- **I servizi** (`StorefrontService`, `StorefrontServicePhoto`): quattro predefiniti per fioreria
+  (`EVENT` «Eventos y bodas», `VENUE` «Decoración de espacios», `WEEKLY` «Flores cada semana»,
+  `CARE` «Floral Care»; uno per tipo con l'indice unico parziale, la riga nasce al primo
+  salvataggio, alla pubblicazione o alla prima foto) e fino a 20 della fioreria (`CUSTOM`, con
+  nome e le domande «data» e «indirizzo»). Descrizione, «cosa include», «Desde $X» facoltativo,
+  fino a 6 foto (la catena delle foto del catalogo), acceso o spento, archivio solo per quelli della
+  fioreria. In vetrina prima i predefiniti nel loro ordine, poi quelli della fioreria nell'ordine
+  delle frecce. Floral Care si accende solo con l'offerta pronta (piano, tariffe con frequenze e
+  una fascia attiva, `careOfferReadyTx`) e sparisce da solo dalla vetrina se l'offerta smette di
+  esserlo. Impostazioni → Negozio online → «Servizi in vetrina», proprietario e gerente
+  (`tenant:settings:update`). La regola per pubblicare il negozio non cambia (serve un prodotto
+  online).
+- **Le richieste** (`ServiceRequest`, `ServiceRequestPhoto`): una per invio, numero «SOL-0001»
+  per fioreria (`nextTenantCounter`), il tipo del servizio, la data, l'indirizzo in colonne
+  (salvato nel conto o nuovo), il budget in unità minime, telefono, messaggio (fino a 1000) e le
+  risposte del modulo per tipo in `answers` (JSON validato dal dominio, CHECK oggetto), fino a 3
+  foto di ispirazione nella riga (chiavi `tenants/<id>/service-requests/` con CHECK). Stati `NEW`,
+  `QUOTED` e `ACCEPTED` (M5-2), `DECLINED` (con il motivo pronto e il testo che legge chi compra),
+  `CANCELLED`, `CLOSED`. Il cliente del CRM si collega per email o si crea, come per gli ordini
+  online (`linkBuyerCustomerTx`, estratto da `placeMarketplaceOrder`). Doppio invio con
+  `submitKey` unica; al massimo 5 aperte (nuove o con preventivo) per persona e fioreria, sotto
+  advisory lock; date da domani a 12 mesi; frequenze di Floral Care e fasce di «Flores cada
+  semana» solo fra quelle della fioreria.
+- **Chi compra entra da un solo punto:** `withBuyerRequest` (`packages/core/src/buyer-service-requests.ts`),
+  gemello di `withBuyerOrder`: la fioreria da `app_buyer_request_shop` (DEFINER, solo per le
+  richieste della persona), poi `withBuyerRequestContext` con `app.buyer_request_id` e le policy
+  RESTRICTIVE `buyer_request_guard` su `ServiceRequest` e `ServiceRequestPhoto`. L'invio passa
+  invece, come l'ordine online, dal contesto della fioreria con l'utente di chi compra (il limite
+  delle aperte deve contare le altre richieste della persona) e filtri espliciti. «Mis
+  solicitudes» da `app_buyer_service_requests()`, «Descargar mis datos» da
+  `app_buyer_service_requests_export()`.
+- **La fioreria:** voce «Richieste» sotto Ordini (il numero delle nuove per chi può rispondere),
+  riga «N richieste di servizio nuove» in «Da gestire» (stesso numero del filtro «Nuove»), elenco
+  con i filtri, pagina con il cliente del CRM e le foto private, «Rifiuta» con un motivo pronto
+  («Non abbiamo disponibilità», «Non arriviamo», «Non facciamo questo lavoro», «Altro» con il
+  testo). Permessi nuovi `requests:read` (tutti i ruoli) e `requests:write` (proprietario e
+  gerente). Finché M5-2 non lega il preventivo alla richiesta, la pagina porta a «Nuovo
+  preventivo» per quel cliente.
+- **Email** (lingua del mercato, dopo il commit, mai il messaggio di chi compra né l'indirizzo
+  intero): «Recibimos tu solicitud SOL-…» a chi compra, «Nueva solicitud SOL-…: servizio» a
+  proprietari e gerenti (data e zona), «… no puede atender tu solicitud» con il motivo, «Se canceló
+  la solicitud» alla fioreria.
+- **Dati:** `servicios_tienda.csv` e `solicitudes.csv` nello ZIP della fioreria (senza foto), le
+  richieste in «Descargar mis datos», le foto nella cancellazione della fioreria, le foto di
+  ispirazione cancellate 30 giorni dopo la chiusura (rifiutata, annullata, chiusa) dal lavoro
+  giornaliero (`app_service_request_photos_to_purge`); la richiesta e il testo restano. Registro:
+  `storefront_service.*` e `service_request.*` con tipi e ID, mai i testi.
+- **PROPOSTO (da confermare in staging):**
+  1. due rilasci (M5-1, M5-2);
+  2. conto obbligatorio per chiedere un servizio, come per ordinare (D-26);
+  3. nomi dei predefiniti tradotti da noi; descrizioni e servizi della fioreria nella lingua del
+     mercato, senza traduzioni;
+  4. al massimo 5 richieste aperte per persona e fioreria, 3 foto per richiesta, 20 servizi della
+     fioreria, 6 foto per servizio;
+  5. Floral Care in vetrina solo con l'offerta pronta; fino a M6 una richiesta semplice (piante e
+     frequenza) a cui il fiorista risponde con il contratto di oggi;
+  6. nessuna scadenza automatica delle richieste;
+  7. «Flores cada semana» accettato diventa ordini fatti a mano fino a M7;
+  8. lo staff vede le richieste ma non le rifiuta (e non vede il numero nel menu);
+  9. in vetrina prima i predefiniti, poi quelli della fioreria;
+  10. le foto di ispirazione si cancellano 30 giorni dopo la chiusura, come quelle dei messaggi
+      degli ordini (un'eccezione nuova alla regola «niente cancellazioni», da confermare).
+- **DA VALIDARE:** aviso de privacidad (richieste con foto e indirizzi, chi le vede, cancellazione
+  delle foto); termini per chi compra (la richiesta non è vincolante, il preventivo accettato è un
+  accordo con la fioreria, PROFECO).
+- **Fuori da M5-1:** il preventivo dalla richiesta, l'accettazione dal conto, l'ordine o il
+  contratto dalla richiesta e i messaggi (M5-2); le prenotazioni di Floral Care con prezzo subito
+  (M6); gli abbonamenti di «Flores cada semana» (M7).
 
 ## 3. Proposte da approvare
 

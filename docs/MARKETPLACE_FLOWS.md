@@ -443,6 +443,17 @@ di lavorare «tutto di fila» del 28/11). Il dettaglio tecnico è in ADR-089 qua
   le rifiuta né prepara preventivi.
 - **DA VALIDARE:** aviso de privacidad (richieste con foto e indirizzi) e termini per chi compra
   (richiesta non vincolante, preventivo accettato come accordo con la fioreria).
+- **Stato (28/11): M5-1 fatto sul ramo di lavoro** (ADR-089), con questi cambi rispetto al piano:
+  - in vetrina prima i predefiniti, nel loro ordine, poi i servizi della fioreria nell'ordine delle
+    frecce (le frecce solo fra i servizi della fioreria);
+  - finché M5-2 non lega il preventivo alla richiesta, la pagina della richiesta porta a «Nuovo
+    preventivo» per quel cliente (una funzione che c'è già, non un pulsante finto);
+  - esportazioni, «Descargar mis datos», foto nella cancellazione della fioreria e cancellazione
+    delle foto 30 giorni dopo la chiusura sono già in M5-1 (il piano li metteva in M5-2);
+  - per pubblicare il negozio serve ancora un prodotto online: un negozio con soli servizi non si
+    pubblica (da rivedere se il founder lo vuole);
+  - il numero nel menu delle nuove richieste solo per proprietario e gerente, come per gli ordini da
+    accettare; «Da gestire» per tutta la squadra.
 
 ## PROPOSTO (da confermare)
 

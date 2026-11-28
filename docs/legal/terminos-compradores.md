@@ -90,9 +90,20 @@ entrega, y si lo cambia después de aceptarlo. [Borrador del 26/11/2026 — vali
    devolución, te avisamos por correo y la ves en tu pedido. [Validar con el abogado: plazos, casos
    de devolución y derechos del consumidor conforme a la Ley Federal de Protección al Consumidor.]
 
+## 6 bis. Solicitudes de servicios
+
+Desde la página de una florería puedes pedir sus servicios (eventos y bodas, decoración de
+espacios, flores cada semana, Floral Care y los que ofrezca la florería). Una solicitud **no es un
+pedido ni un compromiso**: la florería la revisa y te responde desde tu cuenta y por correo; puede
+decirte que no, con un motivo. El precio «desde» de un servicio es orientativo: el precio, las
+condiciones y el pago se acuerdan con la florería en su cotización. Puedes cancelar tu solicitud
+mientras siga abierta. Tienes hasta 5 solicitudes abiertas con cada florería. [Borrador del
+28/11/2026 — validar con el abogado: naturaleza no vinculante de la solicitud y de la cotización
+aceptada como acuerdo con la florería, Ley Federal de Protección al Consumidor.]
+
 ## 7. Uso permitido
 
-No está permitido hacer pedidos falsos, usar datos de otras personas sin su permiso ni intentar
+No está permitido hacer pedidos o solicitudes falsos, usar datos de otras personas sin su permiso ni intentar
 acceder a cuentas ajenas. Podemos suspender una cuenta que incumpla estas reglas.
 
 ## 7 bis. Asistente de plantas (Floral Care)

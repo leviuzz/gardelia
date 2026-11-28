@@ -47,6 +47,7 @@ La logica di business sta in `domain`/`core`, **mai** nelle pagine o nelle serve
 3. Accesso ai dati: solo dentro `withTenantContext(db, ctx, fn)`; **in più** filtra sempre esplicitamente `where: { tenantId: ctx.tenantId, ... }` e imposta `tenantId: ctx.tenantId` nelle create (difesa in profondità).
    La pagina del cliente di Floral Care legge solo con `withPortalContext` (un contratto) e scrive solo: «Cambiar fecha» con `withPortalWriteContext`; i propri messaggi e le loro foto con le policy `portal_insert`; il proprio segno di lettura con `app_portal_mark_read()`; le proprie consultas dell'Asistente de plantas (casi, risposte, chiamate) con le policy `portal_insert`, e i crediti solo con le funzioni `app_portal_assistant_*` (ADR-085). Una tabella nuova si apre al portale solo con una policy `portal_read` (o `portal_insert`) nella migrazione (ADR-084).
    Chi ha fatto un ordine online legge e scrive sul suo ordine (pagina dell'ordine, messaggi, segno di lettura, «Cancelar pedido», «Pedir de nuevo», «Confirmar cambios» e «No, gracias», le risposte «Sí / No», «Ya pagué» con la prova di pagamento) solo passando da `withBuyerOrder` di `core/src/buyer-orders.ts`: la fioreria da `app_buyer_order_shop`, mai dal browser, poi `withBuyerOrderContext` con la guardia `buyer_order_guard` (solo le righe di quell'ordine). Una tabella nuova dell'ordine che chi compra deve toccare entra nella guardia (`app_enable_buyer_order_guard`) nella stessa migrazione, come `OrderChangeRequest` e `OrderPaymentProof` (ADR-088); `BUYER_ORDER_GUARD_TABLES` di `packages/db/test/rls.test.ts` le elenca.
+   Le richieste dei servizi della vetrina (M5, ADR-089) si inviano come un ordine online (contesto della fioreria con l'utente di chi compra e filtri espliciti); dopo, chi le ha fatte le legge, le annulla e ne vede le foto solo passando da `withBuyerRequest` di `core/src/buyer-service-requests.ts`: la fioreria da `app_buyer_request_shop`, poi `withBuyerRequestContext` con la guardia `buyer_request_guard` (`app_enable_buyer_request_guard`, oggi su `ServiceRequest` e `ServiceRequestPhoto`).
 4. I servizi ricevono un `TenantContext` ottenuto **solo** da `resolveTenantContext` (sessione + membership attiva). Mai accettare `tenantId` dal client.
 5. Ogni servizio chiama `requirePermission(ctx, '...')` come prima istruzione. I permessi sono definiti SOLO in `packages/domain/src/permissions.ts`.
 6. Ogni pagina e **ogni server action** sotto `/app/[tenantSlug]` chiama `getTenantContext(slug)` (il layout non protegge le action). Le server action lo fanno passando da `runTenantAction(slug, …)` di `apps/web/src/lib/tenant-action.ts` (il test `apps/web/test/conventions.test.ts` fallisce se un'azione lo salta).
@@ -74,7 +75,8 @@ La logica di business sta in `domain`/`core`, **mai** nelle pagine o nelle serve
   (ADR-078, ADR-084); le foto dei messaggi degli ordini online 30 giorni dopo consegna, ritiro o
   annullamento (o dopo il giorno dell'ordine, se resta aperto), e subito se tolte; il testo resta
   (ADR-088); con la stessa regola le foto delle prove di pagamento, mentre la prova e il pagamento
-  restano (ADR-088, M3-3).
+  restano (ADR-088, M3-3); le foto di ispirazione delle richieste dei servizi 30 giorni dopo la
+  chiusura (rifiutata, annullata, chiusa), mentre la richiesta resta (ADR-089).
 - **Migrazioni:** `pnpm db:migrate` (crea + applica); vincoli CHECK, policy e indici parziali vanno nel SQL della migrazione (Prisma li ignora nel diff). Non modificare migrazioni già applicate in ambienti condivisi.
 
 ## 6. Comandi

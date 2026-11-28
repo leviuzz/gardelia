@@ -134,6 +134,15 @@ delle relazioni incluse, e pg 9 non accetterà più query sovrapposte sulla stes
   private e i pulsanti d'ordine spenti. Google (M1-2): `PUBLIC_INDEXING` decide `robots`,
   `robots.txt` e `sitemap.xml` (`app_public_sitemap`, SECURITY DEFINER come la ricerca), regole pure
   in `lib/indexing.ts`; dati strutturati in `lib/structured-data.ts`.
+- **Le richieste dei servizi di chi compra** (M5, ADR-089): l'invio come un ordine online (contesto
+  della fioreria con l'utente di chi compra, limite delle aperte sotto advisory lock, foto salvate
+  prima della transazione); poi un solo ingresso, `withBuyerRequest` di
+  `core/src/buyer-service-requests.ts`: `app_buyer_request_shop(richiesta)` dà la fioreria solo per
+  una richiesta della persona, `withBuyerRequestContext` imposta `app.buyer_request_id` e le policy
+  RESTRICTIVE `buyer_request_guard` lasciano solo le righe di quella richiesta su `ServiceRequest` e
+  `ServiceRequestPhoto`. I servizi della vetrina (`services/storefront-services.ts`) e le richieste
+  per la fioreria (`services/service-requests.ts`) stanno nel contesto della fioreria; la vetrina
+  legge solo i servizi pubblicati (`readStoreServicesTx`), Floral Care solo con l'offerta pronta.
 - **L'ordine online di chi compra** (M3, ADR-088): un solo ingresso, `withBuyerOrder` di
   `core/src/buyer-orders.ts`. `app_buyer_order_shop(ordine)` (SECURITY DEFINER, persona da
   `app.user_id`) dà la fioreria solo per un ordine della persona; poi `withBuyerOrderContext` apre il
