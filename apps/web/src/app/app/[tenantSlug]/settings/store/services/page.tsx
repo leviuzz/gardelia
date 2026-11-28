@@ -47,6 +47,8 @@ export default async function StoreServicesPage({
 
   function row(service: StorefrontServiceDto, move: { up: boolean; down: boolean } | null) {
     const key = storefrontServiceKey(service);
+    // Per i test: il tipo per i predefiniti (stabile anche dopo il primo salvataggio), l'ID per gli altri.
+    const testKey = service.kind === 'CUSTOM' ? key : service.kind.toLowerCase();
     const name = service.name ?? t(`serviceNames.${service.kind}`);
     const careBlocked = service.kind === 'CARE' && !settings.careReady && !service.isPublished;
     const photo = service.photos[0];
@@ -54,7 +56,7 @@ export default async function StoreServicesPage({
       <li
         key={key}
         className="flex flex-wrap items-center gap-3 rounded-xl border p-3"
-        data-testid={`service-row-${key}`}
+        data-testid={`service-row-${testKey}`}
       >
         <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
           {photo ? (
@@ -126,7 +128,7 @@ export default async function StoreServicesPage({
             size="sm"
             disabled={careBlocked}
             icon={service.isPublished ? <EyeOff /> : <Eye />}
-            data-testid={`service-toggle-${key}`}
+            data-testid={`service-toggle-${testKey}`}
           >
             {service.isPublished ? t('storeServices.unpublish') : t('storeServices.publish')}
           </ActionButton>

@@ -2,7 +2,7 @@
 
 import { XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
 import {
   SERVICE_DECLINE_REASONS,
   SERVICE_REQUEST_LIMITS,
@@ -12,9 +12,9 @@ import { Field, controlProps } from '@/components/form/field';
 import { RadioCard } from '@/components/form/radio-card';
 import { SubmitButton } from '@/components/form/submit-button';
 import { Textarea } from '@/components/ui/input';
-import { fieldError, idleState, type ActionState } from '@/lib/action-state';
+import { fieldError, type ActionState } from '@/lib/action-state';
 import { preserveOnSubmit } from '@/lib/preserve-on-submit';
-import { useActionToast } from '@/lib/use-action-toast';
+import { useToastActionState } from '@/lib/use-action-toast';
 
 /**
  * «Rifiuta» una richiesta (M5): un motivo pronto, che chi compra legge nella lingua del mercato, e un
@@ -26,8 +26,8 @@ export function DeclineRequestForm({
   readonly action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
 }) {
   const t = useTranslations('requests.decline');
-  const [state, formAction] = useActionState(action, idleState);
-  useActionToast(state);
+  // Riuscito, il modulo sparisce (la richiesta è chiusa): il messaggio deve restare lo stesso.
+  const [state, formAction] = useToastActionState(action);
   const [reason, setReason] = useState<ServiceDeclineReason>('NO_AVAILABILITY');
   const err = (field: string) => fieldError(state, field);
   return (
